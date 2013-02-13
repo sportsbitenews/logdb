@@ -43,6 +43,7 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.EncodingRule;
+import org.araqne.codec.FastEncodingRule;
 import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
@@ -456,10 +457,7 @@ public class LogStorageEngine implements LogStorage {
 	}
 
 	private LogRecord convert(Log log) {
-		int length = EncodingRule.lengthOf(log.getData());
-		ByteBuffer bb = ByteBuffer.allocate(length);
-		EncodingRule.encode(bb, log.getData());
-		bb.flip();
+		ByteBuffer bb = new FastEncodingRule().encode(log.getData());
 		LogRecord logdata = new LogRecord(log.getDate(), log.getId(), bb);
 		return logdata;
 	}

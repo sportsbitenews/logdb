@@ -26,6 +26,14 @@
 		</license>
 	</licenses>
 
+	<distributionManagement>
+		<repository>
+			<id>araqne</id>
+			<name>Araqne</name>
+			<url>scp://staging.araqne.org:2222/home/service/araqne/</url>
+		</repository>
+	</distributionManagement>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -97,6 +105,11 @@
 				<groupId>org.araqne</groupId>
 				<artifactId>araqne-util</artifactId>
 				<version>1.0.0</version>
+			</dependency>
+			<dependency>
+				<groupId>org.araqne</groupId>
+				<artifactId>araqne-geoip</artifactId>
+				<version>1.2.0</version>
 			</dependency>
 			<dependency>
 				<groupId>org.slf4j</groupId>
@@ -188,5 +201,6 @@
 		<module>araqne-logstorage</module>
 		<module>araqne-snmptrap-parser</module>
 		<module>araqne-syslog-parser</module>
+		<module>araqne-logdb-geoip</module>
 	</modules>
 </project>
