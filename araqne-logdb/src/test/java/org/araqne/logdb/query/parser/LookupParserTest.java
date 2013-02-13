@@ -24,7 +24,8 @@ public class LookupParserTest {
 	public void testSimpleCase() {
 		// lookup <name> <lookup key field> OUTPUT <lookup target field>
 		LookupParser p = new LookupParser(null);
-		Lookup lookup = (Lookup) p.parse(null, "lookup code output auth_code_desc");
+		Lookup lookup = (Lookup) p.parse(null, "lookup sample code output auth_code_desc");
+		assertEquals("sample", lookup.getHandlerName());
 		assertEquals("code", lookup.getSourceField());
 		assertEquals("code", lookup.getLookupInputField());
 		assertEquals("auth_code_desc", lookup.getLookupOutputField());
@@ -36,7 +37,8 @@ public class LookupParserTest {
 		// lookup <name> <lookup key field> AS <renamed field> OUTPUT <lookup
 		// target field> AS <renamed target name>
 		LookupParser p = new LookupParser(null);
-		Lookup lookup = (Lookup) p.parse(null, "lookup code AS in OUTPUT auth_code_desc as out");
+		Lookup lookup = (Lookup) p.parse(null, "lookup sample code AS in OUTPUT auth_code_desc as out");
+		assertEquals("sample", lookup.getHandlerName());
 		assertEquals("code", lookup.getSourceField());
 		assertEquals("in", lookup.getLookupInputField());
 		assertEquals("auth_code_desc", lookup.getLookupOutputField());

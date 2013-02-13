@@ -38,6 +38,10 @@ public class Lookup extends LogQueryCommand {
 		this.lookupOutputField = lookupOutputField;
 		this.targetField = targetField;
 	}
+	
+	public String getHandlerName() {
+		return handlerName;
+	}
 
 	public String getSourceField() {
 		return sourceField;

@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -98,6 +99,10 @@ public class LogQueryServiceImpl implements LogQueryService {
 		this.bc = bc;
 		this.queries = new ConcurrentHashMap<Integer, LogQuery>();
 		this.callbacks = new CopyOnWriteArraySet<LogQueryEventListener>();
+		
+		// ensure directory
+		File dir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query");
+		dir.mkdirs();
 
 		prepareQueryParsers();
 	}

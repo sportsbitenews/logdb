@@ -52,7 +52,7 @@ public class LookupParser implements LogQueryCommandParser {
 		if (outputOffset == -1)
 			throw new LogQueryParseException("output-token-not-found", commandString.length());
 
-		List<String> inputTokens = tokens.substrings(1, outputOffset);
+		List<String> inputTokens = tokens.substrings(2, outputOffset);
 		List<String> outputTokens = tokens.substrings(outputOffset + 1);
 
 		String handlerName = tokens.firstArg();
@@ -74,7 +74,7 @@ public class LookupParser implements LogQueryCommandParser {
 		}
 
 		if (tokens.size() != 3)
-			throw new LogQueryParseException("invalid-looup-field", -1);
+			throw new LogQueryParseException("invalid-lookup-field", -1);
 
 		if (!tokens.get(1).equalsIgnoreCase("as"))
 			throw new LogQueryParseException("as-token-not-found", -1);
