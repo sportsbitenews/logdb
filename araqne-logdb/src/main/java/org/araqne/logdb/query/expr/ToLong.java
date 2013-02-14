@@ -42,7 +42,10 @@ public class ToLong implements Expression {
 			Object v = valueExpr.eval(map);
 			if (v == null)
 				return null;
-			return Long.parseLong(v.toString(), radix);
+			String s = v.toString();
+			if (s.isEmpty())
+				return null;
+			return Long.parseLong(s, radix);
 		} catch (Throwable t) {
 			return null;
 		}

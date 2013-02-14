@@ -63,5 +63,5 @@ public abstract class LogFileReader {
 	public abstract void traverse(Date from, Date to, long offset, long limit, LogRecordCallback callback) throws IOException,
 			InterruptedException;
 
-	public abstract void close() throws IOException;
+	public abstract void close();
 }

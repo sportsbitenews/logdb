@@ -267,14 +267,7 @@ public class InvertedIndexReader {
 
 		closed = true;
 
-		try {
-			indexReader.close();
-		} catch (IOException e) {
-		}
-
-		try {
-			dataReader.close();
-		} catch (IOException e) {
-		}
+		indexReader.close();
+		dataReader.close();
 	}
 }

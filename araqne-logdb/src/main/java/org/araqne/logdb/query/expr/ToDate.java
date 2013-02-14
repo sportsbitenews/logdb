@@ -44,7 +44,10 @@ public class ToDate implements Expression {
 			return null;
 
 		try {
-			return dateFormat.parse(value.toString());
+			String s = value.toString();
+			if (s.isEmpty())
+				return null;
+			return dateFormat.parse(s);
 		} catch (Throwable t) {
 			return null;
 		}

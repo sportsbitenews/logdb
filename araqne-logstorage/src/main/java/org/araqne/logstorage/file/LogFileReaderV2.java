@@ -133,7 +133,7 @@ public class LogFileReaderV2 extends LogFileReader {
 	public LogRecord find(long id) throws IOException {
 		if (id <= 0)
 			return null;
-		
+
 		int l = 0;
 		int r = indexBlockHeaders.size() - 1;
 		while (r >= l) {
@@ -276,10 +276,20 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		decompresser.end();
-		indexFile.close();
-		dataFile.close();
+
+		try {
+			indexFile.close();
+		} catch (IOException e) {
+			logger.error("araqne logstorage: cannot close index file - " + indexPath.getAbsolutePath(), e);
+		}
+
+		try {
+			dataFile.close();
+		} catch (IOException e) {
+			logger.error("araqne logstorage: cannot close data file - " + dataPath.getAbsolutePath(), e);
+		}
 	}
 
 	private Integer indexBlockNextId = 1;

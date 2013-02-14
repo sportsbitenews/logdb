@@ -634,11 +634,7 @@ public class LogStorageEngine implements LogStorage {
 			throw new IllegalStateException("cannot read log: " + tableName + ", " + day + ", " + id);
 		} finally {
 			if (reader != null)
-				try {
-					reader.close();
-				} catch (IOException e) {
-					logger.error("araqne logstorage: cannot close logfile reader", e);
-				}
+				reader.close();
 		}
 	}
 
@@ -774,11 +770,7 @@ public class LogStorageEngine implements LogStorage {
 			logger.error("araqne logstorage: search tablet failed", e);
 		} finally {
 			if (reader != null)
-				try {
-					reader.close();
-				} catch (IOException e) {
-					logger.error("araqne logstorage: search tablet close failed", e);
-				}
+				reader.close();
 		}
 
 		return c.matched;
@@ -1114,10 +1106,7 @@ public class LogStorageEngine implements LogStorage {
 
 		@Override
 		public void close() {
-			try {
-				reader.close();
-			} catch (IOException e) {
-			}
+			reader.close();
 		}
 
 		@Override

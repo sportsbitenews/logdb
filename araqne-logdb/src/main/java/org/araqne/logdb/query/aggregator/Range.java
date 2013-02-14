@@ -44,6 +44,9 @@ public class Range implements AggregationFunction {
 	@Override
 	public void apply(LogMap map) {
 		Object obj = exprs.get(0).eval(map);
+		if (obj == null || !(obj instanceof Number))
+			return;
+
 		min = NumberUtil.min(min, obj);
 		max = NumberUtil.max(max, obj);
 	}

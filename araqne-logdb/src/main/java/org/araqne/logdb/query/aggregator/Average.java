@@ -42,7 +42,11 @@ public class Average implements AggregationFunction {
 
 	@Override
 	public void apply(LogMap map) {
-		Object obj = exprs.get(0).eval(map);
+		Expression expr = exprs.get(0);
+		Object obj = expr.eval(map);
+		if (obj == null || !(obj instanceof Number))
+			return;
+
 		d = NumberUtil.add(d, obj).doubleValue();
 		count++;
 	}
@@ -73,6 +77,7 @@ public class Average implements AggregationFunction {
 	@Override
 	public void clean() {
 		d = null;
+		count = 0;
 	}
 
 	@Override

@@ -52,10 +52,12 @@ import org.araqne.logdb.query.expr.StringConstant;
 import org.araqne.logdb.query.expr.Sub;
 import org.araqne.logdb.query.expr.Substr;
 import org.araqne.logdb.query.expr.ToDate;
+import org.araqne.logdb.query.expr.ToDouble;
 import org.araqne.logdb.query.expr.ToInt;
 import org.araqne.logdb.query.expr.ToLong;
 import org.araqne.logdb.query.expr.ToString;
 import org.araqne.logdb.query.expr.Trim;
+import org.araqne.logdb.query.expr.Typeof;
 
 public class ExpressionParser {
 
@@ -148,6 +150,8 @@ public class ExpressionParser {
 					exprStack.add(new ToLong(args));
 				} else if (name.equals("int")) {
 					exprStack.add(new ToInt(args));
+				} else if (name.equals("double")) {
+					exprStack.add(new ToDouble(args));
 				} else if (name.equals("date")) {
 					exprStack.add(new ToDate(args));
 				} else if (name.equals("string")) {
@@ -172,6 +176,8 @@ public class ExpressionParser {
 					exprStack.add(new IsStr(args));
 				} else if (name.equals("match")) {
 					exprStack.add(new Match(args));
+				} else if (name.equals("typeof")) {
+					exprStack.add(new Typeof(args));
 				} else {
 					throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
 				}

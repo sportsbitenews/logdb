@@ -44,6 +44,9 @@ public class Sum implements AggregationFunction {
 	@Override
 	public void apply(LogMap map) {
 		Object obj = expr.eval(map);
+		if (obj == null || !(obj instanceof Number))
+			return;
+
 		sum = NumberUtil.add(sum, obj);
 	}
 

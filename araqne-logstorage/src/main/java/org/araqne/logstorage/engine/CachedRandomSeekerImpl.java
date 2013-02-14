@@ -82,10 +82,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		closed = true;
 
 		for (LogFileReader reader : cachedReaders.values()) {
-			try {
-				reader.close();
-			} catch (IOException e) {
-			}
+			reader.close();
 		}
 
 		cachedReaders.clear();

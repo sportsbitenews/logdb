@@ -43,6 +43,9 @@ public class Min implements AggregationFunction {
 	@Override
 	public void apply(LogMap map) {
 		Object obj = exprs.get(0).eval(map);
+		if (obj == null)
+			return;
+
 		put(obj);
 	}
 

@@ -250,10 +250,7 @@ public class Result extends LogQueryCommand {
 
 		@Override
 		public void close() {
-			try {
-				reader.close();
-			} catch (IOException e) {
-			}
+			reader.close();
 		}
 	}
 }

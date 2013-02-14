@@ -107,7 +107,8 @@ public class LogFileReaderV1 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long offset, long limit, LogRecordCallback callback) throws IOException, InterruptedException {
+	public void traverse(Date from, Date to, long offset, long limit, LogRecordCallback callback) throws IOException,
+			InterruptedException {
 		int matched = 0;
 
 		int block = blockHeaders.size() - 1;
@@ -118,7 +119,8 @@ public class LogFileReaderV1 extends LogFileReader {
 			blockLogNum = (indexFile.length() - (header.fp + 18)) / INDEX_ITEM_SIZE;
 
 		// block validate
-		while ((from != null && header.endTime != 0L && header.endTime < from.getTime()) || (to != null && header.startTime > to.getTime())) {
+		while ((from != null && header.endTime != 0L && header.endTime < from.getTime())
+				|| (to != null && header.startTime > to.getTime())) {
 			if (--block < 0)
 				return;
 			header = blockHeaders.get(block);
@@ -175,7 +177,7 @@ public class LogFileReaderV1 extends LogFileReader {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		indexFile.close();
 		dataFile.close();
 	}

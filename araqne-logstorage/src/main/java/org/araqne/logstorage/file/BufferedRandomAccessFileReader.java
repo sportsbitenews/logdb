@@ -272,10 +272,13 @@ public class BufferedRandomAccessFileReader implements DataInput {
 		isInvalidated = false;
 	}
 
-	public void close() throws IOException {
+	public void close() {
 		if (isClosed)
 			return;
-		file.close();
+		try {
+			file.close();
+		} catch (IOException e) {
+		}
 		isClosed = true;
 	}
 }

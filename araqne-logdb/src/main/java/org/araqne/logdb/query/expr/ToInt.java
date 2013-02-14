@@ -43,7 +43,10 @@ public class ToInt implements Expression {
 			Object v = valueExpr.eval(map);
 			if (v == null)
 				return null;
-			return Integer.parseInt(v.toString(), radix);
+			String s = v.toString();
+			if (s.isEmpty())
+				return null;
+			return Integer.parseInt(s, radix);
 		} catch (Throwable t) {
 			return null;
 		}
