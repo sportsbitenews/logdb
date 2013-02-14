@@ -26,8 +26,7 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -50,7 +49,7 @@ public class ParallelMergeSorter {
 	private AtomicInteger cacheCount;
 	private Object flushDoneSignal = new Object();
 	private ExecutorService executor;
-	private CyclicBarrier mergeBarrier;
+	private CountDownLatch mergeLatch;
 
 	public ParallelMergeSorter(Comparator<Item> comparer) {
 		this.comparer = comparer;
@@ -215,7 +214,7 @@ public class ParallelMergeSorter {
 			}
 		}
 
-		mergeBarrier = new CyclicBarrier(tasks.size() + 1);
+		mergeLatch = new CountDownLatch(tasks.size());
 		for (PartitionMergeTask task : tasks) {
 			merges.add(task);
 			executor.submit(new MergeWorker(task));
@@ -223,10 +222,8 @@ public class ParallelMergeSorter {
 
 		// wait partition merge
 		try {
-			mergeBarrier.await();
+			mergeLatch.await();
 		} catch (InterruptedException e) {
-		} catch (BrokenBarrierException e) {
-			logger.error("araqne logdb: barrier assumption fail", e);
 		}
 
 		// final merge
@@ -301,12 +298,7 @@ public class ParallelMergeSorter {
 			} catch (Throwable t) {
 				logger.error("araqne logdb: failed to merge " + task.runs, t);
 			} finally {
-				try {
-					mergeBarrier.await();
-				} catch (InterruptedException e) {
-				} catch (BrokenBarrierException e) {
-					logger.error("araqne logdb: merge barrier assumption fail", e);
-				}
+				mergeLatch.countDown();
 			}
 		}
 
