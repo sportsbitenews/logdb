@@ -1115,4 +1115,12 @@ public class LogStorageEngine implements LogStorage {
 			return "log cursor for table " + tableName + ", day " + dateFormat.format(day);
 		}
 	}
+
+	@Override
+	public void ensureTable(String tableName) {
+		if (tableRegistry.exists(tableName))
+			return;
+		else 
+			createTable(tableName);
+	}
 }

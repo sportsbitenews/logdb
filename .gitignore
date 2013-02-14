@@ -2,5 +2,5 @@
 .project
 .classpath
 target
-*.pos
-*.seg
+merged.pos
+merged.seg

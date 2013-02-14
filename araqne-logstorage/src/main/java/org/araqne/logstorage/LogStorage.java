@@ -50,6 +50,8 @@ public interface LogStorage {
 	void stop();
 
 	void createTable(String tableName);
+	
+	void ensureTable(String tableName);
 
 	void createTable(String tableName, Map<String, String> tableMetadata);
 
