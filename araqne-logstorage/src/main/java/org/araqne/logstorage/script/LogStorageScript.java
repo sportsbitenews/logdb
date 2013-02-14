@@ -742,7 +742,7 @@ public class LogStorageScript implements Script {
 		}
 
 		long milliseconds = new Date().getTime() - begin.getTime();
-		long speed = count / (milliseconds / 1000);
+		long speed = count * 1000 / milliseconds;
 		context.println("loaded " + count + " logs in " + milliseconds + " ms, " + speed + " logs/sec");
 	}
 
