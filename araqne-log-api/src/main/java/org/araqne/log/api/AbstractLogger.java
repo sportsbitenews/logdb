@@ -373,7 +373,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	protected void write(Log log) {
-		if (stopped)
+		// call method to support overriding (ex. base remote logger)
+		if (!isRunning())
 			return;
 
 		// update last log date
