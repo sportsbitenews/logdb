@@ -5,7 +5,7 @@ import java.util.Comparator;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
-import org.araqne.logdb.query.ObjectComparator;
+import org.araqne.logdb.ObjectComparator;
 
 public class ParallelMergeSorterTest {
 	@Test

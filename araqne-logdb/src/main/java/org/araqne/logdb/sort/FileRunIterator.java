@@ -35,7 +35,6 @@ class FileRunIterator implements CloseableIterator {
 	private Item next;
 	private byte[] buf = new byte[640 * 1024];
 	private byte[] intbuf = new byte[4];
-	private long totalRead;
 
 	public FileRunIterator(File f) throws IOException {
 		this.f = f;
@@ -47,12 +46,10 @@ class FileRunIterator implements CloseableIterator {
 		if (next == null) {
 			try {
 				int readBytes = IoHelper.ensureRead(bis, intbuf, 4);
-				totalRead += readBytes;
 
 				if (readBytes == 4) {
 					int len = IoHelper.decodeInt(intbuf);
 					readBytes = IoHelper.ensureRead(bis, buf, len);
-					totalRead += readBytes;
 					if (readBytes == len)
 						next = (Item) EncodingRule.decode(ByteBuffer.wrap(buf, 0, len), SortCodec.instance);
 				}

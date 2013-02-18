@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.query.ObjectComparator;
+import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
 import org.araqne.logdb.sort.CloseableIterator;

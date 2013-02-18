@@ -17,8 +17,8 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.LogQueryCommand.LogMap;
-import org.araqne.logdb.query.ObjectComparator;
 
 public class Min implements Expression {
 	private ObjectComparator cmp = new ObjectComparator();

@@ -15,8 +15,8 @@
  */
 package org.araqne.logdb.query.expr;
 
+import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.LogQueryCommand.LogMap;
-import org.araqne.logdb.query.ObjectComparator;
 
 public class Gte extends BinaryExpression {
 	private ObjectComparator cmp = new ObjectComparator();

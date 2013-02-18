@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.Iterator;
 
 import org.junit.Ignore;
+import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.sort.Item;
 import org.araqne.logdb.sort.ParallelMergeSorter;
 

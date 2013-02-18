@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.query;
+package org.araqne.logdb.query.engine;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -35,14 +35,13 @@ import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryEventListener;
 import org.araqne.logdb.LogQueryParserService;
+import org.araqne.logdb.LogQueryScriptRegistry;
 import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LogQueryStatus;
-import org.araqne.logdb.LogQueryScriptRegistry;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;
 import org.araqne.logdb.query.parser.FieldsParser;
-import org.araqne.logdb.query.parser.FulltextParser;
 import org.araqne.logdb.query.parser.LookupParser;
 import org.araqne.logdb.query.parser.OutputCsvParser;
 import org.araqne.logdb.query.parser.RenameParser;
@@ -55,7 +54,6 @@ import org.araqne.logdb.query.parser.TableParser;
 import org.araqne.logdb.query.parser.TextFileParser;
 import org.araqne.logdb.query.parser.TimechartParser;
 import org.araqne.logdb.query.parser.ZipFileParser;
-import org.araqne.logstorage.LogIndexer;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.osgi.framework.BundleContext;
@@ -69,9 +67,6 @@ public class LogQueryServiceImpl implements LogQueryService {
 
 	@Requires
 	private LogStorage logStorage;
-
-	@Requires
-	private LogIndexer logIndexer;
 
 	@Requires
 	private LogTableRegistry tableRegistry;
@@ -99,7 +94,7 @@ public class LogQueryServiceImpl implements LogQueryService {
 		this.bc = bc;
 		this.queries = new ConcurrentHashMap<Integer, LogQuery>();
 		this.callbacks = new CopyOnWriteArraySet<LogQueryEventListener>();
-		
+
 		// ensure directory
 		File dir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query");
 		dir.mkdirs();
@@ -123,7 +118,6 @@ public class LogQueryServiceImpl implements LogQueryService {
 		}
 
 		// add table and lookup (need some constructor injection)
-		parsers.add(new FulltextParser(logStorage, logIndexer));
 		parsers.add(new TableParser(logStorage, tableRegistry, parserFactoryRegistry));
 		parsers.add(new LookupParser(lookupRegistry));
 		parsers.add(new ScriptParser(bc, scriptRegistry));

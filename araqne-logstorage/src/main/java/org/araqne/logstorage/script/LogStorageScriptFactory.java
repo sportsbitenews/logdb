@@ -22,8 +22,6 @@ import org.apache.felix.ipojo.annotations.ServiceProperty;
 import org.araqne.api.Script;
 import org.araqne.api.ScriptFactory;
 import org.araqne.confdb.ConfigService;
-import org.araqne.logstorage.IndexTokenizerRegistry;
-import org.araqne.logstorage.LogIndexer;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogTableRegistry;
@@ -45,16 +43,10 @@ public class LogStorageScriptFactory implements ScriptFactory {
 	private ConfigService conf;
 
 	@Requires
-	private LogIndexer indexer;
-
-	@Requires
 	private LogStorageMonitor monitor;
-
-	@Requires
-	private IndexTokenizerRegistry tokenizerRegistry;
 
 	@Override
 	public Script createScript() {
-		return new LogStorageScript(tableRegistry, storage, indexer, monitor, tokenizerRegistry, conf);
+		return new LogStorageScript(tableRegistry, storage, monitor, conf);
 	}
 }

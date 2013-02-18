@@ -32,7 +32,6 @@ class RunOutput {
 	private final Logger logger = LoggerFactory.getLogger(RunOutput.class);
 	public BufferedOutputStream dataBos;
 
-	private int written;
 	private Run run;
 	private BufferedOutputStream indexBos;
 	private FileOutputStream indexFos;
@@ -80,7 +79,6 @@ class RunOutput {
 	}
 
 	public void write(Item o) throws IOException {
-		written++;
 		if (run.cached != null)
 			run.cached.add(o);
 		else {

@@ -20,7 +20,7 @@ import java.util.Comparator;
 import java.util.Map;
 
 import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.query.ObjectComparator;
+import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.sort.CloseableIterator;
 import org.araqne.logdb.sort.Item;
 import org.araqne.logdb.sort.ParallelMergeSorter;
