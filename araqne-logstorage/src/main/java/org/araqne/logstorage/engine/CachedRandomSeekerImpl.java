@@ -71,7 +71,11 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 			cachedReaders.put(key, reader);
 		}
 
-		return LogMarshaler.convert(tableName, reader.find(id));
+		LogRecord log = reader.find(id);
+		if (log == null)
+			return null;
+
+		return LogMarshaler.convert(tableName, log);
 	}
 
 	@Override

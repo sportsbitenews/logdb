@@ -228,7 +228,7 @@ public class LogApiScript implements Script {
 
 			if (!logger.isPassive())
 				context.println("waiting...");
-			
+
 			logger.stop(maxWaitTime);
 			context.println("logger stopped");
 		} catch (Exception e) {
@@ -291,7 +291,10 @@ public class LogApiScript implements Script {
 			String[] tokens = fullName.split("\\\\");
 
 			LoggerFactory factory = loggerFactoryRegistry.getLoggerFactory(logger.getFactoryNamespace(), logger.getFactoryName());
-			factory.deleteLogger(tokens[0], tokens[1]);
+			// factory can already removed from registry
+			if (factory != null)
+				factory.deleteLogger(tokens[0], tokens[1]);
+
 			context.println("logger removed");
 		} catch (Exception e) {
 			context.println("error: " + e.getMessage());
