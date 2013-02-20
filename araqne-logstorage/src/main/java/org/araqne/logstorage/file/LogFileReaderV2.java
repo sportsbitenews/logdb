@@ -15,6 +15,7 @@
  */
 package org.araqne.logstorage.file;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -30,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LogFileReaderV2 extends LogFileReader {
+	private static final int DATA_BLOCK_HEADER_LENGTH = 24;
 	private Logger logger = LoggerFactory.getLogger(LogFileReaderV2.class);
 	public static final int INDEX_ITEM_SIZE = 4;
 
@@ -99,6 +101,10 @@ public class LogFileReaderV2 extends LogFileReader {
 				throw new IOException("negative seek offset " + pos + ", index file: " + indexPath.getAbsolutePath()
 						+ ", data file: " + dataPath.getAbsolutePath());
 
+			// ignore last immature data block
+			if (length - pos < DATA_BLOCK_HEADER_LENGTH)
+				break;
+
 			try {
 				dataFile.seek(pos);
 				DataBlockHeader header = new DataBlockHeader(dataFile);
@@ -109,6 +115,8 @@ public class LogFileReaderV2 extends LogFileReader {
 				logger.error("araqne logstorage: buffer underflow at position {}, data file [{}]", pos,
 						dataPath.getAbsolutePath());
 				throw e;
+			} catch (EOFException e) {
+				break;
 			}
 		}
 
@@ -165,7 +173,8 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long limit, LogRecordCallback callback) throws IOException, InterruptedException {
+	public void traverse(Date from, Date to, long limit, LogRecordCallback callback) throws IOException,
+			InterruptedException {
 		traverse(from, to, 0, limit, callback);
 	}
 
@@ -316,12 +325,13 @@ public class LogFileReaderV2 extends LogFileReader {
 
 		@Override
 		public String toString() {
-			return "index block header, fp=" + fp + ", first_id=" + firstId + ", count=" + logCount + ", asc=" + ascLogCount
+			return "index block header, fp=" + fp + ", first_id=" + firstId + ", count=" + logCount + ", asc="
+					+ ascLogCount
 					+ ", dsc=" + dscLogCount + "]";
 		}
 	}
 
-	private ByteBuffer dataBlockHeader = ByteBuffer.allocate(24);
+	private ByteBuffer dataBlockHeader = ByteBuffer.allocate(DATA_BLOCK_HEADER_LENGTH);
 
 	private class DataBlockHeader {
 		private long fp;
@@ -334,7 +344,7 @@ public class LogFileReaderV2 extends LogFileReader {
 			try {
 				f.readFully(dataBlockHeader.array());
 			} catch (IOException e) {
-				logger.error("araqne logstorage: broken data file - " + dataPath.getAbsolutePath());
+				logger.warn("araqne logstorage: broken data file - " + dataPath.getAbsolutePath());
 				throw e;
 			}
 			dataBlockHeader.position(0);
@@ -496,7 +506,8 @@ public class LogFileReaderV2 extends LogFileReader {
 			// relative offset in block
 			int relative = (int) (pos - accCount);
 			if (relative < 0)
-				throw new IllegalStateException("relative bug check: " + relative + ", pos " + pos + ", acc: " + accCount);
+				throw new IllegalStateException("relative bug check: " + relative + ", pos " + pos + ", acc: "
+						+ accCount);
 			return relative;
 		}
 

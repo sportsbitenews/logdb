@@ -71,5 +71,8 @@ public abstract class LogFileWriter {
 
 	public abstract void flush() throws IOException;
 
+	public abstract void sync() throws IOException;
+
 	public abstract void close() throws IOException;
+
 }

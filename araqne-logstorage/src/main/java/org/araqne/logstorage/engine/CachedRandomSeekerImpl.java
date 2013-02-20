@@ -18,6 +18,7 @@ package org.araqne.logstorage.engine;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
@@ -38,15 +39,19 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 	private boolean closed;
 	private LogTableRegistry tableRegistry;
 	private LogFileFetcher fetcher;
-	private ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters;
+	private Map<OnlineWriterKey, List<LogRecord>> onlineBuffers;
 	private Map<TabletKey, LogFileReader> cachedReaders;
 
 	public CachedRandomSeekerImpl(LogTableRegistry tableRegistry, LogFileFetcher fetcher,
 			ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters) {
 		this.tableRegistry = tableRegistry;
 		this.fetcher = fetcher;
-		this.onlineWriters = onlineWriters;
+		this.onlineBuffers = new HashMap<OnlineWriterKey, List<LogRecord>>();
 		this.cachedReaders = new HashMap<TabletKey, LogFileReader>();
+		
+		for (Map.Entry<OnlineWriterKey, OnlineWriter> e: onlineWriters.entrySet()) {
+			onlineBuffers.put(e.getKey(), e.getValue().getBuffer());
+		}
 	}
 
 	@Override
@@ -57,9 +62,9 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		int tableId = tableRegistry.getTableId(tableName);
 
 		// check memory buffer (flush waiting)
-		OnlineWriter writer = onlineWriters.get(new OnlineWriterKey(tableName, day));
-		if (writer != null) {
-			for (LogRecord r : writer.getBuffer())
+		List<LogRecord> buffer = onlineBuffers.get(new OnlineWriterKey(tableName, day));
+		if (buffer != null) {
+			for (LogRecord r : buffer)
 				if (r.getId() == id)
 					return new Log(tableName, r.getDate(), id, EncodingRule.decodeMap(r.getData().duplicate()));
 		}

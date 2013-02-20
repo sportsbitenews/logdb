@@ -193,6 +193,12 @@ public class LogFileWriterV1 extends LogFileWriter {
 		while (it.hasNext()) {
 			rawWrite(it.next());
 		}
+	}
+
+	@Override
+	public void sync() throws IOException {
+		if (indexFile == null || dataFile == null)
+			return;
 
 		indexFile.getFD().sync();
 		dataFile.getFD().sync();

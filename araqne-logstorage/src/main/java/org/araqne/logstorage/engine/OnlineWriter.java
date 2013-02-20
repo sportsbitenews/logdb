@@ -99,7 +99,7 @@ public class OnlineWriter {
 	public Date getLastAccess() {
 		return lastAccess;
 	}
-	
+
 	public Date getLastFlush() {
 		return writer.getLastFlush();
 	}
@@ -145,6 +145,12 @@ public class OnlineWriter {
 		synchronized (this) {
 			writer.flush();
 			notifyAll();
+		}
+	}
+
+	public void sync() throws IOException {
+		synchronized (this) {
+			writer.sync();
 		}
 	}
 
