@@ -65,7 +65,8 @@ public class LogQueryHelper {
 		return result;
 	}
 
-	public static Map<String, Object> getResultData(LogQueryService qs, int id, int offset, int limit) throws IOException {
+	public static Map<String, Object> getResultData(LogQueryService qs, int id, int offset, int limit)
+			throws IOException {
 		LogQuery query = qs.getQuery(id);
 		if (query != null) {
 			Map<String, Object> m = new HashMap<String, Object>();
@@ -90,8 +91,9 @@ public class LogQueryHelper {
 
 	private static List<Object> getPage(LogQuery query, int offset, int limit) throws IOException {
 		List<Object> l = new LinkedList<Object>();
-		LogResultSet rs = query.getResult();
+		LogResultSet rs = null;
 		try {
+			rs = query.getResult();
 			rs.skip(offset);
 
 			long count = 0;
@@ -103,7 +105,8 @@ public class LogQueryHelper {
 				count++;
 			}
 		} finally {
-			rs.close();
+			if (rs != null)
+				rs.close();
 		}
 		return l;
 	}
