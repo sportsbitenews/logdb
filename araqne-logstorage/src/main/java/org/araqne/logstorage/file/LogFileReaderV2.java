@@ -15,6 +15,7 @@
  */
 package org.araqne.logstorage.file;
 
+import java.io.Closeable;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
@@ -52,76 +53,87 @@ public class LogFileReaderV2 extends LogFileReader {
 	private boolean useDeflater;
 
 	public LogFileReaderV2(File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
-		this.indexPath = indexPath;
-		this.dataPath = dataPath;
-		this.indexFile = new RandomAccessFile(indexPath, "r");
-		LogFileHeader indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
-		if (indexFileHeader.version() != 2)
-			throw new InvalidLogFileHeaderException("version not match, index file " + indexPath.getAbsolutePath());
+		try {
+			this.indexPath = indexPath;
+			this.dataPath = dataPath;
+			this.indexFile = new RandomAccessFile(indexPath, "r");
+			LogFileHeader indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
+			if (indexFileHeader.version() != 2)
+				throw new InvalidLogFileHeaderException("version not match, index file " + indexPath.getAbsolutePath());
 
-		long length = indexFile.length() - 4;
-		long pos = indexFileHeader.size();
-		while (pos < length) {
-			indexFile.seek(pos);
-			IndexBlockHeader header = new IndexBlockHeader(indexFile);
-			header.fp = pos;
-			header.ascLogCount = totalCount;
-			totalCount += header.logCount;
-			indexBlockHeaders.add(header);
-			pos += 4 + header.logCount * INDEX_ITEM_SIZE;
-		}
-
-		long t = 0;
-		for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
-			IndexBlockHeader h = indexBlockHeaders.get(i);
-			h.dscLogCount = t;
-			t += h.logCount;
-		}
-
-		logger.trace("araqne logstorage: {} has {} blocks, {} logs.",
-				new Object[] { indexPath.getName(), indexBlockHeaders.size(), totalCount });
-
-		this.dataFile = new RandomAccessFile(dataPath, "r");
-		LogFileHeader dataFileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
-		if (dataFileHeader.version() != 2)
-			throw new InvalidLogFileHeaderException("version not match");
-
-		byte[] ext = dataFileHeader.getExtraData();
-		int dataBlockSize = getInt(dataFileHeader.getExtraData());
-		dataBuffer = ByteBuffer.allocate(dataBlockSize);
-		buf = new byte[dataBlockSize];
-
-		if (new String(ext, 4, ext.length - 4).trim().equals("deflater"))
-			useDeflater = true;
-
-		length = dataFile.length();
-		pos = dataFileHeader.size();
-		while (pos < length) {
-			if (pos < 0)
-				throw new IOException("negative seek offset " + pos + ", index file: " + indexPath.getAbsolutePath()
-						+ ", data file: " + dataPath.getAbsolutePath());
-
-			// ignore last immature data block
-			if (length - pos < DATA_BLOCK_HEADER_LENGTH)
-				break;
-
-			try {
-				dataFile.seek(pos);
-				DataBlockHeader header = new DataBlockHeader(dataFile);
+			long length = indexFile.length() - 4;
+			long pos = indexFileHeader.size();
+			while (pos < length) {
+				indexFile.seek(pos);
+				IndexBlockHeader header = new IndexBlockHeader(indexFile);
 				header.fp = pos;
-				dataBlockHeaders.add(header);
-				pos += 24 + header.compressedLength;
-			} catch (BufferUnderflowException e) {
-				logger.error("araqne logstorage: buffer underflow at position {}, data file [{}]", pos,
-						dataPath.getAbsolutePath());
-				throw e;
-			} catch (EOFException e) {
-				break;
+				header.ascLogCount = totalCount;
+				totalCount += header.logCount;
+				indexBlockHeaders.add(header);
+				pos += 4 + header.logCount * INDEX_ITEM_SIZE;
 			}
-		}
 
-		if (indexBlockHeaders.size() > dataBlockHeaders.size())
-			throw new IOException("invalid log file, index file: " + indexPath + ", data file: " + dataPath);
+			long t = 0;
+			for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
+				IndexBlockHeader h = indexBlockHeaders.get(i);
+				h.dscLogCount = t;
+				t += h.logCount;
+			}
+
+			logger.trace("araqne logstorage: {} has {} blocks, {} logs.",
+					new Object[] { indexPath.getName(), indexBlockHeaders.size(), totalCount });
+
+			this.dataFile = new RandomAccessFile(dataPath, "r");
+			LogFileHeader dataFileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
+			if (dataFileHeader.version() != 2)
+				throw new InvalidLogFileHeaderException("version not match");
+
+			byte[] ext = dataFileHeader.getExtraData();
+			int dataBlockSize = getInt(dataFileHeader.getExtraData());
+			dataBuffer = ByteBuffer.allocate(dataBlockSize);
+			buf = new byte[dataBlockSize];
+
+			if (new String(ext, 4, ext.length - 4).trim().equals("deflater"))
+				useDeflater = true;
+
+			length = dataFile.length();
+			pos = dataFileHeader.size();
+			while (pos < length) {
+				if (pos < 0)
+					throw new IOException("negative seek offset " + pos + ", index file: "
+							+ indexPath.getAbsolutePath()
+							+ ", data file: " + dataPath.getAbsolutePath());
+
+				// ignore last immature data block
+				if (length - pos < DATA_BLOCK_HEADER_LENGTH)
+					break;
+
+				try {
+					dataFile.seek(pos);
+					DataBlockHeader header = new DataBlockHeader(dataFile);
+					header.fp = pos;
+					dataBlockHeaders.add(header);
+					pos += 24 + header.compressedLength;
+				} catch (BufferUnderflowException e) {
+					logger.error("araqne logstorage: buffer underflow at position {}, data file [{}]", pos,
+							dataPath.getAbsolutePath());
+					throw e;
+				} catch (EOFException e) {
+					break;
+				}
+			}
+
+			if (indexBlockHeaders.size() > dataBlockHeaders.size())
+				throw new IOException("invalid log file, index file: " + indexPath + ", data file: " + dataPath);
+		} catch (IOException t) {
+			ensureClose(indexFile, indexPath);
+			ensureClose(dataFile, dataPath);
+			throw t;
+		} catch (RuntimeException t) {
+			ensureClose(indexFile, indexPath);
+			ensureClose(dataFile, dataPath);
+			throw t;
+		}
 	}
 
 	private int getInt(byte[] extraData) {
@@ -288,16 +300,16 @@ public class LogFileReaderV2 extends LogFileReader {
 	public void close() {
 		decompresser.end();
 
-		try {
-			indexFile.close();
-		} catch (IOException e) {
-			logger.error("araqne logstorage: cannot close index file - " + indexPath.getAbsolutePath(), e);
-		}
+		ensureClose(indexFile, indexPath);
+		ensureClose(dataFile, dataPath);
+	}
 
+	private void ensureClose(Closeable stream, File f) {
 		try {
-			dataFile.close();
+			if (stream != null)
+				stream.close();
 		} catch (IOException e) {
-			logger.error("araqne logstorage: cannot close data file - " + dataPath.getAbsolutePath(), e);
+			logger.error("araqne logstorage: cannot close file - " + f.getAbsolutePath(), e);
 		}
 	}
 

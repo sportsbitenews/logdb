@@ -74,12 +74,12 @@
 			<dependency>
 				<groupId>org.araqne</groupId>
 				<artifactId>araqne-logstorage</artifactId>
-				<version>1.12.1</version>
+				<version>1.12.2</version>
 			</dependency>
 			<dependency>
 				<groupId>org.araqne</groupId>
 				<artifactId>araqne-logdb</artifactId>
-				<version>0.10.0</version>
+				<version>0.10.1</version>
 			</dependency>
 			<dependency>
 				<groupId>org.araqne</groupId>

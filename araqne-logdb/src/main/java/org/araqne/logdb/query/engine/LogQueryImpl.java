@@ -163,11 +163,12 @@ public class LogQueryImpl implements LogQuery {
 	public List<Map<String, Object>> getResultAsList(long offset, int limit) throws IOException {
 		LinkedList<Map<String, Object>> l = new LinkedList<Map<String, Object>>();
 
-		LogResultSet rs = getResult();
-		if (rs == null)
-			return null;
-
+		LogResultSet rs = null;
 		try {
+			rs = getResult();
+			if (rs == null)
+				return null;
+
 			long p = 0;
 			long count = 0;
 			while (rs.hasNext()) {

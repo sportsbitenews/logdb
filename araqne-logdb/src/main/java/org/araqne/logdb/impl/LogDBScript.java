@@ -168,18 +168,21 @@ public class LogDBScript implements Script {
 		} while (!lq.isEnd());
 
 		long count = 0;
-		LogResultSet rs = lq.getResult();
+		LogResultSet rs = null;
 		try {
+			rs = lq.getResult();
 			while (rs.hasNext()) {
 				printMap(rs.next());
 				count++;
 			}
 		} finally {
-			rs.close();
+			if (rs != null)
+				rs.close();
 		}
 
 		qs.removeQuery(lq.getId());
-		context.println(String.format("total %d rows, elapsed %.1fs", count, (System.currentTimeMillis() - begin) / (double) 1000));
+		context.println(String.format("total %d rows, elapsed %.1fs", count, (System.currentTimeMillis() - begin)
+				/ (double) 1000));
 	}
 
 	@SuppressWarnings("unchecked")
