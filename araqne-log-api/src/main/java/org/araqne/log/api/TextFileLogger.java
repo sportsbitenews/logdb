@@ -33,10 +33,9 @@ public class TextFileLogger extends AbstractLogger {
 	private RotatingLogFileReader reader;
 	private DateParser dateParser;
 
-	public TextFileLogger(LoggerSpecification spec, LoggerFactory loggerFactory) throws FileNotFoundException,
-			IOException {
-		super("local", spec.getName(), spec.getDescription(), loggerFactory, spec.getLogCount(), spec.getLastLogDate(),
-				spec.getConfig());
+	public TextFileLogger(LoggerSpecification spec, LoggerFactory loggerFactory) throws FileNotFoundException, IOException {
+		super("local", spec.getName(), spec.getDescription(), loggerFactory, spec.getLogCount(), spec.getLastLogDate(), spec
+				.getConfig());
 
 		Properties config = spec.getConfig();
 		String filePath = config.getProperty("file.path");
@@ -57,14 +56,13 @@ public class TextFileLogger extends AbstractLogger {
 		String offset = config.getProperty("last_offset");
 		String firstLine = config.getProperty("first_line");
 
-		logger.trace("araqne log api: text logger [{}] last offset [{}], last line [{}]", new Object[] {
-				spec.getName(), offset, firstLine });
+		logger.trace("araqne log api: text logger [{}] last offset [{}], last line [{}]", new Object[] { spec.getName(), offset,
+				firstLine });
 
 		reader.setFirstLine(firstLine);
 		reader.setLastOffset(offset == null ? 0 : Long.valueOf(offset));
 
-		this.dateParser = new DefaultDateParser(new SimpleDateFormat(datePattern, new Locale(dateLocale)),
-				dateExtractor);
+		this.dateParser = new DefaultDateParser(new SimpleDateFormat(datePattern, new Locale(dateLocale)), dateExtractor);
 	}
 
 	private String dateFormatToRegex(String pattern) {
@@ -204,7 +202,7 @@ public class TextFileLogger extends AbstractLogger {
 				Date date = dateParser.parse(line);
 				if (date == null) {
 					logger.trace("araqne log api: cannot parse date [{}]", line);
-					return;
+					date = new Date();
 				}
 
 				Map<String, Object> params = new HashMap<String, Object>();
