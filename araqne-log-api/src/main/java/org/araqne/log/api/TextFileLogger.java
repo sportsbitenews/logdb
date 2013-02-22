@@ -200,13 +200,12 @@ public class TextFileLogger extends AbstractLogger {
 					logger.debug("araqne log api: text logger [{}], read line [{}]", getFullName(), line);
 
 				Date date = dateParser.parse(line);
-				if (date == null) {
+				if (date == null)
 					logger.trace("araqne log api: cannot parse date [{}]", line);
-					date = new Date();
-				}
 
 				Map<String, Object> params = new HashMap<String, Object>();
-				params.put("date", date);
+				if (date != null)
+					params.put("date", date);
 				params.put("line", line);
 
 				Log log = new SimpleLog(date, getFullName(), params);
