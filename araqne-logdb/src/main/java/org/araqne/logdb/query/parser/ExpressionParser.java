@@ -63,6 +63,9 @@ import org.araqne.logdb.query.expr.Typeof;
 public class ExpressionParser {
 
 	public static Expression parse(String s) {
+		if (s == null)
+			throw new IllegalArgumentException("expression string should not be null");
+
 		List<Term> terms = tokenize(s);
 		List<Term> output = convertToPostfix(terms);
 		Stack<Expression> exprStack = new Stack<Expression>();
