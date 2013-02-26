@@ -23,6 +23,7 @@ import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.expr.Abs;
 import org.araqne.logdb.query.expr.Add;
 import org.araqne.logdb.query.expr.And;
+import org.araqne.logdb.query.expr.BooleanConstant;
 import org.araqne.logdb.query.expr.Case;
 import org.araqne.logdb.query.expr.Concat;
 import org.araqne.logdb.query.expr.Div;
@@ -200,6 +201,9 @@ public class ExpressionParser {
 				double v = Double.parseDouble(token);
 				return new NumberConstant(v);
 			} catch (NumberFormatException e2) {
+				if (token.equals("true") || token.equals("false"))
+					return new BooleanConstant(Boolean.parseBoolean(token));
+
 				return new EvalField(token);
 			}
 		}

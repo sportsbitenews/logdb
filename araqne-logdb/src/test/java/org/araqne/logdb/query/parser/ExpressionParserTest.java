@@ -231,4 +231,21 @@ public class ExpressionParserTest {
 		exp = ExpressionParser.parse("\"210.119.122.32\" == \"119\"");
 		assertFalse((Boolean) exp.eval(null));
 	}
+
+	@Test
+	public void testBooleanConstants() {
+		Expression exp1 = ExpressionParser.parse("field == true");
+		LogMap m = new LogMap();
+		m.put("field", true);
+		assertTrue((Boolean) exp1.eval(m));
+
+		m = new LogMap();
+		m.put("field", false);
+		assertFalse((Boolean) exp1.eval(m));
+
+		Expression exp2 = ExpressionParser.parse("field == false");
+		m = new LogMap();
+		m.put("field", false);
+		assertTrue((Boolean) exp2.eval(m));
+	}
 }
