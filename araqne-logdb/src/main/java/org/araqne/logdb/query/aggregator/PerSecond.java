@@ -28,4 +28,10 @@ public class PerSecond extends PerTime {
 	protected long getTimeLength() {
 		return 1000L;
 	}
+
+	@Override
+	public String toString() {
+		return "per_second(" + exprs.get(0) + ")";
+	}
+
 }

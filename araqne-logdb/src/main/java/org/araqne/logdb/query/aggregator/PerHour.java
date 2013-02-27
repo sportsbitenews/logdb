@@ -28,4 +28,9 @@ public class PerHour extends PerTime {
 	protected long getTimeLength() {
 		return 60 * 60 * 1000L;
 	}
+
+	@Override
+	public String toString() {
+		return "per_hour(" + exprs.get(0) + ")";
+	}
 }

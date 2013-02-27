@@ -96,4 +96,9 @@ public class Min implements AggregationFunction {
 		Min other = (Min) func;
 		put(other.min);
 	}
+
+	@Override
+	public String toString() {
+		return "min(" + exprs.get(0) + ")";
+	}
 }

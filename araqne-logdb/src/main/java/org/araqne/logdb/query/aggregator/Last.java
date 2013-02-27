@@ -87,4 +87,9 @@ public class Last implements AggregationFunction {
 		Last last = (Last) func;
 		this.last = last.last;
 	}
+
+	@Override
+	public String toString() {
+		return "last(" + exprs.get(0) + ")";
+	}
 }

@@ -295,17 +295,22 @@ public class Timechart extends LogQueryCommand {
 	private void setOutputAndReset(Map<String, Object> output, AggregationFunction[] fs, String keyFieldValue) {
 		if (keyField != null) {
 			if (fs.length > 1) {
+				int i = 0;
 				for (AggregationFunction f : fs) {
 					// field name format is func:keyfieldvalue (when
 					// by-clause is provided)
-					output.put(f.toString() + ":" + keyFieldValue, f.eval());
+					output.put(fields.get(i).getName() + ":" + keyFieldValue, f.eval());
+					i++;
 				}
 			} else {
 				output.put(keyFieldValue, fs[0].eval());
 			}
 		} else {
-			for (AggregationFunction f : fs)
-				output.put(f.getName(), f.eval());
+			int i = 0;
+			for (AggregationFunction f : fs) {
+				output.put(fields.get(i).getName(), f.eval());
+				i++;
+			}
 		}
 	}
 

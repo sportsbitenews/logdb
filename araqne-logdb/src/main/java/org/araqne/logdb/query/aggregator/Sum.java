@@ -84,4 +84,10 @@ public class Sum implements AggregationFunction {
 		s.sum = this.sum;
 		return s;
 	}
+
+	@Override
+	public String toString() {
+		return "sum(" + expr + ")";
+	}
+
 }

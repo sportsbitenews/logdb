@@ -73,7 +73,7 @@ public class AggregationParser {
 
 		// build and return
 		AggregationField field = new AggregationField();
-		field.setName(alias != null ? alias : func.getName());
+		field.setName(alias != null ? alias : func.toString());
 		field.setFunction(func);
 		return field;
 	}

@@ -78,4 +78,9 @@ public class Count implements AggregationFunction {
 		return l;
 	}
 
+	@Override
+	public String toString() {
+		return "count";
+	}
+
 }

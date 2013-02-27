@@ -28,4 +28,9 @@ public class PerDay extends PerTime {
 	protected long getTimeLength() {
 		return 24 * 60 * 60 * 1000L;
 	}
+
+	@Override
+	public String toString() {
+		return "per_day(" + exprs.get(0) + ")";
+	}
 }

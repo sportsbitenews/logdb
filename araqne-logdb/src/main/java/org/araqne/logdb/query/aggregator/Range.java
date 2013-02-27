@@ -109,4 +109,9 @@ public class Range implements AggregationFunction {
 		this.min = NumberUtil.min(min, other.min);
 		this.max = NumberUtil.max(max, other.max);
 	}
+
+	@Override
+	public String toString() {
+		return "range(" + exprs.get(0) + ")";
+	}
 }

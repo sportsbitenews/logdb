@@ -31,7 +31,7 @@ public class EvalField implements Expression {
 
 	@Override
 	public String toString() {
-		return "$" + fieldName;
+		return fieldName;
 	}
 
 }

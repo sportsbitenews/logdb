@@ -78,7 +78,7 @@ public class TimechartParserTest {
 
 		AggregationField agg = tc.getAggregationFields().get(0);
 		assertEquals(1, tc.getAggregationFields().size());
-		assertEquals("sum", agg.getName());
+		assertEquals("sum((sport / 2))", agg.getName());
 
 		Expression arg1 = agg.getFunction().getArguments().get(0);
 		LogMap m = new LogMap();

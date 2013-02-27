@@ -49,7 +49,7 @@ public class StatsParserTest {
 		StatsParser p = new StatsParser();
 		Stats stats = (Stats) p.parse(null, "stats sum(rcvd) by sip");
 		assertEquals(1, stats.getAggregationFields().size());
-		assertEquals("sum", stats.getAggregationFields().get(0).getName());
+		assertEquals("sum(rcvd)", stats.getAggregationFields().get(0).getName());
 	}
 
 	@Test

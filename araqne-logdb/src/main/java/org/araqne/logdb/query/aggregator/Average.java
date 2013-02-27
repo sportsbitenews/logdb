@@ -109,4 +109,9 @@ public class Average implements AggregationFunction {
 		this.d += other.d;
 		this.count += other.count;
 	}
+
+	@Override
+	public String toString() {
+		return "avg(" + exprs.get(0) + ")";
+	}
 }

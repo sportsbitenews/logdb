@@ -93,4 +93,9 @@ public class First implements AggregationFunction {
 	public void deserialize(Object[] values) {
 		first = values[0];
 	}
+
+	@Override
+	public String toString() {
+		return "first(" + exprs.get(0) + ")";
+	}
 }

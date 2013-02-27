@@ -97,4 +97,8 @@ public class Max implements AggregationFunction {
 		put(other.max);
 	}
 
+	@Override
+	public String toString() {
+		return "max(" + exprs.get(0) + ")";
+	}
 }
