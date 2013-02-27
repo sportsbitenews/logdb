@@ -32,7 +32,7 @@ public class ShortQuery {
 		LogQuery q = null;
 
 		try {
-			q = queryService.createQuery("table duration=30m logpresso-log-trend | timechart span=10s sum(count)");
+			q = queryService.createQuery(query);
 			queryService.startQuery(q.getId());
 
 			do {
