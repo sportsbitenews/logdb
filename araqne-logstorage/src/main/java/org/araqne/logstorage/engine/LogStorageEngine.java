@@ -229,11 +229,9 @@ public class LogStorageEngine implements LogStorage {
 					try {
 						LogFileFixReport report = new LogFileRepairer().fix(indexPath, dataPath);
 						if (report != null)
-							logger.info("araqne logstorage: fixed log table [{}], detail report: \n{}", tableName,
-									report);
+							logger.info("araqne logstorage: fixed log table [{}], detail report: \n{}", tableName, report);
 					} catch (IOException e) {
-						logger.error("araqne logstorage: cannot fix index [" + indexPath.getAbsoluteFile()
-								+ "], data ["
+						logger.error("araqne logstorage: cannot fix index [" + indexPath.getAbsoluteFile() + "], data ["
 								+ dataPath.getAbsolutePath() + "]", e);
 					}
 				}
@@ -337,8 +335,7 @@ public class LogStorageEngine implements LogStorage {
 		for (File f : tableDir.listFiles()) {
 			if (f.isFile() && (f.getName().endsWith(".idx") || f.getName().endsWith(".dat"))) {
 				if (!f.delete())
-					logger.error("araqne logstorage: cannot delete log data {} of table {}", f.getAbsolutePath(),
-							tableName);
+					logger.error("araqne logstorage: cannot delete log data {} of table {}", f.getAbsolutePath(), tableName);
 			}
 		}
 
@@ -462,6 +459,7 @@ public class LogStorageEngine implements LogStorage {
 	private LogRecord convert(Log log) {
 		ByteBuffer bb = new FastEncodingRule().encode(log.getData());
 		LogRecord logdata = new LogRecord(log.getDate(), log.getId(), bb);
+		log.setBinaryLength(bb.remaining());
 		return logdata;
 	}
 
@@ -635,8 +633,7 @@ public class LogStorageEngine implements LogStorage {
 			if (logdata == null) {
 				if (logger.isTraceEnabled()) {
 					String dayText = DateUtil.getDayText(day);
-					logger.trace("araqne logstorage: log [table={}, date={}, id={}] not found", new Object[] {
-							tableName,
+					logger.trace("araqne logstorage: log [table={}, date={}, id={}] not found", new Object[] { tableName,
 							dayText, id });
 				}
 				return null;
@@ -673,8 +670,7 @@ public class LogStorageEngine implements LogStorage {
 	}
 
 	@Override
-	public int search(Date from, Date to, int offset, int limit, LogSearchCallback callback)
-			throws InterruptedException {
+	public int search(Date from, Date to, int offset, int limit, LogSearchCallback callback) throws InterruptedException {
 		verify();
 
 		int found = 0;
@@ -700,8 +696,7 @@ public class LogStorageEngine implements LogStorage {
 	}
 
 	@Override
-	public int search(String tableName, Date from, Date to, int limit, LogSearchCallback callback)
-			throws InterruptedException {
+	public int search(String tableName, Date from, Date to, int limit, LogSearchCallback callback) throws InterruptedException {
 		return search(tableName, from, to, 0, limit, callback);
 	}
 
@@ -761,8 +756,7 @@ public class LogStorageEngine implements LogStorage {
 					ListIterator<LogRecord> li = buffer.listIterator(buffer.size());
 					while (li.hasPrevious()) {
 						LogRecord logData = li.previous();
-						if ((from == null || logData.getDate().after(from))
-								&& (to == null || logData.getDate().before(to))) {
+						if ((from == null || logData.getDate().after(from)) && (to == null || logData.getDate().before(to))) {
 							if (offset > 0) {
 								offset--;
 								continue;
@@ -1056,8 +1050,7 @@ public class LogStorageEngine implements LogStorage {
 		private int bufferNext;
 		private int bufferTotal;
 
-		public LogCursorImpl(String tableName, Date day, ArrayList<LogRecord> buffer, LogFileReaderV2 reader,
-				boolean ascending) {
+		public LogCursorImpl(String tableName, Date day, ArrayList<LogRecord> buffer, LogFileReaderV2 reader, boolean ascending) {
 			this.tableName = tableName;
 			this.day = day;
 			this.reader = reader;

@@ -30,6 +30,11 @@ public class Log {
 	private Map<String, Object> data;
 	private Set<String> indexTokens;
 
+	/**
+	 * @since 1.12.3
+	 */
+	private long binaryLength;
+
 	public Log(String tableName, Date date, Map<String, Object> data) {
 		this(tableName, date, 0, data, null);
 	}
@@ -73,6 +78,14 @@ public class Log {
 
 	public Set<String> getIndexTokens() {
 		return indexTokens;
+	}
+
+	public long getBinaryLength() {
+		return binaryLength;
+	}
+
+	public void setBinaryLength(long binaryLength) {
+		this.binaryLength = binaryLength;
 	}
 
 	@Override
