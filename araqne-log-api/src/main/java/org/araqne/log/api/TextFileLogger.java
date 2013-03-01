@@ -225,20 +225,19 @@ public class TextFileLogger extends AbstractLogger {
 
 	private class DefaultDateParser implements DateParser {
 		private SimpleDateFormat dateFormat;
-		private String dateExtractor;
+		private Pattern p;
 
 		public DefaultDateParser(SimpleDateFormat dateFormat, String dateExtractor) {
 			this.dateFormat = dateFormat;
-			this.dateExtractor = dateExtractor;
+			this.p = Pattern.compile(dateExtractor);
 		}
 
 		@Override
 		public Date parse(String line) {
-			Pattern p = Pattern.compile(dateExtractor);
 			Matcher m = p.matcher(line);
 
 			if (!m.find() || m.groupCount() == 0) {
-				logger.error("araqne log api: cannot find date extractor pattern in log file, " + reader.getFilePath());
+				logger.trace("araqne log api: cannot find date extractor pattern in log file, {}", reader.getFilePath());
 				return null;
 			}
 

@@ -27,7 +27,7 @@ public class SimpleLog implements Log {
 	private Map<String, Object> params;
 
 	public SimpleLog(Date date, String loggerName, Map<String, Object> params) {
-		this.date = date;
+		this.date = date == null ? new Date() : date;
 		this.loggerName = loggerName;
 		this.params = params;
 	}

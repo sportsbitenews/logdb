@@ -17,10 +17,9 @@ package org.araqne.log.api;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 public class DelimiterParser implements LogParser {
-	private final String delimiter;
+	private final char delimiter;
 	private final String[] columnHeaders;
 	private final String targetField;
 
@@ -29,7 +28,7 @@ public class DelimiterParser implements LogParser {
 	}
 
 	public DelimiterParser(String delimiter, String[] columnHeaders, String targetField) {
-		this.delimiter = delimiter;
+		this.delimiter = delimiter.charAt(0);
 		this.columnHeaders = columnHeaders;
 		this.targetField = targetField;
 	}
@@ -42,21 +41,32 @@ public class DelimiterParser implements LogParser {
 
 		HashMap<String, Object> m = new HashMap<String, Object>(40);
 
-		StringTokenizer tok = new StringTokenizer(line, delimiter);
 		int i = 0;
-		while (tok.hasMoreTokens()) {
-			String token = tok.nextToken();
-			if (token != null)
-				token = token.trim();
+		int last = 0;
+		while (true) {
+			int p = line.indexOf(delimiter, last);
+
+			String token = null;
+			if (p >= 0)
+				token = line.substring(last, p);
+			else
+				token = line.substring(last);
+
+			if (token.isEmpty())
+				token = null;
 
 			if (columnHeaders != null && i < columnHeaders.length)
 				m.put(columnHeaders[i], token);
 			else
 				m.put("column" + Integer.toString(i), token);
+
+			if (p < 0)
+				break;
+
+			last = p + 1;
 			i++;
 		}
 
 		return m;
 	}
-
 }
