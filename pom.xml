@@ -112,6 +112,11 @@
 				<version>1.2.0</version>
 			</dependency>
 			<dependency>
+				<groupId>org.araqne</groupId>
+				<artifactId>araqne-json</artifactId>
+				<version>1.1.1</version>
+			</dependency>
+			<dependency>
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-api</artifactId>
 				<version>1.5.6</version>
@@ -202,5 +207,6 @@
 		<module>araqne-snmptrap-parser</module>
 		<module>araqne-syslog-parser</module>
 		<module>araqne-logdb-geoip</module>
+		<module>araqne-logdb-client</module>
 	</modules>
 </project>
