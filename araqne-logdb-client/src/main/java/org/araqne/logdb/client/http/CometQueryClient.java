@@ -20,7 +20,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
+import org.araqne.logdb.client.LogCursor;
 import org.araqne.logdb.client.LogQuery;
 import org.araqne.logdb.client.Message;
 import org.araqne.logdb.client.MessageException;
@@ -39,6 +41,93 @@ public class CometQueryClient implements TrapListener {
 		this.session = new Session(host);
 		this.session.login(loginName, password, true);
 		this.session.addListener(this);
+	}
+
+	public LogCursor query(String queryString) throws IOException {
+		int id = createQuery(queryString);
+		startQuery(id);
+		LogQuery q = queries.get(id);
+		q.waitUntil(null);
+		long total = q.getLoadedCount();
+
+		return new LogCursorImpl(id, 0L, total, true);
+	}
+
+	private class LogCursorImpl implements LogCursor {
+
+		private int id;
+		private long offset;
+		private long limit;
+		private boolean removeOnClose;
+
+		private long p;
+		private Map<String, Object> cached;
+		private Long currentCacheOffset;
+		private Long nextCacheOffset;
+		private int fetchUnit;
+		private Map<String, Object> prefetch;
+
+		public LogCursorImpl(int id, long offset, long limit, boolean removeOnClose) {
+			this.id = id;
+			this.offset = offset;
+			this.limit = limit;
+			this.removeOnClose = removeOnClose;
+
+			this.p = offset;
+			this.nextCacheOffset = offset;
+			this.fetchUnit = 1000;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public boolean hasNext() {
+			if (prefetch != null)
+				return true;
+
+			if (p < offset || p >= offset + limit)
+				return false;
+
+			try {
+				if (cached == null || p >= currentCacheOffset + fetchUnit) {
+					cached = getResult(id, nextCacheOffset, fetchUnit);
+					currentCacheOffset = nextCacheOffset;
+					nextCacheOffset += fetchUnit;
+				}
+
+				int relative = (int) (p - currentCacheOffset);
+				List<Object> l = (List<Object>) cached.get("result");
+				if (relative >= l.size())
+					return false;
+
+				prefetch = (Map<String, Object>) l.get(relative);
+				p++;
+				return true;
+			} catch (IOException e) {
+				e.printStackTrace();
+				return false;
+			}
+		}
+
+		@Override
+		public Map<String, Object> next() {
+			if (!hasNext())
+				throw new NoSuchElementException("end of log cursor");
+
+			Map<String, Object> m = prefetch;
+			prefetch = null;
+			return m;
+		}
+
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void close() throws IOException {
+			if (removeOnClose)
+				removeQuery(id);
+		}
 	}
 
 	public int createQuery(String queryString) throws IOException {

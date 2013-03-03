@@ -32,6 +32,10 @@ public class LogQuery {
 		this.waitingConditions = new CopyOnWriteArrayList<WaitingCondition>();
 	}
 
+	public long getLoadedCount() {
+		return loadedCount;
+	}
+
 	public void waitUntil(Long count) {
 		WaitingCondition cond = new WaitingCondition(count);
 		try {

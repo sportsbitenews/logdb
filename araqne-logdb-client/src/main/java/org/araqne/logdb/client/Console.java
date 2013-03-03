@@ -152,6 +152,35 @@ public class Console {
 	}
 
 	private void query(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		String queryString = join(tokens);
+		w("querying [" + queryString + "] ...");
+
+		long count = 0;
+		LogCursor cursor = null;
+		try {
+			cursor = client.query(queryString);
+			while (cursor.hasNext()) {
+				Object o = cursor.next();
+				w(o.toString());
+				count++;
+			}
+
+			w("total " + count + " row(s)");
+		} catch (IOException e) {
+			w("query failed: " + e.getMessage());
+		} finally {
+			if (cursor != null) {
+				try {
+					cursor.close();
+				} catch (IOException e) {
+				}
+			}
+		}
 	}
 
 	private void createQuery(String[] tokens) {
@@ -305,8 +334,7 @@ public class Console {
 		w("\tstop and remove query");
 
 		w("fetch <query_id> <offset> <limit>");
-		w("\tfetch result set of specifeid window. you can fetch partial result before query is ended");
-
+		w("\tfetch result set of specified window. you can fetch partial result before query is ended");
 	}
 
 	private static void w(String s) {
