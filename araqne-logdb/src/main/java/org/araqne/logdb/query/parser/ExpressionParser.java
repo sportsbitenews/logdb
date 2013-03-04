@@ -33,6 +33,7 @@ import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.Gt;
 import org.araqne.logdb.query.expr.Gte;
 import org.araqne.logdb.query.expr.If;
+import org.araqne.logdb.query.expr.In;
 import org.araqne.logdb.query.expr.IsNotNull;
 import org.araqne.logdb.query.expr.IsNull;
 import org.araqne.logdb.query.expr.IsNum;
@@ -182,6 +183,8 @@ public class ExpressionParser {
 					exprStack.add(new Match(args));
 				} else if (name.equals("typeof")) {
 					exprStack.add(new Typeof(args));
+				} else if (name.equals("in")) {
+					exprStack.add(new In(args));
 				} else {
 					throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
 				}
@@ -198,6 +201,8 @@ public class ExpressionParser {
 
 		try {
 			long v = Long.parseLong(token);
+			if (Integer.MIN_VALUE <= v && v <= Integer.MAX_VALUE)
+				return new NumberConstant((int) v);
 			return new NumberConstant(v);
 		} catch (NumberFormatException e1) {
 			try {

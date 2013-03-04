@@ -53,7 +53,7 @@ public class ExpressionParserTest {
 	public void testNestedFuncExpr() {
 		Expression expr = ExpressionParser.parse("min(abs(1-9), 3, 10, 5)");
 		Object v = expr.eval(null);
-		assertEquals(3L, v);
+		assertEquals(3, v);
 	}
 
 	@Test
@@ -139,7 +139,7 @@ public class ExpressionParserTest {
 
 		LogMap m1 = new LogMap();
 		m1.put("field", 15);
-		assertEquals(10L, exp.eval(m1));
+		assertEquals(10, exp.eval(m1));
 
 		LogMap m2 = new LogMap();
 		m2.put("field", 3);
@@ -152,7 +152,7 @@ public class ExpressionParserTest {
 
 		LogMap m1 = new LogMap();
 		m1.put("field", 15);
-		assertEquals(10L, exp.eval(m1));
+		assertEquals(10, exp.eval(m1));
 
 		LogMap m2 = new LogMap();
 		m2.put("field", 3);
@@ -248,4 +248,44 @@ public class ExpressionParserTest {
 		m.put("field", false);
 		assertTrue((Boolean) exp2.eval(m));
 	}
+
+	@Test
+	public void testInIntegers() {
+		Expression expr = ExpressionParser.parse("in(field, 1, 2, 3)");
+
+		LogMap m = new LogMap();
+		m.put("field", 1);
+		assertTrue((Boolean) expr.eval(m));
+
+		m.put("field", 2);
+		assertTrue((Boolean) expr.eval(m));
+
+		m.put("field", 3);
+		assertTrue((Boolean) expr.eval(m));
+
+		m.put("field", 4);
+		assertFalse((Boolean) expr.eval(m));
+
+		m.put("field", null);
+		assertFalse((Boolean) expr.eval(m));
+	}
+
+	@Test
+	public void testInStrings() {
+		Expression expr = ExpressionParser.parse("in(field, \"a\", \"b\", \"c\")");
+
+		LogMap m = new LogMap();
+		m.put("field", "a");
+		assertTrue((Boolean) expr.eval(m));
+
+		m.put("field", "b");
+		assertTrue((Boolean) expr.eval(m));
+
+		m.put("field", "c");
+		assertTrue((Boolean) expr.eval(m));
+
+		m.put("field", "d");
+		assertFalse((Boolean) expr.eval(m));
+	}
+
 }
