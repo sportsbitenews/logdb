@@ -1,0 +1,25 @@
+Build instruction
+=================
+
+Install [python 2(> 2.5.0)][1], [setuptools][2].
+
+[1]: www.python.org
+[2]: https://pypi.python.org/pypi/setuptools
+
+And install pip.
+
+    $ curl -O https://raw.github.com/pypa/pip/master/contrib/get-pip.py
+    $ [sudo] python get-pip.py
+
+Then you can run ``pip`` in your shell(sh, cmd.exe). Try following. (You may use [virtualenv][]. I
+recommend [virtualenvwrapper][])
+
+	pip install Sphinx
+
+It'll install sphinx in your environment. 
+
+now you can generate docs with ``make`` on the prompt.
+
+[virtualenv]: https://pypi.python.org/pypi/virtualenv
+[virtualenvwrapper]: http://virtualenvwrapper.readthedocs.org/en/latest/
+
