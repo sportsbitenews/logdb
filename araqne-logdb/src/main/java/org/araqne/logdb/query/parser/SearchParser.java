@@ -30,8 +30,21 @@ public class SearchParser implements LogQueryCommandParser {
 
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		String exprToken = commandString.substring("search".length()).trim();
+		String args = commandString.substring("search".length()).trim();
+		String exprToken = args;
+
+		Long limit = null;
+		int begin = args.indexOf("limit=");
+		if (begin >= 0) {
+			begin += "limit=".length();
+			int end = args.indexOf(" ", begin);
+			if (end > 0) {
+				limit = Long.valueOf(args.substring(begin, end));
+				exprToken = args.substring(end + 1);
+			}
+		}
+
 		Expression expr = ExpressionParser.parse(exprToken);
-		return new Search(expr);
+		return new Search(limit, expr);
 	}
 }

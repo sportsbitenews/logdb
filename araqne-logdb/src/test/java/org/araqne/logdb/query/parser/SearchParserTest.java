@@ -37,4 +37,20 @@ public class SearchParserTest {
 		map.put("sip", "10.2.2.2");
 		assertFalse((Boolean) expr.eval(map));
 	}
+
+	@Test
+	public void testLimit() {
+		SearchParser p = new SearchParser();
+		Search search = (Search) p.parse(null, "search limit=10 port > 1024");
+		Expression expr = search.getExpression();
+
+		LogMap map = new LogMap();
+		map.put("port", 1024);
+		assertFalse((Boolean) expr.eval(map));
+
+		map.put("port", 1025);
+		assertTrue((Boolean) expr.eval(map));
+
+		assertEquals(10L, (long) search.getLimit());
+	}
 }

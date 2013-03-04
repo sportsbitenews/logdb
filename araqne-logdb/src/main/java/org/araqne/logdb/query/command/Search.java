@@ -19,10 +19,17 @@ import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.query.expr.Expression;
 
 public class Search extends LogQueryCommand {
+	private long count;
+	private Long limit;
 	private Expression expr;
 
-	public Search(Expression expr) {
+	public Search(Long limit, Expression expr) {
+		this.limit = limit;
 		this.expr = expr;
+	}
+
+	public Long getLimit() {
+		return limit;
 	}
 
 	public Expression getExpression() {
@@ -47,6 +54,9 @@ public class Search extends LogQueryCommand {
 			return;
 
 		write(m);
+
+		if (limit != null && ++count >= limit)
+			eof();
 	}
 
 	@Override
