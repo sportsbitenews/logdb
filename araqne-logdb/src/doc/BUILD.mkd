@@ -18,7 +18,7 @@ recommend [virtualenvwrapper][])
 
 It'll install sphinx in your environment. 
 
-now you can generate docs with ``make`` on the prompt.
+now you can generate docs with ``make html`` on the prompt.
 
 [virtualenv]: https://pypi.python.org/pypi/virtualenv
 [virtualenvwrapper]: http://virtualenvwrapper.readthedocs.org/en/latest/
