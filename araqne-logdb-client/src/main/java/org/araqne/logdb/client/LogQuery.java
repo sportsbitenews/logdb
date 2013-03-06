@@ -42,7 +42,8 @@ public class LogQuery {
 			waitingConditions.add(cond);
 			synchronized (cond.signal) {
 				try {
-					cond.signal.wait();
+					while (!status.equals("Ended") && (count == null || loadedCount < count))
+						cond.signal.wait(100);
 				} catch (InterruptedException e) {
 				}
 			}
