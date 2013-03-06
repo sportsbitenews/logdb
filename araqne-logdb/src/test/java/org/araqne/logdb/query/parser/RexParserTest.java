@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import org.junit.Test;
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommand.LogMap;
 import org.araqne.logdb.query.command.Rex;
 
 public class RexParserTest {

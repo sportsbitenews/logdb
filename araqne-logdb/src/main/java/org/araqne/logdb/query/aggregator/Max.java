@@ -17,8 +17,8 @@ package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
 
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.ObjectComparator;
-import org.araqne.logdb.LogQueryCommand.LogMap;
 import org.araqne.logdb.query.expr.Expression;
 
 public class Max implements AggregationFunction {

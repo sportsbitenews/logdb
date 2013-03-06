@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.LogQueryCommand.LogMap;
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.ObjectComparator;
 

@@ -20,8 +20,8 @@ import static org.junit.Assert.*;
 import java.util.Calendar;
 
 import org.junit.Test;
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryParseException;
-import org.araqne.logdb.LogQueryCommand.LogMap;
 import org.araqne.logdb.query.expr.Expression;
 
 public class ExpressionParserTest {

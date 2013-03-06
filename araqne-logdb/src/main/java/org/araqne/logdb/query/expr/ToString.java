@@ -19,7 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-import org.araqne.logdb.LogQueryCommand.LogMap;
+import org.araqne.logdb.LogMap;
 
 public class ToString implements Expression {
 	private Expression valueExpr;

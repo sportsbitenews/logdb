@@ -18,7 +18,7 @@ package org.araqne.logdb.query.expr;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.LogQueryCommand.LogMap;
+import org.araqne.logdb.LogMap;
 
 public class Match implements Expression {
 

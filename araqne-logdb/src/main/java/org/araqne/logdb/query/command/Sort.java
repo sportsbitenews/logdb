@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.Map;
 
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.sort.CloseableIterator;

@@ -17,6 +17,7 @@ package org.araqne.logdb.query.command;
 
 import java.util.Map;
 
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryScript;
 import org.araqne.logdb.LogQueryScriptInput;

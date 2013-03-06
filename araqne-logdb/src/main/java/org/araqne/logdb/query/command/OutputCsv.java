@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 
 public class OutputCsv extends LogQueryCommand {

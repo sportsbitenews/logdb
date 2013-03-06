@@ -17,8 +17,8 @@ package org.araqne.logdb.query.expr;
 
 import java.util.regex.Pattern;
 
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.ObjectComparator;
-import org.araqne.logdb.LogQueryCommand.LogMap;
 
 public class Eq extends BinaryExpression {
 	private ObjectComparator cmp = new ObjectComparator();

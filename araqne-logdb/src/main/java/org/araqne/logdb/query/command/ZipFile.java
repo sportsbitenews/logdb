@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

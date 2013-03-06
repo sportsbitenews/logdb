@@ -28,6 +28,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.araqne.codec.EncodingRule;
 import org.araqne.codec.FastEncodingRule;
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCallback;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogResultSet;

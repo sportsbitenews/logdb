@@ -17,7 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
-import org.araqne.logdb.LogQueryCommand.LogMap;
+import org.araqne.logdb.LogMap;
 
 public class IsNum implements Expression {
 	private Expression expr;

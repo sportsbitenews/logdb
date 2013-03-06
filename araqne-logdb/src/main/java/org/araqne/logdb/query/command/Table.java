@@ -19,6 +19,7 @@ import java.util.Date;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogSearchCallback;

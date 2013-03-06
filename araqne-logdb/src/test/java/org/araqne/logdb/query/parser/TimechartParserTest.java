@@ -16,8 +16,8 @@
 package org.araqne.logdb.query.parser;
 
 import org.junit.Test;
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryParseException;
-import org.araqne.logdb.LogQueryCommand.LogMap;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Timechart;
 import org.araqne.logdb.query.command.Timechart.TimeUnit;

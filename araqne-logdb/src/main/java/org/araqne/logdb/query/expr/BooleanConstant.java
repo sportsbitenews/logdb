@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
-import org.araqne.logdb.LogQueryCommand.LogMap;
+import org.araqne.logdb.LogMap;
 
 public class BooleanConstant implements Expression {
 	private boolean b;

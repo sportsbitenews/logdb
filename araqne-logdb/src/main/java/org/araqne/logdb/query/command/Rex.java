@@ -18,6 +18,7 @@ package org.araqne.logdb.query.command;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 
 public class Rex extends LogQueryCommand {

@@ -17,6 +17,7 @@ package org.araqne.logdb.query.command;
 
 import java.util.List;
 
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 
 public class Fields extends LogQueryCommand {

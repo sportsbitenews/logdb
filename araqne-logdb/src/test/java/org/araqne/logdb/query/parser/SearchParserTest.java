@@ -18,7 +18,7 @@ package org.araqne.logdb.query.parser;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
-import org.araqne.logdb.LogQueryCommand.LogMap;
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.query.command.Search;
 import org.araqne.logdb.query.expr.Expression;
 

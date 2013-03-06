@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query.command;
 
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 
 public class Drop extends LogQueryCommand {

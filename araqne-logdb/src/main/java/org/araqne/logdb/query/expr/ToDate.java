@@ -18,8 +18,8 @@ package org.araqne.logdb.query.expr;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryParseException;
-import org.araqne.logdb.LogQueryCommand.LogMap;
 
 public class ToDate implements Expression {
 
