@@ -20,50 +20,11 @@ import java.util.List;
 import java.util.Stack;
 
 import org.araqne.logdb.LogQueryParseException;
-import org.araqne.logdb.query.expr.Abs;
-import org.araqne.logdb.query.expr.Add;
-import org.araqne.logdb.query.expr.And;
-import org.araqne.logdb.query.expr.BooleanConstant;
-import org.araqne.logdb.query.expr.Case;
-import org.araqne.logdb.query.expr.Concat;
-import org.araqne.logdb.query.expr.Div;
-import org.araqne.logdb.query.expr.Eq;
-import org.araqne.logdb.query.expr.EvalField;
 import org.araqne.logdb.query.expr.Expression;
-import org.araqne.logdb.query.expr.Gt;
-import org.araqne.logdb.query.expr.Gte;
-import org.araqne.logdb.query.expr.If;
-import org.araqne.logdb.query.expr.In;
-import org.araqne.logdb.query.expr.IsNotNull;
-import org.araqne.logdb.query.expr.IsNull;
-import org.araqne.logdb.query.expr.IsNum;
-import org.araqne.logdb.query.expr.IsStr;
-import org.araqne.logdb.query.expr.Left;
-import org.araqne.logdb.query.expr.Len;
-import org.araqne.logdb.query.expr.Lt;
-import org.araqne.logdb.query.expr.Lte;
-import org.araqne.logdb.query.expr.Match;
-import org.araqne.logdb.query.expr.Min;
-import org.araqne.logdb.query.expr.Mul;
-import org.araqne.logdb.query.expr.Neg;
-import org.araqne.logdb.query.expr.Neq;
-import org.araqne.logdb.query.expr.NumberConstant;
-import org.araqne.logdb.query.expr.Or;
-import org.araqne.logdb.query.expr.Right;
-import org.araqne.logdb.query.expr.StringConstant;
-import org.araqne.logdb.query.expr.Sub;
-import org.araqne.logdb.query.expr.Substr;
-import org.araqne.logdb.query.expr.ToDate;
-import org.araqne.logdb.query.expr.ToDouble;
-import org.araqne.logdb.query.expr.ToInt;
-import org.araqne.logdb.query.expr.ToLong;
-import org.araqne.logdb.query.expr.ToString;
-import org.araqne.logdb.query.expr.Trim;
-import org.araqne.logdb.query.expr.Typeof;
 
 public class ExpressionParser {
-
-	public static Expression parse(String s) {
+	
+	public static Expression parse(String s, OpEmitterFactory of, FuncEmitterFactory ff, TermEmitterFactory tf) {
 		if (s == null)
 			throw new IllegalArgumentException("expression string should not be null");
 
@@ -73,185 +34,158 @@ public class ExpressionParser {
 		for (Term term : output) {
 			if (term instanceof OpTerm) {
 				OpTerm op = (OpTerm) term;
-				// is unary op?
-				if (op.unary) {
-					Expression expr = exprStack.pop();
-					exprStack.add(new Neg(expr));
-					continue;
-				}
-
-				// reversed order by stack
-				if (exprStack.size() < 2)
-					throw new LogQueryParseException("broken-expression", -1, "operator is [" + op + "]");
-
-				Expression rhs = exprStack.pop();
-				Expression lhs = exprStack.pop();
-
-				switch (op) {
-				case Add:
-					exprStack.add(new Add(lhs, rhs));
-					break;
-				case Sub:
-					exprStack.add(new Sub(lhs, rhs));
-					break;
-				case Mul:
-					exprStack.add(new Mul(lhs, rhs));
-					break;
-				case Div:
-					exprStack.add(new Div(lhs, rhs));
-					break;
-				case Gte:
-					exprStack.add(new Gte(lhs, rhs));
-					break;
-				case Lte:
-					exprStack.add(new Lte(lhs, rhs));
-					break;
-				case Lt:
-					exprStack.add(new Lt(lhs, rhs));
-					break;
-				case Gt:
-					exprStack.add(new Gt(lhs, rhs));
-					break;
-				case And:
-					exprStack.add(new And(lhs, rhs));
-					break;
-				case Or:
-					exprStack.add(new Or(lhs, rhs));
-					break;
-				case Eq:
-					exprStack.add(new Eq(lhs, rhs));
-					break;
-				case Neq:
-					exprStack.add(new Neq(lhs, rhs));
-					break;
-				}
+				of.emit(exprStack, op);
 			} else if (term instanceof TokenTerm) {
 				// parse token expression (variable or numeric constant)
 				TokenTerm t = (TokenTerm) term;
-				if (!t.text.equals("(") && !t.text.equals(")")) {
-					String token = ((TokenTerm) term).text.trim();
-					Expression expr = parseTokenExpr(exprStack, token);
-					exprStack.add(expr);
-				}
+				tf.emit(exprStack, t);
 			} else {
 				// parse function expression
 				FuncTerm f = (FuncTerm) term;
-				String name = f.tokens.remove(0).trim();
-				List<Expression> args = parseArgs(f.tokens);
-
-				if (name.equals("abs")) {
-					exprStack.add(new Abs(args.get(0)));
-				} else if (name.equals("min")) {
-					exprStack.add(new Min(args));
-				} else if (name.equals("case")) {
-					exprStack.add(new Case(args));
-				} else if (name.equals("if")) {
-					exprStack.add(new If(args));
-				} else if (name.equals("concat")) {
-					exprStack.add(new Concat(args));
-				} else if (name.equals("str")) {
-					exprStack.add(new ToString(args));
-				} else if (name.equals("long")) {
-					exprStack.add(new ToLong(args));
-				} else if (name.equals("int")) {
-					exprStack.add(new ToInt(args));
-				} else if (name.equals("double")) {
-					exprStack.add(new ToDouble(args));
-				} else if (name.equals("date")) {
-					exprStack.add(new ToDate(args));
-				} else if (name.equals("string")) {
-					exprStack.add(new ToString(args));
-				} else if (name.equals("left")) {
-					exprStack.add(new Left(args));
-				} else if (name.equals("right")) {
-					exprStack.add(new Right(args));
-				} else if (name.equals("trim")) {
-					exprStack.add(new Trim(args));
-				} else if (name.equals("len")) {
-					exprStack.add(new Len(args));
-				} else if (name.equals("substr")) {
-					exprStack.add(new Substr(args));
-				} else if (name.equals("isnull")) {
-					exprStack.add(new IsNull(args));
-				} else if (name.equals("isnotnull")) {
-					exprStack.add(new IsNotNull(args));
-				} else if (name.equals("isnum")) {
-					exprStack.add(new IsNum(args));
-				} else if (name.equals("isstr")) {
-					exprStack.add(new IsStr(args));
-				} else if (name.equals("match")) {
-					exprStack.add(new Match(args));
-				} else if (name.equals("typeof")) {
-					exprStack.add(new Typeof(args));
-				} else if (name.equals("in")) {
-					exprStack.add(new In(args));
-				} else {
-					throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
-				}
+				ff.emit(exprStack, f);
 			}
 		}
 
 		return exprStack.pop();
 	}
 
-	private static Expression parseTokenExpr(Stack<Expression> exprStack, String token) {
-		// is quoted?
-		if (token.startsWith("\"") && token.endsWith("\""))
-			return new StringConstant(token.substring(1, token.length() - 1));
-
-		try {
-			long v = Long.parseLong(token);
-			if (Integer.MIN_VALUE <= v && v <= Integer.MAX_VALUE)
-				return new NumberConstant((int) v);
-			return new NumberConstant(v);
-		} catch (NumberFormatException e1) {
-			try {
-				double v = Double.parseDouble(token);
-				return new NumberConstant(v);
-			} catch (NumberFormatException e2) {
-				if (token.equals("true") || token.equals("false"))
-					return new BooleanConstant(Boolean.parseBoolean(token));
-
-				return new EvalField(token);
-			}
-		}
+	private static OpEmitterFactory evalOEF = new EvalOpEmitterFactory();
+	private static FuncEmitterFactory evalFEF = new EvalFuncEmitterFactory();
+	private static TermEmitterFactory evalTEF = new EvalTermEmitterFactory();
+	public static Expression parse(String s) {
+		return parse(s, evalOEF, evalFEF, evalTEF);
 	}
-
-	private static List<Expression> parseArgs(List<String> tokens) {
-		// separate by outermost comma (not in nested function call)
-		List<Expression> exprs = new ArrayList<Expression>();
-
-		int parensCount = 0;
-
-		List<String> subTokens = new ArrayList<String>();
-		tokens = tokens.subList(1, tokens.size() - 1);
-
-		for (String token : tokens) {
-			String t = token.trim();
-			if (t.equals("("))
-				parensCount++;
-			if (t.equals(")"))
-				parensCount--;
-
-			if (parensCount == 0 && t.equals(",")) {
-				exprs.add(parseArg(subTokens));
-				subTokens = new ArrayList<String>();
-			} else
-				subTokens.add(token);
-		}
-
-		exprs.add(parseArg(subTokens));
-		return exprs;
-	}
-
-	private static Expression parseArg(List<String> tokens) {
-		StringBuilder sb = new StringBuilder();
-		for (String token : tokens) {
-			sb.append(token);
-		}
-
-		return parse(sb.toString());
-	}
+	
+//	public static Expression parse(String s) {
+//		if (s == null)
+//			throw new IllegalArgumentException("expression string should not be null");
+//
+//		List<Term> terms = tokenize(s);
+//		List<Term> output = convertToPostfix(terms);
+//		Stack<Expression> exprStack = new Stack<Expression>();
+//		for (Term term : output) {
+//			if (term instanceof OpTerm) {
+//				OpTerm op = (OpTerm) term;
+//				// is unary op?
+//				if (op.unary) {
+//					Expression expr = exprStack.pop();
+//					exprStack.add(new Neg(expr));
+//					continue;
+//				}
+//
+//				// reversed order by stack
+//				if (exprStack.size() < 2)
+//					throw new LogQueryParseException("broken-expression", -1, "operator is [" + op + "]");
+//
+//				Expression rhs = exprStack.pop();
+//				Expression lhs = exprStack.pop();
+//
+//				switch (op) {
+//				case Add:
+//					exprStack.add(new Add(lhs, rhs));
+//					break;
+//				case Sub:
+//					exprStack.add(new Sub(lhs, rhs));
+//					break;
+//				case Mul:
+//					exprStack.add(new Mul(lhs, rhs));
+//					break;
+//				case Div:
+//					exprStack.add(new Div(lhs, rhs));
+//					break;
+//				case Gte:
+//					exprStack.add(new Gte(lhs, rhs));
+//					break;
+//				case Lte:
+//					exprStack.add(new Lte(lhs, rhs));
+//					break;
+//				case Lt:
+//					exprStack.add(new Lt(lhs, rhs));
+//					break;
+//				case Gt:
+//					exprStack.add(new Gt(lhs, rhs));
+//					break;
+//				case And:
+//					exprStack.add(new And(lhs, rhs));
+//					break;
+//				case Or:
+//					exprStack.add(new Or(lhs, rhs));
+//					break;
+//				case Eq:
+//					exprStack.add(new Eq(lhs, rhs));
+//					break;
+//				case Neq:
+//					exprStack.add(new Neq(lhs, rhs));
+//					break;
+//				}
+//			} else if (term instanceof TokenTerm) {
+//				// parse token expression (variable or numeric constant)
+//				TokenTerm t = (TokenTerm) term;
+//				if (!t.getText().equals("(") && !t.getText().equals(")")) {
+//					String token = ((TokenTerm) term).getText().trim();
+//					Expression expr = parseTokenExpr(exprStack, token);
+//					exprStack.add(expr);
+//				}
+//			} else {
+//				// parse function expression
+//				FuncTerm f = (FuncTerm) term;
+//				String name = f.tokens.remove(0).trim();
+//				List<Expression> args = parseArgs(f.tokens);
+//
+//				if (name.equals("abs")) {
+//					exprStack.add(new Abs(args.get(0)));
+//				} else if (name.equals("min")) {
+//					exprStack.add(new Min(args));
+//				} else if (name.equals("case")) {
+//					exprStack.add(new Case(args));
+//				} else if (name.equals("if")) {
+//					exprStack.add(new If(args));
+//				} else if (name.equals("concat")) {
+//					exprStack.add(new Concat(args));
+//				} else if (name.equals("str")) {
+//					exprStack.add(new ToString(args));
+//				} else if (name.equals("long")) {
+//					exprStack.add(new ToLong(args));
+//				} else if (name.equals("int")) {
+//					exprStack.add(new ToInt(args));
+//				} else if (name.equals("double")) {
+//					exprStack.add(new ToDouble(args));
+//				} else if (name.equals("date")) {
+//					exprStack.add(new ToDate(args));
+//				} else if (name.equals("string")) {
+//					exprStack.add(new ToString(args));
+//				} else if (name.equals("left")) {
+//					exprStack.add(new Left(args));
+//				} else if (name.equals("right")) {
+//					exprStack.add(new Right(args));
+//				} else if (name.equals("trim")) {
+//					exprStack.add(new Trim(args));
+//				} else if (name.equals("len")) {
+//					exprStack.add(new Len(args));
+//				} else if (name.equals("substr")) {
+//					exprStack.add(new Substr(args));
+//				} else if (name.equals("isnull")) {
+//					exprStack.add(new IsNull(args));
+//				} else if (name.equals("isnotnull")) {
+//					exprStack.add(new IsNotNull(args));
+//				} else if (name.equals("isnum")) {
+//					exprStack.add(new IsNum(args));
+//				} else if (name.equals("isstr")) {
+//					exprStack.add(new IsStr(args));
+//				} else if (name.equals("match")) {
+//					exprStack.add(new Match(args));
+//				} else if (name.equals("typeof")) {
+//					exprStack.add(new Typeof(args));
+//				} else if (name.equals("in")) {
+//					exprStack.add(new In(args));
+//				} else {
+//					throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
+//				}
+//			}
+//		}
+//
+//		return exprStack.pop();
+//	}
 
 	private static List<Term> convertToPostfix(List<Term> tokens) {
 		Stack<Term> opStack = new Stack<Term>();
@@ -271,13 +205,13 @@ public class ExpressionParser {
 
 				if (token instanceof OpTerm) {
 					opStack.add(token);
-				} else if (((TokenTerm) token).text.equals("(")) {
+				} else if (((TokenTerm) token).getText().equals("(")) {
 					opStack.add(token);
-				} else if (((TokenTerm) token).text.equals(")")) {
+				} else if (((TokenTerm) token).getText().equals(")")) {
 					boolean foundMatchParens = false;
 					while (!opStack.isEmpty()) {
 						Term last = opStack.pop();
-						if (last instanceof TokenTerm && ((TokenTerm) last).text.equals("(")) {
+						if (last instanceof TokenTerm && ((TokenTerm) last).getText().equals("(")) {
 							foundMatchParens = true;
 							break;
 						} else {
@@ -488,7 +422,7 @@ public class ExpressionParser {
 			return true;
 
 		if (t instanceof TokenTerm) {
-			String text = ((TokenTerm) t).text;
+			String text = ((TokenTerm) t).getText();
 			return text.equals("(") || text.equals(")");
 		}
 
@@ -498,7 +432,7 @@ public class ExpressionParser {
 	private static interface Term {
 	}
 
-	private static class TokenTerm implements Term {
+	public static class TokenTerm implements Term {
 		private String text;
 
 		public TokenTerm(String text) {
@@ -507,11 +441,16 @@ public class ExpressionParser {
 
 		@Override
 		public String toString() {
+			return getText();
+		}
+
+		public String getText() {
 			return text;
 		}
+
 	}
 
-	private static enum OpTerm implements Term {
+	public static enum OpTerm implements Term {
 		Add("+", 3), Sub("-", 3), Mul("*", 4), Div("/", 4), Neg("-", 5, false, true), Gte(">=", 2), Lte("<=", 2), Gt(">", 2), Lt(
 				"<", 2), Eq("==", 1), Neq("!=", 1), And(" and ", 0), Or(" or ", 0);
 
@@ -545,7 +484,7 @@ public class ExpressionParser {
 		}
 	}
 
-	private static class FuncTerm implements Term {
+	public static class FuncTerm implements Term {
 		private List<String> tokens;
 
 		public FuncTerm(List<String> tokens) {
@@ -555,6 +494,10 @@ public class ExpressionParser {
 		@Override
 		public String toString() {
 			return "func term(" + tokens + ")";
+		}
+
+		public List<String> getTokens() {
+			return tokens;
 		}
 	}
 
