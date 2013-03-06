@@ -37,7 +37,7 @@
 						</Private-Package>
 						<Import-Package>
 							!org.junit,
-							org.araqne.confdb;version="0.11.1",
+							org.araqne.confdb;version="0.11.0",
 							org.araqne.logstorage;version="1.12.0",
 							org.araqne.logstorage.file;version="1.12.0",
 							*
