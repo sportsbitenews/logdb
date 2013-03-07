@@ -62,10 +62,10 @@ public class ObjectComparator implements Comparator<Object> {
 			}
 
 			if (!o1.getClass().equals(o2.getClass()))
-				return o1.toString().compareTo(o2.toString());
+				return o1.toString().compareToIgnoreCase(o2.toString());
 
 			if (o1 instanceof String)
-				return ((String) o1).compareTo((String) o2);
+				return ((String) o1).compareToIgnoreCase((String) o2);
 			else if (o1 instanceof Date)
 				return ((Date) o1).compareTo((Date) o2);
 

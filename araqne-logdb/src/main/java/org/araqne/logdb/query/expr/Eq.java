@@ -59,7 +59,7 @@ public class Eq extends BinaryExpression {
 		sb.append("$");
 
 		if (wildcard)
-			return Pattern.compile(sb.toString());
+			return Pattern.compile(sb.toString(), Pattern.CASE_INSENSITIVE);
 		return null;
 	}
 
