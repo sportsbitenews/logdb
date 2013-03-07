@@ -56,137 +56,6 @@ public class ExpressionParser {
 		return parse(s, evalOEF, evalFEF, evalTEF);
 	}
 	
-//	public static Expression parse(String s) {
-//		if (s == null)
-//			throw new IllegalArgumentException("expression string should not be null");
-//
-//		List<Term> terms = tokenize(s);
-//		List<Term> output = convertToPostfix(terms);
-//		Stack<Expression> exprStack = new Stack<Expression>();
-//		for (Term term : output) {
-//			if (term instanceof OpTerm) {
-//				OpTerm op = (OpTerm) term;
-//				// is unary op?
-//				if (op.unary) {
-//					Expression expr = exprStack.pop();
-//					exprStack.add(new Neg(expr));
-//					continue;
-//				}
-//
-//				// reversed order by stack
-//				if (exprStack.size() < 2)
-//					throw new LogQueryParseException("broken-expression", -1, "operator is [" + op + "]");
-//
-//				Expression rhs = exprStack.pop();
-//				Expression lhs = exprStack.pop();
-//
-//				switch (op) {
-//				case Add:
-//					exprStack.add(new Add(lhs, rhs));
-//					break;
-//				case Sub:
-//					exprStack.add(new Sub(lhs, rhs));
-//					break;
-//				case Mul:
-//					exprStack.add(new Mul(lhs, rhs));
-//					break;
-//				case Div:
-//					exprStack.add(new Div(lhs, rhs));
-//					break;
-//				case Gte:
-//					exprStack.add(new Gte(lhs, rhs));
-//					break;
-//				case Lte:
-//					exprStack.add(new Lte(lhs, rhs));
-//					break;
-//				case Lt:
-//					exprStack.add(new Lt(lhs, rhs));
-//					break;
-//				case Gt:
-//					exprStack.add(new Gt(lhs, rhs));
-//					break;
-//				case And:
-//					exprStack.add(new And(lhs, rhs));
-//					break;
-//				case Or:
-//					exprStack.add(new Or(lhs, rhs));
-//					break;
-//				case Eq:
-//					exprStack.add(new Eq(lhs, rhs));
-//					break;
-//				case Neq:
-//					exprStack.add(new Neq(lhs, rhs));
-//					break;
-//				}
-//			} else if (term instanceof TokenTerm) {
-//				// parse token expression (variable or numeric constant)
-//				TokenTerm t = (TokenTerm) term;
-//				if (!t.getText().equals("(") && !t.getText().equals(")")) {
-//					String token = ((TokenTerm) term).getText().trim();
-//					Expression expr = parseTokenExpr(exprStack, token);
-//					exprStack.add(expr);
-//				}
-//			} else {
-//				// parse function expression
-//				FuncTerm f = (FuncTerm) term;
-//				String name = f.tokens.remove(0).trim();
-//				List<Expression> args = parseArgs(f.tokens);
-//
-//				if (name.equals("abs")) {
-//					exprStack.add(new Abs(args.get(0)));
-//				} else if (name.equals("min")) {
-//					exprStack.add(new Min(args));
-//				} else if (name.equals("case")) {
-//					exprStack.add(new Case(args));
-//				} else if (name.equals("if")) {
-//					exprStack.add(new If(args));
-//				} else if (name.equals("concat")) {
-//					exprStack.add(new Concat(args));
-//				} else if (name.equals("str")) {
-//					exprStack.add(new ToString(args));
-//				} else if (name.equals("long")) {
-//					exprStack.add(new ToLong(args));
-//				} else if (name.equals("int")) {
-//					exprStack.add(new ToInt(args));
-//				} else if (name.equals("double")) {
-//					exprStack.add(new ToDouble(args));
-//				} else if (name.equals("date")) {
-//					exprStack.add(new ToDate(args));
-//				} else if (name.equals("string")) {
-//					exprStack.add(new ToString(args));
-//				} else if (name.equals("left")) {
-//					exprStack.add(new Left(args));
-//				} else if (name.equals("right")) {
-//					exprStack.add(new Right(args));
-//				} else if (name.equals("trim")) {
-//					exprStack.add(new Trim(args));
-//				} else if (name.equals("len")) {
-//					exprStack.add(new Len(args));
-//				} else if (name.equals("substr")) {
-//					exprStack.add(new Substr(args));
-//				} else if (name.equals("isnull")) {
-//					exprStack.add(new IsNull(args));
-//				} else if (name.equals("isnotnull")) {
-//					exprStack.add(new IsNotNull(args));
-//				} else if (name.equals("isnum")) {
-//					exprStack.add(new IsNum(args));
-//				} else if (name.equals("isstr")) {
-//					exprStack.add(new IsStr(args));
-//				} else if (name.equals("match")) {
-//					exprStack.add(new Match(args));
-//				} else if (name.equals("typeof")) {
-//					exprStack.add(new Typeof(args));
-//				} else if (name.equals("in")) {
-//					exprStack.add(new In(args));
-//				} else {
-//					throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
-//				}
-//			}
-//		}
-//
-//		return exprStack.pop();
-//	}
-
 	private static List<Term> convertToPostfix(List<Term> tokens) {
 		Stack<Term> opStack = new Stack<Term>();
 		List<Term> output = new ArrayList<Term>();
@@ -451,8 +320,8 @@ public class ExpressionParser {
 	}
 
 	public static enum OpTerm implements Term {
-		Add("+", 3), Sub("-", 3), Mul("*", 4), Div("/", 4), Neg("-", 5, false, true), Gte(">=", 2), Lte("<=", 2), Gt(">", 2), Lt(
-				"<", 2), Eq("==", 1), Neq("!=", 1), And(" and ", 0), Or(" or ", 0);
+		Add("+", 5), Sub("-", 5), Mul("*", 6), Div("/", 6), Neg("-", 7, false, true), Gte(">=", 4), Lte("<=", 4), Gt(">", 4), Lt(
+				"<", 4), Eq("==", 3), Neq("!=", 3), And(" and ", 1), Or(" or ", 0), Not("not ", 2, false, true);
 
 		OpTerm(String symbol, int precedence) {
 			this(symbol, precedence, true, false);
