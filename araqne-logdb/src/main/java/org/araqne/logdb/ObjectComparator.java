@@ -33,42 +33,36 @@ public class ObjectComparator implements Comparator<Object> {
 
 		if (o1.equals(o2))
 			return 0;
-		else {
-			if (o1.getClass() == o2.getClass()) {
-				if (o1 instanceof Integer)
-					return (Integer) o1 - (Integer) o2;
 
-				if (o1 instanceof Comparable && o2 instanceof Comparable) {
-					return ((Comparable) o1).compareTo(o2);
-				}
+		if (o1.getClass() == o2.getClass()) {
+			if (o1 instanceof String)
+				return ((String) o1).compareToIgnoreCase((String) o2);
 
-				if (o1 instanceof Object[] && o2 instanceof Object[]) {
-					Object[] arr1 = (Object[]) o1;
-					Object[] arr2 = (Object[]) o2;
-					int min = Math.min(arr1.length, arr2.length);
-					for (int i = 0; i < min; i++) {
-						int cmp = compare(arr1[i], arr2[i]);
-						if (cmp != 0)
-							return cmp;
-					}
+			if (o1 instanceof Integer)
+				return (Integer) o1 - (Integer) o2;
 
-					return arr1.length - arr2.length;
-				}
+			if (o1 instanceof Comparable) {
+				return ((Comparable) o1).compareTo(o2);
 			}
 
+			if (o1 instanceof Object[] && o2 instanceof Object[]) {
+				Object[] arr1 = (Object[]) o1;
+				Object[] arr2 = (Object[]) o2;
+				int min = Math.min(arr1.length, arr2.length);
+				for (int i = 0; i < min; i++) {
+					int cmp = compare(arr1[i], arr2[i]);
+					if (cmp != 0)
+						return cmp;
+				}
+
+				return arr1.length - arr2.length;
+			}
+		} else {
 			if (NumberUtil.getClass(o1) != null && NumberUtil.getClass(o2) != null) {
 				long cmp = NumberUtil.sub(o1, o2).longValue();
 				return (cmp == 0) ? 0 : ((cmp > 0) ? 1 : -1);
-			}
-
-			if (!o1.getClass().equals(o2.getClass()))
-				return o1.toString().compareToIgnoreCase(o2.toString());
-
-			if (o1 instanceof String)
-				return ((String) o1).compareToIgnoreCase((String) o2);
-			else if (o1 instanceof Date)
+			} else if (o1 instanceof Date)
 				return ((Date) o1).compareTo((Date) o2);
-
 		}
 
 		return -1;
