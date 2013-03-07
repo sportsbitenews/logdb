@@ -17,15 +17,13 @@ package org.araqne.logdb.query.parser;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
-import org.araqne.log.api.LogParser;
-import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
-import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryContext;
@@ -50,16 +48,20 @@ public class TableParser implements LogQueryCommandParser {
 		return "table";
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
-		Map<String, String> options = tokens.options();
-		String tableName = tokens.lastArg();
+		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length());
+		Map<String, String> options = (Map<String, String>) r.value;
+
+		List<String> tableNames = new ArrayList<String>();
+		for (String tableNameToken : commandString.substring(r.next).split(","))
+			tableNames.add(tableNameToken.trim());
 
 		Date from = null;
 		Date to = null;
-		int offset = 0;
-		int limit = 0;
+		long offset = 0;
+		long limit = 0;
 
 		if (options.containsKey("duration")) {
 			String duration = options.get("duration");
@@ -90,23 +92,10 @@ public class TableParser implements LogQueryCommandParser {
 		if (limit < 0)
 			throw new LogQueryParseException("negative-limit", -1);
 
-		String parserName = tableRegistry.getTableMetadata(tableName, "logparser");
-		LogParserFactory parserFactory = parserFactoryRegistry.get(parserName);
-		LogParser parser = null;
-		if (parserFactory != null) {
-			Properties prop = new Properties();
-			for (LoggerConfigOption configOption : parserFactory.getConfigOptions()) {
-				String optionName = configOption.getName();
-				String optionValue = tableRegistry.getTableMetadata(tableName, optionName);
-				if (optionValue == null)
-					throw new IllegalArgumentException("require table metadata " + optionName);
-				prop.put(optionName, optionValue);
-			}
-			parser = parserFactory.createParser(prop);
-		}
-		Table table = new Table(tableName, offset, limit, from, to, parser);
+		Table table = new Table(tableNames, offset, limit, from, to);
+		table.setTableRegistry(tableRegistry);
 		table.setStorage(logStorage);
-
+		table.setParserFactoryRegistry(parserFactoryRegistry);
 		return table;
 	}
 

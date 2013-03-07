@@ -469,7 +469,7 @@ public class LogStorageEngine implements LogStorage {
 	}
 
 	@Override
-	public Collection<Log> getLogs(String tableName, Date from, Date to, int offset, int limit) {
+	public Collection<Log> getLogs(String tableName, Date from, Date to, long offset, int limit) {
 		final List<Log> logs = new ArrayList<Log>(limit);
 		try {
 			search(tableName, from, to, offset, limit, new LogSearchCallback() {
@@ -665,17 +665,17 @@ public class LogStorageEngine implements LogStorage {
 	}
 
 	@Override
-	public int search(Date from, Date to, int limit, LogSearchCallback callback) throws InterruptedException {
+	public long search(Date from, Date to, long limit, LogSearchCallback callback) throws InterruptedException {
 		return search(from, to, 0, limit, callback);
 	}
 
 	@Override
-	public int search(Date from, Date to, int offset, int limit, LogSearchCallback callback) throws InterruptedException {
+	public long search(Date from, Date to, long offset, long limit, LogSearchCallback callback) throws InterruptedException {
 		verify();
 
 		int found = 0;
 		for (String tableName : tableRegistry.getTableNames()) {
-			int needed = limit - found;
+			long needed = limit - found;
 			if (needed <= 0)
 				break;
 
@@ -696,18 +696,18 @@ public class LogStorageEngine implements LogStorage {
 	}
 
 	@Override
-	public int search(String tableName, Date from, Date to, int limit, LogSearchCallback callback) throws InterruptedException {
+	public long search(String tableName, Date from, Date to, long limit, LogSearchCallback callback) throws InterruptedException {
 		return search(tableName, from, to, 0, limit, callback);
 	}
 
 	@Override
-	public int search(String tableName, Date from, Date to, int offset, int limit, LogSearchCallback callback)
+	public long search(String tableName, Date from, Date to, long offset, long limit, LogSearchCallback callback)
 			throws InterruptedException {
 		verify();
 
 		Collection<Date> days = getLogDates(tableName);
 
-		int found = 0;
+		long found = 0;
 		List<Date> filtered = DateUtil.filt(days, from, to);
 		logger.trace("araqne logstorage: searching {} tablets of table [{}]", filtered.size(), tableName);
 
@@ -715,7 +715,7 @@ public class LogStorageEngine implements LogStorage {
 			if (logger.isTraceEnabled())
 				logger.trace("araqne logstorage: searching table {}, date={}", tableName, DateUtil.getDayText(day));
 
-			int needed = limit - found;
+			long needed = limit - found;
 			if (limit != 0 && needed <= 0)
 				break;
 
@@ -735,7 +735,7 @@ public class LogStorageEngine implements LogStorage {
 		return found;
 	}
 
-	private int searchTablet(String tableName, Date day, Date from, Date to, int offset, int limit,
+	private long searchTablet(String tableName, Date day, Date from, Date to, long offset, long limit,
 			final LogSearchCallback callback) throws InterruptedException {
 		int tableId = tableRegistry.getTableId(tableName);
 

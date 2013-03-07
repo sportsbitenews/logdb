@@ -18,13 +18,59 @@ package org.araqne.logdb.query.parser;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.araqne.logdb.LogQueryParseException;
 
 public class QueryTokenizer {
 	private QueryTokenizer() {
+	}
+
+	public static ParseResult parseOptions(String s, int offset) {
+		HashMap<String, Object> options = new HashMap<String, Object>();
+		String remaining = s.substring(offset);
+
+		Pattern p = Pattern.compile(" (?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+		Matcher matcher = p.matcher(remaining);
+
+		int tokenStart = 0;
+		while (matcher.find(tokenStart)) {
+			int tokenEnd = matcher.start();
+			String token = remaining.substring(tokenStart, tokenEnd);
+
+			if (token.trim().length() == 0) {
+				tokenStart = matcher.end();
+				continue;
+			}
+			
+			if (!parseOption(options, token))
+				return new ParseResult(options, tokenStart + offset);
+
+			tokenStart = matcher.end();
+		}
+		String token = remaining.substring(tokenStart);
+		if (!parseOption(options, token))
+			return new ParseResult(options, tokenStart + offset);
+
+		return new ParseResult(options, s.length());
+	}
+
+	private static boolean parseOption(HashMap<String, Object> options, String token) {
+		// assumption: there's no adjacent ' '(space) near '='
+		int eqPos = token.indexOf('=');
+		if (eqPos > 1) {
+			String key = token.substring(0, eqPos);
+			String value = token.substring(eqPos + 1);
+			if (value.startsWith("\"")) {
+				value = value.substring(1, value.length() - 1);
+			}
+
+			options.put(key, value);
+			return true;
+		} else
+			return false;
 	}
 
 	public static List<String> parseCommands(String query) {
@@ -51,31 +97,6 @@ public class QueryTokenizer {
 			l.add(sb.toString());
 
 		return l;
-	}
-
-	public static ParseResult parseOptions(String s, int offset) {
-		Map<String, String> options = new HashMap<String, String>();
-		int next = offset;
-
-		while (true) {
-			try {
-				ParseResult r = nextString(s, next, '=');
-				String key = (String) r.value;
-
-				r = nextString(s, r.next, ' ');
-				String value = (String) r.value;
-
-				options.put(key, value);
-
-				next = r.next;
-			} catch (LogQueryParseException e) {
-				if (e.getType().equals("need-string-token"))
-					break;
-				throw e;
-			}
-		}
-
-		return new ParseResult(options, next);
 	}
 
 	public static QueryTokens tokenize(String s) {

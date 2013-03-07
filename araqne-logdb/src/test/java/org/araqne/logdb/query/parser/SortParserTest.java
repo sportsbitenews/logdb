@@ -115,7 +115,7 @@ public class SortParserTest {
 			fail();
 		} catch (LogQueryParseException e) {
 			assertEquals("need-column", e.getType());
-			assertEquals(4, (int) e.getOffset());
+			assertEquals(5, (int) e.getOffset());
 		}
 	}
 }

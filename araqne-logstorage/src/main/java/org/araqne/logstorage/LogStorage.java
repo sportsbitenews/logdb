@@ -50,7 +50,7 @@ public interface LogStorage {
 	void stop();
 
 	void createTable(String tableName);
-	
+
 	void ensureTable(String tableName);
 
 	void createTable(String tableName, Map<String, String> tableMetadata);
@@ -80,7 +80,7 @@ public interface LogStorage {
 
 	Collection<Log> getLogs(String tableName, Date from, Date to, int limit);
 
-	Collection<Log> getLogs(String tableName, Date from, Date to, int offset, int limit);
+	Collection<Log> getLogs(String tableName, Date from, Date to, long offset, int limit);
 
 	CachedRandomSeeker openCachedRandomSeeker();
 
@@ -90,13 +90,13 @@ public interface LogStorage {
 
 	LogCursor openCursor(String tableName, Date day, boolean ascending) throws IOException;
 
-	int search(Date from, Date to, int limit, LogSearchCallback callback) throws InterruptedException;
+	long search(Date from, Date to, long limit, LogSearchCallback callback) throws InterruptedException;
 
-	int search(Date from, Date to, int offset, int limit, LogSearchCallback callback) throws InterruptedException;
+	long search(Date from, Date to, long offset, long limit, LogSearchCallback callback) throws InterruptedException;
 
-	int search(String tableName, Date from, Date to, int limit, LogSearchCallback callback) throws InterruptedException;
+	long search(String tableName, Date from, Date to, long limit, LogSearchCallback callback) throws InterruptedException;
 
-	int search(String tableName, Date from, Date to, int offset, int limit, LogSearchCallback callback)
+	long search(String tableName, Date from, Date to, long offset, long limit, LogSearchCallback callback)
 			throws InterruptedException;
 
 	void addLogListener(LogCallback callback);

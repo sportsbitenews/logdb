@@ -35,9 +35,19 @@ public class TableParserTest {
 		String query = "table iis";
 		Table table = parse(query);
 
-		assertEquals("iis", table.getTableName());
+		assertTrue(table.getTableNames().contains("iis"));
 		assertEquals(0, table.getOffset());
 		assertEquals(0, table.getLimit());
+	}
+
+	@Test
+	public void testMultiTables() {
+		String query = "table iis, xtm";
+		Table table = parse(query);
+
+		System.out.println(table.getTableNames());
+		assertTrue(table.getTableNames().contains("iis"));
+		assertTrue(table.getTableNames().contains("xtm"));
 	}
 
 	@Test
@@ -45,7 +55,7 @@ public class TableParserTest {
 		String query = "table offset=3 limit=10 iis";
 		Table table = parse(query);
 
-		assertEquals("iis", table.getTableName());
+		assertTrue(table.getTableNames().contains("iis"));
 		assertEquals(3, table.getOffset());
 		assertEquals(10, table.getLimit());
 	}
@@ -102,7 +112,7 @@ public class TableParserTest {
 		query = "table from=20120101031101 to=20121225154459 iis";
 		table = parse(query);
 
-		assertEquals("iis", table.getTableName());
+		assertTrue(table.getTableNames().contains("iis"));
 		assertEquals(date(2012, 1, 1, 3, 11, 1), table.getFrom());
 		assertEquals(date(2012, 12, 25, 15, 44, 59), table.getTo());
 	}
