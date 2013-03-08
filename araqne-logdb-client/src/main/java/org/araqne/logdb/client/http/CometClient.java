@@ -43,6 +43,18 @@ public class CometClient implements TrapListener {
 		this.session.addListener(this);
 	}
 
+	public void createTable(String tableName) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.createTable", params);
+	}
+
+	public void dropTable(String tableName) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.dropTable", params);
+	}
+
 	public LogCursor query(String queryString) throws IOException {
 		int id = createQuery(queryString);
 		startQuery(id);

@@ -18,6 +18,8 @@ package org.araqne.logdb.msgbus;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.logdb.AccountService;
+import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.msgbus.MessageBus;
 import org.araqne.msgbus.Request;
 import org.araqne.msgbus.Response;
@@ -32,9 +34,15 @@ public class ManagementPlugin {
 
 	@Requires
 	private AccountService accountService;
+	
+	@Requires
+	private LogTableRegistry tableRegistry;
 
 	@Requires
 	private MessageBus msgbus;
+
+	@Requires
+	private LogStorage storage;
 
 	@AllowGuestAccess
 	@MsgbusMethod
@@ -59,5 +67,32 @@ public class ManagementPlugin {
 			accountService.logout(dbSession);
 
 		msgbus.closeSession(session);
+	}
+	
+	@MsgbusMethod
+	public void listTables(Request req, Response resp) {
+		for (String tableName : tableRegistry.getTableNames()) {
+			
+		}
+	}
+
+	@MsgbusMethod
+	public void createTable(Request req, Response resp) {
+		checkPermission(req);
+		String tableName = req.getString("table");
+		storage.createTable(tableName);
+	}
+
+	@MsgbusMethod
+	public void dropTable(Request req, Response resp) {
+		checkPermission(req);
+		String tableName = req.getString("table");
+		storage.dropTable(tableName);
+	}
+
+	private void checkPermission(Request req) {
+		org.araqne.logdb.Session session = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
+		if (session != null && !session.getLoginName().equals("araqne"))
+			throw new SecurityException("logdb management is not allowed to " + session.getLoginName());
 	}
 }

@@ -72,6 +72,10 @@ public class Console {
 					fetch(tokens);
 				else if (cmd.equals("queries"))
 					queries();
+				else if (cmd.equals("create_table"))
+					createTable(tokens);
+				else if (cmd.equals("drop_table"))
+					dropTable(tokens);
 				else
 					w("syntax error");
 
@@ -297,6 +301,42 @@ public class Console {
 			for (Object row : rows)
 				w(row.toString());
 			w(rows.size() + " row(s)");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void createTable(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: create_table <table_name>");
+			return;
+		}
+
+		try {
+			client.createTable(tokens[1]);
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void dropTable(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: drop_table <table_name>");
+			return;
+		}
+
+		try {
+			client.dropTable(tokens[1]);
 		} catch (Throwable t) {
 			w(t.getMessage());
 		}
