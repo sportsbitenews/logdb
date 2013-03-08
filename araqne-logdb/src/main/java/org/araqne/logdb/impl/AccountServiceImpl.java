@@ -18,6 +18,7 @@ package org.araqne.logdb.impl;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -25,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.felix.ipojo.annotations.Component;
+import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
@@ -36,16 +38,21 @@ import org.araqne.confdb.Predicates;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Session;
+import org.araqne.logstorage.LogTableEventListener;
+import org.araqne.logstorage.LogTableRegistry;
 
 @Component(name = "logdb-account")
-@Provides
-public class AccountServiceImpl implements AccountService {
+@Provides(specifications = { AccountService.class })
+public class AccountServiceImpl implements AccountService, LogTableEventListener {
 	private static final String DB_NAME = "araqne-logdb";
 	private static final String MASTER_ACCOUNT = "araqne";
 	private static final char[] SALT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".toCharArray();
 
 	@Requires
 	private ConfigService conf;
+
+	@Requires
+	private LogTableRegistry tableRegistry;
 
 	private ConcurrentMap<String, Session> sessions;
 	private ConcurrentMap<String, Account> accounts;
@@ -57,6 +64,7 @@ public class AccountServiceImpl implements AccountService {
 
 	@Validate
 	public void start() {
+		tableRegistry.addListener(this);
 		sessions.clear();
 		accounts.clear();
 
@@ -73,6 +81,12 @@ public class AccountServiceImpl implements AccountService {
 			db.add(account);
 			accounts.put(MASTER_ACCOUNT, account);
 		}
+	}
+
+	@Invalidate
+	public void stop() {
+		if (tableRegistry != null)
+			tableRegistry.removeListener(this);
 	}
 
 	@Override
@@ -275,6 +289,9 @@ public class AccountServiceImpl implements AccountService {
 		if (!session.getLoginName().equals(MASTER_ACCOUNT))
 			throw new IllegalStateException("no permission");
 
+		if (!tableRegistry.exists(tableName))
+			throw new IllegalStateException("table not found");
+
 		Account account = accounts.get(loginName);
 		if (account.getReadableTables().contains(tableName))
 			return;
@@ -310,6 +327,9 @@ public class AccountServiceImpl implements AccountService {
 		if (!session.getLoginName().equals(MASTER_ACCOUNT))
 			throw new IllegalStateException("no permission");
 
+		if (!tableRegistry.exists(tableName))
+			throw new IllegalStateException("table not found");
+
 		Account account = accounts.get(loginName);
 		if (!account.getReadableTables().contains(tableName))
 			return;
@@ -337,5 +357,30 @@ public class AccountServiceImpl implements AccountService {
 		for (int i = 0; i < saltLength; i++)
 			salt.append(SALT_CHARS[rand.nextInt(SALT_CHARS.length)]);
 		return salt.toString();
+	}
+
+	@Override
+	public void onCreate(String tableName, Map<String, String> tableMetadata) {
+	}
+
+	@Override
+	public void onDrop(String tableName) {
+		// remove all granted permissions for this table
+		for (Account account : accounts.values()) {
+			if (account.getReadableTables().contains(tableName)) {
+				ArrayList<String> copy = new ArrayList<String>(account.getReadableTables());
+				copy.remove(tableName);
+				account.setReadableTables(copy);
+
+				ConfigDatabase db = conf.ensureDatabase(DB_NAME);
+				Config c = db.findOne(Account.class, Predicates.field("login_name", account.getLoginName()));
+				if (c != null) {
+					c.setDocument(PrimitiveConverter.serialize(account));
+					c.update();
+				} else {
+					db.add(account);
+				}
+			}
+		}
 	}
 }
