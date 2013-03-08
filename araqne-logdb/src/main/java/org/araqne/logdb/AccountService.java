@@ -1,0 +1,47 @@
+/*
+ * Copyright 2013 Eediom Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.araqne.logdb;
+
+import java.util.List;
+import java.util.Set;
+
+public interface AccountService {
+	List<Session> getSessions();
+
+	Session getSession(String guid);
+
+	Session login(String loginName, String hash, String nonce);
+
+	Session login(String loginName, String password);
+
+	void logout(Session session);
+
+	Set<String> getAccountNames();
+
+	boolean verifyPassword(String loginName, String password);
+
+	void createAccount(Session session, String loginName, String password);
+
+	void changePassword(Session session, String loginName, String password);
+
+	void removeAccount(Session session, String loginName);
+
+	boolean checkPermission(Session session, String tableName, Permission permission);
+
+	void grantPrivilege(Session session, String loginName, String tableName, Permission... permissions);
+
+	void revokePrivilege(Session session, String loginName, String tableName, Permission... permissions);
+}

@@ -22,7 +22,7 @@ public interface LogQueryService {
 
 	LogQuery getQuery(int id);
 
-	LogQuery createQuery(String query);
+	LogQuery createQuery(Session session, String query);
 
 	void startQuery(int id);
 

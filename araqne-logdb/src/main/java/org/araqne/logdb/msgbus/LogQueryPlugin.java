@@ -47,7 +47,7 @@ import org.araqne.msgbus.handler.MsgbusPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(name = "logdb-msgbus")
+@Component(name = "logdb-logquery-msgbus")
 @MsgbusPlugin
 public class LogQueryPlugin {
 	private final Logger logger = LoggerFactory.getLogger(LogQueryPlugin.class.getName());
@@ -103,7 +103,8 @@ public class LogQueryPlugin {
 	@MsgbusMethod
 	public void createQuery(Request req, Response resp) {
 		try {
-			LogQuery query = service.createQuery(req.getString("query"));
+			org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
+			LogQuery query = service.createQuery(dbSession, req.getString("query"));
 			resp.put("id", query.getId());
 
 			// for query cancellation at session close

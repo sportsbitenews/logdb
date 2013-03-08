@@ -21,6 +21,7 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.ServiceProperty;
 import org.araqne.api.Script;
 import org.araqne.api.ScriptFactory;
+import org.araqne.logdb.AccountService;
 import org.araqne.logdb.CsvLookupRegistry;
 import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LogQueryScriptRegistry;
@@ -45,9 +46,12 @@ public class LogDBScriptFactory implements ScriptFactory {
 	@Requires
 	private CsvLookupRegistry csvLookup;
 
+	@Requires
+	private AccountService accountService;
+
 	@Override
 	public Script createScript() {
-		return new LogDBScript(qs, scriptRegistry, lookup, csvLookup);
+		return new LogDBScript(qs, scriptRegistry, lookup, csvLookup, accountService);
 	}
 
 }

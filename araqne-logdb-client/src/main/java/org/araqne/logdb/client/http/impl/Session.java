@@ -45,16 +45,11 @@ public class Session implements TrapListener {
 	}
 
 	public void login(String loginName, String password, boolean force) throws IOException {
-		Message hello = rpc("org.araqne.dom.msgbus.LoginPlugin.hello");
-		String nonce = hello.getString("nonce");
-		String h = hashPassword(password, nonce);
-
 		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("nick", loginName);
-		params.put("hash", h);
-		params.put("force", force);
+		params.put("login_name", loginName);
+		params.put("password", password);
 
-		rpc("org.araqne.dom.msgbus.LoginPlugin.login", params);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.login", params);
 
 		trapReceiver = new TrapReceiver(host, cookie);
 		trapReceiver.addListener(this);
@@ -62,11 +57,7 @@ public class Session implements TrapListener {
 	}
 
 	public void logout() throws IOException {
-		rpc("org.araqne.dom.msgbus.LoginPlugin.logout");
-	}
-
-	private String hashPassword(String password, String nonce) {
-		return Sha1.hash(Sha1.hash(password) + nonce);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.logout");
 	}
 
 	public Message rpc(String method) throws IOException {
@@ -169,7 +160,7 @@ public class Session implements TrapListener {
 	@Override
 	public void onClose(Throwable t) {
 		trapReceiver = null;
-		
+
 		for (TrapListener listener : listeners) {
 			try {
 				listener.onClose(t);
@@ -180,6 +171,11 @@ public class Session implements TrapListener {
 	}
 
 	public void close() {
+		try {
+			rpc("org.araqne.logdb.msgbus.ManagementPlugin.logout");
+		} catch (Throwable t) {
+		}
+
 		if (trapReceiver != null) {
 			trapReceiver.close();
 			trapReceiver = null;

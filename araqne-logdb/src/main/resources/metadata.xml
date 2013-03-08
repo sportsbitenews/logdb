@@ -2,10 +2,12 @@
 	xsi:schemaLocation="org.apache.felix.ipojo http://felix.apache.org/ipojo/schemas/CURRENT/core.xsd"
 	xmlns="org.apache.felix.ipojo">
 	<instance component="logdb-script-factory" />
-	<instance component="logdb-msgbus" />
+	<instance component="logdb-logquery-msgbus" />
 	<instance component="logdb-query" />
 	<instance component="logdb-lookup-registry" />
 	<instance component="logdb-csv-lookup-registry" />
 	<instance component="logdb-query-parser-service" />
 	<instance component="logdb-query-script-registry" />
+	<instance component="logdb-account" />
+	<instance component="logdb-management-msgbus" />
 </ipojo>

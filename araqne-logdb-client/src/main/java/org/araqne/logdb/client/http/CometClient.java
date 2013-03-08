@@ -29,7 +29,7 @@ import org.araqne.logdb.client.MessageException;
 import org.araqne.logdb.client.http.impl.Session;
 import org.araqne.logdb.client.http.impl.TrapListener;
 
-public class CometQueryClient implements TrapListener {
+public class CometClient implements TrapListener {
 	private Session session;
 	private Map<Integer, LogQuery> queries = new HashMap<Integer, LogQuery>();
 

@@ -60,7 +60,7 @@ public class MessageCodec {
 			msg.setParameters(parse(body));
 			return msg;
 		} catch (JSONException e) {
-			throw new IllegalStateException("json parse error", e);
+			throw new IllegalStateException("json parse error: " + text, e);
 		}
 	}
 

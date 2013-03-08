@@ -30,15 +30,18 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.log.api.LogParserFactoryRegistry;
+import org.araqne.logdb.AccountService;
 import org.araqne.logdb.EmptyLogQueryCallback;
 import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommandParser;
+import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryEventListener;
 import org.araqne.logdb.LogQueryParserService;
 import org.araqne.logdb.LogQueryScriptRegistry;
 import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LogQueryStatus;
 import org.araqne.logdb.LookupHandlerRegistry;
+import org.araqne.logdb.Session;
 import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;
 import org.araqne.logdb.query.parser.FieldsParser;
@@ -65,6 +68,9 @@ import org.slf4j.LoggerFactory;
 @Provides
 public class LogQueryServiceImpl implements LogQueryService {
 	private final Logger logger = LoggerFactory.getLogger(LogQueryServiceImpl.class);
+
+	@Requires
+	private AccountService accountService;
 
 	@Requires
 	private LogStorage logStorage;
@@ -119,7 +125,7 @@ public class LogQueryServiceImpl implements LogQueryService {
 		}
 
 		// add table and lookup (need some constructor injection)
-		parsers.add(new TableParser(logStorage, tableRegistry, parserFactoryRegistry));
+		parsers.add(new TableParser(accountService, logStorage, tableRegistry, parserFactoryRegistry));
 		parsers.add(new LookupParser(lookupRegistry));
 		parsers.add(new ScriptParser(bc, scriptRegistry));
 		parsers.add(new TextFileParser(parserFactoryRegistry));
@@ -146,8 +152,8 @@ public class LogQueryServiceImpl implements LogQueryService {
 	}
 
 	@Override
-	public LogQuery createQuery(String query) {
-		LogQuery lq = queryParserService.parse(null, query);
+	public LogQuery createQuery(Session session, String query) {
+		LogQuery lq = queryParserService.parse(new LogQueryContext(session), query);
 		queries.put(lq.getId(), lq);
 		lq.registerQueryCallback(new EofReceiver(lq));
 		invokeCallbacks(lq, LogQueryStatus.Created);

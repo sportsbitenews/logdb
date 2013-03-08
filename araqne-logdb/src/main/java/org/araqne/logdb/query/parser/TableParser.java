@@ -24,20 +24,25 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.LogParserFactoryRegistry;
+import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Permission;
 import org.araqne.logdb.query.command.Table;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 
 public class TableParser implements LogQueryCommandParser {
+	private AccountService accountService;
 	private LogStorage logStorage;
 	private LogTableRegistry tableRegistry;
 	private LogParserFactoryRegistry parserFactoryRegistry;
 
-	public TableParser(LogStorage logStorage, LogTableRegistry tableRegistry, LogParserFactoryRegistry parserFactoryRegistry) {
+	public TableParser(AccountService accountService, LogStorage logStorage, LogTableRegistry tableRegistry,
+			LogParserFactoryRegistry parserFactoryRegistry) {
+		this.accountService = accountService;
 		this.logStorage = logStorage;
 		this.tableRegistry = tableRegistry;
 		this.parserFactoryRegistry = parserFactoryRegistry;
@@ -91,6 +96,12 @@ public class TableParser implements LogQueryCommandParser {
 
 		if (limit < 0)
 			throw new LogQueryParseException("negative-limit", -1);
+
+		// check read permission
+		for (String tableName : tableNames) {
+			if (!accountService.checkPermission(context.getSession(), tableName, Permission.READ))
+				throw new LogQueryParseException("no-read-permission", -1, "table=" + tableName);
+		}
 
 		Table table = new Table(tableNames, offset, limit, from, to);
 		table.setTableRegistry(tableRegistry);

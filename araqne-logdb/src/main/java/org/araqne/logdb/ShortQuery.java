@@ -28,11 +28,11 @@ public class ShortQuery {
 	private ShortQuery() {
 	}
 
-	public static List<Map<String, Object>> query(LogQueryService queryService, String query) throws IOException {
+	public static List<Map<String, Object>> query(Session session, LogQueryService queryService, String query) throws IOException {
 		LogQuery q = null;
 
 		try {
-			q = queryService.createQuery(query);
+			q = queryService.createQuery(session, query);
 			queryService.startQuery(q.getId());
 
 			do {

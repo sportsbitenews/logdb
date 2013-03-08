@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,12 @@
  */
 package org.araqne.logdb;
 
-public class LogQueryContext {
-	private Session session;
+import java.util.Date;
 
-	public LogQueryContext(Session session) {
-		this.session = session;
-	}
+public interface Session {
+	String getGuid();
 
-	public Session getSession() {
-		return session;
-	}
+	String getLoginName();
+
+	Date getCreated();
 }

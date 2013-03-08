@@ -23,10 +23,10 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.client.http.CometQueryClient;
+import org.araqne.logdb.client.http.CometClient;
 
 public class Console {
-	private CometQueryClient client;
+	private CometClient client;
 	private String host;
 	private String loginName;
 	private String password;
@@ -110,7 +110,7 @@ public class Console {
 		password = tokens[3];
 
 		try {
-			client = new CometQueryClient();
+			client = new CometClient();
 			client.connect(host, loginName, password);
 			w("connected to " + host + " as " + loginName);
 		} catch (Throwable t) {
@@ -171,8 +171,8 @@ public class Console {
 			}
 
 			w("total " + count + " row(s)");
-		} catch (IOException e) {
-			w("query failed: " + e.getMessage());
+		} catch (Throwable t) {
+			w("query failed: " + t.getMessage());
 		} finally {
 			if (cursor != null) {
 				try {
