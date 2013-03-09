@@ -21,6 +21,7 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.msgbus.MessageBus;
+import org.araqne.msgbus.MsgbusException;
 import org.araqne.msgbus.Request;
 import org.araqne.msgbus.Response;
 import org.araqne.msgbus.Session;
@@ -34,7 +35,7 @@ public class ManagementPlugin {
 
 	@Requires
 	private AccountService accountService;
-	
+
 	@Requires
 	private LogTableRegistry tableRegistry;
 
@@ -49,13 +50,20 @@ public class ManagementPlugin {
 	public void login(Request req, Response resp) {
 		Session session = req.getSession();
 
+		if (session.get("araqne_logdb_session") != null)
+			throw new MsgbusException("logdb", "already-logon");
+
 		String loginName = req.getString("login_name");
 		String password = req.getString("password");
 
 		org.araqne.logdb.Session dbSession = accountService.login(loginName, password);
 
-		session.setProperty("org_domain", "localhost");
-		session.setProperty("admin_login_name", loginName);
+		if (session.getOrgDomain() == null && session.getAdminLoginName() == null) {
+			session.setProperty("org_domain", "localhost");
+			session.setProperty("admin_login_name", loginName);
+			session.setProperty("auth", "logdb");
+		}
+
 		session.setProperty("araqne_logdb_session", dbSession);
 	}
 
@@ -66,13 +74,15 @@ public class ManagementPlugin {
 		if (dbSession != null)
 			accountService.logout(dbSession);
 
-		msgbus.closeSession(session);
+		String auth = session.getString("auth");
+		if (auth != null && auth.equals("logdb"))
+			msgbus.closeSession(session);
 	}
-	
+
 	@MsgbusMethod
 	public void listTables(Request req, Response resp) {
 		for (String tableName : tableRegistry.getTableNames()) {
-			
+
 		}
 	}
 
