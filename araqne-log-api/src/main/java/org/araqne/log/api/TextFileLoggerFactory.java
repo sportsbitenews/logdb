@@ -33,12 +33,12 @@ public class TextFileLoggerFactory extends AbstractLoggerFactory {
 	public TextFileLoggerFactory() {
 		options = new ArrayList<LoggerConfigOption>();
 		options.add(new StringConfigType("file.path", map("File Path"), map("Log file path"), true, map("/var/log/")));
-		options.add(new StringConfigType("date.extractor", map("Date Extractor"), map("Regex for date extraction"),
-				false, map(null)));
+		options.add(new StringConfigType("charset", map("Charset"), map("Charset"), false, map("utf-8")));
+		options.add(new StringConfigType("date.extractor", map("Date Extractor"), map("Regex for date extraction"), false,
+				map(null)));
 		options.add(new StringConfigType("date.pattern", map("Date Pattern"), map("Date pattern of log file"), false,
 				map("MMM dd HH:mm:ss")));
-		options.add(new StringConfigType("date.locale", map("Date Locale"), map("Date locale of log file"), false,
-				map("en")));
+		options.add(new StringConfigType("date.locale", map("Date Locale"), map("Date locale of log file"), false, map("en")));
 	}
 
 	private Map<Locale, String> map(String value) {

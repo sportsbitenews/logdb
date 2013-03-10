@@ -17,6 +17,7 @@ package org.araqne.log.api;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -51,7 +52,11 @@ public class TextFileLogger extends AbstractLogger {
 		if (dateLocale == null)
 			dateLocale = "en";
 
-		this.reader = new RotatingLogFileReader(filePath);
+		String charset = config.getProperty("charset");
+		if (charset == null)
+			charset = "utf8";
+
+		this.reader = new RotatingLogFileReader(filePath, Charset.forName(charset));
 
 		String offset = config.getProperty("last_offset");
 		String firstLine = config.getProperty("first_line");

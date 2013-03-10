@@ -33,9 +33,13 @@ public class RotatingLogFileReader implements Closeable {
 	private ByteBuffer byteBuffer;
 
 	public RotatingLogFileReader(String filePath) {
+		this(filePath, Charset.forName("utf-8"));
+	}
+
+	public RotatingLogFileReader(String filePath, Charset charset) {
 		this.filePath = filePath;
 		this.byteBuffer = ByteBuffer.allocate(4096);
-		this.decoder = Charset.forName("utf-8").newDecoder();
+		this.decoder = charset.newDecoder();
 	}
 
 	public void setEncoding(Charset charset) {
