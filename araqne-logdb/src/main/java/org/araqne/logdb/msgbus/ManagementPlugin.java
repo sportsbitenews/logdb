@@ -26,6 +26,7 @@ import org.araqne.msgbus.Request;
 import org.araqne.msgbus.Response;
 import org.araqne.msgbus.Session;
 import org.araqne.msgbus.handler.AllowGuestAccess;
+import org.araqne.msgbus.handler.CallbackType;
 import org.araqne.msgbus.handler.MsgbusMethod;
 import org.araqne.msgbus.handler.MsgbusPlugin;
 
@@ -77,6 +78,17 @@ public class ManagementPlugin {
 		String auth = session.getString("auth");
 		if (auth != null && auth.equals("logdb"))
 			msgbus.closeSession(session);
+	}
+
+	@MsgbusMethod(type = CallbackType.SessionClosed)
+	public void onClose(Session session) {
+		if (session == null)
+			return;
+
+		org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) session.get("araqne_logdb_session");
+		if (dbSession != null)
+			accountService.logout(dbSession);
+
 	}
 
 	@MsgbusMethod

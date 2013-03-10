@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.parser;
 
-import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
@@ -39,18 +39,18 @@ public class ScriptParser implements LogQueryCommandParser {
 		return "script";
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
-		String name = tokens.firstArg();
+		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length());
+		String name = commandString.substring(r.next);
+
 		LogQueryScript script = scriptRegistry.newScript("localhost", name, null);
 		if (script == null)
 			throw new IllegalArgumentException("log script not found: " + name);
 
-		// TODO: parameter passing
-		script.init(null);
-
-		List<String> args = tokens.substrings(2, tokens.size() - 1);
-		return new Script(bc, script, args.toArray(new String[0]));
+		Map<String, String> params = (Map<String, String>) r.value;
+		script.init(params);
+		return new Script(bc, name, params, script);
 	}
 }

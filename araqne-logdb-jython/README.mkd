@@ -1,0 +1,14 @@
+## Jython Query Script Example
+
+	class Adder(BaseLogQueryScript):
+		"documentation string"
+		def init(self, params):
+			self.params = params
+		
+		def handle(self, input, output):
+			data = input.getData()
+			data.putAll(self.params)
+			output.write(data)
+		
+		def eof(self, output):
+			pass

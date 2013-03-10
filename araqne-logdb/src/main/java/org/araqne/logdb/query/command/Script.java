@@ -26,26 +26,36 @@ import org.osgi.framework.BundleContext;
 
 public class Script extends LogQueryCommand {
 	private BundleContext bc;
+	private String scriptName;
+	private Map<String, String> params;
 	private LogQueryScript script;
-	private String[] args;
 	private DefaultScriptInput input;
 	private DefaultScriptOutput output;
 
-	public Script(BundleContext bc, LogQueryScript script, String[] args) {
+	public Script(BundleContext bc, String scriptName, Map<String, String> params, LogQueryScript script) {
 		this.bc = bc;
+		this.scriptName = scriptName;
+		this.params = params;
 		this.script = script;
-		this.args = args;
 		this.input = new DefaultScriptInput();
 		this.output = new DefaultScriptOutput();
+	}
+
+	public String getScriptName() {
+		return scriptName;
+	}
+
+	public Map<String, String> getParameters() {
+		return params;
+	}
+
+	public LogQueryScript getQueryScript() {
+		return script;
 	}
 
 	@Override
 	public void push(LogMap m) {
 		input.data = m.map();
-		for (int i = 0; i < args.length; i++) {
-			String k = "args" + (i + 1);
-			input.data.put(k, args[i]);
-		}
 		script.handle(input, output);
 	}
 

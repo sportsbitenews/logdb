@@ -13,22 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb;
+package org.araqne.logdb.jython;
 
 import java.util.Map;
+import java.util.Set;
 
-public class BaseLogScript implements LogQueryScript {
+import org.araqne.logdb.LogQueryScript;
 
-	@Override
-	public void init(Map<String, Object> params) {
-	}
+public interface JythonQueryScriptRegistry {
+	Set<String> getWorkspaceNames();
 
-	@Override
-	public void handle(LogQueryScriptInput input, LogQueryScriptOutput output) {
-	}
+	void dropWorkspace(String name);
 
-	@Override
-	public void eof(LogQueryScriptOutput output) {
-	}
+	Set<String> getScriptNames(String workspace);
 
+	String getScriptCode(String workspace, String name);
+
+	LogQueryScript newLogScript(String workspace, String name, Map<String, Object> params);
+
+	void setScript(String workspace, String name, String script);
+
+	void removeScript(String workspace, String name);
 }

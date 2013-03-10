@@ -17,10 +17,18 @@ package org.araqne.logdb;
 
 import java.util.Map;
 
-public interface LogQueryScript {
-	void init(Map<String, String> params);
+public class BaseLogQueryScript implements LogQueryScript {
 
-	void handle(LogQueryScriptInput input, LogQueryScriptOutput output);
+	@Override
+	public void init(Map<String, String> params) {
+	}
 
-	void eof(LogQueryScriptOutput output);
+	@Override
+	public void handle(LogQueryScriptInput input, LogQueryScriptOutput output) {
+	}
+
+	@Override
+	public void eof(LogQueryScriptOutput output) {
+	}
+
 }
