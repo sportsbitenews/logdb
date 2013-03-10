@@ -150,6 +150,8 @@ public class TableParserTest {
 		LogTableRegistry mockTableRegistry = mock(LogTableRegistry.class);
 		LogParserFactoryRegistry mockParserRegistry = mock(LogParserFactoryRegistry.class);
 
+		when(mockTableRegistry.exists("iis")).thenReturn(true);
+		when(mockTableRegistry.exists("xtm")).thenReturn(true);
 		when(mockTableRegistry.getTableMetadata("iis", "logparser")).thenReturn(null);
 		when(mockParserRegistry.get(null)).thenReturn(null);
 		when(mockAccount.checkPermission(null, "iis", Permission.READ)).thenReturn(true);

@@ -60,8 +60,12 @@ public class TableParser implements LogQueryCommandParser {
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		List<String> tableNames = new ArrayList<String>();
-		for (String tableNameToken : commandString.substring(r.next).split(","))
-			tableNames.add(tableNameToken.trim());
+		for (String tableNameToken : commandString.substring(r.next).split(",")) {
+			String tableName = tableNameToken.trim();
+			if (!tableRegistry.exists(tableName))
+				throw new LogQueryParseException("table-not-found", -1, "table=" + tableName);
+			tableNames.add(tableName);
+		}
 
 		Date from = null;
 		Date to = null;
