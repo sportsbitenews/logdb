@@ -73,7 +73,7 @@ public class Session implements TrapListener {
 		return rpc(req);
 	}
 
-	private Message rpc(Message req) throws MessageException, IOException {
+	private Message rpc(Message req) throws IOException {
 		String json = MessageCodec.encode(req);
 
 		HttpURLConnection con = null;

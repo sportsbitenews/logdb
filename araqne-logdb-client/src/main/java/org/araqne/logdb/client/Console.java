@@ -20,9 +20,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.araqne.logdb.client.http.CometClient;
 
@@ -80,7 +83,7 @@ public class Console {
 				else if (cmd.equals("tables"))
 					listTables();
 				else if (cmd.equals("table"))
-					getTableMetadata(tokens);
+					manageTable(tokens);
 				else
 					w("syntax error");
 
@@ -366,27 +369,44 @@ public class Console {
 		}
 	}
 
-	private void getTableMetadata(String[] tokens) throws IOException {
+	private void manageTable(String[] tokens) throws IOException {
 		if (client == null) {
 			w("connect first please");
 			return;
 		}
 
 		if (tokens.length < 2) {
-			w("Usage: table <table_name>");
+			w("Usage: table <table_name> [<key>] [<value>]");
 			return;
 		}
 
 		try {
-			TableInfo table = client.getTableInfo(tokens[1]);
-			w("Table [" + table.getName() + "]");
-			if (table.getMetadata().isEmpty()) {
-				w("no metadata");
-				return;
-			}
+			String tableName = tokens[1];
+			if (tokens.length == 2) {
+				TableInfo table = client.getTableInfo(tableName);
+				w("Table [" + table.getName() + "]");
+				if (table.getMetadata().isEmpty()) {
+					w("no metadata");
+					return;
+				}
 
-			for (Entry<String, String> e : table.getMetadata().entrySet())
-				w(" * " + e.getKey() + "=" + e.getValue());
+				for (Entry<String, String> e : table.getMetadata().entrySet())
+					w(" * " + e.getKey() + "=" + e.getValue());
+			} else {
+				String key = tokens[2];
+				if (tokens.length == 3) {
+					Set<String> keys = new HashSet<String>();
+					keys.add(key);
+					client.unsetTableMetadata(tableName, keys);
+					w("unset");
+				} else if (tokens.length == 4) {
+					Map<String, String> config = new HashMap<String, String>();
+					String value = tokens[3];
+					config.put(key, value);
+					client.setTableMetadata(tableName, config);
+					w("set");
+				}
+			}
 		} catch (Throwable t) {
 			w(t.getMessage());
 		}

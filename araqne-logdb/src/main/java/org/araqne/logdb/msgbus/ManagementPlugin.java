@@ -16,6 +16,7 @@
 package org.araqne.logdb.msgbus;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -122,6 +123,33 @@ public class ManagementPlugin {
 			metadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 		}
 		return metadata;
+	}
+
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void setTableMetadata(Request req, Response resp) {
+		checkPermission(req);
+
+		String tableName = req.getString("table");
+		Map<String, Object> metadata = (Map<String, Object>) req.get("metadata");
+
+		for (String key : metadata.keySet()) {
+			Object value = metadata.get(key);
+			tableRegistry.setTableMetadata(tableName, key, value == null ? null : value.toString());
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void unsetTableMetadata(Request req, Response resp) {
+		checkPermission(req);
+
+		String tableName = req.getString("table");
+		List<Object> keys = (List<Object>) req.get("keys");
+
+		for (Object key : keys) {
+			tableRegistry.unsetTableMetadata(tableName, key.toString());
+		}
 	}
 
 	@MsgbusMethod

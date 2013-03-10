@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import org.araqne.logdb.client.LogCursor;
 import org.araqne.logdb.client.LogQuery;
@@ -73,6 +74,22 @@ public class CometClient implements TrapListener {
 		for (Entry<String, Object> pair : params.entrySet())
 			metadata.put(pair.getKey(), pair.getValue() == null ? null : pair.getValue().toString());
 		return new TableInfo(tableName, metadata);
+	}
+
+	public void setTableMetadata(String tableName, Map<String, String> config) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+		params.put("metadata", config);
+
+		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.setTableMetadata", params);
+	}
+
+	public void unsetTableMetadata(String tableName, Set<String> keySet) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+		params.put("keys", keySet);
+
+		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.unsetTableMetadata", params);
 	}
 
 	public void createTable(String tableName) throws IOException {
