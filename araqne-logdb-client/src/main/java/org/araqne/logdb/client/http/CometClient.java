@@ -20,12 +20,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
 import org.araqne.logdb.client.LogCursor;
 import org.araqne.logdb.client.LogQuery;
 import org.araqne.logdb.client.Message;
 import org.araqne.logdb.client.MessageException;
+import org.araqne.logdb.client.TableInfo;
 import org.araqne.logdb.client.http.impl.Session;
 import org.araqne.logdb.client.http.impl.TrapListener;
 
@@ -41,6 +43,36 @@ public class CometClient implements TrapListener {
 		this.session = new Session(host);
 		this.session.login(loginName, password, true);
 		this.session.addListener(this);
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<TableInfo> listTables() throws IOException {
+		Message resp = session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.listTables");
+		List<TableInfo> tables = new ArrayList<TableInfo>();
+		Map<String, Object> m = (Map<String, Object>) resp.getParameters().get("tables");
+		for (String tableName : m.keySet()) {
+			Map<String, Object> params = (Map<String, Object>) m.get(tableName);
+			TableInfo tableInfo = getTableInfo(tableName, params);
+			tables.add(tableInfo);
+		}
+
+		return tables;
+	}
+
+	@SuppressWarnings("unchecked")
+	public TableInfo getTableInfo(String tableName) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+		Message resp = session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.getTableInfo", params);
+
+		return getTableInfo(tableName, (Map<String, Object>) resp.get("table"));
+	}
+
+	private TableInfo getTableInfo(String tableName, Map<String, Object> params) {
+		Map<String, String> metadata = new HashMap<String, String>();
+		for (Entry<String, Object> pair : params.entrySet())
+			metadata.put(pair.getKey(), pair.getValue() == null ? null : pair.getValue().toString());
+		return new TableInfo(tableName, metadata);
 	}
 
 	public void createTable(String tableName) throws IOException {

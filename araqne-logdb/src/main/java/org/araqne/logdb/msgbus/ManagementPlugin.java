@@ -15,11 +15,15 @@
  */
 package org.araqne.logdb.msgbus;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.logdb.AccountService;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.TableMetadata;
 import org.araqne.msgbus.MessageBus;
 import org.araqne.msgbus.MsgbusException;
 import org.araqne.msgbus.Request;
@@ -72,8 +76,10 @@ public class ManagementPlugin {
 	public void logout(Request req, Response resp) {
 		Session session = req.getSession();
 		org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) session.get("araqne_logdb_session");
-		if (dbSession != null)
+		if (dbSession != null) {
 			accountService.logout(dbSession);
+			session.unsetProperty("araqne_logdb_session");
+		}
 
 		String auth = session.getString("auth");
 		if (auth != null && auth.equals("logdb"))
@@ -88,14 +94,34 @@ public class ManagementPlugin {
 		org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) session.get("araqne_logdb_session");
 		if (dbSession != null)
 			accountService.logout(dbSession);
-
 	}
 
 	@MsgbusMethod
 	public void listTables(Request req, Response resp) {
-		for (String tableName : tableRegistry.getTableNames()) {
+		checkPermission(req);
 
+		Map<String, Object> tables = new HashMap<String, Object>();
+		for (String tableName : tableRegistry.getTableNames()) {
+			tables.put(tableName, getTableMetadata(tableName));
 		}
+
+		resp.put("tables", tables);
+	}
+
+	@MsgbusMethod
+	public void getTableInfo(Request req, Response resp) {
+		checkPermission(req);
+
+		String tableName = req.getString("table");
+		resp.put("table", getTableMetadata(tableName));
+	}
+
+	private Map<String, Object> getTableMetadata(String tableName) {
+		Map<String, Object> metadata = new HashMap<String, Object>();
+		for (String key : tableRegistry.getTableMetadataKeys(tableName)) {
+			metadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+		}
+		return metadata;
 	}
 
 	@MsgbusMethod

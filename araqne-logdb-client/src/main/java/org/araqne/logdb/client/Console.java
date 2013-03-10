@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.araqne.logdb.client.http.CometClient;
 
@@ -76,6 +77,10 @@ public class Console {
 					createTable(tokens);
 				else if (cmd.equals("drop_table"))
 					dropTable(tokens);
+				else if (cmd.equals("tables"))
+					listTables();
+				else if (cmd.equals("table"))
+					getTableMetadata(tokens);
 				else
 					w("syntax error");
 
@@ -319,6 +324,7 @@ public class Console {
 
 		try {
 			client.createTable(tokens[1]);
+			w("created");
 		} catch (Throwable t) {
 			w(t.getMessage());
 		}
@@ -337,6 +343,50 @@ public class Console {
 
 		try {
 			client.dropTable(tokens[1]);
+			w("dropped");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void listTables() {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		try {
+			for (TableInfo table : client.listTables()) {
+				w("Table [" + table.getName() + "]");
+				for (Entry<String, String> e : table.getMetadata().entrySet())
+					w(" * " + e.getKey() + "=" + e.getValue());
+			}
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void getTableMetadata(String[] tokens) throws IOException {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: table <table_name>");
+			return;
+		}
+
+		try {
+			TableInfo table = client.getTableInfo(tokens[1]);
+			w("Table [" + table.getName() + "]");
+			if (table.getMetadata().isEmpty()) {
+				w("no metadata");
+				return;
+			}
+
+			for (Entry<String, String> e : table.getMetadata().entrySet())
+				w(" * " + e.getKey() + "=" + e.getValue());
 		} catch (Throwable t) {
 			w(t.getMessage());
 		}
