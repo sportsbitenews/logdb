@@ -49,7 +49,7 @@ public class Console {
 				if (tokens.length == 0)
 					continue;
 
-				String cmd = tokens[0];
+				String cmd = tokens[0].trim();
 				if (cmd.equals("quit") || cmd.equals("exit"))
 					break;
 				else if (cmd.equals("help"))
