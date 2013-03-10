@@ -24,7 +24,6 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.logdb.AccountService;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
-import org.araqne.logstorage.TableMetadata;
 import org.araqne.msgbus.MessageBus;
 import org.araqne.msgbus.MsgbusException;
 import org.araqne.msgbus.Request;

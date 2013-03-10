@@ -134,7 +134,8 @@ public class LoggerPlugin {
 
 			try {
 				value = req.getString(opt.getName());
-				config.put(opt.getName(), value);
+				if (value != null)
+					config.put(opt.getName(), value);
 			} catch (NullPointerException e) {
 				if (opt.isRequired())
 					throw e;

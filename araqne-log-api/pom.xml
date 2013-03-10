@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-log-api</artifactId>
-	<version>1.5.4</version>
+	<version>1.5.5</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log API</name>
 	<build>

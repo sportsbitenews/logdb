@@ -30,6 +30,7 @@ import java.util.Set;
 import org.araqne.logdb.client.http.CometClient;
 
 public class Console {
+	private BufferedReader br;
 	private CometClient client;
 	private String host;
 	private String loginName;
@@ -43,7 +44,7 @@ public class Console {
 		w("Araqne LogDB Console 0.2 (2013-03-08)");
 		w("Type \"help\" for more information");
 
-		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		br = new BufferedReader(new InputStreamReader(System.in));
 
 		try {
 			while (true) {
@@ -84,6 +85,20 @@ public class Console {
 					listTables();
 				else if (cmd.equals("table"))
 					manageTable(tokens);
+				else if (cmd.equals("loggers"))
+					listLoggers();
+				else if (cmd.equals("logger_factories"))
+					listLoggerFactories();
+				else if (cmd.equals("parser_factories"))
+					listParserFactories();
+				else if (cmd.equals("create_logger"))
+					createLogger(tokens);
+				else if (cmd.equals("remove_logger"))
+					removeLogger(tokens);
+				else if (cmd.equals("start_logger"))
+					startLogger(tokens);
+				else if (cmd.equals("stop_logger"))
+					stopLogger(tokens);
 				else
 					w("syntax error");
 
@@ -407,6 +422,153 @@ public class Console {
 					w("set");
 				}
 			}
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void listLoggers() {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		try {
+			w("Loggers");
+			w("---------");
+			for (LoggerInfo logger : client.listLoggers())
+				w(logger.toString());
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void listLoggerFactories() {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		try {
+			w("Logger Factories");
+			w("------------------");
+			for (LoggerFactoryInfo f : client.listLoggerFactories())
+				w(f.toString());
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void listParserFactories() {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		try {
+			w("Parser Factories");
+			w("------------------");
+			for (ParserFactoryInfo f : client.listParserFactories())
+				w(f.toString());
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void createLogger(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 4) {
+			w("Usage: create_logger <factory name> <namespace> <name>");
+			return;
+		}
+
+		try {
+			LoggerInfo logger = new LoggerInfo();
+			logger.setFactoryName(tokens[1]);
+			logger.setNamespace(tokens[2]);
+			logger.setName(tokens[3]);
+
+			LoggerFactoryInfo f = client.getLoggerFactoryInfo(tokens[1]);
+
+			for (ConfigSpec type : f.getConfigSpecs()) {
+				inputOption(logger, type);
+			}
+
+			client.createLogger(logger);
+			w("created");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void inputOption(LoggerInfo logger, ConfigSpec spec) throws IOException {
+		String directive = spec.isRequired() ? "(required)" : "(optional)";
+		System.out.print(spec.getDisplayName() + " " + directive + "? ");
+		String value = br.readLine();
+		if (!value.isEmpty())
+			logger.getConfigs().put(spec.getName(), value);
+
+		if (value.isEmpty() && spec.isRequired()) {
+			inputOption(logger, spec);
+		}
+	}
+
+	private void removeLogger(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: remove_logger <logger fullname>");
+			return;
+		}
+
+		try {
+			client.removeLogger(tokens[1]);
+			w("removed");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void startLogger(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: start_logger <logger fullname> <interval (millisec)>");
+			return;
+		}
+
+		try {
+			client.startLogger(tokens[1], Integer.valueOf(tokens[2]));
+			w("started with interval " + tokens[2] + "ms");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void stopLogger(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: stop_logger <logger fullname>");
+			return;
+		}
+
+		try {
+			client.stopLogger(tokens[1], 5000);
+			w("stopped");
 		} catch (Throwable t) {
 			w(t.getMessage());
 		}

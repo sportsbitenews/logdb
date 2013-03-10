@@ -16,7 +16,10 @@
 package org.araqne.logdb.client.http;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,10 +27,14 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import org.araqne.logdb.client.ConfigSpec;
 import org.araqne.logdb.client.LogCursor;
 import org.araqne.logdb.client.LogQuery;
+import org.araqne.logdb.client.LoggerFactoryInfo;
+import org.araqne.logdb.client.LoggerInfo;
 import org.araqne.logdb.client.Message;
 import org.araqne.logdb.client.MessageException;
+import org.araqne.logdb.client.ParserFactoryInfo;
 import org.araqne.logdb.client.TableInfo;
 import org.araqne.logdb.client.http.impl.Session;
 import org.araqne.logdb.client.http.impl.TrapListener;
@@ -102,6 +109,166 @@ public class CometClient implements TrapListener {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
 		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.dropTable", params);
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<LoggerFactoryInfo> listLoggerFactories() throws IOException {
+		Message resp = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getLoggerFactories");
+
+		List<LoggerFactoryInfo> factories = new ArrayList<LoggerFactoryInfo>();
+		List<Object> l = (List<Object>) resp.get("factories");
+		for (Object o : l) {
+			parseLoggerFactoryInfo(factories, o);
+		}
+
+		return factories;
+	}
+
+	@SuppressWarnings("unchecked")
+	public LoggerFactoryInfo getLoggerFactoryInfo(String factoryName) throws IOException {
+		List<LoggerFactoryInfo> factories = listLoggerFactories();
+		LoggerFactoryInfo found = null;
+
+		for (LoggerFactoryInfo f : factories) {
+			if (f.getNamespace().equals("local") && f.getName().equals(factoryName)) {
+				found = f;
+				break;
+			}
+		}
+
+		if (found == null)
+			throw new IllegalStateException("logger factory not found: " + factoryName);
+
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("factory", factoryName);
+		Message resp2 = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getFactoryOptions", params);
+		List<ConfigSpec> configSpecs = parseConfigList((List<Object>) resp2.get("options"));
+		found.setConfigSpecs(configSpecs);
+		return found;
+	}
+
+	@SuppressWarnings("unchecked")
+	private void parseLoggerFactoryInfo(List<LoggerFactoryInfo> factories, Object o) {
+		Map<String, Object> m = (Map<String, Object>) o;
+
+		LoggerFactoryInfo f = new LoggerFactoryInfo();
+		f.setFullName((String) m.get("full_name"));
+		f.setDisplayName((String) m.get("display_name"));
+		f.setNamespace((String) m.get("namespace"));
+		f.setName((String) m.get("name"));
+		f.setDescription((String) m.get("description"));
+
+		factories.add(f);
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<ParserFactoryInfo> listParserFactories() throws IOException {
+		Message resp = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getParserFactories");
+		List<Object> l = (List<Object>) resp.get("factories");
+
+		List<ParserFactoryInfo> parsers = new ArrayList<ParserFactoryInfo>();
+		for (Object o : l) {
+			Map<String, Object> m = (Map<String, Object>) o;
+
+			ParserFactoryInfo f = new ParserFactoryInfo();
+			f.setName((String) m.get("name"));
+			f.setDisplayName((String) m.get("display_name"));
+			f.setDescription((String) m.get("description"));
+			f.setConfigSpecs(parseConfigList((List<Object>) m.get("options")));
+			parsers.add(f);
+		}
+
+		return parsers;
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<ConfigSpec> parseConfigList(List<Object> l) {
+		List<ConfigSpec> specs = new ArrayList<ConfigSpec>();
+
+		for (Object o : l) {
+			Map<String, Object> m = (Map<String, Object>) o;
+			ConfigSpec spec = new ConfigSpec();
+			spec.setName((String) m.get("name"));
+			spec.setDescription((String) m.get("description"));
+			spec.setDisplayName((String) m.get("display_name"));
+			spec.setType((String) m.get("type"));
+			spec.setRequired((Boolean) m.get("required"));
+			spec.setDefaultValue((String) m.get("default_value"));
+			specs.add(spec);
+		}
+
+		return specs;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<LoggerInfo> listLoggers() throws IOException {
+		Message resp = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getLoggers");
+		List<Object> l = (List<Object>) resp.get("loggers");
+
+		List<LoggerInfo> loggers = new ArrayList<LoggerInfo>();
+		for (Object o : l) {
+			Map<String, Object> m = (Map<String, Object>) o;
+
+			LoggerInfo lo = new LoggerInfo();
+			lo.setNamespace((String) m.get("namespace"));
+			lo.setName((String) m.get("name"));
+			lo.setFactoryName((String) m.get("factory_full_name"));
+			lo.setDescription((String) m.get("description"));
+			lo.setPassive((Boolean) m.get("is_passive"));
+			lo.setInterval((Integer) m.get("interval"));
+			lo.setStatus((String) m.get("status"));
+			lo.setLastStartAt(parseDate((String) m.get("last_start")));
+			lo.setLastRunAt(parseDate((String) m.get("last_run")));
+			lo.setLastLogAt(parseDate((String) m.get("last_log")));
+			lo.setLogCount(Long.valueOf(m.get("log_count").toString()));
+
+			loggers.add(lo);
+		}
+
+		return loggers;
+	}
+
+	private Date parseDate(String s) {
+		if (s == null)
+			return null;
+
+		try {
+			SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+			return f.parse(s);
+		} catch (ParseException e) {
+			return null;
+		}
+	}
+
+	public void createLogger(LoggerInfo logger) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("factory", logger.getFactoryName());
+		params.put("namespace", logger.getNamespace());
+		params.put("name", logger.getName());
+		params.put("description", logger.getDescription());
+		params.put("options", logger.getConfigs());
+
+		session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.createLogger", params);
+	}
+
+	public void removeLogger(String fullName) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("logger", fullName);
+		session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.removeLogger", params);
+	}
+
+	public void startLogger(String fullName, int interval) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("logger", fullName);
+		params.put("interval", interval);
+		session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.startLogger", params);
+	}
+
+	public void stopLogger(String fullName, int waitTime) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("logger", fullName);
+		params.put("wait_time", waitTime);
+		session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.stopLogger", params);
 	}
 
 	public LogCursor query(String queryString) throws IOException {
