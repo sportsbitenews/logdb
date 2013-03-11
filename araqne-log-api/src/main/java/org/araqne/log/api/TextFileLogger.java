@@ -218,7 +218,7 @@ public class TextFileLogger extends AbstractLogger {
 			}
 
 			getConfig().put("first_line", reader.getFirstLine());
-			getConfig().put("last_offset", reader.getLastOffset());
+			getConfig().put("last_offset", Long.toString(reader.getLastOffset()));
 
 			logger.trace("araqne log api: name [{}], updated offset [{}]", getName(), reader.getLastOffset());
 		} catch (Exception e) {
