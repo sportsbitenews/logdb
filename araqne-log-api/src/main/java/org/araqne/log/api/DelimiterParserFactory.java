@@ -31,9 +31,14 @@ import org.apache.felix.ipojo.annotations.Provides;
 @Provides
 public class DelimiterParserFactory implements LogParserFactory {
 
+	private static final String DELIMITER_TARGET = "delimiter_target";
+	private static final String DELIMITER = "delimiter";
+	private static final String COLUMN_HEADERS = "column_headers";
+	private static final String INCLUDE_DELIMITER_TARGET = "include_delimiter_target";
+
 	@Override
 	public String getName() {
-		return "delimiter";
+		return DELIMITER;
 	}
 
 	@Override
@@ -62,30 +67,30 @@ public class DelimiterParserFactory implements LogParserFactory {
 		{
 			Map<Locale, String> displayNames = new HashMap<Locale, String>();
 			Map<Locale, String> descriptions = new HashMap<Locale, String>();
-			displayNames.put(Locale.ENGLISH, "delimiter");
+			displayNames.put(Locale.ENGLISH, DELIMITER);
 			descriptions.put(Locale.ENGLISH, "delimiter character");
-			options.add(new StringConfigType("delimiter", displayNames, descriptions, true));
+			options.add(new StringConfigType(DELIMITER, displayNames, descriptions, true));
 		}
 		{
 			Map<Locale, String> displayNames = new HashMap<Locale, String>();
 			Map<Locale, String> descriptions = new HashMap<Locale, String>();
 			displayNames.put(Locale.ENGLISH, "column headers");
 			descriptions.put(Locale.ENGLISH, "separated by comma");
-			options.add(new StringConfigType("column_headers", displayNames, descriptions, false));
+			options.add(new StringConfigType(COLUMN_HEADERS, displayNames, descriptions, false));
 		}
 		{
 			Map<Locale, String> displayNames = new HashMap<Locale, String>();
 			Map<Locale, String> descriptions = new HashMap<Locale, String>();
 			displayNames.put(Locale.ENGLISH, "delimiter target field");
 			descriptions.put(Locale.ENGLISH, "delimiter target field name");
-			options.add(new StringConfigType("delimiter_target", displayNames, descriptions, false));
+			options.add(new StringConfigType(DELIMITER_TARGET, displayNames, descriptions, false));
 		}
 		{
 			Map<Locale, String> displayNames = new HashMap<Locale, String>();
 			Map<Locale, String> descriptions = new HashMap<Locale, String>();
 			displayNames.put(Locale.ENGLISH, "include delimiter target");
 			descriptions.put(Locale.ENGLISH, "return also delimiter target field (true or false)");
-			options.add(new StringConfigType("include_delimiter_target", displayNames, descriptions, false));
+			options.add(new StringConfigType(INCLUDE_DELIMITER_TARGET, displayNames, descriptions, false));
 		}
 
 		return options;
@@ -93,25 +98,25 @@ public class DelimiterParserFactory implements LogParserFactory {
 
 	@Override
 	public LogParser createParser(Properties config) {
-		String delimiter = config.getProperty("delimiter");
+		String delimiter = config.getProperty(DELIMITER);
 		if (delimiter == null)
 			delimiter = " ";
 
 		String[] columnHeaders = null;
-		String h = config.getProperty("column_headers");
+		String h = config.getProperty(COLUMN_HEADERS);
 		if (h != null)
 			columnHeaders = h.split(",");
 
-		boolean includeTargetField = false;
-		if (config.containsKey("include_target_field")) {
-			String s = config.getProperty("include_target_field");
-			includeTargetField = (s != null && Boolean.parseBoolean(s));
+		boolean includeDelimiterTarget = false;
+		if (config.containsKey(INCLUDE_DELIMITER_TARGET)) {
+			String s = config.getProperty(INCLUDE_DELIMITER_TARGET);
+			includeDelimiterTarget = (s != null && Boolean.parseBoolean(s));
 		}
 
-		String delimiterTarget = config.getProperty("delimiter_target");
+		String delimiterTarget = config.getProperty(DELIMITER_TARGET);
 		if (delimiterTarget == null)
 			delimiterTarget = "line";
-		
-		return new DelimiterParser(delimiter, columnHeaders, delimiterTarget, includeTargetField);
+
+		return new DelimiterParser(delimiter, columnHeaders, delimiterTarget, includeDelimiterTarget);
 	}
 }
