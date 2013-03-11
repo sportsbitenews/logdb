@@ -80,6 +80,13 @@ public class DelimiterParserFactory implements LogParserFactory {
 			descriptions.put(Locale.ENGLISH, "delimiter target field name");
 			options.add(new StringConfigType("delimiter_target", displayNames, descriptions, false));
 		}
+		{
+			Map<Locale, String> displayNames = new HashMap<Locale, String>();
+			Map<Locale, String> descriptions = new HashMap<Locale, String>();
+			displayNames.put(Locale.ENGLISH, "include delimiter target");
+			descriptions.put(Locale.ENGLISH, "return also delimiter target field (true or false)");
+			options.add(new StringConfigType("include_delimiter_target", displayNames, descriptions, false));
+		}
 
 		return options;
 	}
@@ -95,10 +102,16 @@ public class DelimiterParserFactory implements LogParserFactory {
 		if (h != null)
 			columnHeaders = h.split(",");
 
+		boolean includeTargetField = false;
+		if (config.containsKey("include_target_field")) {
+			String s = config.getProperty("include_target_field");
+			includeTargetField = (s != null && Boolean.parseBoolean(s));
+		}
+
 		String delimiterTarget = config.getProperty("delimiter_target");
 		if (delimiterTarget == null)
-			return new DelimiterParser(delimiter, columnHeaders);
-		else
-			return new DelimiterParser(delimiter, columnHeaders, delimiterTarget);
+			delimiterTarget = "line";
+		
+		return new DelimiterParser(delimiter, columnHeaders, delimiterTarget, includeTargetField);
 	}
 }

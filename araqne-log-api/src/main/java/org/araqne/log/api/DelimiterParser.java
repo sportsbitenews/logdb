@@ -22,15 +22,17 @@ public class DelimiterParser implements LogParser {
 	private final char delimiter;
 	private final String[] columnHeaders;
 	private final String targetField;
+	private final boolean includeTargetField;
 
 	public DelimiterParser(String delimiter, String[] columnHeaders) {
-		this(delimiter, columnHeaders, "line");
+		this(delimiter, columnHeaders, "line", false);
 	}
 
-	public DelimiterParser(String delimiter, String[] columnHeaders, String targetField) {
+	public DelimiterParser(String delimiter, String[] columnHeaders, String targetField, boolean includeTargetField) {
 		this.delimiter = delimiter.charAt(0);
 		this.columnHeaders = columnHeaders;
 		this.targetField = targetField;
+		this.includeTargetField = includeTargetField;
 	}
 
 	@Override
@@ -40,6 +42,8 @@ public class DelimiterParser implements LogParser {
 			return params;
 
 		HashMap<String, Object> m = new HashMap<String, Object>(40);
+		if (includeTargetField)
+			m.put(targetField, line);
 
 		int i = 0;
 		int last = 0;
