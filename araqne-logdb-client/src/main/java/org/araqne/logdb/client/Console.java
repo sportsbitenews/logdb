@@ -42,7 +42,7 @@ public class Console {
 	}
 
 	public void run() throws IOException {
-		w("Araqne LogDB Console 0.2 (2013-03-08)");
+		w("Araqne LogDB Console 0.3 (2013-03-12)");
 		w("Type \"help\" for more information");
 
 		br = new BufferedReader(new InputStreamReader(System.in));
@@ -110,6 +110,18 @@ public class Console {
 					createIndex(tokens);
 				else if (cmd.equals("drop_index"))
 					dropIndex(tokens);
+				else if (cmd.equals("accounts"))
+					listAccounts(tokens);
+				else if (cmd.equals("create_account"))
+					createAccount(tokens);
+				else if (cmd.equals("remove_account"))
+					removeAccount(tokens);
+				else if (cmd.equals("passwd"))
+					changePassword(tokens);
+				else if (cmd.equals("grant"))
+					grantPrivilege(tokens);
+				else if (cmd.equals("revoke"))
+					revokePrivilege(tokens);
 				else
 					w("syntax error");
 
@@ -658,7 +670,7 @@ public class Console {
 			index.setTableName(tableName);
 			index.setIndexName(indexName);
 
-			w("available index tokenizers");
+			w("Available Index Tokenizers");
 			w("----------------------------");
 			List<IndexTokenizerFactoryInfo> tokenizers = client.listIndexTokenizerFactories();
 			for (IndexTokenizerFactoryInfo tokenizer : tokenizers) {
@@ -736,6 +748,122 @@ public class Console {
 		try {
 			client.dropIndex(tokens[1], tokens[2]);
 			w("dropped");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void listAccounts(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		try {
+			for (AccountInfo account : client.listAccounts())
+				w(account.toString());
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+
+	}
+
+	private void createAccount(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: create_account <login name> <password>");
+			return;
+		}
+
+		try {
+			AccountInfo account = new AccountInfo();
+			account.setLoginName(tokens[1]);
+			account.setPassword(tokens[2]);
+			client.createAccount(account);
+			w("created");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void removeAccount(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: remove_account <login name>");
+			return;
+		}
+
+		try {
+			client.removeAccount(tokens[1]);
+			w("removed");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+
+	}
+
+	private void changePassword(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: passwd <login name> <password>");
+			return;
+		}
+
+		try {
+			client.changePassword(tokens[1], tokens[2]);
+			w("changed");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+
+	}
+
+	private void grantPrivilege(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: grant <login name> <table name>");
+			return;
+		}
+
+		try {
+			client.grantPrivilege(new Privilege(tokens[1], tokens[2]));
+			w("granted");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+
+	}
+
+	private void revokePrivilege(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: revoke <login name> <table name>");
+			return;
+		}
+
+		try {
+			client.revokePrivilege(new Privilege(tokens[1], tokens[2]));
+			w("revoked");
 		} catch (Throwable t) {
 			w(t.getMessage());
 		}

@@ -16,6 +16,7 @@
 package org.araqne.logdb.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Permission;
+import org.araqne.logdb.Privilege;
 import org.araqne.logdb.Session;
 import org.araqne.logstorage.LogTableEventListener;
 import org.araqne.logstorage.LogTableRegistry;
@@ -97,6 +99,30 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 	@Override
 	public Session getSession(String guid) {
 		return sessions.get(guid);
+	}
+
+	@Override
+	public List<Privilege> getPrivileges(Session session, String loginName) {
+		verifyNotNull(session, "session");
+		verifyNotNull(loginName, "login name");
+
+		if (!accounts.containsKey(loginName))
+			throw new IllegalStateException("account not found");
+
+		if (!sessions.containsKey(session.getGuid()))
+			throw new IllegalStateException("invalid session");
+
+		// master admin only
+		if (!session.getLoginName().equals(MASTER_ACCOUNT))
+			throw new IllegalStateException("no permission");
+
+		List<Privilege> privileges = new ArrayList<Privilege>();
+		Account account = accounts.get(loginName);
+		for (String tableName : account.getReadableTables()) {
+			privileges.add(new Privilege(loginName, tableName, Arrays.asList(Permission.READ)));
+		}
+
+		return privileges;
 	}
 
 	@Override

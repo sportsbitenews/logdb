@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import org.araqne.logdb.client.AccountInfo;
 import org.araqne.logdb.client.ConfigSpec;
 import org.araqne.logdb.client.IndexConfigSpec;
 import org.araqne.logdb.client.IndexInfo;
@@ -38,6 +39,7 @@ import org.araqne.logdb.client.LoggerInfo;
 import org.araqne.logdb.client.Message;
 import org.araqne.logdb.client.MessageException;
 import org.araqne.logdb.client.ParserFactoryInfo;
+import org.araqne.logdb.client.Privilege;
 import org.araqne.logdb.client.TableInfo;
 import org.araqne.logdb.client.http.impl.Session;
 import org.araqne.logdb.client.http.impl.TrapListener;
@@ -54,6 +56,70 @@ public class CometClient implements TrapListener {
 		this.session = new Session(host);
 		this.session.login(loginName, password, true);
 		this.session.addListener(this);
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<AccountInfo> listAccounts() throws IOException {
+		Message resp = session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.listAccounts");
+		List<AccountInfo> accounts = new ArrayList<AccountInfo>();
+		List<Object> l = (List<Object>) resp.get("accounts");
+		for (Object o : l) {
+			Map<String, Object> m = (Map<String, Object>) o;
+			List<Object> pl = (List<Object>) m.get("privileges");
+
+			AccountInfo account = new AccountInfo();
+			String loginName = (String) m.get("login_name");
+			account.setLoginName(loginName);
+
+			for (Object o2 : pl) {
+				Map<String, Object> m2 = (Map<String, Object>) o2;
+				String tableName = (String) m2.get("table_name");
+				Privilege p = new Privilege(loginName, tableName);
+				account.getPrivileges().add(p);
+			}
+			accounts.add(account);
+		}
+
+		return accounts;
+	}
+
+	public void createAccount(AccountInfo account) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("login_name", account.getLoginName());
+		params.put("password", account.getPassword());
+
+		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.createAccount", params);
+	}
+
+	public void removeAccount(String loginName) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("login_name", loginName);
+
+		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.removeAccount", params);
+	}
+
+	public void changePassword(String loginName, String password) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("login_name", loginName);
+		params.put("password", password);
+
+		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.changePassword", params);
+	}
+
+	public void grantPrivilege(Privilege privilege) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("login_name", privilege.getLoginName());
+		params.put("table_name", privilege.getTableName());
+
+		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.grantPrivilege", params);
+	}
+
+	public void revokePrivilege(Privilege privilege) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("login_name", privilege.getLoginName());
+		params.put("table_name", privilege.getTableName());
+
+		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.revokePrivilege", params);
 	}
 
 	@SuppressWarnings("unchecked")

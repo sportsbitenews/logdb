@@ -41,6 +41,8 @@ public interface AccountService {
 
 	boolean checkPermission(Session session, String tableName, Permission permission);
 
+	List<Privilege> getPrivileges(Session session, String loginName);
+
 	void grantPrivilege(Session session, String loginName, String tableName, Permission... permissions);
 
 	void revokePrivilege(Session session, String loginName, String tableName, Permission... permissions);

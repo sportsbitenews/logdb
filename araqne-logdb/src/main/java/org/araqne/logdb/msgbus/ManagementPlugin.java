@@ -15,13 +15,17 @@
  */
 package org.araqne.logdb.msgbus;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
+import org.araqne.api.PrimitiveConverter;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.Permission;
+import org.araqne.logdb.Privilege;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.msgbus.MessageBus;
@@ -97,6 +101,68 @@ public class ManagementPlugin {
 	}
 
 	@MsgbusMethod
+	public void listAccounts(Request req, Response resp) {
+		org.araqne.logdb.Session session = checkPermission(req);
+		List<Object> accounts = new ArrayList<Object>();
+		for (String loginName : accountService.getAccountNames()) {
+			List<Privilege> privileges = accountService.getPrivileges(session, loginName);
+
+			Map<String, Object> m = new HashMap<String, Object>();
+			m.put("login_name", loginName);
+			m.put("privileges", serialize(privileges));
+			accounts.add(m);
+		}
+
+		resp.put("accounts", accounts);
+	}
+
+	private List<Object> serialize(List<Privilege> privileges) {
+		List<Object> l = new ArrayList<Object>();
+		for (Privilege p : privileges)
+			l.add(PrimitiveConverter.serialize(p));
+		return l;
+	}
+
+	@MsgbusMethod
+	public void changePassword(Request req, Response resp) {
+		org.araqne.logdb.Session session = checkPermission(req);
+		String loginName = req.getString("login_name");
+		String password = req.getString("password");
+		accountService.changePassword(session, loginName, password);
+	}
+
+	@MsgbusMethod
+	public void createAccount(Request req, Response resp) {
+		org.araqne.logdb.Session session = checkPermission(req);
+		String loginName = req.getString("login_name");
+		String password = req.getString("password");
+		accountService.createAccount(session, loginName, password);
+	}
+
+	@MsgbusMethod
+	public void removeAccount(Request req, Response resp) {
+		org.araqne.logdb.Session session = checkPermission(req);
+		String loginName = req.getString("login_name");
+		accountService.removeAccount(session, loginName);
+	}
+
+	@MsgbusMethod
+	public void grantPrivilege(Request req, Response resp) {
+		org.araqne.logdb.Session session = checkPermission(req);
+		String loginName = req.getString("login_name");
+		String tableName = req.getString("table_name");
+		accountService.grantPrivilege(session, loginName, tableName, Permission.READ);
+	}
+
+	@MsgbusMethod
+	public void revokePrivilege(Request req, Response resp) {
+		org.araqne.logdb.Session session = checkPermission(req);
+		String loginName = req.getString("login_name");
+		String tableName = req.getString("table_name");
+		accountService.revokePrivilege(session, loginName, tableName, Permission.READ);
+	}
+
+	@MsgbusMethod
 	public void listTables(Request req, Response resp) {
 		checkPermission(req);
 
@@ -165,9 +231,10 @@ public class ManagementPlugin {
 		storage.dropTable(tableName);
 	}
 
-	private void checkPermission(Request req) {
+	private org.araqne.logdb.Session checkPermission(Request req) {
 		org.araqne.logdb.Session session = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
 		if (session != null && !session.getLoginName().equals("araqne"))
 			throw new SecurityException("logdb management is not allowed to " + session.getLoginName());
+		return session;
 	}
 }
