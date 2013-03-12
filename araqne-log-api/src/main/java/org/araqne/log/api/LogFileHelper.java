@@ -2,7 +2,6 @@ package org.araqne.log.api;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -17,10 +16,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class LogFileHelper implements Closeable {
-	public static final Pattern fileNamePattern = Pattern.compile("E_[0-9]{10}\\.stmp");
 	public static final SimpleDateFormat logDateFormat = new SimpleDateFormat("yyyyMMdd HHmmss");
 
-//	private static SimpleDateFormat fileDateFormat = new SimpleDateFormat("yyyyMMddHH");
 	private String filePathFormat;
 	private ArrayList<SimpleDateFormat> placeHolderFormats = new ArrayList<SimpleDateFormat>();
 	private File writerFile = null;
@@ -182,33 +179,6 @@ public class LogFileHelper implements Closeable {
 			d.setTime(d.getTime() + fileDurationHour * 60 * 60 * 1000);
 		}
 		return files.toArray(new File[files.size()]);
-	}
-
-	private static class LogFileFilter implements FileFilter {
-		private final String lastFile;
-		private final long lastPos;
-
-		public LogFileFilter(File lastFile, long lastPos) {
-			this.lastFile = lastFile == null ? null : lastFile.getName();
-			this.lastPos = lastPos;
-		}
-
-		@Override
-		public boolean accept(File pathname) {
-			if (LogFileHelper.fileNamePattern.matcher(pathname.getName()).matches()) {
-				if (lastFile == null)
-					return true;
-
-				String name = pathname.getName();
-				if (name.compareTo(lastFile) > 0)
-					return true;
-				else if (name.compareTo(lastFile) == 0 && pathname.length() > lastPos)
-					return true;
-				else
-					return false;
-			} else
-				return false;
-		}
 	}
 
 }

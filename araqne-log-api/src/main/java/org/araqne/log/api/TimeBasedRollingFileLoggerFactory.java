@@ -9,13 +9,13 @@ import java.util.Locale;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 
-@Component(name = "hourly-file-logger-factory")
+@Component(name = "rolling-file-logger-factory")
 @Provides
 public class TimeBasedRollingFileLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getName() {
-		return "hourly-file";
+		return "rolling-file";
 	}
 
 	@Override
@@ -60,6 +60,12 @@ public class TimeBasedRollingFileLoggerFactory extends AbstractLoggerFactory {
 						TimeBasedRollingFileLogger.optNameLastLogPath,
 						"Path for .lastlog",
 						"dir to save recent running information.",
+						true).get());
+		types.add(
+				new StringConfigTypeBuilder(
+						TimeBasedRollingFileLogger.optNameDateFormat,
+						"date format",
+						"in the format of Java SimpleDateFormat",
 						true).get());
 		types.add(
 				new StringConfigTypeBuilder(

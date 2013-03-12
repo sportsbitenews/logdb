@@ -24,15 +24,11 @@ public class TimeBasedRollingFileLogger extends AbstractLogger {
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TimeBasedRollingFileLogger.class);
 
 	public static final String optNameFilePathFormat = "filepath_format";
-
 	public static final String optNameCloseWaitMillisec = "close_wait_millisec";
-
+	public static final String optNameDateFormat = "date_format";
 	public static final String optNameStartTime = "start_time";
-
 	public static final String optNameLastLogPath = "lastlog_path";
-	
 	public static final String optNameFileDuration = "file_duration";
-
 
 	private static final DateFormat startTimeDateFormat = new SimpleDateFormat("yyyyMMdd HHmm");
 
@@ -47,6 +43,8 @@ public class TimeBasedRollingFileLogger extends AbstractLogger {
 	private long lastModified = 0;
 
 	private File lastLogPath;
+
+	private DateParser dateParser = null;
 
 	public TimeBasedRollingFileLogger(LoggerSpecification spec, LoggerFactory loggerFactory) {
 		super(spec.getName(), spec.getDescription(), loggerFactory, spec.getConfig());
@@ -67,6 +65,12 @@ public class TimeBasedRollingFileLogger extends AbstractLogger {
 
 		int fileDuration = Integer.parseInt((String) spec.getConfig().get(optNameFileDuration)) * 1000;
 		logFileHelper = new LogFileHelper((String) spec.getConfig().get(optNameFilePathFormat), fileDuration);
+
+		String dateFormat = (String) spec.getConfig().get(optNameDateFormat);
+		if (dateFormat == null)
+			dateFormat = "yyyy-MM-dd HH:mm:ss";
+
+		dateParser = new DefaultDateParser(dateFormat);
 
 		lastLogPath = new File((String) spec.getConfig().get(optNameLastLogPath));
 		if (!lastLogPath.getParentFile().exists())
@@ -229,21 +233,11 @@ public class TimeBasedRollingFileLogger extends AbstractLogger {
 	}
 
 	private Date extractDate(String line) {
-		int idxSemi = line.indexOf(';');
-		int idxSemi2 = line.indexOf(';', idxSemi + 1);
-
-		if (idxSemi == -1 || idxSemi2 == -1)
-			return null;
-
-		String dateString = line.substring(idxSemi + 1, idxSemi2);
-		try {
-			Date parse = LogFileHelper.logDateFormat.parse(dateString);
+		Date parse = dateParser.parse(line);
+		if (parse != null)
 			return parse;
-		} catch (ParseException e) {
-			logger.error("cannot extract date: " + dateString, e);
-		}
-
-		return null;
+		else
+			return new Date();
 	}
 
 	private void ensureClose(Closeable fis) {
