@@ -28,6 +28,9 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.araqne.logdb.client.ConfigSpec;
+import org.araqne.logdb.client.IndexConfigSpec;
+import org.araqne.logdb.client.IndexInfo;
+import org.araqne.logdb.client.IndexTokenizerFactoryInfo;
 import org.araqne.logdb.client.LogCursor;
 import org.araqne.logdb.client.LogQuery;
 import org.araqne.logdb.client.LoggerFactoryInfo;
@@ -51,6 +54,121 @@ public class CometClient implements TrapListener {
 		this.session = new Session(host);
 		this.session.login(loginName, password, true);
 		this.session.addListener(this);
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<IndexTokenizerFactoryInfo> listIndexTokenizerFactories() throws IOException {
+		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.listIndexTokenizerFactories");
+
+		List<IndexTokenizerFactoryInfo> l = new ArrayList<IndexTokenizerFactoryInfo>();
+		for (Object o : (List<Object>) resp.getParameters().get("factories")) {
+			IndexTokenizerFactoryInfo f = parseIndexTokenizerFactory(o);
+			l.add(f);
+		}
+
+		return l;
+	}
+
+	public IndexTokenizerFactoryInfo getIndexTokenizerFactory(String name) throws IOException {
+		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.getIndexTokenizerFactory");
+		return parseIndexTokenizerFactory(resp.getParameters().get("factory"));
+	}
+
+	@SuppressWarnings("unchecked")
+	private IndexTokenizerFactoryInfo parseIndexTokenizerFactory(Object o) {
+		Map<String, Object> m = (Map<String, Object>) o;
+		IndexTokenizerFactoryInfo f = new IndexTokenizerFactoryInfo();
+		f.setName((String) m.get("name"));
+		f.setConfigSpecs(parseIndexConfigList((List<Object>) m.get("config_specs")));
+		return f;
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<IndexConfigSpec> parseIndexConfigList(List<Object> l) {
+		List<IndexConfigSpec> specs = new ArrayList<IndexConfigSpec>();
+
+		for (Object o : l) {
+			Map<String, Object> m = (Map<String, Object>) o;
+			IndexConfigSpec spec = new IndexConfigSpec();
+			spec.setKey((String) m.get("key"));
+			spec.setName((String) m.get("name"));
+			spec.setDescription((String) m.get("description"));
+			spec.setRequired((Boolean) m.get("required"));
+			specs.add(spec);
+		}
+
+		return specs;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<IndexInfo> listIndexes(String tableName) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+
+		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.listIndexes", params);
+		List<IndexInfo> indexes = new ArrayList<IndexInfo>();
+
+		List<Object> l = (List<Object>) resp.getParameters().get("indexes");
+		for (Object o : l) {
+			Map<String, Object> m = (Map<String, Object>) o;
+			IndexInfo indexInfo = getIndexInfo(m);
+			indexes.add(indexInfo);
+		}
+
+		return indexes;
+	}
+
+	@SuppressWarnings("unchecked")
+	public IndexInfo getIndexInfo(String tableName, String indexName) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+		params.put("index", indexName);
+
+		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.getIndexInfo", params);
+		return getIndexInfo((Map<String, Object>) resp.getParameters().get("index"));
+	}
+
+	@SuppressWarnings("unchecked")
+	private IndexInfo getIndexInfo(Map<String, Object> m) {
+		IndexInfo index = new IndexInfo();
+		index.setTableName((String) m.get("table"));
+		index.setIndexName((String) m.get("index"));
+		index.setTokenizerName((String) m.get("tokenizer_name"));
+		index.setTokenizerConfigs((Map<String, String>) m.get("tokenizer_configs"));
+
+		try {
+			SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+			String s = (String) m.get("min_index_day");
+			if (s != null)
+				index.setMinIndexDay(f.parse(s));
+		} catch (ParseException e) {
+		}
+
+		index.setBasePath((String) m.get("base_path"));
+		index.setBuildPastIndex((Boolean) m.get("build_past_index"));
+
+		return index;
+	}
+
+	public void createIndex(IndexInfo info) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", info.getTableName());
+		params.put("index", info.getIndexName());
+		params.put("tokenizer_name", info.getTokenizerName());
+		params.put("tokenizer_configs", info.getTokenizerConfigs());
+		params.put("base_path", info.getBasePath());
+		params.put("min_index_day", info.getMinIndexDay());
+		params.put("build_past_index", info.isBuildPastIndex());
+
+		session.rpc("com.logpresso.index.msgbus.ManagementPlugin.createIndex", params);
+	}
+
+	public void dropIndex(String tableName, String indexName) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+		params.put("index", indexName);
+
+		session.rpc("com.logpresso.index.msgbus.ManagementPlugin.dropIndex", params);
 	}
 
 	@SuppressWarnings("unchecked")

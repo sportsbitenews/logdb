@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -99,6 +100,16 @@ public class Console {
 					startLogger(tokens);
 				else if (cmd.equals("stop_logger"))
 					stopLogger(tokens);
+				else if (cmd.equals("index_tokenizers"))
+					listIndexTokenizers(tokens);
+				else if (cmd.equals("indexes"))
+					listIndexes(tokens);
+				else if (cmd.equals("index"))
+					getIndexInfo(tokens);
+				else if (cmd.equals("create_index"))
+					createIndex(tokens);
+				else if (cmd.equals("drop_index"))
+					dropIndex(tokens);
 				else
 					w("syntax error");
 
@@ -555,6 +566,60 @@ public class Console {
 		}
 	}
 
+	private void listIndexTokenizers(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		try {
+			for (IndexTokenizerFactoryInfo tokenizer : client.listIndexTokenizerFactories()) {
+				w(tokenizer.toString());
+			}
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void listIndexes(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: indexes <table name>");
+			return;
+		}
+
+		try {
+			for (IndexInfo index : client.listIndexes(tokens[1])) {
+				w(index.toString());
+			}
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void getIndexInfo(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: index <table name> <index name>");
+			return;
+		}
+
+		try {
+			IndexInfo index = client.getIndexInfo(tokens[1], tokens[2]);
+			w(index.toString());
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
 	private void stopLogger(String[] tokens) {
 		if (client == null) {
 			w("connect first please");
@@ -572,6 +637,109 @@ public class Console {
 		} catch (Throwable t) {
 			w(t.getMessage());
 		}
+	}
+
+	private void createIndex(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: create_index <table name> <index name>");
+			return;
+		}
+
+		try {
+			String tableName = tokens[1];
+			String indexName = tokens[2];
+
+			IndexInfo index = new IndexInfo();
+			index.setTableName(tableName);
+			index.setIndexName(indexName);
+
+			w("available index tokenizers");
+			w("----------------------------");
+			List<IndexTokenizerFactoryInfo> tokenizers = client.listIndexTokenizerFactories();
+			for (IndexTokenizerFactoryInfo tokenizer : tokenizers) {
+				w(tokenizer.toString());
+			}
+
+			System.out.print("select tokenizer? ");
+			String tokenizerName = br.readLine().trim();
+
+			IndexTokenizerFactoryInfo selected = null;
+			for (IndexTokenizerFactoryInfo tokenizer : tokenizers) {
+				if (tokenizer.getName().equals(tokenizerName))
+					selected = tokenizer;
+			}
+
+			if (selected == null) {
+				w("invalid index tokenizer");
+				return;
+			}
+
+			index.setTokenizerName(tokenizerName);
+
+			for (IndexConfigSpec type : selected.getConfigSpecs()) {
+				inputOption(index, type);
+			}
+
+			System.out.print("base path (optional)? ");
+			String basePath = br.readLine().trim();
+			if (basePath.isEmpty())
+				basePath = null;
+			index.setBasePath(basePath);
+
+			System.out.print("build past index (y/n)? ");
+			String s = br.readLine().trim();
+			index.setBuildPastIndex(s.equalsIgnoreCase("y"));
+
+			if (index.isBuildPastIndex()) {
+				System.out.print("min day (yyyymmdd or enter to skip)? ");
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+				String minDayStr = br.readLine().trim();
+				if (minDayStr != null)
+					index.setMinIndexDay(dateFormat.parse(minDayStr));
+			}
+
+			client.createIndex(index);
+			w("created");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void inputOption(IndexInfo index, IndexConfigSpec spec) throws IOException {
+		String directive = spec.isRequired() ? "(required)" : "(optional)";
+		System.out.print(spec.getName() + " " + directive + "? ");
+		String value = br.readLine();
+		if (!value.isEmpty())
+			index.getTokenizerConfigs().put(spec.getKey(), value);
+
+		if (value.isEmpty() && spec.isRequired()) {
+			inputOption(index, spec);
+		}
+	}
+
+	private void dropIndex(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: drop_index <table name> <index name>");
+			return;
+		}
+
+		try {
+			client.dropIndex(tokens[1], tokens[2]);
+			w("dropped");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+
 	}
 
 	private String getPrompt() {
