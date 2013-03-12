@@ -42,7 +42,7 @@ public class Console {
 	}
 
 	public void run() throws IOException {
-		w("Araqne LogDB Console 0.3 (2013-03-12)");
+		w("Araqne LogDB Console 0.3.2 (2013-03-12)");
 		w("Type \"help\" for more information");
 
 		br = new BufferedReader(new InputStreamReader(System.in));
@@ -51,6 +51,9 @@ public class Console {
 			while (true) {
 				System.out.print(getPrompt());
 				String line = br.readLine();
+				if (line == null)
+					break;
+
 				String[] tokens = line.split(" ");
 				if (tokens.length == 0)
 					continue;
@@ -122,6 +125,12 @@ public class Console {
 					grantPrivilege(tokens);
 				else if (cmd.equals("revoke"))
 					revokePrivilege(tokens);
+				else if (cmd.equals("archives"))
+					listArchiveConfigs(tokens);
+				else if (cmd.equals("create_archive"))
+					createArchiveConfig(tokens);
+				else if (cmd.equals("remove_archive"))
+					removeArchiveConfig(tokens);
 				else
 					w("syntax error");
 
@@ -868,6 +877,68 @@ public class Console {
 			w(t.getMessage());
 		}
 
+	}
+
+	private void listArchiveConfigs(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		try {
+			w("Archive Configs");
+			w("-----------------");
+			for (ArchiveConfig config : client.listArchiveConfigs()) {
+				w(config.toString());
+			}
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void createArchiveConfig(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: create_archive <logger fullname> <table name> [<host name>]");
+			return;
+		}
+
+		try {
+			ArchiveConfig config = new ArchiveConfig();
+			config.setLoggerName(tokens[1]);
+			config.setTableName(tokens[2]);
+			if (tokens.length > 3)
+				config.setHost(tokens[3]);
+			config.setEnabled(true);
+
+			client.createArchiveConfig(config);
+			w("created");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void removeArchiveConfig(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: remove_archive <logger fullname>");
+			return;
+		}
+
+		try {
+			client.removeArchiveConfig(tokens[1]);
+			w("removed");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
 	}
 
 	private String getPrompt() {

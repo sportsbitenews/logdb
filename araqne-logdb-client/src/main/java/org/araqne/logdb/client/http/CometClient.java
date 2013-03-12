@@ -28,6 +28,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.araqne.logdb.client.AccountInfo;
+import org.araqne.logdb.client.ArchiveConfig;
 import org.araqne.logdb.client.ConfigSpec;
 import org.araqne.logdb.client.IndexConfigSpec;
 import org.araqne.logdb.client.IndexInfo;
@@ -56,6 +57,55 @@ public class CometClient implements TrapListener {
 		this.session = new Session(host);
 		this.session.login(loginName, password, true);
 		this.session.addListener(this);
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<ArchiveConfig> listArchiveConfigs() throws IOException {
+		List<ArchiveConfig> configs = new ArrayList<ArchiveConfig>();
+		Message resp = session.rpc("org.logpresso.core.msgbus.ArchivePlugin.getConfigs");
+		List<Map<String, Object>> l = (List<Map<String, Object>>) resp.get("configs");
+		for (Map<String, Object> m : l) {
+			configs.add(parseArchiveConfig(m));
+		}
+
+		return configs;
+	}
+
+	@SuppressWarnings("unchecked")
+	public ArchiveConfig getArchiveConfig(String loggerName) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("logger", loggerName);
+
+		Message resp = session.rpc("org.logpresso.core.msgbus.ArchivePlugin.getConfig", params);
+		Map<String, Object> m = (Map<String, Object>) resp.getParameters().get("config");
+		return parseArchiveConfig(m);
+	}
+
+	@SuppressWarnings("unchecked")
+	private ArchiveConfig parseArchiveConfig(Map<String, Object> m) {
+		ArchiveConfig c = new ArchiveConfig();
+		c.setLoggerName((String) m.get("logger"));
+		c.setTableName((String) m.get("table"));
+		c.setHost((String) m.get("host"));
+		c.setEnabled((Boolean) m.get("enabled"));
+		c.setMetadata((Map<String, String>) m.get("metadata"));
+		return c;
+	}
+
+	public void createArchiveConfig(ArchiveConfig config) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("logger", config.getLoggerName());
+		params.put("table", config.getTableName());
+		params.put("host", config.getHost());
+		params.put("enabled", config.isEnabled());
+		params.put("metadata", config.getMetadata());
+		session.rpc("org.logpresso.core.msgbus.ArchivePlugin.createConfig", params);
+	}
+
+	public void removeArchiveConfig(String loggerName) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("logger", loggerName);
+		session.rpc("org.logpresso.core.msgbus.ArchivePlugin.removeConfig", params);
 	}
 
 	@SuppressWarnings("unchecked")
