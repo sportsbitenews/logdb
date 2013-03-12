@@ -142,7 +142,8 @@ public class Table extends LogQueryCommand {
 						String optionValue = tableRegistry.getTableMetadata(tableName, optionName);
 						if (configOption.isRequired() && optionValue == null)
 							throw new IllegalArgumentException("require table metadata " + optionName);
-						prop.put(optionName, optionValue);
+						if (optionValue != null)
+							prop.put(optionName, optionValue);
 					}
 					parser = parserFactory.createParser(prop);
 				}
@@ -151,8 +152,7 @@ public class Table extends LogQueryCommand {
 				if (limit != 0 && needed <= 0)
 					break;
 
-				found += storage.search(tableName, from, to, offset, limit == 0 ? 0 : needed,
-						new LogSearchCallbackImpl(parser));
+				found += storage.search(tableName, from, to, offset, limit == 0 ? 0 : needed, new LogSearchCallbackImpl(parser));
 				if (offset > 0) {
 					if (found > offset) {
 						found -= offset;
