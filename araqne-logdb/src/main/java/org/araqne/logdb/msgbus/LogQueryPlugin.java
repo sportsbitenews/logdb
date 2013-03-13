@@ -236,9 +236,16 @@ public class LogQueryPlugin {
 		@Override
 		public void onQueryStatusChange() {
 			try {
+				String status = null;
+				if (query.getLastStarted() == null)
+					status = "Waiting";
+				else
+					status = query.isEnd() ? "End" : "Running";
+
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("id", query.getId());
 				m.put("type", "status_change");
+				m.put("status", status);
 				m.put("count", query.getResultCount());
 				pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
 				pushApi.push(orgDomain, "logstorage-query-" + query.getId(), m); // deprecated

@@ -205,7 +205,7 @@ public class LogQueryImpl implements LogQuery {
 
 	@Override
 	public void unregisterQueryCallback(LogQueryCallback callback) {
-		logQueryCallbacks.add(callback);
+		logQueryCallbacks.remove(callback);
 	}
 
 	@Override

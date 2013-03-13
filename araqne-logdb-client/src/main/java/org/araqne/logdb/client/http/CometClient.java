@@ -695,6 +695,12 @@ public class CometClient implements TrapListener {
 			if (msg.getString("type").equals("eof")) {
 				q.updateCount(msg.getLong("total_count"));
 				q.updateStatus("Ended");
+			} else if (msg.getString("type").equals("page_loaded")) {
+				q.updateCount(msg.getLong("count"));
+				q.updateStatus("Running");
+			} else if (msg.getString("type").equals("status_change")) {
+				q.updateCount(msg.getLong("count"));
+				q.updateStatus(msg.getString("status"));
 			}
 		}
 	}

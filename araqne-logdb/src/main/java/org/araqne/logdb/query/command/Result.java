@@ -36,9 +36,12 @@ import org.araqne.logstorage.file.LogFileReaderV2;
 import org.araqne.logstorage.file.LogFileWriterV2;
 import org.araqne.logstorage.file.LogRecord;
 import org.araqne.logstorage.file.LogRecordCursor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Result extends LogQueryCommand {
 	private static File BASE_DIR = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query/");
+	private final Logger logger = LoggerFactory.getLogger(Result.class);
 	private LogFileWriterV2 writer;
 	private File indexPath;
 	private File dataPath;
@@ -137,7 +140,10 @@ public class Result extends LogQueryCommand {
 		}
 
 		if (nextStatusChangeCallback < System.currentTimeMillis()) {
-			for (LogQueryCallback callback : logQuery.getLogQueryCallback())
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logdb: result next status change callback, size={}", callbacks.size());
+
+			for (LogQueryCallback callback : callbacks)
 				callback.onQueryStatusChange();
 			nextStatusChangeCallback = System.currentTimeMillis() + 2000;
 		}
