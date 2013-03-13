@@ -211,6 +211,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		status = LoggerStatus.Starting;
 		this.interval = interval;
 
+		onStart();
+
 		if (getExecutor() == null) {
 			t = new Thread(this, "Logger [" + fullName + "]");
 			t.start();
@@ -288,7 +290,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			try {
 				onStop();
 			} catch (Exception e) {
-				log.warn("krane log api: [" + fullName + "] stop callback should not throw any exception", e);
+				log.warn("araqne log api: [" + fullName + "] stop callback should not throw any exception", e);
 			}
 		}
 
@@ -306,6 +308,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	protected abstract void runOnce();
+
+	protected void onStart() {
+	}
 
 	protected void onStop() {
 	}

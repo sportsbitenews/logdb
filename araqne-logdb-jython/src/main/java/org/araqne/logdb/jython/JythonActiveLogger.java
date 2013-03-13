@@ -1,5 +1,317 @@
+/*
+ * Copyright 2013 Eediom Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.araqne.logdb.jython;
 
-public class JythonActiveLogger {
+import java.util.Date;
+import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.araqne.log.api.Log;
+import org.araqne.log.api.LogPipe;
+import org.araqne.log.api.Logger;
+import org.araqne.log.api.LoggerEventListener;
+import org.araqne.log.api.LoggerFactory;
+import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStatus;
+
+public abstract class JythonActiveLogger implements Logger, Runnable {
+	private final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JythonActiveLogger.class.getName());
+
+	private LoggerFactory factory;
+	private LoggerSpecification spec;
+	private CopyOnWriteArraySet<LogPipe> pipes = new CopyOnWriteArraySet<LogPipe>();
+	private CopyOnWriteArraySet<LoggerEventListener> listeners = new CopyOnWriteArraySet<LoggerEventListener>();
+
+	private Thread t;
+	private int interval;
+	private Properties config;
+
+	private volatile LoggerStatus status = LoggerStatus.Stopped;
+	private volatile boolean doStop = false;
+	private volatile boolean stopped = true;
+	private volatile Date lastStartDate;
+	private volatile Date lastRunDate;
+	private volatile Date lastLogDate;
+	private AtomicLong logCounter = new AtomicLong();
+
+	public abstract void init(LoggerSpecification spec);
+
+	protected abstract void runOnce();
+
+	protected void onStop() {
+	}
+
+	public void preInit(LoggerFactory factory, LoggerSpecification spec) {
+		this.factory = factory;
+		this.spec = spec;
+		this.config = spec.getConfig();
+	}
+
+	@Override
+	public void run() {
+		stopped = false;
+		try {
+			while (true) {
+				try {
+					if (doStop)
+						break;
+					long startedAt = System.currentTimeMillis();
+					runOnce();
+					updateConfig(config);
+					long elapsed = System.currentTimeMillis() - startedAt;
+					lastRunDate = new Date();
+					if (interval - elapsed < 0)
+						continue;
+					Thread.sleep(interval - elapsed);
+				} catch (InterruptedException e) {
+				}
+			}
+		} catch (Exception e) {
+			log.error("araqne log api: logger stopped", e);
+		} finally {
+			status = LoggerStatus.Stopped;
+			stopped = true;
+			doStop = false;
+
+			try {
+				onStop();
+			} catch (Exception e) {
+				log.warn("araqne log api: [" + getFullName() + "] stop callback should not throw any exception", e);
+			}
+		}
+	}
+
+	@Override
+	public String getFullName() {
+		return spec.getNamespace() + "\\" + spec.getName();
+	}
+
+	@Override
+	public String getNamespace() {
+		return spec.getNamespace();
+	}
+
+	@Override
+	public String getName() {
+		return spec.getName();
+	}
+
+	@Override
+	public String getFactoryFullName() {
+		return factory.getFullName();
+	}
+
+	@Override
+	public String getFactoryName() {
+		return factory.getName();
+	}
+
+	@Override
+	public String getFactoryNamespace() {
+		return factory.getNamespace();
+	}
+
+	@Override
+	public String getDescription() {
+		return spec.getDescription();
+	}
+
+	@Override
+	public boolean isPassive() {
+		return false;
+	}
+
+	@Override
+	public void setPassive(boolean isPassive) {
+		// ignore
+	}
+
+	@Override
+	public Date getLastStartDate() {
+		return lastStartDate;
+	}
+
+	@Override
+	public Date getLastRunDate() {
+		return lastRunDate;
+	}
+
+	@Override
+	public Date getLastLogDate() {
+		return lastLogDate;
+	}
+
+	@Override
+	public long getLogCount() {
+		return logCounter.get();
+	}
+
+	@Override
+	public boolean isRunning() {
+		return !stopped;
+	}
+
+	@Override
+	public LoggerStatus getStatus() {
+		return status;
+	}
+
+	@Override
+	public int getInterval() {
+		return interval;
+	}
+
+	@Override
+	public void start() {
+		throw new UnsupportedOperationException("this is active logger, start with interval");
+	}
+
+	@Override
+	public void start(int interval) {
+		if (!stopped)
+			throw new IllegalStateException("logger is already running");
+
+		status = LoggerStatus.Starting;
+		this.interval = interval;
+
+		t = new Thread(this, "Logger [" + getFullName() + "]");
+		t.start();
+
+		invokeStartCallback();
+	}
+
+	@Override
+	public void stop() {
+		stop(0);
+	}
+
+	@Override
+	public void stop(int maxWaitTime) {
+		if (t != null) {
+			if (!t.isAlive()) {
+				t = null;
+				return;
+			}
+			t.interrupt();
+			t = null;
+		}
+
+		status = LoggerStatus.Stopping;
+
+		doStop = true;
+		long begin = new Date().getTime();
+		try {
+			while (true) {
+				if (stopped)
+					break;
+
+				if (maxWaitTime != 0 && new Date().getTime() - begin > maxWaitTime)
+					break;
+
+				Thread.sleep(50);
+			}
+		} catch (InterruptedException e) {
+		}
+
+		invokeStopCallback();
+	}
+
+	@Override
+	public void addLogPipe(LogPipe pipe) {
+		pipes.add(pipe);
+	}
+
+	@Override
+	public void removeLogPipe(LogPipe pipe) {
+		pipes.remove(pipe);
+	}
+
+	@Override
+	public void addEventListener(LoggerEventListener callback) {
+		listeners.add(callback);
+	}
+
+	@Override
+	public void removeEventListener(LoggerEventListener callback) {
+		listeners.remove(callback);
+	}
+
+	@Override
+	public void clearEventListeners() {
+		listeners.clear();
+	}
+
+	protected void write(Log log) {
+		if (stopped)
+			return;
+
+		// update last log date
+		lastLogDate = log.getDate();
+		logCounter.incrementAndGet();
+
+		// notify all
+		for (LogPipe pipe : pipes) {
+			try {
+				pipe.onLog(this, log);
+			} catch (Exception e) {
+				if (e.getMessage() != null && e.getMessage().startsWith("invalid time"))
+					this.log.warn("araqne logdb jython: log pipe should not throw exception" + e.getMessage());
+				else
+					this.log.warn("araqne logdb jython: log pipe should not throw exception", e);
+			}
+		}
+	}
+
+	@Override
+	public void updateConfig(Properties config) {
+		for (LoggerEventListener callback : listeners) {
+			try {
+				callback.onUpdated(this, config);
+			} catch (Exception e) {
+				log.error("araqne log api: logger event callback should not throw any exception", e);
+			}
+		}
+	}
+
+	@Override
+	public Properties getConfig() {
+		return config;
+	}
+
+	private void invokeStartCallback() {
+		lastStartDate = new Date();
+		status = LoggerStatus.Running;
+
+		for (LoggerEventListener callback : listeners) {
+			try {
+				callback.onStart(this);
+			} catch (Exception e) {
+				log.warn("logger callback should not throw any exception", e);
+			}
+		}
+	}
+
+	private void invokeStopCallback() {
+		for (LoggerEventListener callback : listeners) {
+			try {
+				callback.onStop(this);
+			} catch (Exception e) {
+				log.warn("logger callback should not throw any exception", e);
+			}
+		}
+	}
 }

@@ -21,29 +21,33 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.ServiceProperty;
 import org.araqne.api.Script;
 import org.araqne.api.ScriptFactory;
+import org.araqne.logdb.jython.JythonLoggerScriptRegistry;
 import org.araqne.logdb.jython.JythonQueryScriptRegistry;
 import org.osgi.framework.BundleContext;
 
-@Component(name = "jython-query-script-factory")
+@Component(name = "logdb-jython-script-factory")
 @Provides
-public class JythonQueryScriptFactory implements ScriptFactory {
+public class LogdbJythonScriptFactory implements ScriptFactory {
 
 	@SuppressWarnings("unused")
 	@ServiceProperty(name = "alias", value = "logdb-jython")
 	private String alias;
 
 	@Requires
-	private JythonQueryScriptRegistry ls;
+	private JythonQueryScriptRegistry queryScriptRegistry;
+
+	@Requires
+	private JythonLoggerScriptRegistry loggerScriptRegistry;
 
 	private BundleContext bc;
 
-	public JythonQueryScriptFactory(BundleContext bc) {
+	public LogdbJythonScriptFactory(BundleContext bc) {
 		this.bc = bc;
 	}
 
 	@Override
 	public Script createScript() {
-		return new JythonQueryScript(bc, ls);
+		return new LogdbJythonScript(bc, queryScriptRegistry, loggerScriptRegistry);
 	}
 
 }

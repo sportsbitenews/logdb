@@ -27,7 +27,6 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.api.PrimitiveConverter;
 import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigCollection;
 import org.araqne.confdb.ConfigDatabase;
@@ -67,21 +66,21 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 
 		// load scripts
 		ConfigDatabase db = conf.ensureDatabase("araqne-logdb-jython");
-		ConfigCollection col = db.ensureCollection("scripts");
-		ConfigIterator it = col.findAll();
+		ConfigIterator it = null;
 		try {
-			for (LogScriptConfig sc : it.getDocuments(LogScriptConfig.class)) {
+			it = db.find(ScriptConfig.class, Predicates.field("type", "query"));
+			for (ScriptConfig sc : it.getDocuments(ScriptConfig.class)) {
 				try {
-					PyObject o = eval(sc.name, sc.script);
+					PyObject o = eval(sc.getName(), sc.getScript());
 
 					ConcurrentMap<String, PyObject> scripts = new ConcurrentHashMap<String, PyObject>();
-					ConcurrentMap<String, PyObject> old = workspaceScripts.putIfAbsent(sc.workspace, scripts);
+					ConcurrentMap<String, PyObject> old = workspaceScripts.putIfAbsent(sc.getWorkspace(), scripts);
 					if (old != null)
 						scripts = old;
 
-					scripts.put(sc.name, o);
+					scripts.put(sc.getName(), o);
 				} catch (Throwable t) {
-					logger.error("araqne logdb jython: cannot load script [" + sc.name + "]", t);
+					logger.error("araqne logdb jython: cannot load script [" + sc.getName() + "]", t);
 				}
 			}
 		} finally {
@@ -142,8 +141,8 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 		if (c == null)
 			return null;
 
-		LogScriptConfig sc = c.getDocument(LogScriptConfig.class);
-		return sc.script;
+		ScriptConfig sc = c.getDocument(ScriptConfig.class);
+		return sc.getScript();
 	}
 
 	@Override
@@ -172,19 +171,17 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 		scripts.put(name, factory);
 
 		ConfigDatabase db = conf.ensureDatabase("araqne-logdb-jython");
-		ConfigCollection col = db.ensureCollection("scripts");
-		Config c = col.findOne(getPredicate(workspace, name));
+		Config c = db.findOne(ScriptConfig.class, getPredicate(workspace, name));
 
 		if (c == null) {
-			LogScriptConfig sc = new LogScriptConfig(workspace, name, script);
-			col.add(PrimitiveConverter.serialize(sc));
+			ScriptConfig sc = new ScriptConfig(workspace, name, script);
+			db.add(sc);
 
 			// add to logdb script registry
 			logScriptRegistry.addScriptFactory(workspace, name, new LogScriptFactoryImpl(factory));
 		} else {
-			LogScriptConfig sc = new LogScriptConfig(workspace, name, script);
-			c.setDocument(PrimitiveConverter.serialize(sc));
-			col.update(c);
+			ScriptConfig sc = new ScriptConfig(workspace, name, script);
+			db.update(c, sc);
 
 			logScriptRegistry.removeScriptFactory(workspace, name);
 			logScriptRegistry.addScriptFactory(workspace, name, new LogScriptFactoryImpl(factory));
@@ -226,25 +223,10 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 
 	private Predicate getPredicate(String workspace, String name) {
 		Map<String, Object> pred = new HashMap<String, Object>();
-		pred.put("name", name);
 		pred.put("workspace", workspace);
+		pred.put("name", name);
+		pred.put("type", "query");
 		return Predicates.field(pred);
-	}
-
-	private static class LogScriptConfig {
-		private String workspace;
-		private String name;
-		private String script;
-
-		@SuppressWarnings("unused")
-		public LogScriptConfig() {
-		}
-
-		public LogScriptConfig(String workspace, String name, String script) {
-			this.workspace = workspace;
-			this.name = name;
-			this.script = script;
-		}
 	}
 
 	private static class LogScriptFactoryImpl implements LogQueryScriptFactory {
@@ -276,5 +258,4 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 			return getDescription();
 		}
 	}
-
 }

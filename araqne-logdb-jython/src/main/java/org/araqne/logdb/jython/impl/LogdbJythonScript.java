@@ -32,18 +32,21 @@ import org.araqne.api.ScriptUsage;
 import org.araqne.logdb.LogQueryScript;
 import org.araqne.logdb.LogQueryScriptInput;
 import org.araqne.logdb.LogQueryScriptOutput;
+import org.araqne.logdb.jython.JythonLoggerScriptRegistry;
 import org.araqne.logdb.jython.JythonQueryScriptRegistry;
 import org.osgi.framework.BundleContext;
 
-public class JythonQueryScript implements Script {
-
-	private JythonQueryScriptRegistry scriptRegistry;
+public class LogdbJythonScript implements Script {
+	private JythonQueryScriptRegistry queryScriptRegistry;
+	private JythonLoggerScriptRegistry loggerScriptRegistry;
 	private BundleContext bc;
 	private ScriptContext context;
 
-	public JythonQueryScript(BundleContext bc, JythonQueryScriptRegistry scriptRegistry) {
+	public LogdbJythonScript(BundleContext bc, JythonQueryScriptRegistry queryScriptRegistry,
+			JythonLoggerScriptRegistry loggerScriptRegistry) {
 		this.bc = bc;
-		this.scriptRegistry = scriptRegistry;
+		this.queryScriptRegistry = queryScriptRegistry;
+		this.loggerScriptRegistry = loggerScriptRegistry;
 	}
 
 	@Override
@@ -51,36 +54,55 @@ public class JythonQueryScript implements Script {
 		this.context = context;
 	}
 
-	public void scripts(String[] args) {
+	public void loggerScripts(String[] args) {
+		context.println("Logger Scripts");
+		context.println("----------------");
+		for (String name : loggerScriptRegistry.getScriptNames()) {
+			context.println(name);
+		}
+	}
+
+	public void queryScripts(String[] args) {
 		context.println("Query Scripts");
 		context.println("---------------");
-		for (String workspace : scriptRegistry.getWorkspaceNames()) {
+		for (String workspace : queryScriptRegistry.getWorkspaceNames()) {
 			context.println("Workspace: " + workspace);
-			for (String name : scriptRegistry.getScriptNames(workspace)) {
+			for (String name : queryScriptRegistry.getScriptNames(workspace)) {
 				context.println("  " + name);
 			}
 		}
 	}
 
-	@ScriptUsage(description = "print script", arguments = {
-			@ScriptArgument(name = "workspace name", type = "string", description = "workspace name"),
-			@ScriptArgument(name = "script name", type = "string", description = "script name") })
-	public void script(String[] args) {
-		String s = scriptRegistry.getScriptCode(args[0], args[1]);
+	@ScriptUsage(description = "print logger script", arguments = { @ScriptArgument(name = "script name", type = "string", description = "script name") })
+	public void loggerScript(String[] args) {
+		String s = loggerScriptRegistry.getScriptCode(args[0]);
 		if (s == null) {
-			context.println("script not found");
+			context.println("logger script not found");
 			return;
 		}
 
 		context.println(s);
 	}
 
-	@ScriptUsage(description = "test script", arguments = {
+	@ScriptUsage(description = "print script", arguments = {
+			@ScriptArgument(name = "workspace name", type = "string", description = "workspace name"),
+			@ScriptArgument(name = "script name", type = "string", description = "script name") })
+	public void queryScript(String[] args) {
+		String s = queryScriptRegistry.getScriptCode(args[0], args[1]);
+		if (s == null) {
+			context.println("query script not found");
+			return;
+		}
+
+		context.println(s);
+	}
+
+	@ScriptUsage(description = "run query script for test", arguments = {
 			@ScriptArgument(name = "workspace name", type = "string", description = "workspace name"),
 			@ScriptArgument(name = "script name", type = "string", description = "script name"),
 			@ScriptArgument(name = "line", type = "string", description = "test data") })
-	public void testrun(String[] args) {
-		LogQueryScript s = scriptRegistry.newLogScript(args[0], args[1], null);
+	public void runQueryScript(String[] args) {
+		LogQueryScript s = queryScriptRegistry.newLogScript(args[0], args[1], null);
 		if (s == null) {
 			context.println("script not found");
 			return;
@@ -115,16 +137,15 @@ public class JythonQueryScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "import script file", arguments = {
-			@ScriptArgument(name = "workspace name", type = "string", description = "workspace name"),
+	@ScriptUsage(description = "import logger script file", arguments = {
 			@ScriptArgument(name = "script name", type = "string", description = "jython class name"),
 			@ScriptArgument(name = "file path", type = "string", description = "absolute or relative script file path") })
-	public void load(String[] args) {
+	public void loadLoggerScript(String[] args) {
 		File dir = (File) context.getSession().getProperty("dir");
-		File f = canonicalize(dir, args[2]);
+		File f = canonicalize(dir, args[1]);
 		try {
 			String s = readAllLines(f);
-			scriptRegistry.setScript(args[0], args[1], s);
+			loggerScriptRegistry.loadScript(args[0], s);
 			context.println("loaded " + countLines(s) + " lines");
 		} catch (FileNotFoundException e) {
 			context.println("file not found: " + f.getAbsolutePath());
@@ -133,11 +154,35 @@ public class JythonQueryScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "unload script", arguments = {
+	@ScriptUsage(description = "import query script file", arguments = {
+			@ScriptArgument(name = "workspace name", type = "string", description = "workspace name"),
+			@ScriptArgument(name = "script name", type = "string", description = "jython class name"),
+			@ScriptArgument(name = "file path", type = "string", description = "absolute or relative script file path") })
+	public void loadQueryScript(String[] args) {
+		File dir = (File) context.getSession().getProperty("dir");
+		File f = canonicalize(dir, args[2]);
+		try {
+			String s = readAllLines(f);
+			queryScriptRegistry.setScript(args[0], args[1], s);
+			context.println("loaded " + countLines(s) + " lines");
+		} catch (FileNotFoundException e) {
+			context.println("file not found: " + f.getAbsolutePath());
+		} catch (IOException e) {
+			context.println(e.getMessage());
+		}
+	}
+
+	@ScriptUsage(description = "unload logger script", arguments = { @ScriptArgument(name = "script name", type = "string", description = "jython class name") })
+	public void unloadLoggerScript(String[] args) {
+		loggerScriptRegistry.unloadScript(args[0]);
+		context.println("unloaded");
+	}
+
+	@ScriptUsage(description = "unload query script", arguments = {
 			@ScriptArgument(name = "workspace name", type = "string", description = "workspace name"),
 			@ScriptArgument(name = "script name", type = "string", description = "jython class name") })
-	public void unload(String[] args) {
-		scriptRegistry.removeScript(args[0], args[1]);
+	public void unloadQueryScript(String[] args) {
+		queryScriptRegistry.removeScript(args[0], args[1]);
 		context.println("unloaded");
 	}
 
