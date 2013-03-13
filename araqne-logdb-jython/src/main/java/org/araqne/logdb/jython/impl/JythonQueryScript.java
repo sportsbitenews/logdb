@@ -75,7 +75,7 @@ public class JythonQueryScript implements Script {
 		context.println(s);
 	}
 
-	@ScriptUsage(description = "print script", arguments = {
+	@ScriptUsage(description = "test script", arguments = {
 			@ScriptArgument(name = "workspace name", type = "string", description = "workspace name"),
 			@ScriptArgument(name = "script name", type = "string", description = "script name"),
 			@ScriptArgument(name = "line", type = "string", description = "test data") })
