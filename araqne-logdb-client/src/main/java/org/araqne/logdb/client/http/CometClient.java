@@ -53,6 +53,13 @@ public class CometClient implements TrapListener {
 		return new ArrayList<LogQuery>(queries.values());
 	}
 
+	public LogQuery getQuery(int id) {
+		for (LogQuery q : queries.values())
+			if (q.getId() == id)
+				return q;
+		return null;
+	}
+
 	public void connect(String host, String loginName, String password) throws IOException {
 		this.session = new Session(host);
 		this.session.login(loginName, password, true);
