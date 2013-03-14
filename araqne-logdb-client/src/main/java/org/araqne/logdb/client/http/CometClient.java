@@ -61,7 +61,11 @@ public class CometClient implements TrapListener {
 	}
 
 	public void connect(String host, String loginName, String password) throws IOException {
-		this.session = new Session(host);
+		connect(host, 80, loginName, password);
+	}
+
+	public void connect(String host, int port, String loginName, String password) throws IOException {
+		this.session = new Session(host, port);
 		this.session.login(loginName, password, true);
 		this.session.addListener(this);
 	}

@@ -32,12 +32,18 @@ import org.slf4j.LoggerFactory;
 public class Session implements TrapListener {
 	private final Logger logger = LoggerFactory.getLogger(Session.class);
 	private String host;
+	private int port;
 	private String cookie;
 	private TrapReceiver trapReceiver;
 	private CopyOnWriteArraySet<TrapListener> listeners = new CopyOnWriteArraySet<TrapListener>();
 
 	public Session(String host) {
+		this(host, 80);
+	}
+
+	public Session(String host, int port) {
 		this.host = host;
+		this.port = port;
 	}
 
 	public void login(String loginName, String password) throws IOException {
@@ -51,7 +57,7 @@ public class Session implements TrapListener {
 
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.login", params);
 
-		trapReceiver = new TrapReceiver(host, cookie);
+		trapReceiver = new TrapReceiver(host, port, cookie);
 		trapReceiver.addListener(this);
 		trapReceiver.start();
 	}
@@ -80,7 +86,7 @@ public class Session implements TrapListener {
 		InputStream is = null;
 
 		try {
-			con = (HttpURLConnection) new URL("http://" + host + "/msgbus/request").openConnection();
+			con = (HttpURLConnection) new URL("http://" + host + ":" + port + "/msgbus/request").openConnection();
 			con.setRequestMethod("POST");
 			con.setDoOutput(true);
 			if (cookie != null) {

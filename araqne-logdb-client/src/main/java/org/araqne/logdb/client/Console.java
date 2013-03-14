@@ -147,7 +147,7 @@ public class Console {
 
 	private void connect(String[] tokens) {
 		if (tokens.length < 4) {
-			w("Usage: connect <host> <loginname> <password>");
+			w("Usage: connect <host:port> <loginname> <password>");
 			return;
 		}
 
@@ -156,7 +156,13 @@ public class Console {
 			return;
 		}
 
-		host = tokens[1];
+		String addr = tokens[1];
+		String[] addrTokens = addr.split(":");
+
+		host = addrTokens[0];
+		int port = 80;
+		if (addrTokens.length > 1)
+			port = Integer.valueOf(addrTokens[1]);
 
 		try {
 			InetAddress.getByName(host);
@@ -170,7 +176,7 @@ public class Console {
 
 		try {
 			client = new CometClient();
-			client.connect(host, loginName, password);
+			client.connect(host, port, loginName, password);
 			w("connected to " + host + " as " + loginName);
 		} catch (Throwable t) {
 			w(t.getMessage());

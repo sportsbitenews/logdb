@@ -35,11 +35,17 @@ public class TrapReceiver extends Thread {
 	private final Logger logger = LoggerFactory.getLogger(TrapReceiver.class);
 	private boolean doStop;
 	private String host;
+	private int port;
 	private String cookie;
 	private CopyOnWriteArraySet<TrapListener> listeners;
 
 	public TrapReceiver(String host, String cookie) {
+		this(host, 80, cookie);
+	}
+
+	public TrapReceiver(String host, int port, String cookie) {
 		this.host = host;
+		this.port = port;
 		this.cookie = cookie;
 		this.listeners = new CopyOnWriteArraySet<TrapListener>();
 	}
@@ -62,7 +68,7 @@ public class TrapReceiver extends Thread {
 		InputStream is = null;
 		HttpURLConnection con = null;
 		try {
-			con = (HttpURLConnection) new URL("http://" + host + "/msgbus/trap").openConnection();
+			con = (HttpURLConnection) new URL("http://" + host + ":" + port + "/msgbus/trap").openConnection();
 			con.setRequestProperty("Content-Type", "text/json");
 			con.setRequestProperty("Cookie", cookie);
 			con.setConnectTimeout(5000);
