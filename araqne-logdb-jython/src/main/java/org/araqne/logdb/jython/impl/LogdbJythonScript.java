@@ -34,19 +34,22 @@ import org.araqne.logdb.LogQueryScriptInput;
 import org.araqne.logdb.LogQueryScriptOutput;
 import org.araqne.logdb.jython.JythonLoggerScriptRegistry;
 import org.araqne.logdb.jython.JythonQueryScriptRegistry;
+import org.araqne.logdb.jython.JythonTransformerScriptRegistry;
 import org.osgi.framework.BundleContext;
 
 public class LogdbJythonScript implements Script {
 	private JythonQueryScriptRegistry queryScriptRegistry;
 	private JythonLoggerScriptRegistry loggerScriptRegistry;
+	private JythonTransformerScriptRegistry transformerScriptRegistry;
 	private BundleContext bc;
 	private ScriptContext context;
 
 	public LogdbJythonScript(BundleContext bc, JythonQueryScriptRegistry queryScriptRegistry,
-			JythonLoggerScriptRegistry loggerScriptRegistry) {
+			JythonLoggerScriptRegistry loggerScriptRegistry, JythonTransformerScriptRegistry transformerScriptRegistry) {
 		this.bc = bc;
 		this.queryScriptRegistry = queryScriptRegistry;
 		this.loggerScriptRegistry = loggerScriptRegistry;
+		this.transformerScriptRegistry = transformerScriptRegistry;
 	}
 
 	@Override
@@ -58,6 +61,14 @@ public class LogdbJythonScript implements Script {
 		context.println("Logger Scripts");
 		context.println("----------------");
 		for (String name : loggerScriptRegistry.getScriptNames()) {
+			context.println(name);
+		}
+	}
+
+	public void transformerScripts(String[] args) {
+		context.println("Transformer Scripts");
+		context.println("---------------------");
+		for (String name : transformerScriptRegistry.getScriptNames()) {
 			context.println(name);
 		}
 	}
@@ -78,6 +89,17 @@ public class LogdbJythonScript implements Script {
 		String s = loggerScriptRegistry.getScriptCode(args[0]);
 		if (s == null) {
 			context.println("logger script not found");
+			return;
+		}
+
+		context.println(s);
+	}
+
+	@ScriptUsage(description = "print transformer script", arguments = { @ScriptArgument(name = "script name", type = "string", description = "script name") })
+	public void transformerScript(String[] args) {
+		String s = loggerScriptRegistry.getScriptCode(args[0]);
+		if (s == null) {
+			context.println("transformer script not found");
 			return;
 		}
 
@@ -154,6 +176,23 @@ public class LogdbJythonScript implements Script {
 		}
 	}
 
+	@ScriptUsage(description = "import transformer script file", arguments = {
+			@ScriptArgument(name = "script name", type = "string", description = "jython class name"),
+			@ScriptArgument(name = "file path", type = "string", description = "absolute or relative script file path") })
+	public void loadTransformerScript(String[] args) {
+		File dir = (File) context.getSession().getProperty("dir");
+		File f = canonicalize(dir, args[1]);
+		try {
+			String s = readAllLines(f);
+			transformerScriptRegistry.loadScript(args[0], s);
+			context.println("loaded " + countLines(s) + " lines");
+		} catch (FileNotFoundException e) {
+			context.println("file not found: " + f.getAbsolutePath());
+		} catch (IOException e) {
+			context.println(e.getMessage());
+		}
+	}
+
 	@ScriptUsage(description = "import query script file", arguments = {
 			@ScriptArgument(name = "workspace name", type = "string", description = "workspace name"),
 			@ScriptArgument(name = "script name", type = "string", description = "jython class name"),
@@ -175,6 +214,12 @@ public class LogdbJythonScript implements Script {
 	@ScriptUsage(description = "unload logger script", arguments = { @ScriptArgument(name = "script name", type = "string", description = "jython class name") })
 	public void unloadLoggerScript(String[] args) {
 		loggerScriptRegistry.unloadScript(args[0]);
+		context.println("unloaded");
+	}
+
+	@ScriptUsage(description = "unload transformer script", arguments = { @ScriptArgument(name = "script name", type = "string", description = "jython class name") })
+	public void unloadTransformerScript(String[] args) {
+		transformerScriptRegistry.unloadScript(args[0]);
 		context.println("unloaded");
 	}
 

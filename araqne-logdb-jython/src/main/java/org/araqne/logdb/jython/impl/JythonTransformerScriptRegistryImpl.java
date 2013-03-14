@@ -16,10 +16,11 @@
 package org.araqne.logdb.jython.impl;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -36,20 +37,18 @@ import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicate;
 import org.araqne.confdb.Predicates;
 import org.araqne.jython.JythonService;
-import org.araqne.log.api.AbstractLoggerFactory;
-import org.araqne.log.api.Logger;
+import org.araqne.log.api.LogTransformer;
+import org.araqne.log.api.LogTransformerFactory;
 import org.araqne.log.api.LoggerConfigOption;
-import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.StringConfigType;
-import org.araqne.logdb.jython.JythonActiveLogger;
-import org.araqne.logdb.jython.JythonLoggerScriptRegistry;
+import org.araqne.logdb.jython.JythonTransformerScriptRegistry;
 import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
 
-@Component(name = "jython-logger-script-registry")
+@Component(name = "jython-transformer-script-registry")
 @Provides
-public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implements JythonLoggerScriptRegistry {
-	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(JythonLoggerScriptRegistryImpl.class);
+public class JythonTransformerScriptRegistryImpl implements JythonTransformerScriptRegistry, LogTransformerFactory {
+	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(JythonTransformerScriptRegistryImpl.class);
 	private ConcurrentMap<String, PyObject> scripts = new ConcurrentHashMap<String, PyObject>();
 
 	@Requires
@@ -62,7 +61,7 @@ public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implem
 	public void start() {
 		// load scripts
 		ConfigDatabase db = conf.ensureDatabase("araqne-logdb-jython");
-		ConfigIterator it = db.find(ScriptConfig.class, Predicates.field("type", "logger"));
+		ConfigIterator it = db.find(ScriptConfig.class, Predicates.field("type", "transformer"));
 		try {
 			for (ScriptConfig sc : it.getDocuments(ScriptConfig.class)) {
 				try {
@@ -83,7 +82,7 @@ public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implem
 	}
 
 	//
-	// implement logger factory
+	// implement transformer factory
 	//
 
 	@Override
@@ -102,9 +101,19 @@ public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implem
 	}
 
 	@Override
-	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption scriptName = new StringConfigType("logger_script", map("logger script name"),
-				map("jython logger script class name"), true);
+	public List<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH);
+	}
+
+	@Override
+	public List<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH);
+	}
+
+	@Override
+	public List<LoggerConfigOption> getConfigOptions() {
+		LoggerConfigOption scriptName = new StringConfigType("transformer_script", map("transformer script name"),
+				map("jython transformer script class name"), true);
 		return Arrays.asList(scriptName);
 	}
 
@@ -115,17 +124,14 @@ public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implem
 	}
 
 	@Override
-	protected Logger createLogger(LoggerSpecification spec) {
-		String scriptName = spec.getConfig().getProperty("logger_script");
+	public LogTransformer newTransformer(Properties config) {
+		String scriptName = (String) config.get("transformer_script");
 		PyObject factory = scripts.get(scriptName);
 		if (factory == null)
 			return null;
 
 		PyObject instance = factory.__call__();
-		JythonActiveLogger logger = (JythonActiveLogger) instance.__tojava__(JythonActiveLogger.class);
-		logger.preInit(this, spec);
-		logger.init(spec);
-		return logger;
+		return (LogTransformer) instance.__tojava__(LogTransformer.class);
 	}
 
 	//
@@ -151,7 +157,7 @@ public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implem
 	private Predicate getPredicate(String name) {
 		Map<String, Object> pred = new HashMap<String, Object>();
 		pred.put("name", name);
-		pred.put("type", "logger");
+		pred.put("type", "transformer");
 		return Predicates.field(pred);
 	}
 
@@ -160,7 +166,7 @@ public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implem
 		PyObject factory = eval(name, script);
 		scripts.put(name, factory);
 
-		ScriptConfig sc = new ScriptConfig(name, "logger", script);
+		ScriptConfig sc = new ScriptConfig(name, "transformer", script);
 		ConfigDatabase db = conf.ensureDatabase("araqne-logdb-jython");
 		Config c = db.findOne(ScriptConfig.class, getPredicate(name));
 		if (c == null) {
@@ -182,8 +188,8 @@ public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implem
 
 	private PyObject eval(String name, String script) {
 		PythonInterpreter interpreter = jython.newInterpreter();
-		interpreter.exec("from org.araqne.logdb.jython import JythonActiveLogger");
 		interpreter.exec("from org.araqne.log.api import SimpleLog");
+		interpreter.exec("from org.araqne.log.api import LogTransformer");
 		interpreter.exec("from java.util import Date");
 		interpreter.exec(script);
 		PyObject clazz = interpreter.get(name);

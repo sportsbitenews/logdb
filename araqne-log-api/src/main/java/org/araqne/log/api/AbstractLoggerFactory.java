@@ -123,6 +123,13 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		}
 	}
 
+	private LogTransformerFactoryRegistry getTransformerRegistry() {
+		ServiceReference ref = bc.getServiceReference(LogTransformerFactoryRegistry.class.getName());
+		if (ref == null)
+			return null;
+		return (LogTransformerFactoryRegistry) bc.getService(ref);
+	}
+
 	private LoggerRegistry getLoggerRegistry() {
 		ServiceReference ref = bc.getServiceReference(LoggerRegistry.class.getName());
 		if (ref == null)
@@ -200,6 +207,22 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 
 		for (LoggerFactoryEventListener callback : callbacks) {
 			callback.loggerCreated(this, logger, config);
+		}
+
+		// add log transformer
+		if (config.containsKey("transform")) {
+			String factoryName = config.getProperty("transform");
+			LogTransformerFactoryRegistry transformerRegistry = getTransformerRegistry();
+			LogTransformerFactory factory = null;
+			if (factoryName != null && transformerRegistry != null)
+				factory = transformerRegistry.getFactory(factoryName);
+
+			LogTransformer transformer = null;
+			if (factory != null)
+				transformer = factory.newTransformer(config);
+
+			if (transformer != null)
+				logger.getTransformerChain().add(transformer);
 		}
 		return logger;
 	}

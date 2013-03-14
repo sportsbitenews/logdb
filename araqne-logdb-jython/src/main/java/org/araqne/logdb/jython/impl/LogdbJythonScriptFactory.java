@@ -23,6 +23,7 @@ import org.araqne.api.Script;
 import org.araqne.api.ScriptFactory;
 import org.araqne.logdb.jython.JythonLoggerScriptRegistry;
 import org.araqne.logdb.jython.JythonQueryScriptRegistry;
+import org.araqne.logdb.jython.JythonTransformerScriptRegistry;
 import org.osgi.framework.BundleContext;
 
 @Component(name = "logdb-jython-script-factory")
@@ -39,6 +40,9 @@ public class LogdbJythonScriptFactory implements ScriptFactory {
 	@Requires
 	private JythonLoggerScriptRegistry loggerScriptRegistry;
 
+	@Requires
+	private JythonTransformerScriptRegistry transformerScriptRegistry;
+
 	private BundleContext bc;
 
 	public LogdbJythonScriptFactory(BundleContext bc) {
@@ -47,7 +51,6 @@ public class LogdbJythonScriptFactory implements ScriptFactory {
 
 	@Override
 	public Script createScript() {
-		return new LogdbJythonScript(bc, queryScriptRegistry, loggerScriptRegistry);
+		return new LogdbJythonScript(bc, queryScriptRegistry, loggerScriptRegistry, transformerScriptRegistry);
 	}
-
 }

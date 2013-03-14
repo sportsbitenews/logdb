@@ -4,4 +4,5 @@
 	<instance component="logdb-jython-script-factory" />
 	<instance component="jython-query-script-registry" />
 	<instance component="jython-logger-script-registry" />
+	<instance component="jython-transformer-script-registry" />
 </ipojo>

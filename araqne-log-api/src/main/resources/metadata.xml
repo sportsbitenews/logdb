@@ -11,4 +11,5 @@
 	<instance component="logapi-logger-plugin" />
 	<instance component="delimiter-parser-factory" />
 	<instance component="regex-parser-factory" />
+	<instance component="log-transformer-factory-registry" />
 </ipojo>

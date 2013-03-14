@@ -31,6 +31,8 @@ import org.araqne.log.api.LogNormalizerFactory;
 import org.araqne.log.api.LogNormalizerFactoryRegistry;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogPipe;
+import org.araqne.log.api.LogTransformerFactory;
+import org.araqne.log.api.LogTransformerFactoryRegistry;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.LoggerFactory;
@@ -44,13 +46,16 @@ public class LogApiScript implements Script {
 	private LoggerRegistry loggerRegistry;
 	private LogParserFactoryRegistry parserFactoryRegistry;
 	private LogNormalizerFactoryRegistry normalizerRegistry;
+	private LogTransformerFactoryRegistry transformerRegistry;
 
 	public LogApiScript(LoggerFactoryRegistry loggerFactoryRegistry, LoggerRegistry loggerRegistry,
-			LogParserFactoryRegistry parserFactoryRegistry, LogNormalizerFactoryRegistry normalizerRegistry) {
+			LogParserFactoryRegistry parserFactoryRegistry, LogNormalizerFactoryRegistry normalizerRegistry,
+			LogTransformerFactoryRegistry transformerRegistry) {
 		this.loggerFactoryRegistry = loggerFactoryRegistry;
 		this.loggerRegistry = loggerRegistry;
 		this.parserFactoryRegistry = parserFactoryRegistry;
 		this.normalizerRegistry = normalizerRegistry;
+		this.transformerRegistry = transformerRegistry;
 	}
 
 	@Override
@@ -157,6 +162,15 @@ public class LogApiScript implements Script {
 		}
 	}
 
+	public void transformerFactories(String[] args) {
+		context.println("Log Transformer Factories");
+		context.println("---------------------------");
+
+		for (LogTransformerFactory f : transformerRegistry.getFactories()) {
+			context.println(f.getName() + ": " + f);
+		}
+	}
+
 	@ScriptUsage(description = "trace logger output", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "logger fullname") })
 	public void trace(String[] args) {
 		Logger logger = loggerRegistry.getLogger(args[0]);
@@ -257,6 +271,21 @@ public class LogApiScript implements Script {
 			Properties config = new Properties();
 			for (LoggerConfigOption type : loggerFactory.getConfigOptions()) {
 				setOption(config, type);
+			}
+
+			// transform?
+			context.print("transformer (optional, enter to skip)? ");
+			String transformer = context.readLine().trim();
+			if (!transformer.isEmpty()) {
+				LogTransformerFactory transformerFactory = transformerRegistry.getFactory(transformer);
+				if (transformerFactory != null) {
+					for (LoggerConfigOption type : transformerFactory.getConfigOptions()) {
+						setOption(config, type);
+					}
+					config.put("transform", transformer);
+				} else {
+					context.println("transformer not found");
+				}
 			}
 
 			Logger logger = loggerFactory.newLogger(loggerNamespace, loggerName, description, config);

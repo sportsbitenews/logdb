@@ -16,12 +16,16 @@
 package org.araqne.logdb.jython;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.araqne.api.DateFormat;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogPipe;
+import org.araqne.log.api.LogTransformer;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerEventListener;
 import org.araqne.log.api.LoggerFactory;
@@ -35,6 +39,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	private LoggerSpecification spec;
 	private CopyOnWriteArraySet<LogPipe> pipes = new CopyOnWriteArraySet<LogPipe>();
 	private CopyOnWriteArraySet<LoggerEventListener> listeners = new CopyOnWriteArraySet<LoggerEventListener>();
+	private CopyOnWriteArrayList<LogTransformer> transformerChain = new CopyOnWriteArrayList<LogTransformer>();
 
 	private Thread t;
 	private int interval;
@@ -263,6 +268,12 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		lastLogDate = log.getDate();
 		logCounter.incrementAndGet();
 
+		// transform
+		if (!getTransformerChain().isEmpty()) {
+			for (LogTransformer transformer : getTransformerChain())
+				log = transformer.transform(log);
+		}
+
 		// notify all
 		for (LogPipe pipe : pipes) {
 			try {
@@ -314,4 +325,23 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 			}
 		}
 	}
+
+	@Override
+	public List<LogTransformer> getTransformerChain() {
+		return transformerChain;
+	}
+
+	@Override
+	public String toString() {
+		String format = "yyyy-MM-dd HH:mm:ss";
+		String start = DateFormat.format(format, lastStartDate);
+		String run = DateFormat.format(format, lastRunDate);
+		String log = DateFormat.format(format, lastLogDate);
+		String status = getStatus().toString().toLowerCase();
+		status += " (interval=" + interval + "ms)";
+
+		return String.format("name=%s, factory=%s, script=%s, status=%s, log count=%d, last start=%s, last run=%s, last log=%s",
+				getFullName(), factory.getFullName(), getClass().getSimpleName(), status, getLogCount(), start, run, log);
+	}
+
 }
