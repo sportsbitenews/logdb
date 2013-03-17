@@ -39,7 +39,7 @@ public class Right implements Expression {
 		if (s.length() < length)
 			return s;
 
-		return s.substring(s.length() - length, length);
+		return s.substring(s.length() - length, s.length());
 	}
 
 	@Override
