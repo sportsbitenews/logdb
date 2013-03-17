@@ -306,7 +306,7 @@ public class Console {
 
 	private void removeQuery(int id) {
 		queryService.removeQuery(id);
-		context.println("removed quert " + id);
+		context.println("removed query " + id);
 	}
 
 	private void fetch(int id, long offset, long limit) throws IOException {
