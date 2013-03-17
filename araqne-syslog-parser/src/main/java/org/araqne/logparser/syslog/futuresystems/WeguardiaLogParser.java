@@ -66,27 +66,17 @@ public class WeguardiaLogParser implements LogParser {
 			Date d = parse(c, (String) m.get("date"));
 			m.put("date", d);
 
-			// parse src port
-			String sport = (String) m.get("sport");
-			if (sport != null) {
-				if (!sport.isEmpty())
-					m.put("sport", Integer.valueOf(sport));
-				else
-					m.put("sport", null);
-			}
-
-			// parse dst port
-			String dport = (String) m.get("dport");
-			if (dport != null) {
-				if (!dport.isEmpty())
-					m.put("dport", Integer.valueOf(dport));
-				else
-					m.put("dport", null);
-			}
+			toLong(m, "usage");
+			toInt(m, "severity");
+			toInt(m, "sport");
+			toInt(m, "dport");
+			toInt(m, "nat_sport");
+			toInt(m, "nat_dport");
 
 			// parse count
 			String count = (String) m.get("count");
 			if (count != null) {
+				count = count.trim();
 				if (!count.isEmpty())
 					m.put("count", Integer.valueOf(count));
 				else
@@ -95,8 +85,31 @@ public class WeguardiaLogParser implements LogParser {
 
 			return m;
 		} catch (Exception e) {
-			logger.warn("araqne syslog parser: cannot parse weguardia log [{}]", params);
+			logger.warn("araqne syslog parser: cannot parse weguardia log [" + params.get("line") + "]", e);
 		}
 		return null;
 	}
+
+	private void toInt(Map<String, Object> m, String field) {
+		String s = (String) m.get(field);
+		if (s != null) {
+			s = s.trim();
+			if (!s.isEmpty())
+				m.put(field, Integer.valueOf(s));
+			else
+				m.put(field, null);
+		}
+	}
+
+	private void toLong(Map<String, Object> m, String field) {
+		String s = (String) m.get(field);
+		if (s != null) {
+			s = s.trim();
+			if (!s.isEmpty())
+				m.put(field, Long.valueOf(s));
+			else
+				m.put(field, null);
+		}
+	}
+
 }
