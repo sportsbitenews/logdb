@@ -2,8 +2,8 @@
 입력 명령어
 ===============
 
-table
---------------
+table - logstorage의 테이블로부터 데이터 읽기
+---------------------------------------------
 
 **usage:**
 
@@ -28,8 +28,8 @@ table
     **table** from=20121201 to=20121203 security-events
 
 
-textfile
---------------
+textfile - 텍스트 파일로부터 데이터 읽기
+----------------------------------------
 
 **usage:**
 
@@ -43,7 +43,7 @@ textfile
 - limit
 - parser: parser factory name
 
-Options for the specified parser can be added.
+지정된 파서에 필요한 옵션도 추가해줘야 합니다.
 
 **example:**
 
@@ -66,8 +66,8 @@ Options for the specified parser can be added.
 
 
 
-zipfile
---------------
+zipfile - zip 형식으로 압축된 파일로부터 데이터 읽기
+----------------------------------------------------
 
 **usage:**
 
@@ -77,13 +77,10 @@ zipfile
     
 **options:**
 
-Same as textfile.
+``textfile`` 명령과 기본적인 틀은 같으나 ``parser`` 관련 명령을 지정할 수 없습니다.
 
 - offset
 - limit
-- parser: parser factory name
-
-Options for the specified parser can be added.
 
 **example:**
 
@@ -104,9 +101,8 @@ Options for the specified parser can be added.
             {line=2007-10-13 06:20:46 W3SVC1 1.2.3.4 GET /solution/str82_msg.asp t=1&m=3B 80 - 4.5.6.47 UtilMind+HTTPGet 404 0 3}
 
 
-json
---------------
-
+json - json 문자열로부터 데이터 생성하기
+----------------------------------------
 
 **usage:**
 

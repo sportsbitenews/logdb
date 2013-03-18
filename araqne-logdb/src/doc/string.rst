@@ -2,8 +2,8 @@
 문자열 함수
 ===========
 
-len
-==========
+len - 문자열의 길이를 반환 
+==========================
 
 **usage:**
 
@@ -11,8 +11,8 @@ len
 
     **len(field_name)**
     
-left/right
-==========
+left/right - 문자열을 왼/오른쪽에서 잘라내기 ã
+================================================================
 
 **usage:**
 
@@ -30,8 +30,8 @@ left/right
     json "{ a: \"helloworld\" }" | eval r = **right("helloworld", 5)** 
         ==> {a=helloworld, r=world}
 
-substr
-==========
+substr - 문자열을 중간에서 잘라내기
+=========================================================
 
 **usage:**
 
@@ -46,8 +46,8 @@ substr
     json "{ a: \"smiles\" }" | eval l = **substr(a, 1, 5)** 
         ==> {a=smiles, l=mile}
 
-concat
-==========
+concat - 문자열 이어붙이기
+=======================================
 
 **usage:**
 
@@ -64,8 +64,8 @@ concat
     json "{ a: \"smiles\", b: \"eight\", c: \"away\" }" | eval result = concat(b, " ", right(a, 5), " ", c) 
         ==> {a=smiles, b=eight, c=away, result=eight miles away}
 
-trim
-==========
+trim - 공백문자 잘라내기
+========================
 
 **usage:**
 
@@ -81,8 +81,8 @@ trim
         ==> {a= study hard , result=study hard}
 
 
-string
-==========
+string - 계산식을 문자열로 변환
+===============================
 
 **usage:**
 
@@ -98,8 +98,8 @@ string
         ==> {a=8, b=miles, result=8 miles}
 
 
-match
-==========
+match - 문자열의 일부가 정규표현식과 일치하는지 확인
+====================================================
 
 **usage:**
 
@@ -114,8 +114,8 @@ match
     json "{ a: \"8 miles\" }" | eval result1 = match(a, "\d+ [a-z]+") | eval result2 = match(a, "^[a-z]+$")
         ==> {a=8 miles, result1=true, result2=false}
 
-rex
-==========
+rex - 문자열로부터 정규표현식으로 값을 추출해 새 필드에 대입
+============================================================
 
 **usage:**
 

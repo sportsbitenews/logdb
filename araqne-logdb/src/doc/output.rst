@@ -2,8 +2,8 @@
 필드 조작 명령어
 =====================
 
-eval
-================
+eval - 필드에 계산식의 결과값을 대입
+====================================
 
 **usage:**
 
@@ -19,8 +19,8 @@ eval
     eval total = sent + rcvd
     eval note = if (len(note)>10, concat(left(note, 10), "..."), note)
 
-fields
-================
+fields - 필요한 필드만 추려냄 
+=============================
 
 **usage:**
 
@@ -35,8 +35,8 @@ fields
     json "{ a: 1, b: 2, c: 3 }" | fields a, c
         ==> {a=1, c=3}
 
-rename
-================
+rename - 필드 이름을 바꿔 사용함 
+================================
 
 **usage:**
 
@@ -53,8 +53,8 @@ rename
             {c=52}
 
 
-lookup
-================
+lookup - 별도의 매핑 테이블에서 값을 조회하여 필드를 추가함
+===========================================================
 
 **usage:**
 
@@ -66,14 +66,15 @@ lookup
 
 .. parsed-literal::
 
+    under construction
 
 
 =====================
 쿼리 결과 변환 명령어 
 =====================
 
-outputcsv
-===============
+outputcsv - csv 파일로 결과를 저장함
+====================================
 
 **usage:**
 
@@ -87,7 +88,7 @@ outputcsv
 
     json "[ { a: 42, b: 12 }, { a: 52, b: 22 } ]" | outputcsv C:\\temp\\a.csv a b
 
-then it creates ``C:\TEMP\a.csv`` with column a, b like following.
+위 명령을 이용하면 다음과 같이 a, b 필드의 내용을 담은 ``C:\TEMP\a.csv`` 파일이 생성됩니다. 
 
 a.csv::
 

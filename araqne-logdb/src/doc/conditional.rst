@@ -2,8 +2,8 @@
 조건 처리문
 ===================
 
-if
-===========
+if - 조건에 따른 상수값 대입 
+============================
 
 **usage:**
 
@@ -19,14 +19,14 @@ if
         ==> {a=42, result=true}
         ==> {a=52, result=false}
 
-case
-===========
+case - 여러 조건을 한번에 처리하기
+==================================
 
 **usage:**
 
 .. parsed-literal::
 
-    **case(boolean_expr, expr[, boolean_expr, expr]...)** 
+    **case(boolean_expr, expr[, boolean_expr, expr]..., default_expr)** 
     
 **example:**
 

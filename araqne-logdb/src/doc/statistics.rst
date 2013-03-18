@@ -5,8 +5,8 @@
 stats by
 ==================
 
-count
------
+count - 개수 세기
+-----------------
 **usage**
 
 .. parsed-literal::
@@ -20,8 +20,8 @@ count
 
   table duration=10m security-events | search port > 1024 | **stats count**
 
-sum
-----------
+sum - 필드의 총합 구하기
+------------------------
 
 **usage**
 
@@ -38,8 +38,8 @@ sum
 
 
 
-avg
-----------
+avg - 필드의 평균 구하기
+------------------------
 
 **usage**
 
@@ -54,8 +54,8 @@ avg
   table duration=10m security-events | **stats sum(sent)**
   table duration=10m security-events | **stats sum(sent) as sent**
 
-min/max
-----------
+min/max - 필드의 최소/최대값 구하기 
+-----------------------------------
 
 **usage**
 
@@ -72,8 +72,8 @@ min/max
   table duration=10m security-events | **stats min(sent)**
   table duration=10m security-events | **stats max(sent) as max**
 
-first/last
-----------
+first/last - 필드의 최초값/최후값 구하기
+----------------------------------------
 
 **usage**
 
@@ -88,10 +88,10 @@ first/last
 .. parsed-literal::
 
   table duration=10m security-events | **stats first(sent)**
-  table duration=10m security-events | **stats last(sent) as last**
+  table duration=10m security-events | **stats last(sent) as last** by s-ip
 
-timechart
----------
+timechart - 시계열 그래프를 위한 시간대별 통계 값 추출하기
+----------------------------------------------------------
 
 **usage**
 
