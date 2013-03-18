@@ -13,12 +13,11 @@ Contents
    :maxdepth: 3
 
    Basic.rst
+   input.rst
+   output.rst
    string.rst
    conditional.rst
    statistics.rst
-   etc.rst
-   output.rst
-   tableindex.rst
 
 
 Indices and tables

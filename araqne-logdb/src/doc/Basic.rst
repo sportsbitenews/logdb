@@ -7,7 +7,7 @@
     데이터 소스 커맨드 -> 필터링/통계/가공 커맨드 [-> 결과집합 커맨드]
 
 
-테이블 쿼리 - table
+table - 테이블 쿼리 
 ===================
 
 **usage:**
@@ -34,7 +34,7 @@
 
 
 
-필터링 - search
+search - 필터링 
 ===============
 
 **usage:**
@@ -53,7 +53,7 @@
     table duration=10m security-events | **search (rcvd + sent) > 10000000**
 
 
-변수 할당 - eval
+eval - 필드 할당
 ================
 
 **usage:**

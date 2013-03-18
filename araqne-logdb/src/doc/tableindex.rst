@@ -2,4 +2,6 @@
 인덱스 이용
 ===============
 
-under construction
+상용 모듈인 logpresso-index 모듈이 설치된 상태에서만 이용 가능하다.
+
+추가 예정.
