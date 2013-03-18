@@ -94,7 +94,7 @@ string
 
 .. parsed-literal::
 
-    query json "{ a: 8, b:\"miles\" }" | eval result = concat(**string(a)**, " ", b)
+    json "{ a: 8, b:\"miles\" }" | eval result = concat(**string(a)**, " ", b)
         ==> {a=8, b=miles, result=8 miles}
 
 
@@ -111,7 +111,7 @@ match
 
 .. parsed-literal::
 
-    query json "{ a: \"8 miles\" }" | eval result1 = match(a, "\d+ [a-z]+") | eval result2 = match(a, "^[a-z]+$")
+    json "{ a: \"8 miles\" }" | eval result1 = match(a, "\d+ [a-z]+") | eval result2 = match(a, "^[a-z]+$")
         ==> {a=8 miles, result1=true, result2=false}
 
 rex
@@ -126,8 +126,8 @@ rex
 **example:**
 
 .. parsed-literal::
-    query json "{ line: \"0;2013-03-01 11:22:33\;f1;f2\" }" | rex field=line "(?<d>\d+-\d+-\d+ \d+:\d+:\d+)" | eval d2 = date(d, "yyyy-MM-dd HH:mm:ss")
+    json "{ line: \"0;2013-03-01 11:22:33\;f1;f2\" }" | rex field=line "(?<d>\d+-\d+-\d+ \d+:\d+:\d+)" | eval d2 = date(d, "yyyy-MM-dd HH:mm:ss")
         ==> {d=2013-03-01 11:22:33, d2=Fri Mar 01 11:22:33 KST 2013, line=0;2013-03-01 11:22:33;f1;f2}
 
-    query json "{ line: \"2007-10-13 06:20:46 W3SVC1 123.223.21.233 GET /solution/1.982/asp/strawlv01982_msg.asp t=1&m=001921F08323 80 - 125.240.40.73 UtilMind+HTTPGet 404 0 3\" }" | rex field=line "(GET|POST) (?<url>[^ ]*) (?<querystring>[^ ]*) " | fields url, querystring
+    json "{ line: \"2007-10-13 06:20:46 W3SVC1 123.223.21.233 GET /solution/1.982/asp/strawlv01982_msg.asp t=1&m=001921F08323 80 - 125.240.40.73 UtilMind+HTTPGet 404 0 3\" }" | rex field=line "(GET|POST) (?<url>[^ ]*) (?<querystring>[^ ]*) " | fields url, querystring
         ==> {querystring=t=1&m=001921F08323, url=/solution/1.982/asp/strawlv01982_msg.asp}
