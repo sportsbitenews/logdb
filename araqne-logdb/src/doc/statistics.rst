@@ -5,7 +5,7 @@
 stats by
 ==================
 
-갯수 - count
+count
 -----
 **usage**
 
@@ -20,14 +20,14 @@ stats by
 
   table duration=10m security-events | search port > 1024 | **stats count**
 
-합계 - sum
+sum
 ----------
 
 **usage**
 
 .. parsed-literal::
 
-   **stats sum(field)** as new_field
+   **stats sum(field)** [as new_field]
 
 **example**
 
@@ -38,14 +38,14 @@ stats by
 
 
 
-평균값 - avg
+avg
 ----------
 
 **usage**
 
 .. parsed-literal::
 
-   **stats avg(field)** as new_field
+   **stats avg(field)** [as new_field]
 
 **example**
 
@@ -54,74 +54,39 @@ stats by
   table duration=10m security-events | **stats sum(sent)**
   table duration=10m security-events | **stats sum(sent) as sent**
 
-최대값 - max
+min/max
 ----------
 
 **usage**
 
 .. parsed-literal::
 
-   **stats max(field)**
-   **stats max(field)** as new_field
+   **stats min(field)** [as new_field]
 
-**example**
-
-.. parsed-literal::
-
-  table duration=10m security-events | **stats max(sent)**
-  table duration=10m security-events | **stats max(sent) as max**
-
-최소값 - min
-----------
-
-**usage**
-
-.. parsed-literal::
-
-   **stats min(field)**
-   **stats min(field)** as new_field
+   **stats max(field)** [as new_field]
 
 **example**
 
 .. parsed-literal::
 
   table duration=10m security-events | **stats min(sent)**
-  table duration=10m security-events | **stats min(sent) as min**
+  table duration=10m security-events | **stats max(sent) as max**
 
-첫번째 값 - first
+first/last
 ----------
 
 **usage**
 
 .. parsed-literal::
 
-   **stats first(field)**
-   **stats first(field)** as new_field
+   **stats first(field)** [as new_field]
+   
+   **stats last(field)** [as new_field]
 
 **example**
 
 .. parsed-literal::
 
   table duration=10m security-events | **stats first(sent)**
-  table duration=10m security-events | **stats first(sent) as fisrt**
-
-마지막 값 - last
-----------
-
-최대값과 최소값의 차이값 - range
-----------
-
-
-per_seond
-----------
-
-per_minute
-----------
-
-per_hour
-----------
-
-per_day
-----------
-
+  table duration=10m security-events | **stats last(sent) as last**
 
