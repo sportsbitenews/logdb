@@ -21,9 +21,14 @@ import org.araqne.logdb.LogMap;
 
 public class Case implements Expression {
 	private List<Expression> exprs;
+	private Expression defaultExpr;
 
 	public Case(List<Expression> exprs) {
 		this.exprs = exprs;
+		defaultExpr = null;
+		if (exprs.size() % 2 == 1) {
+			defaultExpr = exprs.remove(exprs.size() - 1);
+		}
 	}
 
 	@Override
@@ -39,6 +44,8 @@ public class Case implements Expression {
 			} else if (condResult != null)
 				return value.eval(map);
 		}
+		if (defaultExpr != null)
+			return defaultExpr.eval(map);
 
 		return null;
 	}
