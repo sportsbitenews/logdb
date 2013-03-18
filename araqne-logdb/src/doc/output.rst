@@ -61,12 +61,23 @@ lookup - 별도의 매핑 테이블에서 값을 조회하여 필드를 추가�
 .. parsed-literal::
 
     **lookup** lookup_table field_lookup_in **output** field_name[, field_name]...
+
+``lookup_table`` 로드는 현재 Araqne 콘솔에서 ``logdb.loadCsvLookup`` 명령으로만 가능합니다. 
     
 **example:**
 
 .. parsed-literal::
 
-    under construction
+    ::hosts.csv::
+    ip,hostname
+    127.0.0.1,localhost
+    1.2.3.4,host1
+    2.3.4.5,host2
+
+    **json** "[ { ip: \\"1.2.3.4\\" }, { ip: \\"2.3.4.5\\" } ]" | lookup csv$hosts.csv ip output hostname
+        ==> {hostname=host1, ip=1.2.3.4}
+            {hostname=host2, ip=2.3.4.5}
+
 
 
 =====================
