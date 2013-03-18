@@ -202,7 +202,7 @@ public class LogdbJythonScript implements Script {
 		File f = canonicalize(dir, args[2]);
 		try {
 			String s = readAllLines(f);
-			queryScriptRegistry.setScript(args[0], args[1], s);
+			queryScriptRegistry.loadScript(args[0], args[1], s);
 			context.println("loaded " + countLines(s) + " lines");
 		} catch (FileNotFoundException e) {
 			context.println("file not found: " + f.getAbsolutePath());
@@ -227,7 +227,7 @@ public class LogdbJythonScript implements Script {
 			@ScriptArgument(name = "workspace name", type = "string", description = "workspace name"),
 			@ScriptArgument(name = "script name", type = "string", description = "jython class name") })
 	public void unloadQueryScript(String[] args) {
-		queryScriptRegistry.removeScript(args[0], args[1]);
+		queryScriptRegistry.unloadScript(args[0], args[1]);
 		context.println("unloaded");
 	}
 

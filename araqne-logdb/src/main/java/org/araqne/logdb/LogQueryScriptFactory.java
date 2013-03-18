@@ -18,7 +18,7 @@ package org.araqne.logdb;
 import java.util.Map;
 
 public interface LogQueryScriptFactory {
-	LogQueryScript create(Map<String, Object> params);
+	LogQueryScript create(Map<String, String> params);
 	
 	String getDescription();
 }

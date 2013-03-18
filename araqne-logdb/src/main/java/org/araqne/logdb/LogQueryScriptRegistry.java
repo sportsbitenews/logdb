@@ -32,7 +32,7 @@ public interface LogQueryScriptRegistry {
 	
 	LogQueryScriptFactory getScriptFactory(String workspace, String name);
 
-	LogQueryScript newScript(String workspace, String name, Map<String, Object> params);
+	LogQueryScript newScript(String workspace, String name, Map<String, String> params);
 
 	void addScriptFactory(String workspace, String name, LogQueryScriptFactory factory);
 

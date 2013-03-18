@@ -31,7 +31,7 @@ public interface JythonQueryScriptRegistry {
 
 	LogQueryScript newLogScript(String workspace, String name, Map<String, Object> params);
 
-	void setScript(String workspace, String name, String script);
+	void loadScript(String workspace, String name, String script);
 
-	void removeScript(String workspace, String name);
+	void unloadScript(String workspace, String name);
 }

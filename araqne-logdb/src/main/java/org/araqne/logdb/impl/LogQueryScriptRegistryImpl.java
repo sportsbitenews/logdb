@@ -79,12 +79,12 @@ public class LogQueryScriptRegistryImpl implements LogQueryScriptRegistry {
 		ConcurrentMap<String, LogQueryScriptFactory> scripts = workspaceToScripts.get(workspace);
 		if (scripts == null)
 			return null;
-		
+
 		return scripts.get(name);
 	}
 
 	@Override
-	public LogQueryScript newScript(String workspace, String name, Map<String, Object> params) {
+	public LogQueryScript newScript(String workspace, String name, Map<String, String> params) {
 		ConcurrentMap<String, LogQueryScriptFactory> scripts = workspaceToScripts.get(workspace);
 		if (scripts == null)
 			throw new IllegalStateException("script not found: " + name);
@@ -92,7 +92,7 @@ public class LogQueryScriptRegistryImpl implements LogQueryScriptRegistry {
 		LogQueryScriptFactory factory = scripts.get(name);
 		if (factory == null)
 			throw new IllegalStateException("script not found: " + name);
-		
+
 		return factory.create(params);
 	}
 

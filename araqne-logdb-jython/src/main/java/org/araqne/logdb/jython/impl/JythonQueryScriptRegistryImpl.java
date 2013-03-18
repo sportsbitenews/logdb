@@ -160,7 +160,7 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 	}
 
 	@Override
-	public void setScript(String workspace, String name, String script) {
+	public void loadScript(String workspace, String name, String script) {
 		PyObject factory = eval(name, script);
 
 		ConcurrentMap<String, PyObject> scripts = new ConcurrentHashMap<String, PyObject>();
@@ -174,13 +174,13 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 		Config c = db.findOne(ScriptConfig.class, getPredicate(workspace, name));
 
 		if (c == null) {
-			ScriptConfig sc = new ScriptConfig(workspace, name, script);
+			ScriptConfig sc = new ScriptConfig(workspace, name, "query", script);
 			db.add(sc);
 
 			// add to logdb script registry
 			logScriptRegistry.addScriptFactory(workspace, name, new LogScriptFactoryImpl(factory));
 		} else {
-			ScriptConfig sc = new ScriptConfig(workspace, name, script);
+			ScriptConfig sc = new ScriptConfig(workspace, name, "query", script);
 			db.update(c, sc);
 
 			logScriptRegistry.removeScriptFactory(workspace, name);
@@ -189,7 +189,7 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 	}
 
 	@Override
-	public void removeScript(String workspace, String name) {
+	public void unloadScript(String workspace, String name) {
 		ConfigDatabase db = conf.ensureDatabase("araqne-logdb-jython");
 		ConfigCollection col = db.ensureCollection("scripts");
 		Config c = col.findOne(Predicates.field("name", name));
@@ -238,7 +238,7 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 		}
 
 		@Override
-		public LogQueryScript create(Map<String, Object> params) {
+		public LogQueryScript create(Map<String, String> params) {
 			PyObject instance = factory.__call__();
 			return (LogQueryScript) instance.__tojava__(LogQueryScript.class);
 		}
