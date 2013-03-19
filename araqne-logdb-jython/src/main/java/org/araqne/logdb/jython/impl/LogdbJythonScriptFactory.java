@@ -22,6 +22,7 @@ import org.apache.felix.ipojo.annotations.ServiceProperty;
 import org.araqne.api.Script;
 import org.araqne.api.ScriptFactory;
 import org.araqne.logdb.jython.JythonLoggerScriptRegistry;
+import org.araqne.logdb.jython.JythonParserScriptRegistry;
 import org.araqne.logdb.jython.JythonQueryScriptRegistry;
 import org.araqne.logdb.jython.JythonTransformerScriptRegistry;
 import org.osgi.framework.BundleContext;
@@ -43,6 +44,9 @@ public class LogdbJythonScriptFactory implements ScriptFactory {
 	@Requires
 	private JythonTransformerScriptRegistry transformerScriptRegistry;
 
+	@Requires
+	private JythonParserScriptRegistry parserScriptRegistry;
+
 	private BundleContext bc;
 
 	public LogdbJythonScriptFactory(BundleContext bc) {
@@ -51,6 +55,7 @@ public class LogdbJythonScriptFactory implements ScriptFactory {
 
 	@Override
 	public Script createScript() {
-		return new LogdbJythonScript(bc, queryScriptRegistry, loggerScriptRegistry, transformerScriptRegistry);
+		return new LogdbJythonScript(bc, queryScriptRegistry, loggerScriptRegistry, transformerScriptRegistry,
+				parserScriptRegistry);
 	}
 }

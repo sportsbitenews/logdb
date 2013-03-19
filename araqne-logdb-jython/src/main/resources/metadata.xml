@@ -5,4 +5,5 @@
 	<instance component="jython-query-script-registry" />
 	<instance component="jython-logger-script-registry" />
 	<instance component="jython-transformer-script-registry" />
+	<instance component="jython-parser-script-registry" />
 </ipojo>
