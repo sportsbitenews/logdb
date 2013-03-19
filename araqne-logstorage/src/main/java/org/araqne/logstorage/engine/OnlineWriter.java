@@ -24,6 +24,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.file.LogRecord;
 import org.slf4j.Logger;
@@ -58,11 +60,15 @@ public class OnlineWriter {
 	 */
 	private LogFileWriter writer;
 
-	public OnlineWriter(int tableId, Date day, int blockSize) throws IOException {
-		this(tableId, day, blockSize, null);
+	private final LogFileService logFileService;
+
+	public OnlineWriter(LogFileService logFileService, int tableId, Date day, int blockSize) throws IOException {
+		this(logFileService, tableId, day, blockSize, null);
 	}
 
-	public OnlineWriter(int tableId, Date day, int blockSize, String defaultLogVersion) throws IOException {
+	public OnlineWriter(LogFileService logFileService, int tableId, Date day, int blockSize, String defaultLogVersion)
+			throws IOException {
+		this.logFileService = logFileService;
 		this.tableId = tableId;
 		this.day = day;
 		File indexPath = DatapathUtil.getIndexFile(tableId, day);
@@ -71,7 +77,17 @@ public class OnlineWriter {
 		indexPath.getParentFile().mkdirs();
 		dataPath.getParentFile().mkdirs();
 
-		writer = LogFileWriter.getLogFileWriter(indexPath, dataPath, defaultLogVersion);
+		try {
+			writer = logFileService.newWriter(new LogFileServiceV2.Option(indexPath, dataPath));
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (IOException e) {
+			throw e;
+		} catch (Throwable t) {
+			throw new IllegalStateException("araqne-logstorage: unexpected error", t);
+		}
+		// writer = LogFileWriter.getLogFileWriter(indexPath, dataPath,
+		// defaultLogVersion);
 		nextId = new AtomicLong(writer.getLastKey());
 	}
 

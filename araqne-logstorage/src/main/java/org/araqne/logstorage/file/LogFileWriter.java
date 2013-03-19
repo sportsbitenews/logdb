@@ -23,38 +23,6 @@ import java.util.Date;
 import java.util.List;
 
 public abstract class LogFileWriter {
-	public static LogFileWriter getLogFileWriter(File indexPath, File dataPath, String defaultLogVersion)
-			throws InvalidLogFileHeaderException, IOException {
-		LogFileWriter writer = null;
-
-		if (indexPath.exists() && dataPath.exists()) {
-			RandomAccessFile headerReader = new RandomAccessFile(indexPath, "r");
-			LogFileHeader header = LogFileHeader.extractHeader(headerReader, indexPath);
-			headerReader.close();
-
-			if (header.version() == 1)
-				writer = new LogFileWriterV1(indexPath, dataPath);
-			else if (header.version() == 2)
-				writer = new LogFileWriterV2(indexPath, dataPath);
-		} else if (!indexPath.exists() && dataPath.exists())
-			throw new IOException("index file not exists");
-		else if (indexPath.exists() && !dataPath.exists())
-			throw new IOException("data file not exists");
-		else {
-			if (defaultLogVersion == null)
-				defaultLogVersion = "v2";
-
-			if (defaultLogVersion.equals("v1"))
-				writer = new LogFileWriterV1(indexPath, dataPath);
-			else if (defaultLogVersion.equals("v2"))
-				writer = new LogFileWriterV2(indexPath, dataPath);
-			else
-				throw new IOException("unknown default log version: " + defaultLogVersion);
-		}
-
-		return writer;
-	}
-
 	public abstract long getLastKey();
 
 	public abstract Date getLastDate();

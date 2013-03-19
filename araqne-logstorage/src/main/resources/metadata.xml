@@ -9,4 +9,7 @@
 	<instance component="logstorage-index-tokenizer-registry" />
 	<instance component="logstorage-delimiter-index-tokenizer-factory" />
 	<instance component="logstorage-regex-index-tokenizer-factory" />
+	<instance component="logstorage-log-file-service-v1" />
+	<instance component="logstorage-log-file-service-v2" />
+	<instance component="logstorage-log-file-service-registry" />
 </ipojo>

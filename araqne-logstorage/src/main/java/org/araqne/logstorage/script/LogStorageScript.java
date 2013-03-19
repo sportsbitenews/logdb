@@ -43,6 +43,7 @@ import org.araqne.api.ScriptUsage;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogRetentionPolicy;
 import org.araqne.logstorage.LogSearchCallback;
 import org.araqne.logstorage.LogStorage;
@@ -62,12 +63,19 @@ public class LogStorageScript implements Script {
 	private LogStorage storage;
 	private LogStorageMonitor monitor;
 	private ConfigService conf;
+	private LogFileServiceRegistry lfsRegistry;
 
-	public LogStorageScript(LogTableRegistry tableRegistry, LogStorage archive, LogStorageMonitor monitor, ConfigService conf) {
+	public LogStorageScript(
+			LogTableRegistry tableRegistry, 
+			LogStorage archive, 
+			LogStorageMonitor monitor, 
+			ConfigService conf,
+			LogFileServiceRegistry lfsRegistry) {
 		this.tableRegistry = tableRegistry;
 		this.storage = archive;
 		this.monitor = monitor;
 		this.conf = conf;
+		this.lfsRegistry = lfsRegistry;
 	}
 
 	@Override
@@ -533,6 +541,12 @@ public class LogStorageScript implements Script {
 		context.println("-----------------");
 		for (LogWriterStatus s : storage.getWriterStatuses()) {
 			context.println(s);
+		}
+	}
+	
+	public void supportedLogFileTypes(String[] args) {
+		for (String type: lfsRegistry.getServiceTypes()) {
+			context.println(type);
 		}
 	}
 

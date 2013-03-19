@@ -79,7 +79,8 @@ public class CsvLookupRegistryImpl implements CsvLookupRegistry {
 			String name = getLookupName(f);
 			try {
 				logger.debug("araqne logdb: removing csv lookup handler [{}]", name);
-				lookup.removeLookupHandler(name);
+				if (lookup != null)
+					lookup.removeLookupHandler(name);
 			} catch (Throwable t) {
 				logger.error("araqne logdb: cannot remove csv lookup handler - " + name, t);
 			}
