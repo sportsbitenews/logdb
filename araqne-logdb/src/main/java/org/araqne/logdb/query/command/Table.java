@@ -199,7 +199,8 @@ public class Table extends LogQueryCommand {
 				if (parsed != null) {
 					parsed.put("_table", log.getTableName());
 					parsed.put("_id", log.getId());
-					parsed.put("_time", log.getDate());
+					if (!parsed.containsKey("_time"))
+						parsed.put("_time", log.getDate());
 					m = parsed;
 				} else {
 					logger.debug("araqne logdb: cannot parse log [{}]", log.getData());
