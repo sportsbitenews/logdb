@@ -25,6 +25,8 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import org.araqne.codec.FastEncodingRule;
+import org.araqne.logstorage.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +55,7 @@ public class LogFileWriterV1 extends LogFileWriter {
 	private Long latestLogTime;
 	private long blockLogCount;
 
-	private List<LogRecord> bufferedLogs;
+	private List<Log> bufferedLogs;
 	private volatile Date lastFlush = new Date();
 
 	public LogFileWriterV1(File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
@@ -62,7 +64,7 @@ public class LogFileWriterV1 extends LogFileWriter {
 
 	public LogFileWriterV1(File indexPath, File dataPath, int maxLogBuffering) throws IOException,
 			InvalidLogFileHeaderException {
-		this.bufferedLogs = new ArrayList<LogRecord>(maxLogBuffering * 2);
+		this.bufferedLogs = new ArrayList<Log>(maxLogBuffering * 2);
 		this.maxLogBuffering = maxLogBuffering;
 
 		boolean indexExists = indexPath.exists();
@@ -144,14 +146,15 @@ public class LogFileWriterV1 extends LogFileWriter {
 	}
 
 	@Override
-	public void write(LogRecord data) throws IOException {
+	public void write(Log log) throws IOException {
+		LogRecord data = convert(log); 
 		// check validity
 		long newKey = data.getId();
 		if (newKey <= lastKey)
 			throw new IllegalArgumentException("invalid key: " + newKey + ", last key was " + lastKey);
 
 		// add to buffer
-		bufferedLogs.add(data);
+		bufferedLogs.add(log);
 
 		// update last key
 		lastKey = newKey;
@@ -166,8 +169,8 @@ public class LogFileWriterV1 extends LogFileWriter {
 	}
 
 	@Override
-	public void write(Collection<LogRecord> data) throws IOException {
-		for (LogRecord log : data) {
+	public void write(Collection<Log> data) throws IOException {
+		for (Log log : data) {
 			try {
 				write(log);
 			} catch (IllegalArgumentException e) {
@@ -177,22 +180,36 @@ public class LogFileWriterV1 extends LogFileWriter {
 	}
 
 	@Override
-	public List<LogRecord> getBuffer() {
+	public List<Log> getBuffer() {
 		return bufferedLogs;
+	}
+	
+	@Override
+	public List<List<Log>> getBuffers() {
+		return null;
 	}
 
 	@Override
-	public void flush() throws IOException {
+	public boolean flush() throws IOException {
 		lastFlush = new Date();
 
-		List<LogRecord> b = bufferedLogs;
-		bufferedLogs = new ArrayList<LogRecord>(maxLogBuffering * 2);
+		List<Log> b = bufferedLogs;
+		bufferedLogs = new ArrayList<Log>(maxLogBuffering * 2);
 
-		Iterator<LogRecord> it = b.iterator();
+		Iterator<Log> it = b.iterator();
 
 		while (it.hasNext()) {
-			rawWrite(it.next());
+			rawWrite(convert(it.next()));
 		}
+		
+		return true;
+	}
+
+	private LogRecord convert(Log log) {
+		ByteBuffer bb = new FastEncodingRule().encode(log.getData());
+		LogRecord logdata = new LogRecord(log.getDate(), log.getId(), bb);
+		log.setBinaryLength(bb.remaining());
+		return logdata;
 	}
 
 	@Override

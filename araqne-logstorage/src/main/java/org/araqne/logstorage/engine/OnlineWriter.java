@@ -24,10 +24,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogFileWriter;
-import org.araqne.logstorage.file.LogRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +78,7 @@ public class OnlineWriter {
 		dataPath.getParentFile().mkdirs();
 
 		try {
-			writer = logFileService.newWriter(new LogFileServiceV2.Option(indexPath, dataPath));
+			writer = this.logFileService.newWriter(new LogFileServiceV2.Option(indexPath, dataPath));
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (IOException e) {
@@ -120,23 +120,23 @@ public class OnlineWriter {
 		return writer.getLastFlush();
 	}
 
-	public void write(LogRecord record) throws IOException {
+	public void write(Log log) throws IOException {
 		synchronized (this) {
 			if (writer == null)
 				throw new IOException("file closed");
 
 			long nid = nextId();
-			record.setId(nid);
-			writer.write(record);
+			log.setId(nid);
+			writer.write(log);
 			lastAccess = new Date();
 		}
 	}
 
-	public void write(Collection<LogRecord> logs) throws IOException {
+	public void write(Collection<Log> logs) throws IOException {
 		if (writer == null)
 			throw new IllegalStateException("file closed");
 
-		for (LogRecord record : logs) {
+		for (Log record : logs) {
 			record.setId(nextId());
 		}
 
@@ -146,9 +146,19 @@ public class OnlineWriter {
 		}
 	}
 
-	public List<LogRecord> getBuffer() {
+	public List<Log> getBuffer() {
 		synchronized (this) {
-			return new ArrayList<LogRecord>(writer.getBuffer());
+			// return new ArrayList<LogRecord>(writer.getBuffer());
+			List<List<Log>> buffers = writer.getBuffers();
+			int bufSize = 0;
+			for (List<Log> buffer : buffers) {
+				bufSize += buffer.size();
+			}
+			List<Log> merged = new ArrayList<Log>(bufSize);
+			for (List<Log> buffer : buffers) {
+				merged.addAll(buffer);
+			}
+			return merged;
 		}
 	}
 

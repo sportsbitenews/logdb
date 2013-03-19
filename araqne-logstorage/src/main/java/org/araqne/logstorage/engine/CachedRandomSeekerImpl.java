@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
-import org.araqne.codec.EncodingRule;
 import org.araqne.logstorage.CachedRandomSeeker;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogTableRegistry;
@@ -39,17 +38,17 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 	private boolean closed;
 	private LogTableRegistry tableRegistry;
 	private LogFileFetcher fetcher;
-	private Map<OnlineWriterKey, List<LogRecord>> onlineBuffers;
+	private Map<OnlineWriterKey, List<Log>> onlineBuffers;
 	private Map<TabletKey, LogFileReader> cachedReaders;
 
 	public CachedRandomSeekerImpl(LogTableRegistry tableRegistry, LogFileFetcher fetcher,
 			ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters) {
 		this.tableRegistry = tableRegistry;
 		this.fetcher = fetcher;
-		this.onlineBuffers = new HashMap<OnlineWriterKey, List<LogRecord>>();
+		this.onlineBuffers = new HashMap<OnlineWriterKey, List<Log>>();
 		this.cachedReaders = new HashMap<TabletKey, LogFileReader>();
-		
-		for (Map.Entry<OnlineWriterKey, OnlineWriter> e: onlineWriters.entrySet()) {
+
+		for (Map.Entry<OnlineWriterKey, OnlineWriter> e : onlineWriters.entrySet()) {
 			onlineBuffers.put(e.getKey(), e.getValue().getBuffer());
 		}
 	}
@@ -62,11 +61,14 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		int tableId = tableRegistry.getTableId(tableName);
 
 		// check memory buffer (flush waiting)
-		List<LogRecord> buffer = onlineBuffers.get(new OnlineWriterKey(tableName, day));
+		List<Log> buffer = onlineBuffers.get(new OnlineWriterKey(tableName, day));
 		if (buffer != null) {
-			for (LogRecord r : buffer)
-				if (r.getId() == id)
-					return new Log(tableName, r.getDate(), id, EncodingRule.decodeMap(r.getData().duplicate()));
+			for (Log r : buffer)
+				if (r.getId() == id) {
+					// return new Log(tableName, r.getDate(), id,
+					// EncodingRule.decodeMap(r.getData().duplicate()));
+					return r;
+				}
 		}
 
 		TabletKey key = new TabletKey(tableId, day);

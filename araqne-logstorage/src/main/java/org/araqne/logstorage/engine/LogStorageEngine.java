@@ -419,9 +419,7 @@ public class LogStorageEngine implements LogStorage {
 		for (int i = 0; i < 2; i++) {
 			try {
 				OnlineWriter writer = getOnlineWriter(tableName, log.getDate());
-				writer.write(record);
-
-				log.setId(record.getId());
+				writer.write(log);
 				break;
 			} catch (IOException e) {
 				if (e.getMessage().contains("closed")) {
@@ -616,9 +614,9 @@ public class LogStorageEngine implements LogStorage {
 		// check memory buffer (flush waiting)
 		OnlineWriter writer = onlineWriters.get(new OnlineWriterKey(tableName, day));
 		if (writer != null) {
-			for (LogRecord r : writer.getBuffer())
+			for (Log r : writer.getBuffer())
 				if (r.getId() == id)
-					return new Log(tableName, r.getDate(), id, EncodingRule.decodeMap(r.getData().duplicate()));
+					return new Log(tableName, r.getDate(), id, EncodingRule.decodeMap(convert(r).getData().duplicate()));
 		}
 
 		// load from disk
@@ -649,9 +647,9 @@ public class LogStorageEngine implements LogStorage {
 		verify();
 
 		OnlineWriter onlineWriter = onlineWriters.get(new OnlineWriterKey(tableName, day));
-		ArrayList<LogRecord> buffer = null;
+		ArrayList<Log> buffer = null;
 		if (onlineWriter != null)
-			buffer = (ArrayList<LogRecord>) onlineWriter.getBuffer();
+			buffer = (ArrayList<Log>) onlineWriter.getBuffer();
 
 		int tableId = tableRegistry.getTableId(tableName);
 		File indexPath = DatapathUtil.getIndexFile(tableId, day);
@@ -748,13 +746,13 @@ public class LogStorageEngine implements LogStorage {
 			// automatically if writer not found)
 			OnlineWriter onlineWriter = onlineWriters.get(new OnlineWriterKey(tableName, day));
 			if (onlineWriter != null) {
-				List<LogRecord> buffer = onlineWriter.getBuffer();
+				List<Log> buffer = onlineWriter.getBuffer();
 
 				if (buffer != null && !buffer.isEmpty()) {
 					logger.trace("araqne logstorage: {} logs in writer buffer.", buffer.size());
-					ListIterator<LogRecord> li = buffer.listIterator(buffer.size());
+					ListIterator<Log> li = buffer.listIterator(buffer.size());
 					while (li.hasPrevious()) {
-						LogRecord logData = li.previous();
+						Log logData = li.previous();
 						if ((from == null || logData.getDate().after(from))
 								&& (to == null || logData.getDate().before(to))) {
 							if (offset > 0) {
@@ -762,7 +760,7 @@ public class LogStorageEngine implements LogStorage {
 								continue;
 							}
 
-							if (c.onLog(logData)) {
+							if (c.onLog(convert(logData))) {
 								if (--limit == 0)
 									return c.matched;
 							}
@@ -1047,7 +1045,7 @@ public class LogStorageEngine implements LogStorage {
 	private static class LogCursorImpl implements LogCursor {
 		private String tableName;
 		private Date day;
-		private ArrayList<LogRecord> buffer;
+		private ArrayList<Log> buffer;
 		private LogFileReaderV2 reader;
 		private LogRecordCursor cursor;
 		private boolean ascending;
@@ -1056,7 +1054,7 @@ public class LogStorageEngine implements LogStorage {
 		private int bufferNext;
 		private int bufferTotal;
 
-		public LogCursorImpl(String tableName, Date day, ArrayList<LogRecord> buffer, LogFileReaderV2 reader,
+		public LogCursorImpl(String tableName, Date day, ArrayList<Log> buffer, LogFileReaderV2 reader,
 				boolean ascending) {
 			this.tableName = tableName;
 			this.day = day;
@@ -1083,16 +1081,14 @@ public class LogStorageEngine implements LogStorage {
 				}
 
 				if (bufferNext < bufferTotal) {
-					LogRecord r = buffer.get(bufferNext++);
-					prefetch = LogMarshaler.convert(tableName, r);
+					prefetch = buffer.get(bufferNext++);
 					return true;
 				}
 
 				return false;
 			} else {
 				if (bufferNext < 0) {
-					LogRecord r = buffer.get(bufferNext--);
-					prefetch = LogMarshaler.convert(tableName, r);
+					prefetch = buffer.get(bufferNext--);
 					return true;
 				}
 

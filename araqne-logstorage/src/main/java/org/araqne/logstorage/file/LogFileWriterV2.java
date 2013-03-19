@@ -20,11 +20,14 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.zip.Deflater;
 
+import org.araqne.codec.FastEncodingRule;
+import org.araqne.logstorage.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +66,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 	private File dataPath;
 	private volatile Date lastFlush = new Date();
 
-	private List<LogRecord> buffer = new ArrayList<LogRecord>();
+	private List<Log> buffer = new ArrayList<Log>();
 
 	public LogFileWriterV2(File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
 		this(indexPath, dataPath, DEFAULT_BLOCK_SIZE);
@@ -167,9 +170,15 @@ public class LogFileWriterV2 extends LogFileWriter {
 	public long getCount() {
 		return count;
 	}
+	
+	private LogRecord convert(Log log) {
+		ByteBuffer bb = new FastEncodingRule().encode(log.getData());
+		LogRecord logdata = new LogRecord(log.getDate(), log.getId(), bb);
+		log.setBinaryLength(bb.remaining());
+		return logdata;
+	}
 
-	@Override
-	public void write(LogRecord data) throws IOException {
+	public void rawWrite(LogRecord data) throws IOException {
 		// do not remove this condition (date.toString() takes many CPU time)
 		if (logger.isDebugEnabled())
 			logger.debug("araqne logstorage: write new log, idx [{}], dat [{}], id {}, time {}",
@@ -218,15 +227,14 @@ public class LogFileWriterV2 extends LogFileWriter {
 		lastTime = (lastTime < time) ? time : lastTime;
 
 		count++;
-
-		buffer.add(data);
 	}
 
 	@Override
-	public void write(Collection<LogRecord> data) throws IOException {
-		for (LogRecord log : data) {
+	public void write(Collection<Log> data) throws IOException {
+		for (Log log : data) {
 			try {
-				write(log);
+				rawWrite(convert(log));
+				buffer.add(log);
 			} catch (IllegalArgumentException e) {
 				logger.error("log storage: write failed " + dataPath.getAbsolutePath(), e.getMessage());
 			}
@@ -234,18 +242,24 @@ public class LogFileWriterV2 extends LogFileWriter {
 	}
 
 	@Override
-	public List<LogRecord> getBuffer() {
+	public List<Log> getBuffer() {
 		return buffer;
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<List<Log>> getBuffers() {
+		return Arrays.asList(buffer);
 	}
 
 	@Override
-	public void flush() throws IOException {
+	public boolean flush() throws IOException {
 		// check if writer is closed
 		if (indexFile == null || dataFile == null)
-			return;
+			return false;
 
 		if (indexBuffer.position() == 0)
-			return;
+			return false;
 
 		if (logger.isTraceEnabled())
 			logger.trace("araqne logstorage: flush idx [{}], dat [{}] files", indexPath, dataPath);
@@ -307,6 +321,8 @@ public class LogFileWriterV2 extends LogFileWriter {
 		blockEndLogTime = null;
 		blockLogCount = 0;
 		buffer.clear();
+		
+		return true;
 	}
 
 	@Override
@@ -344,5 +360,10 @@ public class LogFileWriterV2 extends LogFileWriter {
 			dataFile.close();
 			dataFile = null;
 		}
+	}
+
+	@Override
+	public void write(Log data) throws IOException {
+		rawWrite(convert(data));
 	}
 }

@@ -15,12 +15,12 @@
  */
 package org.araqne.logstorage.file;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+
+import org.araqne.logstorage.Log;
 
 public abstract class LogFileWriter {
 	public abstract long getLastKey();
@@ -31,16 +31,18 @@ public abstract class LogFileWriter {
 
 	public abstract long getCount();
 
-	public abstract void write(LogRecord data) throws IOException;
+	public abstract void write(Log data) throws IOException;
 
-	public abstract void write(Collection<LogRecord> data) throws IOException;
+	public abstract void write(Collection<Log> data) throws IOException;
 
-	public abstract List<LogRecord> getBuffer();
+	public abstract List<Log> getBuffer();
 
-	public abstract void flush() throws IOException;
+	public abstract boolean flush() throws IOException;
 
 	public abstract void sync() throws IOException;
 
 	public abstract void close() throws IOException;
+
+	public abstract List<List<Log>> getBuffers();
 
 }
