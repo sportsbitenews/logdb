@@ -1,4 +1,4 @@
-package org.araqne.logstorage.engine;
+package org.araqne.logstorage;
 
 public class UnsupportedLogFileTypeException extends RuntimeException {
 

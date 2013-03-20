@@ -290,7 +290,7 @@ public class LogStorageEngine implements LogStorage {
 
 	@Override
 	public void createTable(String tableName, String type) {
-		createTable(tableName, type);
+		createTable(tableName, type, null);
 	}
 
 	@Override
@@ -416,7 +416,6 @@ public class LogStorageEngine implements LogStorage {
 
 		// write data
 		String tableName = log.getTableName();
-		LogRecord record = convert(log);
 
 		for (int i = 0; i < 2; i++) {
 			try {
@@ -433,7 +432,7 @@ public class LogStorageEngine implements LogStorage {
 			}
 		}
 
-		if (record.getId() == 0)
+		if (log.getId() == 0)
 			throw new IllegalStateException("cannot write log: " + tableName + ", " + log.getDate());
 
 		// invoke log callbacks
@@ -1135,7 +1134,7 @@ public class LogStorageEngine implements LogStorage {
 	public void ensureTable(String tableName, String type) {
 		if (tableRegistry.exists(tableName)) {
 			String tableMetadata = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
-			if (!"type".equals(tableMetadata))
+			if (!type.equals(tableMetadata))
 				throw new IllegalArgumentException("LogStorageEngine: ensureTable: table exists but type does not matches: " + tableName);
 			return;
 		} else

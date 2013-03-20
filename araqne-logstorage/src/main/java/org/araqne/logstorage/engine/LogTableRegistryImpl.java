@@ -39,6 +39,7 @@ import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableEventListener;
 import org.araqne.logstorage.LogTableNotFoundException;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
