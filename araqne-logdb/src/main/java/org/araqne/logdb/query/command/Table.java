@@ -199,10 +199,15 @@ public class Table extends LogQueryCommand {
 				if (parsed != null) {
 					parsed.put("_table", log.getTableName());
 					parsed.put("_id", log.getId());
-					Object time = parsed.get("_time");
 
-					if (time == null || !(time instanceof Date))
+					Object time = parsed.get("_time");
+					if (time == null)
 						parsed.put("_time", log.getDate());
+					else if (!(time instanceof Date)) {
+						logger.error("araqne logdb: parser returned wrong _time type: " + time.getClass().getName());
+						eof();
+					}
+
 					m = parsed;
 				} else {
 					logger.debug("araqne logdb: cannot parse log [{}]", log.getData());
