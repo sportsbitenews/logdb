@@ -35,6 +35,7 @@ import org.araqne.confdb.ConfigIterator;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.ConfigTransaction;
 import org.araqne.confdb.Predicates;
+import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableEventListener;
 import org.araqne.logstorage.LogTableNotFoundException;
 import org.araqne.logstorage.LogTableRegistry;
@@ -44,10 +45,14 @@ import org.slf4j.LoggerFactory;
 @Component(name = "logstorage-table-registry")
 @Provides
 public class LogTableRegistryImpl implements LogTableRegistry {
+
 	private final Logger logger = LoggerFactory.getLogger(LogTableRegistryImpl.class.getName());
 
 	@Requires
 	private ConfigService conf;
+	
+	@Requires
+	private LogFileServiceRegistry lfsRegistry;
 
 	/**
 	 * table id generator
@@ -89,7 +94,8 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 					ConfigIterator it = before.findAll();
 					while (it.hasNext())
 						col.add(xact, it.next().getDocument());
-					xact.commit("araqne-logstorage", "migration from collection org.araqne.logstorage.engine.LogTableSchema");
+					xact.commit("araqne-logstorage",
+							"migration from collection org.araqne.logstorage.engine.LogTableSchema");
 					db.dropCollection("org.araqne.logstorage.engine.LogTableSchema");
 				} catch (Throwable e) {
 					xact.rollback();
@@ -134,12 +140,17 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	}
 
 	@Override
-	public void createTable(String tableName, Map<String, String> tableMetadata) {
+	public void createTable(String tableName, String type, Map<String, String> tableMetadata) {
 		if (tableSchemas.containsKey(tableName))
 			throw new IllegalStateException("table already exists: " + tableName);
+		
+		if (lfsRegistry != null && lfsRegistry.getLogFileService(type) == null) {
+			throw new UnsupportedLogFileTypeException(type);
+		}
 
 		int newId = nextTableId.incrementAndGet();
 		LogTableSchema table = new LogTableSchema(newId, tableName);
+		table.getMetadata().put(LogFileTypeKey, type);
 		if (tableMetadata != null)
 			table.getMetadata().putAll(tableMetadata);
 

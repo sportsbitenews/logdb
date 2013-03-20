@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Set;
 
 public interface LogTableRegistry {
+	public static final String LogFileTypeKey = "_filetype";
+
 	boolean exists(String tableName);
 
 	Collection<String> getTableNames();
@@ -28,7 +30,7 @@ public interface LogTableRegistry {
 
 	String getTableName(int tableId);
 
-	void createTable(String tableName, Map<String, String> tableMetadata);
+	void createTable(String tableName, String type, Map<String, String> tableMetadata);
 
 	void renameTable(String currentName, String newName);
 

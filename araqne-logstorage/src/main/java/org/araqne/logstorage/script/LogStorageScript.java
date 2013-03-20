@@ -234,9 +234,11 @@ public class LogStorageScript implements Script {
 		storage.reload();
 	}
 
-	@ScriptUsage(description = "create new table", arguments = { @ScriptArgument(name = "name", type = "string", description = "log table name") })
+	@ScriptUsage(description = "create new table", arguments = { 
+			@ScriptArgument(name = "name", type = "string", description = "log table name"),
+			@ScriptArgument(name = "type", type = "string", description = "log file type (v1, v2, etc)") })
 	public void createTable(String[] args) {
-		storage.createTable(args[0]);
+		storage.createTable(args[0], args[1]);
 		context.println("table created");
 	}
 
@@ -594,7 +596,7 @@ public class LogStorageScript implements Script {
 	}
 
 	private void benchmark(String name, String tableName, int count, Map<String, Object> data) {
-		storage.createTable(tableName);
+		storage.createTable(tableName, "v3p");
 
 		Log log = new Log(tableName, new Date(), data);
 		long begin = System.currentTimeMillis();

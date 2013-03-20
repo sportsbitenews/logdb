@@ -49,11 +49,11 @@ public interface LogStorage {
 
 	void stop();
 
-	void createTable(String tableName);
+	void createTable(String tableName, String type);
 
-	void ensureTable(String tableName);
+	void ensureTable(String tableName, String type);
 
-	void createTable(String tableName, Map<String, String> tableMetadata);
+	void createTable(String tableName, String type, Map<String, String> tableMetadata);
 
 	void dropTable(String tableName);
 

@@ -62,6 +62,8 @@ import org.slf4j.LoggerFactory;
 @Component(name = "logstorage-engine")
 @Provides
 public class LogStorageEngine implements LogStorage {
+	private static final String DEFAULT_LOGFILETYPE = "v2";
+
 	private final Logger logger = LoggerFactory.getLogger(LogStorageEngine.class.getName());
 
 	private static final int DEFAULT_LOG_CHECK_INTERVAL = 1000;
@@ -153,7 +155,7 @@ public class LogStorageEngine implements LogStorage {
 
 		status = LogStorageStatus.Starting;
 		fetcher = new LogFileFetcher(tableRegistry);
-		
+
 		// checkAllLogFiles();
 		checkLatestLogFiles();
 
@@ -287,13 +289,13 @@ public class LogStorageEngine implements LogStorage {
 	}
 
 	@Override
-	public void createTable(String tableName) {
-		createTable(tableName, null);
+	public void createTable(String tableName, String type) {
+		createTable(tableName, type);
 	}
 
 	@Override
-	public void createTable(String tableName, Map<String, String> tableMetadata) {
-		tableRegistry.createTable(tableName, tableMetadata);
+	public void createTable(String tableName, String type, Map<String, String> tableMetadata) {
+		tableRegistry.createTable(tableName, type, tableMetadata);
 	}
 
 	@Override
@@ -840,7 +842,7 @@ public class LogStorageEngine implements LogStorage {
 		try {
 			int blockSize = getIntParameter(Constants.LogBlockSize, DEFAULT_BLOCK_SIZE);
 			OnlineWriter oldWriter = onlineWriters.get(key);
-			String defaultLogVersion = tableRegistry.getTableMetadata(tableName, "logversion");
+			String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
 
 			if (oldWriter != null) {
 				synchronized (oldWriter) {
@@ -854,8 +856,7 @@ public class LogStorageEngine implements LogStorage {
 						while (onlineWriters.get(key) == oldWriter) {
 							Thread.yield();
 						}
-						OnlineWriter newWriter = new OnlineWriter(getLFS(), tableId, day, blockSize,
-								defaultLogVersion);
+						OnlineWriter newWriter = newOnlineWriter(tableId, day, blockSize, logFileType);
 						OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
 						if (consensus == null)
 							online = newWriter;
@@ -868,8 +869,7 @@ public class LogStorageEngine implements LogStorage {
 						while (onlineWriters.get(key) == oldWriter) {
 							Thread.yield();
 						}
-						OnlineWriter newWriter = new OnlineWriter(getLFS(), tableId, day, blockSize,
-								defaultLogVersion);
+						OnlineWriter newWriter = newOnlineWriter(tableId, day, blockSize, logFileType);
 						OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
 						if (consensus == null)
 							online = newWriter;
@@ -883,7 +883,7 @@ public class LogStorageEngine implements LogStorage {
 					}
 				}
 			} else {
-				OnlineWriter newWriter = new OnlineWriter(getLFS(), tableId, day, blockSize, defaultLogVersion);
+				OnlineWriter newWriter = newOnlineWriter(tableId, day, blockSize, logFileType);
 				OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
 				if (consensus == null)
 					online = newWriter;
@@ -900,8 +900,11 @@ public class LogStorageEngine implements LogStorage {
 		return online;
 	}
 
-	private LogFileService getLFS() {
-		return lfsRegistry.getLogFileService("v2");
+	private OnlineWriter newOnlineWriter(int tableId, Date day, int blockSize, String logFileType) throws IOException {
+		if (logFileType == null) 
+			logFileType = DEFAULT_LOGFILETYPE;
+		LogFileService lfs = lfsRegistry.getLogFileService(logFileType);
+		return new OnlineWriter(lfs, tableId, day, blockSize);
 	}
 
 	@Override
@@ -1129,10 +1132,13 @@ public class LogStorageEngine implements LogStorage {
 	}
 
 	@Override
-	public void ensureTable(String tableName) {
-		if (tableRegistry.exists(tableName))
+	public void ensureTable(String tableName, String type) {
+		if (tableRegistry.exists(tableName)) {
+			String tableMetadata = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
+			if (!"type".equals(tableMetadata))
+				throw new IllegalArgumentException("LogStorageEngine: ensureTable: table exists but type does not matches: " + tableName);
 			return;
-		else
-			createTable(tableName);
+		} else
+			createTable(tableName, type);
 	}
 }
