@@ -301,15 +301,18 @@ public class Timechart extends LogQueryCommand {
 					// field name format is func:keyfieldvalue (when
 					// by-clause is provided)
 					output.put(fields.get(i).getName() + ":" + keyFieldValue, f.eval());
+					f.clean();
 					i++;
 				}
 			} else {
 				output.put(keyFieldValue, fs[0].eval());
+				fs[0].clean();
 			}
 		} else {
 			int i = 0;
 			for (AggregationFunction f : fs) {
 				output.put(fields.get(i).getName(), f.eval());
+				f.clean();
 				i++;
 			}
 		}
