@@ -119,7 +119,7 @@ public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implem
 		String scriptName = spec.getConfig().getProperty("logger_script");
 		PyObject factory = scripts.get(scriptName);
 		if (factory == null)
-			return null;
+			throw new IllegalStateException("jython logger script not found: " + scriptName);
 
 		PyObject instance = factory.__call__();
 		JythonActiveLogger logger = (JythonActiveLogger) instance.__tojava__(JythonActiveLogger.class);
