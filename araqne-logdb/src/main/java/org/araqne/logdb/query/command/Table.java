@@ -199,7 +199,9 @@ public class Table extends LogQueryCommand {
 				if (parsed != null) {
 					parsed.put("_table", log.getTableName());
 					parsed.put("_id", log.getId());
-					if (!parsed.containsKey("_time"))
+					Object time = parsed.get("_time");
+
+					if (time == null || !(time instanceof Date))
 						parsed.put("_time", log.getDate());
 					m = parsed;
 				} else {
