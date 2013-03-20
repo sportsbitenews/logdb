@@ -201,7 +201,8 @@ public class JythonParserScriptRegistryImpl implements JythonParserScriptRegistr
 		@Override
 		public Map<String, Object> parse(Map<String, Object> params) {
 			Map<String, Object> m = delegation.parse(params);
-			logger.info("araqne logdb jython: parsed map [{}]", m);
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logdb jython: parsed map [{}]", m);
 			return m;
 		}
 
