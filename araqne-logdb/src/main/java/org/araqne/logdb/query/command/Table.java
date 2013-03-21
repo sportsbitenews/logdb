@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.command;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -214,7 +215,9 @@ public class Table extends LogQueryCommand {
 					return;
 				}
 			} else {
-				m = log.getData();
+				// can be unmodifiableMap when it comes from memory buffer.
+				m = new HashMap<String, Object>();
+				m.putAll(log.getData());
 				m.put("_table", log.getTableName());
 				m.put("_id", log.getId());
 				m.put("_time", log.getDate());
