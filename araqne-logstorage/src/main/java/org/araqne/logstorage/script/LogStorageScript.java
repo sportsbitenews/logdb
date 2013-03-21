@@ -50,6 +50,7 @@ import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogWriterStatus;
+import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
 import org.araqne.logstorage.engine.LogTableSchema;
@@ -596,7 +597,11 @@ public class LogStorageScript implements Script {
 	}
 
 	private void benchmark(String name, String tableName, int count, Map<String, Object> data) {
-		storage.createTable(tableName, "v3p");
+		try {
+			storage.createTable(tableName, "v3p");
+		} catch (UnsupportedLogFileTypeException e) {
+			storage.createTable(tableName, "v2");
+		}
 
 		Log log = new Log(tableName, new Date(), data);
 		long begin = System.currentTimeMillis();
