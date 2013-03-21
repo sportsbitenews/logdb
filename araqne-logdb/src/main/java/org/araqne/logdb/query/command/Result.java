@@ -32,6 +32,7 @@ import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCallback;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogResultSet;
+import org.araqne.logstorage.Log;
 import org.araqne.logstorage.file.LogFileReaderV2;
 import org.araqne.logstorage.file.LogFileWriterV2;
 import org.araqne.logstorage.file.LogRecord;
@@ -123,7 +124,7 @@ public class Result extends LogQueryCommand {
 	public void push(LogMap m) {
 		try {
 			synchronized (writer) {
-				writer.write(convert(m.map()));
+				writer.write(new Log("$Result$", new Date(), count + 1, m.map()));
 			}
 		} catch (IOException e) {
 			throw new IllegalStateException(e);

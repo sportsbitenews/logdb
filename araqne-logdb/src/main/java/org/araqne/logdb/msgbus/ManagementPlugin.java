@@ -28,6 +28,7 @@ import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.msgbus.MessageBus;
 import org.araqne.msgbus.MsgbusException;
 import org.araqne.msgbus.Request;
@@ -221,7 +222,11 @@ public class ManagementPlugin {
 	public void createTable(Request req, Response resp) {
 		checkPermission(req);
 		String tableName = req.getString("table");
-		storage.createTable(tableName);
+		try {
+			storage.createTable(tableName, "v3p");
+		} catch (UnsupportedLogFileTypeException e) {
+			storage.createTable(tableName, "v2");
+		}
 	}
 
 	@MsgbusMethod
