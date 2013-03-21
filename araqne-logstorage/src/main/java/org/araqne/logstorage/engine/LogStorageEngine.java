@@ -892,6 +892,8 @@ public class LogStorageEngine implements LogStorage {
 						newWriter.close();
 				}
 			}
+		} catch (UnsupportedLogFileTypeException e) {
+			throw new IllegalStateException("cannot open writer: " + tableName + ", date=" + day, e);
 		} catch (IOException e) {
 			throw new IllegalStateException("cannot open writer: " + tableName + ", date=" + day, e);
 		}
@@ -903,6 +905,9 @@ public class LogStorageEngine implements LogStorage {
 		if (logFileType == null) 
 			logFileType = DEFAULT_LOGFILETYPE;
 		LogFileService lfs = lfsRegistry.getLogFileService(logFileType);
+		if (lfs == null) {
+			throw new UnsupportedLogFileTypeException(logFileType);
+		}
 		return new OnlineWriter(lfs, tableId, day, blockSize);
 	}
 
