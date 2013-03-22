@@ -21,8 +21,9 @@ import java.util.Date;
 public class OnlineWriterKey {
 	private String tableName;
 	private Date day;
+	private int tableId;
 
-	public OnlineWriterKey(String tableName, Date day) {
+	public OnlineWriterKey(String tableName, Date day, int tableId) {
 		this.tableName = tableName;
 		this.day = day;
 	}
@@ -40,7 +41,7 @@ public class OnlineWriterKey {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((day == null) ? 0 : day.hashCode());
-		result = prime * result + ((tableName == null) ? 0 : tableName.hashCode());
+		result = prime * result + tableId;
 		return result;
 	}
 
@@ -58,10 +59,7 @@ public class OnlineWriterKey {
 				return false;
 		} else if (!day.equals(other.day))
 			return false;
-		if (tableName == null) {
-			if (other.tableName != null)
-				return false;
-		} else if (!tableName.equals(other.tableName))
+		if (tableId != other.tableId)
 			return false;
 		return true;
 	}

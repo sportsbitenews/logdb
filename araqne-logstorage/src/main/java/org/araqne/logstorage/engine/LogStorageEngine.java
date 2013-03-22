@@ -326,7 +326,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 
 		// evict online writers
 		for (Date day : dates) {
-			OnlineWriterKey key = new OnlineWriterKey(tableName, day);
+			OnlineWriterKey key = new OnlineWriterKey(tableName, day, tableId);
 			OnlineWriter writer = onlineWriters.get(key);
 			if (writer != null) {
 				writer.close();
@@ -423,7 +423,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 
 	@Override
 	public void write(Log log) {
-		verify();
+		// inlined verify() for fast-path performance
+		if (status != LogStorageStatus.Open)
+			throw new IllegalStateException("archive not opened");
 
 		// write data
 		String tableName = log.getTableName();
@@ -624,7 +626,11 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		verify();
 
 		// check memory buffer (flush waiting)
-		OnlineWriter writer = onlineWriters.get(new OnlineWriterKey(tableName, day));
+		Integer tableId = tableNameCache.get(tableName);
+		if (tableId == null)
+			throw new LogTableNotFoundException(tableName);
+
+		OnlineWriter writer = onlineWriters.get(new OnlineWriterKey(tableName, day, tableId));
 		if (writer != null) {
 			for (Log r : writer.getBuffer())
 				if (r.getId() == id)
@@ -657,12 +663,15 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 	public LogCursor openCursor(String tableName, Date day, boolean ascending) throws IOException {
 		verify();
 
-		OnlineWriter onlineWriter = onlineWriters.get(new OnlineWriterKey(tableName, day));
+		Integer tableId = tableNameCache.get(tableName);
+		if (tableId == null)
+			throw new LogTableNotFoundException(tableName);
+
+		OnlineWriter onlineWriter = onlineWriters.get(new OnlineWriterKey(tableName, day, tableId));
 		ArrayList<Log> buffer = null;
 		if (onlineWriter != null)
 			buffer = (ArrayList<Log>) onlineWriter.getBuffer();
 
-		int tableId = tableRegistry.getTableId(tableName);
 		File indexPath = DatapathUtil.getIndexFile(tableId, day);
 		File dataPath = DatapathUtil.getDataFile(tableId, day);
 		LogFileReaderV2 reader = (LogFileReaderV2) LogFileReader.getLogFileReader(indexPath, dataPath);
@@ -753,7 +762,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		try {
 			// do NOT use getOnlineWriter() here (it loads empty writer on cache
 			// automatically if writer not found)
-			OnlineWriter onlineWriter = onlineWriters.get(new OnlineWriterKey(tableName, day));
+			OnlineWriter onlineWriter = onlineWriters.get(new OnlineWriterKey(tableName, day, tableId));
 			if (onlineWriter != null) {
 				List<Log> buffer = onlineWriter.getBuffer();
 
@@ -841,7 +850,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			throw new LogTableNotFoundException(tableName);
 
 		Date day = DateUtil.getDay(date);
-		OnlineWriterKey key = new OnlineWriterKey(tableName, day);
+		OnlineWriterKey key = new OnlineWriterKey(tableName, day, tableId);
 
 		OnlineWriter online = onlineWriters.get(key);
 		if (online != null && online.isOpen())

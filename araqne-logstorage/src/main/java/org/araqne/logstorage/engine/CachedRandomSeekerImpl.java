@@ -61,7 +61,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		int tableId = tableRegistry.getTableId(tableName);
 
 		// check memory buffer (flush waiting)
-		List<Log> buffer = onlineBuffers.get(new OnlineWriterKey(tableName, day));
+		List<Log> buffer = onlineBuffers.get(new OnlineWriterKey(tableName, day, tableId));
 		if (buffer != null) {
 			for (Log r : buffer)
 				if (r.getId() == id) {
