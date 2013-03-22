@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
 
 @Component(name = "logstorage-engine")
 @Provides
-public class LogStorageEngine implements LogStorage {
+public class LogStorageEngine implements LogStorage, LogTableEventListener {
 	private static final String DEFAULT_LOGFILETYPE = "v2";
 
 	private final Logger logger = LoggerFactory.getLogger(LogStorageEngine.class.getName());
@@ -95,6 +95,8 @@ public class LogStorageEngine implements LogStorage {
 
 	private File logDir;
 
+	private ConcurrentHashMap<String, Integer> tableNameCache;
+
 	public LogStorageEngine() {
 		int checkInterval = getIntParameter(Constants.LogCheckInterval, DEFAULT_LOG_CHECK_INTERVAL);
 		int maxIdleTime = getIntParameter(Constants.LogMaxIdleTime, DEFAULT_MAX_IDLE_TIME);
@@ -103,6 +105,7 @@ public class LogStorageEngine implements LogStorage {
 		onlineWriters = new ConcurrentHashMap<OnlineWriterKey, OnlineWriter>();
 		writerSweeper = new WriterSweeper(checkInterval, maxIdleTime, flushInterval);
 		callbacks = new CopyOnWriteArraySet<LogCallback>();
+		tableNameCache = new ConcurrentHashMap<String, Integer>();
 
 		logDir = new File(System.getProperty("araqne.data.dir"), "araqne-logstorage/log");
 		logDir = new File(getStringParameter(Constants.LogStorageDirectory, logDir.getAbsolutePath()));
@@ -162,6 +165,14 @@ public class LogStorageEngine implements LogStorage {
 		writerSweeperThread = new Thread(writerSweeper, "LogStorage LogWriter Sweeper");
 		writerSweeperThread.start();
 
+		// load table name cache
+		tableNameCache.clear();
+		for (String tableName : tableRegistry.getTableNames()) {
+			tableNameCache.put(tableName, tableRegistry.getTableId(tableName));
+		}
+
+		tableRegistry.addListener(this);
+
 		status = LogStorageStatus.Open;
 	}
 
@@ -172,6 +183,9 @@ public class LogStorageEngine implements LogStorage {
 			throw new IllegalStateException("log archive already stopped");
 
 		status = LogStorageStatus.Stopping;
+
+		if (tableRegistry != null)
+			tableRegistry.removeListener(this);
 
 		writerSweeper.doStop = true;
 		writerSweeperThread.interrupt();
@@ -224,11 +238,9 @@ public class LogStorageEngine implements LogStorage {
 					try {
 						LogFileFixReport report = new LogFileRepairer().fix(indexPath, dataPath);
 						if (report != null)
-							logger.info("araqne logstorage: fixed log table [{}], detail report: \n{}", tableName,
-									report);
+							logger.info("araqne logstorage: fixed log table [{}], detail report: \n{}", tableName, report);
 					} catch (IOException e) {
-						logger.error("araqne logstorage: cannot fix index [" + indexPath.getAbsoluteFile()
-								+ "], data ["
+						logger.error("araqne logstorage: cannot fix index [" + indexPath.getAbsoluteFile() + "], data ["
 								+ dataPath.getAbsolutePath() + "]", e);
 					}
 				}
@@ -332,8 +344,7 @@ public class LogStorageEngine implements LogStorage {
 		for (File f : tableDir.listFiles()) {
 			if (f.isFile() && (f.getName().endsWith(".idx") || f.getName().endsWith(".dat"))) {
 				if (!f.delete())
-					logger.error("araqne logstorage: cannot delete log data {} of table {}", f.getAbsolutePath(),
-							tableName);
+					logger.error("araqne logstorage: cannot delete log data {} of table {}", f.getAbsolutePath(), tableName);
 			}
 		}
 
@@ -628,8 +639,7 @@ public class LogStorageEngine implements LogStorage {
 			if (logdata == null) {
 				if (logger.isTraceEnabled()) {
 					String dayText = DateUtil.getDayText(day);
-					logger.trace("araqne logstorage: log [table={}, date={}, id={}] not found", new Object[] {
-							tableName,
+					logger.trace("araqne logstorage: log [table={}, date={}, id={}] not found", new Object[] { tableName,
 							dayText, id });
 				}
 				return null;
@@ -666,8 +676,7 @@ public class LogStorageEngine implements LogStorage {
 	}
 
 	@Override
-	public long search(Date from, Date to, long offset, long limit, LogSearchCallback callback)
-			throws InterruptedException {
+	public long search(Date from, Date to, long offset, long limit, LogSearchCallback callback) throws InterruptedException {
 		verify();
 
 		int found = 0;
@@ -693,8 +702,7 @@ public class LogStorageEngine implements LogStorage {
 	}
 
 	@Override
-	public long search(String tableName, Date from, Date to, long limit, LogSearchCallback callback)
-			throws InterruptedException {
+	public long search(String tableName, Date from, Date to, long limit, LogSearchCallback callback) throws InterruptedException {
 		return search(tableName, from, to, 0, limit, callback);
 	}
 
@@ -754,8 +762,7 @@ public class LogStorageEngine implements LogStorage {
 					ListIterator<Log> li = buffer.listIterator(buffer.size());
 					while (li.hasPrevious()) {
 						Log logData = li.previous();
-						if ((from == null || logData.getDate().after(from))
-								&& (to == null || logData.getDate().before(to))) {
+						if ((from == null || logData.getDate().after(from)) && (to == null || logData.getDate().before(to))) {
 							if (offset > 0) {
 								offset--;
 								continue;
@@ -829,7 +836,9 @@ public class LogStorageEngine implements LogStorage {
 
 	private OnlineWriter getOnlineWriter(String tableName, Date date) {
 		// check table existence
-		int tableId = tableRegistry.getTableId(tableName);
+		Integer tableId = tableNameCache.get(tableName);
+		if (tableId == null)
+			throw new LogTableNotFoundException(tableName);
 
 		Date day = DateUtil.getDay(date);
 		OnlineWriterKey key = new OnlineWriterKey(tableName, day);
@@ -902,7 +911,7 @@ public class LogStorageEngine implements LogStorage {
 	}
 
 	private OnlineWriter newOnlineWriter(int tableId, Date day, int blockSize, String logFileType) throws IOException {
-		if (logFileType == null) 
+		if (logFileType == null)
 			logFileType = DEFAULT_LOGFILETYPE;
 		LogFileService lfs = lfsRegistry.getLogFileService(logFileType);
 		if (lfs == null) {
@@ -1061,8 +1070,7 @@ public class LogStorageEngine implements LogStorage {
 		private int bufferNext;
 		private int bufferTotal;
 
-		public LogCursorImpl(String tableName, Date day, ArrayList<Log> buffer, LogFileReaderV2 reader,
-				boolean ascending) {
+		public LogCursorImpl(String tableName, Date day, ArrayList<Log> buffer, LogFileReaderV2 reader, boolean ascending) {
 			this.tableName = tableName;
 			this.day = day;
 			this.reader = reader;
@@ -1140,9 +1148,20 @@ public class LogStorageEngine implements LogStorage {
 		if (tableRegistry.exists(tableName)) {
 			String tableMetadata = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
 			if (!type.equals(tableMetadata))
-				throw new IllegalArgumentException("LogStorageEngine: ensureTable: table exists but type does not matches: " + tableName);
+				throw new IllegalArgumentException("LogStorageEngine: ensureTable: table exists but type does not matches: "
+						+ tableName);
 			return;
 		} else
 			createTable(tableName, type);
+	}
+
+	@Override
+	public void onCreate(String tableName, Map<String, String> tableMetadata) {
+		tableNameCache.put(tableName, tableRegistry.getTableId(tableName));
+	}
+
+	@Override
+	public void onDrop(String tableName) {
+		tableNameCache.remove(tableName);
 	}
 }
