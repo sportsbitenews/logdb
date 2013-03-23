@@ -49,6 +49,10 @@ public class Console {
 		this.queryService = queryService;
 	}
 
+	private String getPrompt(Session session) {
+		return session.getLoginName() + "@logdb> ";
+	}
+
 	public void run(String loginName) {
 		try {
 			context.print("password? ");
@@ -59,7 +63,7 @@ public class Console {
 			context.println("Type \"help\" for more information");
 
 			while (true) {
-				context.print(session.getLoginName() + "@logdb> ");
+				context.print(getPrompt(session));
 				String line = context.readLine();
 				if (line.trim().equals("quit") || line.trim().equals("exit"))
 					break;
@@ -224,6 +228,35 @@ public class Console {
 	}
 
 	private void query(String queryString) throws IOException {
+		List<String> lines = new ArrayList<String>();
+		String auxPrompt = getAuxPrompt(session);
+		try {
+			if (queryString.endsWith("\\")) {
+				lines.add(queryString.substring(0, queryString.length() - 1));
+						
+				while (true) {
+					context.print(auxPrompt);
+					queryString = context.readLine();
+					if (queryString.endsWith("\\"))
+						lines.add(queryString.substring(0, queryString.length() - 1));
+					else {
+						lines.add(queryString);
+						break;
+					}
+				}
+			}
+		} catch (InterruptedException e) {
+			return;
+		}
+		
+		StringBuilder sb = new StringBuilder();
+		for (String line: lines) {
+			sb.append(line.trim());
+			sb.append(" ");
+		}
+		
+		queryString = sb.toString();
+
 		long begin = System.currentTimeMillis();
 		LogQuery lq = queryService.createQuery(session, queryString);
 		queryService.startQuery(lq.getId());
@@ -249,7 +282,19 @@ public class Console {
 		}
 
 		queryService.removeQuery(lq.getId());
-		context.println(String.format("total %d rows, elapsed %.1fs", count, (System.currentTimeMillis() - begin) / (double) 1000));
+		context.println(String.format("total %d rows, elapsed %.1fs", count, (System.currentTimeMillis() - begin)
+				/ (double) 1000));
+	}
+
+	private String getAuxPrompt(Session session) {
+		String prompt = getPrompt(session);
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < prompt.length() - 2; ++i) {
+			sb.append(".");
+		}
+		sb.append("> ");
+
+		return sb.toString();
 	}
 
 	private void createQuery(String queryString) {
