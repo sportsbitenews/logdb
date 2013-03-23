@@ -37,6 +37,30 @@ public class SearchParserTest {
 		map.put("sip", "10.2.2.2");
 		assertFalse((Boolean) expr.eval(map));
 	}
+	
+	// iisidx.i1 == "74.86.*"    or iisidx.i1 == "211.*"      or iisidx.i1 == "110.221.*"
+	@Test
+	public void testWhitespace() {
+		SearchParser p = new SearchParser();
+		Search search = (Search) p.parse(null, "search sip == \"74.86.*\"  \tor     sip  ==   \"211.*\"      or\tsip == \"110.221.*\"");
+		Expression expr = search.getExpression();
+
+		LogMap map = new LogMap();
+		map.put("sip", "74.86.1.2");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "211.123.1.1");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "110.221.3.4");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "10.2.2.2");
+		assertFalse((Boolean) expr.eval(map));
+	}
 
 	@Test
 	public void testLimit() {

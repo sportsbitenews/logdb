@@ -23,11 +23,12 @@ import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.expr.Expression;
 
 public class ExpressionParser {
-	
+
 	public static Expression parse(String s, OpEmitterFactory of, FuncEmitterFactory ff, TermEmitterFactory tf) {
 		if (s == null)
 			throw new IllegalArgumentException("expression string should not be null");
 
+		s = s.replaceAll("\t", "    ");
 		List<Term> terms = tokenize(s);
 		List<Term> output = convertToPostfix(terms);
 		Stack<Expression> exprStack = new Stack<Expression>();
@@ -52,10 +53,11 @@ public class ExpressionParser {
 	private static OpEmitterFactory evalOEF = new EvalOpEmitterFactory();
 	private static FuncEmitterFactory evalFEF = new EvalFuncEmitterFactory();
 	private static TermEmitterFactory evalTEF = new EvalTermEmitterFactory();
+
 	public static Expression parse(String s) {
 		return parse(s, evalOEF, evalFEF, evalTEF);
 	}
-	
+
 	private static List<Term> convertToPostfix(List<Term> tokens) {
 		Stack<Term> opStack = new Stack<Term>();
 		List<Term> output = new ArrayList<Term>();
@@ -221,7 +223,7 @@ public class ExpressionParser {
 			// no operator, return whole string
 			String token = s.substring(begin, end + 1);
 			return new ParseResult(token, end + 1);
-		} else if (r.next == begin) {
+		} else if (isAllWhitespaces(s, r.value, begin, r.next - 1)) {
 			// check if next token is quoted string
 			if (r.value.equals("\"")) {
 				int p = s.indexOf('"', r.next + 1);
@@ -246,6 +248,17 @@ public class ExpressionParser {
 				return nextToken(s, skipSpaces(s, begin), end);
 			}
 		}
+	}
+
+	private static boolean isAllWhitespaces(String s, Object value, int begin, int end) {
+		if (end < begin)
+			return true;
+
+		for (int i = begin; i <= end; i++)
+			if (s.charAt(i) != ' ' && s.charAt(i) != '\t')
+				return false;
+
+		return true;
 	}
 
 	private static ParseResult findNextDelimiter(String s, int begin, int end) {
@@ -320,7 +333,8 @@ public class ExpressionParser {
 	}
 
 	public static enum OpTerm implements Term {
-		Add("+", 5), Sub("-", 5), Mul("*", 6), Div("/", 6), Neg("-", 7, false, true), Gte(">=", 4), Lte("<=", 4), Gt(">", 4), Lt(
+		Add("+", 5), Sub("-", 5), Mul("*", 6), Div("/", 6), Neg("-", 7, false, true), Gte(">=", 4), Lte("<=", 4), Gt(
+				">", 4), Lt(
 				"<", 4), Eq("==", 3), Neq("!=", 3), And(" and ", 1), Or(" or ", 0), Not("not ", 2, false, true);
 
 		OpTerm(String symbol, int precedence) {

@@ -64,7 +64,7 @@ public class Console {
 
 			while (true) {
 				context.print(getPrompt(session));
-				String line = context.readLine();
+				String line = context.readLine().trim();
 				if (line.trim().equals("quit") || line.trim().equals("exit"))
 					break;
 
@@ -229,14 +229,13 @@ public class Console {
 
 	private void query(String queryString) throws IOException {
 		List<String> lines = new ArrayList<String>();
-		String auxPrompt = getAuxPrompt(session);
 		try {
+			queryString = queryString.trim();
 			if (queryString.endsWith("\\")) {
 				lines.add(queryString.substring(0, queryString.length() - 1));
 						
 				while (true) {
-					context.print(auxPrompt);
-					queryString = context.readLine();
+					queryString = context.readLine().trim();
 					if (queryString.endsWith("\\"))
 						lines.add(queryString.substring(0, queryString.length() - 1));
 					else {
@@ -251,7 +250,7 @@ public class Console {
 		
 		StringBuilder sb = new StringBuilder();
 		for (String line: lines) {
-			sb.append(line.trim());
+			sb.append(line);
 			sb.append(" ");
 		}
 		
@@ -284,17 +283,6 @@ public class Console {
 		queryService.removeQuery(lq.getId());
 		context.println(String.format("total %d rows, elapsed %.1fs", count, (System.currentTimeMillis() - begin)
 				/ (double) 1000));
-	}
-
-	private String getAuxPrompt(Session session) {
-		String prompt = getPrompt(session);
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < prompt.length() - 2; ++i) {
-			sb.append(".");
-		}
-		sb.append("> ");
-
-		return sb.toString();
 	}
 
 	private void createQuery(String queryString) {
