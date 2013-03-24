@@ -231,17 +231,13 @@ public class Console {
 		List<String> lines = new ArrayList<String>();
 		try {
 			queryString = queryString.trim();
+			lines.add(queryString);
 			if (queryString.endsWith("\\")) {
-				lines.add(queryString.substring(0, queryString.length() - 1));
-						
 				while (true) {
 					queryString = context.readLine().trim();
-					if (queryString.endsWith("\\"))
-						lines.add(queryString.substring(0, queryString.length() - 1));
-					else {
-						lines.add(queryString);
+					lines.add(queryString);
+					if (!queryString.endsWith("\\"))
 						break;
-					}
 				}
 			}
 		} catch (InterruptedException e) {
@@ -250,7 +246,10 @@ public class Console {
 		
 		StringBuilder sb = new StringBuilder();
 		for (String line: lines) {
-			sb.append(line);
+			if (line.endsWith("\\"))
+				sb.append(line.substring(0, line.length() - 1));
+			else
+				sb.append(line);
 			sb.append(" ");
 		}
 		
