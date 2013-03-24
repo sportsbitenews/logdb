@@ -15,15 +15,59 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryParseException;
 
 public class In implements Expression {
+	private static abstract class FieldMatcher {
+		public abstract boolean match(LogMap log, Object o);
+	}
+
+	private static class StringMatcher extends FieldMatcher {
+		private String term;
+		private Pattern pattern;
+
+		public StringMatcher(String s) {
+			this.term = s;
+			pattern = Eq.tryBuildPattern2(term);
+		}
+
+		public boolean match(LogMap log, Object o) {
+			if (o instanceof CharSequence) {
+				if (pattern != null)
+					return pattern.matcher((CharSequence) o).matches();
+				else
+					return term.equals(o);
+			} else {
+				return false;
+			}
+		}
+	}
+
+	private static class GenericMatcher extends FieldMatcher {
+		public Expression term;
+
+		public GenericMatcher(Expression term) {
+			this.term = term;
+		}
+
+		public boolean match(LogMap log, Object o) {
+			Object eval = term.eval(log);
+			if (eval == null)
+				return false;
+			else
+				return eval.equals(o);
+		}
+	}
+
 	private List<Expression> exprs;
 	private Expression field;
 	private List<Expression> values;
+	private List<FieldMatcher> matchers;
 
 	public In(List<Expression> exprs) {
 		if (exprs.size() < 2)
@@ -32,6 +76,15 @@ public class In implements Expression {
 		this.exprs = exprs;
 		this.field = exprs.get(0);
 		this.values = exprs.subList(1, exprs.size());
+		this.matchers = new ArrayList<FieldMatcher>(values.size());
+
+		for (Expression expr : this.values) {
+			Object eval = expr.eval(new LogMap());
+			if (eval instanceof String)
+				matchers.add(new StringMatcher((String) eval));
+			else
+				matchers.add(new GenericMatcher(expr));
+		}
 	}
 
 	@Override
@@ -40,12 +93,9 @@ public class In implements Expression {
 		if (o == null)
 			return false;
 
-		for (Expression expr : values) {
-			Object v = expr.eval(map);
-			if (v == null)
-				continue;
-
-			if (o.equals(v))
+		for (FieldMatcher matcher : matchers) {
+			boolean isMatch = matcher.match(map, o);
+			if (isMatch)
 				return true;
 		}
 

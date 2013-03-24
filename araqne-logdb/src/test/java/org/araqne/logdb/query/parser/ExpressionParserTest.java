@@ -288,4 +288,16 @@ public class ExpressionParserTest {
 		assertFalse((Boolean) expr.eval(m));
 	}
 
+	@Test
+	public void testInStringWildcards() {
+		Expression expr = ExpressionParser.parse("in(field, \"*74.86.*\")");
+
+		LogMap m = new LogMap();
+		m.put("field", "ip = 74.86.1.2");
+		assertTrue((Boolean) expr.eval(m));
+
+		m.put("field", "ip = 75.81.1.2");
+		assertFalse((Boolean) expr.eval(m));
+	}
+
 }

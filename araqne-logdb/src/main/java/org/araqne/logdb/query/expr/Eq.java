@@ -33,6 +33,30 @@ public class Eq extends BinaryExpression {
 		}
 	}
 
+	public static Pattern tryBuildPattern2(String s) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("^");
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			if (c == '(' || c == ')' || c == '[' || c == ']' || c == '$' || c == '^' || c == '.' || c == '{' || c == '}'
+					|| c == '|' || c == '\\' || c == '*') {
+				sb.append('\\');
+				sb.append(c);
+			} else {
+				sb.append(c);
+			}
+		}
+		sb.append("$");
+		String quoted = sb.toString();
+		String expanded = quoted.replaceAll("(?<!\\\\\\\\)\\\\\\*", ".*");
+		boolean wildcard = !expanded.equals(quoted);
+		expanded = expanded.replaceAll("\\\\\\\\\\\\\\*", "\\\\*");
+
+		if (wildcard)
+			return Pattern.compile(expanded, Pattern.CASE_INSENSITIVE);
+		return null;
+	}
+
 	public static Pattern tryBuildPattern(String s) {
 		boolean wildcard = false;
 		boolean escape = false;

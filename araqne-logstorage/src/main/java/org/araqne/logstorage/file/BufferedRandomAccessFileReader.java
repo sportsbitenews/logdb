@@ -27,7 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 public class BufferedRandomAccessFileReader implements DataInput {
-	private static final int BUFFER_SIZE = 8192;
+	private static final int BUFFER_SIZE = 8192 * 3;
 	private final RandomAccessFile file;
 	private ByteBuffer buf;
 	private DataInputStream dataInputStream;
