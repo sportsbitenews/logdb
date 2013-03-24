@@ -177,6 +177,16 @@ public class LogFileReaderV1 extends LogFileReader {
 	}
 
 	@Override
+	public LogRecordCursor getCursor() throws IOException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public LogRecordCursor getCursor(boolean ascending) throws IOException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public void close() {
 		indexFile.close();
 		dataFile.close();

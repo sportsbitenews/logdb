@@ -45,11 +45,15 @@ public class LogFileServiceV1 implements LogFileService {
 	}
 
 	@Override
-	public LogFileWriter newWriter(Map<String, Object> options) throws Exception {
+	public LogFileWriter newWriter(Map<String, Object> options) {
 		checkOption(options);
 		File indexPath = (File) options.get(OPT_INDEX_PATH);
 		File dataPath = (File) options.get(OPT_DATA_PATH);
-		return new LogFileWriterV1(indexPath, dataPath);
+		try {
+			return new LogFileWriterV1(indexPath, dataPath);
+		} catch (Throwable t) {
+			throw new IllegalStateException("cannot open writer: data file " + dataPath.getAbsolutePath(), t);
+		}
 	}
 
 	private void checkOption(Map<String, Object> options) {
@@ -60,11 +64,15 @@ public class LogFileServiceV1 implements LogFileService {
 	}
 
 	@Override
-	public LogFileReader newReader(Map<String, Object> options) throws Exception {
+	public LogFileReader newReader(Map<String, Object> options) {
 		checkOption(options);
 		File indexPath = (File) options.get(OPT_INDEX_PATH);
 		File dataPath = (File) options.get(OPT_DATA_PATH);
-		return new LogFileReaderV1(indexPath, dataPath);
+		try {
+			return new LogFileReaderV1(indexPath, dataPath);
+		} catch (Throwable t) {
+			throw new IllegalStateException("cannot open reader v1: data file - " + dataPath.getAbsolutePath(), t);
+		}
 	}
 
 }

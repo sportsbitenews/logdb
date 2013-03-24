@@ -17,13 +17,13 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	ConcurrentMap<String, LogFileService> services = new ConcurrentHashMap<String, LogFileService>();
 
 	@Override
-	public LogFileWriter newWriter(String type, Map<String, Object> options) throws Exception {
+	public LogFileWriter newWriter(String type, Map<String, Object> options) {
 		LogFileService logFileService = services.get(type);
 		return logFileService.newWriter(options);
 	}
 
 	@Override
-	public LogFileReader newReader(String type, Map<String, Object> options) throws Exception {
+	public LogFileReader newReader(String type, Map<String, Object> options) {
 		LogFileService logFileService = services.get(type);
 		return logFileService.newReader(options);
 	}

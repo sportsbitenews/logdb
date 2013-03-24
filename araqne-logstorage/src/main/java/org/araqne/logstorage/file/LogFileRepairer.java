@@ -48,7 +48,9 @@ public class LogFileRepairer {
 			dataFile = new RandomAccessFile(dataPath, "rw");
 
 			LogFileHeader indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
-			LogFileHeader.extractHeader(dataFile, dataPath);
+			LogFileHeader dataFileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
+			if (indexFileHeader.version() > 2 && dataFileHeader.version() > 2)
+				return null;
 
 			indexFile.seek(indexFileHeader.size());
 

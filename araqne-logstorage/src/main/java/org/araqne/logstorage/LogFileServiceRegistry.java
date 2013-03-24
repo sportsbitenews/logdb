@@ -12,9 +12,9 @@ public interface LogFileServiceRegistry {
 
 	String[] getServiceTypes();
 
-	LogFileWriter newWriter(String type, Map<String, Object> options) throws Exception;
+	LogFileWriter newWriter(String type, Map<String, Object> options);
 
-	LogFileReader newReader(String type, Map<String, Object> options) throws Exception;
+	LogFileReader newReader(String type, Map<String, Object> options);
 
 	LogFileService getLogFileService(String type);
 }

@@ -100,8 +100,7 @@ public class LogFileReaderV2 extends LogFileReader {
 			pos = dataFileHeader.size();
 			while (pos < length) {
 				if (pos < 0)
-					throw new IOException("negative seek offset " + pos + ", index file: "
-							+ indexPath.getAbsolutePath()
+					throw new IOException("negative seek offset " + pos + ", index file: " + indexPath.getAbsolutePath()
 							+ ", data file: " + dataPath.getAbsolutePath());
 
 				// ignore last immature data block
@@ -185,8 +184,7 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long limit, LogRecordCallback callback) throws IOException,
-			InterruptedException {
+	public void traverse(Date from, Date to, long limit, LogRecordCallback callback) throws IOException, InterruptedException {
 		traverse(from, to, 0, limit, callback);
 	}
 
@@ -337,8 +335,7 @@ public class LogFileReaderV2 extends LogFileReader {
 
 		@Override
 		public String toString() {
-			return "index block header, fp=" + fp + ", first_id=" + firstId + ", count=" + logCount + ", asc="
-					+ ascLogCount
+			return "index block header, fp=" + fp + ", first_id=" + firstId + ", count=" + logCount + ", asc=" + ascLogCount
 					+ ", dsc=" + dscLogCount + "]";
 		}
 	}
@@ -372,11 +369,13 @@ public class LogFileReaderV2 extends LogFileReader {
 	 * 
 	 * @return log record cursor
 	 */
-	public LogRecordCursor getCursor() {
+	@Override
+	public LogRecordCursor getCursor() throws IOException {
 		return getCursor(false);
 	}
 
-	public LogRecordCursor getCursor(boolean ascending) {
+	@Override
+	public LogRecordCursor getCursor(boolean ascending) throws IOException {
 		return new LogCursorImpl(ascending);
 	}
 
@@ -518,8 +517,7 @@ public class LogFileReaderV2 extends LogFileReader {
 			// relative offset in block
 			int relative = (int) (pos - accCount);
 			if (relative < 0)
-				throw new IllegalStateException("relative bug check: " + relative + ", pos " + pos + ", acc: "
-						+ accCount);
+				throw new IllegalStateException("relative bug check: " + relative + ", pos " + pos + ", acc: " + accCount);
 			return relative;
 		}
 

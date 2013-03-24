@@ -7,8 +7,8 @@ import org.araqne.logstorage.file.LogFileWriter;
 
 public interface LogFileService {
 	String getType();
-	
-	LogFileWriter newWriter(Map<String, Object> options) throws Exception;
 
-	LogFileReader newReader(Map<String, Object> options) throws Exception;
+	LogFileWriter newWriter(Map<String, Object> options);
+
+	LogFileReader newReader(Map<String, Object> options);
 }

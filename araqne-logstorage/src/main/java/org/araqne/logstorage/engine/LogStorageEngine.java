@@ -48,11 +48,26 @@ import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
-import org.araqne.logstorage.*;
+import org.araqne.logstorage.CachedRandomSeeker;
+import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogCallback;
+import org.araqne.logstorage.LogCursor;
+import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.LogFileServiceRegistry;
+import org.araqne.logstorage.LogKey;
+import org.araqne.logstorage.LogRetentionPolicy;
+import org.araqne.logstorage.LogSearchCallback;
+import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.LogStorageStatus;
+import org.araqne.logstorage.LogTableEventListener;
+import org.araqne.logstorage.LogTableNotFoundException;
+import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.LogWriterStatus;
+import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.logstorage.file.LogFileFixReport;
 import org.araqne.logstorage.file.LogFileReader;
-import org.araqne.logstorage.file.LogFileReaderV2;
 import org.araqne.logstorage.file.LogFileRepairer;
+import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogRecord;
 import org.araqne.logstorage.file.LogRecordCallback;
 import org.araqne.logstorage.file.LogRecordCursor;
@@ -674,7 +689,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 
 		File indexPath = DatapathUtil.getIndexFile(tableId, day);
 		File dataPath = DatapathUtil.getDataFile(tableId, day);
-		LogFileReaderV2 reader = (LogFileReaderV2) LogFileReader.getLogFileReader(indexPath, dataPath);
+
+		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
+		LogFileReader reader = lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(indexPath, dataPath));
 
 		return new LogCursorImpl(tableName, day, buffer, reader, ascending);
 	}
@@ -786,7 +803,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				}
 			}
 
-			reader = LogFileReader.getLogFileReader(indexPath, dataPath);
+			String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
+			reader = lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(indexPath, dataPath));
 			reader.traverse(from, to, offset, limit, c);
 		} catch (InterruptedException e) {
 			throw e;
@@ -1071,7 +1089,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		private String tableName;
 		private Date day;
 		private ArrayList<Log> buffer;
-		private LogFileReaderV2 reader;
+		private LogFileReader reader;
 		private LogRecordCursor cursor;
 		private boolean ascending;
 
@@ -1079,7 +1097,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		private int bufferNext;
 		private int bufferTotal;
 
-		public LogCursorImpl(String tableName, Date day, ArrayList<Log> buffer, LogFileReaderV2 reader, boolean ascending) {
+		public LogCursorImpl(String tableName, Date day, ArrayList<Log> buffer, LogFileReader reader, boolean ascending)
+				throws IOException {
 			this.tableName = tableName;
 			this.day = day;
 			this.reader = reader;

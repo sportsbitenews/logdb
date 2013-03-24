@@ -81,8 +81,6 @@ public class OnlineWriter {
 			writer = this.logFileService.newWriter(new LogFileServiceV2.Option(indexPath, dataPath));
 		} catch (IllegalArgumentException e) {
 			throw e;
-		} catch (IOException e) {
-			throw e;
 		} catch (Throwable t) {
 			throw new IllegalStateException("araqne-logstorage: unexpected error", t);
 		}
