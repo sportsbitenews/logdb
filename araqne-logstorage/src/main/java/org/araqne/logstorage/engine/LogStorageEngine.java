@@ -172,7 +172,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			throw new IllegalStateException("log archive already started");
 
 		status = LogStorageStatus.Starting;
-		fetcher = new LogFileFetcher(tableRegistry);
+		fetcher = new LogFileFetcher(tableRegistry, lfsRegistry);
 
 		// checkAllLogFiles();
 		checkLatestLogFiles();

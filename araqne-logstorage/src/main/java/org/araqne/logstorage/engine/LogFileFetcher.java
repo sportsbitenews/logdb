@@ -19,8 +19,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 
+import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
+import org.araqne.logstorage.file.LogFileServiceV2;
 
 /**
  * 
@@ -29,9 +31,11 @@ import org.araqne.logstorage.file.LogFileReader;
  */
 class LogFileFetcher {
 	private LogTableRegistry tableRegistry;
+	private LogFileServiceRegistry lfsRegistry;
 
-	public LogFileFetcher(LogTableRegistry tableRegistry) {
+	public LogFileFetcher(LogTableRegistry tableRegistry, LogFileServiceRegistry lfsRegistry) {
 		this.tableRegistry = tableRegistry;
+		this.lfsRegistry = lfsRegistry;
 	}
 
 	public LogFileReader fetch(String tableName, Date day) throws IOException {
@@ -45,7 +49,8 @@ class LogFileFetcher {
 		if (!dataPath.exists())
 			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
 
-		return LogFileReader.getLogFileReader(indexPath, dataPath);
+		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
+		return lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(indexPath, dataPath));
 
 	}
 }

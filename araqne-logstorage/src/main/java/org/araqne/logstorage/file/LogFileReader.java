@@ -21,6 +21,7 @@ import java.io.RandomAccessFile;
 import java.util.Date;
 
 public abstract class LogFileReader {
+	@Deprecated
 	public static LogFileReader getLogFileReader(File indexPath, File dataPath) throws InvalidLogFileHeaderException, IOException {
 		LogFileReader reader = null;
 		RandomAccessFile indexHeaderReader = null;
