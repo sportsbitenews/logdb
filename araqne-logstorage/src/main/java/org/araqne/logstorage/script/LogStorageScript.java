@@ -43,6 +43,7 @@ import org.araqne.api.ScriptUsage;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogRetentionPolicy;
 import org.araqne.logstorage.LogSearchCallback;
@@ -66,11 +67,7 @@ public class LogStorageScript implements Script {
 	private ConfigService conf;
 	private LogFileServiceRegistry lfsRegistry;
 
-	public LogStorageScript(
-			LogTableRegistry tableRegistry, 
-			LogStorage archive, 
-			LogStorageMonitor monitor, 
-			ConfigService conf,
+	public LogStorageScript(LogTableRegistry tableRegistry, LogStorage archive, LogStorageMonitor monitor, ConfigService conf,
 			LogFileServiceRegistry lfsRegistry) {
 		this.tableRegistry = tableRegistry;
 		this.storage = archive;
@@ -235,7 +232,7 @@ public class LogStorageScript implements Script {
 		storage.reload();
 	}
 
-	@ScriptUsage(description = "create new table", arguments = { 
+	@ScriptUsage(description = "create new table", arguments = {
 			@ScriptArgument(name = "name", type = "string", description = "log table name"),
 			@ScriptArgument(name = "type", type = "string", description = "log file type (v1, v2, etc)") })
 	public void createTable(String[] args) {
@@ -546,11 +543,51 @@ public class LogStorageScript implements Script {
 			context.println(s);
 		}
 	}
-	
+
 	public void supportedLogFileTypes(String[] args) {
-		for (String type: lfsRegistry.getServiceTypes()) {
+		for (String type : lfsRegistry.getServiceTypes()) {
 			context.println(type);
 		}
+	}
+
+	@ScriptUsage(description = "print current engine configs", arguments = { @ScriptArgument(name = "engine type", type = "string", description = "v1, v2, or else") })
+	public void engineConfigs(String[] args) {
+		LogFileService s = lfsRegistry.getLogFileService(args[0]);
+		if (s == null) {
+			context.println("no engine found");
+			return;
+		}
+
+		context.println(s.getConfigs().toString());
+	}
+
+	@ScriptUsage(description = "set engine config", arguments = {
+			@ScriptArgument(name = "engine type", type = "string", description = "v1, v2, or else"),
+			@ScriptArgument(name = "key", type = "string", description = "config key"),
+			@ScriptArgument(name = "value", type = "string", description = "config value") })
+	public void setEngine(String[] args) {
+		LogFileService s = lfsRegistry.getLogFileService(args[0]);
+		if (s == null) {
+			context.println("no engine found");
+			return;
+		}
+
+		s.setConfig(args[1], args[2]);
+		context.println("set");
+	}
+
+	@ScriptUsage(description = "unset engine config", arguments = {
+			@ScriptArgument(name = "engine type", type = "string", description = "v1, v2, or else"),
+			@ScriptArgument(name = "key", type = "string", description = "config key") })
+	public void unsetEngine(String[] args) {
+		LogFileService s = lfsRegistry.getLogFileService(args[0]);
+		if (s == null) {
+			context.println("no engine found");
+			return;
+		}
+
+		s.unsetConfig(args[1]);
+		context.println("unset");
 	}
 
 	@ScriptUsage(description = "", arguments = {

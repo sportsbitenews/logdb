@@ -1,6 +1,7 @@
 package org.araqne.logstorage.file;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -73,6 +74,19 @@ public class LogFileServiceV1 implements LogFileService {
 		} catch (Throwable t) {
 			throw new IllegalStateException("cannot open reader v1: data file - " + dataPath.getAbsolutePath(), t);
 		}
+	}
+
+	@Override
+	public Map<String, String> getConfigs() {
+		return new HashMap<String, String>();
+	}
+
+	@Override
+	public void setConfig(String key, String value) {
+	}
+
+	@Override
+	public void unsetConfig(String key) {
 	}
 
 }

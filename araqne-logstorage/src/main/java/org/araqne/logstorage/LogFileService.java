@@ -11,4 +11,10 @@ public interface LogFileService {
 	LogFileWriter newWriter(Map<String, Object> options);
 
 	LogFileReader newReader(Map<String, Object> options);
+
+	Map<String, String> getConfigs();
+
+	void setConfig(String key, String value);
+
+	void unsetConfig(String key);
 }
