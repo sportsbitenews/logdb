@@ -45,14 +45,17 @@ public class Search extends LogQueryCommand {
 	@Override
 	public void push(LogMap m) {
 		boolean ret;
-		Object o = expr.eval(m);
-		if (o instanceof Boolean)
-			ret = (Boolean) o;
-		else
-			ret = o != null;
 
-		if (!ret)
-			return;
+		if (expr != null) {
+			Object o = expr.eval(m);
+			if (o instanceof Boolean)
+				ret = (Boolean) o;
+			else
+				ret = o != null;
+
+			if (!ret)
+				return;
+		}
 
 		write(m);
 

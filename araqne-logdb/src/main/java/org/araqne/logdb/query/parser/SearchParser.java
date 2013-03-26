@@ -41,10 +41,15 @@ public class SearchParser implements LogQueryCommandParser {
 			if (end > 0) {
 				limit = Long.valueOf(args.substring(begin, end));
 				exprToken = args.substring(end + 1);
+			} else { 
+				limit = Long.valueOf(args.substring(begin));
+				exprToken = "";
 			}
 		}
 
-		Expression expr = ExpressionParser.parse(exprToken);
+		Expression expr = null;
+		if (!exprToken.trim().isEmpty())
+			expr = ExpressionParser.parse(exprToken);
 		return new Search(limit, expr);
 	}
 }
