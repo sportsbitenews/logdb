@@ -185,6 +185,7 @@ public class Table extends LogQueryCommand {
 	}
 
 	private class LogSearchCallbackImpl implements LogSearchCallback {
+		private boolean suppressBugAlert = false;
 		private LogParser parser;
 
 		public LogSearchCallbackImpl(LogParser parser) {
@@ -196,23 +197,39 @@ public class Table extends LogQueryCommand {
 			Map<String, Object> m = null;
 
 			if (parser != null) {
-				Map<String, Object> parsed = parser.parse(log.getData());
-				if (parsed != null) {
-					parsed.put("_table", log.getTableName());
-					parsed.put("_id", log.getId());
+				try {
+					Map<String, Object> parsed = parser.parse(log.getData());
+					if (parsed != null) {
+						parsed.put("_table", log.getTableName());
+						parsed.put("_id", log.getId());
 
-					Object time = parsed.get("_time");
-					if (time == null)
-						parsed.put("_time", log.getDate());
-					else if (!(time instanceof Date)) {
-						logger.error("araqne logdb: parser returned wrong _time type: " + time.getClass().getName());
-						eof();
+						Object time = parsed.get("_time");
+						if (time == null)
+							parsed.put("_time", log.getDate());
+						else if (!(time instanceof Date)) {
+							logger.error("araqne logdb: parser returned wrong _time type: " + time.getClass().getName());
+							eof();
+						}
+
+						m = parsed;
+					} else {
+						logger.debug("araqne logdb: cannot parse log [{}]", log.getData());
+						return;
+					}
+				} catch (Throwable t) {
+					if (!suppressBugAlert) {
+						logger.error(
+								"araqne logdb: PARSER BUG! original log => table " + log.getTableName() + ", id " + log.getId()
+										+ ", data " + log.getData(), t);
+						suppressBugAlert = true;
 					}
 
-					m = parsed;
-				} else {
-					logger.debug("araqne logdb: cannot parse log [{}]", log.getData());
-					return;
+					// can be unmodifiableMap when it comes from memory buffer.
+					m = new HashMap<String, Object>();
+					m.putAll(log.getData());
+					m.put("_table", log.getTableName());
+					m.put("_id", log.getId());
+					m.put("_time", log.getDate());
 				}
 			} else {
 				// can be unmodifiableMap when it comes from memory buffer.
