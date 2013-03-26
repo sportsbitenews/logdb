@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +54,8 @@ public class TableParser implements LogQueryCommandParser {
 	@SuppressWarnings("unchecked")
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length());
+		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length(),
+				Arrays.asList("from", "to", "offset", "limit", "duration"));
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		List<String> tableNames = new ArrayList<String>();

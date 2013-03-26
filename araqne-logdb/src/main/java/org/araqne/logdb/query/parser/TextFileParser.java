@@ -17,6 +17,8 @@ package org.araqne.logdb.query.parser;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
 
@@ -43,7 +45,7 @@ public class TextFileParser implements LogQueryCommandParser {
 
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length());
+		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length(), new ArrayList<String>());
 		Map<String, String> options = (Map<String, String>) r.value;
 		String filePath = commandString.substring(r.next).trim();
 

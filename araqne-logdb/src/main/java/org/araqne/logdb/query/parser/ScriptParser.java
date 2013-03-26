@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import org.araqne.logdb.LogQueryCommand;
@@ -42,7 +43,7 @@ public class ScriptParser implements LogQueryCommandParser {
 	@SuppressWarnings("unchecked")
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length());
+		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length(), new ArrayList<String>());
 		String name = commandString.substring(r.next);
 
 		LogQueryScript script = scriptRegistry.newScript("localhost", name, null);

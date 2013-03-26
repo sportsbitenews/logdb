@@ -23,8 +23,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.araqne.logdb.LogQueryParseException;
 
@@ -32,49 +30,87 @@ public class QueryTokenizer {
 	private QueryTokenizer() {
 	}
 
-	public static ParseResult parseOptions(String s, int offset) {
+	public static ParseResult parseOptions(String s, int offset, List<String> validKeys) {
 		HashMap<String, Object> options = new HashMap<String, Object>();
-		String remaining = s.substring(offset);
+		int next = offset;
+		while (true) {
+			next = skipSpaces(s, next);
 
-		Pattern p = Pattern.compile(" (?=([^\"]*\"[^\"]*\")*[^\"]*$)");
-		Matcher matcher = p.matcher(remaining);
+			int p = findNextSeparator(s, next);
+			if (p < 0)
+				break;
 
-		int tokenStart = 0;
-		while (matcher.find(tokenStart)) {
-			int tokenEnd = matcher.start();
-			String token = remaining.substring(tokenStart, tokenEnd);
+			String key = s.substring(next, p);
 
-			if (token.trim().length() == 0) {
-				tokenStart = matcher.end();
-				continue;
+			if (validKeys.size() > 0 && !validKeys.contains(key)) {
+				if (validKeys.contains(key.trim()))
+					throw new LogQueryParseException("option-space-not-allowed", next);
+
+				throw new LogQueryParseException("invalid-option", -1, key);
 			}
 
-			if (!parseOption(options, token))
-				return new ParseResult(options, tokenStart + offset);
+			if (s.charAt(p + 1) == '"') {
+				boolean escape = false;
+				int closingQuote = -1;
+				for (int i = p + 2; i < s.length(); i++) {
+					char c = s.charAt(i);
+					if (c == '\\')
+						escape = true;
 
-			tokenStart = matcher.end();
+					if (c == '"' && !escape) {
+						closingQuote = i;
+						break;
+					}
+				}
+
+				if (closingQuote == -1)
+					throw new LogQueryParseException("string-quote-mismatch", s.length());
+
+				String quotedValue = s.substring(p + 2, closingQuote);
+				options.put(key, quotedValue);
+				next = closingQuote + 1;
+			} else {
+				int e = s.indexOf(' ', p + 1);
+
+				if (e < 0) {
+					e = s.length();
+					next = e;
+
+					String value = s.substring(p + 1);
+					options.put(key, value);
+				} else {
+					String value = s.substring(p + 1, e);
+					options.put(key, value);
+					next = e + 1;
+				}
+			}
 		}
-		String token = remaining.substring(tokenStart);
-		if (!parseOption(options, token))
-			return new ParseResult(options, tokenStart + offset);
 
-		return new ParseResult(options, s.length());
+		return new ParseResult(options, next);
 	}
 
-	private static boolean parseOption(HashMap<String, Object> options, String token) {
-		// assumption: there's no adjacent ' '(space) near '='
-		int eqPos = token.indexOf('=');
-		if (eqPos > 1) {
-			String key = token.substring(0, eqPos);
-			String value = token.substring(eqPos + 1);
-			if (value.startsWith("\"")) {
-				value = value.substring(1, value.length() - 1);
-			}
+	// find next unescaped delimiter, except ==
+	private static int findNextSeparator(String s, int offset) {
+		boolean quote = false;
+		boolean escape = false;
+		for (int i = offset; i < s.length(); i++) {
+			char c = s.charAt(i);
+			if (c == '\\')
+				escape = !escape;
+			if (c == '"' && !escape)
+				quote = !quote;
+			if (c == '=' && !quote) {
+				if (i + 1 < s.length() && s.charAt(i + 1) == '=') {
+					// skip == token
+					i++;
+					continue;
+				}
 
-			options.put(key, value);
-			return true;
-		} else
-			return false;
+				return i;
+			}
+		}
+
+		return -1;
 	}
 
 	public static List<String> parseCommands(String query) {

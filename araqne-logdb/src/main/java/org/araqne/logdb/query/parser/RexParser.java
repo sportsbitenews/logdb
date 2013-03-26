@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -40,7 +41,7 @@ public class RexParser implements LogQueryCommandParser {
 		// extract field names and remove placeholder
 		List<String> names = new ArrayList<String>();
 
-		ParseResult r = QueryTokenizer.parseOptions(commandString, "rex".length());
+		ParseResult r = QueryTokenizer.parseOptions(commandString, "rex".length(), Arrays.asList("field"));
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 

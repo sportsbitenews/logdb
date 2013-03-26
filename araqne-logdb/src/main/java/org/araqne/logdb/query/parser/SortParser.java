@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.araqne.logdb.LogQueryCommand;
@@ -35,7 +36,7 @@ public class SortParser implements LogQueryCommandParser {
 	@Override
 	@SuppressWarnings("unchecked")
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(commandString, "sort".length());
+		ParseResult r = QueryTokenizer.parseOptions(commandString, "sort".length(), Arrays.asList("limit"));
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		Integer count = null;
@@ -49,6 +50,7 @@ public class SortParser implements LogQueryCommandParser {
 			while (true) {
 				r = QueryTokenizer.nextString(commandString, r.next, ',');
 				String token = (String) r.value;
+				System.out.println("####" +token);
 				boolean asc = true;
 				char sign = token.charAt(0);
 				if (sign == '-') {

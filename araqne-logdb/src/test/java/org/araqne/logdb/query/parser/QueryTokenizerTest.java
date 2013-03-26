@@ -16,10 +16,13 @@
 package org.araqne.logdb.query.parser;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.logdb.LogQueryParseException;
 import org.junit.Test;
 
 public class QueryTokenizerTest {
@@ -36,11 +39,91 @@ public class QueryTokenizerTest {
 	public void testOptions() {
 		String query = "textfile offset=1 limit=10 sample.log";
 
-		ParseResult r = QueryTokenizer.parseOptions(query, "textfile".length());
+		ParseResult r = QueryTokenizer.parseOptions(query, "textfile".length(), Arrays.asList("offset", "limit"));
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		assertEquals("1", options.get("offset"));
 		assertEquals("10", options.get("limit"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testOptions2() {
+		String query = "search offset=1 limit=10 1 == 1";
+
+		ParseResult r = QueryTokenizer.parseOptions(query, "search".length(), Arrays.asList("offset", "limit"));
+		Map<String, String> options = (Map<String, String>) r.value;
+
+		assertEquals("1", options.get("offset"));
+		assertEquals("10", options.get("limit"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testOptions3() {
+		String query = "search offset=1 limit=10 in(field,\"?&key=value\")";
+
+		ParseResult r = QueryTokenizer.parseOptions(query, "search".length(), Arrays.asList("offset", "limit"));
+		Map<String, String> options = (Map<String, String>) r.value;
+
+		assertEquals("1", options.get("offset"));
+		assertEquals("10", options.get("limit"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testOptions4() {
+		String query = "search in(field,\"?&key=value\")";
+
+		ParseResult r = QueryTokenizer.parseOptions(query, "search".length(), Arrays.asList("offset", "limit"));
+		Map<String, String> options = (Map<String, String>) r.value;
+		assertEquals(0, options.size());
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testOptions5() {
+		String query = "search offset=1 limit=10";
+
+		ParseResult r = QueryTokenizer.parseOptions(query, "search".length(), Arrays.asList("offset", "limit"));
+		Map<String, String> options = (Map<String, String>) r.value;
+
+		assertEquals("1", options.get("offset"));
+		assertEquals("10", options.get("limit"));
+	}
+
+	@Test
+	public void testOptions6() {
+		String query = "search offset = 1  limit=10 ";
+
+		try {
+			QueryTokenizer.parseOptions(query, "search".length(), Arrays.asList("offset", "limit"));
+			fail();
+		} catch (LogQueryParseException e) {
+			assertEquals("option-space-not-allowed", e.getType());
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testOptions7() {
+		String query = "textfile parser=\"<key = value>\" foo.txt";
+
+		ParseResult r = QueryTokenizer.parseOptions(query, "textfile".length(), Arrays.asList("parser"));
+		Map<String, String> options = (Map<String, String>) r.value;
+		assertEquals("<key = value>", options.get("parser"));
+	}
+
+	@Test
+	public void testOptions8() {
+		String query = "textfile \"parser\"=\"<key = value>\" foo.txt";
+
+		try {
+			QueryTokenizer.parseOptions(query, "textfile".length(), Arrays.asList("parser"));
+			fail();
+		} catch (LogQueryParseException e) {
+			assertEquals("invalid-option", e.getType());
+		}
 	}
 
 	@Test
