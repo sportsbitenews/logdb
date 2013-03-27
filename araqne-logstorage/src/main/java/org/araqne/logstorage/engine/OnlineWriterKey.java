@@ -26,6 +26,7 @@ public class OnlineWriterKey {
 	public OnlineWriterKey(String tableName, Date day, int tableId) {
 		this.tableName = tableName;
 		this.day = day;
+		this.tableId = tableId;
 	}
 
 	public String getTableName() {
