@@ -17,6 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.araqne.logdb.LogMap;
@@ -40,6 +41,7 @@ public class In implements Expression {
 		private String operand;
 		private Pattern pattern;
 		private StringMatchMethod matchMethod;
+		private Matcher matcher;
 
 		public StringMatcher(String s) {
 			this.term = s;
@@ -57,8 +59,10 @@ public class In implements Expression {
 				operand = term.substring(1, last);
 			} else {
 				pattern = Eq.tryBuildPattern2(term);
-				if (pattern != null)
+				if (pattern != null) {
 					matchMethod = StringMatchMethod.PATTERN;
+					matcher = pattern.matcher("");
+				}
 				else
 					matchMethod = StringMatchMethod.EQUALS;
 			}
@@ -77,7 +81,7 @@ public class In implements Expression {
 				case CONTAINS:
 					return token.contains(operand);
 				case PATTERN:
-					return pattern.matcher(token).matches();
+					return matcher.reset(token).matches();
 				default:
 					throw new IllegalStateException("bad match method: " + matchMethod.toString());
 				}
