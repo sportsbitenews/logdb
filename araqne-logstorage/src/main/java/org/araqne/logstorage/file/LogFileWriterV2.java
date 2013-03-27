@@ -15,6 +15,7 @@
  */
 package org.araqne.logstorage.file;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -83,77 +84,83 @@ public class LogFileWriterV2 extends LogFileWriter {
 	public LogFileWriterV2(File indexPath, File dataPath, int blockSize, int level) throws IOException,
 			InvalidLogFileHeaderException {
 		// level 0 will not use compression (no zip metadata overhead)
-		if (level < 0 || level > 9)
-			throw new IllegalArgumentException("compression level should be between 0 and 9");
+		try {
+			if (level < 0 || level > 9)
+				throw new IllegalArgumentException("compression level should be between 0 and 9");
 
-		boolean indexExists = indexPath.exists();
-		boolean dataExists = dataPath.exists();
-		this.indexFile = new RandomAccessFile(indexPath, "rw");
-		this.dataFile = new RandomAccessFile(dataPath, "rw");
+			boolean indexExists = indexPath.exists();
+			boolean dataExists = dataPath.exists();
+			this.indexFile = new RandomAccessFile(indexPath, "rw");
+			this.dataFile = new RandomAccessFile(dataPath, "rw");
 
-		// 1/64 alloc, if block size = 640KB, index can contain 10240 items
-		this.indexBuffer = ByteBuffer.allocate(blockSize >> 6);
-		this.dataBuffer = ByteBuffer.allocate(blockSize);
+			// 1/64 alloc, if block size = 640KB, index can contain 10240 items
+			this.indexBuffer = ByteBuffer.allocate(blockSize >> 6);
+			this.dataBuffer = ByteBuffer.allocate(blockSize);
 
-		this.compressed = new byte[blockSize];
-		this.compresser = new Deflater(level);
-		this.compressLevel = level;
+			this.compressed = new byte[blockSize];
+			this.compresser = new Deflater(level);
+			this.compressLevel = level;
 
-		// get index file header
-		LogFileHeader indexFileHeader = null;
-		if (indexExists && indexFile.length() > 0) {
-			indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
-		} else {
-			indexFileHeader = new LogFileHeader((short) 2, LogFileHeader.MAGIC_STRING_INDEX);
-			indexFile.write(indexFileHeader.serialize());
-		}
-
-		// get data file header
-		LogFileHeader dataFileHeader = null;
-		if (dataExists && dataFile.length() > 0) {
-			dataFileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
-		} else {
-			dataFileHeader = new LogFileHeader((short) 2, LogFileHeader.MAGIC_STRING_DATA);
-			byte[] ext = new byte[4];
-			prepareInt(blockSize, ext);
-			if (level > 0) {
-				ext = new byte[12];
-				prepareInt(blockSize, ext);
-				ByteBuffer bb = ByteBuffer.wrap(ext, 4, 8);
-				bb.put("deflater".getBytes());
+			// get index file header
+			LogFileHeader indexFileHeader = null;
+			if (indexExists && indexFile.length() > 0) {
+				indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
+			} else {
+				indexFileHeader = new LogFileHeader((short) 2, LogFileHeader.MAGIC_STRING_INDEX);
+				indexFile.write(indexFileHeader.serialize());
 			}
 
-			dataFileHeader.setExtraData(ext);
-			dataFile.write(dataFileHeader.serialize());
-		}
+			// get data file header
+			LogFileHeader dataFileHeader = null;
+			if (dataExists && dataFile.length() > 0) {
+				dataFileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
+			} else {
+				dataFileHeader = new LogFileHeader((short) 2, LogFileHeader.MAGIC_STRING_DATA);
+				byte[] ext = new byte[4];
+				prepareInt(blockSize, ext);
+				if (level > 0) {
+					ext = new byte[12];
+					prepareInt(blockSize, ext);
+					ByteBuffer bb = ByteBuffer.wrap(ext, 4, 8);
+					bb.put("deflater".getBytes());
+				}
 
-		// read last key
-		long length = indexFile.length();
-		long pos = indexFileHeader.size();
-		while (pos < length) {
-			indexFile.seek(pos);
-			int logCount = indexFile.readInt();
-			count += logCount;
-			pos += 4 + INDEX_ITEM_SIZE * logCount;
-		}
-		lastKey = count;
+				dataFileHeader.setExtraData(ext);
+				dataFile.write(dataFileHeader.serialize());
+			}
 
-		// read last time
-		length = dataFile.length();
-		pos = dataFileHeader.size();
-		while (pos < length) {
-			// jump to end date position
-			dataFile.seek(pos + 8);
-			long endTime = dataFile.readLong();
-			dataFile.readInt();
-			int compressedLength = dataFile.readInt();
-			lastTime = (lastTime < endTime) ? endTime : lastTime;
-			pos += 24 + compressedLength;
-		}
+			// read last key
+			long length = indexFile.length();
+			long pos = indexFileHeader.size();
+			while (pos < length) {
+				indexFile.seek(pos);
+				int logCount = indexFile.readInt();
+				count += logCount;
+				pos += 4 + INDEX_ITEM_SIZE * logCount;
+			}
+			lastKey = count;
 
-		// move to end
-		indexFile.seek(indexFile.length());
-		dataFile.seek(dataFile.length());
+			// read last time
+			length = dataFile.length();
+			pos = dataFileHeader.size();
+			while (pos < length) {
+				// jump to end date position
+				dataFile.seek(pos + 8);
+				long endTime = dataFile.readLong();
+				dataFile.readInt();
+				int compressedLength = dataFile.readInt();
+				lastTime = (lastTime < endTime) ? endTime : lastTime;
+				pos += 24 + compressedLength;
+			}
+
+			// move to end
+			indexFile.seek(indexFile.length());
+			dataFile.seek(dataFile.length());
+		} catch (Throwable t) {
+			ensureClose(indexFile);
+			ensureClose(dataFile);
+			throw new IllegalStateException(t);
+		}
 	}
 
 	@Override
@@ -170,7 +177,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 	public long getCount() {
 		return count;
 	}
-	
+
 	private LogRecord convert(Log log) {
 		ByteBuffer bb = new FastEncodingRule().encode(log.getData());
 		LogRecord logdata = new LogRecord(log.getDate(), log.getId(), bb);
@@ -245,7 +252,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 	public List<Log> getBuffer() {
 		return buffer;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public List<List<Log>> getBuffers() {
@@ -321,7 +328,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 		blockEndLogTime = null;
 		blockLogCount = 0;
 		buffer.clear();
-		
+
 		return true;
 	}
 
@@ -346,6 +353,15 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 	public Date getLastFlush() {
 		return lastFlush;
+	}
+
+	private void ensureClose(Closeable c) {
+		if (c != null) {
+			try {
+				c.close();
+			} catch (Throwable e) {
+			}
+		}
 	}
 
 	@Override
