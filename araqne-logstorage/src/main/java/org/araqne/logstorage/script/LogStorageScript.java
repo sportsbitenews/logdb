@@ -648,8 +648,12 @@ public class LogStorageScript implements Script {
 		}
 		long end = System.currentTimeMillis();
 		long time = end - begin;
-
-		context.println(String.format("%s(write): %d log/%d ms (%d log/s)", name, count, time, count * 1000L / time));
+		String timeStr = null;
+		if (time == 0)
+			timeStr = "n/a";
+		else 
+			timeStr = String.format("%d logs/s", count * 1000L / time);
+		context.println(String.format("%s(write): %d log/%d ms (%s)", name, count, time, timeStr));
 
 		begin = System.currentTimeMillis();
 		try {
@@ -658,7 +662,11 @@ public class LogStorageScript implements Script {
 		}
 		end = System.currentTimeMillis();
 		time = end - begin;
-		context.println(String.format("%s(read): %d log/%d ms (%d log/s)", name, count, time, count * 1000L / time));
+		if (time == 0)
+			timeStr = "n/a";
+		else 
+			timeStr = String.format("%d logs/s", count * 1000L / time);
+		context.println(String.format("%s(read): %d log/%d ms (%s)", name, count, time, timeStr));
 
 		storage.dropTable(tableName);
 	}
