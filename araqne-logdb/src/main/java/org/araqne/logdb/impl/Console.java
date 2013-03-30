@@ -243,45 +243,49 @@ public class Console {
 		} catch (InterruptedException e) {
 			return;
 		}
-		
+
 		StringBuilder sb = new StringBuilder();
-		for (String line: lines) {
+		for (String line : lines) {
 			if (line.endsWith("\\"))
 				sb.append(line.substring(0, line.length() - 1));
 			else
 				sb.append(line);
 			sb.append(" ");
 		}
-		
+
 		queryString = sb.toString();
 
 		long begin = System.currentTimeMillis();
 		LogQuery lq = queryService.createQuery(session, queryString);
 		queryService.startQuery(lq.getId());
 
-		do {
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-			}
-		} while (!lq.isEnd());
-
 		long count = 0;
 		LogResultSet rs = null;
-		try {
-			rs = lq.getResult();
-			while (rs.hasNext()) {
-				printMap(rs.next());
-				count++;
+		while (true) {
+			try {
+				rs = lq.getResult();
+				if (rs != null && rs.size() > count) {
+					rs.skip(count);
+
+					while (rs.hasNext()) {
+						printMap(rs.next());
+						count++;
+					}
+				}
+
+				if (lq.getLastStarted() != null && lq.isEnd() && lq.getResultCount() == count)
+					break;
+
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+			} finally {
+				if (rs != null)
+					rs.close();
 			}
-		} finally {
-			if (rs != null)
-				rs.close();
 		}
 
 		queryService.removeQuery(lq.getId());
-		context.println(String.format("total %d rows, elapsed %.1fs", count, (System.currentTimeMillis() - begin)
-				/ (double) 1000));
+		context.println(String.format("total %d rows, elapsed %.1fs", count, (System.currentTimeMillis() - begin) / (double) 1000));
 	}
 
 	private void createQuery(String queryString) {
