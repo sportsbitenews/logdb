@@ -10,10 +10,13 @@ import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component(name = "logstorage-log-file-service-registry")
 @Provides
 public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
+	private final static Logger logger = LoggerFactory.getLogger(LogFileServiceRegistryImpl.class);
 	ConcurrentMap<String, LogFileService> services = new ConcurrentHashMap<String, LogFileService>();
 
 	@Override
@@ -30,12 +33,14 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 
 	@Override
 	public void register(LogFileService service) {
+		logger.info("Log file service registered: {}", service.getType());
 		services.put(service.getType(), service);
 	}
 
 	@Override
 	public void unregister(LogFileService service) {
 		services.remove(service.getType());
+		logger.info("Log file service unregistered: {}", service.getType());
 	}
 
 	@Override
