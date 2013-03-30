@@ -53,5 +53,4 @@ public class LogRecord implements Comparable<LogRecord> {
 	public int compareTo(LogRecord o) {
 		return (int) (id - o.id);
 	}
-
 }
