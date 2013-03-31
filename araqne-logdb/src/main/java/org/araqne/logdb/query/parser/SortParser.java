@@ -50,7 +50,6 @@ public class SortParser implements LogQueryCommandParser {
 			while (true) {
 				r = QueryTokenizer.nextString(commandString, r.next, ',');
 				String token = (String) r.value;
-				System.out.println("####" +token);
 				boolean asc = true;
 				char sign = token.charAt(0);
 				if (sign == '-') {
