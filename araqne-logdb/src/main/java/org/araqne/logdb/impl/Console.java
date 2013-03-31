@@ -259,29 +259,24 @@ public class Console {
 		LogQuery lq = queryService.createQuery(session, queryString);
 		queryService.startQuery(lq.getId());
 
-		long count = 0;
-		LogResultSet rs = null;
-		while (true) {
+		do {
 			try {
-				rs = lq.getResult();
-				if (rs != null && rs.size() > count) {
-					rs.skip(count);
-
-					while (rs.hasNext()) {
-						printMap(rs.next());
-						count++;
-					}
-				}
-
-				if (lq.getLastStarted() != null && lq.isEnd() && lq.getResultCount() == count)
-					break;
-
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
-			} finally {
-				if (rs != null)
-					rs.close();
 			}
+		} while (!lq.isEnd());
+
+		long count = 0;
+		LogResultSet rs = null;
+		try {
+			rs = lq.getResult();
+			while (rs.hasNext()) {
+				printMap(rs.next());
+				count++;
+			}
+		} finally {
+			if (rs != null)
+				rs.close();
 		}
 
 		queryService.removeQuery(lq.getId());
