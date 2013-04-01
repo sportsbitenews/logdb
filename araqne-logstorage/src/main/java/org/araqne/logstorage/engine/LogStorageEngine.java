@@ -1173,13 +1173,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 
 	@Override
 	public void ensureTable(String tableName, String type) {
-		if (tableRegistry.exists(tableName)) {
-			String tableMetadata = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
-			if (!type.equals(tableMetadata))
-				throw new IllegalArgumentException("LogStorageEngine: ensureTable: table exists but type does not matches: "
-						+ tableName);
-			return;
-		} else
+		if (!tableRegistry.exists(tableName))
 			createTable(tableName, type);
 	}
 
