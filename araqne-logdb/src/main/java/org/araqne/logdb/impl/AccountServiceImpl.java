@@ -97,7 +97,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (c != null) {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> m = (Map<String, Object>) c.getDocument();
-			selectedExternalAuth = (String) m.get("extenral_auth");
+			selectedExternalAuth = (String) m.get("external_auth");
 		}
 	}
 
@@ -127,8 +127,8 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (!sessions.containsKey(session.getGuid()))
 			throw new IllegalStateException("invalid session");
 
-		// master admin only
-		if (!session.getLoginName().equals(MASTER_ACCOUNT))
+		// allow own info check or master admin only
+		if (!loginName.equals(session.getLoginName()) && !session.getLoginName().equals(MASTER_ACCOUNT))
 			throw new IllegalStateException("no permission");
 
 		List<Privilege> privileges = new ArrayList<Privilege>();
@@ -152,7 +152,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 
 		Account account = localAccounts.get(loginName);
 		// try local login first
-		if (account != null) {
+		if (account != null && account.getAuthServiceName() == null) {
 			// salted hash
 			String hash = account.getPassword();
 			String salt = account.getSalt();

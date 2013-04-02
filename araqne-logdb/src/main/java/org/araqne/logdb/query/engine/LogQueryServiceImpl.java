@@ -46,6 +46,7 @@ import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;
 import org.araqne.logdb.query.parser.FieldsParser;
 import org.araqne.logdb.query.parser.JsonParser;
+import org.araqne.logdb.query.parser.LogdbParser;
 import org.araqne.logdb.query.parser.LookupParser;
 import org.araqne.logdb.query.parser.OutputCsvParser;
 import org.araqne.logdb.query.parser.RenameParser;
@@ -131,6 +132,7 @@ public class LogQueryServiceImpl implements LogQueryService {
 		parsers.add(new TextFileParser(parserFactoryRegistry));
 		parsers.add(new ZipFileParser(parserFactoryRegistry));
 		parsers.add(new OutputCsvParser());
+		parsers.add(new LogdbParser(tableRegistry, accountService));
 
 		this.queryParsers = parsers;
 	}

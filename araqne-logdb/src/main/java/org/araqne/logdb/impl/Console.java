@@ -71,7 +71,7 @@ public class Console {
 				handle(line);
 			}
 		} catch (Throwable t) {
-			context.println(t.getMessage());
+			context.println(t.getClass().getName() + ": " + t.getMessage());
 		} finally {
 			if (session != null) {
 				accountService.logout(session);

@@ -48,6 +48,13 @@ public class Privilege {
 		this.tableName = tableName;
 	}
 
+	public boolean hasPermission(Permission permission) {
+		for (Permission p : permissions)
+			if (p.equals(permission))
+				return true;
+		return false;
+	}
+
 	public List<Permission> getPermissions() {
 		return permissions;
 	}
