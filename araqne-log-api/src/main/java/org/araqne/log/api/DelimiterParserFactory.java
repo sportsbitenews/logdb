@@ -43,57 +43,47 @@ public class DelimiterParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "delimiter parser";
+		if (locale == Locale.KOREAN)
+			return "구분자";
+		return "delimiter";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "구분자로 구분된 각 토큰에 대하여 설정된 필드 이름들을 순서대로 적용하여 파싱합니다.";
 		return "devide a string into tokens based on the given delimiter and column names";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		List<LoggerConfigOption> options = new ArrayList<LoggerConfigOption>();
-		{
-			Map<Locale, String> displayNames = new HashMap<Locale, String>();
-			Map<Locale, String> descriptions = new HashMap<Locale, String>();
-			displayNames.put(Locale.ENGLISH, DELIMITER);
-			descriptions.put(Locale.ENGLISH, "delimiter character");
-			options.add(new StringConfigType(DELIMITER, displayNames, descriptions, true));
-		}
-		{
-			Map<Locale, String> displayNames = new HashMap<Locale, String>();
-			Map<Locale, String> descriptions = new HashMap<Locale, String>();
-			displayNames.put(Locale.ENGLISH, "column headers");
-			descriptions.put(Locale.ENGLISH, "separated by comma");
-			options.add(new StringConfigType(COLUMN_HEADERS, displayNames, descriptions, false));
-		}
-		{
-			Map<Locale, String> displayNames = new HashMap<Locale, String>();
-			Map<Locale, String> descriptions = new HashMap<Locale, String>();
-			displayNames.put(Locale.ENGLISH, "delimiter target field");
-			descriptions.put(Locale.ENGLISH, "delimiter target field name");
-			options.add(new StringConfigType(DELIMITER_TARGET, displayNames, descriptions, false));
-		}
-		{
-			Map<Locale, String> displayNames = new HashMap<Locale, String>();
-			Map<Locale, String> descriptions = new HashMap<Locale, String>();
-			displayNames.put(Locale.ENGLISH, "include delimiter target");
-			descriptions.put(Locale.ENGLISH, "return also delimiter target field (true or false)");
-			options.add(new StringConfigType(INCLUDE_DELIMITER_TARGET, displayNames, descriptions, false));
-		}
+		options.add(new StringConfigType(DELIMITER, t(DELIMITER, "구분자"), t("delimiter character", "여러 개의 구분자를 붙여서 입력 가능"), true));
+		options.add(new StringConfigType(COLUMN_HEADERS, t("column headers", "필드 이름 목록"), t("separated by comma",
+				"쉼표로 구분된 필드 이름들"), false));
+		options.add(new StringConfigType(DELIMITER_TARGET, t("delimiter target field", "대상 필드"), t("delimiter target field name",
+				"구분자로 파싱할 대상 필드 이름"), false));
+		options.add(new StringConfigType(INCLUDE_DELIMITER_TARGET, t("include delimiter target", "원본 값 포함 여부"), t(
+				"return also delimiter target field (true or false)", "구분자로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false"), false));
 
 		return options;
+	}
+
+	private Map<Locale, String> t(String enText, String koText) {
+		Map<Locale, String> m = new HashMap<Locale, String>();
+		m.put(Locale.ENGLISH, enText);
+		m.put(Locale.KOREAN, koText);
+		return m;
 	}
 
 	@Override

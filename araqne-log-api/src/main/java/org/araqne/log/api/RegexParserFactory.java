@@ -40,38 +40,43 @@ public class RegexParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "정규표현식";
 		return "Regex";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "정규표현식을 이용하여 로그를 파싱합니다.";
 		return "parse log using regular expression";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		List<LoggerConfigOption> options = new ArrayList<LoggerConfigOption>();
-		options.add(option("regex", "regex", "regular expression", true));
-		options.add(option("field", "target field", "parse target field. 'line' field by default", false));
+		options.add(new StringConfigType("regex", t("regex", "정규표현식"), t("regular expression with placeholder",
+				"필드 이름이 포함된 정규표현식"), true));
+		options.add(new StringConfigType("field", t("field", "대상 필드"), t("parse target field. 'line' field by default",
+				"정규표현식을 적용할 필드, 미설정 시 기본값은 line"), false));
 		return options;
 	}
 
-	private LoggerConfigOption option(String name, String displayName, String description, boolean required) {
-		Map<Locale, String> displayNames = new HashMap<Locale, String>();
-		Map<Locale, String> descriptions = new HashMap<Locale, String>();
-		displayNames.put(Locale.ENGLISH, displayName);
-		descriptions.put(Locale.ENGLISH, description);
-		return new StringConfigType(name, displayNames, descriptions, required);
+	private Map<Locale, String> t(String enText, String koText) {
+		Map<Locale, String> m = new HashMap<Locale, String>();
+		m.put(Locale.ENGLISH, enText);
+		m.put(Locale.KOREAN, koText);
+		return m;
 	}
 
 	@Override
