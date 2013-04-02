@@ -34,7 +34,7 @@ public class TextFileLoggerFactory extends AbstractLoggerFactory {
 		options = new ArrayList<LoggerConfigOption>();
 		options.add(new StringConfigType("file.path", t("File Path", "파일 경로"), t("Log file path", "텍스트 로그 파일의 절대 경로"), true,
 				t("/var/log/")));
-		options.add(new StringConfigType("charset", t("Charset", "문자 집합"), t("Charset", "문자 집합"), false, t("utf-8")));
+		options.add(new StringConfigType("charset", t("Charset", "문자 집합"), t("Charset", "문자 집합. 기본값 UTF-8"), false, t("utf-8")));
 		options.add(new StringConfigType("date.extractor", t("Date Extractor", "날짜 정규식"), t("Regex for date extraction",
 				"날짜 문자열 추출에 사용되는 정규표현식"), false, t(null)));
 		options.add(new StringConfigType("date.pattern", t("Date Pattern", "날짜 패턴"), t("Date pattern of log file",
