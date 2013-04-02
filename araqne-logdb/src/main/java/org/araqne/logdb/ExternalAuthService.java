@@ -1,5 +1,9 @@
 package org.araqne.logdb;
 
-public interface ExternalAccountService {
+public interface ExternalAuthService {
+	String getName();
+
+	boolean verifyUser(String loginName);
+
 	boolean verifyPassword(String loginName, String password);
 }

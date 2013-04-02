@@ -46,4 +46,16 @@ public interface AccountService {
 	void grantPrivilege(Session session, String loginName, String tableName, Permission... permissions);
 
 	void revokePrivilege(Session session, String loginName, String tableName, Permission... permissions);
+
+	ExternalAuthService getUsingAuthService();
+
+	void useAuthService(String name);
+
+	List<ExternalAuthService> getAuthServices();
+
+	ExternalAuthService getAuthService(String name);
+
+	void registerAuthService(ExternalAuthService auth);
+
+	void unregisterAuthService(ExternalAuthService auth);
 }

@@ -17,6 +17,7 @@ package org.araqne.logdb.impl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,10 +34,12 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.confdb.Config;
+import org.araqne.confdb.ConfigCollection;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.ExternalAuthService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
 import org.araqne.logdb.Session;
@@ -57,31 +60,44 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 	private LogTableRegistry tableRegistry;
 
 	private ConcurrentMap<String, Session> sessions;
-	private ConcurrentMap<String, Account> accounts;
+	private ConcurrentMap<String, Account> localAccounts;
+	private ConcurrentMap<String, ExternalAuthService> authServices;
+
+	private String selectedExternalAuth;
 
 	public AccountServiceImpl() {
 		sessions = new ConcurrentHashMap<String, Session>();
-		accounts = new ConcurrentHashMap<String, Account>();
+		localAccounts = new ConcurrentHashMap<String, Account>();
+		authServices = new ConcurrentHashMap<String, ExternalAuthService>();
 	}
 
 	@Validate
 	public void start() {
 		tableRegistry.addListener(this);
 		sessions.clear();
-		accounts.clear();
+		localAccounts.clear();
 
 		// load accounts
 		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
 		for (Account account : db.findAll(Account.class).getDocuments(Account.class)) {
-			accounts.put(account.getLoginName(), account);
+			localAccounts.put(account.getLoginName(), account);
 		}
 
 		// generate default 'araqne' account if not exists
-		if (!accounts.containsKey(MASTER_ACCOUNT)) {
+		if (!localAccounts.containsKey(MASTER_ACCOUNT)) {
 			String salt = randomSalt(10);
 			Account account = new Account(MASTER_ACCOUNT, salt, Sha1.hash(salt));
 			db.add(account);
-			accounts.put(MASTER_ACCOUNT, account);
+			localAccounts.put(MASTER_ACCOUNT, account);
+		}
+
+		// load external auth service config
+		ConfigCollection col = db.ensureCollection("global_config");
+		Config c = col.findOne(null);
+		if (c != null) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> m = (Map<String, Object>) c.getDocument();
+			selectedExternalAuth = (String) m.get("extenral_auth");
 		}
 	}
 
@@ -106,8 +122,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		verifyNotNull(session, "session");
 		verifyNotNull(loginName, "login name");
 
-		if (!accounts.containsKey(loginName))
-			throw new IllegalStateException("account not found");
+		checkAccountIncludingExternal(loginName);
 
 		if (!sessions.containsKey(session.getGuid()))
 			throw new IllegalStateException("invalid session");
@@ -117,7 +132,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 			throw new IllegalStateException("no permission");
 
 		List<Privilege> privileges = new ArrayList<Privilege>();
-		Account account = accounts.get(loginName);
+		Account account = ensureAccount(loginName);
 		for (String tableName : account.getReadableTables()) {
 			privileges.add(new Privilege(loginName, tableName, Arrays.asList(Permission.READ)));
 		}
@@ -127,7 +142,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 
 	@Override
 	public Set<String> getAccountNames() {
-		return new HashSet<String>(accounts.keySet());
+		return new HashSet<String>(localAccounts.keySet());
 	}
 
 	@Override
@@ -135,15 +150,23 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		verifyNotNull(loginName, "login name");
 		verifyNotNull(password, "password");
 
-		Account account = accounts.get(loginName);
-		if (account == null)
+		Account account = localAccounts.get(loginName);
+		// try local login first
+		if (account != null) {
+			// salted hash
+			String hash = account.getPassword();
+			String salt = account.getSalt();
+
+			return hash.equals(Sha1.hash(password + salt));
+		} else if (selectedExternalAuth != null) {
+			// try external login
+			ExternalAuthService auth = authServices.get(selectedExternalAuth);
+			if (auth == null)
+				throw new IllegalStateException("logdb external auth service is not loaded: " + selectedExternalAuth);
+
+			return auth.verifyPassword(loginName, password);
+		} else
 			throw new IllegalStateException("account not found");
-
-		// salted hash
-		String hash = account.getPassword();
-		String salt = account.getSalt();
-
-		return hash.equals(Sha1.hash(password + salt));
 	}
 
 	@Override
@@ -152,7 +175,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		verifyNotNull(hash, "hash");
 		verifyNotNull(nonce, "nonce");
 
-		Account account = accounts.get(loginName);
+		Account account = localAccounts.get(loginName);
 		if (account == null)
 			throw new IllegalStateException("account-not-found");
 
@@ -191,7 +214,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		verifyNotNull(loginName, "login name");
 		verifyNotNull(password, "password");
 
-		if (accounts.containsKey(loginName))
+		if (localAccounts.containsKey(loginName))
 			throw new IllegalStateException("duplicated login name");
 
 		if (!sessions.containsKey(session.getGuid()))
@@ -210,8 +233,8 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		String hash = Sha1.hash(password + salt);
 		Account account = new Account(loginName, salt, hash);
 
-		Account old = accounts.putIfAbsent(account.getLoginName(), account);
-		if (old != null)
+		Account old = localAccounts.putIfAbsent(account.getLoginName(), account);
+		if (old != null && old.getAuthServiceName() == null)
 			throw new IllegalStateException("duplicated login name");
 
 		db.add(account);
@@ -223,7 +246,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		verifyNotNull(loginName, "login name");
 		verifyNotNull(password, "password");
 
-		if (!accounts.containsKey(loginName))
+		if (!localAccounts.containsKey(loginName))
 			throw new IllegalStateException("account not found");
 
 		if (!sessions.containsKey(session.getGuid()))
@@ -233,7 +256,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (!loginName.equals(session.getLoginName()) && !session.getLoginName().equals(MASTER_ACCOUNT))
 			throw new IllegalStateException("no permission");
 
-		Account account = accounts.get(loginName);
+		Account account = localAccounts.get(loginName);
 		String hash = Sha1.hash(password + account.getSalt());
 		account.setPassword(hash);
 
@@ -252,7 +275,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		verifyNotNull(session, "session");
 		verifyNotNull(loginName, "login name");
 
-		if (!accounts.containsKey(loginName))
+		if (!localAccounts.containsKey(loginName))
 			throw new IllegalStateException("account not found");
 
 		if (!sessions.containsKey(session.getGuid()))
@@ -262,7 +285,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (!session.getLoginName().equals(MASTER_ACCOUNT))
 			throw new IllegalStateException("no permission");
 
-		accounts.remove(loginName);
+		localAccounts.remove(loginName);
 
 		// drop all sessions
 		for (Session s : new ArrayList<Session>(sessions.values())) {
@@ -286,9 +309,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (permission != Permission.READ)
 			throw new UnsupportedOperationException();
 
-		Account account = accounts.get(session.getLoginName());
-		if (account == null)
-			throw new IllegalStateException("account not found");
+		Account account = ensureAccount(session.getLoginName());
 
 		if (session.getLoginName().equals("araqne"))
 			return true;
@@ -305,8 +326,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (permissions.length == 0)
 			return;
 
-		if (!accounts.containsKey(loginName))
-			throw new IllegalStateException("account not found");
+		checkAccountIncludingExternal(loginName);
 
 		if (!sessions.containsKey(session.getGuid()))
 			throw new IllegalStateException("invalid session");
@@ -318,7 +338,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (!tableRegistry.exists(tableName))
 			throw new IllegalStateException("table not found");
 
-		Account account = accounts.get(loginName);
+		Account account = ensureAccount(loginName);
 		if (account.getReadableTables().contains(tableName))
 			return;
 
@@ -343,8 +363,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (permissions.length == 0)
 			return;
 
-		if (!accounts.containsKey(loginName))
-			throw new IllegalStateException("account not found");
+		checkAccountIncludingExternal(loginName);
 
 		if (!sessions.containsKey(session.getGuid()))
 			throw new IllegalStateException("invalid session");
@@ -356,7 +375,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (!tableRegistry.exists(tableName))
 			throw new IllegalStateException("table not found");
 
-		Account account = accounts.get(loginName);
+		Account account = ensureAccount(loginName);
 		if (!account.getReadableTables().contains(tableName))
 			return;
 
@@ -369,6 +388,36 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 			c.update();
 		} else {
 			db.add(account);
+		}
+	}
+
+	private Account ensureAccount(String loginName) {
+		Account account = localAccounts.get(loginName);
+		if (account != null)
+			return account;
+
+		if (selectedExternalAuth != null) {
+			ExternalAuthService auth = authServices.get(selectedExternalAuth);
+			if (auth != null && auth.verifyUser(loginName)) {
+				account = new Account();
+				account.setLoginName(loginName);
+				account.setAuthServiceName(selectedExternalAuth);
+				return account;
+			}
+		}
+
+		throw new IllegalStateException("account not found: " + loginName);
+	}
+
+	private void checkAccountIncludingExternal(String loginName) {
+		if (!localAccounts.containsKey(loginName)) {
+			if (selectedExternalAuth != null) {
+				ExternalAuthService auth = authServices.get(selectedExternalAuth);
+				if (auth != null && auth.verifyUser(loginName))
+					return;
+			}
+
+			throw new IllegalStateException("account not found");
 		}
 	}
 
@@ -386,13 +435,67 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 	}
 
 	@Override
+	public ExternalAuthService getUsingAuthService() {
+		if (selectedExternalAuth == null)
+			return null;
+
+		return authServices.get(selectedExternalAuth);
+	}
+
+	@Override
+	public void useAuthService(String name) {
+		if (name != null && !authServices.containsKey(name))
+			throw new IllegalStateException("external auth service not found: " + name);
+
+		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
+		ConfigCollection col = db.ensureCollection("global_config");
+		Config c = col.findOne(null);
+
+		if (c != null) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> doc = (Map<String, Object>) c.getDocument();
+			doc.put("external_auth", name);
+			c.setDocument(doc);
+			c.update();
+		} else {
+			Map<String, Object> doc = new HashMap<String, Object>();
+			doc.put("external_auth", name);
+			col.add(doc);
+		}
+
+		selectedExternalAuth = name;
+	}
+
+	@Override
+	public List<ExternalAuthService> getAuthServices() {
+		return new ArrayList<ExternalAuthService>(authServices.values());
+	}
+
+	@Override
+	public ExternalAuthService getAuthService(String name) {
+		return authServices.get(name);
+	}
+
+	@Override
+	public void registerAuthService(ExternalAuthService auth) {
+		ExternalAuthService old = authServices.putIfAbsent(auth.getName(), auth);
+		if (old != null)
+			throw new IllegalStateException("duplicated logdb auth service name: " + auth.getName());
+	}
+
+	@Override
+	public void unregisterAuthService(ExternalAuthService auth) {
+		authServices.remove(auth.getName(), auth);
+	}
+
+	@Override
 	public void onCreate(String tableName, Map<String, String> tableMetadata) {
 	}
 
 	@Override
 	public void onDrop(String tableName) {
 		// remove all granted permissions for this table
-		for (Account account : accounts.values()) {
+		for (Account account : localAccounts.values()) {
 			if (account.getReadableTables().contains(tableName)) {
 				ArrayList<String> copy = new ArrayList<String>(account.getReadableTables());
 				copy.remove(tableName);

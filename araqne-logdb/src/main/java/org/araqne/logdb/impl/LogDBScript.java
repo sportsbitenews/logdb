@@ -25,6 +25,7 @@ import org.araqne.api.ScriptContext;
 import org.araqne.api.ScriptUsage;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.CsvLookupRegistry;
+import org.araqne.logdb.ExternalAuthService;
 import org.araqne.logdb.LogQueryScriptFactory;
 import org.araqne.logdb.LogQueryScriptRegistry;
 import org.araqne.logdb.LogQueryService;
@@ -51,6 +52,22 @@ public class LogDBScript implements Script {
 	@Override
 	public void setScriptContext(ScriptContext context) {
 		this.context = context;
+	}
+
+	public void authServices(String[] args) {
+		context.println("External Auth Services");
+		context.println("------------------------");
+
+		ExternalAuthService using = accountService.getUsingAuthService();
+		for (ExternalAuthService s : accountService.getAuthServices()) {
+			context.print(using == s ? "[*] " : "[ ] ");
+			context.println(s.getName() + " - " + s);
+		}
+	}
+
+	public void useAuthService(String[] args) {
+		accountService.useAuthService(args.length > 0 ? args[0] : null);
+		context.println(args.length > 0 ? "set" : "unset");
 	}
 
 	public void sessions(String[] args) {

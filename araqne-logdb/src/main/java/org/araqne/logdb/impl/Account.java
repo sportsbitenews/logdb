@@ -32,6 +32,9 @@ public class Account {
 
 	private String hashType = "sha1";
 
+	// null for local confdb, or external auth service name
+	private String authServiceName;
+
 	@CollectionTypeHint(String.class)
 	private List<String> readableTables = new ArrayList<String>();
 
@@ -74,6 +77,14 @@ public class Account {
 
 	public void setHashType(String hashType) {
 		this.hashType = hashType;
+	}
+
+	public String getAuthServiceName() {
+		return authServiceName;
+	}
+
+	public void setAuthServiceName(String authServiceName) {
+		this.authServiceName = authServiceName;
 	}
 
 	public List<String> getReadableTables() {
