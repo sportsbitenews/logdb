@@ -32,18 +32,25 @@ public class TextFileLoggerFactory extends AbstractLoggerFactory {
 
 	public TextFileLoggerFactory() {
 		options = new ArrayList<LoggerConfigOption>();
-		options.add(new StringConfigType("file.path", map("File Path"), map("Log file path"), true, map("/var/log/")));
-		options.add(new StringConfigType("charset", map("Charset"), map("Charset"), false, map("utf-8")));
-		options.add(new StringConfigType("date.extractor", map("Date Extractor"), map("Regex for date extraction"), false,
-				map(null)));
-		options.add(new StringConfigType("date.pattern", map("Date Pattern"), map("Date pattern of log file"), false,
-				map("MMM dd HH:mm:ss")));
-		options.add(new StringConfigType("date.locale", map("Date Locale"), map("Date locale of log file"), false, map("en")));
+		options.add(new StringConfigType("file.path", t("File Path", "파일 경로"), t("Log file path", "텍스트 로그 파일의 절대 경로"), true,
+				t("/var/log/")));
+		options.add(new StringConfigType("charset", t("Charset", "문자 집합"), t("Charset", "문자 집합"), false, t("utf-8")));
+		options.add(new StringConfigType("date.extractor", t("Date Extractor", "날짜 정규식"), t("Regex for date extraction",
+				"날짜 문자열 추출에 사용되는 정규표현식"), false, t(null)));
+		options.add(new StringConfigType("date.pattern", t("Date Pattern", "날짜 패턴"), t("Date pattern of log file",
+				"날짜 파싱에 필요한 패턴 (예시: yyyy-MM-dd HH:mm:ss)"), false, t("MMM dd HH:mm:ss")));
+		options.add(new StringConfigType("date.locale", t("Date Locale", "날짜 로케일"), t("Date locale of log file",
+				"날짜 문자열의 로케일. 가령 날짜 패턴의 MMM 지시어은 영문 로케일에서 Jan으로 인식됩니다."), false, t("en")));
 	}
 
-	private Map<Locale, String> map(String value) {
+	private Map<Locale, String> t(String text) {
+		return t(text, text);
+	}
+
+	private Map<Locale, String> t(String enText, String koText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
-		m.put(Locale.ENGLISH, value);
+		m.put(Locale.ENGLISH, enText);
+		m.put(Locale.KOREAN, koText);
 		return m;
 	}
 
