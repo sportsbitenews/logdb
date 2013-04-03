@@ -16,6 +16,7 @@
 package org.araqne.log.api;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -69,13 +70,27 @@ public class TextFileLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
-	public String getDescription(Locale locale) {
-		return "text file logger";
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+	}
+
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "text file logger";
+		if (locale == Locale.ENGLISH)
+			return "텍스트 로그 파일";
+		return "Text file logger";
+	}
+
+	@Override
+	public String getDescription(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "롤링되는 텍스트 로그 파일로부터 주기적으로 로그를 수집합니다.";
+		return "Text file logger";
 	}
 
 	@Override
