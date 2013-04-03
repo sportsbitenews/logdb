@@ -35,6 +35,9 @@ public class Log {
 	 */
 	private long binaryLength;
 
+	private Log() {
+	}
+
 	public Log(String tableName, Date date, Map<String, Object> data) {
 		this(tableName, date, 0, data, null);
 	}
@@ -86,6 +89,17 @@ public class Log {
 
 	public void setBinaryLength(long binaryLength) {
 		this.binaryLength = binaryLength;
+	}
+
+	public Log shallowCopy() {
+		Log copy = new Log();
+		copy.tableName = tableName;
+		copy.date = date;
+		copy.day = day;
+		copy.id = id;
+		copy.data = data;
+		copy.indexTokens = indexTokens;
+		return copy;
 	}
 
 	@Override

@@ -124,8 +124,11 @@ public class OnlineWriter {
 				throw new IOException("file closed");
 
 			long nid = nextId();
+
 			log.setId(nid);
-			writer.write(log);
+
+			// prevent external id modification
+			writer.write(log.shallowCopy());
 			lastAccess = new Date();
 		}
 	}
