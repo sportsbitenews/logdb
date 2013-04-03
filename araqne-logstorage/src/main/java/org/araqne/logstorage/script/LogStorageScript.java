@@ -448,7 +448,7 @@ public class LogStorageScript implements Script {
 
 	private void importFromStream(String tableName, InputStream fis, int offset, int limit) throws IOException {
 		Date begin = new Date();
-		int count = 0;
+		long count = 0;
 		BufferedReader br = new BufferedReader(new InputStreamReader(fis), 16384 * 1024); // 16MB
 		String line = null;
 
@@ -651,7 +651,7 @@ public class LogStorageScript implements Script {
 		String timeStr = null;
 		if (time == 0)
 			timeStr = "n/a";
-		else 
+		else
 			timeStr = String.format("%d logs/s", count * 1000L / time);
 		context.println(String.format("%s(write): %d log/%d ms (%s)", name, count, time, timeStr));
 
@@ -664,7 +664,7 @@ public class LogStorageScript implements Script {
 		time = end - begin;
 		if (time == 0)
 			timeStr = "n/a";
-		else 
+		else
 			timeStr = String.format("%d logs/s", count * 1000L / time);
 		context.println(String.format("%s(read): %d log/%d ms (%s)", name, count, time, timeStr));
 
