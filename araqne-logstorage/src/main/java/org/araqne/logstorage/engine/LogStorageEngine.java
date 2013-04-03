@@ -358,8 +358,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		// delete all .idx and .dat files
 		for (File f : tableDir.listFiles()) {
 			if (f.isFile() && (f.getName().endsWith(".idx") || f.getName().endsWith(".dat"))) {
-				if (!f.delete())
-					logger.error("araqne logstorage: cannot delete log data {} of table {}", f.getAbsolutePath(), tableName);
+				ensureDelete(f);
 			}
 		}
 
