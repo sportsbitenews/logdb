@@ -16,9 +16,12 @@
 package org.araqne.logdb.query.engine;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -59,6 +62,7 @@ import org.araqne.logdb.query.parser.TableParser;
 import org.araqne.logdb.query.parser.TextFileParser;
 import org.araqne.logdb.query.parser.TimechartParser;
 import org.araqne.logdb.query.parser.ZipFileParser;
+import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.osgi.framework.BundleContext;
@@ -68,6 +72,8 @@ import org.slf4j.LoggerFactory;
 @Component(name = "logdb-query")
 @Provides
 public class LogQueryServiceImpl implements LogQueryService {
+	private static final String QUERY_LOG_TABLE = "araqne_query_logs";
+
 	private final Logger logger = LoggerFactory.getLogger(LogQueryServiceImpl.class);
 
 	@Requires
@@ -90,6 +96,9 @@ public class LogQueryServiceImpl implements LogQueryService {
 
 	@Requires
 	private LogQueryParserService queryParserService;
+
+	@Requires
+	private LogStorage storage;
 
 	private BundleContext bc;
 	private ConcurrentMap<Integer, LogQuery> queries;
@@ -143,6 +152,7 @@ public class LogQueryServiceImpl implements LogQueryService {
 			queryParserService.addCommandParser(p);
 
 		// receive log table event and register it to data source registry
+		storage.ensureTable(QUERY_LOG_TABLE, "v2");
 	}
 
 	@Invalidate
@@ -241,6 +251,27 @@ public class LogQueryServiceImpl implements LogQueryService {
 		@Override
 		public void onEof() {
 			invokeCallbacks(query, LogQueryStatus.Eof);
+			Date now = new Date();
+
+			HashMap<String, Object> m = new HashMap<String, Object>();
+			m.put("query_id", query.getId());
+			m.put("query_string", query.getQueryString());
+			try {
+				m.put("rows", query.getResultCount());
+			} catch (IOException e) {
+				m.put("rows", 0);
+			}
+			m.put("start_at", query.getLastStarted());
+			m.put("eof_at", now);
+			m.put("login_name", query.getContext().getSession().getLoginName());
+			m.put("cancelled", query.isCancelled());
+
+			if (query.getLastStarted() != null)
+				m.put("duration", (now.getTime() - query.getLastStarted().getTime()) / 1000);
+			else
+				m.put("duration", 0);
+
+			storage.write(new Log(QUERY_LOG_TABLE, now, m));
 		}
 	}
 }

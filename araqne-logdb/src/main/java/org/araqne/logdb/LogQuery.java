@@ -22,11 +22,15 @@ import java.util.Map;
 import java.util.Set;
 
 public interface LogQuery extends Runnable {
+	LogQueryContext getContext();
+
 	int getId();
 
 	String getQueryString();
 
 	boolean isEnd();
+
+	boolean isCancelled();
 
 	void cancel();
 
@@ -36,6 +40,7 @@ public interface LogQuery extends Runnable {
 
 	/**
 	 * @return current loaded result count or null if query is not started
+	 * @throws IOException
 	 */
 	Long getResultCount() throws IOException;
 
@@ -52,7 +57,7 @@ public interface LogQuery extends Runnable {
 	void registerQueryCallback(LogQueryCallback callback);
 
 	void unregisterQueryCallback(LogQueryCallback callback);
-	
+
 	void clearQueryCallbacks();
 
 	Set<LogTimelineCallback> getTimelineCallbacks();
@@ -60,6 +65,6 @@ public interface LogQuery extends Runnable {
 	void registerTimelineCallback(LogTimelineCallback callback);
 
 	void unregisterTimelineCallback(LogTimelineCallback callback);
-	
+
 	void clearTimelineCallbacks();
 }

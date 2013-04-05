@@ -40,7 +40,7 @@ public class LogQueryParserServiceImpl implements LogQueryParserService {
 	@Override
 	public LogQuery parse(LogQueryContext context, String queryString) {
 		List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
-		LogQuery lq = new LogQueryImpl(queryString, commands);
+		LogQuery lq = new LogQueryImpl(context, queryString, commands);
 
 		for (String q : QueryTokenizer.parseCommands(queryString)) {
 			q = q.trim();

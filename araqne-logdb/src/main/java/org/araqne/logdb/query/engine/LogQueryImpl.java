@@ -29,6 +29,7 @@ import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCallback;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommand.Status;
+import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogResultSet;
 import org.araqne.logdb.LogTimelineCallback;
 import org.araqne.logdb.query.command.Result;
@@ -40,14 +41,17 @@ public class LogQueryImpl implements LogQuery {
 	private static AtomicInteger nextId = new AtomicInteger(1);
 
 	private final int id = nextId.getAndIncrement();
+	private LogQueryContext context;
 	private String queryString;
 	private List<LogQueryCommand> commands;
 	private Date lastStarted;
 	private Result result;
+	private boolean cancelled;
 	private Set<LogQueryCallback> logQueryCallbacks = new CopyOnWriteArraySet<LogQueryCallback>();
 	private Set<LogTimelineCallback> timelineCallbacks = new CopyOnWriteArraySet<LogTimelineCallback>();
 
-	public LogQueryImpl(String queryString, List<LogQueryCommand> commands) {
+	public LogQueryImpl(LogQueryContext context, String queryString, List<LogQueryCommand> commands) {
+		this.context = context;
 		this.queryString = queryString;
 		this.commands = commands;
 	}
@@ -77,6 +81,16 @@ public class LogQueryImpl implements LogQuery {
 		} catch (Exception e) {
 			logger.error("araqne logdb: query failed - " + this, e);
 		}
+	}
+
+	@Override
+	public LogQueryContext getContext() {
+		return context;
+	}
+
+	@Override
+	public boolean isCancelled() {
+		return cancelled;
 	}
 
 	@Override
@@ -115,6 +129,8 @@ public class LogQueryImpl implements LogQuery {
 	public void cancel() {
 		if (result == null)
 			return;
+
+		cancelled = true;
 
 		if (result.getStatus() != Status.End && result.getStatus() != Status.Finalizing)
 			result.eof();
