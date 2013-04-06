@@ -81,7 +81,7 @@ public class TextFileLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale == Locale.ENGLISH)
+		if (locale == Locale.KOREAN)
 			return "텍스트 로그 파일";
 		return "Text file logger";
 	}
