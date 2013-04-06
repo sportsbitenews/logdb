@@ -70,8 +70,13 @@ public class Console {
 
 				handle(line);
 			}
+		} catch (InterruptedException e) {
+			context.println("interrupted");
 		} catch (Throwable t) {
-			context.println(t.getClass().getName() + ": " + t.getMessage());
+			if (t.getMessage() != null)
+				context.println(t.getMessage());
+			else
+				context.println(t.toString());
 		} finally {
 			if (session != null) {
 				accountService.logout(session);
@@ -244,13 +249,16 @@ public class Console {
 			return;
 		}
 
+		int i = 0;
 		StringBuilder sb = new StringBuilder();
 		for (String line : lines) {
+			if (i++ != 0)
+				sb.append(" ");
+
 			if (line.endsWith("\\"))
 				sb.append(line.substring(0, line.length() - 1));
 			else
 				sb.append(line);
-			sb.append(" ");
 		}
 
 		queryString = sb.toString();
