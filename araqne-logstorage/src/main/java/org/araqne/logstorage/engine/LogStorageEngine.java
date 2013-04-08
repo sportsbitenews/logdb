@@ -803,6 +803,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			}
 
 			String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
+			if (logFileType == null)
+				logFileType = "v2";
+
 			reader = lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(indexPath, dataPath));
 			reader.traverse(from, to, offset, limit, c);
 		} catch (InterruptedException e) {
