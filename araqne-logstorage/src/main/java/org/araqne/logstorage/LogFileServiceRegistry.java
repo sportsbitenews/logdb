@@ -17,4 +17,14 @@ public interface LogFileServiceRegistry {
 	LogFileReader newReader(String type, Map<String, Object> options);
 
 	LogFileService getLogFileService(String type);
+
+	/**
+	 * @since 1.16.0
+	 */
+	String[] getInstalledTypes();
+
+	/**
+	 * @since 1.16.0
+	 */
+	void uninstall(String type);
 }

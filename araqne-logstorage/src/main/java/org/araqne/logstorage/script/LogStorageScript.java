@@ -688,4 +688,25 @@ public class LogStorageScript implements Script {
 			return interrupt;
 		}
 	}
+
+	/**
+	 * @since 1.16.0
+	 */
+	public void installedEngines(String[] args) {
+		context.println("Installed File Engines");
+		context.println("------------------------");
+		for (String type : lfsRegistry.getInstalledTypes()) {
+			context.println(type);
+		}
+	}
+
+	/**
+	 * @since 1.16.0
+	 */
+	@ScriptUsage(description = "uninstall engine. request to unloaded engine will not blocked any more. "
+			+ "insteads, it will throw unsupported exception", arguments = { @ScriptArgument(name = "engine type", type = "string", description = "engine type name") })
+	public void uninstallEngine(String[] args) {
+		lfsRegistry.uninstall(args[0]);
+		context.println("removed from file engine list");
+	}
 }
