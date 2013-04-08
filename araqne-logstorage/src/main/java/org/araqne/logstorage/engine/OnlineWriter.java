@@ -62,12 +62,12 @@ public class OnlineWriter {
 
 	private final LogFileService logFileService;
 
-	public OnlineWriter(LogFileService logFileService, int tableId, Date day, int blockSize) throws IOException {
-		this(logFileService, tableId, day, blockSize, null);
+	public OnlineWriter(LogFileService logFileService, String tableName, int tableId, Date day, int blockSize) throws IOException {
+		this(logFileService, tableName, tableId, day, blockSize, null);
 	}
 
-	public OnlineWriter(LogFileService logFileService, int tableId, Date day, int blockSize, String defaultLogVersion)
-			throws IOException {
+	public OnlineWriter(LogFileService logFileService, String tableName, int tableId, Date day, int blockSize,
+			String defaultLogVersion) throws IOException {
 		this.logFileService = logFileService;
 		this.tableId = tableId;
 		this.day = day;
@@ -78,7 +78,7 @@ public class OnlineWriter {
 		dataPath.getParentFile().mkdirs();
 
 		try {
-			writer = this.logFileService.newWriter(new LogFileServiceV2.Option(indexPath, dataPath));
+			writer = this.logFileService.newWriter(new LogFileServiceV2.Option(tableName, indexPath, dataPath));
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (Throwable t) {

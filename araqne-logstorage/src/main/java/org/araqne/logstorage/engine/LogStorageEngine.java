@@ -690,7 +690,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		File dataPath = DatapathUtil.getDataFile(tableId, day);
 
 		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
-		LogFileReader reader = lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(indexPath, dataPath));
+		LogFileReader reader = lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
 
 		return new LogCursorImpl(tableName, day, buffer, reader, ascending);
 	}
@@ -806,7 +806,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			if (logFileType == null)
 				logFileType = "v2";
 
-			reader = lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(indexPath, dataPath));
+			reader = lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
 			reader.traverse(from, to, offset, limit, c);
 		} catch (InterruptedException e) {
 			throw e;
@@ -893,7 +893,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 						while (onlineWriters.get(key) == oldWriter) {
 							Thread.yield();
 						}
-						OnlineWriter newWriter = newOnlineWriter(tableId, day, blockSize, logFileType);
+						OnlineWriter newWriter = newOnlineWriter(tableName, tableId, day, blockSize, logFileType);
 						OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
 						if (consensus == null)
 							online = newWriter;
@@ -906,7 +906,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 						while (onlineWriters.get(key) == oldWriter) {
 							Thread.yield();
 						}
-						OnlineWriter newWriter = newOnlineWriter(tableId, day, blockSize, logFileType);
+						OnlineWriter newWriter = newOnlineWriter(tableName, tableId, day, blockSize, logFileType);
 						OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
 						if (consensus == null)
 							online = newWriter;
@@ -920,7 +920,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 					}
 				}
 			} else {
-				OnlineWriter newWriter = newOnlineWriter(tableId, day, blockSize, logFileType);
+				OnlineWriter newWriter = newOnlineWriter(tableName, tableId, day, blockSize, logFileType);
 				OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
 				if (consensus == null)
 					online = newWriter;
@@ -939,14 +939,15 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		return online;
 	}
 
-	private OnlineWriter newOnlineWriter(int tableId, Date day, int blockSize, String logFileType) throws IOException {
+	private OnlineWriter newOnlineWriter(String tableName, int tableId, Date day, int blockSize, String logFileType)
+			throws IOException {
 		if (logFileType == null)
 			logFileType = DEFAULT_LOGFILETYPE;
 		LogFileService lfs = lfsRegistry.getLogFileService(logFileType);
 		if (lfs == null) {
 			throw new UnsupportedLogFileTypeException(logFileType);
 		}
-		return new OnlineWriter(lfs, tableId, day, blockSize);
+		return new OnlineWriter(lfs, tableName, tableId, day, blockSize);
 	}
 
 	@Override

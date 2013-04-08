@@ -50,7 +50,7 @@ class LogFileFetcher {
 			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
 
 		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
-		return lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(indexPath, dataPath));
+		return lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
 
 	}
 }
