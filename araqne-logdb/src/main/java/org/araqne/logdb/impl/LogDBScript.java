@@ -163,10 +163,26 @@ public class LogDBScript implements Script {
 
 	}
 
-	public void lookuphandlers(String[] args) {
+	public void lookupHandlers(String[] args) {
 		context.println("Lookup Handlers");
 		context.println("---------------------");
 		for (String name : lookup.getLookupHandlerNames())
 			context.println(name);
+	}
+
+	/**
+	 * @since 0.14.0
+	 */
+	public void queries(String[] args) {
+		QueryPrintHelper.printQueries(context, qs.getQueries());
+	}
+
+	/**
+	 * @since 0.14.0
+	 */
+	@ScriptUsage(description = "remove query", arguments = { @ScriptArgument(name = "query id", type = "int", description = "query id") })
+	public void removeQuery(String[] args) {
+		qs.removeQuery(Integer.valueOf(args[0]));
+		context.println("removed query " + args[0]);
 	}
 }

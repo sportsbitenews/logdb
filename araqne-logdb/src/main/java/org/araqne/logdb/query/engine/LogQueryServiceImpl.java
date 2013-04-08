@@ -175,8 +175,16 @@ public class LogQueryServiceImpl implements LogQueryService {
 
 	@Override
 	public void startQuery(int id) {
+		startQuery(null, id);
+	}
+
+	@Override
+	public void startQuery(Session session, int id) {
 		LogQuery lq = getQuery(id);
 		if (lq == null)
+			throw new IllegalArgumentException("invalid log query id: " + id);
+
+		if (session != null && !lq.getContext().getSession().equals(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
 		new Thread(lq, "Log Query " + id).start();
@@ -185,6 +193,26 @@ public class LogQueryServiceImpl implements LogQueryService {
 
 	@Override
 	public void removeQuery(int id) {
+		removeQuery(null, id);
+	}
+
+	@Override
+	public void removeQuery(Session session, int id) {
+		if (session != null) {
+			LogQuery q = queries.get(session);
+			if (q == null) {
+				logger.debug("araqne logdb: query [{}] not found, remove failed", id);
+				return;
+			}
+
+			Session querySession = q.getContext().getSession();
+			if (!querySession.equals(session)) {
+				logger.warn("araqne logdb: security violation, [{}] access to query of login [{}] session [{}]", new Object[] {
+						session.getLoginName(), querySession.getLoginName(), querySession.getGuid() });
+				return;
+			}
+		}
+
 		LogQuery lq = queries.remove(id);
 		if (lq == null) {
 			logger.debug("araqne logdb: query [{}] not found, remove failed", id);
@@ -216,8 +244,30 @@ public class LogQueryServiceImpl implements LogQueryService {
 	}
 
 	@Override
+	public Collection<LogQuery> getQueries(Session session) {
+		List<LogQuery> l = new ArrayList<LogQuery>();
+		for (LogQuery q : queries.values())
+			if (q.getContext().getSession().equals(session))
+				l.add(q);
+
+		return l;
+	}
+
+	@Override
 	public LogQuery getQuery(int id) {
 		return queries.get(id);
+	}
+
+	@Override
+	public LogQuery getQuery(Session session, int id) {
+		LogQuery q = queries.get(id);
+		if (q == null)
+			return null;
+
+		if (!q.getContext().getSession().equals(session))
+			return null;
+
+		return q;
 	}
 
 	@Override

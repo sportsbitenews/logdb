@@ -16,19 +16,15 @@
 package org.araqne.logdb.impl;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import org.araqne.api.ScriptContext;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQuery;
-import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LogResultSet;
 import org.araqne.logdb.Permission;
@@ -202,34 +198,7 @@ public class Console {
 	}
 
 	private void queries() {
-		context.println("Log Queries");
-		context.println("-------------");
-		ArrayList<LogQuery> queries = new ArrayList<LogQuery>(queryService.getQueries());
-		Collections.sort(queries, new Comparator<LogQuery>() {
-			@Override
-			public int compare(LogQuery o1, LogQuery o2) {
-				return o1.getId() - o2.getId();
-			}
-		});
-
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-		for (LogQuery query : queries) {
-			String when = " \t/ not started yet";
-			if (query.getLastStarted() != null) {
-				long sec = new Date().getTime() - query.getLastStarted().getTime();
-				when = String.format(" \t/ %s, %d seconds ago", sdf.format(query.getLastStarted()), sec / 1000);
-			}
-
-			context.println(String.format("[%d] %s%s", query.getId(), query.getQueryString(), when));
-
-			if (query.getCommands() != null) {
-				for (LogQueryCommand cmd : query.getCommands()) {
-					context.println(String.format("    [%s] %s \t/ passed %d data to next query", cmd.getStatus(),
-							cmd.getQueryString(), cmd.getPushCount()));
-				}
-			} else
-				context.println("    null");
-		}
+		QueryPrintHelper.printQueries(context, queryService.getQueries(session));
 	}
 
 	private void query(String queryString) throws IOException {
@@ -265,7 +234,7 @@ public class Console {
 
 		long begin = System.currentTimeMillis();
 		LogQuery lq = queryService.createQuery(session, queryString);
-		queryService.startQuery(lq.getId());
+		queryService.startQuery(session, lq.getId());
 
 		do {
 			try {
@@ -297,13 +266,13 @@ public class Console {
 	}
 
 	private void startQuery(int id) {
-		LogQuery q = queryService.getQuery(id);
+		LogQuery q = queryService.getQuery(session, id);
 		if (q == null) {
 			context.println("query not found");
 			return;
 		}
 
-		queryService.startQuery(q.getId());
+		queryService.startQuery(session, q.getId());
 		context.println("started query " + id);
 	}
 
@@ -334,7 +303,7 @@ public class Console {
 	}
 
 	private void stopQuery(int id) {
-		LogQuery q = queryService.getQuery(id);
+		LogQuery q = queryService.getQuery(session, id);
 		if (q != null) {
 			q.cancel();
 			context.println("stopped");
@@ -344,12 +313,12 @@ public class Console {
 	}
 
 	private void removeQuery(int id) {
-		queryService.removeQuery(id);
+		queryService.removeQuery(session, id);
 		context.println("removed query " + id);
 	}
 
 	private void fetch(int id, long offset, long limit) throws IOException {
-		LogQuery q = queryService.getQuery(id);
+		LogQuery q = queryService.getQuery(session, id);
 		if (q == null) {
 			context.println("query not found");
 			return;
@@ -362,9 +331,9 @@ public class Console {
 	}
 
 	private void removeAllQueries() {
-		for (LogQuery q : queryService.getQueries()) {
+		for (LogQuery q : queryService.getQueries(session)) {
 			int id = q.getId();
-			queryService.removeQuery(id);
+			queryService.removeQuery(session, id);
 			context.println("removed query " + id);
 		}
 		context.println("cleared all queries");

@@ -20,13 +20,21 @@ import java.util.Collection;
 public interface LogQueryService {
 	Collection<LogQuery> getQueries();
 
+	Collection<LogQuery> getQueries(Session session);
+
 	LogQuery getQuery(int id);
+
+	LogQuery getQuery(Session session, int id);
 
 	LogQuery createQuery(Session session, String query);
 
 	void startQuery(int id);
 
+	void startQuery(Session session, int id);
+
 	void removeQuery(int id);
+
+	void removeQuery(Session session, int id);
 
 	void addListener(LogQueryEventListener listener);
 
