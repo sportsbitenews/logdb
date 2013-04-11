@@ -51,7 +51,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 	@Requires
 	private ConfigService conf;
-	
+
 	@Requires
 	private LogFileServiceRegistry lfsRegistry;
 
@@ -144,9 +144,17 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	public void createTable(String tableName, String type, Map<String, String> tableMetadata) {
 		if (tableSchemas.containsKey(tableName))
 			throw new IllegalStateException("table already exists: " + tableName);
-		
-		if (lfsRegistry != null && lfsRegistry.getLogFileService(type) == null) {
-			throw new UnsupportedLogFileTypeException(type);
+
+		if (lfsRegistry != null) {
+			String[] installedTypes = lfsRegistry.getInstalledTypes();
+			boolean installed = false;
+			for (String t : installedTypes) {
+				if (t.equals(type)) {
+					installed = true;;
+				}
+			}
+			if (!installed)
+				throw new UnsupportedLogFileTypeException(type);
 		}
 
 		int newId = nextTableId.incrementAndGet();
