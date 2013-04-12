@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
@@ -394,16 +395,19 @@ public class LogStorageScript implements Script {
 		if (args.length > 3)
 			limit = Integer.valueOf(args[3]);
 
-		FileInputStream fis = null;
+		InputStream is = null;
 		try {
-			fis = new FileInputStream(file);
-			importFromStream(tableName, fis, offset, limit);
+			is = new FileInputStream(file);
+			if (file.getName().endsWith(".gz")) {
+				is = new GZIPInputStream(is);
+			}
+			importFromStream(tableName, is, offset, limit);
 		} catch (Exception e) {
 			context.println("import failed, " + e.getMessage());
 			logger.error("araqne logstorage: cannot import text file " + file.getAbsolutePath(), e);
 		} finally {
-			if (fis != null)
-				fis.close();
+			if (is != null)
+				is.close();
 		}
 	}
 
