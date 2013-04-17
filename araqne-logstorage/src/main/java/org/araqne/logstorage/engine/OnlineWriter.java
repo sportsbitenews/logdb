@@ -90,11 +90,11 @@ public class OnlineWriter {
 	}
 
 	public boolean isOpen() {
-		return writer != null && closing == false;
+		return (writer != null && !writer.isClosed()) && closing == false;
 	}
 
 	public boolean isClosed() {
-		return closing == true && writer == null;
+		return closing == true && (writer.isClosed());
 	}
 
 	public int getTableId() {
@@ -191,7 +191,6 @@ public class OnlineWriter {
 				flush();
 				writer.close();
 				notifyAll();
-				writer = null;
 			}
 
 		} catch (IOException e) {

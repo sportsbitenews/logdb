@@ -45,4 +45,6 @@ public abstract class LogFileWriter {
 
 	public abstract List<List<Log>> getBuffers();
 
+	public abstract boolean isClosed();
+
 }

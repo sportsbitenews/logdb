@@ -1189,4 +1189,15 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 	public void onDrop(String tableName) {
 		tableNameCache.remove(tableName);
 	}
+
+	public void purgeOnlineWriters() {
+		List<OnlineWriterKey> keys = new ArrayList<OnlineWriterKey>();
+		for (Map.Entry<OnlineWriterKey, OnlineWriter> e: onlineWriters.entrySet()) {
+			e.getValue().close();
+			keys.add(e.getKey());
+		}
+		for (OnlineWriterKey key: keys) {
+			onlineWriters.remove(key);
+		}
+	}
 }

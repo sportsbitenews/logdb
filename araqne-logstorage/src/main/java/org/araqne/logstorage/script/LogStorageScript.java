@@ -55,6 +55,7 @@ import org.araqne.logstorage.LogWriterStatus;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
+import org.araqne.logstorage.engine.LogStorageEngine;
 import org.araqne.logstorage.engine.LogTableSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -712,5 +713,11 @@ public class LogStorageScript implements Script {
 	public void uninstallEngine(String[] args) {
 		lfsRegistry.uninstall(args[0]);
 		context.println("removed from file engine list");
+	}
+	
+	// for test
+	public void purgeOnlineWriters(String args) {
+		LogStorageEngine engine = (LogStorageEngine) storage;
+		engine.purgeOnlineWriters();
 	}
 }
