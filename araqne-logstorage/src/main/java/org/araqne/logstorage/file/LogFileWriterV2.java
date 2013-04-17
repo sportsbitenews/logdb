@@ -381,4 +381,9 @@ public class LogFileWriterV2 extends LogFileWriter {
 			dataFile = null;
 		}
 	}
+
+	@Override
+	public boolean isClosed() {
+		return dataFile == null;
+	}
 }
