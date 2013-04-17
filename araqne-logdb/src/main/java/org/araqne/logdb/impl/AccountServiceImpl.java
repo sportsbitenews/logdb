@@ -120,24 +120,40 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 	@Override
 	public List<Privilege> getPrivileges(Session session, String loginName) {
 		verifyNotNull(session, "session");
-		verifyNotNull(loginName, "login name");
-
-		checkAccountIncludingExternal(loginName);
 
 		if (!sessions.containsKey(session.getGuid()))
 			throw new IllegalStateException("invalid session");
 
 		// allow own info check or master admin only
-		if (!loginName.equals(session.getLoginName()) && !session.getLoginName().equals(MASTER_ACCOUNT))
+		if (!checkPermission(session, loginName))
 			throw new IllegalStateException("no permission");
 
 		List<Privilege> privileges = new ArrayList<Privilege>();
-		Account account = ensureAccount(loginName);
-		for (String tableName : account.getReadableTables()) {
-			privileges.add(new Privilege(loginName, tableName, Arrays.asList(Permission.READ)));
-		}
+		if (loginName != null) {
+			checkAccountIncludingExternal(loginName);
 
+			Account account = ensureAccount(loginName);
+			for (String tableName : account.getReadableTables()) {
+				privileges.add(new Privilege(loginName, tableName, Arrays.asList(Permission.READ)));
+			}
+		} else {
+			ConfigDatabase db = conf.ensureDatabase(DB_NAME);
+			for (Account account : db.findAll(Account.class).getDocuments(Account.class))
+				for (String tableName : account.getReadableTables())
+					privileges.add(new Privilege(account.getLoginName(), tableName, Arrays.asList(Permission.READ)));
+
+		}
 		return privileges;
+	}
+
+	private boolean checkPermission(Session session, String loginName) {
+		if (session.getLoginName().equals(MASTER_ACCOUNT))
+			return true;
+
+		if (loginName == null)
+			return false;
+
+		return loginName.equals(session.getLoginName());
 	}
 
 	@Override
@@ -253,7 +269,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 			throw new IllegalStateException("invalid session");
 
 		// check if owner or master
-		if (!loginName.equals(session.getLoginName()) && !session.getLoginName().equals(MASTER_ACCOUNT))
+		if (!checkPermission(session, loginName))
 			throw new IllegalStateException("no permission");
 
 		Account account = localAccounts.get(loginName);
