@@ -238,7 +238,18 @@ public class LogStorageScript implements Script {
 			@ScriptArgument(name = "name", type = "string", description = "log table name"),
 			@ScriptArgument(name = "type", type = "string", description = "log file type (v1, v2, etc)") })
 	public void createTable(String[] args) {
-		storage.createTable(args[0], args[1]);
+		Map<String, String> metadata = new HashMap<String, String>();
+		if (args.length > 2) {
+			for (int i = 2; i < args.length; i++) {
+				String[] pair = args[i].split("=");
+				if (pair.length != 2)
+					continue;
+
+				metadata.put(pair[0], pair[1]);
+			}
+		}
+
+		storage.createTable(args[0], args[1], metadata);
 		context.println("table created");
 	}
 
@@ -714,7 +725,7 @@ public class LogStorageScript implements Script {
 		lfsRegistry.uninstall(args[0]);
 		context.println("removed from file engine list");
 	}
-	
+
 	// for test
 	public void purgeOnlineWriters(String args) {
 		LogStorageEngine engine = (LogStorageEngine) storage;

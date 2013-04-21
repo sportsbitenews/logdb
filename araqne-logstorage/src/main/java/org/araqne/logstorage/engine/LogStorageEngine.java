@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -947,7 +948,11 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		if (lfs == null) {
 			throw new UnsupportedLogFileTypeException(logFileType);
 		}
-		return new OnlineWriter(lfs, tableName, tableId, day, blockSize);
+
+		Map<String, String> tableMetadata = new HashMap<String, String>();
+		for (String key : tableRegistry.getTableMetadataKeys(tableName))
+			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+		return new OnlineWriter(lfs, tableName, tableId, day, tableMetadata);
 	}
 
 	@Override
@@ -1192,11 +1197,11 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 
 	public void purgeOnlineWriters() {
 		List<OnlineWriterKey> keys = new ArrayList<OnlineWriterKey>();
-		for (Map.Entry<OnlineWriterKey, OnlineWriter> e: onlineWriters.entrySet()) {
+		for (Map.Entry<OnlineWriterKey, OnlineWriter> e : onlineWriters.entrySet()) {
 			e.getValue().close();
 			keys.add(e.getKey());
 		}
-		for (OnlineWriterKey key: keys) {
+		for (OnlineWriterKey key : keys) {
 			onlineWriters.remove(key);
 		}
 	}

@@ -21,12 +21,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileService;
-import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,12 +63,8 @@ public class OnlineWriter {
 
 	private final LogFileService logFileService;
 
-	public OnlineWriter(LogFileService logFileService, String tableName, int tableId, Date day, int blockSize) throws IOException {
-		this(logFileService, tableName, tableId, day, blockSize, null);
-	}
-
-	public OnlineWriter(LogFileService logFileService, String tableName, int tableId, Date day, int blockSize,
-			String defaultLogVersion) throws IOException {
+	public OnlineWriter(LogFileService logFileService, String tableName, int tableId, Date day, Map<String, String> tableMetadata)
+			throws IOException {
 		this.logFileService = logFileService;
 		this.tableId = tableId;
 		this.day = day;
@@ -78,14 +75,17 @@ public class OnlineWriter {
 		dataPath.getParentFile().mkdirs();
 
 		try {
-			writer = this.logFileService.newWriter(new LogFileServiceV2.Option(tableName, indexPath, dataPath));
+			Map<String, Object> writerConfig = new HashMap<String, Object>(tableMetadata);
+			writerConfig.put("tableName", tableName);
+			writerConfig.put("indexPath", indexPath);
+			writerConfig.put("dataPath", dataPath);
+
+			writer = this.logFileService.newWriter(writerConfig);
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (Throwable t) {
 			throw new IllegalStateException("araqne-logstorage: unexpected error", t);
 		}
-		// writer = LogFileWriter.getLogFileWriter(indexPath, dataPath,
-		// defaultLogVersion);
 		nextId = new AtomicLong(writer.getLastKey());
 	}
 
