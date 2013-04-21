@@ -18,6 +18,7 @@ package org.araqne.log.api.msgbus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -129,11 +130,13 @@ public class LoggerPlugin {
 		LoggerFactory loggerFactory = loggerFactoryRegistry.getLoggerFactory(loggerFactoryName);
 		Properties config = new Properties();
 
+		@SuppressWarnings("unchecked")
+		Map<String, String> options = (Map<String, String>) req.get("options");
 		for (LoggerConfigOption opt : loggerFactory.getConfigOptions()) {
 			String value = null;
 
 			try {
-				value = req.getString(opt.getName());
+				value = options.get(opt.getName());
 				if (value != null)
 					config.put(opt.getName(), value);
 			} catch (NullPointerException e) {

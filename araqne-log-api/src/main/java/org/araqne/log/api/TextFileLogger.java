@@ -35,16 +35,16 @@ public class TextFileLogger extends AbstractLogger {
 				.getConfig());
 
 		Properties config = spec.getConfig();
-		String filePath = config.getProperty("file.path");
-		String datePattern = config.getProperty("date.pattern");
+		String filePath = config.getProperty("file_path");
+		String datePattern = config.getProperty("date_pattern");
 		if (datePattern == null)
 			datePattern = "MMM dd HH:mm:ss";
 
-		String dateExtractor = config.getProperty("date.extractor");
+		String dateExtractor = config.getProperty("date_extractor");
 		if (dateExtractor == null || dateExtractor.isEmpty())
 			dateExtractor = DefaultDateParser.dateFormatToRegex(datePattern);
 
-		String dateLocale = config.getProperty("date.locale");
+		String dateLocale = config.getProperty("date_locale");
 		if (dateLocale == null)
 			dateLocale = "en";
 

@@ -72,7 +72,7 @@ public class Marshaler {
 
 	public static Map<String, Object> marshal(LoggerConfigOption opt, Locale locale) {
 		Map<String, Object> m = new HashMap<String, Object>();
-		m.put("name", opt.getName().replace('.', '_'));
+		m.put("name", opt.getName());
 		m.put("description", opt.getDescription(locale));
 		m.put("display_name", opt.getDisplayName(locale));
 		m.put("type", opt.getType());
