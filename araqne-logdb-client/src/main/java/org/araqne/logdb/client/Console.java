@@ -53,6 +53,9 @@ public class Console {
 				String line = br.readLine();
 				if (line == null)
 					break;
+				
+				if (line.trim().isEmpty())
+					continue;
 
 				String[] tokens = line.split(" ");
 				if (tokens.length == 0)
@@ -146,8 +149,8 @@ public class Console {
 	}
 
 	private void connect(String[] tokens) {
-		if (tokens.length < 4) {
-			w("Usage: connect <host:port> <loginname> <password>");
+		if (tokens.length < 3) {
+			w("Usage: connect <host:port> <loginname> [<password>]");
 			return;
 		}
 
@@ -172,7 +175,10 @@ public class Console {
 		}
 
 		loginName = tokens[2];
-		password = tokens[3];
+
+		password = "";
+		if (tokens.length > 3)
+			password = tokens[3];
 
 		try {
 			client = new CometClient();

@@ -630,7 +630,6 @@ public class CometClient implements TrapListener {
 		params.put("timeline_limit", timelineSize);
 
 		session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.startQuery", params);
-		queries.get(id);
 	}
 
 	public void stopQuery(int id) throws IOException {
