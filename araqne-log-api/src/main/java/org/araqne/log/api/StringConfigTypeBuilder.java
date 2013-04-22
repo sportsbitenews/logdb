@@ -24,7 +24,7 @@ public class StringConfigTypeBuilder {
 	}
 
 	public StringConfigTypeBuilder(String optKey, String optName, boolean isRequired, String defaultValue) {
-		this(optKey, optName, optName, isRequired);
+		this(optKey, optName, optName, isRequired, defaultValue);
 	}
 
 	public StringConfigTypeBuilder(String optKey, String optName, String optDesc, boolean isRequired) {
@@ -38,6 +38,9 @@ public class StringConfigTypeBuilder {
 	}
 
 	public AbstractConfigType get() {
-		return new StringConfigType(optKey, names, descriptions, isRequired);
+		if (isRequired)
+			return new StringConfigType(optKey, names, descriptions, isRequired);
+		else
+			return new StringConfigType(optKey, names, descriptions, isRequired, defaultValues);
 	}
 }
