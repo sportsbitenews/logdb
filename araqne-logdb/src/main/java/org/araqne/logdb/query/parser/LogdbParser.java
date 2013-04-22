@@ -34,7 +34,7 @@ public class LogdbParser implements LogQueryCommandParser {
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
 		String token = commandString.substring(getCommandName().length()).trim();
 		String type = token.split(" ")[0].trim();
-		if (!type.equals("tables") && !type.equals("count"))
+		if (!type.equals("tables") && !type.equals("count") && !type.equals("logdisk"))
 			throw new LogQueryParseException("invalid-system-object-type", -1);
 
 		int p = token.indexOf(" ");

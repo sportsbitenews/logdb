@@ -63,6 +63,9 @@ public class Logdb extends LogQueryCommand {
 			} else if (objectType.equals("count")) {
 				for (String tableName : getTableNames(args))
 					countFiles(tableName);
+			} else if (objectType.equals("logdisk")) {
+				for (String tableName : getTableNames(args))
+					writeLogDiskUsages(tableName);
 			}
 		} finally {
 			eof();
@@ -154,6 +157,49 @@ public class Logdb extends LogQueryCommand {
 		m.put("_time", day);
 		m.put("table", tableName);
 		m.put("count", count);
+		write(new LogMap(m));
+	}
+
+	private void writeLogDiskUsages(String tableName) {
+		File dir = storage.getTableDirectory(tableName);
+
+		File[] files = dir.listFiles();
+		if (files == null)
+			return;
+
+		List<String> paths = new ArrayList<String>();
+		for (File f : files)
+			if (f.getName().endsWith(".idx") || f.getName().endsWith(".dat"))
+				paths.add(f.getAbsolutePath());
+
+		Collections.sort(paths);
+
+		Date lastDay = null;
+		long diskUsage = 0;
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+		for (String path : paths) {
+			File f = new File(path);
+			Date day = df.parse(f.getName().substring(0, f.getName().length() - 4), new ParsePosition(0));
+			if (day == null)
+				continue;
+
+			if (lastDay != null && !lastDay.equals(day)) {
+				writeDiskUsageLog(tableName, lastDay, diskUsage);
+				diskUsage = 0;
+			}
+
+			diskUsage += f.length();
+			lastDay = day;
+		}
+
+		writeDiskUsageLog(tableName, lastDay, diskUsage);
+	}
+
+	private void writeDiskUsageLog(String tableName, Date day, long diskUsage) {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("_time", day);
+		m.put("table", tableName);
+		m.put("disk_usage", diskUsage);
 		write(new LogMap(m));
 	}
 
