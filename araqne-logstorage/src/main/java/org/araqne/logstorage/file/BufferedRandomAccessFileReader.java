@@ -17,9 +17,9 @@ package org.araqne.logstorage.file;
 
 import java.io.DataInput;
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileDescriptor;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
@@ -36,8 +36,8 @@ public class BufferedRandomAccessFileReader implements DataInput {
 	private long bufStartPos = 0;
 
 	private boolean isClosed = false;
-
-	public BufferedRandomAccessFileReader(File path) throws FileNotFoundException {
+	
+	public BufferedRandomAccessFileReader(File path) throws IOException {
 		file = new RandomAccessFile(path, "r");
 		buf = ByteBuffer.allocate(BUFFER_SIZE);
 		dataInputStream = new DataInputStream(new InputStream() {
@@ -55,11 +55,13 @@ public class BufferedRandomAccessFileReader implements DataInput {
 			@Override
 			public synchronized int read(byte[] bytes, int off, int len) throws IOException {
 				if (len > buf.capacity()) {
-					bufStartPos += buf.position();
+					bufStartPos += buf.position() + len;
+					buf.position(0);
 					isInvalidated = true;
 					return file.read(bytes, off, len);
 				} else if (len > buf.remaining()) {
 					bufStartPos += buf.position();
+					buf.position(0);
 					syncBuffer();
 					buf.get(bytes, off, len);
 					return len;
@@ -257,6 +259,8 @@ public class BufferedRandomAccessFileReader implements DataInput {
 
 	private void syncBuffer(int bufSize) throws IOException {
 		long nextSeekPos = bufStartPos + buf.position();
+		if (nextSeekPos >= file.length())
+			throw new EOFException();
 		file.seek(nextSeekPos);
 		bufStartPos = nextSeekPos;
 		buf.clear();
