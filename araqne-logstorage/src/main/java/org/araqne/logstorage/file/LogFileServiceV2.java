@@ -48,6 +48,12 @@ public class LogFileServiceV2 implements LogFileService {
 	}
 
 	@Override
+	public long count(File f) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
 	public LogFileWriter newWriter(Map<String, Object> options) {
 		checkOption(options);
 		File indexPath = (File) options.get(OPT_INDEX_PATH);

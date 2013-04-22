@@ -63,6 +63,7 @@ import org.araqne.logdb.query.parser.TextFileParser;
 import org.araqne.logdb.query.parser.TimechartParser;
 import org.araqne.logdb.query.parser.ZipFileParser;
 import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.osgi.framework.BundleContext;
@@ -99,6 +100,9 @@ public class LogQueryServiceImpl implements LogQueryService {
 
 	@Requires
 	private LogStorage storage;
+
+	@Requires
+	private LogFileServiceRegistry fileServiceRegistry;
 
 	private BundleContext bc;
 	private ConcurrentMap<Integer, LogQuery> queries;
@@ -141,7 +145,7 @@ public class LogQueryServiceImpl implements LogQueryService {
 		parsers.add(new TextFileParser(parserFactoryRegistry));
 		parsers.add(new ZipFileParser(parserFactoryRegistry));
 		parsers.add(new OutputCsvParser());
-		parsers.add(new LogdbParser(tableRegistry, accountService));
+		parsers.add(new LogdbParser(tableRegistry, storage, accountService, fileServiceRegistry));
 
 		this.queryParsers = parsers;
 	}

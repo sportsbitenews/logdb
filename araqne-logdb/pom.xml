@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logdb</artifactId>
-	<version>0.14.1</version>
+	<version>0.15.0</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log DB</name>
 	<build>
@@ -38,8 +38,8 @@
 						<Import-Package>
 							!org.junit,
 							org.araqne.confdb;version="0.11.0",
-							org.araqne.logstorage;version="1.13.0",
-							org.araqne.logstorage.file;version="1.13.0",
+							org.araqne.logstorage;version="1.17.0",
+							org.araqne.logstorage.file;version="1.17.0",
 							*
 						</Import-Package>
 					</instructions>

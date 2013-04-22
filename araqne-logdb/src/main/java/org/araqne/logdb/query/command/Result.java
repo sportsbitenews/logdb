@@ -17,7 +17,6 @@ package org.araqne.logdb.query.command;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Map;
@@ -27,7 +26,6 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.araqne.codec.EncodingRule;
-import org.araqne.codec.FastEncodingRule;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCallback;
 import org.araqne.logdb.LogQueryCommand;
@@ -150,13 +148,6 @@ public class Result extends LogQueryCommand {
 		}
 	}
 
-	private LogRecord convert(Map<String, Object> m) {
-		FastEncodingRule enc = new FastEncodingRule();
-		ByteBuffer bb = enc.encode(m);
-		LogRecord logdata = new LogRecord(new Date(), count + 1, bb);
-		return logdata;
-	}
-
 	@Override
 	public boolean isReducer() {
 		return false;
@@ -225,7 +216,7 @@ public class Result extends LogQueryCommand {
 		private LogFileReaderV2 reader;
 		private LogRecordCursor cursor;
 
-		public LogResultSetImpl(LogFileReaderV2 reader) {
+		public LogResultSetImpl(LogFileReaderV2 reader) throws IOException {
 			this.reader = reader;
 			this.cursor = reader.getCursor(true);
 		}
