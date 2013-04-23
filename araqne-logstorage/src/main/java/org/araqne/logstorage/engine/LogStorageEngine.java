@@ -691,6 +691,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		File dataPath = DatapathUtil.getDataFile(tableId, day);
 
 		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
+		if (logFileType == null)
+			logFileType = "v2";
+
 		LogFileReader reader = lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
 
 		return new LogCursorImpl(tableName, day, buffer, reader, ascending);
