@@ -56,6 +56,7 @@ import org.araqne.logdb.query.parser.RenameParser;
 import org.araqne.logdb.query.parser.RexParser;
 import org.araqne.logdb.query.parser.ScriptParser;
 import org.araqne.logdb.query.parser.SearchParser;
+import org.araqne.logdb.query.parser.SignatureParser;
 import org.araqne.logdb.query.parser.SortParser;
 import org.araqne.logdb.query.parser.StatsParser;
 import org.araqne.logdb.query.parser.TableParser;
@@ -127,7 +128,7 @@ public class LogQueryServiceImpl implements LogQueryService {
 		@SuppressWarnings("unchecked")
 		List<Class<? extends LogQueryCommandParser>> parserClazzes = Arrays.asList(DropParser.class, SearchParser.class,
 				StatsParser.class, FieldsParser.class, SortParser.class, TimechartParser.class, RenameParser.class,
-				EvalParser.class, RexParser.class, JsonParser.class);
+				EvalParser.class, RexParser.class, JsonParser.class, SignatureParser.class);
 
 		List<LogQueryCommandParser> parsers = new ArrayList<LogQueryCommandParser>();
 		for (Class<? extends LogQueryCommandParser> clazz : parserClazzes) {
