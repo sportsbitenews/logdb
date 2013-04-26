@@ -23,27 +23,21 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
-import org.apache.felix.ipojo.annotations.Requires;
 
-@Component(name = "selector-logger-factory")
+@Component(name = "directory-watch-logger-factory")
 @Provides
-public class SelectorLoggerFactory extends AbstractLoggerFactory {
-	private static final String OPT_SOURCE_LOGGER = "source_logger";
-	private static final String OPT_PATTERN = "pattern";
-
-	@Requires
-	private LoggerRegistry loggerRegistry;
+public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getName() {
-		return "selector";
+		return "dirwatch";
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale == Locale.KOREAN)
-			return "선택자";
-		return "selector";
+			return "디렉터리 와처";
+		return "Directory watcher";
 	}
 
 	@Override
@@ -54,8 +48,8 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale == Locale.KOREAN)
-			return "다른 로거로부터 패턴 매칭되는 특정 로그들만 수집합니다.";
-		return "select logs from logger using text matching";
+			return "지정된 디렉터리에서 파일이름 패턴과 일치하는 모든 텍스트 로그 파일을 수집합니다.";
+		return "collect all text log files in specified directory";
 	}
 
 	@Override
@@ -65,11 +59,20 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름"), true);
-		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Text pattern", "텍스트 패턴"), t("Text pattern to match",
-				"매칭할 대상 문자열"), true);
-		return Arrays.asList(loggerName, pattern);
+		LoggerConfigOption basePath = new StringConfigType("base_path", t("Directory path", "디렉터리 경로"), t(
+				"Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로"), true);
+
+		LoggerConfigOption fileNamePattern = new StringConfigType("filename_pattern", t("Filename pattern", "파일이름 패턴"), t(
+				"Regular expression to match log file name", "대상 로그 파일을 선택하는데 사용할 정규표현식"), true);
+
+		LoggerConfigOption datePattern = new StringConfigType("date_pattern", t("Date pattern", "날짜 정규표현식"), t(
+				"Regular expression to match date and time strings", "날짜 및 시각을 추출하는데 사용할 정규표현식"), false);
+
+		LoggerConfigOption dateFormat = new StringConfigType("date_format", t("Date format", "날짜 포맷"), t(
+				"date format to parse date and time strings. e.g. yyyy-MM-dd HH:mm:ss",
+				"날짜 및 시각 문자열을 파싱하는데 사용할 포맷. 예) yyyy-MM-dd HH:mm:ss"), false);
+
+		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat);
 	}
 
 	private Map<Locale, String> t(String enText, String koText) {
@@ -81,7 +84,6 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	protected Logger createLogger(LoggerSpecification spec) {
-		return new SelectorLogger(spec, this, loggerRegistry);
+		return new DirectoryWatchLogger(spec, this);
 	}
-
 }

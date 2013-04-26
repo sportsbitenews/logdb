@@ -13,4 +13,5 @@
 	<instance component="regex-parser-factory" />
 	<instance component="log-transformer-factory-registry" />
 	<instance component="selector-logger-factory" />
+	<instance component="directory-watch-logger-factory" />
 </ipojo>
