@@ -12,4 +12,5 @@
 	<instance component="delimiter-parser-factory" />
 	<instance component="regex-parser-factory" />
 	<instance component="log-transformer-factory-registry" />
+	<instance component="selector-logger-factory" />
 </ipojo>

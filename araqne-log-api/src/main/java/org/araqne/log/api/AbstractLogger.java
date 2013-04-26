@@ -56,6 +56,14 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private Set<LoggerEventListener> eventListeners;
 	private CopyOnWriteArrayList<LogTransformer> transformerChain = new CopyOnWriteArrayList<LogTransformer>();
 
+	/**
+	 * @since 1.7.0
+	 */
+	public AbstractLogger(LoggerSpecification spec, LoggerFactory factory) {
+		this(spec.getNamespace(), spec.getName(), spec.getDescription(), factory, spec.getLogCount(), spec.getLastLogDate(), spec
+				.getConfig());
+	}
+
 	public AbstractLogger(String name, String description, LoggerFactory loggerFactory) {
 		this(name, description, loggerFactory, new Properties());
 	}
@@ -194,7 +202,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 	@Override
 	public void start() { // Passive
-		if (!isPassive)
+		if (!isPassive())
 			throw new IllegalStateException("not passive mode. use start(interval)");
 
 		stopped = false;
@@ -203,7 +211,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 	@Override
 	public void start(int interval) { // Active
-		if (isPassive) {
+		if (isPassive()) {
 			start();
 			return;
 		}
@@ -232,6 +240,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	private void invokeStartCallback() {
+		onStart();
+
 		lastStartDate = new Date();
 		status = LoggerStatus.Running;
 
@@ -246,7 +256,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 	@Override
 	public void stop() {
-		if (isPassive) {
+		if (isPassive()) {
 			stopped = true;
 			status = LoggerStatus.Stopped;
 			invokeStopCallback();
@@ -256,7 +266,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 	@Override
 	public void stop(int maxWaitTime) {
-		if (isPassive) {
+		if (isPassive()) {
 			stop();
 			return;
 		}
@@ -301,6 +311,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	private void invokeStopCallback() {
+		onStop();
+
 		for (LoggerEventListener callback : eventListeners) {
 			try {
 				callback.onStop(this);
@@ -515,7 +527,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		String run = DateFormat.format(format, lastRunDate);
 		String log = DateFormat.format(format, lastLogDate);
 		String status = getStatus().toString().toLowerCase();
-		if (isPassive)
+		if (isPassive())
 			status += " (passive)";
 		else
 			status += " (interval=" + interval + "ms)";
