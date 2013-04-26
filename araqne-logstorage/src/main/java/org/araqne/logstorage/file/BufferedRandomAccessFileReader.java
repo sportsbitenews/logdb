@@ -15,6 +15,7 @@
  */
 package org.araqne.logstorage.file;
 
+import java.io.Closeable;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -26,7 +27,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
-public class BufferedRandomAccessFileReader implements DataInput {
+public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 	private static final int BUFFER_SIZE = 8192 * 3;
 	private final RandomAccessFile file;
 	private ByteBuffer buf;
