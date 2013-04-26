@@ -227,7 +227,7 @@ public class ExpressionParser {
 			return new ParseResult(token, end + 1);
 		}
 		
-		if (isAllWhitespaces(s, r.value, begin, r.next - 1)) {
+		if (isAllWhitespaces(s, begin, r.next - 1)) {
 			// check if next token is quoted string
 			if (r.value.equals("\"")) {
 				int p = s.indexOf('"', r.next + 1);
@@ -259,7 +259,7 @@ public class ExpressionParser {
 		}
 	}
 
-	private static boolean isAllWhitespaces(String s, Object value, int begin, int end) {
+	private static boolean isAllWhitespaces(String s, int begin, int end) {
 		if (end < begin)
 			return true;
 
