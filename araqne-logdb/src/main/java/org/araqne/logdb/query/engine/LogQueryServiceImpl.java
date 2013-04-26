@@ -44,6 +44,7 @@ import org.araqne.logdb.LogQueryScriptRegistry;
 import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LogQueryStatus;
 import org.araqne.logdb.LookupHandlerRegistry;
+import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;
@@ -64,7 +65,6 @@ import org.araqne.logdb.query.parser.TextFileParser;
 import org.araqne.logdb.query.parser.TimechartParser;
 import org.araqne.logdb.query.parser.ZipFileParser;
 import org.araqne.logstorage.Log;
-import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.osgi.framework.BundleContext;
@@ -103,7 +103,7 @@ public class LogQueryServiceImpl implements LogQueryService {
 	private LogStorage storage;
 
 	@Requires
-	private LogFileServiceRegistry fileServiceRegistry;
+	private MetadataService metadataService;
 
 	private BundleContext bc;
 	private ConcurrentMap<Integer, LogQuery> queries;
@@ -146,7 +146,7 @@ public class LogQueryServiceImpl implements LogQueryService {
 		parsers.add(new TextFileParser(parserFactoryRegistry));
 		parsers.add(new ZipFileParser(parserFactoryRegistry));
 		parsers.add(new OutputCsvParser());
-		parsers.add(new LogdbParser(tableRegistry, storage, accountService, fileServiceRegistry));
+		parsers.add(new LogdbParser(metadataService));
 
 		this.queryParsers = parsers;
 	}

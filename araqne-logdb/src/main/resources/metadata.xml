@@ -10,4 +10,8 @@
 	<instance component="logdb-query-script-registry" />
 	<instance component="logdb-account" />
 	<instance component="logdb-management-msgbus" />
+	<instance component="logdb-metadata-service" />
+	<instance component="logdb-logdisk-metadata" />
+	<instance component="logdb-logcount-metadata" />
+	<instance component="logdb-table-metadata" />
 </ipojo>

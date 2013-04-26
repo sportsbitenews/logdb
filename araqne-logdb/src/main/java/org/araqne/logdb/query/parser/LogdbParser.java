@@ -1,28 +1,16 @@
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.query.command.Logdb;
-import org.araqne.logstorage.LogFileServiceRegistry;
-import org.araqne.logstorage.LogStorage;
-import org.araqne.logstorage.LogTableRegistry;
 
 public class LogdbParser implements LogQueryCommandParser {
+	private MetadataService metadataService;
 
-	private LogTableRegistry tableRegistry;
-	private LogStorage storage;
-	private AccountService accountService;
-	private LogFileServiceRegistry fileServiceRegsitry;
-
-	public LogdbParser(LogTableRegistry tableRegistry, LogStorage storage, AccountService accountService,
-			LogFileServiceRegistry fileServiceRegistry) {
-		this.tableRegistry = tableRegistry;
-		this.storage = storage;
-		this.accountService = accountService;
-		this.fileServiceRegsitry = fileServiceRegistry;
+	public LogdbParser(MetadataService metadataService) {
+		this.metadataService = metadataService;
 	}
 
 	@Override
@@ -32,17 +20,17 @@ public class LogdbParser implements LogQueryCommandParser {
 
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		String token = commandString.substring(getCommandName().length()).trim();
-		String type = token.split(" ")[0].trim();
-		if (!type.equals("tables") && !type.equals("count") && !type.equals("logdisk"))
-			throw new LogQueryParseException("invalid-system-object-type", -1);
+		String queryString = commandString.substring(getCommandName().length()).trim();
+		String type = queryString.split(" ")[0].trim();
 
-		int p = token.indexOf(" ");
+		int p = queryString.indexOf(" ");
 		if (p < 0)
-			token = "";
+			queryString = "";
 		else
-			token = token.substring(p);
+			queryString = queryString.substring(p);
 
-		return new Logdb(context, type, token, tableRegistry, storage, accountService, fileServiceRegsitry);
+		metadataService.verify(context, type, queryString);
+
+		return new Logdb(context, type, queryString, metadataService);
 	}
 }
