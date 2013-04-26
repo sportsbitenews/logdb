@@ -1,7 +1,3 @@
-package org.araqne.log.api;
-
-import java.util.Properties;
-
 /*
  * Copyright 2013 Eediom Inc.
  * 
@@ -17,6 +13,10 @@ import java.util.Properties;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.araqne.log.api;
+
+import java.util.Properties;
+
 public class SelectorLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
 	private static final String OPT_SOURCE_LOGGER = "source_logger";
 	private static final String OPT_PATTERN = "pattern";
