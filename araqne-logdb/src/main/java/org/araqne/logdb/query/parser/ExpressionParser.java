@@ -158,6 +158,8 @@ public class ExpressionParser {
 				break;
 
 			String token = (String) r.value;
+			if (token.isEmpty())
+				continue;
 
 			// read function call (including nested one)
 			int parenCount = 0;
@@ -220,10 +222,12 @@ public class ExpressionParser {
 		// use r.next as a position here (need +1 for actual next)
 		ParseResult r = findNextDelimiter(s, begin, end);
 		if (r.next < begin) {
-			// no operator, return whole string
+			// no symbol operator and white space, return whole string
 			String token = s.substring(begin, end + 1);
 			return new ParseResult(token, end + 1);
-		} else if (isAllWhitespaces(s, r.value, begin, r.next - 1)) {
+		}
+		
+		if (isAllWhitespaces(s, r.value, begin, r.next - 1)) {
 			// check if next token is quoted string
 			if (r.value.equals("\"")) {
 				int p = s.indexOf('"', r.next + 1);
@@ -235,10 +239,15 @@ public class ExpressionParser {
 					return new ParseResult(quoted, p + 1);
 				}
 			}
+			
+			// check whitespace
+			String token = (String) r.value;
+			if (token.trim().isEmpty())
+				return nextToken(s, skipSpaces(s, begin), end);
 
 			// return operator
-			int len = ((String) r.value).length();
-			return new ParseResult((String) r.value, r.next + len);
+			int len = token.length();
+			return new ParseResult(token, r.next + len);
 		} else {
 			// return term
 			String token = s.substring(begin, r.next);
@@ -269,9 +278,16 @@ public class ExpressionParser {
 		min(r, ")", s.indexOf(')', begin), end);
 		min(r, ",", s.indexOf(',', begin), end);
 		for (OpTerm op : OpTerm.values()) {
+			// check alphabet keywords
+			if (op.isAlpha)
+				continue;
+			
 			min(r, op.symbol, s.indexOf(op.symbol, begin), end);
 		}
-
+		
+		// check white spaces
+		min(r, " ", s.indexOf(' ', begin), end);
+		//min(r, "\t", s.indexOf('\t', begin), end);
 		return r;
 	}
 
@@ -333,25 +349,27 @@ public class ExpressionParser {
 	}
 
 	public static enum OpTerm implements Term {
-		Add("+", 5), Sub("-", 5), Mul("*", 6), Div("/", 6), Neg("-", 7, false, true), Gte(">=", 4), Lte("<=", 4), Gt(
-				">", 4), Lt(
-				"<", 4), Eq("==", 3), Neq("!=", 3), And(" and ", 1), Or(" or ", 0), Not("not ", 2, false, true);
+		Add("+", 5), Sub("-", 5), Mul("*", 6), Div("/", 6), Neg("-", 7, false, true, false),
+		Gte(">=", 4), Lte("<=", 4), Gt(">", 4), Lt("<", 4), Eq("==", 3), Neq("!=", 3),
+		And("and", 1, true, false, true), Or("or", 0, true, false, true), Not("not", 2, false, true, true);
 
 		OpTerm(String symbol, int precedence) {
-			this(symbol, precedence, true, false);
+			this(symbol, precedence, true, false, false);
 		}
 
-		OpTerm(String symbol, int precedence, boolean leftAssoc, boolean unary) {
+		OpTerm(String symbol, int precedence, boolean leftAssoc, boolean unary, boolean isAlpha) {
 			this.symbol = symbol;
 			this.precedence = precedence;
 			this.leftAssoc = leftAssoc;
 			this.unary = unary;
+			this.isAlpha = isAlpha;
 		}
 
 		public String symbol;
 		public int precedence;
 		public boolean leftAssoc;
 		public boolean unary;
+		public boolean isAlpha;
 
 		public static OpTerm parse(String token) {
 			for (OpTerm t : values())
