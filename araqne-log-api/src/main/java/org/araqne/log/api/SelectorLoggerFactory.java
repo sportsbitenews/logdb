@@ -28,6 +28,8 @@ import org.apache.felix.ipojo.annotations.Requires;
 @Component(name = "selector-logger-factory")
 @Provides
 public class SelectorLoggerFactory extends AbstractLoggerFactory {
+	private static final String OPT_SOURCE_LOGGER = "source_logger";
+	private static final String OPT_PATTERN = "pattern";
 
 	@Requires
 	private LoggerRegistry loggerRegistry;
@@ -53,9 +55,9 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType("logger_name", t("Logger name", "로거 이름"), t(
+		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름"), t(
 				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름"), true);
-		LoggerConfigOption pattern = new StringConfigType("pattern", t("Text pattern", "텍스트 패턴"), t("Text pattern to match",
+		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Text pattern", "텍스트 패턴"), t("Text pattern to match",
 				"매칭할 대상 문자열"), true);
 		return Arrays.asList(loggerName, pattern);
 	}

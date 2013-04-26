@@ -18,6 +18,8 @@ import java.util.Properties;
  * limitations under the License.
  */
 public class SelectorLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
+	private static final String OPT_SOURCE_LOGGER = "source_logger";
+	private static final String OPT_PATTERN = "pattern";
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SelectorLogger.class.getName());
 	private LoggerRegistry loggerRegistry;
 
@@ -32,8 +34,8 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 		super(spec, factory);
 		this.loggerRegistry = loggerRegistry;
 		Properties config = spec.getConfig();
-		loggerName = config.getProperty("logger_name");
-		pattern = config.getProperty("pattern");
+		loggerName = config.getProperty(OPT_SOURCE_LOGGER);
+		pattern = config.getProperty(OPT_PATTERN);
 	}
 
 	@Override
