@@ -287,7 +287,7 @@ public class ExpressionParser {
 		
 		// check white spaces
 		min(r, " ", s.indexOf(' ', begin), end);
-		//min(r, "\t", s.indexOf('\t', begin), end);
+		min(r, "\t", s.indexOf('\t', begin), end);
 		return r;
 	}
 
