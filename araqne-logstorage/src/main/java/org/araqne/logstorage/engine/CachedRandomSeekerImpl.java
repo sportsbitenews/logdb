@@ -38,6 +38,8 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 	private boolean closed;
 	private LogTableRegistry tableRegistry;
 	private LogFileFetcher fetcher;
+
+	private ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters;
 	private Map<OnlineWriterKey, List<Log>> onlineBuffers;
 	private Map<TabletKey, LogFileReader> cachedReaders;
 
@@ -45,12 +47,9 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 			ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters) {
 		this.tableRegistry = tableRegistry;
 		this.fetcher = fetcher;
+		this.onlineWriters = onlineWriters;
 		this.onlineBuffers = new HashMap<OnlineWriterKey, List<Log>>();
 		this.cachedReaders = new HashMap<TabletKey, LogFileReader>();
-
-		for (Map.Entry<OnlineWriterKey, OnlineWriter> e : onlineWriters.entrySet()) {
-			onlineBuffers.put(e.getKey(), e.getValue().getBuffer());
-		}
 	}
 
 	@Override
@@ -61,12 +60,20 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		int tableId = tableRegistry.getTableId(tableName);
 
 		// check memory buffer (flush waiting)
-		List<Log> buffer = onlineBuffers.get(new OnlineWriterKey(tableName, day, tableId));
+		OnlineWriterKey onlineKey = new OnlineWriterKey(tableName, day, tableId);
+		List<Log> buffer = onlineBuffers.get(onlineKey);
+		if (buffer == null) {
+			// try load on demand
+			OnlineWriter writer = onlineWriters.get(onlineKey);
+			if (writer != null) {
+				buffer = writer.getBuffer();
+				onlineBuffers.put(onlineKey, buffer);
+			}
+		}
+
 		if (buffer != null) {
 			for (Log r : buffer)
 				if (r.getId() == id) {
-					// return new Log(tableName, r.getDate(), id,
-					// EncodingRule.decodeMap(r.getData().duplicate()));
 					return r;
 				}
 		}
