@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
@@ -38,8 +37,8 @@ public class ApacheWebLogParserFactory implements LogParserFactory {
 	}
 
 	@Override
-	public LogParser createParser(Properties config) {
-		String t = config.getProperty("log_format");
+	public LogParser createParser(Map<String, String> config) {
+		String t = config.get("log_format");
 		if (t != null)
 			return new ApacheWebLogParser(t);
 		return new ApacheWebLogParser();

@@ -23,7 +23,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 
 public class TextFileLogger extends AbstractLogger {
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TextFileLogger.class.getName());
@@ -34,28 +33,28 @@ public class TextFileLogger extends AbstractLogger {
 		super("local", spec.getName(), spec.getDescription(), loggerFactory, spec.getLogCount(), spec.getLastLogDate(), spec
 				.getConfig());
 
-		Properties config = spec.getConfig();
-		String filePath = config.getProperty("file_path");
-		String datePattern = config.getProperty("date_pattern");
+		Map<String, String> config = spec.getConfig();
+		String filePath = config.get("file_path");
+		String datePattern = config.get("date_pattern");
 		if (datePattern == null)
 			datePattern = "MMM dd HH:mm:ss";
 
-		String dateExtractor = config.getProperty("date_extractor");
+		String dateExtractor = config.get("date_extractor");
 		if (dateExtractor == null || dateExtractor.isEmpty())
 			dateExtractor = DefaultDateParser.dateFormatToRegex(datePattern);
 
-		String dateLocale = config.getProperty("date_locale");
+		String dateLocale = config.get("date_locale");
 		if (dateLocale == null)
 			dateLocale = "en";
 
-		String charset = config.getProperty("charset");
+		String charset = config.get("charset");
 		if (charset == null)
 			charset = "utf8";
 
 		this.reader = new RotatingLogFileReader(filePath, Charset.forName(charset));
 
-		String offset = config.getProperty("last_offset");
-		String firstLine = config.getProperty("first_line");
+		String offset = config.get("last_offset");
+		String firstLine = config.get("first_line");
 
 		logger.trace("araqne log api: text logger [{}] last offset [{}], last line [{}]", new Object[] { spec.getName(), offset,
 				firstLine });

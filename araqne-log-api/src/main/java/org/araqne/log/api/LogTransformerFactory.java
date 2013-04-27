@@ -17,7 +17,7 @@ package org.araqne.log.api;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Properties;
+import java.util.Map;
 
 public interface LogTransformerFactory {
 	String getName();
@@ -32,5 +32,5 @@ public interface LogTransformerFactory {
 
 	List<LoggerConfigOption> getConfigOptions();
 
-	LogTransformer newTransformer(Properties config);
+	LogTransformer newTransformer(Map<String, String> config);
 }

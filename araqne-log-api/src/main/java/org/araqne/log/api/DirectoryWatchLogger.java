@@ -45,18 +45,18 @@ public class DirectoryWatchLogger extends AbstractLogger {
 
 		dataDir = new File(System.getProperty("araqne.data.dir"), "araqne-log-api");
 		dataDir.mkdirs();
-		basePath = getConfig().getProperty("base_path");
+		basePath = getConfig().get("base_path");
 
-		String fileNameRegex = getConfig().getProperty("filename_pattern");
+		String fileNameRegex = getConfig().get("filename_pattern");
 		fileNamePattern = Pattern.compile(fileNameRegex);
 
 		// optional
-		String dateExtractRegex = getConfig().getProperty("date_pattern");
+		String dateExtractRegex = getConfig().get("date_pattern");
 		if (dateExtractRegex != null)
 			dateExtractPattern = Pattern.compile(dateExtractRegex);
 
 		// optional
-		String dateFormatString = getConfig().getProperty("date_format");
+		String dateFormatString = getConfig().get("date_format");
 		if (dateFormatString != null)
 			dateFormat = new SimpleDateFormat(dateFormatString);
 	}

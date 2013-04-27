@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
-import java.util.Properties;
+import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
@@ -62,7 +62,7 @@ public class WeguardiaLogNormalizerFactory implements LogNormalizerFactory {
 	}
 
 	@Override
-	public LogNormalizer createNormalizer(Properties config) {
+	public LogNormalizer createNormalizer(Map<String, String> config) {
 		return new WeguardiaLogNormalizer();
 	}
 }

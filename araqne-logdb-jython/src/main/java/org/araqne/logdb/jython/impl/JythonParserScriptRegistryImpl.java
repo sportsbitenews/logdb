@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -120,7 +119,7 @@ public class JythonParserScriptRegistryImpl implements JythonParserScriptRegistr
 	}
 
 	@Override
-	public LogParser createParser(Properties config) {
+	public LogParser createParser(Map<String, String> config) {
 		String scriptName = (String) config.get("parser_script");
 		PyObject factory = scripts.get(scriptName);
 		if (factory == null)

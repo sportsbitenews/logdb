@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
@@ -87,23 +86,23 @@ public class DelimiterParserFactory implements LogParserFactory {
 	}
 
 	@Override
-	public LogParser createParser(Properties config) {
-		String delimiter = config.getProperty(DELIMITER);
+	public LogParser createParser(Map<String, String> config) {
+		String delimiter = config.get(DELIMITER);
 		if (delimiter == null)
 			delimiter = " ";
 
 		String[] columnHeaders = null;
-		String h = config.getProperty(COLUMN_HEADERS);
+		String h = config.get(COLUMN_HEADERS);
 		if (h != null)
 			columnHeaders = h.split(",");
 
 		boolean includeDelimiterTarget = false;
 		if (config.containsKey(INCLUDE_DELIMITER_TARGET)) {
-			String s = config.getProperty(INCLUDE_DELIMITER_TARGET);
+			String s = config.get(INCLUDE_DELIMITER_TARGET);
 			includeDelimiterTarget = (s != null && Boolean.parseBoolean(s));
 		}
 
-		String delimiterTarget = config.getProperty(DELIMITER_TARGET);
+		String delimiterTarget = config.get(DELIMITER_TARGET);
 		if (delimiterTarget == null)
 			delimiterTarget = "line";
 

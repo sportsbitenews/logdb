@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -124,7 +123,7 @@ public class JythonTransformerScriptRegistryImpl implements JythonTransformerScr
 	}
 
 	@Override
-	public LogTransformer newTransformer(Properties config) {
+	public LogTransformer newTransformer(Map<String, String> config) {
 		String scriptName = (String) config.get("transformer_script");
 		PyObject factory = scripts.get(scriptName);
 		if (factory == null)

@@ -19,7 +19,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.Properties;
 
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
@@ -45,6 +44,7 @@ public class TextFileParser implements LogQueryCommandParser {
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length(), new ArrayList<String>());
+		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 		String filePath = commandString.substring(r.next).trim();
 
@@ -65,7 +65,7 @@ public class TextFileParser implements LogQueryCommandParser {
 				if (factory == null)
 					throw new IllegalStateException("log parser not found: " + parserName);
 
-				parser = factory.createParser(convert(options));
+				parser = factory.createParser(options);
 			}
 
 			return new TextFile(is, parser, offset, limit);
@@ -73,16 +73,4 @@ public class TextFileParser implements LogQueryCommandParser {
 			throw new RuntimeException("cannot create textfile source", t);
 		}
 	}
-
-	private Properties convert(Map<String, String> options) {
-		Properties p = new Properties();
-		for (String key : options.keySet()) {
-			String value = options.get(key);
-			if (value != null)
-				p.put(key, value);
-		}
-
-		return p;
-	}
-
 }

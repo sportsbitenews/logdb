@@ -15,7 +15,7 @@
  */
 package org.araqne.log.api;
 
-import java.util.Properties;
+import java.util.Map;
 
 public class SelectorLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
 	private static final String OPT_SOURCE_LOGGER = "source_logger";
@@ -33,9 +33,9 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	public SelectorLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
 		super(spec, factory);
 		this.loggerRegistry = loggerRegistry;
-		Properties config = spec.getConfig();
-		loggerName = config.getProperty(OPT_SOURCE_LOGGER);
-		pattern = config.getProperty(OPT_PATTERN);
+		Map<String, String> config = spec.getConfig();
+		loggerName = config.get(OPT_SOURCE_LOGGER);
+		pattern = config.get(OPT_PATTERN);
 	}
 
 	@Override

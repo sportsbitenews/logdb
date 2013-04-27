@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
-import java.util.Properties;
+import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
@@ -68,7 +68,7 @@ public class PaloAltoLogParserFactory implements LogParserFactory {
 	}
 
 	@Override
-	public LogParser createParser(Properties props) {
+	public LogParser createParser(Map<String, String> props) {
 		return new PaloAltoLogParser();
 	}
 

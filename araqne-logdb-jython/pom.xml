@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logdb-jython</artifactId>
-	<version>0.6.1</version>
+	<version>0.7.0</version>
 	<packaging>bundle</packaging>
 	<name>Araqne LogDB Jython Scripting</name>
 	<build>
@@ -25,7 +25,7 @@
 						<Private-Package>org.araqne.logdb.jython.impl</Private-Package>
 						<Import-Package>
 							org.araqne.logdb;version="0.12.2",
-							org.araqne.log.api;version="1.6.0",
+							org.araqne.log.api;version="2.0.0",
 							org.araqne.logstorage;version="1.13.0",
 							*</Import-Package>
 					</instructions>

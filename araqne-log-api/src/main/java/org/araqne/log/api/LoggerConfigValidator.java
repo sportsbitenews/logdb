@@ -16,13 +16,13 @@
 package org.araqne.log.api;
 
 import java.util.Collection;
-import java.util.Properties;
+import java.util.Map;
 
 public class LoggerConfigValidator {
 	private LoggerConfigValidator() {
 	}
 
-	public static void validate(Collection<LoggerConfigOption> configTypes, Properties props) {
+	public static void validate(Collection<LoggerConfigOption> configTypes, Map<String, String> props) {
 		for (LoggerConfigOption type : configTypes) {
 			Object value = props.get(type.getName());
 			if (value == null && type.isRequired())

@@ -23,7 +23,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -178,22 +177,23 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 	}
 
 	@Override
-	public final Logger newLogger(String name, String description, Properties config) {
+	public final Logger newLogger(String name, String description, Map<String, String> config) {
 		return newLogger("local", name, description, config);
 	}
 
 	@Override
-	public final Logger newLogger(String namespace, String name, String description, Properties config) {
+	public final Logger newLogger(String namespace, String name, String description, Map<String, String> config) {
 		return newLogger(namespace, name, description, 0, null, config);
 	}
 
 	@Override
-	public Logger newLogger(String namespace, String name, String description, long logCount, Date lastLogDate, Properties config) {
+	public Logger newLogger(String namespace, String name, String description, long logCount, Date lastLogDate,
+			Map<String, String> config) {
 		return handleNewLogger(namespace, name, description, logCount, lastLogDate, config, false);
 	}
 
 	private Logger handleNewLogger(String namespace, String name, String description, long logCount, Date lastLogDate,
-			Properties config, boolean booting) {
+			Map<String, String> config, boolean booting) {
 		Logger logger = createLogger(new LoggerSpecification(namespace, name, description, logCount, lastLogDate, config));
 		loggers.put(logger.getFullName(), logger);
 
@@ -211,7 +211,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 
 		// add log transformer
 		if (config.containsKey("transform")) {
-			String factoryName = config.getProperty("transform");
+			String factoryName = config.get("transform");
 			LogTransformerFactoryRegistry transformerRegistry = getTransformerRegistry();
 			LogTransformerFactory factory = null;
 			if (factoryName != null && transformerRegistry != null)
@@ -281,7 +281,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 				getDescription(Locale.ENGLISH));
 	}
 
-	private void saveLoggerConfig(Logger logger, Properties config) {
+	private void saveLoggerConfig(Logger logger, Map<String, String> config) {
 		LoggerConfig model = new LoggerConfig(logger);
 		model.setConfigs(config);
 
@@ -346,7 +346,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		}
 
 		@Override
-		public void onUpdated(Logger logger, Properties config) {
+		public void onUpdated(Logger logger, Map<String, String> config) {
 			saveLoggerConfig(logger, config);
 		}
 	}

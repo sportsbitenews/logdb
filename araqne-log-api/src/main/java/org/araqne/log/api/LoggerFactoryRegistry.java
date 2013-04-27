@@ -16,7 +16,7 @@
 package org.araqne.log.api;
 
 import java.util.Collection;
-import java.util.Properties;
+import java.util.Map;
 
 public interface LoggerFactoryRegistry {
 
@@ -26,7 +26,7 @@ public interface LoggerFactoryRegistry {
 
 	LoggerFactory getLoggerFactory(String namespace, String name);
 
-	Logger newLogger(String factoryName, String loggerNamespace, String loggerName, String description, Properties config);
+	Logger newLogger(String factoryName, String loggerNamespace, String loggerName, String description, Map<String, String> config);
 
 	void addListener(LoggerFactoryRegistryEventListener callback);
 

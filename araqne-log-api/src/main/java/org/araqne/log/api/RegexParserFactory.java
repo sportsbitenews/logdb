@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -80,12 +79,12 @@ public class RegexParserFactory implements LogParserFactory {
 	}
 
 	@Override
-	public LogParser createParser(Properties config) {
-		String field = config.getProperty("field");
+	public LogParser createParser(Map<String, String> config) {
+		String field = config.get("field");
 		List<String> names = new ArrayList<String>();
 
 		Pattern placeholder = Pattern.compile("\\(\\?<(.*?)>(.*?)\\)");
-		String regexToken = config.getProperty("regex");
+		String regexToken = config.get("regex");
 
 		regexToken = toNonCapturingGroup(regexToken);
 

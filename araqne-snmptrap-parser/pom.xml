@@ -8,6 +8,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-snmptrap-parser</artifactId>
+	<version>1.1.0</version>
 	<packaging>bundle</packaging>
 	<name>Araqne SNMP Trap Parser</name>
 	<build>
@@ -23,7 +24,11 @@
 						<Export-Package>
 							org.araqne.logparser.snmptrap.pentasecurity;version=${project.version}
 						</Export-Package>
-						<Import-Package>!org.junit,*</Import-Package>
+						<Import-Package>
+						    !org.junit,
+						    org.araqne.log.api;version="2.0.0",
+						    *
+					    </Import-Package>
 					</instructions>
 				</configuration>
 			</plugin>

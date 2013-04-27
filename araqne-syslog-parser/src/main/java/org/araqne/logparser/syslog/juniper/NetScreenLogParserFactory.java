@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
-import java.util.Properties;
+import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
@@ -61,7 +61,7 @@ public class NetScreenLogParserFactory implements LogParserFactory {
 	}
 
 	@Override
-	public LogParser createParser(Properties config) {
+	public LogParser createParser(Map<String, String> config) {
 		return new NetScreenLogParser();
 	}
 }

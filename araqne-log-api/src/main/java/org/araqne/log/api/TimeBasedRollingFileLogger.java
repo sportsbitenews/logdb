@@ -303,9 +303,4 @@ public class TimeBasedRollingFileLogger extends AbstractLogger {
 			}
 		}
 	}
-
-	private static Date getCurrentTick(Date startTime, long startMillis) {
-		return new Date(startTime.getTime() + System.currentTimeMillis() - startMillis);
-	}
-
 }

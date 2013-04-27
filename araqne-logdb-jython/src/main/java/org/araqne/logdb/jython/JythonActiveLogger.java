@@ -17,7 +17,7 @@ package org.araqne.logdb.jython;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicLong;
@@ -43,7 +43,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 
 	private Thread t;
 	private int interval;
-	private Properties config;
+	private Map<String, String> config;
 
 	private volatile LoggerStatus status = LoggerStatus.Stopped;
 	private volatile boolean doStop = false;
@@ -288,7 +288,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public void updateConfig(Properties config) {
+	public void updateConfig(Map<String, String> config) {
 		for (LoggerEventListener callback : listeners) {
 			try {
 				callback.onUpdated(this, config);
@@ -299,7 +299,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public Properties getConfig() {
+	public Map<String, String> getConfig() {
 		return config;
 	}
 

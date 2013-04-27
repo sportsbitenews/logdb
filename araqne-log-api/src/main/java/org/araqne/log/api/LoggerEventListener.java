@@ -15,12 +15,12 @@
  */
 package org.araqne.log.api;
 
-import java.util.Properties;
+import java.util.Map;
 
 public interface LoggerEventListener {
 	void onStart(Logger logger);
 
 	void onStop(Logger logger);
 
-	void onUpdated(Logger logger, Properties config);
+	void onUpdated(Logger logger, Map<String, String> config);
 }

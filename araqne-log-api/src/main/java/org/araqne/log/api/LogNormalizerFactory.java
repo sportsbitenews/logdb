@@ -17,7 +17,7 @@ package org.araqne.log.api;
 
 import java.util.Collection;
 import java.util.Locale;
-import java.util.Properties;
+import java.util.Map;
 
 public interface LogNormalizerFactory {
 	String getName();
@@ -32,6 +32,6 @@ public interface LogNormalizerFactory {
 
 	Collection<LoggerConfigOption> getConfigOptions();
 
-	LogNormalizer createNormalizer(Properties config);
+	LogNormalizer createNormalizer(Map<String, String> config);
 
 }

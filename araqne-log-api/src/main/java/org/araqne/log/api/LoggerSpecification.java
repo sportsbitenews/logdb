@@ -16,7 +16,7 @@
 package org.araqne.log.api;
 
 import java.util.Date;
-import java.util.Properties;
+import java.util.Map;
 
 public class LoggerSpecification {
 	private String namespace;
@@ -25,15 +25,15 @@ public class LoggerSpecification {
 	private long logCount;
 	private boolean isPassive;
 	private Date lastLogDate;
-	private Properties config;
+	private Map<String, String> config;
 
 	public LoggerSpecification(String namespace, String name, String description, long logCount, Date lastLogDate,
-			Properties config) {
+			Map<String, String> config) {
 		this(namespace, name, description, logCount, lastLogDate, config, false);
 	}
 
 	public LoggerSpecification(String namespace, String name, String description, long logCount, Date lastLogDate,
-			Properties config, boolean isPassive) {
+			Map<String, String> config, boolean isPassive) {
 		this.namespace = namespace;
 		this.name = name;
 		this.description = description;
@@ -67,7 +67,7 @@ public class LoggerSpecification {
 		return lastLogDate;
 	}
 
-	public Properties getConfig() {
+	public Map<String, String> getConfig() {
 		return config;
 	}
 

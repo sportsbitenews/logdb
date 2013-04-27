@@ -18,7 +18,6 @@ package org.araqne.logdb.query.parser;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Map;
-import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -83,23 +82,12 @@ public class ZipFileParser implements LogQueryCommandParser {
 				if (factory == null)
 					throw new IllegalStateException("log parser not found: " + parserName);
 
-				parser = factory.createParser(convert(options));
+				parser = factory.createParser(options);
 			}
 
 			return new org.araqne.logdb.query.command.ZipFile(is, parser, offset, limit);
 		} catch (Throwable t) {
 			throw new RuntimeException("cannot create zipfile source", t);
 		}
-	}
-
-	private Properties convert(Map<String, String> options) {
-		Properties p = new Properties();
-		for (String key : options.keySet()) {
-			String value = options.get(key);
-			if (value != null)
-				p.put(key, value);
-		}
-
-		return p;
 	}
 }

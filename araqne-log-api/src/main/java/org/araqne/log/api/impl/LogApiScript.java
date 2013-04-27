@@ -19,7 +19,6 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 
 import org.araqne.api.Script;
 import org.araqne.api.ScriptArgument;
@@ -82,7 +81,7 @@ public class LogApiScript implements Script {
 				return;
 			}
 
-			LogNormalizer normalizer = factory.createNormalizer(new Properties());
+			LogNormalizer normalizer = factory.createNormalizer(new HashMap<String, String>());
 
 			Map<String, Object> params = getParams();
 			Map<String, Object> m = normalizer.normalize(params);
@@ -140,7 +139,7 @@ public class LogApiScript implements Script {
 
 		context.println("Configuration");
 		context.println("---------------");
-		Properties props = logger.getConfig();
+		Map<String, String> props = logger.getConfig();
 		if (props != null) {
 			for (Object key : props.keySet())
 				context.println(" * " + key + ": " + props.get(key));
@@ -174,6 +173,11 @@ public class LogApiScript implements Script {
 	@ScriptUsage(description = "trace logger output", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "logger fullname") })
 	public void trace(String[] args) {
 		Logger logger = loggerRegistry.getLogger(args[0]);
+		if (logger == null) {
+			context.println("logger not found");
+			return;
+		}
+
 		ConsoleLogPipe p = new ConsoleLogPipe();
 		logger.addLogPipe(p);
 
@@ -268,7 +272,7 @@ public class LogApiScript implements Script {
 				return;
 			}
 
-			Properties config = new Properties();
+			Map<String, String> config = new HashMap<String, String>();
 			for (LoggerConfigOption type : loggerFactory.getConfigOptions()) {
 				setOption(config, type);
 			}
@@ -331,7 +335,7 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	private void setOption(Properties config, LoggerConfigOption type) throws InterruptedException {
+	private void setOption(Map<String, String> config, LoggerConfigOption type) throws InterruptedException {
 		String directive = type.isRequired() ? "(required)" : "(optional)";
 		context.print(type.getDisplayName(Locale.ENGLISH) + " " + directive + "? ");
 		String value = context.readLine();

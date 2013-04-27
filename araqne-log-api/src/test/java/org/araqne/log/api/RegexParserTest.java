@@ -15,18 +15,18 @@
  */
 package org.araqne.log.api;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class RegexParserTest {
 	@Test
 	public void testParse() {
 		RegexParserFactory f = new RegexParserFactory();
-		Properties config = new Properties();
+		Map<String, String> config = new HashMap<String, String>();
 		config.put("field", "line");
 		config.put("regex", "^(?<remote_ip>\\S+) \\S+ \\S+ \\[(?<date>[^\\]]+)\\] \"(?<method>[A-Z]+) (?<url>[^\" ]*).*\" "
 				+ "(?<status>\\d+) (?<sent>\\d+) \"(?<referer>[^\"]*)\" \"(?<user_agent>[^\"]*)\"$");

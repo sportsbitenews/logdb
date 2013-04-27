@@ -17,7 +17,7 @@ package org.araqne.log.api;
 
 import java.util.Collection;
 import java.util.Locale;
-import java.util.Properties;
+import java.util.Map;
 
 public interface LogParserFactory {
 	String getName();
@@ -32,5 +32,5 @@ public interface LogParserFactory {
 
 	Collection<LoggerConfigOption> getConfigOptions();
 
-	LogParser createParser(Properties config);
+	LogParser createParser(Map<String, String> config);
 }

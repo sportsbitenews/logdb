@@ -80,6 +80,8 @@ public class SimpleLog implements Log {
 	@Override
 	public String toString() {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		if (getMessage() == null)
+			return String.format("date=%s, logger=%s, line=%s", dateFormat.format(date), loggerName, params.get("line"));
 		return String.format("date=%s, logger=%s, msg=%s", dateFormat.format(date), loggerName, getMessage());
 	}
 }

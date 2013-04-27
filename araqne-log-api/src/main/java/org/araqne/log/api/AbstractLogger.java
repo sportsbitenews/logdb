@@ -17,8 +17,9 @@ package org.araqne.log.api;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -42,7 +43,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private Object updateLock = new Object();
 	private Thread t;
 	private int interval;
-	private Properties config;
+	private Map<String, String> config;
 
 	private volatile LoggerStatus status = LoggerStatus.Stopped;
 	private volatile boolean doStop = false;
@@ -65,37 +66,38 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	public AbstractLogger(String name, String description, LoggerFactory loggerFactory) {
-		this(name, description, loggerFactory, new Properties());
+		this(name, description, loggerFactory, new HashMap<String, String>());
 	}
 
-	public AbstractLogger(String name, String description, LoggerFactory loggerFactory, Properties config) {
+	public AbstractLogger(String name, String description, LoggerFactory loggerFactory, Map<String, String> config) {
 		this("local", name, loggerFactory.getNamespace(), loggerFactory.getName(), description, config);
 	}
 
 	public AbstractLogger(String namespace, String name, String description, LoggerFactory loggerFactory) {
-		this(namespace, name, description, loggerFactory, new Properties());
+		this(namespace, name, description, loggerFactory, new HashMap<String, String>());
 	}
 
-	public AbstractLogger(String namespace, String name, String description, LoggerFactory loggerFactory, Properties config) {
+	public AbstractLogger(String namespace, String name, String description, LoggerFactory loggerFactory,
+			Map<String, String> config) {
 		this(namespace, name, loggerFactory.getNamespace(), loggerFactory.getName(), description, config);
 	}
 
 	public AbstractLogger(String namespace, String name, String description, LoggerFactory loggerFactory, long logCount,
-			Date lastLogDate, Properties config) {
+			Date lastLogDate, Map<String, String> config) {
 		this(namespace, name, loggerFactory.getNamespace(), loggerFactory.getName(), description, logCount, lastLogDate, config);
 	}
 
-	public AbstractLogger(String namespace, String name, String factoryNamespace, String factoryName, Properties config) {
+	public AbstractLogger(String namespace, String name, String factoryNamespace, String factoryName, Map<String, String> config) {
 		this(namespace, name, factoryNamespace, factoryName, "", config);
 	}
 
 	public AbstractLogger(String namespace, String name, String factoryNamespace, String factoryName, String description,
-			Properties config) {
+			Map<String, String> config) {
 		this(namespace, name, factoryNamespace, factoryName, description, 0, null, config);
 	}
 
 	public AbstractLogger(String namespace, String name, String factoryNamespace, String factoryName, String description,
-			long logCount, Date lastLogDate, Properties config) {
+			long logCount, Date lastLogDate, Map<String, String> config) {
 		// logger info
 		this.namespace = namespace;
 		this.name = name;
@@ -422,7 +424,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public void updateConfig(Properties config) {
+	public void updateConfig(Map<String, String> config) {
 		for (LoggerEventListener callback : eventListeners) {
 			try {
 				callback.onUpdated(this, config);
@@ -433,7 +435,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public Properties getConfig() {
+	public Map<String, String> getConfig() {
 		return config;
 	}
 

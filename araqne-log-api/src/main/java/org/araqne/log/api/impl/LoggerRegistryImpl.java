@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -162,7 +162,7 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 	}
 
 	@Override
-	public void loggerCreated(LoggerFactory factory, Logger logger, Properties config) {
+	public void loggerCreated(LoggerFactory factory, Logger logger, Map<String, String> config) {
 		addLogger(logger);
 	}
 

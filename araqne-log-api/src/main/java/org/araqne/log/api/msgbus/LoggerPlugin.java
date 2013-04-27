@@ -16,10 +16,10 @@
 package org.araqne.log.api.msgbus;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
@@ -128,7 +128,7 @@ public class LoggerPlugin {
 		}
 
 		LoggerFactory loggerFactory = loggerFactoryRegistry.getLoggerFactory(loggerFactoryName);
-		Properties config = new Properties();
+		Map<String, String> config = new HashMap<String, String>();
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) req.get("options");

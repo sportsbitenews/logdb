@@ -18,7 +18,8 @@ package org.araqne.log.api.impl;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Properties;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -117,12 +118,12 @@ public class LoggerFactoryRegistryImpl implements LoggerFactoryRegistry, LoggerF
 	}
 
 	@Override
-	public Logger newLogger(String factoryName, String loggerNamespace, String loggerName, String description, Properties config) {
+	public Logger newLogger(String factoryName, String loggerNamespace, String loggerName, String description, Map<String, String> config) {
 		if (factoryName == null)
 			throw new IllegalArgumentException("name must be not null");
 
 		if (config == null)
-			config = new Properties();
+			config = new HashMap<String, String>();
 
 		LoggerFactory factory = loggerFactories.get(factoryName);
 		if (factory == null)

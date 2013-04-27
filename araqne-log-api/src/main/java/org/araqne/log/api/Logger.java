@@ -17,7 +17,7 @@ package org.araqne.log.api;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 
 public interface Logger {
 	String getFullName();
@@ -70,9 +70,9 @@ public interface Logger {
 
 	void clearEventListeners();
 
-	void updateConfig(Properties config);
+	void updateConfig(Map<String, String> config);
 
-	Properties getConfig();
+	Map<String, String> getConfig();
 
 	List<LogTransformer> getTransformerChain();
 }

@@ -18,7 +18,6 @@ package org.araqne.log.api.impl;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import org.araqne.api.FieldOption;
 import org.araqne.confdb.CollectionName;
@@ -42,7 +41,7 @@ public class LoggerConfig {
 	@FieldOption(skip = true)
 	private Date lastLogDate;
 
-	private Map<String, Object> configs = new HashMap<String, Object>();
+	private Map<String, String> configs = new HashMap<String, String>();
 
 	public LoggerConfig() {
 	}
@@ -149,18 +148,11 @@ public class LoggerConfig {
 		this.lastLogDate = lastLogDate;
 	}
 
-	public void setConfigs(Properties configs) {
-		for (Object key : configs.keySet())
-			this.configs.put(key.toString(), configs.getProperty((String) key));
+	public void setConfigs(Map<String, String> configs) {
+		this.configs = configs;
 	}
 
-	public Properties getConfigs() {
-		Properties configs = new Properties();
-		for (String key : this.configs.keySet()) {
-			Object value = this.configs.get(key);
-			if (value != null)
-				configs.put(key, value);
-		}
+	public Map<String, String> getConfigs() {
 		return configs;
 	}
 

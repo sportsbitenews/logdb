@@ -15,10 +15,11 @@
  */
 package org.araqne.log.api;
 
-import java.util.Properties;
+import java.util.Map;
+
 
 public interface LoggerFactoryEventListener {
-	void loggerCreated(LoggerFactory factory, Logger logger, Properties config);
+	void loggerCreated(LoggerFactory factory, Logger logger, Map<String, String> config);
 
 	void loggerDeleted(LoggerFactory factory, Logger logger);
 }

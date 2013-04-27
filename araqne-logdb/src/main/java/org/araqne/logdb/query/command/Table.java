@@ -19,7 +19,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
@@ -137,7 +136,7 @@ public class Table extends LogQueryCommand {
 				LogParserFactory parserFactory = parserFactoryRegistry.get(parserName);
 				LogParser parser = null;
 				if (parserFactory != null) {
-					Properties prop = new Properties();
+					Map<String, String> prop = new HashMap<String, String>();
 					for (LoggerConfigOption configOption : parserFactory.getConfigOptions()) {
 						String optionName = configOption.getName();
 						String optionValue = tableRegistry.getTableMetadata(tableName, optionName);

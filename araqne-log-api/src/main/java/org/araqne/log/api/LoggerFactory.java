@@ -18,7 +18,7 @@ package org.araqne.log.api;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Properties;
+import java.util.Map;
 
 import org.osgi.framework.BundleContext;
 
@@ -51,11 +51,12 @@ public interface LoggerFactory {
 
 	Collection<LoggerConfigOption> getConfigOptions();
 
-	Logger newLogger(String name, String description, Properties config);
+	Logger newLogger(String name, String description, Map<String, String> config);
 
-	Logger newLogger(String namespace, String name, String description, Properties config);
+	Logger newLogger(String namespace, String name, String description, Map<String, String> config);
 
-	Logger newLogger(String namespace, String name, String description, long logCount, Date lastLogDate, Properties config);
+	Logger newLogger(String namespace, String name, String description, long logCount, Date lastLogDate,
+			Map<String, String> config);
 
 	void deleteLogger(String name);
 

@@ -116,7 +116,7 @@ public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implem
 
 	@Override
 	protected Logger createLogger(LoggerSpecification spec) {
-		String scriptName = spec.getConfig().getProperty("logger_script");
+		String scriptName = spec.getConfig().get("logger_script");
 		PyObject factory = scripts.get(scriptName);
 		if (factory == null)
 			throw new IllegalStateException("jython logger script not found: " + scriptName);
