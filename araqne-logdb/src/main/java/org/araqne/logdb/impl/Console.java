@@ -241,7 +241,7 @@ public class Console {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
 			}
-		} while (!lq.isEnd());
+		} while (lq.getLastStarted() == null || !lq.isEnd());
 
 		long count = 0;
 		LogResultSet rs = null;
