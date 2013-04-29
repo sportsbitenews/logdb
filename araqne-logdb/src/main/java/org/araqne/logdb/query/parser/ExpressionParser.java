@@ -223,7 +223,7 @@ public class ExpressionParser {
 		ParseResult r = findNextDelimiter(s, begin, end);
 		if (r.next < begin) {
 			// no symbol operator and white space, return whole string
-			String token = s.substring(begin, end + 1);
+			String token = s.substring(begin, end + 1).trim();
 			return new ParseResult(token, end + 1);
 		}
 		
@@ -250,7 +250,7 @@ public class ExpressionParser {
 			return new ParseResult(token, r.next + len);
 		} else {
 			// return term
-			String token = s.substring(begin, r.next);
+			String token = s.substring(begin, r.next).trim();
 			return new ParseResult(token, r.next);
 		}
 	}
