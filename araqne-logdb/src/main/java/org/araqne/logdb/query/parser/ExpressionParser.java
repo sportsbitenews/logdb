@@ -251,11 +251,7 @@ public class ExpressionParser {
 		} else {
 			// return term
 			String token = s.substring(begin, r.next);
-			if (!token.trim().isEmpty())
-				return new ParseResult(token, r.next);
-			else {
-				return nextToken(s, skipSpaces(s, begin), end);
-			}
+			return new ParseResult(token, r.next);
 		}
 	}
 
