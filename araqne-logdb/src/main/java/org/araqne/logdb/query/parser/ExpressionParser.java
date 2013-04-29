@@ -147,7 +147,7 @@ public class ExpressionParser {
 		return tokenize(s, 0, s.length() - 1);
 	}
 
-	public static List<Term> tokenize(String s, int begin, int end) {
+	private static List<Term> tokenize(String s, int begin, int end) {
 		List<Term> tokens = new ArrayList<Term>();
 
 		String lastToken = null;
