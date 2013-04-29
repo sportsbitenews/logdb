@@ -286,8 +286,8 @@ public class ExpressionParser {
 		}
 		
 		// check white spaces
+		// tabs are removed by ExpressionParser.parse, so it processes space only.
 		min(r, " ", s.indexOf(' ', begin), end);
-		min(r, "\t", s.indexOf('\t', begin), end);
 		return r;
 	}
 
