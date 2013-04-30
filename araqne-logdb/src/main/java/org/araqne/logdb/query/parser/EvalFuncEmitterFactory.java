@@ -13,7 +13,7 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 	@Override
 	public void emit(Stack<Expression> exprStack, FuncTerm f) {
 		String name = f.getTokens().remove(0).trim();
-		List<Expression> args = parseArgs(f.getTokens());
+		List<Expression> args = getArgsFromStack(exprStack);
 
 		if (name.equals("abs")) {
 			exprStack.add(new Abs(args.get(0)));
@@ -64,6 +64,14 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 		} else {
 			throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
 		}
+	}
+
+	private List<Expression> getArgsFromStack(Stack<Expression> exprStack) {
+		List<Expression> exprs = new ArrayList<Expression>();
+		Expression arg = exprStack.pop();
+		exprs.add(arg);
+		// TODO : If it is Comma expression, get argument list from it
+		return exprs;
 	}
 
 	private static List<Expression> parseArgs(List<String> tokens) {
