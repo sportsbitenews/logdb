@@ -345,9 +345,12 @@ public class ExpressionParser {
 	}
 
 	public static enum OpTerm implements Term {
-		Add("+", 5), Sub("-", 5), Mul("*", 6), Div("/", 6), Neg("-", 7, false, true, false),
-		Gte(">=", 4), Lte("<=", 4), Gt(">", 4), Lt("<", 4), Eq("==", 3), Neq("!=", 3),
-		And("and", 1, true, false, true), Or("or", 0, true, false, true), Not("not", 2, false, true, true);
+		Add("+", 500), Sub("-", 500), Mul("*", 510), Div("/", 510), Neg("-", 520, false, true, false),
+		Gte(">=", 410), Lte("<=", 410), Gt(">", 410), Lt("<", 410), Eq("==", 400), Neq("!=", 400),
+		And("and", 310, true, false, true), Or("or", 300, true, false, true), Not("not", 320, false, true, true),
+		Comma(",", 200), 
+		From("from", 100, true, false, true), union("union", 110, false, true, true),
+		;
 
 		OpTerm(String symbol, int precedence) {
 			this(symbol, precedence, true, false, false);
