@@ -49,8 +49,7 @@ public class LogFileServiceV2 implements LogFileService {
 
 	@Override
 	public long count(File f) {
-		// TODO Auto-generated method stub
-		return 0;
+		return LogCounterV2.count(f);
 	}
 
 	@Override
