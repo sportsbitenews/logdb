@@ -74,7 +74,7 @@ public class ExpressionParser {
 					output.add(last);
 				}
 
-				if (token instanceof OpTerm) {
+				if (token instanceof OpTerm || token instanceof FuncTerm) {
 					opStack.add(token);
 				} else if (((TokenTerm) token).getText().equals("(")) {
 					opStack.add(token);
@@ -92,6 +92,12 @@ public class ExpressionParser {
 
 					if (!foundMatchParens)
 						throw new LogQueryParseException("parens-mismatch", -1);
+					Term last = opStack.pop();
+					if (last instanceof FuncTerm) {
+						output.add(last);
+					} else {
+						opStack.push(last);
+					}
 				}
 			} else {
 				output.add(token);
@@ -114,24 +120,25 @@ public class ExpressionParser {
 			return false;
 
 		OpTerm currentOp = (OpTerm) token;
+
+		int precedence = currentOp.precedence;
+		boolean leftAssoc = currentOp.leftAssoc;
+
 		OpTerm lastOp = null;
 		if (!opStack.isEmpty()) {
 			Term t = opStack.peek();
-			if (!(t instanceof OpTerm))
+			if (!(t instanceof OpTerm)) {
 				return false;
+			}
 			lastOp = (OpTerm) t;
+		} else {
+			return false;
 		}
 
-		if (lastOp == null)
-			return false;
-
-		int precedence = currentOp.precedence;
-		int lastPrecedence = lastOp.precedence;
-
-		if (currentOp.leftAssoc && precedence <= lastPrecedence)
+		if (leftAssoc && precedence <= lastOp.precedence)
 			return true;
 
-		if (precedence < lastPrecedence)
+		if (precedence < lastOp.precedence)
 			return true;
 
 		return false;
@@ -162,34 +169,12 @@ public class ExpressionParser {
 				continue;
 
 			// read function call (including nested one)
-			int parenCount = 0;
-			List<String> functionTokens = new ArrayList<String>();
 			if (token.equals("(") && lastToken != null && !isOperator(lastToken)) {
+				// remove last term and add function term instead
+				tokens.remove(tokens.size() - 1);
+				List<String> functionTokens = new ArrayList<String>();
 				functionTokens.add(lastToken);
-
-				while (true) {
-					ParseResult r2 = nextToken(s, next, end);
-					if (r2 == null) {
-						break;
-					}
-
-					String funcToken = (String) r2.value;
-					functionTokens.add(funcToken);
-
-					if (funcToken.equals("("))
-						parenCount++;
-
-					if (funcToken.equals(")")) {
-						parenCount--;
-					}
-
-					if (parenCount == 0) {
-						r.next = r2.next;
-						break;
-					}
-
-					next = r2.next;
-				}
+				tokens.add(new FuncTerm(functionTokens));			
 			}
 
 			OpTerm op = OpTerm.parse(token);
@@ -199,11 +184,7 @@ public class ExpressionParser {
 				op = OpTerm.Neg;
 			}
 
-			if (functionTokens.size() > 0) {
-				// remove last term and add function term instead
-				tokens.remove(tokens.size() - 1);
-				tokens.add(new FuncTerm(functionTokens));
-			} else if (op != null)
+			if (op != null)
 				tokens.add(op);
 			else
 				tokens.add(new TokenTerm(token));
@@ -312,7 +293,7 @@ public class ExpressionParser {
 	}
 
 	private static boolean isDelimiter(Term t) {
-		if (t instanceof OpTerm)
+		if (t instanceof OpTerm || t instanceof FuncTerm)
 			return true;
 
 		if (t instanceof TokenTerm) {
