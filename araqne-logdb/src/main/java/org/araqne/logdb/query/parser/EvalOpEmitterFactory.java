@@ -61,6 +61,9 @@ public class EvalOpEmitterFactory implements OpEmitterFactory {
 		case Neq:
 			exprStack.add(new Neq(lhs, rhs));
 			break;
+		case Comma:
+			exprStack.add(new Comma(lhs, rhs));
+			break;
 		default:
 			throw new LogQueryParseException("unsupported operator", -1, op + " is not supported");
 		}
