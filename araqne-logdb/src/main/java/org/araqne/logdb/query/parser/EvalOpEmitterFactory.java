@@ -64,6 +64,9 @@ public class EvalOpEmitterFactory implements OpEmitterFactory {
 		case Comma:
 			exprStack.add(new Comma(lhs, rhs));
 			break;
+		case ListEndComma:
+			exprStack.add(new Comma(lhs, rhs, true));
+			break;
 		default:
 			throw new LogQueryParseException("unsupported operator", -1, op + " is not supported");
 		}

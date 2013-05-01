@@ -92,12 +92,28 @@ public class ExpressionParser {
 
 					if (!foundMatchParens)
 						throw new LogQueryParseException("parens-mismatch", -1);
+					
+					// postprocess for closed parenthesis
+					
+					// postprocess function term
 					if (!opStack.empty()) {
 						Term last = opStack.pop();
 						if (last instanceof FuncTerm) {
 							output.add(last);
 						} else {
 							opStack.push(last);
+						}
+					}
+
+					// postprocess comma term
+					// Being closed by parenthesis means the comma list is ended.
+					if (!output.isEmpty()) {
+						Term recent = output.get(output.size() - 1);
+						if (recent instanceof OpTerm) {
+							OpTerm recentOp = (OpTerm) recent;
+							if (recentOp == OpTerm.Comma) {
+								output.set(output.size() - 1, OpTerm.ListEndComma);
+							}
 						}
 					}
 				}
@@ -338,7 +354,7 @@ public class ExpressionParser {
 		Add("+", 500), Sub("-", 500), Mul("*", 510), Div("/", 510), Neg("-", 520, false, true, false),
 		Gte(">=", 410), Lte("<=", 410), Gt(">", 410), Lt("<", 410), Eq("==", 400), Neq("!=", 400),
 		And("and", 310, true, false, true), Or("or", 300, true, false, true), Not("not", 320, false, true, true),
-		Comma(",", 200), 
+		Comma(",", 200), ListEndComma(",", 200),
 		From("from", 100, true, false, true), union("union", 110, false, true, true),
 		;
 
