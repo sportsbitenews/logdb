@@ -59,6 +59,13 @@ public class ExpressionParserTest {
 		v = expr.eval(null);
 		assertEquals("this is a cat.", v);
 	}
+	
+	@Test
+	public void testCommaExpr() {
+		Expression expr = ExpressionParser.parse("1, 2, 3, 4, 5");
+		Object v = expr.eval(null);
+		assertEquals("[1, 2, 3, 4, 5]", v.toString());
+	}
 
 	@Test
 	public void testNegation() {
