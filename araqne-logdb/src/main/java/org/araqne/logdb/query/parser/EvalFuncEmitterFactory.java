@@ -67,9 +67,15 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 	}
 
 	private List<Expression> getArgsFromStack(Stack<Expression> exprStack) {
-		List<Expression> exprs = new ArrayList<Expression>();
+		List<Expression> exprs = null; 
 		Expression arg = exprStack.pop();
-		exprs.add(arg);
+		if (arg instanceof Comma) {
+			exprs = ((Comma)arg).getList();
+		}
+		else {
+			exprs = new ArrayList<Expression>();
+			exprs.add(arg);
+		}
 		// TODO : If it is Comma expression, get argument list from it
 		return exprs;
 	}
