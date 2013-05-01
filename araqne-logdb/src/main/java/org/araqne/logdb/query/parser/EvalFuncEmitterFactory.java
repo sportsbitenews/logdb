@@ -76,7 +76,6 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprs = new ArrayList<Expression>();
 			exprs.add(arg);
 		}
-		// TODO : If it is Comma expression, get argument list from it
 		return exprs;
 	}
 

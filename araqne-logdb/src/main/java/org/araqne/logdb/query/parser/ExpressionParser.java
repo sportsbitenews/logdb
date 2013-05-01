@@ -180,8 +180,15 @@ public class ExpressionParser {
 			OpTerm op = OpTerm.parse(token);
 
 			// check if unary operator
-			if (op != null && op.symbol.equals("-") && (lastToken == null || lastToken.equals("("))) {
-				op = OpTerm.Neg;
+			if (op != null && op.symbol.equals("-")) {
+				Term lastTerm = null;
+				if (!tokens.isEmpty()) {
+					lastTerm = tokens.get(tokens.size() - 1);
+				}
+				
+				if (lastToken == null || lastToken.equals("(") || lastTerm instanceof OpTerm) {
+					op = OpTerm.Neg;
+				}
 			}
 
 			if (op != null)
