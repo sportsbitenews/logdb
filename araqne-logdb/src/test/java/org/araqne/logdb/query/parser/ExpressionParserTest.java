@@ -54,6 +54,10 @@ public class ExpressionParserTest {
 		Expression expr = ExpressionParser.parse("min(abs(1-9), 3, 10, 5)");
 		Object v = expr.eval(null);
 		assertEquals(3, v);
+		
+		expr = ExpressionParser.parse("concat(\"this\", \" \", concat(\"is\", concat(\" \", \"a\", \" \", \"cat\")), \".\")");
+		v = expr.eval(null);
+		assertEquals("this is a cat.", v);
 	}
 
 	@Test
