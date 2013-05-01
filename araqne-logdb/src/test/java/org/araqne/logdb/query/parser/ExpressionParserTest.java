@@ -62,9 +62,21 @@ public class ExpressionParserTest {
 	
 	@Test
 	public void testCommaExpr() {
-		Expression expr = ExpressionParser.parse("1, 2, 3, 4, 5");
+		Expression expr = ExpressionParser.parse("1, 2");
 		Object v = expr.eval(null);
-		assertEquals("[1, 2, 3, 4, 5]", v.toString());
+		assertEquals("[1, 2]", v.toString());
+		
+		expr = ExpressionParser.parse("1, 2, (3, 4), 5");
+		v = expr.eval(null);
+		assertEquals("[1, 2, [3, 4], 5]", v.toString());
+
+		expr = ExpressionParser.parse("(1, 2), (3, 4), 5");
+		v = expr.eval(null);
+		assertEquals("[[1, 2], [3, 4], 5]", v.toString());
+		
+		expr = ExpressionParser.parse("(1, 2, 3, (4, 5, 6), 7), 5");
+		v = expr.eval(null);
+		assertEquals("[[1, 2, 3, [4, 5, 6], 7], 5]", v.toString());
 	}
 
 	@Test

@@ -49,6 +49,11 @@ public class Comma implements Expression {
 		
 		data.add(rhs);
 	}
+	
+	public Comma(Expression lhs, Expression rhs, boolean closed) {
+		this(lhs, rhs);
+		this.closed = closed;
+	}
 
 	@Override
 	public Object eval(LogMap map) {
