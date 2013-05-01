@@ -86,8 +86,8 @@ public class ExpressionParserTest {
 		assertEquals(-16L, v);
 
 		expr = ExpressionParser.parse("--2");
-		v = expr.eval(null);
-		assertEquals(2, v);
+		Number n = (Number) expr.eval(null);
+		assertEquals(2L, n.longValue());
 
 		expr = ExpressionParser.parse("1+-2");
 		v = expr.eval(null);
