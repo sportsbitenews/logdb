@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -38,6 +39,7 @@ public class TrapReceiver extends Thread {
 	private int port;
 	private String cookie;
 	private CopyOnWriteArraySet<TrapListener> listeners;
+	private HttpURLConnection con;
 
 	public TrapReceiver(String host, String cookie) {
 		this(host, 80, cookie);
@@ -57,6 +59,9 @@ public class TrapReceiver extends Thread {
 			while (!doStop) {
 				receiveTrap();
 			}
+		} catch (SocketException e) {
+			if (e.getMessage().equals("Socket Closed"))
+				return;
 		} catch (Throwable t) {
 			logger.error("logdb client: trap receiver error", t);
 		} finally {
@@ -64,9 +69,8 @@ public class TrapReceiver extends Thread {
 		}
 	}
 
-	private void receiveTrap() throws ConnectException {
+	private void receiveTrap() throws SocketException {
 		InputStream is = null;
-		HttpURLConnection con = null;
 		try {
 			con = (HttpURLConnection) new URL("http://" + host + ":" + port + "/msgbus/trap").openConnection();
 			con.setRequestProperty("Content-Type", "text/json");
@@ -93,6 +97,9 @@ public class TrapReceiver extends Thread {
 			}
 
 			String text = new String(bos.toByteArray(), "utf-8");
+			if (text.isEmpty())
+				return;
+
 			JSONTokener tokenizer = new JSONTokener(new StringReader(text));
 			JSONArray container = (JSONArray) tokenizer.nextValue();
 			for (int i = 0; i < container.length(); i++) {
@@ -100,11 +107,14 @@ public class TrapReceiver extends Thread {
 				Message msg = MessageCodec.decode(obj.toString());
 				invokeTrapCallbacks(msg);
 			}
-
 		} catch (SocketTimeoutException e) {
 			logger.debug("logdb client: socket timeout");
 		} catch (ConnectException e) {
 			throw e;
+		} catch (SocketException e) {
+			if (e.getMessage().equals("Socket Closed"))
+				throw e;
+			logger.error("logdb client: cannot fetch trap", e);
 		} catch (Throwable t) {
 			logger.error("logdb client: cannot fetch trap", t);
 		} finally {
@@ -115,8 +125,10 @@ public class TrapReceiver extends Thread {
 				}
 			}
 
-			if (con != null)
+			if (con != null) {
 				con.disconnect();
+				con = null;
+			}
 		}
 
 	}
@@ -142,6 +154,8 @@ public class TrapReceiver extends Thread {
 	public void close() {
 		try {
 			doStop = true;
+			if (con != null)
+				con.disconnect();
 			interrupt();
 			join();
 		} catch (InterruptedException e) {
