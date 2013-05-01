@@ -78,43 +78,4 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 		}
 		return exprs;
 	}
-
-	private static List<Expression> parseArgs(List<String> tokens) {
-		// separate by outermost comma (not in nested function call)
-		List<Expression> exprs = new ArrayList<Expression>();
-
-		int parensCount = 0;
-
-		List<String> subTokens = new ArrayList<String>();
-		tokens = tokens.subList(1, tokens.size() - 1);
-
-		for (String token : tokens) {
-			String t = token.trim();
-			if (t.equals("("))
-				parensCount++;
-			if (t.equals(")"))
-				parensCount--;
-
-			if (parensCount == 0 && t.equals(",")) {
-				exprs.add(parseArg(subTokens));
-				subTokens = new ArrayList<String>();
-			} else
-				subTokens.add(token);
-		}
-
-		exprs.add(parseArg(subTokens));
-		return exprs;
-	}
-
-	private static Expression parseArg(List<String> tokens) {
-		StringBuilder sb = new StringBuilder();
-		for (String token : tokens) {
-			sb.append(token);
-		}
-
-		return ExpressionParser.parse(sb.toString());
-	}
-
-
-
 }
