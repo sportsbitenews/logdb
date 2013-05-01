@@ -92,11 +92,13 @@ public class ExpressionParser {
 
 					if (!foundMatchParens)
 						throw new LogQueryParseException("parens-mismatch", -1);
-					Term last = opStack.pop();
-					if (last instanceof FuncTerm) {
-						output.add(last);
-					} else {
-						opStack.push(last);
+					if (!opStack.empty()) {
+						Term last = opStack.pop();
+						if (last instanceof FuncTerm) {
+							output.add(last);
+						} else {
+							opStack.push(last);
+						}
 					}
 				}
 			} else {
