@@ -61,6 +61,22 @@ public class ExpressionParserTest {
 		Expression expr = ExpressionParser.parse("-abs(1-9) * 2");
 		Object v = expr.eval(null);
 		assertEquals(-16L, v);
+
+		expr = ExpressionParser.parse("--2");
+		v = expr.eval(null);
+		assertEquals(2, v);
+
+		expr = ExpressionParser.parse("1+-2");
+		v = expr.eval(null);
+		assertEquals(-1L, v);
+
+		expr = ExpressionParser.parse("3--5");
+		v = expr.eval(null);
+		assertEquals(8L, v);
+
+		expr = ExpressionParser.parse("3*-5");
+		v = expr.eval(null);
+		assertEquals(-15L, v);		
 	}
 
 	@Test
