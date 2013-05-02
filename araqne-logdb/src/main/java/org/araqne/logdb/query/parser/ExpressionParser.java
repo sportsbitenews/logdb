@@ -344,7 +344,7 @@ public class ExpressionParser {
 	private static boolean isDelimiter(String s) {
 		String d = s.trim();
 
-		if (d.equals("(") || d.equals(")") || d.equals(","))
+		if (d.equals("(") || d.equals(")"))
 			return true;
 
 		for (OpTerm op : OpTerm.values())
