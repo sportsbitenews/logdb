@@ -236,12 +236,14 @@ public class ExpressionParser {
 		if (isAllWhitespaces(s, begin, r.next - 1)) {
 			// check if next token is quoted string
 			if (r.value.equals("\"")) {
-				int p = s.indexOf('"', r.next + 1);
+				int p = findClosingQuote(s, r.next + 1);
+				// int p = s.indexOf('"', r.next + 1);
 				if (p < 0) {
-					String quoted = s.substring(r.next);
-					return new ParseResult(quoted, s.length());
+					throw new LogQueryParseException("quote-mismatch", r.next + 1);
+//					String quoted = unveilEscape(s.substring(r.next));
+//					return new ParseResult(quoted, s.length());
 				} else {
-					String quoted = s.substring(r.next, p + 1);
+					String quoted = unveilEscape(s.substring(r.next, p + 1));
 					return new ParseResult(quoted, p + 1);
 				}
 			}
@@ -259,6 +261,52 @@ public class ExpressionParser {
 			String token = s.substring(begin, r.next).trim();
 			return new ParseResult(token, r.next);
 		}
+	}
+
+	private static String unveilEscape(String s) {
+		StringBuilder sb = new StringBuilder();
+		boolean escape = false;
+
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+
+			if (escape) {
+				if (c == '\\')
+					sb.append('\\');
+				else if (c == '"')
+					sb.append('"');
+				else
+					throw new LogQueryParseException("invalid-escape-sequence", -1, "char=" + c);
+				escape = false;
+			} else {
+				if (c == '\\')
+					escape = true;
+				else
+					sb.append(c);
+			}
+		}
+
+		return sb.toString();
+	}
+
+	private static int findClosingQuote(String s, int offset) {
+		boolean escape = false;
+		for (int i = offset; i < s.length(); i++) {
+			char c = s.charAt(i);
+			if (escape) {
+				if (c == '\\' || c == '"')
+					escape = false;
+				else
+					throw new LogQueryParseException("invalid-escape-sequence", offset);
+			} else {
+				if (c == '\\')
+					escape = true;
+				else if (c == '"')
+					return i;
+			}
+		}
+
+		return -1;
 	}
 
 	private static boolean isAllWhitespaces(String s, int begin, int end) {
