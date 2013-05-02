@@ -19,6 +19,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 import org.araqne.logdb.LogMap;
+import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.command.Search;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -85,5 +87,48 @@ public class SearchParserTest {
 		SearchParser p = new SearchParser();
 		Search search = (Search) p.parse(null, "search limit=10");
 		assertEquals(10, (long) search.getLimit());
+	}
+
+	@Test
+	public void testMissingEscape() {
+		try {
+			String query = "search limit=10 category == \"E002\" and ((method == \"<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>\"))";
+			SearchParser p = new SearchParser();
+			p.parse(null, query);
+			fail();
+		} catch (LogQueryParseException e) {
+			assertEquals("quote-mismatch", e.getType());
+		}
+	}
+
+	@Test
+	public void testEscape() {
+		String query = "search limit=10 category == \"E002\" and ((method == \"<iframe src=\\\"http://www.w3schools.com\\\">,,,,,,\\\"\\\",,\\\"<\\\"<<<\\\"<,,</iframe>\"))";
+		SearchParser p = new SearchParser();
+		Search search = (Search) p.parse(null, query);
+		Output output = new Output();
+		search.setNextCommand(output);
+
+		LogMap m = new LogMap();
+		m.put("category", "E002");
+		m.put("method", "<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>");
+		search.push(m);
+		assertEquals(m, output.m);
+
+	}
+
+	private class Output extends LogQueryCommand {
+		private LogMap m;
+
+		@Override
+		public void push(LogMap m) {
+			this.m = m;
+		}
+
+		@Override
+		public boolean isReducer() {
+			return false;
+		}
+
 	}
 }
