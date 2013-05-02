@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.client.http;
+package org.araqne.logdb.client;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -27,30 +27,33 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import org.araqne.logdb.client.AccountInfo;
-import org.araqne.logdb.client.ArchiveConfig;
-import org.araqne.logdb.client.ConfigSpec;
-import org.araqne.logdb.client.IndexConfigSpec;
-import org.araqne.logdb.client.IndexInfo;
-import org.araqne.logdb.client.IndexTokenizerFactoryInfo;
-import org.araqne.logdb.client.LogCursor;
-import org.araqne.logdb.client.LogQuery;
-import org.araqne.logdb.client.LoggerFactoryInfo;
-import org.araqne.logdb.client.LoggerInfo;
-import org.araqne.logdb.client.Message;
-import org.araqne.logdb.client.MessageException;
-import org.araqne.logdb.client.ParserFactoryInfo;
-import org.araqne.logdb.client.Privilege;
-import org.araqne.logdb.client.TableInfo;
-import org.araqne.logdb.client.http.impl.CometSession;
+import org.araqne.logdb.client.http.WebSocketTransport;
 import org.araqne.logdb.client.http.impl.TrapListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CometClient implements TrapListener {
-	private final Logger logger = LoggerFactory.getLogger(CometClient.class);
-	private CometSession session;
+/**
+ * @since 0.5.0
+ * @author xeraph
+ * 
+ */
+public class LogDbClient implements TrapListener {
+	private Logger logger = LoggerFactory.getLogger(LogDbClient.class);
+	private LogDbTransport transport;
+	private LogDbSession session;
 	private Map<Integer, LogQuery> queries = new HashMap<Integer, LogQuery>();
+
+	public LogDbClient() {
+		this(new WebSocketTransport());
+	}
+
+	public LogDbClient(LogDbTransport transport) {
+		this.transport = transport;
+	}
+
+	public boolean isClosed() {
+		return session == null || session.isClosed();
+	}
 
 	public List<LogQuery> getQueries() {
 		return new ArrayList<LogQuery>(queries.values());
@@ -68,7 +71,7 @@ public class CometClient implements TrapListener {
 	}
 
 	public void connect(String host, int port, String loginName, String password) throws IOException {
-		this.session = new CometSession(host, port);
+		this.session = transport.newSession(host, port);
 		this.session.login(loginName, password, true);
 		this.session.addListener(this);
 	}

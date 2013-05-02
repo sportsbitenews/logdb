@@ -28,11 +28,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.araqne.logdb.client.http.CometClient;
-
 public class Console {
 	private BufferedReader br;
-	private CometClient client;
+	private LogDbClient client;
 	private String host;
 	private String loginName;
 	private String password;
@@ -53,7 +51,7 @@ public class Console {
 				String line = br.readLine();
 				if (line == null)
 					break;
-				
+
 				if (line.trim().isEmpty())
 					continue;
 
@@ -181,7 +179,7 @@ public class Console {
 			password = tokens[3];
 
 		try {
-			client = new CometClient();
+			client = new LogDbClient();
 			client.connect(host, port, loginName, password);
 			w("connected to " + host + " as " + loginName);
 		} catch (Throwable t) {
@@ -243,6 +241,9 @@ public class Console {
 
 			w("total " + count + " row(s)");
 		} catch (Throwable t) {
+			if (client != null && client.isClosed())
+				client = null;
+
 			w("query failed: " + t.getMessage());
 		} finally {
 			if (cursor != null) {

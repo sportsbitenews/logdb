@@ -31,6 +31,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.json.JSONWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageCodec {
 	private MessageCodec() {
@@ -50,6 +52,9 @@ public class MessageCodec {
 			msg.setSource(header.getString("source"));
 			msg.setTarget(header.getString("target"));
 			msg.setMethod(header.getString("method").trim());
+
+			if (header.containsKey("requestId"))
+				msg.setRequestId(header.getString("requestId").trim());
 
 			if (header.has("errorCode")) {
 				msg.setErrorCode(header.getString("errorCode"));
@@ -102,7 +107,8 @@ public class MessageCodec {
 
 				m.put(key, value);
 			} catch (JSONException e) {
-				e.printStackTrace();
+				Logger logger = LoggerFactory.getLogger(MessageCodec.class);
+				logger.error("araqne logdb client: invalid msgbus json - " + obj, e);
 			}
 		}
 
@@ -123,7 +129,8 @@ public class MessageCodec {
 				else
 					list.add(o);
 			} catch (JSONException e) {
-				e.printStackTrace();
+				Logger logger = LoggerFactory.getLogger(MessageCodec.class);
+				logger.error("araqne logdb client: invalid msgbus json - " + arr, e);
 			}
 		}
 		return list;

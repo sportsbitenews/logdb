@@ -20,66 +20,39 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArraySet;
 
+import org.araqne.logdb.client.AbstractLogDbSession;
 import org.araqne.logdb.client.Message;
 import org.araqne.logdb.client.MessageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Session implements TrapListener {
-	private final Logger logger = LoggerFactory.getLogger(Session.class);
+public class CometSession extends AbstractLogDbSession implements TrapListener {
+	private final Logger logger = LoggerFactory.getLogger(CometSession.class);
 	private String host;
 	private int port;
 	private String cookie;
 	private TrapReceiver trapReceiver;
-	private CopyOnWriteArraySet<TrapListener> listeners = new CopyOnWriteArraySet<TrapListener>();
 
-	public Session(String host) {
+	public CometSession(String host) {
 		this(host, 80);
 	}
 
-	public Session(String host, int port) {
+	public CometSession(String host, int port) {
 		this.host = host;
 		this.port = port;
 	}
 
-	public void login(String loginName, String password) throws IOException {
-		login(loginName, password, false);
-	}
-
+	@Override
 	public void login(String loginName, String password, boolean force) throws IOException {
-		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("login_name", loginName);
-		params.put("password", password);
-
-		rpc("org.araqne.logdb.msgbus.ManagementPlugin.login", params);
+		super.login(loginName, password, force);
 
 		trapReceiver = new TrapReceiver(host, port, cookie);
 		trapReceiver.addListener(this);
 		trapReceiver.start();
 	}
 
-	public void logout() throws IOException {
-		rpc("org.araqne.logdb.msgbus.ManagementPlugin.logout");
-	}
-
-	public Message rpc(String method) throws IOException {
-		Message req = new Message();
-		req.setMethod(method);
-		return rpc(req);
-	}
-
-	public Message rpc(String method, Map<String, Object> params) throws IOException {
-		Message req = new Message();
-		req.setMethod(method);
-		req.setParameters(params);
-		return rpc(req);
-	}
-
-	private Message rpc(Message req) throws IOException {
+	public Message rpc(Message req, int timeout) throws IOException {
 		String json = MessageCodec.encode(req);
 
 		HttpURLConnection con = null;
@@ -132,26 +105,6 @@ public class Session implements TrapListener {
 		}
 	}
 
-	public void registerTrap(String callbackName) throws IOException {
-		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("callback", callbackName);
-		rpc("org.araqne.msgbus.PushPlugin.subscribe", params);
-	}
-
-	public void unregisterTrap(String callbackName) throws IOException {
-		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("callback", callbackName);
-		rpc("org.araqne.msgbus.PushPlugin.unsubscribe", params);
-	}
-
-	public void addListener(TrapListener listener) {
-		listeners.add(listener);
-	}
-
-	public void removeListener(TrapListener listener) {
-		listeners.remove(listener);
-	}
-
 	@Override
 	public void onTrap(Message msg) {
 		for (TrapListener listener : listeners) {
@@ -177,10 +130,7 @@ public class Session implements TrapListener {
 	}
 
 	public void close() {
-		try {
-			rpc("org.araqne.logdb.msgbus.ManagementPlugin.logout");
-		} catch (Throwable t) {
-		}
+		super.close();
 
 		if (trapReceiver != null) {
 			trapReceiver.close();
