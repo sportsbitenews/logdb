@@ -39,10 +39,11 @@ public enum EvalOpTerm implements OpTerm {
 		
 		@Override
 		public OpTerm parse(String token) {
-			for (EvalOpTerm t : values())
-				if (t.symbol.equals(token))
-					return t;
-
+			for (EvalOpTerm op : values()) {
+				if (op.symbol.equals(token) && op != NOP) {
+					return op;
+				}
+			}
 			return null;
 		}
 
