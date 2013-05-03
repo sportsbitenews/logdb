@@ -8,9 +8,8 @@ import org.araqne.logdb.query.parser.OpTerm;
 public enum EvalOpTerm implements OpTerm {
 		Add("+", 500), Sub("-", 500), Mul("*", 510), Div("/", 510), Neg("-", 520, false, true, false),
 		Gte(">=", 410), Lte("<=", 410), Gt(">", 410), Lt("<", 410), Eq("==", 400), Neq("!=", 400),
-		And("and", 310, true, false, true), Or("or", 300, true, false, true), Not("not", 320, false, true, true),
+		And("and", 310, true, false, true), Or("or", 300, true, false, true), 
 		Comma(",", 200), ListEndComma(",", 200),
-		From("from", 100, true, false, true), union("union", 110, false, true, true),
 		NOP("", 0, true, false, true)
 		;
 		
