@@ -24,57 +24,62 @@ import org.araqne.logdb.query.expr.Expression;
 
 public class ExpressionParser {
 
-	public static Expression parse(String s, OpEmitterFactory of, FuncEmitterFactory ff, TermEmitterFactory tf) {
+	public static Expression parse(String s, ParsingRule r) {
 		if (s == null)
 			throw new IllegalArgumentException("expression string should not be null");
 
 		s = s.replaceAll("\t", "    ");
-		List<Term> terms = tokenize(s);
-		List<Term> output = convertToPostfix(terms);
+		List<Term> terms = tokenize(s, r);
+		List<Term> output = convertToPostfix(terms, r);
 		Stack<Expression> exprStack = new Stack<Expression>();
+		OpEmitterFactory of = r.getOpEmmiterFactory();
+		TermEmitterFactory tf = r.getTermEmitterFactory();
+		FuncEmitterFactory ff = r.getFuncEmitterFactory();
+		
 		for (Term term : output) {
-			if (term instanceof OpTerm) {
-				OpTerm op = (OpTerm) term;
-				of.emit(exprStack, op);
+			if (r.getOpTerm().isInstance(term)) {
+				of.emit(exprStack, term);
 			} else if (term instanceof TokenTerm) {
 				// parse token expression (variable or numeric constant)
 				TokenTerm t = (TokenTerm) term;
 				tf.emit(exprStack, t);
-			} else {
+			} else if (term instanceof FuncTerm) {
 				// parse function expression
 				FuncTerm f = (FuncTerm) term;
 				ff.emit(exprStack, f);
+			} else {
+				throw new IllegalStateException("Unexpected term : " + term.toString());
 			}
 		}
 
 		return exprStack.pop();
 	}
-
-	private static OpEmitterFactory evalOEF = new EvalOpEmitterFactory();
-	private static FuncEmitterFactory evalFEF = new EvalFuncEmitterFactory();
-	private static TermEmitterFactory evalTEF = new EvalTermEmitterFactory();
+	
+	private static ParsingRule evalRule = new ParsingRule(EvalOpTerm.NOP, new EvalOpEmitterFactory(), new EvalFuncEmitterFactory(), new EvalTermEmitterFactory());
 
 	public static Expression parse(String s) {
-		return parse(s, evalOEF, evalFEF, evalTEF);
+		return parse(s, evalRule);
 	}
 
-	private static List<Term> convertToPostfix(List<Term> tokens) {
+	private static List<Term> convertToPostfix(List<Term> tokens, ParsingRule rule) {
 		Stack<Term> opStack = new Stack<Term>();
 		List<Term> output = new ArrayList<Term>();
 
 		int i = 0;
 		int len = tokens.size();
+		
+		OpTerm opTerm = rule.getOpTerm();
 		while (i < len) {
 			Term token = tokens.get(i);
 
-			if (isDelimiter(token)) {
+			if (isDelimiter(token, rule)) {
 				// need to pop operator and write to output?
-				while (needPop(token, opStack, output)) {
+				while (needPop(token, opStack, output, rule)) {
 					Term last = opStack.pop();
 					output.add(last);
 				}
 
-				if (token instanceof OpTerm || token instanceof FuncTerm) {
+				if (opTerm.isInstance(token) || token instanceof FuncTerm) {
 					opStack.add(token);
 				} else if (((TokenTerm) token).getText().equals("(")) {
 					opStack.add(token);
@@ -111,9 +116,7 @@ public class ExpressionParser {
 						Term recent = output.get(output.size() - 1);
 						if (recent instanceof OpTerm) {
 							OpTerm recentOp = (OpTerm) recent;
-							if (recentOp == OpTerm.Comma) {
-								output.set(output.size() - 1, OpTerm.ListEndComma);
-							}
+							output.set(output.size() - 1, recentOp.postProcessCloseParen());
 						}
 					}
 				}
@@ -133,14 +136,14 @@ public class ExpressionParser {
 		return output;
 	}
 
-	private static boolean needPop(Term token, Stack<Term> opStack, List<Term> output) {
-		if (!(token instanceof OpTerm))
+	private static boolean needPop(Term token, Stack<Term> opStack, List<Term> output, ParsingRule rule) {
+		if (!(rule.getOpTerm().isInstance(token)))
 			return false;
 
 		OpTerm currentOp = (OpTerm) token;
 
-		int precedence = currentOp.precedence;
-		boolean leftAssoc = currentOp.leftAssoc;
+		int precedence = currentOp.getPrecedence();
+		boolean leftAssoc = currentOp.isLeftAssoc();
 
 		OpTerm lastOp = null;
 		if (!opStack.isEmpty()) {
@@ -153,32 +156,41 @@ public class ExpressionParser {
 			return false;
 		}
 
-		if (leftAssoc && precedence <= lastOp.precedence)
+		if (leftAssoc && precedence <= lastOp.getPrecedence())
 			return true;
 
-		if (precedence < lastOp.precedence)
+		if (precedence < lastOp.getPrecedence())
 			return true;
 
 		return false;
 	}
 
-	private static boolean isOperator(String token) {
+	private static boolean isOperator(String token, ParsingRule rule) {
 		if (token == null)
 			return false;
-		return isDelimiter(token);
+
+		String o = token.trim();
+
+		if (o.equals("(") || o.equals(")"))
+			return true;
+
+		if (rule.getOpTerm().parse(o) != null)
+			return true;
+		
+		return false;
 	}
 
-	public static List<Term> tokenize(String s) {
-		return tokenize(s, 0, s.length() - 1);
+	public static List<Term> tokenize(String s, ParsingRule rule) {
+		return tokenize(s, 0, s.length() - 1, rule);
 	}
 
-	private static List<Term> tokenize(String s, int begin, int end) {
+	private static List<Term> tokenize(String s, int begin, int end, ParsingRule rule) {
 		List<Term> tokens = new ArrayList<Term>();
 
 		String lastToken = null;
 		int next = begin;
 		while (true) {
-			ParseResult r = nextToken(s, next, end);
+			ParseResult r = nextToken(s, next, end, rule);
 			if (r == null)
 				break;
 
@@ -187,7 +199,7 @@ public class ExpressionParser {
 				continue;
 
 			// read function call (including nested one)
-			if (token.equals("(") && lastToken != null && !isOperator(lastToken)) {
+			if (token.equals("(") && lastToken != null && !isOperator(lastToken, rule)) {
 				// remove last term and add function term instead
 				tokens.remove(tokens.size() - 1);
 				List<String> functionTokens = new ArrayList<String>();
@@ -195,17 +207,18 @@ public class ExpressionParser {
 				tokens.add(new FuncTerm(functionTokens));			
 			}
 
-			OpTerm op = OpTerm.parse(token);
+			OpTerm op = rule.getOpTerm().parse(token);
 
 			// check if unary operator
-			if (op != null && op.symbol.equals("-")) {
+			// TODO: move deciding unary code into OpTerm
+			if (op != null && op.getSymbol().equals("-")) {
 				Term lastTerm = null;
 				if (!tokens.isEmpty()) {
 					lastTerm = tokens.get(tokens.size() - 1);
 				}
 				
-				if (lastToken == null || lastToken.equals("(") || lastTerm instanceof OpTerm) {
-					op = OpTerm.Neg;
+				if (lastToken == null || lastToken.equals("(") || rule.getOpTerm().isInstance(lastTerm)) {
+					op = EvalOpTerm.Neg;
 				}
 			}
 
@@ -221,12 +234,12 @@ public class ExpressionParser {
 		return tokens;
 	}
 
-	private static ParseResult nextToken(String s, int begin, int end) {
+	private static ParseResult nextToken(String s, int begin, int end, ParsingRule rule) {
 		if (begin > end)
 			return null;
 
 		// use r.next as a position here (need +1 for actual next)
-		ParseResult r = findNextDelimiter(s, begin, end);
+		ParseResult r = findNextDelimiter(s, begin, end, rule);
 		if (r.next < begin) {
 			// no symbol operator and white space, return whole string
 			String token = s.substring(begin, end + 1).trim();
@@ -251,7 +264,7 @@ public class ExpressionParser {
 			// check whitespace
 			String token = (String) r.value;
 			if (token.trim().isEmpty())
-				return nextToken(s, skipSpaces(s, begin), end);
+				return nextToken(s, skipSpaces(s, begin), end, rule);
 
 			// return operator
 			int len = token.length();
@@ -320,19 +333,14 @@ public class ExpressionParser {
 		return true;
 	}
 
-	private static ParseResult findNextDelimiter(String s, int begin, int end) {
+	private static ParseResult findNextDelimiter(String s, int begin, int end, ParsingRule rule) {
 		// check parens, comma and operators
 		ParseResult r = new ParseResult(null, -1);
 		min(r, "\"", s.indexOf('"', begin), end);
 		min(r, "(", s.indexOf('(', begin), end);
 		min(r, ")", s.indexOf(')', begin), end);
-		min(r, ",", s.indexOf(',', begin), end);
-		for (OpTerm op : OpTerm.values()) {
-			// check alphabet keywords
-			if (op.isAlpha)
-				continue;
-			
-			min(r, op.symbol, s.indexOf(op.symbol, begin), end);
+		for (OpTerm op : rule.getOpTerm().delimiters()) {
+			min(r, op.getSymbol(), s.indexOf(op.getSymbol(), begin), end);
 		}
 		
 		// check white spaces
@@ -341,16 +349,15 @@ public class ExpressionParser {
 		return r;
 	}
 
-	private static boolean isDelimiter(String s) {
+	private static boolean isDelimiter(String s, ParsingRule rule) {
 		String d = s.trim();
 
 		if (d.equals("(") || d.equals(")"))
 			return true;
 
-		for (OpTerm op : OpTerm.values())
-			if (op.symbol.equals(s))
-				return true;
-
+		if (rule.getOpTerm().isDelimiter(s))
+			return true;
+		
 		return false;
 	}
 
@@ -365,8 +372,8 @@ public class ExpressionParser {
 		}
 	}
 
-	private static boolean isDelimiter(Term t) {
-		if (t instanceof OpTerm || t instanceof FuncTerm)
+	private static boolean isDelimiter(Term t, ParsingRule rule) {
+		if ( rule.getOpTerm().isInstance(t) || t instanceof FuncTerm)
 			return true;
 
 		if (t instanceof TokenTerm) {
@@ -375,9 +382,6 @@ public class ExpressionParser {
 		}
 
 		return false;
-	}
-
-	private static interface Term {
 	}
 
 	public static class TokenTerm implements Term {
@@ -396,46 +400,6 @@ public class ExpressionParser {
 			return text;
 		}
 
-	}
-
-	public static enum OpTerm implements Term {
-		Add("+", 500), Sub("-", 500), Mul("*", 510), Div("/", 510), Neg("-", 520, false, true, false),
-		Gte(">=", 410), Lte("<=", 410), Gt(">", 410), Lt("<", 410), Eq("==", 400), Neq("!=", 400),
-		And("and", 310, true, false, true), Or("or", 300, true, false, true), Not("not", 320, false, true, true),
-		Comma(",", 200), ListEndComma(",", 200),
-		From("from", 100, true, false, true), union("union", 110, false, true, true),
-		;
-
-		OpTerm(String symbol, int precedence) {
-			this(symbol, precedence, true, false, false);
-		}
-
-		OpTerm(String symbol, int precedence, boolean leftAssoc, boolean unary, boolean isAlpha) {
-			this.symbol = symbol;
-			this.precedence = precedence;
-			this.leftAssoc = leftAssoc;
-			this.unary = unary;
-			this.isAlpha = isAlpha;
-		}
-
-		public String symbol;
-		public int precedence;
-		public boolean leftAssoc;
-		public boolean unary;
-		public boolean isAlpha;
-
-		public static OpTerm parse(String token) {
-			for (OpTerm t : values())
-				if (t.symbol.equals(token))
-					return t;
-
-			return null;
-		}
-
-		@Override
-		public String toString() {
-			return symbol;
-		}
 	}
 
 	public static class FuncTerm implements Term {
