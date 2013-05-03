@@ -349,18 +349,6 @@ public class ExpressionParser {
 		return r;
 	}
 
-	private static boolean isDelimiter(String s, ParsingRule rule) {
-		String d = s.trim();
-
-		if (d.equals("(") || d.equals(")"))
-			return true;
-
-		if (rule.getOpTerm().isDelimiter(s))
-			return true;
-		
-		return false;
-	}
-
 	private static void min(ParseResult r, String symbol, int p, int end) {
 		if (p < 0)
 			return;
