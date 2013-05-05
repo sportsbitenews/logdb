@@ -98,7 +98,7 @@ public class Console {
 			} else if (command.equals("passwd")) {
 				changePassword(args[1]);
 			} else if (command.equals("queries")) {
-				queries();
+				queries(args.length > 1 ? args[1] : null);
 			} else if (command.equals("query")) {
 				query(line.substring("query".length()).trim());
 			} else if (command.equals("create_query")) {
@@ -197,8 +197,8 @@ public class Console {
 		context.println("password changed");
 	}
 
-	private void queries() {
-		QueryPrintHelper.printQueries(context, queryService.getQueries(session));
+	private void queries(String queryFilter) {
+		QueryPrintHelper.printQueries(context, queryService.getQueries(session), queryFilter);
 	}
 
 	private void query(String queryString) throws IOException {
