@@ -12,7 +12,7 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 
 	@Override
 	public void emit(Stack<Expression> exprStack, FuncTerm f) {
-		String name = f.getTokens().remove(0).trim();
+		String name = f.getName();
 		List<Expression> args = getArgsFromStack(exprStack);
 
 		if (name.equals("abs")) {

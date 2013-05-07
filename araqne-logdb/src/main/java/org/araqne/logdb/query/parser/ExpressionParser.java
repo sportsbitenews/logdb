@@ -202,9 +202,7 @@ public class ExpressionParser {
 			if (token.equals("(") && lastToken != null && !isOperator(lastToken, rule)) {
 				// remove last term and add function term instead
 				tokens.remove(tokens.size() - 1);
-				List<String> functionTokens = new ArrayList<String>();
-				functionTokens.add(lastToken);
-				tokens.add(new FuncTerm(functionTokens));			
+				tokens.add(new FuncTerm(lastToken.trim()));			
 			}
 
 			OpTerm op = rule.getOpTerm().parse(token);
@@ -391,19 +389,19 @@ public class ExpressionParser {
 	}
 
 	public static class FuncTerm implements Term {
-		private List<String> tokens;
+		private String name;
 
-		public FuncTerm(List<String> tokens) {
-			this.tokens = tokens;
+		public FuncTerm(String name) {
+			this.name = name;
 		}
 
 		@Override
 		public String toString() {
-			return "func term(" + tokens + ")";
+			return "func "+name+"()";
 		}
 
-		public List<String> getTokens() {
-			return tokens;
+		public String getName() {
+			return name;
 		}
 	}
 
