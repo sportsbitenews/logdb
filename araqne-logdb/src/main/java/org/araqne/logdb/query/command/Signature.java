@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.query.expr;
+package org.araqne.logdb.query.command;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;

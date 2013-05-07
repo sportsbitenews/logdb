@@ -18,7 +18,7 @@ package org.araqne.logdb.query.parser;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.query.expr.Signature;
+import org.araqne.logdb.query.command.Signature;
 
 public class SignatureParser implements LogQueryCommandParser {
 
