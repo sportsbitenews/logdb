@@ -226,6 +226,7 @@ public class Console {
 			return;
 		}
 
+		long begin = System.currentTimeMillis();
 		String queryString = join(tokens);
 		w("querying [" + queryString + "] ...");
 
@@ -239,7 +240,8 @@ public class Console {
 				count++;
 			}
 
-			w("total " + count + " row(s)");
+			long end = System.currentTimeMillis();
+			w("total " + count + " row(s), elapsed " + (end - begin) + "ms");
 		} catch (Throwable t) {
 			if (client != null && client.isClosed())
 				client = null;
