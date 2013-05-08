@@ -60,10 +60,7 @@ public class LogDbClient implements TrapListener {
 	}
 
 	public LogQuery getQuery(int id) {
-		for (LogQuery q : queries.values())
-			if (q.getId() == id)
-				return q;
-		return null;
+		return queries.get(id);
 	}
 
 	public void connect(String host, String loginName, String password) throws IOException {
