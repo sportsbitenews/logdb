@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Set;
 
 public interface LogQuery extends Runnable {
+	boolean isAccessible(Session session);
+
 	LogQueryContext getContext();
 
 	int getId();
@@ -67,4 +69,18 @@ public interface LogQuery extends Runnable {
 	void unregisterTimelineCallback(LogTimelineCallback callback);
 
 	void clearTimelineCallbacks();
+
+	/**
+	 * If run mode is background, query will not be removed at logout
+	 * 
+	 * @since 0.17.0
+	 */
+	RunMode getRunMode();
+
+	/**
+	 * set query run mode
+	 * 
+	 * @since 0.17.0
+	 */
+	void setRunMode(RunMode mode, LogQueryContext context);
 }

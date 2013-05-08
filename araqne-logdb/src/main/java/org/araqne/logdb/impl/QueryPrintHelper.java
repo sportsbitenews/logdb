@@ -25,6 +25,7 @@ import java.util.Date;
 import org.araqne.api.ScriptContext;
 import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.RunMode;
 
 /**
  * @since 0.14.0
@@ -72,7 +73,8 @@ public class QueryPrintHelper {
 			if (queryString.length() > 60)
 				queryString = queryString.substring(0, 60) + "...";
 
-			context.println(String.format("[%d:%s%s] %s => %d", q.getId(), loginName, when, queryString, count));
+			String runMode = q.getRunMode() == RunMode.BACKGROUND ? " (bg)" : "";
+			context.println(String.format("[%d:%s%s%s] %s => %d", q.getId(), loginName, when, runMode, queryString, count));
 		}
 	}
 

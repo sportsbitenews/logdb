@@ -27,15 +27,17 @@ import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LogResultSet;
+import org.araqne.logdb.RunMode;
+import org.araqne.logdb.Session;
 import org.araqne.logdb.query.command.Fields;
 
 public class LogQueryHelper {
 	private LogQueryHelper() {
 	}
 
-	public static List<Object> getQueries(LogQueryService service) {
+	public static List<Object> getQueries(Session session, LogQueryService service) {
 		List<Object> result = new ArrayList<Object>();
-		for (LogQuery lq : service.getQueries()) {
+		for (LogQuery lq : service.getQueries(session)) {
 			Long sec = null;
 			if (lq.getLastStarted() != null)
 				sec = new Date().getTime() - lq.getLastStarted().getTime();
@@ -58,6 +60,7 @@ public class LogQueryHelper {
 			m.put("is_end", lq.isEnd());
 			m.put("last_started", lq.getLastStarted());
 			m.put("elapsed", sec);
+			m.put("background", lq.getRunMode() == RunMode.BACKGROUND);
 			m.put("commands", commands);
 
 			result.add(m);
@@ -65,8 +68,7 @@ public class LogQueryHelper {
 		return result;
 	}
 
-	public static Map<String, Object> getResultData(LogQueryService qs, int id, int offset, int limit)
-			throws IOException {
+	public static Map<String, Object> getResultData(LogQueryService qs, int id, int offset, int limit) throws IOException {
 		LogQuery query = qs.getQuery(id);
 		if (query != null) {
 			Map<String, Object> m = new HashMap<String, Object>();

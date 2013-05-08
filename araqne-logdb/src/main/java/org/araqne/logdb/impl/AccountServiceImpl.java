@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -43,12 +44,16 @@ import org.araqne.logdb.ExternalAuthService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
 import org.araqne.logdb.Session;
+import org.araqne.logdb.SessionEventListener;
 import org.araqne.logstorage.LogTableEventListener;
 import org.araqne.logstorage.LogTableRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component(name = "logdb-account")
 @Provides(specifications = { AccountService.class })
 public class AccountServiceImpl implements AccountService, LogTableEventListener {
+	private final Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 	private static final String DB_NAME = "araqne-logdb";
 	private static final String MASTER_ACCOUNT = "araqne";
 	private static final char[] SALT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".toCharArray();
@@ -64,11 +69,13 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 	private ConcurrentMap<String, ExternalAuthService> authServices;
 
 	private String selectedExternalAuth;
+	private CopyOnWriteArraySet<SessionEventListener> sessionListeners;
 
 	public AccountServiceImpl() {
 		sessions = new ConcurrentHashMap<String, Session>();
 		localAccounts = new ConcurrentHashMap<String, Account>();
 		authServices = new ConcurrentHashMap<String, ExternalAuthService>();
+		sessionListeners = new CopyOnWriteArraySet<SessionEventListener>();
 	}
 
 	@Validate
@@ -215,6 +222,16 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		String guid = UUID.randomUUID().toString();
 		Session session = new SessionImpl(guid, loginName);
 		sessions.put(guid, session);
+
+		// invoke callbacks
+		for (SessionEventListener listener : sessionListeners) {
+			try {
+				listener.onLogin(session);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: session event listener should not throw any exception", t);
+			}
+		}
+
 		return session;
 	}
 
@@ -222,6 +239,15 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 	public void logout(Session session) {
 		if (!sessions.remove(session.getGuid(), session))
 			throw new IllegalStateException("session not found: " + session.getGuid());
+
+		// invoke callbacks
+		for (SessionEventListener listener : sessionListeners) {
+			try {
+				listener.onLogout(session);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: session event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -502,6 +528,16 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 	@Override
 	public void unregisterAuthService(ExternalAuthService auth) {
 		authServices.remove(auth.getName(), auth);
+	}
+
+	@Override
+	public void addListener(SessionEventListener listener) {
+		sessionListeners.add(listener);
+	}
+
+	@Override
+	public void removeListener(SessionEventListener listener) {
+		sessionListeners.remove(listener);
 	}
 
 	@Override

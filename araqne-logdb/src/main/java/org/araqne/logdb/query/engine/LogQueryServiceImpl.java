@@ -45,7 +45,9 @@ import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LogQueryStatus;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.MetadataService;
+import org.araqne.logdb.RunMode;
 import org.araqne.logdb.Session;
+import org.araqne.logdb.SessionEventListener;
 import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;
 import org.araqne.logdb.query.parser.FieldsParser;
@@ -72,8 +74,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component(name = "logdb-query")
-@Provides
-public class LogQueryServiceImpl implements LogQueryService {
+@Provides(specifications = { LogQueryService.class })
+public class LogQueryServiceImpl implements LogQueryService, SessionEventListener {
 	private static final String QUERY_LOG_TABLE = "araqne_query_logs";
 
 	private final Logger logger = LoggerFactory.getLogger(LogQueryServiceImpl.class);
@@ -156,12 +158,18 @@ public class LogQueryServiceImpl implements LogQueryService {
 		for (LogQueryCommandParser p : queryParsers)
 			queryParserService.addCommandParser(p);
 
+		accountService.addListener(this);
+
 		// receive log table event and register it to data source registry
 		storage.ensureTable(QUERY_LOG_TABLE, "v2");
 	}
 
 	@Invalidate
 	public void stop() {
+		if (accountService != null) {
+			accountService.removeListener(this);
+		}
+
 		if (queryParserService != null) {
 			for (LogQueryCommandParser p : queryParsers)
 				queryParserService.removeCommandParser(p);
@@ -189,7 +197,7 @@ public class LogQueryServiceImpl implements LogQueryService {
 		if (lq == null)
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
-		if (session != null && !lq.getContext().getSession().equals(session))
+		if (session != null && !lq.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
 		new Thread(lq, "Log Query " + id).start();
@@ -210,8 +218,8 @@ public class LogQueryServiceImpl implements LogQueryService {
 				return;
 			}
 
-			Session querySession = q.getContext().getSession();
-			if (!querySession.equals(session)) {
+			if (!q.isAccessible(session)) {
+				Session querySession = q.getContext().getSession();
 				logger.warn("araqne logdb: security violation, [{}] access to query of login [{}] session [{}]", new Object[] {
 						session.getLoginName(), querySession.getLoginName(), querySession.getGuid() });
 				return;
@@ -252,7 +260,7 @@ public class LogQueryServiceImpl implements LogQueryService {
 	public Collection<LogQuery> getQueries(Session session) {
 		List<LogQuery> l = new ArrayList<LogQuery>();
 		for (LogQuery q : queries.values())
-			if (q.getContext().getSession().equals(session))
+			if (q.isAccessible(session))
 				l.add(q);
 
 		return l;
@@ -269,7 +277,7 @@ public class LogQueryServiceImpl implements LogQueryService {
 		if (q == null)
 			return null;
 
-		if (!q.getContext().getSession().equals(session))
+		if (!q.isAccessible(session))
 			return null;
 
 		return q;
@@ -292,6 +300,27 @@ public class LogQueryServiceImpl implements LogQueryService {
 				callback.onQueryStatusChange(lq, status);
 			} catch (Exception e) {
 				logger.warn("araqne logdb: query event listener should not throw any exception", e);
+			}
+		}
+	}
+
+	/**
+	 * @since 0.17.0
+	 */
+	@Override
+	public void onLogin(Session session) {
+	}
+
+	/**
+	 * @since 0.17.0
+	 */
+	@Override
+	public void onLogout(Session session) {
+		for (LogQuery q : queries.values()) {
+			if (q.getRunMode() == RunMode.FOREGROUND && q.getContext().getSession().equals(session)) {
+				logger.trace("araqne logdb: removing foreground query [{}:{}] by session [{}] logout", new Object[] { q.getId(),
+						q.getQueryString(), session.getLoginName() });
+				removeQuery(q.getId());
 			}
 		}
 	}

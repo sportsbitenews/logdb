@@ -58,4 +58,14 @@ public interface AccountService {
 	void registerAuthService(ExternalAuthService auth);
 
 	void unregisterAuthService(ExternalAuthService auth);
+
+	/**
+	 * @since 0.17.0
+	 */
+	void addListener(SessionEventListener listener);
+
+	/**
+	 * @since 0.17.0
+	 */
+	void removeListener(SessionEventListener listener);
 }

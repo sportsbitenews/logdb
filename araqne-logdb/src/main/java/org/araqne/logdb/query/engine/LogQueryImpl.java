@@ -28,10 +28,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCallback;
 import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.RunMode;
 import org.araqne.logdb.LogQueryCommand.Status;
 import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogResultSet;
 import org.araqne.logdb.LogTimelineCallback;
+import org.araqne.logdb.Session;
 import org.araqne.logdb.query.command.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +49,8 @@ public class LogQueryImpl implements LogQuery {
 	private Date lastStarted;
 	private Result result;
 	private boolean cancelled;
+	private RunMode runMode = RunMode.FOREGROUND;
+
 	private Set<LogQueryCallback> logQueryCallbacks = new CopyOnWriteArraySet<LogQueryCallback>();
 	private Set<LogTimelineCallback> timelineCallbacks = new CopyOnWriteArraySet<LogTimelineCallback>();
 
@@ -84,6 +88,15 @@ public class LogQueryImpl implements LogQuery {
 	}
 
 	@Override
+	public boolean isAccessible(Session session) {
+		Session querySession = getContext().getSession();
+		if (runMode == RunMode.FOREGROUND)
+			return querySession.equals(session);
+		else
+			return querySession.getLoginName().equals(session.getLoginName());
+	}
+
+	@Override
 	public LogQueryContext getContext() {
 		return context;
 	}
@@ -91,6 +104,18 @@ public class LogQueryImpl implements LogQuery {
 	@Override
 	public boolean isCancelled() {
 		return cancelled;
+	}
+
+	@Override
+	public RunMode getRunMode() {
+		return runMode;
+	}
+
+	@Override
+	public void setRunMode(RunMode runMode, LogQueryContext context) {
+		this.runMode = runMode;
+		if (context != null)
+			this.context = context;
 	}
 
 	@Override

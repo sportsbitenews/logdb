@@ -25,9 +25,11 @@ import java.util.Map;
 import org.araqne.api.ScriptContext;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQuery;
+import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LogResultSet;
 import org.araqne.logdb.Permission;
+import org.araqne.logdb.RunMode;
 import org.araqne.logdb.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,11 +94,20 @@ public class Console {
 			if (command.equals("help")) {
 				help();
 			} else if (command.equals("create_account")) {
-				createAccount(args[1]);
+				if (args.length < 2)
+					context.println("Usage: create_account [login name]");
+				else
+					createAccount(args[1]);
 			} else if (command.equals("remove_account")) {
-				removeAccount(args[1]);
+				if (args.length < 2)
+					context.println("Usage: remove_account [login name]");
+				else
+					removeAccount(args[1]);
 			} else if (command.equals("passwd")) {
-				changePassword(args[1]);
+				if (args.length < 2)
+					context.println("Usage: passwd [login name]");
+				else
+					changePassword(args[1]);
 			} else if (command.equals("queries")) {
 				queries(args.length > 1 ? args[1] : null);
 			} else if (command.equals("query")) {
@@ -104,22 +115,51 @@ public class Console {
 			} else if (command.equals("create_query")) {
 				createQuery(line.substring("create_query".length()).trim());
 			} else if (command.equals("start_query")) {
-				startQuery(Integer.valueOf(args[1]));
+				if (args.length < 2)
+					context.println("Usage: start_query [query id]");
+				else
+					startQuery(Integer.valueOf(args[1]));
 			} else if (command.equals("stop_query")) {
-				stopQuery(Integer.valueOf(args[1]));
+				if (args.length < 2)
+					context.println("Usage: stop_query [query id]");
+				else
+					stopQuery(Integer.valueOf(args[1]));
 			} else if (command.equals("remove_query")) {
-				removeQuery(Integer.valueOf(args[1]));
+				if (args.length < 2)
+					context.println("Usage: remove_query [query id]");
+				else
+					removeQuery(Integer.valueOf(args[1]));
 			} else if (command.equals("remove_all_queries")) {
 				removeAllQueries();
 			} else if (command.equals("fetch")) {
-				int id = Integer.valueOf(args[1]);
-				long offset = Long.valueOf(args[2]);
-				long limit = Long.valueOf(args[3]);
-				fetch(id, offset, limit);
+				if (args.length < 4)
+					context.println("Usage: fetch [query id] [offset] [limit]");
+				else {
+					int id = Integer.valueOf(args[1]);
+					long offset = Long.valueOf(args[2]);
+					long limit = Long.valueOf(args[3]);
+					fetch(id, offset, limit);
+				}
 			} else if (command.equals("grant")) {
-				grantPrivilege(args[1], args[2]);
+				if (args.length < 3)
+					context.println("Usage: grant [login name] [table name]");
+				else
+					grantPrivilege(args[1], args[2]);
 			} else if (command.equals("revoke")) {
-				revokePrivilege(args[1], args[2]);
+				if (args.length < 3)
+					context.println("Usage: revoke [login name] [table name]");
+				else
+					revokePrivilege(args[1], args[2]);
+			} else if (command.equals("bg")) {
+				if (args.length < 2)
+					context.println("Usage: bg [query id]");
+				else
+					setRunMode(true, args[1]);
+			} else if (command.equals("fg")) {
+				if (args.length < 2)
+					context.println("Usage: fg [query id]");
+				else
+					setRunMode(false, args[1]);
 			} else {
 				context.println("invalid syntax");
 			}
@@ -156,6 +196,12 @@ public class Console {
 
 		context.println("revoke <account> <table>");
 		context.println("\trevoke read table permission from specified account");
+
+		context.println("fg <query_id>");
+		context.println("\trun query in foreground");
+
+		context.println("bg <query_id>");
+		context.println("run query as a background task");
 	}
 
 	private void createAccount(String loginName) throws InterruptedException {
@@ -347,5 +393,13 @@ public class Console {
 	private void revokePrivilege(String loginName, String tableName) {
 		accountService.revokePrivilege(session, loginName, tableName, Permission.READ);
 		context.println("revoked");
+	}
+
+	private void setRunMode(boolean background, String queryId) {
+		int id = Integer.valueOf(queryId);
+
+		LogQuery q = queryService.getQuery(id);
+		q.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, new LogQueryContext(session));
+		context.println(background ? "run as a background task" : "run in the foreground");
 	}
 }
