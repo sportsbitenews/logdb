@@ -211,24 +211,16 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 
 	@Override
 	public void removeQuery(Session session, int id) {
-		if (session != null) {
-			LogQuery q = queries.get(session);
-			if (q == null) {
-				logger.debug("araqne logdb: query [{}] not found, remove failed", id);
-				return;
-			}
-
-			if (!q.isAccessible(session)) {
-				Session querySession = q.getContext().getSession();
-				logger.warn("araqne logdb: security violation, [{}] access to query of login [{}] session [{}]", new Object[] {
-						session.getLoginName(), querySession.getLoginName(), querySession.getGuid() });
-				return;
-			}
-		}
-
 		LogQuery lq = queries.remove(id);
 		if (lq == null) {
 			logger.debug("araqne logdb: query [{}] not found, remove failed", id);
+			return;
+		}
+
+		if (session != null && !lq.isAccessible(session)) {
+			Session querySession = lq.getContext().getSession();
+			logger.warn("araqne logdb: security violation, [{}] access to query of login [{}] session [{}]", new Object[] {
+					session.getLoginName(), querySession.getLoginName(), querySession.getGuid() });
 			return;
 		}
 
