@@ -23,15 +23,16 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
+import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCallback;
+import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LogTimelineCallback;
+import org.araqne.logdb.RunMode;
 import org.araqne.logdb.impl.LogQueryHelper;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
@@ -64,7 +65,8 @@ public class LogQueryPlugin {
 	@Requires
 	private PushApi pushApi;
 
-	private ConcurrentMap<Session, List<LogQuery>> queries = new ConcurrentHashMap<Session, List<LogQuery>>();
+	@Requires
+	private AccountService accountService;
 
 	@MsgbusMethod
 	public void logs(Request req, Response resp) {
@@ -96,25 +98,17 @@ public class LogQueryPlugin {
 
 	@MsgbusMethod
 	public void queries(Request req, Response resp) {
-		List<Object> result = LogQueryHelper.getQueries(service);
+		org.araqne.logdb.Session dbSession = getDbSession(req);
+		List<Object> result = LogQueryHelper.getQueries(dbSession, service);
 		resp.put("queries", result);
 	}
 
 	@MsgbusMethod
 	public void createQuery(Request req, Response resp) {
 		try {
-			org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
+			org.araqne.logdb.Session dbSession = getDbSession(req);
 			LogQuery query = service.createQuery(dbSession, req.getString("query"));
 			resp.put("id", query.getId());
-
-			// for query cancellation at session close
-			Session session = req.getSession();
-			queries.putIfAbsent(session, new ArrayList<LogQuery>());
-
-			List<LogQuery> l = queries.get(session);
-			synchronized (l) {
-				l.add(query);
-			}
 		} catch (Exception e) {
 			logger.error("araqne logdb: cannot create query", e);
 			throw new MsgbusException("logdb", e.getMessage());
@@ -123,27 +117,17 @@ public class LogQueryPlugin {
 
 	@MsgbusMethod
 	public void removeQuery(Request req, Response resp) {
-		int id = req.getInteger("id");
+		int id = req.getInteger("id", true);
+		org.araqne.logdb.Session dbSession = getDbSession(req);
+		service.removeQuery(dbSession, id);
+	}
 
-		LogQuery target = null;
-		List<LogQuery> l = queries.get(req.getSession());
-		if (l == null) {
-			logger.debug("araqne logdb: remove target query not found for session [{}]", req.getSession());
-			return;
-		}
+	private org.araqne.logdb.Session getDbSession(Request req) {
+		return getDbSession(req.getSession());
+	}
 
-		synchronized (l) {
-			for (LogQuery q : l)
-				if (q.getId() == id)
-					target = q;
-
-			if (target != null) {
-				l.remove(target);
-				logger.debug("araqne logdb: removing query [{}] from session [{}]", target.getId(), req.getSession());
-			}
-		}
-
-		service.removeQuery(id);
+	private org.araqne.logdb.Session getDbSession(Session session) {
+		return (org.araqne.logdb.Session) session.get("araqne_logdb_session");
 	}
 
 	@MsgbusMethod
@@ -198,16 +182,29 @@ public class LogQueryPlugin {
 			resp.putAll(m);
 	}
 
+	/**
+	 * @since 0.17.0
+	 */
+	@MsgbusMethod
+	public void setRunMode(Request req, Response resp) {
+		int id = req.getInteger("id", true);
+		boolean background = req.getBoolean("background", true);
+
+		LogQuery query = service.getQuery(id);
+		if (query == null)
+			throw new MsgbusException("logdb", "query-not-found");
+
+		org.araqne.logdb.Session dbSession = getDbSession(req);
+
+		if (!query.isAccessible(dbSession))
+			throw new MsgbusException("logdb", "no-permission");
+
+		query.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, new LogQueryContext(dbSession));
+	}
+
 	@MsgbusMethod(type = CallbackType.SessionClosed)
 	public void sessionClosed(Session session) {
-		List<LogQuery> q = queries.get(session);
-		if (q != null) {
-			for (LogQuery lq : q) {
-				lq.cancel();
-				service.removeQuery(lq.getId());
-			}
-		}
-		queries.remove(session);
+		accountService.logout(getDbSession(session));
 	}
 
 	private class MsgbusLogQueryCallback implements LogQueryCallback {

@@ -29,7 +29,7 @@ public class Eq extends BinaryExpression {
 
 		if (rhs instanceof StringConstant) {
 			String needle = (String) rhs.eval(null);
-			p = tryBuildPattern(needle);
+			p = tryBuildPattern2(needle);
 		}
 	}
 

@@ -26,6 +26,7 @@ import org.araqne.api.ScriptUsage;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.CsvLookupRegistry;
 import org.araqne.logdb.ExternalAuthService;
+import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryScriptFactory;
 import org.araqne.logdb.LogQueryScriptRegistry;
 import org.araqne.logdb.LogQueryService;
@@ -174,7 +175,27 @@ public class LogDBScript implements Script {
 	 * @since 0.14.0
 	 */
 	public void queries(String[] args) {
-		QueryPrintHelper.printQueries(context, qs.getQueries());
+		String queryFilter = null;
+		if (args.length > 0)
+			queryFilter = args[0];
+		QueryPrintHelper.printQueries(context, qs.getQueries(), queryFilter);
+	}
+
+	/**
+	 * @since 0.16.2
+	 */
+	@ScriptUsage(description = "print specific query status", arguments = { @ScriptArgument(name = "query id", type = "int", description = "query id") })
+	public void queryStatus(String[] args) {
+		Integer id = Integer.valueOf(args[0]);
+		LogQuery q = qs.getQuery(id);
+		if (q == null) {
+			context.println("query " + id + " not found");
+			return;
+		}
+
+		context.println("Log Query Status");
+		context.println("------------------");
+		context.println(QueryPrintHelper.getQueryStatus(q));
 	}
 
 	/**
@@ -182,7 +203,24 @@ public class LogDBScript implements Script {
 	 */
 	@ScriptUsage(description = "remove query", arguments = { @ScriptArgument(name = "query id", type = "int", description = "query id") })
 	public void removeQuery(String[] args) {
-		qs.removeQuery(Integer.valueOf(args[0]));
-		context.println("removed query " + args[0]);
+		for (String arg : args) {
+			Integer id = Integer.valueOf(arg);
+			if (qs.getQuery(id) != null) {
+				qs.removeQuery(id);
+				context.println("removed query " + arg);
+			} else {
+				context.println("query " + id + " not found");
+			}
+		}
+	}
+
+	/**
+	 * @since 0.16.2
+	 */
+	public void removeAllQueries(String[] args) {
+		for (LogQuery q : qs.getQueries()) {
+			qs.removeQuery(q.getId());
+			context.println("removed query " + q.getId());
+		}
 	}
 }

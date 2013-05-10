@@ -338,5 +338,21 @@ public class ExpressionParserTest {
 		m.put("field", "ip = 75.81.1.2");
 		assertFalse((Boolean) expr.eval(m));
 	}
-	
+
+	@Test
+	public void testBracket() {
+		{
+			Expression expr = ExpressionParser.parse("a == \"*[GameStart REP]*\"");
+			LogMap m = new LogMap();
+			m.put("a", "22:27:05.235(tid=4436)[Q=0:1:0:0]I[10.1.119.86-997014784-8439] [0 ms][GameStart REP]=126:200:3111 0073875:61.111.10.21:59930:2:1:0:101:qa161새롱 1:2:2718376:3:2000015:0");
+			assertTrue((Boolean) expr.eval(m));
+		}
+		{
+			Expression expr = ExpressionParser.parse("a == \"*[GameStart REP]*\"");
+			LogMap m = new LogMap();
+			m.put("a", "22:27:05.235(tid=4436)[Q=0:1:0:0]I[10.1.119.86-997014784-8439] [0 ms][GameStrt REP]=126:200:3111 0073875:61.111.10.21:59930:2:1:0:101:qa161새롱 1:2:2718376:3:2000015:0");
+			assertFalse((Boolean) expr.eval(m));
+		}
+	}
+
 }

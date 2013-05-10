@@ -1067,7 +1067,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				// periodic log flush
 				for (OnlineWriterKey key : onlineWriters.keySet()) {
 					OnlineWriter writer = onlineWriters.get(key);
-					boolean doFlush = (now - writer.getLastFlush().getTime()) > flushInterval;
+					boolean doFlush = forceFlush || ((now - writer.getLastFlush().getTime()) > flushInterval);
 					if (doFlush) {
 						try {
 							logger.trace("araqne logstorage: flushing writer [{}]", key);

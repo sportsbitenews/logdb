@@ -13,23 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.query.parser;
+package org.araqne.logdb;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.query.command.Signature;
-
-public class SignatureParser implements LogQueryCommandParser {
-
-	@Override
-	public String getCommandName() {
-		return "signature";
-	}
-
-	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		return new Signature();
-	}
-
+/**
+ * @since 0.17.0
+ * @author xeraph
+ * 
+ */
+public enum RunMode {
+	FOREGROUND, BACKGROUND
 }

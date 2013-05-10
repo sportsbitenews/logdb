@@ -60,7 +60,7 @@ public class TrapReceiver extends Thread {
 				receiveTrap();
 			}
 		} catch (SocketException e) {
-			if (e.getMessage().equals("Socket Closed"))
+			if (e.getMessage().equalsIgnoreCase("socket closed"))
 				return;
 		} catch (Throwable t) {
 			logger.error("logdb client: trap receiver error", t);
@@ -112,7 +112,7 @@ public class TrapReceiver extends Thread {
 		} catch (ConnectException e) {
 			throw e;
 		} catch (SocketException e) {
-			if (e.getMessage().equals("Socket Closed"))
+			if (e.getMessage().equalsIgnoreCase("socket closed"))
 				throw e;
 			logger.error("logdb client: cannot fetch trap", e);
 		} catch (Throwable t) {

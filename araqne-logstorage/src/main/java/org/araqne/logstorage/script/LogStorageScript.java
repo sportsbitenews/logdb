@@ -725,7 +725,7 @@ public class LogStorageScript implements Script {
 		lfsRegistry.uninstall(args[0]);
 		context.println("removed from file engine list");
 	}
-
+	
 	// for test
 	public void purgeOnlineWriters(String args) {
 		LogStorageEngine engine = (LogStorageEngine) storage;
