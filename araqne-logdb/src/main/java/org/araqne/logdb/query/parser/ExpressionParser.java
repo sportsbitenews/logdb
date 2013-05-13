@@ -48,10 +48,13 @@ public class ExpressionParser {
 				FuncTerm f = (FuncTerm) term;
 				ff.emit(exprStack, f);
 			} else {
-				throw new IllegalStateException("Unexpected term : " + term.toString());
+				throw new LogQueryParseException("unexpected-term", -1, term.toString());
 			}
 		}
 
+		if (exprStack.size() > 1) {
+			throw new LogQueryParseException("remain-terms", -1);
+		}
 		return exprStack.pop();
 	}
 	
