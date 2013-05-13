@@ -110,6 +110,13 @@ public class ExpressionParserTest {
 		} catch (LogQueryParseException e) {
 			assertEquals("broken-expression", e.getType());
 		}
+
+		try {
+			ExpressionParser.parse("3 4*2");
+			fail();
+		} catch (LogQueryParseException e) {
+			assertEquals("remain-terms", e.getType());
+		}
 	}
 
 	@Test
