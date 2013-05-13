@@ -30,7 +30,7 @@ public class TimeBasedRollingFileLogger extends AbstractLogger {
 	public static final String optNameLastLogPath = "lastlog_path";
 	public static final String optNameFileDuration = "file_duration";
 
-	private static final DateFormat startTimeDateFormat = new SimpleDateFormat("yyyyMMdd HHmm");
+	private final DateFormat startTimeDateFormat = new SimpleDateFormat("yyyyMMdd HHmm");
 
 	private LogFileHelper logFileHelper;
 
