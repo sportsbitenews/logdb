@@ -12,8 +12,8 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 
 	@Override
 	public void emit(Stack<Expression> exprStack, FuncTerm f) {
-		String name = f.getTokens().remove(0).trim();
-		List<Expression> args = parseArgs(f.getTokens());
+		String name = f.getName();
+		List<Expression> args = getArgsFromStack(exprStack);
 
 		if (name.equals("abs")) {
 			exprStack.add(new Abs(args.get(0)));
@@ -66,42 +66,16 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 		}
 	}
 
-	private static List<Expression> parseArgs(List<String> tokens) {
-		// separate by outermost comma (not in nested function call)
-		List<Expression> exprs = new ArrayList<Expression>();
-
-		int parensCount = 0;
-
-		List<String> subTokens = new ArrayList<String>();
-		tokens = tokens.subList(1, tokens.size() - 1);
-
-		for (String token : tokens) {
-			String t = token.trim();
-			if (t.equals("("))
-				parensCount++;
-			if (t.equals(")"))
-				parensCount--;
-
-			if (parensCount == 0 && t.equals(",")) {
-				exprs.add(parseArg(subTokens));
-				subTokens = new ArrayList<String>();
-			} else
-				subTokens.add(token);
+	private List<Expression> getArgsFromStack(Stack<Expression> exprStack) {
+		List<Expression> exprs = null; 
+		Expression arg = exprStack.pop();
+		if (arg instanceof Comma) {
+			exprs = ((Comma)arg).getList();
 		}
-
-		exprs.add(parseArg(subTokens));
+		else {
+			exprs = new ArrayList<Expression>();
+			exprs.add(arg);
+		}
 		return exprs;
 	}
-
-	private static Expression parseArg(List<String> tokens) {
-		StringBuilder sb = new StringBuilder();
-		for (String token : tokens) {
-			sb.append(token);
-		}
-
-		return ExpressionParser.parse(sb.toString());
-	}
-
-
-
 }

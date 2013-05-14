@@ -54,6 +54,29 @@ public class ExpressionParserTest {
 		Expression expr = ExpressionParser.parse("min(abs(1-9), 3, 10, 5)");
 		Object v = expr.eval(null);
 		assertEquals(3, v);
+		
+		expr = ExpressionParser.parse("concat(\"this\", \" \", concat(\"is\", concat(\" \", \"a\", \" \", \"cat\")), \".\")");
+		v = expr.eval(null);
+		assertEquals("this is a cat.", v);
+	}
+	
+	@Test
+	public void testCommaExpr() {
+		Expression expr = ExpressionParser.parse("1, 2");
+		Object v = expr.eval(null);
+		assertEquals("[1, 2]", v.toString());
+		
+		expr = ExpressionParser.parse("1, 2, (3, 4), 5");
+		v = expr.eval(null);
+		assertEquals("[1, 2, [3, 4], 5]", v.toString());
+
+		expr = ExpressionParser.parse("(1, 2), (3, 4), 5");
+		v = expr.eval(null);
+		assertEquals("[[1, 2], [3, 4], 5]", v.toString());
+		
+		expr = ExpressionParser.parse("(1, 2, 3, (4, 5, 6), 7), 5");
+		v = expr.eval(null);
+		assertEquals("[[1, 2, 3, [4, 5, 6], 7], 5]", v.toString());
 	}
 
 	@Test
@@ -61,6 +84,22 @@ public class ExpressionParserTest {
 		Expression expr = ExpressionParser.parse("-abs(1-9) * 2");
 		Object v = expr.eval(null);
 		assertEquals(-16L, v);
+
+		expr = ExpressionParser.parse("--2");
+		Number n = (Number) expr.eval(null);
+		assertEquals(2L, n.longValue());
+
+		expr = ExpressionParser.parse("1+-2");
+		v = expr.eval(null);
+		assertEquals(-1L, v);
+
+		expr = ExpressionParser.parse("3--5");
+		v = expr.eval(null);
+		assertEquals(8L, v);
+
+		expr = ExpressionParser.parse("3*-5");
+		v = expr.eval(null);
+		assertEquals(-15L, v);		
 	}
 
 	@Test
@@ -70,6 +109,13 @@ public class ExpressionParserTest {
 			fail();
 		} catch (LogQueryParseException e) {
 			assertEquals("broken-expression", e.getType());
+		}
+
+		try {
+			ExpressionParser.parse("3 4*2");
+			fail();
+		} catch (LogQueryParseException e) {
+			assertEquals("remain-terms", e.getType());
 		}
 	}
 

@@ -4,14 +4,14 @@ import java.util.Stack;
 
 import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.expr.*;
-import org.araqne.logdb.query.parser.ExpressionParser.OpTerm;
 
 public class EvalOpEmitterFactory implements OpEmitterFactory {
 
 	@Override
-	public void emit(Stack<Expression> exprStack, OpTerm op) {
+	public void emit(Stack<Expression> exprStack, Term term) {
+		EvalOpTerm op = (EvalOpTerm) term;
 		// is unary op?
-		if (op.unary && op.equals(OpTerm.Neg)) {
+		if (op.isUnary()) {
 			Expression expr = exprStack.pop();
 			exprStack.add(new Neg(expr));
 			return;
@@ -61,9 +61,15 @@ public class EvalOpEmitterFactory implements OpEmitterFactory {
 		case Neq:
 			exprStack.add(new Neq(lhs, rhs));
 			break;
+		case Comma:
+			exprStack.add(new Comma(lhs, rhs));
+			break;
+		case ListEndComma:
+			exprStack.add(new Comma(lhs, rhs, true));
+			break;
 		default:
 			throw new LogQueryParseException("unsupported operator", -1, op + " is not supported");
 		}
 	}
-
+	
 }
