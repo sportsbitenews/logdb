@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logparser.syslog.secui;
+package org.araqne.logparser.syslog.winstechnet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,13 +27,13 @@ import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LoggerConfigOption;
 
-@Component(name = "nxg-log-parser-factory")
+@Component(name = "sniper-log-parser-factory")
 @Provides
-public class NxgLogParserFactory implements LogParserFactory {
+public class SniperLogParserFactory implements LogParserFactory {
 
 	@Override
 	public String getName() {
-		return "nxg";
+		return "sniper";
 	}
 
 	@Override
@@ -43,7 +43,7 @@ public class NxgLogParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "NXG";
+		return "Sniper";
 	}
 
 	@Override
@@ -53,7 +53,7 @@ public class NxgLogParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		return "SECUI NXG";
+		return "Winstechnet Sniper";
 	}
 
 	@Override
@@ -63,7 +63,7 @@ public class NxgLogParserFactory implements LogParserFactory {
 
 	@Override
 	public LogParser createParser(Map<String, String> config) {
-		return new NxgLogParser();
+		return new SniperLogParser();
 	}
 
 }
