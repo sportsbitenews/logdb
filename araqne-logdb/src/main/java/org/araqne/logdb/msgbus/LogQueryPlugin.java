@@ -141,8 +141,11 @@ public class LogQueryPlugin {
 		LogQuery query = service.getQuery(id);
 
 		// validation check
-		if (query == null)
-			throw new MsgbusException("logdb", "query not found");
+		if (query == null) {
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("query_id", id);
+			throw new MsgbusException("logdb", "query not found", params);
+		}
 
 		if (!query.isEnd())
 			throw new MsgbusException("logdb", "already running");
@@ -163,19 +166,22 @@ public class LogQueryPlugin {
 
 	@MsgbusMethod
 	public void stopQuery(Request req, Response resp) {
-		int id = req.getInteger("id");
+		int id = req.getInteger("id", true);
 		LogQuery query = service.getQuery(id);
 		if (query != null)
 			query.cancel();
-		else
-			throw new MsgbusException("logdb", "query-not-found");
+		else {
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("query_id", id);
+			throw new MsgbusException("logdb", "query-not-found", params);
+		}
 	}
 
 	@MsgbusMethod
 	public void getResult(Request req, Response resp) throws IOException {
-		int id = req.getInteger("id");
-		int offset = req.getInteger("offset");
-		int limit = req.getInteger("limit");
+		int id = req.getInteger("id", true);
+		int offset = req.getInteger("offset", true);
+		int limit = req.getInteger("limit", true);
 
 		Map<String, Object> m = LogQueryHelper.getResultData(service, id, offset, limit);
 		if (m != null)

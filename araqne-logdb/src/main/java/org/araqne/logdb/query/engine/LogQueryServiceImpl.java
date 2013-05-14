@@ -178,6 +178,10 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 
 	@Override
 	public LogQuery createQuery(Session session, String query) {
+		if (logger.isDebugEnabled())
+			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]", new Object[] { query, session.getGuid(),
+					session.getLoginName() });
+
 		LogQuery lq = queryParserService.parse(new LogQueryContext(session), query);
 		queries.put(lq.getId(), lq);
 		lq.registerQueryCallback(new EofReceiver(lq));
@@ -211,6 +215,15 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 
 	@Override
 	public void removeQuery(Session session, int id) {
+		if (logger.isDebugEnabled()) {
+			if (session == null) {
+				logger.debug("araqne logdb: try to remove query [{}]", id);
+			} else {
+				logger.debug("araqne logdb: try to remove query [{}] from session [{}:{}]", new Object[] { id, session.getGuid(),
+						session.getLoginName() });
+			}
+		}
+
 		LogQuery lq = queries.remove(id);
 		if (lq == null) {
 			logger.debug("araqne logdb: query [{}] not found, remove failed", id);
