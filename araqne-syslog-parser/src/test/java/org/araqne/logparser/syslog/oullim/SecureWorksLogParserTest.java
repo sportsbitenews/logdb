@@ -262,7 +262,6 @@ public class SecureWorksLogParserTest {
 		String log = "<189>SECUREWORKS: May 14 15:06:15 2013 ICMP PACKET unknown 211.181.253.38:0 -> 10.0.0.3:0 (ALLOW: RULE=179 TYPE=8 IFN=SYNC)";
 		SecureWorksLogParser p = new SecureWorksLogParser();
 		Map<String, Object> m = p.parse(line(log));
-		System.out.println(m);
 
 		assertEquals("ICMP", m.get("protocol"));
 		assertEquals(0, m.get("dst_port"));
