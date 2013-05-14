@@ -26,11 +26,29 @@ public class SecureWorksLogParser implements LogParser {
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
 		String line = (String) params.get("line");
+		if (line.charAt(0) == '<')
+			line = line.substring(line.indexOf('>'));
+
+		int b = line.indexOf(' ', 12);
+		int e = line.indexOf(' ', b + 1);
+		String first = line.substring(b + 1, e);
+		if (!first.equals("TCP") && !first.equals("UDP") && !first.equals("ICMP")) {
+			// log format which starts with date/time case
+			// <189>SECUREWORKS: May 14 15:06:25 2013 TCP
+			e = line.indexOf(' ', e + 1);
+			e = line.indexOf(' ', e + 1);
+			e = line.indexOf(' ', e + 1);
+
+			// skip date/time part
+			line = line.substring(e + 1);
+		} else {
+			line = line.substring(13);
+		}
+
 		Scanner s = new Scanner(line);
 		s.useDelimiter(" ");
 
 		HashMap<String, Object> m = new HashMap<String, Object>();
-		s.next();
 
 		String protocol = s.next();
 		m.put("protocol", protocol);

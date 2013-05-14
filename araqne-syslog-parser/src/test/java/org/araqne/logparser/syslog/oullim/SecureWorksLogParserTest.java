@@ -201,6 +201,76 @@ public class SecureWorksLogParserTest {
 		String log = "SECUREWORKS: TCP  swmaind unknown 255.255.255.255:0 -> 255.255.255.255:0 (0 112 7 9 9 27 381959 381200 759 277830342 0 0 1865 0 1477)";
 	}
 
+	@Test
+	public void testPocSampleLog1() {
+		String log = "<189>SECUREWORKS: May 14 15:06:24 2013 TCP  PACKET unknown 211.115.106.196:80 -> 211.181.253.38:55412 (DENY RULE=Default IFN=eth0)";
+		SecureWorksLogParser p = new SecureWorksLogParser();
+		Map<String, Object> m = p.parse(line(log));
+
+		assertEquals("TCP", m.get("protocol"));
+		assertEquals(55412, m.get("dst_port"));
+		assertEquals("211.181.253.38", m.get("dst_ip"));
+		assertEquals("Default", m.get("rule"));
+		assertEquals("DENY", m.get("action"));
+		assertEquals("PACKET", m.get("logger"));
+		assertEquals("211.115.106.196", m.get("src_ip"));
+		assertEquals("eth0", m.get("ifn"));
+		assertEquals(80, m.get("src_port"));
+	}
+
+	@Test
+	public void testPocSampleLog2() {
+		String log = "<189>SECUREWORKS: May 14 15:06:21 2013 UDP  PACKET unknown 211.181.253.206:2823 -> 168.126.63.1:53 (ALLOW: RULE=179 IFN=eth1 NAT(RV)=(SRCADDR=211.181.255.131 SRCPORT=2823))";
+		SecureWorksLogParser p = new SecureWorksLogParser();
+		Map<String, Object> m = p.parse(line(log));
+
+		assertEquals("UDP", m.get("protocol"));
+		assertEquals("211.181.253.206", m.get("src_ip"));
+		assertEquals(2823, m.get("src_port"));
+		assertEquals("168.126.63.1", m.get("dst_ip"));
+		assertEquals(53, m.get("dst_port"));
+	}
+
+	@Test
+	public void testPocSampleLog3() {
+		String log = "<189>SECUREWORKS: May 14 15:06:25 2013 TCP  PACKET unknown 211.252.203.11:1379 -> 211.181.255.23:80 (CLOSE: RULE=171 IFN=SYNC PKTS=6 DATA=2282 TIME=30)";
+		SecureWorksLogParser p = new SecureWorksLogParser();
+		Map<String, Object> m = p.parse(line(log));
+
+		assertEquals("TCP", m.get("protocol"));
+		assertEquals(80, m.get("dst_port"));
+		assertEquals("211.181.255.23", m.get("dst_ip"));
+		assertEquals("211.252.203.11", m.get("src_ip"));
+		assertEquals(1379, m.get("src_port"));
+	}
+
+	@Test
+	public void testPocSampleLog4() {
+		String log = "<189>SECUREWORKS: May 14 15:06:25 2013 TCP  PACKET unknown 220.87.152.232:2226 -> 211.181.255.104:80 (ALLOW: RULE=171 IFN=eth0)";
+		SecureWorksLogParser p = new SecureWorksLogParser();
+		Map<String, Object> m = p.parse(line(log));
+
+		assertEquals("TCP", m.get("protocol"));
+		assertEquals("220.87.152.232", m.get("src_ip"));
+		assertEquals(2226, m.get("src_port"));
+		assertEquals("211.181.255.104", m.get("dst_ip"));
+		assertEquals(80, m.get("dst_port"));
+	}
+
+	@Test
+	public void testPocSampleLog5() {
+		String log = "<189>SECUREWORKS: May 14 15:06:15 2013 ICMP PACKET unknown 211.181.253.38:0 -> 10.0.0.3:0 (ALLOW: RULE=179 TYPE=8 IFN=SYNC)";
+		SecureWorksLogParser p = new SecureWorksLogParser();
+		Map<String, Object> m = p.parse(line(log));
+		System.out.println(m);
+
+		assertEquals("ICMP", m.get("protocol"));
+		assertEquals(0, m.get("dst_port"));
+		assertEquals("10.0.0.3", m.get("dst_ip"));
+		assertEquals("211.181.253.38", m.get("src_ip"));
+		assertEquals(0, m.get("src_port"));
+	}
+
 	private Map<String, Object> line(String log) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("line", log);
