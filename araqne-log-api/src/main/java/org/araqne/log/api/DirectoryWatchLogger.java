@@ -37,6 +37,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 	protected String basePath;
 	protected Pattern fileNamePattern;
 	protected Pattern dateExtractPattern;
+	protected String charset;
 	protected SimpleDateFormat dateFormat;
 	private Matcher dateExtractMatcher;
 
@@ -59,6 +60,11 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		String dateFormatString = getConfig().get("date_format");
 		if (dateFormatString != null)
 			dateFormat = new SimpleDateFormat(dateFormatString);
+
+		// optional
+		charset = getConfig().get("charset");
+		if (charset == null)
+			charset = "utf-8";
 	}
 
 	@Override
@@ -89,7 +95,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 				logger.trace("logpresso igloo: target file [{}] skip offset [{}]", path, offset);
 			}
 
-			br = new BufferedReader(new InputStreamReader(is, "utf-8"));
+			br = new BufferedReader(new InputStreamReader(is, charset));
 
 			// read and normalize log
 			while (true) {

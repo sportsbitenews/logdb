@@ -72,7 +72,10 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				"date format to parse date and time strings. e.g. yyyy-MM-dd HH:mm:ss",
 				"날짜 및 시각 문자열을 파싱하는데 사용할 포맷. 예) yyyy-MM-dd HH:mm:ss"), false);
 
-		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat);
+		LoggerConfigOption charset = new StringConfigType("charset", t("Charset", "문자 집합"), t("charset encoding",
+				"텍스트 파일의 문자 인코딩 방식"), false);
+
+		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, charset);
 	}
 
 	private Map<Locale, String> t(String enText, String koText) {
