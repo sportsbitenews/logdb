@@ -169,10 +169,11 @@ public class LogStorageScript implements Script {
 			}
 
 			context.println();
-			context.println("Storage Consumption");
+			context.println("Storage information");
 			context.println("---------------------");
+			context.println("Data path: " + storage.getTableDirectory(tableName));
 			NumberFormat nf = NumberFormat.getNumberInstance();
-			context.println(nf.format(total) + " bytes");
+			context.println("Consumption: " + nf.format(total) + " bytes");
 		} else if (args.length == 2) {
 			String value = tableRegistry.getTableMetadata(tableName, args[1]);
 			context.println("unset " + value);
