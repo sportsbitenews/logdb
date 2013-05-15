@@ -62,9 +62,11 @@ public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 			@Override
 			public synchronized int read(byte[] bytes, int off, int len) throws IOException {
 				if (len > buf.capacity()) {
+					long seekpos = bufStartPos + buf.position();
 					bufStartPos += buf.position() + len;
 					buf.position(0);
 					isInvalidated = true;
+					file.seek(seekpos);
 					return file.read(bytes, off, len);
 				} else if (len > buf.remaining()) {
 					bufStartPos += buf.position();
