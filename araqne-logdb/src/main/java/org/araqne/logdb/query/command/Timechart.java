@@ -50,8 +50,8 @@ public class Timechart extends LogQueryCommand {
 
 	public static enum TimeUnit {
 		Second(Calendar.SECOND, 1000L), Minute(Calendar.MINUTE, 60 * 1000L), Hour(Calendar.HOUR_OF_DAY, 60 * 60 * 1000L), Day(
-				Calendar.DAY_OF_MONTH, 24 * 60 * 60 * 1000L), Week(Calendar.WEEK_OF_YEAR, 7 * 24 * 60 * 60 * 1000L), Month(
-				Calendar.MONTH, 0L), Year(Calendar.YEAR, 0L);
+				Calendar.DAY_OF_MONTH, 86400 * 1000L), Week(Calendar.WEEK_OF_YEAR, 7 * 86400 * 1000L), Month(Calendar.MONTH,
+				30 * 86400 * 1000L), Year(Calendar.YEAR, 365 * 86400 * 1000L);
 
 		private int calendarField;
 		private long millis;
@@ -330,33 +330,9 @@ public class Timechart extends LogQueryCommand {
 
 		TimeUnit spanField = timeSpan.unit;
 		int spanAmount = timeSpan.amount;
-
-		if (spanField == TimeUnit.Second || spanField == TimeUnit.Minute || spanField == TimeUnit.Hour
-				|| spanField == TimeUnit.Day || spanField == TimeUnit.Week) {
-			time += 291600000L; // base to Monday, 00:00:00
-			time -= time % (spanField.millis * spanAmount);
-			time -= 291600000L;
-		} else {
-			Calendar c = Calendar.getInstance();
-			c.setTimeInMillis(time - time % TimeUnit.Second.millis);
-			c.set(Calendar.SECOND, 0);
-			c.set(Calendar.MINUTE, 0);
-			c.set(Calendar.HOUR_OF_DAY, 0);
-			c.set(Calendar.DAY_OF_MONTH, 1);
-
-			if (spanField == TimeUnit.Month) {
-				int monthOffset = c.get(Calendar.YEAR) * 12;
-				int month = monthOffset + c.get(Calendar.MONTH);
-				month -= month % spanAmount;
-				month -= monthOffset;
-				c.add(Calendar.MONTH, month);
-				time = c.getTimeInMillis();
-			} else if (spanField == TimeUnit.Year) {
-				int year = c.get(Calendar.YEAR);
-				c.set(Calendar.YEAR, year - (year % spanAmount));
-				time = c.getTimeInMillis();
-			}
-		}
+		time += 291600000L; // base to Monday, 00:00:00
+		time -= time % (spanField.millis * spanAmount);
+		time -= 291600000L;
 
 		return new Date(time);
 	}
