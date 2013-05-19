@@ -15,11 +15,15 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.Calendar;
+import java.util.Date;
+
 import org.junit.Test;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Timechart;
+import org.araqne.logdb.query.command.Timechart.TimeSpan;
 import org.araqne.logdb.query.command.Timechart.TimeUnit;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -86,4 +90,100 @@ public class TimechartParserTest {
 		assertEquals(50.0, arg1.eval(m));
 	}
 
+	@Test
+	public void test2MonthBucketing() {
+		TimeSpan mon2 = new TimeSpan(2, TimeUnit.Month);
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 1, 2), mon2));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 2, 2), mon2));
+		assertEquals(date(2013, 3, 1), TimeUnit.getKey(date(2013, 3, 2), mon2));
+		assertEquals(date(2013, 3, 1), TimeUnit.getKey(date(2013, 4, 2), mon2));
+		assertEquals(date(2013, 5, 1), TimeUnit.getKey(date(2013, 5, 2), mon2));
+		assertEquals(date(2013, 5, 1), TimeUnit.getKey(date(2013, 6, 2), mon2));
+		assertEquals(date(2013, 7, 1), TimeUnit.getKey(date(2013, 7, 2), mon2));
+		assertEquals(date(2013, 7, 1), TimeUnit.getKey(date(2013, 8, 2), mon2));
+		assertEquals(date(2013, 9, 1), TimeUnit.getKey(date(2013, 9, 2), mon2));
+		assertEquals(date(2013, 9, 1), TimeUnit.getKey(date(2013, 10, 2), mon2));
+		assertEquals(date(2013, 11, 1), TimeUnit.getKey(date(2013, 11, 2), mon2));
+		assertEquals(date(2013, 11, 1), TimeUnit.getKey(date(2013, 12, 2), mon2));
+	}
+
+	@Test
+	public void test3MonthBucketing() {
+		TimeSpan mon3 = new TimeSpan(3, TimeUnit.Month);
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 1, 2), mon3));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 2, 2), mon3));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 3, 2), mon3));
+		assertEquals(date(2013, 4, 1), TimeUnit.getKey(date(2013, 4, 2), mon3));
+		assertEquals(date(2013, 4, 1), TimeUnit.getKey(date(2013, 5, 2), mon3));
+		assertEquals(date(2013, 4, 1), TimeUnit.getKey(date(2013, 6, 2), mon3));
+		assertEquals(date(2013, 7, 1), TimeUnit.getKey(date(2013, 7, 2), mon3));
+		assertEquals(date(2013, 7, 1), TimeUnit.getKey(date(2013, 8, 2), mon3));
+		assertEquals(date(2013, 7, 1), TimeUnit.getKey(date(2013, 9, 2), mon3));
+		assertEquals(date(2013, 10, 1), TimeUnit.getKey(date(2013, 10, 2), mon3));
+		assertEquals(date(2013, 10, 1), TimeUnit.getKey(date(2013, 11, 2), mon3));
+		assertEquals(date(2013, 10, 1), TimeUnit.getKey(date(2013, 12, 2), mon3));
+	}
+
+	@Test
+	public void test4MonthBucketing() {
+		TimeSpan mon4 = new TimeSpan(4, TimeUnit.Month);
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 1, 2), mon4));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 2, 2), mon4));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 3, 2), mon4));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 4, 2), mon4));
+		assertEquals(date(2013, 5, 1), TimeUnit.getKey(date(2013, 5, 2), mon4));
+		assertEquals(date(2013, 5, 1), TimeUnit.getKey(date(2013, 6, 2), mon4));
+		assertEquals(date(2013, 5, 1), TimeUnit.getKey(date(2013, 7, 2), mon4));
+		assertEquals(date(2013, 5, 1), TimeUnit.getKey(date(2013, 8, 2), mon4));
+		assertEquals(date(2013, 9, 1), TimeUnit.getKey(date(2013, 9, 2), mon4));
+		assertEquals(date(2013, 9, 1), TimeUnit.getKey(date(2013, 10, 2), mon4));
+		assertEquals(date(2013, 9, 1), TimeUnit.getKey(date(2013, 11, 2), mon4));
+		assertEquals(date(2013, 9, 1), TimeUnit.getKey(date(2013, 12, 2), mon4));
+	}
+
+	@Test
+	public void test6MonthBucketing() {
+		TimeSpan mon6 = new TimeSpan(6, TimeUnit.Month);
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 1, 2), mon6));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 2, 2), mon6));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 3, 2), mon6));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 4, 2), mon6));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 5, 2), mon6));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 6, 2), mon6));
+		assertEquals(date(2013, 7, 1), TimeUnit.getKey(date(2013, 7, 2), mon6));
+		assertEquals(date(2013, 7, 1), TimeUnit.getKey(date(2013, 8, 2), mon6));
+		assertEquals(date(2013, 7, 1), TimeUnit.getKey(date(2013, 9, 2), mon6));
+		assertEquals(date(2013, 7, 1), TimeUnit.getKey(date(2013, 10, 2), mon6));
+		assertEquals(date(2013, 7, 1), TimeUnit.getKey(date(2013, 11, 2), mon6));
+		assertEquals(date(2013, 7, 1), TimeUnit.getKey(date(2013, 12, 2), mon6));
+	}
+
+	@Test
+	public void test1YearBucketing() {
+		TimeSpan mon6 = new TimeSpan(1, TimeUnit.Year);
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 1, 2), mon6));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 2, 2), mon6));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 3, 2), mon6));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 4, 2), mon6));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 5, 2), mon6));
+		assertEquals(date(2013, 1, 1), TimeUnit.getKey(date(2013, 6, 2), mon6));
+		assertEquals(date(2014, 1, 1), TimeUnit.getKey(date(2014, 7, 2), mon6));
+		assertEquals(date(2014, 1, 1), TimeUnit.getKey(date(2014, 8, 2), mon6));
+		assertEquals(date(2014, 1, 1), TimeUnit.getKey(date(2014, 9, 2), mon6));
+		assertEquals(date(2014, 1, 1), TimeUnit.getKey(date(2014, 10, 2), mon6));
+		assertEquals(date(2014, 1, 1), TimeUnit.getKey(date(2014, 11, 2), mon6));
+		assertEquals(date(2014, 1, 1), TimeUnit.getKey(date(2014, 12, 2), mon6));
+	}
+
+	private Date date(int year, int mon, int day) {
+		Calendar c = Calendar.getInstance();
+		c.set(Calendar.YEAR, year);
+		c.set(Calendar.MONTH, mon - 1);
+		c.set(Calendar.DAY_OF_MONTH, day);
+		c.set(Calendar.HOUR_OF_DAY, 0);
+		c.set(Calendar.MINUTE, 0);
+		c.set(Calendar.SECOND, 0);
+		c.set(Calendar.MILLISECOND, 0);
+		return c.getTime();
+	}
 }

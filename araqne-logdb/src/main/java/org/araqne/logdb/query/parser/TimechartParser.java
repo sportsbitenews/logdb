@@ -111,6 +111,11 @@ public class TimechartParser implements LogQueryCommandParser {
 		else if (f.equalsIgnoreCase("y"))
 			unit = TimeUnit.Year;
 		amount = Integer.parseInt(value.substring(0, i));
+
+		if (unit == TimeUnit.Month && (amount != 1 && amount != 2 && amount != 3 && amount != 4 && amount != 6))
+			throw new LogQueryParseException("invalid-timespan", -1, "month should be 1, 2, 3, 4, or 6");
+		if (unit == TimeUnit.Year && amount != 1)
+			throw new LogQueryParseException("invalid-timespan", -1, "year should be 1");
 		return new TimeSpan(amount, unit);
 	}
 }
