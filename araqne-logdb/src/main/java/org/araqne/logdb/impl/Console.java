@@ -340,12 +340,26 @@ public class Console {
 				printMap((Map<String, Object>) value);
 			else if (value == null)
 				context.print("null");
-			else if (value.getClass().isArray())
-				context.print(Arrays.toString((Object[]) value));
-			else
+			else if (value.getClass().isArray()) {
+				Class<?> c = value.getClass().getComponentType();
+				if (c == byte.class)
+					context.print(encodeBinary((byte[]) value));
+				else
+					context.print(Arrays.toString((Object[]) value));
+			} else
 				context.print(value.toString());
 		}
 		context.println("}");
+	}
+
+	private String encodeBinary(byte[] b) {
+		StringBuilder sb = new StringBuilder(b.length * 3);
+		for (int i = 0; i < b.length; i++) {
+			if (i != 0)
+				sb.append(' ');
+			sb.append(String.format("%02x", b[i]));
+		}
+		return sb.toString();
 	}
 
 	private void stopQuery(int id) {
