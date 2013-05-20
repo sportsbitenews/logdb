@@ -117,6 +117,23 @@ public class SearchParserTest {
 
 	}
 
+	@Test
+	public void testEscape2() {
+		String query = "search in (method,\"<iframe src=\\\"http://www.w3schools.com\\\">,,,,,,\\\"\\\",,\\\"<\\\"<<<\\\"<,,</iframe>\") and d_port == \"21\"";
+		SearchParser p = new SearchParser();
+		Search search = (Search) p.parse(null, query);
+		System.out.println(search.getExpression());
+		Output output = new Output();
+		search.setNextCommand(output);
+
+		LogMap m = new LogMap();
+		m.put("d_port", "21");
+		m.put("method", "<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>");
+		search.push(m);
+		assertEquals(m, output.m);
+
+	}
+
 	private class Output extends LogQueryCommand {
 		private LogMap m;
 
