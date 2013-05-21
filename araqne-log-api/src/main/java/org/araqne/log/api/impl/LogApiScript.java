@@ -16,27 +16,23 @@
 package org.araqne.log.api.impl;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 import org.araqne.api.Script;
 import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
+import org.araqne.api.ScriptOptionParser;
+import org.araqne.api.ScriptOptionParser.ScriptOption;
 import org.araqne.api.ScriptUsage;
-import org.araqne.log.api.Log;
-import org.araqne.log.api.LogNormalizer;
-import org.araqne.log.api.LogNormalizerFactory;
-import org.araqne.log.api.LogNormalizerFactoryRegistry;
-import org.araqne.log.api.LogParserFactoryRegistry;
-import org.araqne.log.api.LogPipe;
-import org.araqne.log.api.LogTransformerFactory;
-import org.araqne.log.api.LogTransformerFactoryRegistry;
-import org.araqne.log.api.Logger;
-import org.araqne.log.api.LoggerConfigOption;
-import org.araqne.log.api.LoggerFactory;
-import org.araqne.log.api.LoggerFactoryRegistry;
-import org.araqne.log.api.LoggerRegistry;
+import org.araqne.log.api.*;
+
+import com.bethecoder.ascii_table.ASCIITable;
+import com.bethecoder.ascii_table.impl.CollectionASCIITableAware;
 
 public class LogApiScript implements Script {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(LogApiScript.class.getName());
@@ -108,9 +104,57 @@ public class LogApiScript implements Script {
 		context.println("Loggers");
 		context.println("----------------------");
 
+		ScriptOptionParser sop = new ScriptOptionParser(args);
+		ScriptOption verbOpt = sop.getOption("v", "verbose", false);
+		ScriptOption fullVerbOpt = sop.getOption("V", "full-verbose", false);
+		ScriptOption factFilter = sop.getOption("f", "factory", true);
+		
+		List<String> argl = sop.getArguments();
+
+		List<Logger> filtered = new ArrayList<Logger>(loggerRegistry.getLoggers().size());
 		for (Logger logger : loggerRegistry.getLoggers()) {
-			context.println(logger.toString());
+			if (args.length == 0 && factFilter == null)  
+				filtered.add(logger);
+			else {
+				boolean matches = true;
+				if (argl.size() > 0 && !containsTokens(logger.getFullName(), argl))
+					matches = false;
+				if (factFilter != null && !containsTokens(logger.getFactoryFullName(), factFilter.values))
+					matches = false;
+				if (matches)
+					filtered.add(logger);
+			}
 		}
+
+		if (filtered.isEmpty())
+			return;
+		
+		if (fullVerbOpt != null) {
+			for (Logger logger : filtered) {
+				context.println(logger.toString());
+			}
+		}
+		else if (verbOpt != null)
+			context.println(ASCIITable.getInstance().getTable(
+					new CollectionASCIITableAware<Logger>(filtered,
+							Arrays.asList("name", "factoryFullName", "Running", "interval", "logCount", "lastStartDate", "lastRunDate", "lastLogDate"),
+							Arrays.asList("name", "factory", "running", "intvl.(ms)", "log count", "last start", "last run", "last log"))));
+		else
+			context.println(ASCIITable.getInstance().getTable(
+					new CollectionASCIITableAware<Logger>(filtered,
+							Arrays.asList("name", "factoryName", "Running", "interval", "logCount", "lastLogDate"),
+							Arrays.asList("name", "factory", "running", "intvl.(ms)", "log count", "last log"))));
+			
+	}
+
+	private boolean containsTokens(String fullName, List<String> args) {
+		if (fullName == null)
+			return false;
+		for (String arg: args) {
+			if (!fullName.contains(arg))
+				return false;
+		}
+		return true;
 	}
 
 	@ScriptUsage(description = "print logger configuration", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "logger fullname") })
