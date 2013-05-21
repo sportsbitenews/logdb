@@ -113,7 +113,7 @@ public class LogApiScript implements Script {
 
 		List<Logger> filtered = new ArrayList<Logger>(loggerRegistry.getLoggers().size());
 		for (Logger logger : loggerRegistry.getLoggers()) {
-			if (args.length == 0 && factFilter == null)  
+			if (argl.size() == 0 && factFilter == null)  
 				filtered.add(logger);
 			else {
 				boolean matches = true;
