@@ -36,6 +36,7 @@ import org.araqne.log.api.*;
 
 import com.bethecoder.ascii_table.ASCIITable;
 import com.bethecoder.ascii_table.impl.CollectionASCIITableAware;
+import com.bethecoder.ascii_table.impl.PropertyColumn;
 
 public class LogApiScript implements Script {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(LogApiScript.class.getName());
@@ -172,7 +173,7 @@ public class LogApiScript implements Script {
 		public String getName() {
 			return logger.getName();
 		}
-		
+
 		public String getFullName() {
 			return logger.getFullName();
 		}
@@ -251,15 +252,23 @@ public class LogApiScript implements Script {
 		else if (verbOpt != null)
 			context.println(ASCIITable.getInstance().getTable(
 					new CollectionASCIITableAware<LoggerListItem>(filtered,
-							Arrays.asList("fullName", "factoryFullName", "status", "interval", "logCount", "lastStartDate", "lastRunDate",
-									"lastLogDate"),
-							Arrays.asList("l!name", "l!factory", "l!status", "intvl.(ms)", "log count", "l!last start", "l!last run",
-									"l!last log"))));
+							new PropertyColumn("fullName", "l!name"),
+							new PropertyColumn("factoryFullName", "l!factory"),
+							new PropertyColumn("status", "l!status"),
+							new PropertyColumn("interval", "intvl.(ms)"),
+							new PropertyColumn("logCount", "log count"),
+							new PropertyColumn("lastStartDate", "l!last start"),
+							new PropertyColumn("lastRunDate", "l!last run"),
+							new PropertyColumn("lastLogDate", "l!last log"))));
 		else
 			context.println(ASCIITable.getInstance().getTable(
 					new CollectionASCIITableAware<LoggerListItem>(filtered,
-							Arrays.asList("fullName", "factoryName", "status", "interval", "logCount", "lastLogDate"),
-							Arrays.asList("l!name", "l!factory", "l!status", "intvl.(ms)", "log count", "l!last log"))));
+							new PropertyColumn("fullName", "l!name"),
+							new PropertyColumn("factoryName", "l!factory"),
+							new PropertyColumn("status", "l!status"),
+							new PropertyColumn("interval", "intvl.(ms)"),
+							new PropertyColumn("logCount", "log count"),
+							new PropertyColumn("lastLogDate", "l!last log"))));
 
 	}
 
