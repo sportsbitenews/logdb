@@ -18,6 +18,9 @@ package org.araqne.log.api.impl;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -91,13 +94,122 @@ public class LogApiScript implements Script {
 		}
 	}
 
+	public static class LoggerFactoryListItem implements Comparable<LoggerFactoryListItem> {
+		private LoggerFactory loggerFactory;
+
+		public LoggerFactoryListItem(LoggerFactory loggerFactory) {
+			this.loggerFactory = loggerFactory;
+		}
+
+		public String getFullName() {
+			return loggerFactory.getFullName();
+		}
+
+		public String getName() {
+			return loggerFactory.getName();
+		}
+
+		public String getDisplayName() {
+			return loggerFactory.getDisplayName(Locale.ENGLISH);
+		}
+
+		public String getDescription() {
+			return loggerFactory.getDescription(Locale.ENGLISH);
+		}
+
+		@Override
+		public int compareTo(LoggerFactoryListItem o) {
+			return loggerFactory.getFullName().compareTo(o.getFullName());
+		}
+	}
+
 	public void loggerFactories(String[] args) {
 		context.println("Logger Factories");
 		context.println("---------------------");
 
-		for (LoggerFactory loggerFactory : loggerFactoryRegistry.getLoggerFactories()) {
-			context.println(loggerFactory.toString());
+		ScriptOptionParser sop = new ScriptOptionParser(args);
+		ScriptOption verbOpt = sop.getOption("v", "verbose", false);
+		List<String> argl = sop.getArguments();
+
+		Collection<LoggerFactory> loggerFactories = loggerFactoryRegistry.getLoggerFactories();
+		List<LoggerFactoryListItem> filtered = new ArrayList<LoggerFactoryListItem>(loggerFactories.size());
+		for (LoggerFactory loggerFactory : loggerFactories) {
+			if (argl.isEmpty())
+				filtered.add(new LoggerFactoryListItem(loggerFactory));
+			else if (containsTokens(loggerFactory.getFullName(), argl))
+				filtered.add(new LoggerFactoryListItem(loggerFactory));
 		}
+
+		Collections.sort(filtered);
+
+		if (verbOpt != null) {
+			context.println(ASCIITable.getInstance().getTable(
+					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered,
+							Arrays.asList("fullName", "displayName", "description"),
+							Arrays.asList("l!factory name", "l!display name", "l!description"))));
+		} else {
+			context.println(ASCIITable.getInstance().getTable(
+					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered,
+							Arrays.asList("name", "displayName"),
+							Arrays.asList("l!name", "l!display name"))));
+		}
+	}
+
+	public static class LoggerListItem implements Comparable<LoggerListItem> {
+
+		private Logger logger;
+
+		public LoggerListItem(Logger logger) {
+			this.logger = logger;
+		}
+
+		@Override
+		public int compareTo(LoggerListItem o) {
+			return logger.getFullName().compareTo(o.logger.getFullName());
+		}
+
+		// "name", "factoryFullName", "Running", "interval", "logCount", "lastStartDate", "lastRunDate",
+		public String getName() {
+			return logger.getName();
+		}
+		
+		public String getFullName() {
+			return logger.getFullName();
+		}
+
+		public String getFactoryName() {
+			return logger.getFactoryName();
+		}
+
+		public String getFactoryFullName() {
+			return logger.getFactoryFullName();
+		}
+
+		public String getStatus() {
+			return logger.isRunning() ? "running" : "stopped";
+		}
+
+		public int getInterval() {
+			return logger.getInterval();
+		}
+
+		public long getLogCount() {
+			return logger.getLogCount();
+		}
+
+		public Date getLastStartDate() {
+			return logger.getLastStartDate();
+		}
+
+		public Date getLastRunDate() {
+			return logger.getLastRunDate();
+
+		}
+
+		public Date getLastLogDate() {
+			return logger.getLastLogDate();
+		}
+
 	}
 
 	public void loggers(String[] args) {
@@ -108,13 +220,13 @@ public class LogApiScript implements Script {
 		ScriptOption verbOpt = sop.getOption("v", "verbose", false);
 		ScriptOption fullVerbOpt = sop.getOption("V", "full-verbose", false);
 		ScriptOption factFilter = sop.getOption("f", "factory", true);
-		
+
 		List<String> argl = sop.getArguments();
 
-		List<Logger> filtered = new ArrayList<Logger>(loggerRegistry.getLoggers().size());
+		List<LoggerListItem> filtered = new ArrayList<LoggerListItem>(loggerRegistry.getLoggers().size());
 		for (Logger logger : loggerRegistry.getLoggers()) {
-			if (argl.size() == 0 && factFilter == null)  
-				filtered.add(logger);
+			if (argl.size() == 0 && factFilter == null)
+				filtered.add(new LoggerListItem(logger));
 			else {
 				boolean matches = true;
 				if (argl.size() > 0 && !containsTokens(logger.getFullName(), argl))
@@ -122,35 +234,39 @@ public class LogApiScript implements Script {
 				if (factFilter != null && !containsTokens(logger.getFactoryFullName(), factFilter.values))
 					matches = false;
 				if (matches)
-					filtered.add(logger);
+					filtered.add(new LoggerListItem(logger));
 			}
 		}
 
 		if (filtered.isEmpty())
 			return;
-		
+
+		Collections.sort(filtered);
+
 		if (fullVerbOpt != null) {
-			for (Logger logger : filtered) {
+			for (LoggerListItem logger : filtered) {
 				context.println(logger.toString());
 			}
 		}
 		else if (verbOpt != null)
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<Logger>(filtered,
-							Arrays.asList("name", "factoryFullName", "Running", "interval", "logCount", "lastStartDate", "lastRunDate", "lastLogDate"),
-							Arrays.asList("name", "factory", "running", "intvl.(ms)", "log count", "last start", "last run", "last log"))));
+					new CollectionASCIITableAware<LoggerListItem>(filtered,
+							Arrays.asList("fullName", "factoryFullName", "status", "interval", "logCount", "lastStartDate", "lastRunDate",
+									"lastLogDate"),
+							Arrays.asList("l!name", "l!factory", "l!status", "intvl.(ms)", "log count", "l!last start", "l!last run",
+									"l!last log"))));
 		else
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<Logger>(filtered,
-							Arrays.asList("name", "factoryName", "Running", "interval", "logCount", "lastLogDate"),
-							Arrays.asList("name", "factory", "running", "intvl.(ms)", "log count", "last log"))));
-			
+					new CollectionASCIITableAware<LoggerListItem>(filtered,
+							Arrays.asList("fullName", "factoryName", "status", "interval", "logCount", "lastLogDate"),
+							Arrays.asList("l!name", "l!factory", "l!status", "intvl.(ms)", "log count", "l!last log"))));
+
 	}
 
 	private boolean containsTokens(String fullName, List<String> args) {
 		if (fullName == null)
 			return false;
-		for (String arg: args) {
+		for (String arg : args) {
 			if (!fullName.contains(arg))
 				return false;
 		}
