@@ -59,6 +59,7 @@ import org.araqne.logstorage.LogKey;
 import org.araqne.logstorage.LogRetentionPolicy;
 import org.araqne.logstorage.LogSearchCallback;
 import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.LogStorageEventListener;
 import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableEventListener;
 import org.araqne.logstorage.LogTableNotFoundException;
@@ -112,6 +113,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 	private File logDir;
 
 	private ConcurrentHashMap<String, Integer> tableNameCache;
+	private CopyOnWriteArraySet<LogStorageEventListener> listeners;
 
 	public LogStorageEngine() {
 		int checkInterval = getIntParameter(Constants.LogCheckInterval, DEFAULT_LOG_CHECK_INTERVAL);
@@ -127,6 +129,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		logDir = new File(getStringParameter(Constants.LogStorageDirectory, logDir.getAbsolutePath()));
 		logDir.mkdirs();
 		DatapathUtil.setLogDir(logDir);
+
+		listeners = new CopyOnWriteArraySet<LogStorageEventListener>();
 	}
 
 	@Override
@@ -556,6 +560,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 	@Override
 	public void purge(String tableName, Date fromDay, Date toDay) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		int tableId = tableRegistry.getTableId(tableName);
 		File dir = getTableDirectory(tableName);
 
 		String from = "unbound";
@@ -568,22 +573,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		logger.debug("araqne logstorage: try to purge log data of table [{}], range [{}~{}]",
 				new Object[] { tableName, from, to });
 
-		for (File f : dir.listFiles()) {
-			if (!f.isFile())
-				continue;
-
-			String fileName = f.getName();
-			if (!fileName.endsWith(".idx") && !fileName.endsWith(".dat"))
-				continue;
-
-			String dayStr = fileName.substring(0, fileName.indexOf('.'));
-			Date day = null;
-			try {
-				day = dateFormat.parse(dayStr);
-			} catch (ParseException e) {
-				continue;
-			}
-
+		List<Date> purgeDays = new ArrayList<Date>();
+		for (Date day : getLogDates(tableName)) {
 			// check range
 			if (fromDay != null && day.before(fromDay))
 				continue;
@@ -591,9 +582,30 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			if (toDay != null && day.after(toDay))
 				continue;
 
-			// TODO: lock and ensure delete
-			logger.debug("araqne logstorage: try to purge log data of table [{}], day [{}]", tableName, dayStr);
-			ensureDelete(f);
+			purgeDays.add(day);
+		}
+
+		for (Date d : purgeDays) {
+			// evict online buffer and close
+			OnlineWriter writer = onlineWriters.remove(new OnlineWriterKey(tableName, d, tableId));
+			if (writer != null)
+				writer.close();
+
+			String fileName = dateFormat.format(d);
+			File idxFile = new File(dir, fileName + ".idx");
+			File datFile = new File(dir, fileName + ".dat");
+
+			logger.debug("araqne logstorage: try to purge log data of table [{}], day [{}]", tableName, fileName);
+			ensureDelete(idxFile);
+			ensureDelete(datFile);
+
+			for (LogStorageEventListener listener : listeners) {
+				try {
+					listener.onPurge(tableName, d);
+				} catch (Throwable t) {
+					logger.error("araqne logstorage: storage event listener should not throw any exception", t);
+				}
+			}
 		}
 	}
 
@@ -603,7 +615,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		long begin = System.currentTimeMillis();
 
 		while (true) {
-			if (f.delete()) {
+			if (!f.exists() || f.delete()) {
 				logger.trace("araqne logstorage: deleted log file [{}]", f.getAbsolutePath());
 				return true;
 			}
@@ -1002,6 +1014,16 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		return writers;
 	}
 
+	@Override
+	public void addEventListener(LogStorageEventListener listener) {
+		listeners.add(listener);
+	}
+
+	@Override
+	public void removeEventListener(LogStorageEventListener listener) {
+		listeners.remove(listener);
+	}
+
 	private class WriterSweeper implements Runnable {
 		private final Logger logger = LoggerFactory.getLogger(WriterSweeper.class.getName());
 		private volatile int checkInterval;
@@ -1049,7 +1071,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 						}
 						logger.trace("araqne logstorage: sweeper interrupted");
 					} catch (Exception e) {
-						logger.error("krakne logstorage: sweeper error", e);
+						logger.error("araqne logstorage: sweeper error", e);
 					}
 				}
 			} finally {

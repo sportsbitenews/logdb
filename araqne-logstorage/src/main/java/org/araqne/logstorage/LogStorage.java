@@ -104,4 +104,8 @@ public interface LogStorage {
 	void removeLogListener(LogCallback callback);
 
 	List<LogWriterStatus> getWriterStatuses();
+
+	void addEventListener(LogStorageEventListener listener);
+
+	void removeEventListener(LogStorageEventListener listener);
 }

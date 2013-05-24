@@ -49,13 +49,13 @@ import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogRetentionPolicy;
 import org.araqne.logstorage.LogSearchCallback;
 import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.LogStorageEventListener;
 import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogWriterStatus;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
-import org.araqne.logstorage.engine.LogStorageEngine;
 import org.araqne.logstorage.engine.LogTableSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -726,10 +726,33 @@ public class LogStorageScript implements Script {
 		lfsRegistry.uninstall(args[0]);
 		context.println("removed from file engine list");
 	}
-	
-	// for test
-	public void purgeOnlineWriters(String args) {
-		LogStorageEngine engine = (LogStorageEngine) storage;
-		engine.purgeOnlineWriters();
+
+	@ScriptUsage(description = "purge log files between specified days", arguments = {
+			@ScriptArgument(name = "table name", type = "string", description = "table name"),
+			@ScriptArgument(name = "from", type = "string", description = "yyyyMMdd"),
+			@ScriptArgument(name = "to", type = "string", description = "yyyyMMdd") })
+	public void purge(String[] args) throws ParseException {
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+		String tableName = args[0];
+		Date fromDay = df.parse(args[1]);
+		Date toDay = df.parse(args[2]);
+
+		PurgePrinter printer = new PurgePrinter();
+		try {
+			storage.addEventListener(printer);
+			storage.purge(tableName, fromDay, toDay);
+		} finally {
+			storage.removeEventListener(printer);
+		}
+		context.println("completed");
+	}
+
+	private class PurgePrinter implements LogStorageEventListener {
+
+		@Override
+		public void onPurge(String tableName, Date day) {
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+			context.println("purging table " + tableName + " day " + df.format(day));
+		}
 	}
 }
