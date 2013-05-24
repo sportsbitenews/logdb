@@ -70,6 +70,11 @@ public interface LogStorage {
 
 	Date getPurgeBaseline(String tableName);
 
+	/**
+	 * @since 1.18.0
+	 */
+	void purge(String tableName, Date day);
+
 	void purge(String tableName, Date fromDay, Date toDay);
 
 	Collection<Date> getLogDates(String tableName);
@@ -105,7 +110,13 @@ public interface LogStorage {
 
 	List<LogWriterStatus> getWriterStatuses();
 
+	/**
+	 * @since 1.18.0
+	 */
 	void addEventListener(LogStorageEventListener listener);
 
+	/**
+	 * @since 1.18.0
+	 */
 	void removeEventListener(LogStorageEventListener listener);
 }

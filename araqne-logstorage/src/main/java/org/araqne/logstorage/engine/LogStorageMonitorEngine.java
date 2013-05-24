@@ -68,6 +68,10 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 	private Set<DiskLackCallback> diskLackCallbacks = new HashSet<DiskLackCallback>();
 
 	public LogStorageMonitorEngine() {
+		reload();
+	}
+
+	private void reload() {
 		minFreeSpaceType = DiskSpaceType.valueOf(getStringParameter(Constants.MinFreeDiskSpaceType, DEFAULT_MIN_FREE_SPACE_TYPE));
 		minFreeSpaceValue = getIntParameter(Constants.MinFreeDiskSpaceValue, DEFAULT_MIN_FREE_SPACE_VALUE);
 		diskLackAction = DiskLackAction.valueOf(getStringParameter(Constants.DiskLackAction, DEFAULT_DISK_LACK_ACTION));
@@ -136,7 +140,8 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 		long usable = dir.getUsableSpace();
 		long total = dir.getTotalSpace();
 
-		logger.trace("araqne logstorage: check {} {} free space", minFreeSpaceValue, minFreeSpaceType.toString().toLowerCase());
+		logger.trace("araqne logstorage: check {} {} free space, current [{}/{}]", new Object[] { minFreeSpaceValue,
+				minFreeSpaceType.toString().toLowerCase(), usable, total });
 		if (minFreeSpaceType == DiskSpaceType.Percentage) {
 			int percent = (int) (usable * 100 / total);
 			if (percent < minFreeSpaceValue) {
@@ -162,6 +167,7 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 	}
 
 	private void runOnce() {
+		reload();
 		checkRetentions(false);
 		checkDiskLack();
 	}
@@ -216,7 +222,7 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 					}
 					LogFile lf = files.get(index++);
 					logger.info("araqne logstorage: remove old log, table {}, {}", lf.tableName, sdf.format(lf.date));
-					lf.remove();
+					storage.purge(lf.tableName, lf.date);
 				} while (isDiskLack());
 
 				for (DiskLackCallback callback : diskLackCallbacks)
@@ -242,22 +248,10 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 	private class LogFile {
 		private String tableName;
 		private Date date;
-		private File index;
-		private File data;
 
 		private LogFile(String tableName, Date date) {
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-			File tableDir = storage.getTableDirectory(tableName);
-
 			this.tableName = tableName;
 			this.date = date;
-			this.index = new File(tableDir, sdf.format(date) + ".idx");
-			this.data = new File(tableDir, sdf.format(date) + ".dat");
-		}
-
-		public void remove() {
-			index.delete();
-			data.delete();
 		}
 	}
 

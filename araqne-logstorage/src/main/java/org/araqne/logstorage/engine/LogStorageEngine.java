@@ -558,11 +558,36 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 	}
 
 	@Override
-	public void purge(String tableName, Date fromDay, Date toDay) {
+	public void purge(String tableName, Date day) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		int tableId = tableRegistry.getTableId(tableName);
 		File dir = getTableDirectory(tableName);
 
+		// evict online buffer and close
+		OnlineWriter writer = onlineWriters.remove(new OnlineWriterKey(tableName, day, tableId));
+		if (writer != null)
+			writer.close();
+
+		String fileName = dateFormat.format(day);
+		File idxFile = new File(dir, fileName + ".idx");
+		File datFile = new File(dir, fileName + ".dat");
+
+		logger.debug("araqne logstorage: try to purge log data of table [{}], day [{}]", tableName, fileName);
+		ensureDelete(idxFile);
+		ensureDelete(datFile);
+
+		for (LogStorageEventListener listener : listeners) {
+			try {
+				listener.onPurge(tableName, day);
+			} catch (Throwable t) {
+				logger.error("araqne logstorage: storage event listener should not throw any exception", t);
+			}
+		}
+	}
+
+	@Override
+	public void purge(String tableName, Date fromDay, Date toDay) {
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		String from = "unbound";
 		if (fromDay != null)
 			from = dateFormat.format(fromDay);
@@ -585,27 +610,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			purgeDays.add(day);
 		}
 
-		for (Date d : purgeDays) {
-			// evict online buffer and close
-			OnlineWriter writer = onlineWriters.remove(new OnlineWriterKey(tableName, d, tableId));
-			if (writer != null)
-				writer.close();
-
-			String fileName = dateFormat.format(d);
-			File idxFile = new File(dir, fileName + ".idx");
-			File datFile = new File(dir, fileName + ".dat");
-
-			logger.debug("araqne logstorage: try to purge log data of table [{}], day [{}]", tableName, fileName);
-			ensureDelete(idxFile);
-			ensureDelete(datFile);
-
-			for (LogStorageEventListener listener : listeners) {
-				try {
-					listener.onPurge(tableName, d);
-				} catch (Throwable t) {
-					logger.error("araqne logstorage: storage event listener should not throw any exception", t);
-				}
-			}
+		for (Date day : purgeDays) {
+			purge(tableName, day);
 		}
 	}
 
