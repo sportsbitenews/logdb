@@ -86,6 +86,18 @@ public class DirectoryWatchLogger extends AbstractLogger {
 
 		try {
 			is = new FileInputStream(path);
+			
+			// get date pattern-matched string from filename
+			String fileDateStr = null;
+			Matcher fileNameDateMatcher = fileNamePattern.matcher(path);
+			int fileNameGroupCount = fileNameDateMatcher.groupCount(); 
+			if (fileNameGroupCount > 0) {
+				StringBuffer sb = new StringBuffer();
+				for (int i = 0; i < fileNameGroupCount; ++i) {
+					sb.append(fileNameDateMatcher.group(i));
+				}
+				fileDateStr = sb.toString();
+			}
 
 			// skip previous read part
 			long offset = 0;
@@ -106,7 +118,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 				if (line == null || line.trim().isEmpty())
 					break;
 
-				Date d = parseDate(line);
+				Date d = parseDate(fileDateStr, line);
 				Map<String, Object> log = new HashMap<String, Object>();
 				log.put("line", line);
 
@@ -130,7 +142,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		return new File(dataDir, "dirwatch-" + getName() + ".lastlog");
 	}
 
-	protected Date parseDate(String line) {
+	protected Date parseDate(String fileDateStr, String line) {
 		if (dateExtractPattern == null || dateFormat == null)
 			return new Date();
 
@@ -149,6 +161,10 @@ public class DirectoryWatchLogger extends AbstractLogger {
 				s = dateExtractMatcher.group(i);
 			else
 				s += dateExtractMatcher.group(i);
+		}
+		
+		if (fileDateStr != null) {
+			s = fileDateStr + s;
 		}
 
 		Date d = dateFormat.parse(s, new ParsePosition(0));
