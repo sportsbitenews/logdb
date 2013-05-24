@@ -16,27 +16,27 @@
 package org.araqne.log.api.impl;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 import org.araqne.api.Script;
 import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
+import org.araqne.api.ScriptOptionParser;
+import org.araqne.api.ScriptOptionParser.ScriptOption;
 import org.araqne.api.ScriptUsage;
-import org.araqne.log.api.Log;
-import org.araqne.log.api.LogNormalizer;
-import org.araqne.log.api.LogNormalizerFactory;
-import org.araqne.log.api.LogNormalizerFactoryRegistry;
-import org.araqne.log.api.LogParserFactoryRegistry;
-import org.araqne.log.api.LogPipe;
-import org.araqne.log.api.LogTransformerFactory;
-import org.araqne.log.api.LogTransformerFactoryRegistry;
-import org.araqne.log.api.Logger;
-import org.araqne.log.api.LoggerConfigOption;
-import org.araqne.log.api.LoggerFactory;
-import org.araqne.log.api.LoggerFactoryRegistry;
-import org.araqne.log.api.LoggerRegistry;
+import org.araqne.log.api.*;
+
+import com.bethecoder.ascii_table.ASCIITable;
+import com.bethecoder.ascii_table.impl.CollectionASCIITableAware;
+import com.bethecoder.ascii_table.impl.PropertyColumn;
 
 public class LogApiScript implements Script {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(LogApiScript.class.getName());
@@ -95,22 +95,191 @@ public class LogApiScript implements Script {
 		}
 	}
 
+	public static class LoggerFactoryListItem implements Comparable<LoggerFactoryListItem> {
+		private LoggerFactory loggerFactory;
+
+		public LoggerFactoryListItem(LoggerFactory loggerFactory) {
+			this.loggerFactory = loggerFactory;
+		}
+
+		public String getFullName() {
+			return loggerFactory.getFullName();
+		}
+
+		public String getName() {
+			return loggerFactory.getName();
+		}
+
+		public String getDisplayName() {
+			return loggerFactory.getDisplayName(Locale.ENGLISH);
+		}
+
+		public String getDescription() {
+			return loggerFactory.getDescription(Locale.ENGLISH);
+		}
+
+		@Override
+		public int compareTo(LoggerFactoryListItem o) {
+			return loggerFactory.getFullName().compareTo(o.getFullName());
+		}
+	}
+
 	public void loggerFactories(String[] args) {
 		context.println("Logger Factories");
 		context.println("---------------------");
 
-		for (LoggerFactory loggerFactory : loggerFactoryRegistry.getLoggerFactories()) {
-			context.println(loggerFactory.toString());
+		ScriptOptionParser sop = new ScriptOptionParser(args);
+		ScriptOption verbOpt = sop.getOption("v", "verbose", false);
+		List<String> argl = sop.getArguments();
+
+		Collection<LoggerFactory> loggerFactories = loggerFactoryRegistry.getLoggerFactories();
+		List<LoggerFactoryListItem> filtered = new ArrayList<LoggerFactoryListItem>(loggerFactories.size());
+		for (LoggerFactory loggerFactory : loggerFactories) {
+			if (argl.isEmpty())
+				filtered.add(new LoggerFactoryListItem(loggerFactory));
+			else if (containsTokens(loggerFactory.getFullName(), argl))
+				filtered.add(new LoggerFactoryListItem(loggerFactory));
 		}
+
+		Collections.sort(filtered);
+
+		if (verbOpt != null) {
+			context.println(ASCIITable.getInstance().getTable(
+					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered,
+							Arrays.asList("fullName", "displayName", "description"),
+							Arrays.asList("l!factory name", "l!display name", "l!description"))));
+		} else {
+			context.println(ASCIITable.getInstance().getTable(
+					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered,
+							Arrays.asList("name", "displayName"),
+							Arrays.asList("l!name", "l!display name"))));
+		}
+	}
+
+	public static class LoggerListItem implements Comparable<LoggerListItem> {
+
+		private Logger logger;
+
+		public LoggerListItem(Logger logger) {
+			this.logger = logger;
+		}
+
+		@Override
+		public int compareTo(LoggerListItem o) {
+			return logger.getFullName().compareTo(o.logger.getFullName());
+		}
+
+		// "name", "factoryFullName", "Running", "interval", "logCount", "lastStartDate", "lastRunDate",
+		public String getName() {
+			return logger.getName();
+		}
+
+		public String getFullName() {
+			return logger.getFullName();
+		}
+
+		public String getFactoryName() {
+			return logger.getFactoryName();
+		}
+
+		public String getFactoryFullName() {
+			return logger.getFactoryFullName();
+		}
+
+		public String getStatus() {
+			return logger.isRunning() ? "running" : "stopped";
+		}
+
+		public int getInterval() {
+			return logger.getInterval();
+		}
+
+		public long getLogCount() {
+			return logger.getLogCount();
+		}
+
+		public Date getLastStartDate() {
+			return logger.getLastStartDate();
+		}
+
+		public Date getLastRunDate() {
+			return logger.getLastRunDate();
+
+		}
+
+		public Date getLastLogDate() {
+			return logger.getLastLogDate();
+		}
+
 	}
 
 	public void loggers(String[] args) {
 		context.println("Loggers");
 		context.println("----------------------");
 
+		ScriptOptionParser sop = new ScriptOptionParser(args);
+		ScriptOption verbOpt = sop.getOption("v", "verbose", false);
+		ScriptOption fullVerbOpt = sop.getOption("V", "full-verbose", false);
+		ScriptOption factFilter = sop.getOption("f", "factory", true);
+
+		List<String> argl = sop.getArguments();
+
+		List<LoggerListItem> filtered = new ArrayList<LoggerListItem>(loggerRegistry.getLoggers().size());
 		for (Logger logger : loggerRegistry.getLoggers()) {
-			context.println(logger.toString());
+			if (argl.size() == 0 && factFilter == null)
+				filtered.add(new LoggerListItem(logger));
+			else {
+				boolean matches = true;
+				if (argl.size() > 0 && !containsTokens(logger.getFullName(), argl))
+					matches = false;
+				if (factFilter != null && !containsTokens(logger.getFactoryFullName(), factFilter.values))
+					matches = false;
+				if (matches)
+					filtered.add(new LoggerListItem(logger));
+			}
 		}
+
+		if (filtered.isEmpty())
+			return;
+
+		Collections.sort(filtered);
+
+		if (fullVerbOpt != null) {
+			for (LoggerListItem logger : filtered) {
+				context.println(logger.toString());
+			}
+		}
+		else if (verbOpt != null)
+			context.println(ASCIITable.getInstance().getTable(
+					new CollectionASCIITableAware<LoggerListItem>(filtered,
+							new PropertyColumn("fullName", "l!name"),
+							new PropertyColumn("factoryFullName", "l!factory"),
+							new PropertyColumn("status", "l!status"),
+							new PropertyColumn("interval", "intvl.(ms)"),
+							new PropertyColumn("logCount", "log count"),
+							new PropertyColumn("lastStartDate", "l!last start"),
+							new PropertyColumn("lastRunDate", "l!last run"),
+							new PropertyColumn("lastLogDate", "l!last log"))));
+		else
+			context.println(ASCIITable.getInstance().getTable(
+					new CollectionASCIITableAware<LoggerListItem>(filtered,
+							new PropertyColumn("fullName", "l!name"),
+							new PropertyColumn("factoryName", "l!factory"),
+							new PropertyColumn("status", "l!status"),
+							new PropertyColumn("interval", "intvl.(ms)"),
+							new PropertyColumn("logCount", "log count"),
+							new PropertyColumn("lastLogDate", "l!last log"))));
+
+	}
+
+	private boolean containsTokens(String fullName, List<String> args) {
+		if (fullName == null)
+			return false;
+		for (String arg : args) {
+			if (!fullName.contains(arg))
+				return false;
+		}
+		return true;
 	}
 
 	@ScriptUsage(description = "print logger configuration", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "logger fullname") })
