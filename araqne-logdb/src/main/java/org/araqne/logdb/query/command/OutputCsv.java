@@ -18,39 +18,31 @@ package org.araqne.logdb.query.command;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.List;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 
+import au.com.bytecode.opencsv.CSVWriter;
+
 public class OutputCsv extends LogQueryCommand {
 	private Charset utf8;
 	private List<String> fields;
 	private File f;
 	private FileOutputStream os;
+	private CSVWriter writer;
+	private String[] csvLine;
 
 	public OutputCsv(File f, List<String> fields) throws IOException {
 		this.f = f;
 		this.os = new FileOutputStream(f);
 		this.fields = fields;
 		this.utf8 = Charset.forName("utf-8");
-
-		// write first header line
-		StringBuilder sb = new StringBuilder();
-		int i = 0;
-		for (String field : fields) {
-			if (i != 0)
-				sb.append(",");
-			sb.append(field);
-			i++;
-		}
-		sb.append("\n");
-		try {
-			os.write(sb.toString().getBytes(utf8));
-		} catch (IOException e) {
-			throw new IllegalStateException(e);
-		}
+		this.csvLine = new String[fields.size()];
+		this.writer = new CSVWriter(new OutputStreamWriter(os, utf8));
+		writer.writeNext(fields.toArray(new String[0]));
 	}
 
 	public File getCsvFile() {
@@ -63,24 +55,13 @@ public class OutputCsv extends LogQueryCommand {
 
 	@Override
 	public void push(LogMap m) {
-		StringBuilder sb = new StringBuilder();
 		int i = 0;
 		for (String field : fields) {
-			if (i != 0)
-				sb.append(",");
-
-			Object value = m.get(field);
-			if (value != null)
-				sb.append(value);
-			i++;
+			Object o = m.get(field);
+			csvLine[i++] = o == null ? "" : o.toString();
 		}
-		sb.append("\n");
 
-		try {
-			os.write(sb.toString().getBytes(utf8));
-		} catch (IOException e) {
-			throw new IllegalStateException(e);
-		}
+		writer.writeNext(csvLine);
 	}
 
 	@Override
@@ -90,7 +71,13 @@ public class OutputCsv extends LogQueryCommand {
 
 	@Override
 	public void eof() {
+
 		this.status = Status.Finalizing;
+		try {
+			writer.flush();
+		} catch (IOException e1) {
+		}
+
 		try {
 			os.close();
 		} catch (IOException e) {
