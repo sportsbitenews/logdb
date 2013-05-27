@@ -26,7 +26,7 @@ import org.araqne.logstorage.file.LogRecord;
  * @since 0.9
  * @author xeraph
  */
-class LogMarshaler {
+public class LogMarshaler {
 	private LogMarshaler() {
 	}
 

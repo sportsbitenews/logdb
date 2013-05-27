@@ -14,7 +14,7 @@ public interface LogFileServiceRegistry {
 
 	LogFileWriter newWriter(String type, Map<String, Object> options);
 
-	LogFileReader newReader(String type, Map<String, Object> options);
+	LogFileReader newReader(String tableName, String type, Map<String, Object> options);
 
 	LogFileService getLogFileService(String type);
 

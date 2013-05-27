@@ -23,6 +23,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogCallback;
+import org.araqne.logstorage.LogMatchCallback;
+import org.araqne.logstorage.engine.LogMarshaler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,8 +38,10 @@ public class LogFileReaderV1 extends LogFileReader {
 	private BufferedRandomAccessFileReader dataFile;
 
 	private List<BlockHeader> blockHeaders = new ArrayList<BlockHeader>();
+	private String tableName;
 
-	public LogFileReaderV1(File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
+	public LogFileReaderV1(String tableName, File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
+		this.tableName = tableName;
 		this.indexFile = new BufferedRandomAccessFileReader(indexPath);
 		LogFileHeader indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
 		if (indexFileHeader.version() != 1)
@@ -92,22 +98,22 @@ public class LogFileReaderV1 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(long limit, LogRecordCallback callback) throws IOException, InterruptedException {
+	public void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException {
 		traverse(0, limit, callback);
 	}
 
 	@Override
-	public void traverse(long offset, long limit, LogRecordCallback callback) throws IOException, InterruptedException {
+	public void traverse(long offset, long limit, LogMatchCallback callback) throws IOException, InterruptedException {
 		traverse(null, null, offset, limit, callback);
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long limit, LogRecordCallback callback) throws IOException, InterruptedException {
+	public void traverse(Date from, Date to, long limit, LogMatchCallback callback) throws IOException, InterruptedException {
 		traverse(from, to, 0, limit, callback);
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long offset, long limit, LogRecordCallback callback) throws IOException,
+	public void traverse(Date from, Date to, long offset, long limit, LogMatchCallback callback) throws IOException,
 			InterruptedException {
 		int matched = 0;
 
@@ -165,7 +171,7 @@ public class LogFileReaderV1 extends LogFileReader {
 			}
 
 			ByteBuffer bb = ByteBuffer.wrap(data, 0, dataLen);
-			if (callback.onLog(new LogRecord(dataDate, dataId, bb))) {
+			if (callback.onLog(LogMarshaler.convert(tableName, new LogRecord(dataDate, dataId, bb)))) {
 				if (++matched == offset + limit)
 					return;
 			}
