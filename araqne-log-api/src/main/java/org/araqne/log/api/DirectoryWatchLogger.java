@@ -40,6 +40,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 	protected String charset;
 	protected SimpleDateFormat dateFormat;
 	private Matcher dateExtractMatcher;
+	private Matcher newlogDsgnMatcher;
 
 	public DirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
@@ -60,6 +61,14 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		String dateFormatString = getConfig().get("date_format");
 		if (dateFormatString != null)
 			dateFormat = new SimpleDateFormat(dateFormatString);
+
+		// optional
+		String newlogRegex = getConfig().get("newlog_designator");
+		if (newlogRegex != null) {
+			if (!newlogRegex.startsWith("^"))
+				newlogRegex = "^" + newlogRegex;
+			newlogDsgnMatcher = Pattern.compile(newlogRegex).matcher("");
+		}
 
 		// optional
 		charset = getConfig().get("charset");
@@ -112,6 +121,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			br = new BufferedReader(new InputStreamReader(is, charset));
 
 			// read and normalize log
+			StringBuffer sb = new StringBuffer();
 			while (true) {
 				if (getStatus() == LoggerStatus.Stopping || getStatus() == LoggerStatus.Stopped)
 					break;
@@ -119,12 +129,27 @@ public class DirectoryWatchLogger extends AbstractLogger {
 				String line = br.readLine();
 				if (line == null || line.trim().isEmpty())
 					break;
-
-				Date d = parseDate(fileDateStr, line);
-				Map<String, Object> log = new HashMap<String, Object>();
-				log.put("line", line);
-
-				write(new SimpleLog(d, getFullName(), log));
+				if (newlogDsgnMatcher != null) {
+					// multi-line logger
+					newlogDsgnMatcher.reset(line);
+					if (newlogDsgnMatcher.find()) {
+						// new log detected.
+						if (sb.length() != 0)
+							writeLog(fileDateStr, sb.toString());
+						sb = new StringBuffer();
+						sb.append(line);
+					} else {
+						// append log to prev line
+						sb.append("\n");
+						sb.append(line);
+					}
+				} else {
+					writeLog(fileDateStr, line);
+				}
+			}
+			if (newlogDsgnMatcher != null) {
+				if (sb.length() != 0)
+					writeLog(fileDateStr, sb.toString());
 			}
 
 			long position = is.getChannel().position();
@@ -138,6 +163,14 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			FileUtils.ensureClose(is);
 			FileUtils.ensureClose(br);
 		}
+	}
+
+	private void writeLog(String fileDateStr, String mline) {
+		Date d = parseDate(fileDateStr, mline);
+		Map<String, Object> log = new HashMap<String, Object>();
+		log.put("line", mline);
+
+		write(new SimpleLog(d, getFullName(), log));
 	}
 
 	protected File getLastLogFile() {

@@ -72,10 +72,16 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				"date format to parse date and time strings. e.g. yyyy-MM-dd HH:mm:ss",
 				"날짜 및 시각 문자열을 파싱하는데 사용할 포맷. 예) yyyy-MM-dd HH:mm:ss"), false);
 
+		LoggerConfigOption newlogRegex = new StringConfigType("newlog_designator", 
+				t("New log designator (Regex)", "로그 구분 정규식"), 
+				t("Regular expression to determine whether the line is start of new log."
+				+ "(if a line does not matches, the line will be merged to prev line.).",
+				"새 로그의 시작을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)"), false);
+
 		LoggerConfigOption charset = new StringConfigType("charset", t("Charset", "문자 집합"), t("charset encoding",
 				"텍스트 파일의 문자 인코딩 방식"), false);
 
-		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, charset);
+		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, newlogRegex, charset);
 	}
 
 	private Map<Locale, String> t(String enText, String koText) {
