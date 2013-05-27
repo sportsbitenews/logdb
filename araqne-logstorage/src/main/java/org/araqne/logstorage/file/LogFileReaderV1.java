@@ -25,8 +25,8 @@ import java.util.List;
 
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogCallback;
+import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
-import org.araqne.logstorage.engine.LogMarshaler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

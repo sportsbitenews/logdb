@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.araqne.logstorage.CachedRandomSeeker;
 import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogRecord;
