@@ -15,6 +15,9 @@
  */
 package org.araqne.logstorage;
 
+import org.araqne.logstorage.file.LogRecord;
+
 public interface LogMatchCallback {
-	boolean onLog(Log log) throws InterruptedException;
+	boolean match(LogRecord record);
+	void onLog(Log log) throws InterruptedException;
 }

@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.araqne.logstorage.Log;
-import org.araqne.logstorage.LogCallback;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
 import org.slf4j.Logger;
@@ -171,7 +169,9 @@ public class LogFileReaderV1 extends LogFileReader {
 			}
 
 			ByteBuffer bb = ByteBuffer.wrap(data, 0, dataLen);
-			if (callback.onLog(LogMarshaler.convert(tableName, new LogRecord(dataDate, dataId, bb)))) {
+			LogRecord record = new LogRecord(dataDate, dataId, bb);
+			if (callback.match(record)) {
+				callback.onLog(LogMarshaler.convert(tableName, record));
 				if (++matched == offset + limit)
 					return;
 			}

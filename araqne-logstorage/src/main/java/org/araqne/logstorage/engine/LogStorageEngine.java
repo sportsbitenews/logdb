@@ -799,7 +799,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 								continue;
 							}
 
-							if (c.onLog(logData)) {
+							// FIXME: make dummy LogRecord Object for match
+							if (c.match(new LogRecord(logData.getDate(), null))) {
+								c.onLog(logData);
 								if (--limit == 0)
 									return c.matched;
 							}
@@ -840,13 +842,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		}
 
 		@Override
-		public boolean onLog(Log log) throws InterruptedException {
-			Date d = log.getDate();
-			if (from != null && d.before(from))
-				return false;
-			if (to != null && d.after(to))
-				return false;
-
+		public void onLog(Log log) throws InterruptedException {
 			if (callback.isInterrupted())
 				throw new InterruptedException("interrupted log traverse");
 
@@ -856,13 +852,24 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				logger.debug("araqne logdb: traverse log [{}]", log);
 				callback.onLog(log);
 
-				return true;
+				return;
 			} catch (Exception e) {
 				if (callback.isInterrupted())
 					throw new InterruptedException("interrupted log traverse");
 				else
 					throw new RuntimeException(e);
 			}
+		}
+
+		@Override
+		public boolean match(LogRecord record) {
+			Date d = record.getDate();
+			if (from != null && d.before(from))
+				return false;
+			if (to != null && d.after(to))
+				return false;
+			
+			return true;
 		}
 	}
 

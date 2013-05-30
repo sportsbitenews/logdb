@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
-import org.araqne.logstorage.LogCallback;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
 import org.slf4j.Logger;
@@ -247,7 +246,9 @@ public class LogFileReaderV2 extends LogFileReader {
 				continue;
 			}
 
-			if (callback.onLog(LogMarshaler.convert(tableName, getLogRecord(data, offsets.get(i))))) {
+			LogRecord record = getLogRecord(data, offsets.get(i));
+			if (callback.match(record)) {
+				callback.onLog(LogMarshaler.convert(tableName, record));
 				if (++matched == offset + limit)
 					return matched;
 			}
