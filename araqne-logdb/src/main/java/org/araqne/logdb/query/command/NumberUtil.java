@@ -16,6 +16,10 @@
 package org.araqne.logdb.query.command;
 
 public class NumberUtil {
+	public static boolean isFloat(Object obj) {
+		return obj instanceof Double || obj instanceof Float;
+	}
+
 	public static Class<? extends Number> getClass(Object obj) {
 		if (obj == null)
 			return null;

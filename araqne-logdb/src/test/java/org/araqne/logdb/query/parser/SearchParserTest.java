@@ -134,6 +134,35 @@ public class SearchParserTest {
 
 	}
 
+	/**
+	 * test for araqne/logpresso#120 issue
+	 */
+	@Test
+	public void testNumberComparisons() {
+		assertEquals((short) 10, compareNumber("search value > 5", (short) 10));
+		assertEquals(6L, compareNumber("search value > 5", 6L));
+		assertEquals(5.5, compareNumber("search value > 5", 5.5));
+		assertNull(compareNumber("search value > 5", 4.5));
+		assertEquals(5, compareNumber("search value >= 5.0", 5));
+		assertEquals(1, compareNumber("search value >= 6 - 5.0", 1));
+		assertNull(compareNumber("search value >= 6 - 5.0", 0.5));
+	}
+
+	private Object compareNumber(String query, Object value) {
+		SearchParser p = new SearchParser();
+		Search search = (Search) p.parse(null, query);
+		Output output = new Output();
+		search.setNextCommand(output);
+
+		LogMap m = new LogMap();
+		m.put("value", value);
+		search.push(m);
+
+		if (output.m == null)
+			return null;
+		return output.m.get("value");
+	}
+
 	private class Output extends LogQueryCommand {
 		private LogMap m;
 
