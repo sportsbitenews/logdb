@@ -18,6 +18,8 @@ package org.araqne.logstorage;
 import java.io.IOException;
 import java.util.Date;
 
+import org.araqne.logstorage.file.LogRecord;
+
 /**
  * cache opened reader while index seek (to prevent repetitive file open)
  * 
@@ -26,6 +28,7 @@ import java.util.Date;
  */
 public interface CachedRandomSeeker {
 	Log getLog(String tableName, Date day, int id) throws IOException;
+	LogRecord getLogRecord(String tableName, Date day, int id) throws IOException;
 
 	void close();
 }

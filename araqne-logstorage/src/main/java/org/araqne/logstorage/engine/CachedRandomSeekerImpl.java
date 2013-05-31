@@ -16,12 +16,14 @@
 package org.araqne.logstorage.engine;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
+import org.araqne.codec.FastEncodingRule;
 import org.araqne.logstorage.CachedRandomSeeker;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
@@ -53,14 +55,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		this.cachedReaders = new HashMap<TabletKey, LogFileReader>();
 	}
 
-	@Override
-	public Log getLog(String tableName, Date day, int id) throws IOException {
-		if (closed)
-			throw new IllegalStateException("already closed");
-
-		int tableId = tableRegistry.getTableId(tableName);
-
-		// check memory buffer (flush waiting)
+	private Log getLogFromOnlineWriter(String tableName, int tableId, Date day, int id) {
 		OnlineWriterKey onlineKey = new OnlineWriterKey(tableName, day, tableId);
 		List<Log> buffer = onlineBuffers.get(onlineKey);
 		if (buffer == null) {
@@ -78,14 +73,57 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 					return r;
 				}
 		}
+		return null;
+	}
 
+	// TODO : remove duplicated method convert (LogStorageEngine.convert())
+	private LogRecord convert(Log log) {
+		ByteBuffer bb = new FastEncodingRule().encode(log.getData());
+		LogRecord logdata = new LogRecord(log.getDate(), log.getId(), bb);
+		log.setBinaryLength(bb.remaining());
+		return logdata;
+	}
+	
+	private LogFileReader getReader(String tableName, int tableId, Date day) throws IOException {
 		TabletKey key = new TabletKey(tableId, day);
 		LogFileReader reader = cachedReaders.get(key);
 		if (reader == null) {
 			reader = fetcher.fetch(tableName, day);
 			cachedReaders.put(key, reader);
 		}
+		return reader;
+	}
 
+	@Override
+	public LogRecord getLogRecord(String tableName, Date day, int id) throws IOException {
+		if (closed)
+			throw new IllegalStateException("already closed");
+
+		int tableId = tableRegistry.getTableId(tableName);
+
+		// check memory buffer (flush waiting)
+		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, tableId);
+		if (bufferedLog != null) {
+			return convert(bufferedLog);
+		}
+
+		LogFileReader reader = getReader(tableName, tableId, day);
+		return reader.find(id);
+	}
+	
+	@Override
+	public Log getLog(String tableName, Date day, int id) throws IOException {
+		if (closed)
+			throw new IllegalStateException("already closed");
+
+		int tableId = tableRegistry.getTableId(tableName);
+
+		// check memory buffer (flush waiting)
+		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, tableId);
+		if (bufferedLog != null) 
+			return bufferedLog;
+
+		LogFileReader reader = getReader(tableName, tableId, day);
 		LogRecord log = reader.find(id);
 		if (log == null)
 			return null;

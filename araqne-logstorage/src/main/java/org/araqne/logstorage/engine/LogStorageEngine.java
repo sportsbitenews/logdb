@@ -799,8 +799,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 								continue;
 							}
 
-							// FIXME: make dummy LogRecord Object for match
-							if (c.match(new LogRecord(logData.getDate(), null))) {
+							if (c.match(convert(logData))) {
 								c.onLog(logData);
 								if (--limit == 0)
 									return c.matched;
