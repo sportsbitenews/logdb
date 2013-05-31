@@ -11,6 +11,7 @@
 	<artifactId>araqne-logdb-geoip</artifactId>
 	<packaging>bundle</packaging>
 	<name>Araqne LogDB GeoIP</name>
+    <version>1.0.0</version>
 	<build>
 		<plugins>
 			<plugin>
@@ -35,6 +36,14 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
 	</build>

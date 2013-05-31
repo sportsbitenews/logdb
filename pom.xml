@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.araqne</groupId>
 	<version>1.0.0</version>
@@ -165,6 +166,48 @@
 					<groupId>org.apache.felix</groupId>
 					<artifactId>maven-ipojo-plugin</artifactId>
 					<version>1.4.0</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<version>2.8</version>
+					<executions>
+						<execution>
+							<id>dependency</id>
+							<phase>package</phase>
+							<goals>
+								<goal>list</goal>
+							</goals>
+						</execution>
+					</executions>
+					<configuration>
+						<includeScope>runtime</includeScope>
+						<outputAbsoluteArtifactFilename>true</outputAbsoluteArtifactFilename>
+						<outputFile>${project.artifactId}-${project.version}.dep</outputFile>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>build-helper-maven-plugin</artifactId>
+					<version>1.8</version>
+					<executions>
+						<execution>
+							<id>attach dep in artifact</id>
+							<phase>package</phase>
+							<goals>
+								<goal>attach-artifact</goal>
+							</goals>
+							<configuration>
+								<artifacts>
+									<artifact>
+										<file>${project.artifactId}-${project.version}.dep</file>
+										<type>dep</type>
+										<classifier></classifier>
+									</artifact>
+								</artifacts>
+							</configuration>
+						</execution>
+					</executions>
 				</plugin>
 			</plugins>
 		</pluginManagement>
