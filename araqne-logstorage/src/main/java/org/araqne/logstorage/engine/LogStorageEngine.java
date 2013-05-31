@@ -55,7 +55,6 @@ import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileRepairer;
 import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogRecord;
-import org.araqne.logstorage.file.LogRecordCallback;
 import org.araqne.logstorage.file.LogRecordCursor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
