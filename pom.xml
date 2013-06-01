@@ -38,6 +38,16 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-all</artifactId>
+				<version>1.9.5</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-log4j12</artifactId>
+				<version>1.7.5</version>
+			</dependency>
+			<dependency>
 				<groupId>com.jcraft</groupId>
 				<artifactId>jsch</artifactId>
 				<version>0.1.48</version>
@@ -53,66 +63,6 @@
 				<version>1.4.0</version>
 			</dependency>
 			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-api</artifactId>
-				<version>2.5.2</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-cron</artifactId>
-				<version>1.6.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-codec</artifactId>
-				<version>2.2.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-logstorage</artifactId>
-				<version>1.17.3</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-logdb</artifactId>
-				<version>0.18.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-log-api</artifactId>
-				<version>2.0.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-confdb</artifactId>
-				<version>0.11.1</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-msgbus</artifactId>
-				<version>1.9.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-opencsv</artifactId>
-				<version>2.0.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-util</artifactId>
-				<version>1.0.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-geoip</artifactId>
-				<version>1.2.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-json</artifactId>
-				<version>1.1.1</version>
-			</dependency>
-			<dependency>
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-api</artifactId>
 				<version>1.5.6</version>
@@ -121,11 +71,6 @@
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-simple</artifactId>
 				<version>1.5.6</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-jython</artifactId>
-				<version>1.1.0</version>
 			</dependency>
 			<dependency>
 				<groupId>junit</groupId>
@@ -146,11 +91,10 @@
 	</dependencyManagement>
 
 	<dependencies>
-		<!-- Testing -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<optional>true</optional>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
