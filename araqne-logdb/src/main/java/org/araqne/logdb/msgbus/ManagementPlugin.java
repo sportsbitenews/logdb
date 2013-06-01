@@ -238,7 +238,7 @@ public class ManagementPlugin {
 
 	private org.araqne.logdb.Session checkPermission(Request req) {
 		org.araqne.logdb.Session session = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
-		if (session != null && !session.getLoginName().equals("araqne"))
+		if (session != null && !session.isAdmin())
 			throw new SecurityException("logdb management is not allowed to " + session.getLoginName());
 		return session;
 	}

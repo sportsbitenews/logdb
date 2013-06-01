@@ -24,7 +24,7 @@ public class MetadataQueryStringParser {
 
 		List<String> tableNames = new ArrayList<String>();
 
-		if (context.getSession().getLoginName().equals("araqne")) {
+		if (context.getSession().isAdmin()) {
 			for (String tableName : tableRegistry.getTableNames()) {
 				if (tableFilter != null && !tableFilter.contains(tableName))
 					continue;

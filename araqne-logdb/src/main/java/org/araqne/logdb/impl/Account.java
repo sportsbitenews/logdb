@@ -35,6 +35,11 @@ public class Account {
 	// null for local confdb, or external auth service name
 	private String authServiceName;
 
+	/**
+	 * @since 1.0.0
+	 */
+	private boolean admin;
+
 	@CollectionTypeHint(String.class)
 	private List<String> readableTables = new ArrayList<String>();
 
@@ -85,6 +90,20 @@ public class Account {
 
 	public void setAuthServiceName(String authServiceName) {
 		this.authServiceName = authServiceName;
+	}
+
+	/**
+	 * @since 1.0.0
+	 */
+	public boolean isAdmin() {
+		return admin || loginName.equals("araqne");
+	}
+
+	/**
+	 * @since 1.0.0
+	 */
+	public void setAdmin(boolean admin) {
+		this.admin = admin;
 	}
 
 	public List<String> getReadableTables() {

@@ -23,4 +23,9 @@ public interface Session {
 	String getLoginName();
 
 	Date getCreated();
+
+	/**
+	 * @since 1.0.0
+	 */
+	boolean isAdmin();
 }
