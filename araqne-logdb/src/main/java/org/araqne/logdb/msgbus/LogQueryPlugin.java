@@ -16,6 +16,7 @@
 package org.araqne.logdb.msgbus;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -23,9 +24,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.Deflater;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
+import org.araqne.codec.Base64;
+import org.araqne.codec.FastEncodingRule;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCallback;
@@ -182,10 +186,35 @@ public class LogQueryPlugin {
 		int id = req.getInteger("id", true);
 		int offset = req.getInteger("offset", true);
 		int limit = req.getInteger("limit", true);
+		Boolean binaryEncode = req.getBoolean("binary_encode");
 
 		Map<String, Object> m = LogQueryHelper.getResultData(service, id, offset, limit);
-		if (m != null)
+		if (m == null)
+			return;
+
+		FastEncodingRule enc = new FastEncodingRule();
+		if (binaryEncode != null && binaryEncode) {
+			ByteBuffer binary = enc.encode(m);
+			int uncompressedSize = binary.array().length;
+			byte[] b = compress(binary.array());
+			resp.put("binary", new String(Base64.encode(b)));
+			resp.put("uncompressed_size", uncompressedSize);
+		} else
 			resp.putAll(m);
+	}
+
+	private byte[] compress(byte[] b) throws IOException {
+		Deflater c = new Deflater();
+		try {
+			c.reset();
+			c.setInput(b);
+			c.finish();
+			ByteBuffer compressed = ByteBuffer.allocate(b.length);
+			int compressedSize = c.deflate(compressed.array());
+			return Arrays.copyOf(compressed.array(), compressedSize);
+		} finally {
+			c.end();
+		}
 	}
 
 	/**
