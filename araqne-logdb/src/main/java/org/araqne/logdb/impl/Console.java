@@ -202,7 +202,7 @@ public class Console {
 		context.println("\tfetch result set of specified window. you can fetch partial result before query is ended");
 
 		context.println("grant_admin <account>");
-		context.println("\tgrant admin role to specified acocount");
+		context.println("\tgrant admin role to specified account");
 
 		context.println("revoke_admin <account>");
 		context.println("\trevoke admin role from specified account");
