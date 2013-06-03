@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb;
 
+import java.net.Inet4Address;
 import java.util.Comparator;
 
 import org.araqne.logdb.query.command.NumberUtil;
@@ -38,6 +39,15 @@ public class ObjectComparator implements Comparator<Object> {
 				return ((String) o1).compareToIgnoreCase((String) o2);
 			} else if (o1 instanceof Comparable) {
 				return ((Comparable) o1).compareTo(o2);
+			} else if (o1 instanceof Inet4Address) {
+				byte[] ip1 = ((Inet4Address) o1).getAddress();
+				byte[] ip2 = ((Inet4Address) o2).getAddress();
+				for (int i = 0; i < 4; i++) {
+					int c = ip1[i] - ip2[i];
+					if (c != 0)
+						return c;
+				}
+				return 0;
 			} else if (o1 instanceof Object[] && o2 instanceof Object[]) {
 				Object[] arr1 = (Object[]) o1;
 				Object[] arr2 = (Object[]) o2;

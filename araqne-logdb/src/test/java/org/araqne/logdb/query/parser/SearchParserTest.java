@@ -17,10 +17,14 @@ package org.araqne.logdb.query.parser;
 
 import static org.junit.Assert.*;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import org.junit.Test;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.query.command.Search;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -139,16 +143,36 @@ public class SearchParserTest {
 	 */
 	@Test
 	public void testNumberComparisons() {
-		assertEquals((short) 10, compareNumber("search value > 5", (short) 10));
-		assertEquals(6L, compareNumber("search value > 5", 6L));
-		assertEquals(5.5, compareNumber("search value > 5", 5.5));
-		assertNull(compareNumber("search value > 5", 4.5));
-		assertEquals(5, compareNumber("search value >= 5.0", 5));
-		assertEquals(1, compareNumber("search value >= 6 - 5.0", 1));
-		assertNull(compareNumber("search value >= 6 - 5.0", 0.5));
+		assertEquals((short) 10, compare("search value > 5", (short) 10));
+		assertEquals(6L, compare("search value > 5", 6L));
+		assertEquals(5.5, compare("search value > 5", 5.5));
+		assertNull(compare("search value > 5", 4.5));
+		assertEquals(5, compare("search value >= 5.0", 5));
+		assertEquals(1, compare("search value >= 6 - 5.0", 1));
+		assertNull(compare("search value >= 6 - 5.0", 0.5));
 	}
 
-	private Object compareNumber(String query, Object value) {
+	@Test
+	public void testIpComparison() throws UnknownHostException {
+		ObjectComparator cmp = new ObjectComparator();
+		InetAddress ip1 = InetAddress.getByName("1.2.3.4");
+		InetAddress ip2 = InetAddress.getByName("1.2.3.5");
+		InetAddress ip3 = InetAddress.getByName("1.2.3.6");
+
+		assertTrue(cmp.compare(ip1, null) < 0);
+		assertTrue(cmp.compare(ip1, ip1) == 0);
+		assertTrue(cmp.compare(ip1, ip2) < 0);
+		assertTrue(cmp.compare(ip2, ip1) > 0);
+		assertTrue(cmp.compare(ip1, ip3) < 0);
+
+		assertEquals(ip1, compare("search value >= ip(\"1.2.3.4\")", ip1));
+		assertNull(compare("search value > ip(\"1.2.3.4\")", ip1));
+		assertEquals(ip1, compare("search value > ip(\"1.2.3.3\") and value < ip(\"1.2.3.5\")", ip1));
+		assertNull(compare("search value > ip(\"1.2.3.3\") and value < ip(\"1.2.3.5\")", ip3));
+		assertNull(compare("search value > ip(\"1.2.3.3\")", null));
+	}
+
+	private Object compare(String query, Object value) {
 		SearchParser p = new SearchParser();
 		Search search = (Search) p.parse(null, query);
 		Output output = new Output();

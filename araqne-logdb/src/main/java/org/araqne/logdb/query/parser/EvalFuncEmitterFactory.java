@@ -61,18 +61,19 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new Typeof(args));
 		} else if (name.equals("in")) {
 			exprStack.add(new In(args));
+		} else if (name.equals("ip")) {
+			exprStack.add(new ToIp(args));
 		} else {
 			throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
 		}
 	}
 
 	private List<Expression> getArgsFromStack(Stack<Expression> exprStack) {
-		List<Expression> exprs = null; 
+		List<Expression> exprs = null;
 		Expression arg = exprStack.pop();
 		if (arg instanceof Comma) {
-			exprs = ((Comma)arg).getList();
-		}
-		else {
+			exprs = ((Comma) arg).getList();
+		} else {
 			exprs = new ArrayList<Expression>();
 			exprs.add(arg);
 		}
