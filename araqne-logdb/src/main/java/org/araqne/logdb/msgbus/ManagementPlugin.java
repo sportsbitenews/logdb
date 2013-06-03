@@ -222,10 +222,13 @@ public class ManagementPlugin {
 	public void createTable(Request req, Response resp) {
 		checkPermission(req);
 		String tableName = req.getString("table");
+
+		@SuppressWarnings("unchecked")
+		Map<String, String> metadata = (Map<String, String>) req.get("metadata");
 		try {
-			storage.createTable(tableName, "v3p");
+			storage.createTable(tableName, "v3p", metadata);
 		} catch (UnsupportedLogFileTypeException e) {
-			storage.createTable(tableName, "v2");
+			storage.createTable(tableName, "v2", metadata);
 		}
 	}
 
