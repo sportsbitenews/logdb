@@ -8,7 +8,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-syslog-parser</artifactId>
-	<version>1.9.1</version>
+	<version>1.9.2</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Syslog Parser</name>
 	<build>
@@ -34,10 +34,10 @@
 							org.araqne.logparser.syslog.oullim;version=${project.version}
 						</Export-Package>
 						<Import-Package>
-						    !org.junit,
-						    org.araqne.log.api;version="2.0.0",
-						    *
-					    </Import-Package>
+							!org.junit,
+							org.araqne.log.api;version="2.0.0",
+							*
+						</Import-Package>
 					</instructions>
 				</configuration>
 			</plugin>
@@ -52,20 +52,32 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+			</plugin>
+
 		</plugins>
 	</build>
 	<dependencies>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-api</artifactId>
+			<version>2.5.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
+			<version>2.0.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-util</artifactId>
+			<version>1.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>

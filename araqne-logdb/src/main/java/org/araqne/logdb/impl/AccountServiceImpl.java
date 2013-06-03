@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
 public class AccountServiceImpl implements AccountService, LogTableEventListener {
 	private final Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 	private static final String DB_NAME = "araqne-logdb";
-	private static final String MASTER_ACCOUNT = "araqne";
+	private static final String DEFAULT_MASTER_ACCOUNT = "araqne";
 	private static final char[] SALT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".toCharArray();
 
 	@Requires
@@ -91,11 +91,11 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		}
 
 		// generate default 'araqne' account if not exists
-		if (!localAccounts.containsKey(MASTER_ACCOUNT)) {
+		if (!localAccounts.containsKey(DEFAULT_MASTER_ACCOUNT)) {
 			String salt = randomSalt(10);
-			Account account = new Account(MASTER_ACCOUNT, salt, Sha1.hash(salt));
+			Account account = new Account(DEFAULT_MASTER_ACCOUNT, salt, Sha1.hash(salt));
 			db.add(account);
-			localAccounts.put(MASTER_ACCOUNT, account);
+			localAccounts.put(DEFAULT_MASTER_ACCOUNT, account);
 		}
 
 		// load external auth service config
@@ -125,6 +125,35 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 	}
 
 	@Override
+	public boolean isAdmin(String loginName) {
+		Account account = ensureAccount(loginName);
+		return account.isAdmin();
+	}
+
+	@Override
+	public void grantAdmin(Session session, String loginName) {
+		if (!session.isAdmin())
+			throw new IllegalStateException("no permission");
+
+		Account account = ensureAccount(loginName);
+		account.setAdmin(true);
+		updateAccount(account);
+	}
+
+	@Override
+	public void revokeAdmin(Session session, String loginName) {
+		if (!session.isAdmin())
+			throw new IllegalStateException("no permission");
+
+		if (session.getLoginName().equals(loginName))
+			throw new IllegalStateException("cannot revoke current admin session");
+
+		Account account = ensureAccount(loginName);
+		account.setAdmin(false);
+		updateAccount(account);
+	}
+
+	@Override
 	public List<Privilege> getPrivileges(Session session, String loginName) {
 		verifyNotNull(session, "session");
 
@@ -132,7 +161,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 			throw new IllegalStateException("invalid session");
 
 		// allow own info check or master admin only
-		if (!checkPermission(session, loginName))
+		if (!checkOwner(session, loginName))
 			throw new IllegalStateException("no permission");
 
 		List<Privilege> privileges = new ArrayList<Privilege>();
@@ -153,8 +182,9 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		return privileges;
 	}
 
-	private boolean checkPermission(Session session, String loginName) {
-		if (session.getLoginName().equals(MASTER_ACCOUNT))
+	private boolean checkOwner(Session session, String loginName) {
+		Account account = ensureAccount(session.getLoginName());
+		if (account.isAdmin())
 			return true;
 
 		if (loginName == null)
@@ -207,7 +237,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 			throw new IllegalStateException("invalid-password");
 		}
 
-		return registerSession(loginName);
+		return registerSession(account);
 	}
 
 	@Override
@@ -215,12 +245,13 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (!verifyPassword(loginName, password))
 			throw new IllegalStateException("invalid password");
 
-		return registerSession(loginName);
+		Account account = ensureAccount(loginName);
+		return registerSession(account);
 	}
 
-	private Session registerSession(String loginName) {
+	private Session registerSession(Account account) {
 		String guid = UUID.randomUUID().toString();
-		Session session = new SessionImpl(guid, loginName);
+		Session session = new SessionImpl(guid, account.getLoginName(), account.isAdmin());
 		sessions.put(guid, session);
 
 		// invoke callbacks
@@ -262,7 +293,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (!sessions.containsKey(session.getGuid()))
 			throw new IllegalStateException("invalid session");
 
-		if (!session.getLoginName().equals(MASTER_ACCOUNT))
+		if (!session.isAdmin())
 			throw new IllegalStateException("no permission");
 
 		// check database
@@ -295,15 +326,19 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 			throw new IllegalStateException("invalid session");
 
 		// check if owner or master
-		if (!checkPermission(session, loginName))
+		if (!checkOwner(session, loginName))
 			throw new IllegalStateException("no permission");
 
 		Account account = localAccounts.get(loginName);
 		String hash = Sha1.hash(password + account.getSalt());
 		account.setPassword(hash);
 
+		updateAccount(account);
+	}
+
+	private void updateAccount(Account account) {
 		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
-		Config c = db.findOne(Account.class, Predicates.field("login_name", loginName));
+		Config c = db.findOne(Account.class, Predicates.field("login_name", account.getLoginName()));
 		if (c != null) {
 			c.setDocument(PrimitiveConverter.serialize(account));
 			c.update();
@@ -324,7 +359,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 			throw new IllegalStateException("invalid session");
 
 		// master admin only
-		if (!session.getLoginName().equals(MASTER_ACCOUNT))
+		if (!session.isAdmin())
 			throw new IllegalStateException("no permission");
 
 		localAccounts.remove(loginName);
@@ -374,7 +409,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 			throw new IllegalStateException("invalid session");
 
 		// master admin only
-		if (!session.getLoginName().equals(MASTER_ACCOUNT))
+		if (!session.isAdmin())
 			throw new IllegalStateException("no permission");
 
 		if (!tableRegistry.exists(tableName))
@@ -385,15 +420,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 			return;
 
 		account.getReadableTables().add(tableName);
-
-		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
-		Config c = db.findOne(Account.class, Predicates.field("login_name", loginName));
-		if (c != null) {
-			c.setDocument(PrimitiveConverter.serialize(account));
-			c.update();
-		} else {
-			db.add(account);
-		}
+		updateAccount(account);
 	}
 
 	@Override
@@ -411,7 +438,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 			throw new IllegalStateException("invalid session");
 
 		// master admin only
-		if (!session.getLoginName().equals(MASTER_ACCOUNT))
+		if (!session.isAdmin())
 			throw new IllegalStateException("no permission");
 
 		if (!tableRegistry.exists(tableName))
@@ -422,15 +449,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 			return;
 
 		account.getReadableTables().remove(tableName);
-
-		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
-		Config c = db.findOne(Account.class, Predicates.field("login_name", loginName));
-		if (c != null) {
-			c.setDocument(PrimitiveConverter.serialize(account));
-			c.update();
-		} else {
-			db.add(account);
-		}
+		updateAccount(account);
 	}
 
 	private Account ensureAccount(String loginName) {
@@ -552,15 +571,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 				ArrayList<String> copy = new ArrayList<String>(account.getReadableTables());
 				copy.remove(tableName);
 				account.setReadableTables(copy);
-
-				ConfigDatabase db = conf.ensureDatabase(DB_NAME);
-				Config c = db.findOne(Account.class, Predicates.field("login_name", account.getLoginName()));
-				if (c != null) {
-					c.setDocument(PrimitiveConverter.serialize(account));
-					c.update();
-				} else {
-					db.add(account);
-				}
+				updateAccount(account);
 			}
 		}
 	}

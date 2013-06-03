@@ -140,6 +140,16 @@ public class Console {
 					long limit = Long.valueOf(args[3]);
 					fetch(id, offset, limit);
 				}
+			} else if (command.equals("grant_admin")) {
+				if (args.length < 2)
+					context.println("Usage: grant_admin [login name]");
+
+				grantAdmin(args[1]);
+			} else if (command.equals("revoke_admin")) {
+				if (args.length < 2)
+					context.println("Usage: revoke_admin [login name]");
+
+				revokeAdmin(args[1]);
 			} else if (command.equals("grant")) {
 				if (args.length < 3)
 					context.println("Usage: grant [login name] [table name]");
@@ -191,6 +201,12 @@ public class Console {
 		context.println("fetch <query_id> <offset> <limit>");
 		context.println("\tfetch result set of specified window. you can fetch partial result before query is ended");
 
+		context.println("grant_admin <account>");
+		context.println("\tgrant admin role to specified account");
+
+		context.println("revoke_admin <account>");
+		context.println("\trevoke admin role from specified account");
+
 		context.println("grant <account> <table>");
 		context.println("\tgrant read table permission to specified account");
 
@@ -218,7 +234,7 @@ public class Console {
 
 	private void changePassword(String loginName) throws InterruptedException {
 		context.println("Changing password for user " + loginName);
-		if (!session.getLoginName().equals("araqne")) {
+		if (!session.isAdmin()) {
 			context.print("(current) password: ");
 			String current = context.readPassword();
 
@@ -397,6 +413,22 @@ public class Console {
 			context.println("removed query " + id);
 		}
 		context.println("cleared all queries");
+	}
+
+	/**
+	 * @since 1.0.0
+	 */
+	private void grantAdmin(String loginName) {
+		accountService.grantAdmin(session, loginName);
+		context.println("granted");
+	}
+
+	/**
+	 * @since 1.0.0
+	 */
+	private void revokeAdmin(String loginName) {
+		accountService.revokeAdmin(session, loginName);
+		context.println("revoked");
 	}
 
 	private void grantPrivilege(String loginName, String tableName) {

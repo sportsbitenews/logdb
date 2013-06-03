@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.araqne</groupId>
 	<version>1.0.0</version>
@@ -37,6 +38,16 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-all</artifactId>
+				<version>1.9.5</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-log4j12</artifactId>
+				<version>1.5.6</version>
+			</dependency>
+			<dependency>
 				<groupId>com.jcraft</groupId>
 				<artifactId>jsch</artifactId>
 				<version>0.1.48</version>
@@ -52,66 +63,6 @@
 				<version>1.4.0</version>
 			</dependency>
 			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-api</artifactId>
-				<version>2.5.2</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-cron</artifactId>
-				<version>1.6.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-codec</artifactId>
-				<version>2.2.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-logstorage</artifactId>
-				<version>1.19.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-logdb</artifactId>
-				<version>0.18.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-log-api</artifactId>
-				<version>2.0.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-confdb</artifactId>
-				<version>0.11.1</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-msgbus</artifactId>
-				<version>1.9.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-opencsv</artifactId>
-				<version>2.0.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-util</artifactId>
-				<version>1.0.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-geoip</artifactId>
-				<version>1.2.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-json</artifactId>
-				<version>1.1.1</version>
-			</dependency>
-			<dependency>
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-api</artifactId>
 				<version>1.5.6</version>
@@ -122,24 +73,28 @@
 				<version>1.5.6</version>
 			</dependency>
 			<dependency>
-				<groupId>org.araqne</groupId>
-				<artifactId>araqne-jython</artifactId>
-				<version>1.1.0</version>
-			</dependency>
-			<dependency>
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
 				<version>4.8.1</version>
+			</dependency>
+			<dependency>
+				<groupId>org.codehaus.jackson</groupId>
+				<artifactId>jackson-core-asl</artifactId>
+				<version>1.9.11</version>
+			</dependency>
+			<dependency>
+				<groupId>org.codehaus.jackson</groupId>
+				<artifactId>jackson-mapper-asl</artifactId>
+				<version>1.9.11</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
 	<dependencies>
-		<!-- Testing -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<optional>true</optional>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
@@ -155,6 +110,48 @@
 					<groupId>org.apache.felix</groupId>
 					<artifactId>maven-ipojo-plugin</artifactId>
 					<version>1.4.0</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<version>2.8</version>
+					<executions>
+						<execution>
+							<id>dependency</id>
+							<phase>package</phase>
+							<goals>
+								<goal>list</goal>
+							</goals>
+						</execution>
+					</executions>
+					<configuration>
+						<includeScope>runtime</includeScope>
+						<outputAbsoluteArtifactFilename>true</outputAbsoluteArtifactFilename>
+						<outputFile>${project.artifactId}-${project.version}.dep</outputFile>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>build-helper-maven-plugin</artifactId>
+					<version>1.8</version>
+					<executions>
+						<execution>
+							<id>attach dep in artifact</id>
+							<phase>package</phase>
+							<goals>
+								<goal>attach-artifact</goal>
+							</goals>
+							<configuration>
+								<artifacts>
+									<artifact>
+										<file>${project.artifactId}-${project.version}.dep</file>
+										<type>dep</type>
+										<classifier></classifier>
+									</artifact>
+								</artifacts>
+							</configuration>
+						</execution>
+					</executions>
 				</plugin>
 			</plugins>
 		</pluginManagement>

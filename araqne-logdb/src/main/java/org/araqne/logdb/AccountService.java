@@ -41,6 +41,21 @@ public interface AccountService {
 
 	boolean checkPermission(Session session, String tableName, Permission permission);
 
+	/**
+	 * @since 1.0.0
+	 */
+	boolean isAdmin(String loginName);
+
+	/**
+	 * @since 1.0.0
+	 */
+	void grantAdmin(Session session, String loginName);
+
+	/**
+	 * @since 1.0.0
+	 */
+	void revokeAdmin(Session session, String loginName);
+
 	List<Privilege> getPrivileges(Session session, String loginName);
 
 	void grantPrivilege(Session session, String loginName, String tableName, Permission... permissions);

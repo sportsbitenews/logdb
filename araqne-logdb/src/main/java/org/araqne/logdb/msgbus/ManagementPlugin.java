@@ -222,10 +222,13 @@ public class ManagementPlugin {
 	public void createTable(Request req, Response resp) {
 		checkPermission(req);
 		String tableName = req.getString("table");
+
+		@SuppressWarnings("unchecked")
+		Map<String, String> metadata = (Map<String, String>) req.get("metadata");
 		try {
-			storage.createTable(tableName, "v3p");
+			storage.createTable(tableName, "v3p", metadata);
 		} catch (UnsupportedLogFileTypeException e) {
-			storage.createTable(tableName, "v2");
+			storage.createTable(tableName, "v2", metadata);
 		}
 	}
 
@@ -238,7 +241,7 @@ public class ManagementPlugin {
 
 	private org.araqne.logdb.Session checkPermission(Request req) {
 		org.araqne.logdb.Session session = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
-		if (session != null && !session.getLoginName().equals("araqne"))
+		if (session != null && !session.isAdmin())
 			throw new SecurityException("logdb management is not allowed to " + session.getLoginName());
 		return session;
 	}

@@ -15,8 +15,8 @@
  */
 package org.araqne.logdb;
 
+import java.net.Inet4Address;
 import java.util.Comparator;
-import java.util.Date;
 
 import org.araqne.logdb.query.command.NumberUtil;
 
@@ -35,17 +35,20 @@ public class ObjectComparator implements Comparator<Object> {
 			return 0;
 
 		if (o1.getClass() == o2.getClass()) {
-			if (o1 instanceof String)
+			if (o1 instanceof String) {
 				return ((String) o1).compareToIgnoreCase((String) o2);
-
-			if (o1 instanceof Integer)
-				return (Integer) o1 - (Integer) o2;
-
-			if (o1 instanceof Comparable) {
+			} else if (o1 instanceof Comparable) {
 				return ((Comparable) o1).compareTo(o2);
-			}
-
-			if (o1 instanceof Object[] && o2 instanceof Object[]) {
+			} else if (o1 instanceof Inet4Address) {
+				byte[] ip1 = ((Inet4Address) o1).getAddress();
+				byte[] ip2 = ((Inet4Address) o2).getAddress();
+				for (int i = 0; i < 4; i++) {
+					int c = ip1[i] - ip2[i];
+					if (c != 0)
+						return c;
+				}
+				return 0;
+			} else if (o1 instanceof Object[] && o2 instanceof Object[]) {
 				Object[] arr1 = (Object[]) o1;
 				Object[] arr2 = (Object[]) o2;
 				int min = Math.min(arr1.length, arr2.length);
@@ -58,13 +61,59 @@ public class ObjectComparator implements Comparator<Object> {
 				return arr1.length - arr2.length;
 			}
 		} else {
-			if (NumberUtil.getClass(o1) != null && NumberUtil.getClass(o2) != null) {
-				long cmp = NumberUtil.sub(o1, o2).longValue();
-				return (cmp == 0) ? 0 : ((cmp > 0) ? 1 : -1);
-			} else if (o1 instanceof Date)
-				return ((Date) o1).compareTo((Date) o2);
+			if (o1 instanceof Number && o2 instanceof Number) {
+				if (!NumberUtil.isFloat(o1) && !NumberUtil.isFloat(o2)) {
+					long lhs = 0;
+					if (o1 instanceof Long)
+						lhs = (Long) o1;
+					else if (o1 instanceof Integer)
+						lhs = (Integer) o1;
+					else if (o1 instanceof Short)
+						lhs = (Short) o1;
+
+					long rhs = 0;
+					if (o2 instanceof Long)
+						rhs = (Long) o2;
+					else if (o2 instanceof Integer)
+						rhs = (Integer) o2;
+					else if (o2 instanceof Short)
+						rhs = (Short) o2;
+
+					return (int) (lhs - rhs);
+				} else {
+					double lhs = 0;
+					if (o1 instanceof Double)
+						lhs = (Double) o1;
+					else if (o1 instanceof Integer)
+						lhs = (Integer) o1;
+					else if (o1 instanceof Long)
+						lhs = (Long) o1;
+					else if (o1 instanceof Short)
+						lhs = (Short) o1;
+					else if (o1 instanceof Float)
+						lhs = (Float) o1;
+
+					double rhs = 0;
+					if (o2 instanceof Double)
+						rhs = (Double) o2;
+					else if (o2 instanceof Integer)
+						rhs = (Integer) o2;
+					else if (o2 instanceof Long)
+						rhs = (Long) o2;
+					else if (o2 instanceof Short)
+						rhs = (Short) o2;
+					else if (o2 instanceof Float)
+						rhs = (Float) o2;
+
+					double d = lhs - rhs;
+					if (d == 0)
+						return 0;
+					return lhs < rhs ? -1 : 1;
+				}
+			}
 		}
 
+		// undefined behavior (cannot compare)
 		return -1;
 	}
 }

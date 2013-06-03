@@ -16,6 +16,7 @@
 package org.araqne.logdb.client;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -24,11 +25,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.zip.DataFormatException;
+import java.util.zip.Inflater;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import org.araqne.codec.EncodingRule;
 import org.araqne.logdb.client.http.WebSocketTransport;
 import org.araqne.logdb.client.http.impl.TrapListener;
+import org.araqne.websocket.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +46,7 @@ public class LogDbClient implements TrapListener {
 	private Logger logger = LoggerFactory.getLogger(LogDbClient.class);
 	private LogDbTransport transport;
 	private LogDbSession session;
+	private int fetchSize = 10000;
 	private Map<Integer, LogQuery> queries = new HashMap<Integer, LogQuery>();
 
 	public LogDbClient() {
@@ -49,6 +55,20 @@ public class LogDbClient implements TrapListener {
 
 	public LogDbClient(LogDbTransport transport) {
 		this.transport = transport;
+	}
+
+	/**
+	 * @since 0.6.0
+	 */
+	public int getFetchSize() {
+		return fetchSize;
+	}
+
+	/**
+	 * @since 0.6.0
+	 */
+	public void setFetchSize(int fetchSize) {
+		this.fetchSize = fetchSize;
 	}
 
 	public boolean isClosed() {
@@ -526,7 +546,7 @@ public class LogDbClient implements TrapListener {
 		q.waitUntil(null);
 		long total = q.getLoadedCount();
 
-		return new LogCursorImpl(id, 0L, total, true);
+		return new LogCursorImpl(id, 0L, total, true, fetchSize);
 	}
 
 	private class LogCursorImpl implements LogCursor {
@@ -543,7 +563,7 @@ public class LogDbClient implements TrapListener {
 		private int fetchUnit;
 		private Map<String, Object> prefetch;
 
-		public LogCursorImpl(int id, long offset, long limit, boolean removeOnClose) {
+		public LogCursorImpl(int id, long offset, long limit, boolean removeOnClose, int fetchUnit) {
 			this.id = id;
 			this.offset = offset;
 			this.limit = limit;
@@ -551,7 +571,7 @@ public class LogDbClient implements TrapListener {
 
 			this.p = offset;
 			this.nextCacheOffset = offset;
-			this.fetchUnit = 1000;
+			this.fetchUnit = fetchUnit;
 		}
 
 		@SuppressWarnings("unchecked")
@@ -669,12 +689,50 @@ public class LogDbClient implements TrapListener {
 		params.put("id", id);
 		params.put("offset", offset);
 		params.put("limit", limit);
+		params.put("binary_encode", true);
 
 		Message resp = session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.getResult", params);
 		if (resp.getParameters().size() == 0)
 			throw new MessageException("query-not-found", "", resp.getParameters());
 
-		return resp.getParameters();
+		// support backward compatibility
+		if (!resp.getParameters().containsKey("uncompressed_size"))
+			return resp.getParameters();
+
+		// decompress and decode
+		int uncompressedSize = (Integer) resp.getParameters().get("uncompressed_size");
+		String binary = (String) resp.getParameters().get("binary");
+		return decodeBinary(binary, uncompressedSize);
+	}
+
+	private Map<String, Object> decodeBinary(String binary, int uncompressedSize) {
+		byte[] b = Base64.decode(binary);
+		byte[] uncompressed = new byte[uncompressedSize];
+		uncompress(uncompressed, b);
+
+		Map<String, Object> m = EncodingRule.decodeMap(ByteBuffer.wrap(uncompressed));
+
+		Object[] resultArray = (Object[]) m.get("result");
+		List<Object> resultList = new ArrayList<Object>(resultArray.length);
+		for (int i = 0; i < resultArray.length; i++)
+			resultList.add(resultArray[i]);
+
+		m.put("result", resultList);
+
+		return m;
+	}
+
+	private void uncompress(byte[] output, byte[] b) {
+		Inflater inflater = new Inflater();
+		inflater.setInput(b, 0, b.length);
+		try {
+			inflater.inflate(output);
+			inflater.reset();
+		} catch (DataFormatException e) {
+			throw new IllegalStateException(e);
+		} finally {
+			inflater.end();
+		}
 	}
 
 	private void verifyQueryId(int id) {

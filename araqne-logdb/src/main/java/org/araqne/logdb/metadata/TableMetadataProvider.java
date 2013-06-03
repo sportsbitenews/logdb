@@ -66,7 +66,7 @@ public class TableMetadataProvider implements MetadataProvider {
 
 	@Override
 	public void query(LogQueryContext context, String queryString, MetadataCallback callback) {
-		if (context.getSession().getLoginName().equals("araqne")) {
+		if (context.getSession().isAdmin()) {
 			for (String tableName : tableRegistry.getTableNames()) {
 				writeTableInfo(tableName, callback);
 			}

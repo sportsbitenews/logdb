@@ -23,11 +23,18 @@ import org.araqne.logdb.Session;
 public class SessionImpl implements Session {
 	private String guid;
 	private String loginName;
+
+	/**
+	 * @since 1.0.0
+	 */
+	private boolean admin;
+
 	private Date created;
 
-	public SessionImpl(String guid, String loginName) {
+	public SessionImpl(String guid, String loginName, boolean admin) {
 		this.guid = guid;
 		this.loginName = loginName;
+		this.admin = admin;
 		this.created = new Date();
 	}
 
@@ -64,6 +71,11 @@ public class SessionImpl implements Session {
 	@Override
 	public String getLoginName() {
 		return loginName;
+	}
+
+	@Override
+	public boolean isAdmin() {
+		return admin;
 	}
 
 	@Override
