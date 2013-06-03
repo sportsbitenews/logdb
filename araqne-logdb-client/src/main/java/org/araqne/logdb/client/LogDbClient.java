@@ -695,6 +695,11 @@ public class LogDbClient implements TrapListener {
 		if (resp.getParameters().size() == 0)
 			throw new MessageException("query-not-found", "", resp.getParameters());
 
+		// support backward compatibility
+		if (!resp.getParameters().containsKey("uncompressed_size"))
+			return resp.getParameters();
+
+		// decompress and decode
 		int uncompressedSize = (Integer) resp.getParameters().get("uncompressed_size");
 		String binary = (String) resp.getParameters().get("binary");
 		return decodeBinary(binary, uncompressedSize);
