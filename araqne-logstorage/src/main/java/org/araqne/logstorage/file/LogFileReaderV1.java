@@ -96,6 +96,19 @@ public class LogFileReaderV1 extends LogFileReader {
 	}
 
 	@Override
+	public List<LogRecord> find(List<Long> ids) throws IOException {
+		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
+		
+		for (long id : ids) {
+			LogRecord result = find(id);
+			if (result != null)
+				ret.add(result);
+		}
+		
+		return ret;
+	}
+
+	@Override
 	public void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException {
 		traverse(0, limit, callback);
 	}

@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Date;
+import java.util.List;
 
 import org.araqne.logstorage.LogCallback;
 import org.araqne.logstorage.LogMatchCallback;
@@ -56,7 +57,9 @@ public abstract class LogFileReader {
 	}
 
 	public abstract LogRecord find(long id) throws IOException;
-
+	
+	public abstract List<LogRecord> find(List<Long> ids) throws IOException;
+	
 	public abstract void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException;
 
 	public abstract void traverse(long offset, long limit, LogMatchCallback callback) throws IOException, InterruptedException;
