@@ -103,7 +103,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		int tableId = tableRegistry.getTableId(tableName);
 
 		// check memory buffer (flush waiting)
-		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, tableId); //TODO: check this code. last arg should be id
+		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, id);
 		if (bufferedLog != null) {
 			return convert(bufferedLog);
 		}
@@ -149,7 +149,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		int tableId = tableRegistry.getTableId(tableName);
 
 		// check memory buffer (flush waiting)
-		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, tableId);
+		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, id);
 		if (bufferedLog != null) 
 			return bufferedLog;
 
