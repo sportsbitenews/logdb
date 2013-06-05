@@ -24,6 +24,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,7 +61,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		// optional
 		String dateFormatString = getConfig().get("date_format");
 		if (dateFormatString != null)
-			dateFormat = new SimpleDateFormat(dateFormatString);
+			dateFormat = new SimpleDateFormat(dateFormatString, Locale.ENGLISH);
 
 		// optional
 		String newlogRegex = getConfig().get("newlog_designator");
