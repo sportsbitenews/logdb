@@ -120,6 +120,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		int tableId = tableRegistry.getTableId(tableName);
 
 		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
+		// TODO : check index logic
 		// check memory buffer (flush waiting)
 		int i = 0;
 		for (; i < ids.size(); ++i) {
