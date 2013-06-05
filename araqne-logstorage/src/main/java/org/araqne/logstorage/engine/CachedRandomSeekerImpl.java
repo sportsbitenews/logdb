@@ -18,6 +18,7 @@ package org.araqne.logstorage.engine;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +57,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		this.cachedReaders = new HashMap<TabletKey, LogFileReader>();
 	}
 
-	private Log getLogFromOnlineWriter(String tableName, int tableId, Date day, int id) {
+	private Log getLogFromOnlineWriter(String tableName, int tableId, Date day, long id) {
 		OnlineWriterKey onlineKey = new OnlineWriterKey(tableName, day, tableId);
 		List<Log> buffer = onlineBuffers.get(onlineKey);
 		if (buffer == null) {
@@ -77,6 +78,31 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		return null;
 	}
 
+	private List<Log> getLogsFromOnlineWriter(String tableName, int tableId, Date day, List<Long> ids) {
+		OnlineWriterKey onlineKey = new OnlineWriterKey(tableName, day, tableId);
+		List<Log> buffer = onlineBuffers.get(onlineKey);
+		if (buffer == null) {
+			// try load on demand
+			OnlineWriter writer = onlineWriters.get(onlineKey);
+			if (writer != null) {
+				buffer = writer.getBuffer();
+				onlineBuffers.put(onlineKey, buffer);
+			}
+		}
+		
+		List<Log> ret = new ArrayList<Log>();
+		if (buffer != null) {
+			for (Log r : buffer) {
+				if (Collections.binarySearch(ids, r.getId(), Collections.reverseOrder()) >= 0) {
+					ret.add(r);
+				}
+			}
+		}
+		
+		Collections.sort(ret, Collections.reverseOrder());
+		return ret;
+	}
+	
 	// TODO : remove duplicated method convert (LogStorageEngine.convert())
 	private LogRecord convert(Log log) {
 		ByteBuffer bb = new FastEncodingRule().encode(log.getData());
@@ -96,7 +122,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 	}
 
 	@Override
-	public LogRecord getLogRecord(String tableName, Date day, int id) throws IOException {
+	public LogRecord getLogRecord(String tableName, Date day, long id) throws IOException {
 		if (closed)
 			throw new IllegalStateException("already closed");
 
@@ -112,37 +138,65 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		return reader.find(id);
 	}
 	
+	private List<Long> getFileLogIds(List<Log> onlineLogs, List<Long> ids) {
+		List<Long> ret = new ArrayList<Long>(ids.size() - onlineLogs.size());
+		int idx = 0;
+		for (long id : ids) {
+			int logid = -1;
+			for (logid = (int)onlineLogs.get(idx).getId(); logid > id; ++idx) {
+				logid = (int)onlineLogs.get(idx).getId();
+			}
+			
+			if (id < logid) {
+				ret.add(id);
+			}
+		}
+		return ret;
+	}
+	
 	@Override
-	public List<LogRecord> getLogRecords(String tableName, Date day, List<Integer> ids) {
+	public List<LogRecord> getLogRecords(String tableName, Date day, List<Long> ids) {
 		if (closed)
 			throw new IllegalStateException("already closed");
 
 		int tableId = tableRegistry.getTableId(tableName);
 
 		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
-		// TODO : check index logic
-		// check memory buffer (flush waiting)
-		int i = 0;
-		for (; i < ids.size(); ++i) {
-			int id = ids.get(i);
-			Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, id);
-			if (bufferedLog == null)
-				break;
-			ret.add(convert(bufferedLog));
-		}
+		List<Log> onlineLogs = getLogsFromOnlineWriter(tableName, tableId, day, ids);
+		List<Long> fileLogIds = getFileLogIds(onlineLogs, ids);
+		List<LogRecord> fileLogRecords = null;
 
 		try {
 			LogFileReader reader = getReader(tableName, tableId, day);
-			ret.addAll(reader.find(ids.subList(ret.size(), ids.size())));
+			fileLogRecords = reader.find(fileLogIds);
 		} catch (IOException e) {
 			// TODO : error handling
+		}
+		
+		// merge online log and file log
+		int i = 0;
+		int j = 0;
+		for (long id : ids) {
+			if (i < onlineLogs.size()) {
+				 Log l = onlineLogs.get(i);
+				 if (l.getId() == id) {
+					 ret.add(convert(l));
+					 ++i;
+				 }
+			} else if (j < fileLogRecords.size()) {
+				LogRecord r = fileLogRecords.get(j);
+				if (r.getId() == id) {
+					ret.add(r);
+					++j;
+				}
+			}
 		}
 
 		return ret;
 	}
 	
 	@Override
-	public Log getLog(String tableName, Date day, int id) throws IOException {
+	public Log getLog(String tableName, Date day, long id) throws IOException {
 		if (closed)
 			throw new IllegalStateException("already closed");
 

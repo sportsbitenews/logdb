@@ -58,7 +58,7 @@ public abstract class LogFileReader {
 
 	public abstract LogRecord find(long id) throws IOException;
 	
-	public abstract List<LogRecord> find(List<Integer> ids) throws IOException;
+	public abstract List<LogRecord> find(List<Long> ids) throws IOException;
 	
 	public abstract void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException;
 
