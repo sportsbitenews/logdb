@@ -96,7 +96,7 @@ public class LogFileReaderV1 extends LogFileReader {
 	}
 
 	@Override
-	public List<LogRecord> find(List<Long> ids) throws IOException {
+	public List<LogRecord> find(List<Integer> ids) throws IOException {
 		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
 		
 		for (long id : ids) {

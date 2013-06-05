@@ -17,6 +17,7 @@ package org.araqne.logstorage;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 
 import org.araqne.logstorage.file.LogRecord;
 
@@ -29,6 +30,7 @@ import org.araqne.logstorage.file.LogRecord;
 public interface CachedRandomSeeker {
 	Log getLog(String tableName, Date day, int id) throws IOException;
 	LogRecord getLogRecord(String tableName, Date day, int id) throws IOException;
+	List<LogRecord> getLogRecords(String tableName, Date day, List<Integer> ids);
 
 	void close();
 }

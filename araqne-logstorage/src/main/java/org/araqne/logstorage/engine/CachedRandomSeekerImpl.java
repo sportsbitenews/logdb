@@ -17,6 +17,7 @@ package org.araqne.logstorage.engine;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -102,13 +103,41 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		int tableId = tableRegistry.getTableId(tableName);
 
 		// check memory buffer (flush waiting)
-		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, tableId);
+		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, tableId); //TODO: check this code. last arg should be id
 		if (bufferedLog != null) {
 			return convert(bufferedLog);
 		}
 
 		LogFileReader reader = getReader(tableName, tableId, day);
 		return reader.find(id);
+	}
+	
+	@Override
+	public List<LogRecord> getLogRecords(String tableName, Date day, List<Integer> ids) {
+		if (closed)
+			throw new IllegalStateException("already closed");
+
+		int tableId = tableRegistry.getTableId(tableName);
+
+		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
+		// check memory buffer (flush waiting)
+		int i = 0;
+		for (; i < ids.size(); ++i) {
+			int id = ids.get(i);
+			Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, id);
+			if (bufferedLog == null)
+				break;
+			ret.add(convert(bufferedLog));
+		}
+
+		try {
+			LogFileReader reader = getReader(tableName, tableId, day);
+			ret.addAll(reader.find(ids.subList(ret.size(), ids.size())));
+		} catch (IOException e) {
+			// TODO : error handling
+		}
+
+		return ret;
 	}
 	
 	@Override
