@@ -179,7 +179,8 @@ public class Result extends LogQueryCommand {
 			writer.sync();
 		}
 
-		LogFileReaderV2 reader = new LogFileReaderV2(indexPath, dataPath);
+		// TODO : check tableName
+		LogFileReaderV2 reader = new LogFileReaderV2(null, indexPath, dataPath);
 		return new LogResultSetImpl(reader);
 	}
 

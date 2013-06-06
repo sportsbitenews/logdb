@@ -49,29 +49,12 @@ import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
-import org.araqne.logstorage.CachedRandomSeeker;
-import org.araqne.logstorage.Log;
-import org.araqne.logstorage.LogCallback;
-import org.araqne.logstorage.LogCursor;
-import org.araqne.logstorage.LogFileService;
-import org.araqne.logstorage.LogFileServiceRegistry;
-import org.araqne.logstorage.LogKey;
-import org.araqne.logstorage.LogRetentionPolicy;
-import org.araqne.logstorage.LogSearchCallback;
-import org.araqne.logstorage.LogStorage;
-import org.araqne.logstorage.LogStorageEventListener;
-import org.araqne.logstorage.LogStorageStatus;
-import org.araqne.logstorage.LogTableEventListener;
-import org.araqne.logstorage.LogTableNotFoundException;
-import org.araqne.logstorage.LogTableRegistry;
-import org.araqne.logstorage.LogWriterStatus;
-import org.araqne.logstorage.UnsupportedLogFileTypeException;
+import org.araqne.logstorage.*;
 import org.araqne.logstorage.file.LogFileFixReport;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileRepairer;
 import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogRecord;
-import org.araqne.logstorage.file.LogRecordCallback;
 import org.araqne.logstorage.file.LogRecordCursor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -712,7 +695,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		if (logFileType == null)
 			logFileType = "v2";
 
-		LogFileReader reader = lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
+		LogFileReader reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
 
 		return new LogCursorImpl(tableName, day, buffer, reader, ascending);
 	}
@@ -795,7 +778,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		File indexPath = DatapathUtil.getIndexFile(tableId, day);
 		File dataPath = DatapathUtil.getDataFile(tableId, day);
 		LogFileReader reader = null;
-		TraverseCallback c = new TraverseCallback(tableName, from, to, callback);
+		TraverseCallback c = new TraverseCallback(from, to, callback);
 
 		try {
 			// do NOT use getOnlineWriter() here (it loads empty writer on cache
@@ -815,7 +798,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 								continue;
 							}
 
-							if (c.onLog(convert(logData))) {
+							if (c.match(convert(logData))) {
+								c.onLog(logData);
 								if (--limit == 0)
 									return c.matched;
 							}
@@ -828,7 +812,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			if (logFileType == null)
 				logFileType = "v2";
 
-			reader = lfsRegistry.newReader(logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
+			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
 			reader.traverse(from, to, offset, limit, c);
 		} catch (InterruptedException e) {
 			throw e;
@@ -842,46 +826,48 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		return c.matched;
 	}
 
-	private class TraverseCallback implements LogRecordCallback {
+	private class TraverseCallback implements LogMatchCallback {
 		private Logger logger = LoggerFactory.getLogger(TraverseCallback.class);
-		private String tableName;
 		private Date from;
 		private Date to;
 		private LogSearchCallback callback;
 		private int matched = 0;
 
-		public TraverseCallback(String tableName, Date from, Date to, LogSearchCallback callback) {
-			this.tableName = tableName;
+		public TraverseCallback(Date from, Date to, LogSearchCallback callback) {
 			this.from = from;
 			this.to = to;
 			this.callback = callback;
 		}
 
 		@Override
-		public boolean onLog(LogRecord logData) throws InterruptedException {
-			Date d = logData.getDate();
-			if (from != null && d.before(from))
-				return false;
-			if (to != null && d.after(to))
-				return false;
-
+		public void onLog(Log log) throws InterruptedException {
 			if (callback.isInterrupted())
 				throw new InterruptedException("interrupted log traverse");
 
 			try {
 				matched++;
 
-				Log log = LogMarshaler.convert(tableName, logData);
 				logger.debug("araqne logdb: traverse log [{}]", log);
 				callback.onLog(log);
 
-				return true;
+				return;
 			} catch (Exception e) {
 				if (callback.isInterrupted())
 					throw new InterruptedException("interrupted log traverse");
 				else
 					throw new RuntimeException(e);
 			}
+		}
+
+		@Override
+		public boolean match(LogRecord record) {
+			Date d = record.getDate();
+			if (from != null && d.before(from))
+				return false;
+			if (to != null && d.after(to))
+				return false;
+			
+			return true;
 		}
 	}
 

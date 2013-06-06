@@ -16,14 +16,19 @@
 package org.araqne.logstorage.engine;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
+import org.araqne.codec.FastEncodingRule;
 import org.araqne.logstorage.CachedRandomSeeker;
 import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogRecord;
@@ -52,14 +57,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		this.cachedReaders = new HashMap<TabletKey, LogFileReader>();
 	}
 
-	@Override
-	public Log getLog(String tableName, Date day, int id) throws IOException {
-		if (closed)
-			throw new IllegalStateException("already closed");
-
-		int tableId = tableRegistry.getTableId(tableName);
-
-		// check memory buffer (flush waiting)
+	private Log getLogFromOnlineWriter(String tableName, int tableId, Date day, long id) {
 		OnlineWriterKey onlineKey = new OnlineWriterKey(tableName, day, tableId);
 		List<Log> buffer = onlineBuffers.get(onlineKey);
 		if (buffer == null) {
@@ -77,14 +75,139 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 					return r;
 				}
 		}
+		return null;
+	}
 
+	private List<Log> getLogsFromOnlineWriter(String tableName, int tableId, Date day, List<Long> ids) {
+		OnlineWriterKey onlineKey = new OnlineWriterKey(tableName, day, tableId);
+		List<Log> buffer = onlineBuffers.get(onlineKey);
+		if (buffer == null) {
+			// try load on demand
+			OnlineWriter writer = onlineWriters.get(onlineKey);
+			if (writer != null) {
+				buffer = writer.getBuffer();
+				onlineBuffers.put(onlineKey, buffer);
+			}
+		}
+		
+		List<Log> ret = new ArrayList<Log>();
+		if (buffer != null) {
+			for (Log r : buffer) {
+				if (Collections.binarySearch(ids, r.getId(), Collections.reverseOrder()) >= 0) {
+					ret.add(r);
+				}
+			}
+		}
+		
+		Collections.sort(ret, Collections.reverseOrder());
+		return ret;
+	}
+	
+	// TODO : remove duplicated method convert (LogStorageEngine.convert())
+	private LogRecord convert(Log log) {
+		ByteBuffer bb = new FastEncodingRule().encode(log.getData());
+		LogRecord logdata = new LogRecord(log.getDate(), log.getId(), bb);
+		log.setBinaryLength(bb.remaining());
+		return logdata;
+	}
+	
+	private LogFileReader getReader(String tableName, int tableId, Date day) throws IOException {
 		TabletKey key = new TabletKey(tableId, day);
 		LogFileReader reader = cachedReaders.get(key);
 		if (reader == null) {
 			reader = fetcher.fetch(tableName, day);
 			cachedReaders.put(key, reader);
 		}
+		return reader;
+	}
 
+	@Override
+	public LogRecord getLogRecord(String tableName, Date day, long id) throws IOException {
+		if (closed)
+			throw new IllegalStateException("already closed");
+
+		int tableId = tableRegistry.getTableId(tableName);
+
+		// check memory buffer (flush waiting)
+		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, id);
+		if (bufferedLog != null) {
+			return convert(bufferedLog);
+		}
+
+		LogFileReader reader = getReader(tableName, tableId, day);
+		return reader.find(id);
+	}
+	
+	private List<Long> getFileLogIds(List<Log> onlineLogs, List<Long> ids) {
+		List<Long> ret = new ArrayList<Long>(ids.size() - onlineLogs.size());
+		int idx = 0;
+		for (long id : ids) {
+			int logid = -1;
+			for (logid = (int)onlineLogs.get(idx).getId(); logid > id; ++idx) {
+				logid = (int)onlineLogs.get(idx).getId();
+			}
+			
+			if (id < logid) {
+				ret.add(id);
+			}
+		}
+		return ret;
+	}
+	
+	@Override
+	public List<LogRecord> getLogRecords(String tableName, Date day, List<Long> ids) {
+		if (closed)
+			throw new IllegalStateException("already closed");
+
+		int tableId = tableRegistry.getTableId(tableName);
+
+		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
+		List<Log> onlineLogs = getLogsFromOnlineWriter(tableName, tableId, day, ids);
+		List<Long> fileLogIds = getFileLogIds(onlineLogs, ids);
+		List<LogRecord> fileLogRecords = null;
+
+		try {
+			LogFileReader reader = getReader(tableName, tableId, day);
+			fileLogRecords = reader.find(fileLogIds);
+		} catch (IOException e) {
+			// TODO : error handling
+		}
+		
+		// merge online log and file log
+		int i = 0;
+		int j = 0;
+		for (long id : ids) {
+			if (i < onlineLogs.size()) {
+				 Log l = onlineLogs.get(i);
+				 if (l.getId() == id) {
+					 ret.add(convert(l));
+					 ++i;
+				 }
+			} else if (j < fileLogRecords.size()) {
+				LogRecord r = fileLogRecords.get(j);
+				if (r.getId() == id) {
+					ret.add(r);
+					++j;
+				}
+			}
+		}
+
+		return ret;
+	}
+	
+	@Override
+	public Log getLog(String tableName, Date day, long id) throws IOException {
+		if (closed)
+			throw new IllegalStateException("already closed");
+
+		int tableId = tableRegistry.getTableId(tableName);
+
+		// check memory buffer (flush waiting)
+		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, id);
+		if (bufferedLog != null) 
+			return bufferedLog;
+
+		LogFileReader reader = getReader(tableName, tableId, day);
 		LogRecord log = reader.find(id);
 		if (log == null)
 			return null;

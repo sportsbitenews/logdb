@@ -13,20 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logstorage.engine;
+package org.araqne.logstorage;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
 
 import org.araqne.codec.EncodingRule;
-import org.araqne.logstorage.Log;
 import org.araqne.logstorage.file.LogRecord;
 
 /**
  * @since 0.9
  * @author xeraph
  */
-class LogMarshaler {
+public class LogMarshaler {
 	private LogMarshaler() {
 	}
 

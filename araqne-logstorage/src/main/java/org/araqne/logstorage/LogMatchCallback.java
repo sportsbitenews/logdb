@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,22 +15,9 @@
  */
 package org.araqne.logstorage;
 
-import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-
 import org.araqne.logstorage.file.LogRecord;
 
-/**
- * cache opened reader while index seek (to prevent repetitive file open)
- * 
- * @author xeraph
- * @since 0.9
- */
-public interface CachedRandomSeeker {
-	Log getLog(String tableName, Date day, long id) throws IOException;
-	LogRecord getLogRecord(String tableName, Date day, long id) throws IOException;
-	List<LogRecord> getLogRecords(String tableName, Date day, List<Long> ids);
-
-	void close();
+public interface LogMatchCallback {
+	boolean match(LogRecord record);
+	void onLog(Log log) throws InterruptedException;
 }

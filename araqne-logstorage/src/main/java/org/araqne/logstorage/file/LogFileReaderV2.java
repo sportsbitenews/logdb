@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+import org.araqne.logstorage.LogMarshaler;
+import org.araqne.logstorage.LogMatchCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +37,8 @@ public class LogFileReaderV2 extends LogFileReader {
 	private static final int DATA_BLOCK_HEADER_LENGTH = 24;
 	private Logger logger = LoggerFactory.getLogger(LogFileReaderV2.class);
 	public static final int INDEX_ITEM_SIZE = 4;
+
+	private String tableName;
 
 	private File indexPath;
 	private File dataPath;
@@ -52,8 +56,9 @@ public class LogFileReaderV2 extends LogFileReader {
 	private long totalCount;
 	private boolean useDeflater;
 
-	public LogFileReaderV2(File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
+	public LogFileReaderV2(String tableName, File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
 		try {
+			this.tableName = tableName;
 			this.indexPath = indexPath;
 			this.dataPath = dataPath;
 			this.indexFile = new RandomAccessFile(indexPath, "r");
@@ -174,22 +179,35 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(long limit, LogRecordCallback callback) throws IOException, InterruptedException {
+	public List<LogRecord> find(List<Long> ids) throws IOException {
+		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
+		
+		for (long id : ids) {
+			LogRecord result = find(id);
+			if (result != null)
+				ret.add(result);
+		}
+		
+		return ret;
+	}
+
+	@Override
+	public void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException {
 		traverse(0, limit, callback);
 	}
 
 	@Override
-	public void traverse(long offset, long limit, LogRecordCallback callback) throws IOException, InterruptedException {
+	public void traverse(long offset, long limit, LogMatchCallback callback) throws IOException, InterruptedException {
 		traverse(null, null, offset, limit, callback);
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long limit, LogRecordCallback callback) throws IOException, InterruptedException {
+	public void traverse(Date from, Date to, long limit, LogMatchCallback callback) throws IOException, InterruptedException {
 		traverse(from, to, 0, limit, callback);
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long offset, long limit, LogRecordCallback callback) throws IOException,
+	public void traverse(Date from, Date to, long offset, long limit, LogMatchCallback callback) throws IOException,
 			InterruptedException {
 		for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
 			IndexBlockHeader index = indexBlockHeaders.get(i);
@@ -218,7 +236,7 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	private long readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long offset, long limit,
-			LogRecordCallback callback) throws IOException, InterruptedException {
+			LogMatchCallback callback) throws IOException, InterruptedException {
 		List<Integer> offsets = new ArrayList<Integer>();
 		long matched = 0;
 
@@ -241,7 +259,9 @@ public class LogFileReaderV2 extends LogFileReader {
 				continue;
 			}
 
-			if (callback.onLog(getLogRecord(data, offsets.get(i)))) {
+			LogRecord record = getLogRecord(data, offsets.get(i));
+			if (callback.match(record)) {
+				callback.onLog(LogMarshaler.convert(tableName, record));
 				if (++matched == offset + limit)
 					return matched;
 			}

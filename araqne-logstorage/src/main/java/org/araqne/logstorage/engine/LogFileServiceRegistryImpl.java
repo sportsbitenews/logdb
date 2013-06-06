@@ -84,7 +84,7 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	}
 
 	@Override
-	public LogFileReader newReader(String type, Map<String, Object> options) {
+	public LogFileReader newReader(String tableName, String type, Map<String, Object> options) {
 		WaitEvent ev = availableEngines.get(type);
 		if (ev == null)
 			throw new UnsupportedOperationException("not supported engine: " + type);
@@ -92,7 +92,7 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 		ev.await();
 
 		LogFileService logFileService = services.get(type);
-		return logFileService.newReader(options);
+		return logFileService.newReader(tableName, options);
 	}
 
 	@Override

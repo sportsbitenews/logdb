@@ -19,10 +19,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Date;
+import java.util.List;
+
+import org.araqne.logstorage.LogCallback;
+import org.araqne.logstorage.LogMatchCallback;
 
 public abstract class LogFileReader {
 	@Deprecated
-	public static LogFileReader getLogFileReader(File indexPath, File dataPath) throws InvalidLogFileHeaderException, IOException {
+	public static LogFileReader getLogFileReader(String tableName, File indexPath, File dataPath) throws InvalidLogFileHeaderException, IOException {
 		LogFileReader reader = null;
 		RandomAccessFile indexHeaderReader = null;
 		RandomAccessFile dataHeaderReader = null;
@@ -37,9 +41,9 @@ public abstract class LogFileReader {
 				throw new InvalidLogFileHeaderException("different log version index and data file");
 
 			if (indexHeader.version() == 1)
-				reader = new LogFileReaderV1(indexPath, dataPath);
+				reader = new LogFileReaderV1(tableName, indexPath, dataPath);
 			else if (indexHeader.version() == 2)
-				reader = new LogFileReaderV2(indexPath, dataPath);
+				reader = new LogFileReaderV2(tableName, indexPath, dataPath);
 			else
 				throw new InvalidLogFileHeaderException("unsupported log version");
 		} finally {
@@ -53,15 +57,17 @@ public abstract class LogFileReader {
 	}
 
 	public abstract LogRecord find(long id) throws IOException;
+	
+	public abstract List<LogRecord> find(List<Long> ids) throws IOException;
+	
+	public abstract void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException;
 
-	public abstract void traverse(long limit, LogRecordCallback callback) throws IOException, InterruptedException;
+	public abstract void traverse(long offset, long limit, LogMatchCallback callback) throws IOException, InterruptedException;
 
-	public abstract void traverse(long offset, long limit, LogRecordCallback callback) throws IOException, InterruptedException;
-
-	public abstract void traverse(Date from, Date to, long limit, LogRecordCallback callback) throws IOException,
+	public abstract void traverse(Date from, Date to, long limit, LogMatchCallback callback) throws IOException,
 			InterruptedException;
 
-	public abstract void traverse(Date from, Date to, long offset, long limit, LogRecordCallback callback) throws IOException,
+	public abstract void traverse(Date from, Date to, long offset, long limit, LogMatchCallback callback) throws IOException,
 			InterruptedException;
 
 	public abstract LogRecordCursor getCursor() throws IOException;

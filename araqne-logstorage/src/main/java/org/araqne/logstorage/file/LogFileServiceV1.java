@@ -86,12 +86,12 @@ public class LogFileServiceV1 implements LogFileService {
 	}
 
 	@Override
-	public LogFileReader newReader(Map<String, Object> options) {
+	public LogFileReader newReader(String tableName, Map<String, Object> options) {
 		checkOption(options);
 		File indexPath = (File) options.get(OPT_INDEX_PATH);
 		File dataPath = (File) options.get(OPT_DATA_PATH);
 		try {
-			return new LogFileReaderV1(indexPath, dataPath);
+			return new LogFileReaderV1(tableName, indexPath, dataPath);
 		} catch (Throwable t) {
 			throw new IllegalStateException("cannot open reader v1: data file - " + dataPath.getAbsolutePath(), t);
 		}
