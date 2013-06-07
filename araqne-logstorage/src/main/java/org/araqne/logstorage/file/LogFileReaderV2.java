@@ -219,7 +219,7 @@ public class LogFileReaderV2 extends LogFileReader {
 			DataBlockHeader data = dataBlockHeaders.get(i);
 			Long fromTime = (from == null) ? null : from.getTime();
 			Long toTime = (to == null) ? null : to.getTime();
-			if ((fromTime == null || data.endDate >= fromTime) && (toTime == null || data.startDate <= toTime)) {
+			if ((fromTime == null || data.endDate >= fromTime) && (toTime == null || data.startDate < toTime)) {
 				long matched = readBlock(index, data, fromTime, toTime, offset, limit, callback);
 				if (matched < offset)
 					offset -= matched;
@@ -251,7 +251,7 @@ public class LogFileReaderV2 extends LogFileReader {
 			long date = getLogRecordDate(data, offsets.get(i));
 			if (from != null && date < from)
 				return matched;
-			if (to != null && date > to)
+			if (to != null && date >= to)
 				continue;
 
 			if (offset > matched) {
