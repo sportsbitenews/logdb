@@ -300,10 +300,10 @@ public class Console {
 
 		do {
 			try {
-				Thread.sleep(100);
+				Thread.sleep(50);
 			} catch (InterruptedException e) {
 			}
-		} while (lq.getLastStarted() == null || !lq.isEnd());
+		} while (!lq.isEof());
 
 		long count = 0;
 		LogResultSet rs = null;
