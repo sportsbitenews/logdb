@@ -239,7 +239,9 @@ public class LogQueryPlugin {
 
 	@MsgbusMethod(type = CallbackType.SessionClosed)
 	public void sessionClosed(Session session) {
-		accountService.logout(getDbSession(session));
+		org.araqne.logdb.Session dbSession = getDbSession(session);
+		if (dbSession != null)
+			accountService.logout(dbSession);
 	}
 
 	private class MsgbusLogQueryCallback implements LogQueryCallback {
