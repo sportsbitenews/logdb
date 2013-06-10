@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.net.InetAddress;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -42,6 +43,9 @@ public class ToString implements Expression {
 
 		if (value instanceof Date)
 			return dateFormat.format(value);
+
+		if (value instanceof InetAddress)
+			return ((InetAddress) value).getHostAddress();
 
 		return value.toString();
 	}

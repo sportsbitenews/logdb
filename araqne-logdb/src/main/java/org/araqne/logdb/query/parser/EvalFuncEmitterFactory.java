@@ -17,6 +17,8 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 
 		if (name.equals("abs")) {
 			exprStack.add(new Abs(args.get(0)));
+		} else if (name.equals("max")) {
+			exprStack.add(new Max(args));
 		} else if (name.equals("min")) {
 			exprStack.add(new Min(args));
 		} else if (name.equals("case")) {

@@ -143,13 +143,13 @@ public class Console {
 			} else if (command.equals("grant_admin")) {
 				if (args.length < 2)
 					context.println("Usage: grant_admin [login name]");
-
-				grantAdmin(args[1]);
+				else
+					grantAdmin(args[1]);
 			} else if (command.equals("revoke_admin")) {
 				if (args.length < 2)
 					context.println("Usage: revoke_admin [login name]");
-
-				revokeAdmin(args[1]);
+				else
+					revokeAdmin(args[1]);
 			} else if (command.equals("grant")) {
 				if (args.length < 3)
 					context.println("Usage: grant [login name] [table name]");
@@ -217,7 +217,7 @@ public class Console {
 		context.println("\trun query in foreground");
 
 		context.println("bg <query_id>");
-		context.println("run query as a background task");
+		context.println("\trun query as a background task");
 	}
 
 	private void createAccount(String loginName) throws InterruptedException {

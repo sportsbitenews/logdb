@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,33 +20,28 @@ import java.util.List;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.ObjectComparator;
 
-public class Min implements Expression {
+public class Max implements Expression {
 	private ObjectComparator cmp = new ObjectComparator();
 	private List<Expression> exprs;
 
-	public Min(List<Expression> exprs) {
+	public Max(List<Expression> exprs) {
 		this.exprs = exprs;
 	}
 
 	@Override
 	public Object eval(LogMap map) {
-		Object min = null;
+		Object max = null;
 
 		for (Expression expr : exprs) {
 			Object o = expr.eval(map);
 			if (o == null)
 				continue;
-			if (min == null)
-				min = o;
-			else if (cmp.compare(min, o) > 0)
-				min = o;
+			if (max == null)
+				max = o;
+			else if (cmp.compare(max, o) < 0)
+				max = o;
 		}
 
-		return min;
-	}
-
-	@Override
-	public String toString() {
-		return "min(" + exprs + ")";
+		return max;
 	}
 }
