@@ -28,7 +28,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 public class BufferedRandomAccessFileReader implements DataInput, Closeable {
-	private static final int BUFFER_SIZE = 8192 * 3;
+	private static final int BUFFER_SIZE = 8192 * 2;
 	private final RandomAccessFile file;
 	private ByteBuffer buf;
 	private DataInputStream dataInputStream;
@@ -37,10 +37,16 @@ public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 	private long bufStartPos = 0;
 
 	private boolean isClosed = false;
+	private int bufSize;
 	
 	public BufferedRandomAccessFileReader(File path) throws IOException {
+		this(path, BUFFER_SIZE);
+	}
+	
+	public BufferedRandomAccessFileReader(File path, int bufSize) throws IOException {
 		file = new RandomAccessFile(path, "r");
-		buf = ByteBuffer.allocate(BUFFER_SIZE);
+		this.bufSize = bufSize;
+		buf = ByteBuffer.allocate(bufSize);
 		dataInputStream = new DataInputStream(new InputStream() {
 			@Override
 			public synchronized int read() throws IOException {
@@ -205,14 +211,14 @@ public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 			syncBuffer(buf.capacity());
 		} else if (pos - bufStartPos < 0) {
 			buf.clear();
-			long seekPos = pos - BUFFER_SIZE;
+			long seekPos = pos - bufSize;
 			if (seekPos < 0)
 				seekPos = 0;
 			bufStartPos = seekPos;
 			file.seek(bufStartPos);
 			buf.clear();
-			if (buf.capacity() < BUFFER_SIZE * 2) {
-				buf = ByteBuffer.allocate(BUFFER_SIZE * 2);
+			if (buf.capacity() < bufSize * 2) {
+				buf = ByteBuffer.allocate(bufSize * 2);
 			}
 
 			int read = file.read(buf.array());
@@ -221,7 +227,7 @@ public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 				if (seekPos == 0) {
 					buf.position((int) pos);
 				} else {
-					buf.position(BUFFER_SIZE);
+					buf.position(bufSize);
 				}
 			}
 
