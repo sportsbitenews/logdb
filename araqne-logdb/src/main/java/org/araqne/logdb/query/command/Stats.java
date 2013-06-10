@@ -62,7 +62,7 @@ public class Stats extends LogQueryCommand {
 	public List<AggregationField> getAggregationFields() {
 		return fields;
 	}
-	
+
 	public List<String> getClauses() {
 		return clauses;
 	}
@@ -111,7 +111,7 @@ public class Stats extends LogQueryCommand {
 	}
 
 	private void flush() throws IOException {
-		logger.debug("araqne logdb: flushing stats2 buffer, [{}] keys", buffer.keySet().size());
+		logger.debug("araqne logdb: flushing stats buffer, [{}] keys", buffer.keySet().size());
 
 		for (List<Object> keys : buffer.keySet()) {
 			AggregationFunction[] fs = buffer.get(keys);
@@ -135,7 +135,7 @@ public class Stats extends LogQueryCommand {
 	public void eof() {
 		this.status = Status.Finalizing;
 
-		logger.debug("araqne logdb: stats2 sort input count [{}]", inputCount);
+		logger.debug("araqne logdb: stats sort input count [{}]", inputCount);
 		CloseableIterator it = null;
 		try {
 			// last flush
@@ -158,7 +158,7 @@ public class Stats extends LogQueryCommand {
 				// first record or need to change merge set?
 				if (lastKeys == null || !Arrays.equals(lastKeys, (Object[]) item.getKey())) {
 					if (logger.isDebugEnabled() && lastKeys != null)
-						logger.debug("araqne logdb: stats2 key compare [{}] != [{}]", lastKeys[0], ((Object[]) item.getKey())[0]);
+						logger.debug("araqne logdb: stats key compare [{}] != [{}]", lastKeys[0], ((Object[]) item.getKey())[0]);
 
 					// finalize last record (only if changing set)
 					if (fs != null) {
@@ -194,7 +194,13 @@ public class Stats extends LogQueryCommand {
 			if (item != null)
 				pass(fs, lastKeys);
 
-			logger.debug("araqne logdb: sorted stats2 input [{}]", count);
+			// write result for empty data set (only for no group clause)
+			if (inputCount == 0 && clauses.size() == 0) {
+				// write initial function values
+				pass(funcs, null);
+			}
+
+			logger.debug("araqne logdb: sorted stats input [{}]", count);
 		} catch (IOException e) {
 			throw new IllegalStateException("sort failed, query " + logQuery, e);
 		} finally {

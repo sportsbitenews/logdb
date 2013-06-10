@@ -358,6 +358,9 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (!sessions.containsKey(session.getGuid()))
 			throw new IllegalStateException("invalid session");
 
+		if (session.getLoginName().equals(loginName))
+			throw new IllegalStateException("cannot delete your own account");
+
 		// master admin only
 		if (!session.isAdmin())
 			throw new IllegalStateException("no permission");

@@ -29,6 +29,8 @@ public interface LogQuery extends Runnable {
 	int getId();
 
 	String getQueryString();
+	
+	boolean isEof();
 
 	boolean isEnd();
 

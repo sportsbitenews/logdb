@@ -29,7 +29,9 @@ import org.araqne.logstorage.file.LogRecord;
  */
 public interface CachedRandomSeeker {
 	Log getLog(String tableName, Date day, long id) throws IOException;
+
 	LogRecord getLogRecord(String tableName, Date day, long id) throws IOException;
+
 	List<LogRecord> getLogRecords(String tableName, Date day, List<Long> ids);
 
 	void close();

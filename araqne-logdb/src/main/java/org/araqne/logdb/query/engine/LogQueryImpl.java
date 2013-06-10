@@ -129,6 +129,11 @@ public class LogQueryImpl implements LogQuery {
 	}
 
 	@Override
+	public boolean isEof() {
+		return result != null && result.getStatus().equals(Status.End);
+	}
+
+	@Override
 	public boolean isEnd() {
 		if (commands.size() == 0)
 			return true;
