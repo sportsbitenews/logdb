@@ -139,18 +139,25 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 	}
 	
 	private List<Long> getFileLogIds(List<Log> onlineLogs, List<Long> ids) {
-		List<Long> ret = new ArrayList<Long>(ids.size() - onlineLogs.size());
+		int onlineLogCnt = onlineLogs.size();
+		int retCnt = ids.size() - onlineLogCnt;
+		List<Long> ret = new ArrayList<Long>(retCnt);
 		int idx = 0;
+
 		for (long id : ids) {
-			int logid = -1;
-			for (logid = (int)onlineLogs.get(idx).getId(); logid > id; ++idx) {
-				logid = (int)onlineLogs.get(idx).getId();
+			// online logs' ids are subset of requested ids.
+			if (idx < onlineLogCnt && onlineLogs.get(idx).getId() == id) {
+				++idx;
+				continue;
 			}
-			
-			if (id < logid) {
-				ret.add(id);
-			}
+
+			ret.add(id);
 		}
+		
+		if (ret.size() != retCnt) {
+			throw new IllegalStateException("log ids are wrong");
+		}
+		
 		return ret;
 	}
 	
@@ -170,7 +177,6 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 			LogFileReader reader = getReader(tableName, tableId, day);
 			fileLogRecords = reader.find(fileLogIds);
 		} catch (IOException e) {
-			// TODO : error handling
 		}
 		
 		// merge online log and file log
@@ -183,7 +189,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 					 ret.add(convert(l));
 					 ++i;
 				 }
-			} else if (j < fileLogRecords.size()) {
+			} else if (fileLogRecords != null && j < fileLogRecords.size()) {
 				LogRecord r = fileLogRecords.get(j);
 				if (r.getId() == id) {
 					ret.add(r);
