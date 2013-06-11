@@ -177,7 +177,6 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 			LogFileReader reader = getReader(tableName, tableId, day);
 			fileLogRecords = reader.find(fileLogIds);
 		} catch (IOException e) {
-			// TODO : error handling
 		}
 		
 		// merge online log and file log
@@ -190,7 +189,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 					 ret.add(convert(l));
 					 ++i;
 				 }
-			} else if (j < fileLogRecords.size()) {
+			} else if (fileLogRecords != null && j < fileLogRecords.size()) {
 				LogRecord r = fileLogRecords.get(j);
 				if (r.getId() == id) {
 					ret.add(r);
