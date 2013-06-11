@@ -16,7 +16,6 @@
 package org.araqne.log.api;
 
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -74,14 +73,12 @@ public class SimpleLog implements Log {
 
 	@Override
 	public Map<String, Object> getParams() {
-		return Collections.unmodifiableMap(params);
+		return params;
 	}
 
 	@Override
 	public String toString() {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		if (getMessage() == null)
-			return String.format("date=%s, logger=%s, line=%s", dateFormat.format(date), loggerName, params.get("line"));
-		return String.format("date=%s, logger=%s, msg=%s", dateFormat.format(date), loggerName, getMessage());
+		return String.format("date=%s, logger=%s, data=%s", dateFormat.format(date), loggerName, params);
 	}
 }

@@ -14,4 +14,5 @@
 	<instance component="log-transformer-factory-registry" />
 	<instance component="selector-logger-factory" />
 	<instance component="directory-watch-logger-factory" />
+	<instance component="key-value-tagger-factory" />
 </ipojo>
