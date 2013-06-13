@@ -21,7 +21,6 @@ import java.io.RandomAccessFile;
 import java.util.Date;
 import java.util.List;
 
-import org.araqne.logstorage.LogCallback;
 import org.araqne.logstorage.LogMatchCallback;
 
 public abstract class LogFileReader {
