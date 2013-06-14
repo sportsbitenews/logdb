@@ -24,6 +24,7 @@ import java.util.Date;
 
 import org.junit.Test;
 import org.araqne.log.api.LogParserFactoryRegistry;
+import org.araqne.log.api.LogParserRegistry;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryParseException;
@@ -148,16 +149,17 @@ public class TableParserTest {
 		AccountService mockAccount = mock(AccountService.class);
 		LogStorage mockStorage = mock(LogStorage.class);
 		LogTableRegistry mockTableRegistry = mock(LogTableRegistry.class);
-		LogParserFactoryRegistry mockParserRegistry = mock(LogParserFactoryRegistry.class);
+		LogParserFactoryRegistry mockParserFactoryRegistry = mock(LogParserFactoryRegistry.class);
+		LogParserRegistry mockParserRegistry = mock(LogParserRegistry.class);
 
 		when(mockTableRegistry.exists("iis")).thenReturn(true);
 		when(mockTableRegistry.exists("xtm")).thenReturn(true);
 		when(mockTableRegistry.getTableMetadata("iis", "logparser")).thenReturn(null);
-		when(mockParserRegistry.get(null)).thenReturn(null);
+		when(mockParserFactoryRegistry.get(null)).thenReturn(null);
 		when(mockAccount.checkPermission(null, "iis", Permission.READ)).thenReturn(true);
 		when(mockAccount.checkPermission(null, "xtm", Permission.READ)).thenReturn(true);
 
-		TableParser parser = new TableParser(mockAccount, mockStorage, mockTableRegistry, mockParserRegistry);
+		TableParser parser = new TableParser(mockAccount, mockStorage, mockTableRegistry, mockParserFactoryRegistry, mockParserRegistry);
 		Table table = (Table) parser.parse(new LogQueryContext(null), query);
 		return table;
 	}

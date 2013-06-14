@@ -23,6 +23,7 @@ import java.util.Map;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
+import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
@@ -38,6 +39,7 @@ public class Table extends LogQueryCommand {
 	private LogStorage storage;
 	private LogTableRegistry tableRegistry;
 	private LogParserFactoryRegistry parserFactoryRegistry;
+	private LogParserRegistry parserRegistry;
 
 	private List<String> tableNames;
 	private long offset;
@@ -102,6 +104,14 @@ public class Table extends LogQueryCommand {
 		this.parserFactoryRegistry = parserFactoryRegistry;
 	}
 
+	public LogParserRegistry getParserRegistry() {
+		return parserRegistry;
+	}
+
+	public void setParserRegistry(LogParserRegistry parserRegistry) {
+		this.parserRegistry = parserRegistry;
+	}
+
 	public long getOffset() {
 		return offset;
 	}
@@ -132,10 +142,15 @@ public class Table extends LogQueryCommand {
 			status = Status.Running;
 
 			for (String tableName : tableNames) {
-				String parserName = tableRegistry.getTableMetadata(tableName, "logparser");
-				LogParserFactory parserFactory = parserFactoryRegistry.get(parserName);
+				String parserName = tableRegistry.getTableMetadata(tableName, "parser");
+				String parserFactoryName = tableRegistry.getTableMetadata(tableName, "logparser");
+
 				LogParser parser = null;
-				if (parserFactory != null) {
+				if (parserName != null)
+					parser = parserRegistry.newParser(parserName);
+
+				LogParserFactory parserFactory = parserFactoryRegistry.get(parserFactoryName);
+				if (parser == null && parserFactory != null) {
 					Map<String, String> prop = new HashMap<String, String>();
 					for (LoggerConfigOption configOption : parserFactory.getConfigOptions()) {
 						String optionName = configOption.getName();

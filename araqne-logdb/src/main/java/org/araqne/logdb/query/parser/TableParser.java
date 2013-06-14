@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.LogParserFactoryRegistry;
+import org.araqne.log.api.LogParserRegistry;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
@@ -37,13 +38,15 @@ public class TableParser implements LogQueryCommandParser {
 	private LogStorage logStorage;
 	private LogTableRegistry tableRegistry;
 	private LogParserFactoryRegistry parserFactoryRegistry;
+	private LogParserRegistry parserRegistry;
 
 	public TableParser(AccountService accountService, LogStorage logStorage, LogTableRegistry tableRegistry,
-			LogParserFactoryRegistry parserFactoryRegistry) {
+			LogParserFactoryRegistry parserFactoryRegistry, LogParserRegistry parserRegistry) {
 		this.accountService = accountService;
 		this.logStorage = logStorage;
 		this.tableRegistry = tableRegistry;
 		this.parserFactoryRegistry = parserFactoryRegistry;
+		this.parserRegistry = parserRegistry;
 	}
 
 	@Override
@@ -110,6 +113,7 @@ public class TableParser implements LogQueryCommandParser {
 		table.setTableRegistry(tableRegistry);
 		table.setStorage(logStorage);
 		table.setParserFactoryRegistry(parserFactoryRegistry);
+		table.setParserRegistry(parserRegistry);
 		return table;
 	}
 

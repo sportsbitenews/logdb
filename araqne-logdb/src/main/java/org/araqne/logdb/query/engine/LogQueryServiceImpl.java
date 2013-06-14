@@ -33,6 +33,7 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.log.api.LogParserFactoryRegistry;
+import org.araqne.log.api.LogParserRegistry;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.EmptyLogQueryCallback;
 import org.araqne.logdb.LogQuery;
@@ -99,6 +100,9 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 	private LogParserFactoryRegistry parserFactoryRegistry;
 
 	@Requires
+	private LogParserRegistry parserRegistry;
+
+	@Requires
 	private LogQueryParserService queryParserService;
 
 	@Requires
@@ -142,7 +146,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 		}
 
 		// add table and lookup (need some constructor injection)
-		parsers.add(new TableParser(accountService, logStorage, tableRegistry, parserFactoryRegistry));
+		parsers.add(new TableParser(accountService, logStorage, tableRegistry, parserFactoryRegistry, parserRegistry));
 		parsers.add(new LookupParser(lookupRegistry));
 		parsers.add(new ScriptParser(bc, scriptRegistry));
 		parsers.add(new TextFileParser(parserFactoryRegistry));
