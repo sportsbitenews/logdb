@@ -62,6 +62,7 @@ public class OutputCsv extends LogQueryCommand {
 		}
 
 		writer.writeNext(csvLine);
+		write(m);
 	}
 
 	@Override
