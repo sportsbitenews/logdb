@@ -721,6 +721,29 @@ public class Console {
 				inputOption(index, type);
 			}
 
+			System.out.print("use bloom filter (y/N)? ");
+			index.setUseBloomFilter(br.readLine().trim().equalsIgnoreCase("y"));
+
+			if (index.isUseBloomFilter()) {
+				System.out.print("bloom filter lv0 capacity (enter to use default)? ");
+				String t = br.readLine().trim();
+				if (!t.isEmpty())
+					index.setBloomFilterCapacity0(Integer.valueOf(t));
+
+				System.out.print("bloom filter lv0 error rate (0<x<1, enter to use default)? ");
+				t = br.readLine().trim();
+				if (!t.isEmpty())
+					index.setBloomFilterErrorRate0(Double.valueOf(t));
+
+				System.out.print("bloom filter lv1 capacity (enter to use default)? ");
+				if (!t.isEmpty())
+					index.setBloomFilterCapacity1(Integer.valueOf(t));
+
+				System.out.print("bloom filter lv1 error rate (0<x<1, enter to use default)? ");
+				if (!t.isEmpty())
+					index.setBloomFilterErrorRate1(Double.valueOf(t));
+			}
+
 			System.out.print("base path (optional)? ");
 			String basePath = br.readLine().trim();
 			if (basePath.isEmpty())

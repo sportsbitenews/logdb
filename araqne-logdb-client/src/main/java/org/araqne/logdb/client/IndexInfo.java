@@ -25,6 +25,11 @@ public class IndexInfo {
 	private String indexName;
 	private String tokenizerName;
 	private Map<String, String> tokenizerConfigs = new HashMap<String, String>();
+	private boolean useBloomFilter;
+	private int bloomFilterCapacity0 = 1250000;
+	private double bloomFilterErrorRate0 = 0.001f;
+	private int bloomFilterCapacity1 = 10000000;
+	private double bloomFilterErrorRate1 = 0.02f;
 	private Date minIndexDay;
 	private String basePath;
 	private boolean buildPastIndex;
@@ -61,6 +66,46 @@ public class IndexInfo {
 		this.tokenizerConfigs = tokenizerConfigs;
 	}
 
+	public boolean isUseBloomFilter() {
+		return useBloomFilter;
+	}
+
+	public void setUseBloomFilter(boolean useBloomFilter) {
+		this.useBloomFilter = useBloomFilter;
+	}
+
+	public int getBloomFilterCapacity0() {
+		return bloomFilterCapacity0;
+	}
+
+	public void setBloomFilterCapacity0(int bloomFilterCapacity0) {
+		this.bloomFilterCapacity0 = bloomFilterCapacity0;
+	}
+
+	public double getBloomFilterErrorRate0() {
+		return bloomFilterErrorRate0;
+	}
+
+	public void setBloomFilterErrorRate0(double bloomFilterErrorRate0) {
+		this.bloomFilterErrorRate0 = bloomFilterErrorRate0;
+	}
+
+	public int getBloomFilterCapacity1() {
+		return bloomFilterCapacity1;
+	}
+
+	public void setBloomFilterCapacity1(int bloomFilterCapacity1) {
+		this.bloomFilterCapacity1 = bloomFilterCapacity1;
+	}
+
+	public double getBloomFilterErrorRate1() {
+		return bloomFilterErrorRate1;
+	}
+
+	public void setBloomFilterErrorRate1(double bloomFilterErrorRate1) {
+		this.bloomFilterErrorRate1 = bloomFilterErrorRate1;
+	}
+
 	public Date getMinIndexDay() {
 		return minIndexDay;
 	}
@@ -92,8 +137,15 @@ public class IndexInfo {
 		if (minIndexDay != null)
 			s = f.format(minIndexDay);
 
-		return "table=" + tableName + ", index=" + indexName + ", tokenizer=" + tokenizerName + ", tokenizer configs="
-				+ tokenizerConfigs + ", base path=" + basePath + ", min index day=" + s + ", build past index=" + buildPastIndex;
+		String bloomFilterConfig = "bloomfilter=" + useBloomFilter;
+		if (useBloomFilter) {
+			bloomFilterConfig += "[lv0: " + bloomFilterCapacity0 + ", " + bloomFilterErrorRate0 + ", ";
+			bloomFilterConfig += "lv1: " + bloomFilterCapacity1 + ", " + bloomFilterErrorRate1 + "]";
+		}
+
+		return "table=" + tableName + ", index=" + indexName + "," + bloomFilterConfig + ", tokenizer=" + tokenizerName
+				+ ", tokenizer configs=" + tokenizerConfigs + ", base path=" + basePath + ", min index day=" + s
+				+ ", build past index=" + buildPastIndex;
 	}
 
 }

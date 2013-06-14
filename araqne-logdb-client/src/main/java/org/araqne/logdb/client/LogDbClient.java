@@ -294,6 +294,11 @@ public class LogDbClient implements TrapListener {
 		} catch (ParseException e) {
 		}
 
+		index.setUseBloomFilter((Boolean) m.get("use_bloom_filter"));
+		index.setBloomFilterCapacity0((Integer) m.get("bf_lv0_capacity"));
+		index.setBloomFilterErrorRate0((Double) m.get("bf_lv0_error_rate"));
+		index.setBloomFilterCapacity1((Integer) m.get("bf_lv1_capacity"));
+		index.setBloomFilterErrorRate1((Double) m.get("bf_lv1_error_rate"));
 		index.setBasePath((String) m.get("base_path"));
 		index.setBuildPastIndex((Boolean) m.get("build_past_index"));
 
@@ -307,6 +312,11 @@ public class LogDbClient implements TrapListener {
 		params.put("tokenizer_name", info.getTokenizerName());
 		params.put("tokenizer_configs", info.getTokenizerConfigs());
 		params.put("base_path", info.getBasePath());
+		params.put("use_bloom_filter", info.isUseBloomFilter());
+		params.put("bf_lv0_capacity", info.getBloomFilterCapacity0());
+		params.put("bf_lv0_error_rate", info.getBloomFilterErrorRate0());
+		params.put("bf_lv1_capacity", info.getBloomFilterCapacity1());
+		params.put("bf_lv1_error_rate", info.getBloomFilterErrorRate1());
 		params.put("min_index_day", info.getMinIndexDay());
 		params.put("build_past_index", info.isBuildPastIndex());
 
@@ -368,8 +378,13 @@ public class LogDbClient implements TrapListener {
 	}
 
 	public void createTable(String tableName) throws IOException {
+		createTable(tableName, null);
+	}
+
+	public void createTable(String tableName, Map<String, String> metadata) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
+		params.put("metadata", metadata);
 		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.createTable", params);
 	}
 
