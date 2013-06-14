@@ -69,7 +69,7 @@ public class CryptoPAn {
 		long l1 = ((long) arr[1] & 0xffL) << (8 * (3 - 1));
 		long l2 = ((long) arr[2] & 0xffL) << (8 * (3 - 2));
 		long l3 = ((long) arr[3] & 0xffL) << (8 * (3 - 3));
-		
+
 		return l0 | l1 | l2 | l3;
 	}
 
@@ -78,7 +78,7 @@ public class CryptoPAn {
 		byte[] addria = new byte[4];
 		{
 			int i = 0;
-			
+
 			for (String a : ip.split("\\.")) {
 				addria[i++] = (byte) Integer.parseInt(a);
 			}
@@ -128,8 +128,6 @@ public class CryptoPAn {
 		return result;
 	}
 
-	private byte[] padCopy;
-
 	// calculate the first bit for Crypto-PAN
 	private int calc(long a) throws IllegalBlockSizeException, BadPaddingException {
 		pad[3] = (byte) (a & 0xFF);
@@ -139,7 +137,7 @@ public class CryptoPAn {
 		pad[1] = (byte) (a & 0xFF);
 		a >>= 8;
 		pad[0] = (byte) (a & 0xFF);
-		
+
 		byte[] doFinal = cipher.doFinal(pad);
 
 		return doFinal[0] < 0 ? 1 : 0;
@@ -155,7 +153,7 @@ public class CryptoPAn {
 		System.out.println(c.anonymize("192.0.2.1"));
 		System.out.println(c.anonymize("192.0.3.1"));
 		System.out.println(c.anonymize("192.1.2.1"));
-		
+
 		System.out.println(new CryptoPAn(sb.toString()).anonymize("192.0.2.1"));
 
 		System.out.println("2.90.93.17".equals(c.anonymize("192.0.2.1")));

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 NCHOVY
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,22 +15,16 @@
  */
 package org.araqne.log.api;
 
-import java.util.Collection;
-import java.util.Locale;
-import java.util.Map;
+import java.util.List;
 
-public interface LogParserFactory {
-	String getName();
+public interface LogNormalizerRegistry {
+	List<LogNormalizerProfile> getProfiles();
 
-	Collection<Locale> getDisplayNameLocales();
+	LogNormalizerProfile getProfile(String name);
 
-	String getDisplayName(Locale locale);
+	void createProfile(LogNormalizerProfile profile);
 
-	Collection<Locale> getDescriptionLocales();
+	void removeProfile(String name);
 
-	String getDescription(Locale locale);
-
-	Collection<LoggerConfigOption> getConfigOptions();
-
-	LogParser createParser(Map<String, String> configs);
+	LogNormalizer newNormalizer(String name);
 }

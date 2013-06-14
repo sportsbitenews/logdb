@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 NCHOVY
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,22 +15,23 @@
  */
 package org.araqne.log.api;
 
-import java.util.Collection;
-import java.util.Locale;
+import java.util.List;
 import java.util.Map;
 
-public interface LogParserFactory {
-	String getName();
+public class ChainParser implements LogParser {
 
-	Collection<Locale> getDisplayNameLocales();
+	private final List<LogParser> parsers;
 
-	String getDisplayName(Locale locale);
+	public ChainParser(List<LogParser> parsers) {
+		this.parsers = parsers;
+	}
 
-	Collection<Locale> getDescriptionLocales();
+	@Override
+	public Map<String, Object> parse(Map<String, Object> params) {
+		for (LogParser parser : parsers)
+			params = parser.parse(params);
 
-	String getDescription(Locale locale);
+		return params;
+	}
 
-	Collection<LoggerConfigOption> getConfigOptions();
-
-	LogParser createParser(Map<String, String> configs);
 }

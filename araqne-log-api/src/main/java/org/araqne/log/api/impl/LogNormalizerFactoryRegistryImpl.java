@@ -35,7 +35,7 @@ import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(name = "log-normalizer-registry")
+@Component(name = "log-normalizer-factory-registry")
 @Provides(specifications = { LogNormalizerFactoryRegistry.class })
 public class LogNormalizerFactoryRegistryImpl extends ServiceTracker implements LogNormalizerFactoryRegistry {
 	private final Logger logger = LoggerFactory.getLogger(LogNormalizerFactoryRegistryImpl.class.getName());

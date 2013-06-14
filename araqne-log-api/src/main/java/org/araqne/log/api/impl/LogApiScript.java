@@ -44,15 +44,22 @@ public class LogApiScript implements Script {
 	private LoggerFactoryRegistry loggerFactoryRegistry;
 	private LoggerRegistry loggerRegistry;
 	private LogParserFactoryRegistry parserFactoryRegistry;
-	private LogNormalizerFactoryRegistry normalizerRegistry;
-	private LogTransformerFactoryRegistry transformerRegistry;
+	private LogNormalizerFactoryRegistry normalizerFactoryRegistry;
+	private LogTransformerFactoryRegistry transformerFactoryRegistry;
+	private LogParserRegistry parserRegistry;
+	private LogNormalizerRegistry normalizerRegistry;
+	private LogTransformerRegistry transformerRegistry;
 
 	public LogApiScript(LoggerFactoryRegistry loggerFactoryRegistry, LoggerRegistry loggerRegistry,
-			LogParserFactoryRegistry parserFactoryRegistry, LogNormalizerFactoryRegistry normalizerRegistry,
-			LogTransformerFactoryRegistry transformerRegistry) {
+			LogParserFactoryRegistry parserFactoryRegistry, LogNormalizerFactoryRegistry normalizerFactoryRegistry,
+			LogTransformerFactoryRegistry transformerFactoryRegistry, LogParserRegistry parserRegistry,
+			LogNormalizerRegistry normalizerRegistry, LogTransformerRegistry transformerRegistry) {
 		this.loggerFactoryRegistry = loggerFactoryRegistry;
 		this.loggerRegistry = loggerRegistry;
 		this.parserFactoryRegistry = parserFactoryRegistry;
+		this.normalizerFactoryRegistry = normalizerFactoryRegistry;
+		this.transformerFactoryRegistry = transformerFactoryRegistry;
+		this.parserRegistry = parserRegistry;
 		this.normalizerRegistry = normalizerRegistry;
 		this.transformerRegistry = transformerRegistry;
 	}
@@ -62,20 +69,100 @@ public class LogApiScript implements Script {
 		this.context = context;
 	}
 
-	public void normalizers(String[] args) {
-		context.println("Log Normalizers");
+	public void parsers(String[] args) {
+		context.println("Log Parser Profiles");
 		context.println("---------------------");
-
-		for (String name : normalizerRegistry.getNames()) {
-			context.println(name);
+		for (LogParserProfile profile : parserRegistry.getProfiles()) {
+			context.println(profile);
 		}
+	}
+
+	@ScriptUsage(description = "create parser profile", arguments = {
+			@ScriptArgument(name = "profile name", type = "string", description = "parser profile name"),
+			@ScriptArgument(name = "factory name", type = "string", description = "parser factory name") })
+	public void createParser(String[] args) throws InterruptedException {
+		String name = args[0];
+		String factoryName = args[1];
+
+		LogParserFactory parserFactory = parserFactoryRegistry.get(factoryName);
+		if (parserFactory == null) {
+			context.println("parser factory not found");
+			return;
+		}
+
+		LogParserProfile profile = new LogParserProfile();
+		profile.setName(name);
+		profile.setFactoryName(factoryName);
+
+		Map<String, String> configs = profile.getConfigs();
+		for (LoggerConfigOption option : parserFactory.getConfigOptions()) {
+			setOption(configs, option);
+			profile.setConfigs(configs);
+		}
+
+		parserRegistry.createProfile(profile);
+		context.println("created");
+	}
+
+	@ScriptUsage(description = "remove parser profile", arguments = { @ScriptArgument(name = "profile name", type = "string", description = "profile name") })
+	public void removeParser(String[] args) {
+		parserRegistry.removeProfile(args[0]);
+		context.println("removed");
+	}
+
+	public void normalizers(String[] args) {
+		context.println("Log Normalizer Profiles");
+		context.println("-------------------------");
+		for (LogNormalizerProfile profile : normalizerRegistry.getProfiles()) {
+			context.println(profile);
+		}
+	}
+
+	public void transformers(String[] args) {
+		context.println("Log Transformer Profiles");
+		context.println("--------------------------");
+		for (LogTransformerProfile profile : transformerRegistry.getProfiles()) {
+			context.println(profile);
+		}
+	}
+
+	@ScriptUsage(description = "create transformer profile", arguments = {
+			@ScriptArgument(name = "profile name", type = "string", description = "transformer profile name"),
+			@ScriptArgument(name = "factory name", type = "string", description = "transformer factory name") })
+	public void createTransformer(String[] args) throws InterruptedException {
+		String name = args[0];
+		String factoryName = args[1];
+
+		LogTransformerProfile profile = new LogTransformerProfile();
+		profile.setName(name);
+		profile.setFactoryName(factoryName);
+
+		LogTransformerFactory factory = transformerFactoryRegistry.getFactory(factoryName);
+		if (factory == null) {
+			context.println("transformer factory not found");
+			return;
+		}
+
+		Map<String, String> configs = profile.getConfigs();
+		for (LoggerConfigOption option : factory.getConfigOptions()) {
+			setOption(configs, option);
+		}
+
+		transformerRegistry.createProfile(profile);
+		context.println("created");
+	}
+
+	@ScriptUsage(description = "remove transformer profile", arguments = { @ScriptArgument(name = "profile name", type = "string", description = "profile name") })
+	public void removeTransformer(String[] args) {
+		transformerRegistry.removeProfile(args[0]);
+		context.println("removed");
 	}
 
 	public void normalize(String[] args) {
 		try {
 			context.print("Normalizer Name? ");
 			String normalizerName = context.readLine();
-			LogNormalizerFactory factory = normalizerRegistry.get(normalizerName);
+			LogNormalizerFactory factory = normalizerFactoryRegistry.get(normalizerName);
 			if (factory == null) {
 				context.println("normalizer not found");
 				return;
@@ -93,6 +180,38 @@ public class LogApiScript implements Script {
 			context.println("");
 			context.println("interrupted");
 		}
+	}
+
+	@ScriptUsage(description = "create normalizer profile", arguments = {
+			@ScriptArgument(name = "profile name", type = "string", description = "profile name"),
+			@ScriptArgument(name = "factory name", type = "string", description = "normalizer factory name") })
+	public void createNormalizer(String[] args) throws InterruptedException {
+		String name = args[0];
+		String factoryName = args[1];
+
+		LogNormalizerProfile profile = new LogNormalizerProfile();
+		profile.setName(name);
+		profile.setFactoryName(factoryName);
+
+		LogNormalizerFactory factory = normalizerFactoryRegistry.get(factoryName);
+		if (factory == null) {
+			context.println("normalizer factory not found");
+			return;
+		}
+
+		Map<String, String> configs = profile.getConfigs();
+		for (LoggerConfigOption option : factory.getConfigOptions()) {
+			setOption(configs, option);
+		}
+
+		normalizerRegistry.createProfile(profile);
+
+		context.println("created");
+	}
+
+	public void removeNormalizer(String[] args) {
+		normalizerRegistry.removeProfile(args[0]);
+		context.println("removed");
 	}
 
 	public static class LoggerFactoryListItem implements Comparable<LoggerFactoryListItem> {
@@ -145,14 +264,12 @@ public class LogApiScript implements Script {
 
 		if (verbOpt != null) {
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered,
-							Arrays.asList("fullName", "displayName", "description"),
-							Arrays.asList("l!factory name", "l!display name", "l!description"))));
+					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered, Arrays.asList("fullName", "displayName",
+							"description"), Arrays.asList("l!factory name", "l!display name", "l!description"))));
 		} else {
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered,
-							Arrays.asList("name", "displayName"),
-							Arrays.asList("l!name", "l!display name"))));
+					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered, Arrays.asList("name", "displayName"), Arrays
+							.asList("l!name", "l!display name"))));
 		}
 	}
 
@@ -169,7 +286,8 @@ public class LogApiScript implements Script {
 			return logger.getFullName().compareTo(o.logger.getFullName());
 		}
 
-		// "name", "factoryFullName", "Running", "interval", "logCount", "lastStartDate", "lastRunDate",
+		// "name", "factoryFullName", "Running", "interval", "logCount",
+		// "lastStartDate", "lastRunDate",
 		public String getName() {
 			return logger.getName();
 		}
@@ -248,26 +366,18 @@ public class LogApiScript implements Script {
 			for (LoggerListItem logger : filtered) {
 				context.println(logger.toString());
 			}
-		}
-		else if (verbOpt != null)
+		} else if (verbOpt != null)
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerListItem>(filtered,
-							new PropertyColumn("fullName", "l!name"),
-							new PropertyColumn("factoryFullName", "l!factory"),
-							new PropertyColumn("status", "l!status"),
-							new PropertyColumn("interval", "intvl.(ms)"),
-							new PropertyColumn("logCount", "log count"),
-							new PropertyColumn("lastStartDate", "l!last start"),
-							new PropertyColumn("lastRunDate", "l!last run"),
+					new CollectionASCIITableAware<LoggerListItem>(filtered, new PropertyColumn("fullName", "l!name"),
+							new PropertyColumn("factoryFullName", "l!factory"), new PropertyColumn("status", "l!status"),
+							new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
+							new PropertyColumn("lastStartDate", "l!last start"), new PropertyColumn("lastRunDate", "l!last run"),
 							new PropertyColumn("lastLogDate", "l!last log"))));
 		else
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerListItem>(filtered,
-							new PropertyColumn("fullName", "l!name"),
-							new PropertyColumn("factoryName", "l!factory"),
-							new PropertyColumn("status", "l!status"),
-							new PropertyColumn("interval", "intvl.(ms)"),
-							new PropertyColumn("logCount", "log count"),
+					new CollectionASCIITableAware<LoggerListItem>(filtered, new PropertyColumn("fullName", "l!name"),
+							new PropertyColumn("factoryName", "l!factory"), new PropertyColumn("status", "l!status"),
+							new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
 							new PropertyColumn("lastLogDate", "l!last log"))));
 
 	}
@@ -330,11 +440,20 @@ public class LogApiScript implements Script {
 		}
 	}
 
+	public void normalizerFactories(String[] args) {
+		context.println("Log Normalizers");
+		context.println("---------------------");
+
+		for (String name : normalizerFactoryRegistry.getNames()) {
+			context.println(name);
+		}
+	}
+
 	public void transformerFactories(String[] args) {
 		context.println("Log Transformer Factories");
 		context.println("---------------------------");
 
-		for (LogTransformerFactory f : transformerRegistry.getFactories()) {
+		for (LogTransformerFactory f : transformerFactoryRegistry.getFactories()) {
 			context.println(f.getName() + ": " + f);
 		}
 	}
@@ -450,7 +569,7 @@ public class LogApiScript implements Script {
 			context.print("transformer (optional, enter to skip)? ");
 			String transformer = context.readLine().trim();
 			if (!transformer.isEmpty()) {
-				LogTransformerFactory transformerFactory = transformerRegistry.getFactory(transformer);
+				LogTransformerFactory transformerFactory = transformerFactoryRegistry.getFactory(transformer);
 				if (transformerFactory != null) {
 					for (LoggerConfigOption type : transformerFactory.getConfigOptions()) {
 						setOption(config, type);
