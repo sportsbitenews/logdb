@@ -56,7 +56,8 @@ class RunOutput {
 			cacheCount.addAndGet(length);
 
 			File indexFile = null;
-			File tmpDir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/sort");
+			String araDataDir = System.getProperty("araqne.parasort.dir", System.getProperty("araqne.data.dir"));
+			File tmpDir = new File(araDataDir, "araqne-logdb/sort");
 			tmpDir.mkdirs();
 			File dataFile = File.createTempFile("run", ".dat", tmpDir);
 			if (!noIndexWrite) {
