@@ -25,10 +25,10 @@
 							org.araqne.logparser.snmptrap.pentasecurity;version=${project.version}
 						</Export-Package>
 						<Import-Package>
-						    !org.junit,
-						    org.araqne.log.api;version="2.0.0",
-						    *
-					    </Import-Package>
+							!org.junit,
+							org.araqne.log.api;version="2.0.0",
+							*
+						</Import-Package>
 					</instructions>
 				</configuration>
 			</plugin>
@@ -46,6 +46,10 @@
 		</plugins>
 	</build>
 	<dependencies>
+		<dependency>
+			<groupId>org.apache.felix</groupId>
+			<artifactId>org.apache.felix.ipojo.annotations</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-api</artifactId>
