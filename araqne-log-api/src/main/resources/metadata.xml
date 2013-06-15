@@ -20,4 +20,5 @@
 	<instance component="log-transformer-registry" />
 	<instance component="chain-parser-factory" />
 	<instance component="field-mapping-parser-factory" />
+	<instance component="tag-parser-factory" />
 </ipojo>

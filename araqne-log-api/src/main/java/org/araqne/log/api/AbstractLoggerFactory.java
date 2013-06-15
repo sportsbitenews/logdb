@@ -122,11 +122,11 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		}
 	}
 
-	private LogTransformerFactoryRegistry getTransformerRegistry() {
-		ServiceReference ref = bc.getServiceReference(LogTransformerFactoryRegistry.class.getName());
+	private LogTransformerRegistry getTransformerRegistry() {
+		ServiceReference ref = bc.getServiceReference(LogTransformerRegistry.class.getName());
 		if (ref == null)
 			return null;
-		return (LogTransformerFactoryRegistry) bc.getService(ref);
+		return (LogTransformerRegistry) bc.getService(ref);
 	}
 
 	private LoggerRegistry getLoggerRegistry() {
@@ -210,16 +210,12 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		}
 
 		// add log transformer
-		if (config.containsKey("transform")) {
-			String factoryName = config.get("transform");
-			LogTransformerFactoryRegistry transformerRegistry = getTransformerRegistry();
-			LogTransformerFactory factory = null;
-			if (factoryName != null && transformerRegistry != null)
-				factory = transformerRegistry.getFactory(factoryName);
-
+		if (config.containsKey("transformer")) {
+			String transformerName = config.get("transformer");
+			LogTransformerRegistry transformerRegistry = getTransformerRegistry();
 			LogTransformer transformer = null;
-			if (factory != null)
-				transformer = factory.newTransformer(config);
+			if (transformerName != null && transformerRegistry != null)
+				transformer = transformerRegistry.newTransformer(transformerName);
 
 			if (transformer != null)
 				logger.getTransformerChain().add(transformer);

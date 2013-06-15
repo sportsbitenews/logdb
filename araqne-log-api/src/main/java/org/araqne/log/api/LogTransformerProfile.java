@@ -49,4 +49,10 @@ public class LogTransformerProfile {
 	public void setConfigs(Map<String, String> configs) {
 		this.configs = configs;
 	}
+
+	@Override
+	public String toString() {
+		return "name=" + name + ", factory=" + factoryName + ", configs=" + configs;
+	}
+
 }

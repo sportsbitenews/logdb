@@ -567,18 +567,9 @@ public class LogApiScript implements Script {
 
 			// transform?
 			context.print("transformer (optional, enter to skip)? ");
-			String transformer = context.readLine().trim();
-			if (!transformer.isEmpty()) {
-				LogTransformerFactory transformerFactory = transformerFactoryRegistry.getFactory(transformer);
-				if (transformerFactory != null) {
-					for (LoggerConfigOption type : transformerFactory.getConfigOptions()) {
-						setOption(config, type);
-					}
-					config.put("transform", transformer);
-				} else {
-					context.println("transformer not found");
-				}
-			}
+			String transformerName = context.readLine().trim();
+			if (!transformerName.isEmpty())
+				config.put("transformer", transformerName);
 
 			Logger logger = loggerFactory.newLogger(loggerNamespace, loggerName, description, config);
 			if (logger == null) {
