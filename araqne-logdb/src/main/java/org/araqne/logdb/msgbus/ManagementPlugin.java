@@ -97,8 +97,10 @@ public class ManagementPlugin {
 			return;
 
 		org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) session.get("araqne_logdb_session");
-		if (dbSession != null)
+		if (dbSession != null) {
 			accountService.logout(dbSession);
+			session.unsetProperty("araqne_logdb_session");
+		}
 	}
 
 	@MsgbusMethod
