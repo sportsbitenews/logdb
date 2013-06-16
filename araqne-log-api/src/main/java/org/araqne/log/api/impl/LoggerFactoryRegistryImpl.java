@@ -27,11 +27,13 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerFactoryRegistry;
 import org.araqne.log.api.LoggerFactoryRegistryEventListener;
+import org.araqne.log.api.LoggerRegistry;
 import org.osgi.framework.BundleContext;
 
 @Component(name = "logger-factory-registry")
@@ -43,6 +45,11 @@ public class LoggerFactoryRegistryImpl implements LoggerFactoryRegistry, LoggerF
 	private BundleContext bc;
 	private LoggerFactoryTracker tracker;
 	private Set<LoggerFactoryRegistryEventListener> callbacks;
+
+	// force loading
+	@SuppressWarnings("unused")
+	@Requires
+	private LoggerRegistry loggerRegistry;
 
 	public LoggerFactoryRegistryImpl(BundleContext bc) {
 		loggerFactories = new ConcurrentHashMap<String, LoggerFactory>();
@@ -118,7 +125,8 @@ public class LoggerFactoryRegistryImpl implements LoggerFactoryRegistry, LoggerF
 	}
 
 	@Override
-	public Logger newLogger(String factoryName, String loggerNamespace, String loggerName, String description, Map<String, String> config) {
+	public Logger newLogger(String factoryName, String loggerNamespace, String loggerName, String description,
+			Map<String, String> config) {
 		if (factoryName == null)
 			throw new IllegalArgumentException("name must be not null");
 

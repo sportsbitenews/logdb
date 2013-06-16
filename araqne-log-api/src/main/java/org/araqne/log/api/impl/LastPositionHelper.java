@@ -57,7 +57,7 @@ public class LastPositionHelper {
 				}
 			}
 		} catch (IOException e) {
-			logger.error("ncia bmt: apache logger cannot read last positions", e);
+			logger.error("araqne log api: apache logger cannot read last positions", e);
 		}
 
 		return lastPositions;
@@ -78,7 +78,7 @@ public class LastPositionHelper {
 				os.write(line.getBytes());
 			}
 		} catch (IOException e) {
-			logger.error("ncia bmt: cannot write last position file", e);
+			logger.error("araqne log api: cannot write last position file", e);
 		} finally {
 			if (os != null) {
 				try {

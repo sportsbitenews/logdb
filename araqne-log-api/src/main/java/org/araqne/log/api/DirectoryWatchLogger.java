@@ -15,10 +15,7 @@
  */
 package org.araqne.log.api;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -91,12 +88,9 @@ public class DirectoryWatchLogger extends AbstractLogger {
 	}
 
 	protected void processFile(Map<String, String> lastPositions, String path) {
-		FileInputStream is = null;
-		BufferedReader br = null;
+		TextFileReader reader = null;
 
 		try {
-			is = new FileInputStream(path);
-
 			// get date pattern-matched string from filename
 			String fileDateStr = null;
 			Matcher fileNameDateMatcher = fileNamePattern.matcher(path);
@@ -115,11 +109,10 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			long offset = 0;
 			if (lastPositions.containsKey(path)) {
 				offset = Long.valueOf(lastPositions.get(path));
-				is.skip(offset);
 				logger.trace("logpresso igloo: target file [{}] skip offset [{}]", path, offset);
 			}
 
-			br = new BufferedReader(new InputStreamReader(is, charset));
+			reader = new TextFileReader(new File(path), offset, charset);
 
 			// read and normalize log
 			StringBuffer sb = new StringBuffer();
@@ -127,7 +120,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 				if (getStatus() == LoggerStatus.Stopping || getStatus() == LoggerStatus.Stopped)
 					break;
 
-				String line = br.readLine();
+				String line = reader.readLine();
 				if (line == null || line.trim().isEmpty())
 					break;
 				if (newlogDsgnMatcher != null) {
@@ -153,16 +146,16 @@ public class DirectoryWatchLogger extends AbstractLogger {
 					writeLog(fileDateStr, sb.toString());
 			}
 
-			long position = is.getChannel().position();
-			logger.debug("ncia bmt: updating file [{}] old position [{}] new last position [{}]", new Object[] { path, offset,
-					position });
+			long position = reader.getPosition();
+			logger.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
+					offset, position });
 			lastPositions.put(path, Long.toString(position));
 
 		} catch (Throwable e) {
-			logger.error("ncia bmt: [" + getName() + "] logger read error", e);
+			logger.error("araqne log api: [" + getName() + "] logger read error", e);
 		} finally {
-			FileUtils.ensureClose(is);
-			FileUtils.ensureClose(br);
+			if (reader != null)
+				reader.close();
 		}
 	}
 
