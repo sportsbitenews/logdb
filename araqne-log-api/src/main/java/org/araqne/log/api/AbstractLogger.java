@@ -18,11 +18,9 @@ package org.araqne.log.api;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -55,7 +53,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private AtomicLong logCounter;
 
 	private Set<LoggerEventListener> eventListeners;
-	private CopyOnWriteArrayList<LogTransformer> transformerChain = new CopyOnWriteArrayList<LogTransformer>();
+	private LogTransformer transformer;
 
 	/**
 	 * @since 1.7.0
@@ -404,10 +402,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		logCounter.incrementAndGet();
 
 		// transform
-		if (!getTransformerChain().isEmpty()) {
-			for (LogTransformer transformer : getTransformerChain())
-				log = transformer.transform(log);
-		}
+		if (transformer != null)
+			log = transformer.transform(log);
 
 		// notify all
 		LogPipe[] capturedPipes = pipes;
@@ -440,8 +436,13 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public List<LogTransformer> getTransformerChain() {
-		return transformerChain;
+	public LogTransformer getTransformer() {
+		return transformer;
+	}
+
+	@Override
+	public void setTransformer(LogTransformer transformer) {
+		this.transformer = transformer;
 	}
 
 	@Override

@@ -72,4 +72,8 @@ public class KeyValueTaggerFactory implements LogTransformerFactory {
 		return new KeyValueTagger(config);
 	}
 
+	@Override
+	public String toString() {
+		return "add key=value pairs to original log";
+	}
 }

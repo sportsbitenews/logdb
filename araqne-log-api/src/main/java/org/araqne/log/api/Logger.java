@@ -16,7 +16,6 @@
 package org.araqne.log.api;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 
 public interface Logger {
@@ -74,5 +73,7 @@ public interface Logger {
 
 	Map<String, String> getConfig();
 
-	List<LogTransformer> getTransformerChain();
+	LogTransformer getTransformer();
+
+	void setTransformer(LogTransformer transformer);
 }

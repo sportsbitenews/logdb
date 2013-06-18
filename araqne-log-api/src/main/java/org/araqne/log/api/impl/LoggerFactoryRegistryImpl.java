@@ -29,6 +29,7 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.log.api.LogTransformerRegistry;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerFactoryRegistry;
@@ -50,6 +51,11 @@ public class LoggerFactoryRegistryImpl implements LoggerFactoryRegistry, LoggerF
 	@SuppressWarnings("unused")
 	@Requires
 	private LoggerRegistry loggerRegistry;
+
+	// force loading
+	@SuppressWarnings("unused")
+	@Requires
+	private LogTransformerRegistry transformerRegistry;
 
 	public LoggerFactoryRegistryImpl(BundleContext bc) {
 		loggerFactories = new ConcurrentHashMap<String, LoggerFactory>();

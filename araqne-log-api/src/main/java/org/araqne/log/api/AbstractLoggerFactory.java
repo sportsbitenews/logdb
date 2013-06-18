@@ -123,17 +123,18 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 	}
 
 	private LogTransformerRegistry getTransformerRegistry() {
-		ServiceReference ref = bc.getServiceReference(LogTransformerRegistry.class.getName());
-		if (ref == null)
-			return null;
-		return (LogTransformerRegistry) bc.getService(ref);
+		return (LogTransformerRegistry) getRequiredService(LogTransformerRegistry.class);
 	}
 
 	private LoggerRegistry getLoggerRegistry() {
-		ServiceReference ref = bc.getServiceReference(LoggerRegistry.class.getName());
-		if (ref == null)
-			return null;
-		return (LoggerRegistry) bc.getService(ref);
+		return (LoggerRegistry) getRequiredService(LoggerRegistry.class);
+	}
+
+	private Object getRequiredService(Class<?> clazz) {
+		ServiceReference ref = bc.getServiceReference(clazz.getName());
+		if (ref != null)
+			return bc.getService(ref);
+		return null;
 	}
 
 	private Collection<LoggerConfig> getLoggerConfigs() {
@@ -218,7 +219,9 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 				transformer = transformerRegistry.newTransformer(transformerName);
 
 			if (transformer != null)
-				logger.getTransformerChain().add(transformer);
+				logger.setTransformer(transformer);
+			else
+				slog.warn("araqne log api: logger [{}]'s transformer [{}] is not loaded", logger.getFullName(), transformerName);
 		}
 		return logger;
 	}
