@@ -22,6 +22,7 @@ public class LogWriterStatus {
 	private String tableName;
 	private Date day;
 	private Date lastWrite;
+	private int bufferSize;
 
 	public String getTableName() {
 		return tableName;
@@ -51,6 +52,11 @@ public class LogWriterStatus {
 	public String toString() {
 		SimpleDateFormat dayFormat = new SimpleDateFormat("yyyy-MM-dd");
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		return "table=" + tableName + ", day=" + dayFormat.format(day) + ", last write=" + dateFormat.format(lastWrite);
+		return "table=" + tableName + ", day=" + dayFormat.format(day) + ", buffer size=" + bufferSize 
+				+ ", last write=" + dateFormat.format(lastWrite);
+	}
+
+	public void setBufferSize(int size) {
+		this.bufferSize = size;
 	}
 }

@@ -1000,6 +1000,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			s.setTableName(key.getTableName());
 			s.setDay(key.getDay());
 			s.setLastWrite(writer.getLastAccess());
+			s.setBufferSize(writer.getBuffer().size());
 			writers.add(s);
 		}
 
