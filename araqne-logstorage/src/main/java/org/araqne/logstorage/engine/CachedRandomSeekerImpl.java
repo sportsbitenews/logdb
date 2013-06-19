@@ -99,7 +99,9 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 			}
 		}
 		
-		Collections.sort(ret, Collections.reverseOrder());
+		// Because logs in online writer are in ascending order,
+		// reverse logs to descending order
+		Collections.reverse(ret);
 		return ret;
 	}
 	
