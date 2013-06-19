@@ -16,13 +16,14 @@
 package org.araqne.logstorage;
 
 import java.text.SimpleDateFormat;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 
 import org.araqne.logstorage.engine.DateUtil;
 
-public class Log {
+public class Log implements Comparable<Log> {
 	private String tableName;
 	private Date date;
 	private Date day;
@@ -117,5 +118,25 @@ public class Log {
 		}
 
 		return String.format("date=%s, id=%d, %s", dateFormat.format(date), id, sb.toString());
+	}
+
+	public static class IDOnlyComparator implements Comparator<Log> {
+		@Override
+		public int compare(Log o1, Log o2) {
+			return Long.signum(o1.id - o2.id);
+		}
+	}
+
+	@Override
+	public int compareTo(Log o) {
+		if (this.tableName.equals(o.tableName)) {
+			if (this.day.equals(o.day)) {
+				return Long.signum(this.id - o.id);
+			} else {
+				return this.day.compareTo(o.day);
+			}
+		} else {
+			return this.tableName.compareTo(o.tableName);
+		}
 	}
 }
