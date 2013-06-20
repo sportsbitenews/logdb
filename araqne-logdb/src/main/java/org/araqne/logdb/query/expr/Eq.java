@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.query.expr.In.StringMatcher;
 
 public class Eq extends BinaryExpression {
 	private ObjectComparator cmp = new ObjectComparator();
@@ -107,5 +108,42 @@ public class Eq extends BinaryExpression {
 	@Override
 	public String toString() {
 		return "(" + lhs + " == " + rhs + ")";
+	}
+	
+	
+	public static class NewEq extends BinaryExpression {
+		private ObjectComparator cmp = new ObjectComparator();
+		StringMatcher matcher;
+
+		public NewEq(Expression lhs, Expression rhs) {
+			super(lhs, rhs);
+
+			if (rhs instanceof StringConstant) {
+				String needle = (String) rhs.eval(null);
+				matcher = new StringMatcher(needle);
+			}
+		}
+
+		@Override
+		public Object eval(LogMap map) {
+			Object l = lhs.eval(map);
+			if (l == null)
+				return false;
+
+			if (matcher != null) {
+				return matcher.match(map, l.toString());
+			} else {
+				Object r = rhs.eval(map);
+				if (r == null)
+					return false;
+
+				return cmp.compare(l, r) == 0;
+			}
+		}
+
+		@Override
+		public String toString() {
+			return "(" + lhs + " == " + rhs + ")";
+		}
 	}
 }

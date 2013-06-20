@@ -28,7 +28,7 @@ public class In implements Expression {
 		public abstract boolean match(LogMap log, Object o);
 	}
 
-	private static class StringMatcher extends FieldMatcher {
+	static class StringMatcher extends FieldMatcher {
 		public static enum StringMatchMethod {
 			EQUALS,
 			STARTSWITH,
