@@ -37,9 +37,11 @@ public class FileUtils {
 		File[] files = new File(basePath).listFiles();
 
 		ArrayList<String> logFiles = new ArrayList<String>();
-		for (File f : files) {
-			if (fileNamePattern.matcher(f.getName()).find())
-				logFiles.add(f.getAbsolutePath());
+		if (files != null) {
+			for (File f : files) {
+				if (fileNamePattern.matcher(f.getName()).matches())
+					logFiles.add(f.getAbsolutePath());
+			}
 		}
 
 		Collections.sort(logFiles);
