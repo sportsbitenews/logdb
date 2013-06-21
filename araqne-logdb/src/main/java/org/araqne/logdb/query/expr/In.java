@@ -16,7 +16,9 @@
 package org.araqne.logdb.query.expr;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -161,5 +163,60 @@ public class In implements Expression {
 	@Override
 	public String toString() {
 		return "in(" + exprs + ")";
+	}
+	
+	public static class NewIn implements Expression {
+		private List<Expression> exprs;
+		private Expression field;
+		private List<Expression> values;
+		private List<FieldMatcher> matchers;
+		private Set<String> exactTerms;
+
+		public NewIn(List<Expression> exprs) {
+			if (exprs.size() < 2)
+				throw new LogQueryParseException("insufficient-arguments", -1);
+
+			this.exprs = exprs;
+			this.field = exprs.get(0);
+			this.values = exprs.subList(1, exprs.size());
+			this.matchers = new ArrayList<FieldMatcher>(values.size());
+			this.exactTerms = new HashSet<String>();
+
+			for (Expression expr : this.values) {
+				Object eval = expr.eval(new LogMap());
+				if (eval instanceof String) {
+					String needle = (String) eval;
+					if (needle.indexOf('*') == -1)
+						exactTerms.add(needle);
+					else
+						matchers.add(new StringMatcher(needle));
+				}
+				else
+					matchers.add(new GenericMatcher(expr));
+			}
+		}
+
+		@Override
+		public Object eval(LogMap map) {
+			Object o = field.eval(map);
+			if (o == null)
+				return false;
+			
+			if (exactTerms.contains(o))
+				return true;
+
+			for (FieldMatcher matcher : matchers) {
+				boolean isMatch = matcher.match(map, o);
+				if (isMatch)
+					return true;
+			}
+
+			return false;
+		}
+
+		@Override
+		public String toString() {
+			return "in(" + exprs + ")";
+		}
 	}
 }
