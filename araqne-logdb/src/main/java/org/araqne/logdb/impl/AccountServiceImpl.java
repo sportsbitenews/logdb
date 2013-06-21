@@ -391,7 +391,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 
 		Account account = ensureAccount(session.getLoginName());
 
-		if (session.getLoginName().equals("araqne"))
+		if (session.isAdmin())
 			return true;
 
 		return account.getReadableTables().contains(tableName);
