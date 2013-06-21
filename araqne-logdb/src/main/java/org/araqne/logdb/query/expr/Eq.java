@@ -23,17 +23,39 @@ import org.araqne.logdb.query.expr.In.StringMatcher;
 
 public class Eq extends BinaryExpression {
 	private ObjectComparator cmp = new ObjectComparator();
-	private Pattern p;
+	StringMatcher matcher;
 
 	public Eq(Expression lhs, Expression rhs) {
 		super(lhs, rhs);
 
 		if (rhs instanceof StringConstant) {
 			String needle = (String) rhs.eval(null);
-			p = tryBuildPattern2(needle);
+			matcher = new StringMatcher(needle);
 		}
 	}
 
+	@Override
+	public Object eval(LogMap map) {
+		Object l = lhs.eval(map);
+		if (l == null)
+			return false;
+
+		if (matcher != null) {
+			return matcher.match(map, l.toString());
+		} else {
+			Object r = rhs.eval(map);
+			if (r == null)
+				return false;
+
+			return cmp.compare(l, r) == 0;
+		}
+	}
+
+	@Override
+	public String toString() {
+		return "(" + lhs + " == " + rhs + ")";
+	}
+	
 	public static Pattern tryBuildPattern2(String s) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("^");
@@ -86,64 +108,5 @@ public class Eq extends BinaryExpression {
 		if (wildcard)
 			return Pattern.compile(sb.toString(), Pattern.CASE_INSENSITIVE);
 		return null;
-	}
-
-	@Override
-	public Object eval(LogMap map) {
-		Object l = lhs.eval(map);
-		if (l == null)
-			return false;
-
-		if (p != null) {
-			return p.matcher(l.toString()).find();
-		} else {
-			Object r = rhs.eval(map);
-			if (r == null)
-				return false;
-
-			return cmp.compare(l, r) == 0;
-		}
-	}
-
-	@Override
-	public String toString() {
-		return "(" + lhs + " == " + rhs + ")";
-	}
-	
-	
-	public static class NewEq extends BinaryExpression {
-		private ObjectComparator cmp = new ObjectComparator();
-		StringMatcher matcher;
-
-		public NewEq(Expression lhs, Expression rhs) {
-			super(lhs, rhs);
-
-			if (rhs instanceof StringConstant) {
-				String needle = (String) rhs.eval(null);
-				matcher = new StringMatcher(needle);
-			}
-		}
-
-		@Override
-		public Object eval(LogMap map) {
-			Object l = lhs.eval(map);
-			if (l == null)
-				return false;
-
-			if (matcher != null) {
-				return matcher.match(map, l.toString());
-			} else {
-				Object r = rhs.eval(map);
-				if (r == null)
-					return false;
-
-				return cmp.compare(l, r) == 0;
-			}
-		}
-
-		@Override
-		public String toString() {
-			return "(" + lhs + " == " + rhs + ")";
-		}
 	}
 }

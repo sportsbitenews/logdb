@@ -71,6 +71,102 @@ public class SearchParserTest {
 	}
 
 	@Test
+	public void testInExact() {
+		SearchParser p = new SearchParser();
+		Search search = (Search) p.parse(null,
+				"search in(sip, \"192.168.0.1\", \"211.123.1.1\", \"10.2.2.2\")");
+		Expression expr = search.getExpression();
+
+		LogMap map = new LogMap();
+		map.put("sip", "74.86.1.2");
+		assertFalse((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "211.123.1.1");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "192.168.0.1");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "10.2.2.2");
+		assertTrue((Boolean) expr.eval(map));
+	}
+
+	@Test
+	public void testInPattern() {
+		SearchParser p = new SearchParser();
+		Search search = (Search) p.parse(null,
+				"search in(sip, \"192.*.1\", \"*123*\", \"10*\", \"*255\")");
+		Expression expr = search.getExpression();
+
+		LogMap map = new LogMap();
+		map.put("sip", "74.86.1.2");
+		assertFalse((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "211.123.1.1");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "192.168.0.1");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "10.2.2.2");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "44.2.2.255");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "127.10.2.1");
+		assertFalse((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "127.255.2.1");
+		assertFalse((Boolean) expr.eval(map));
+	}
+
+	@Test
+	public void testInMixed() {
+		SearchParser p = new SearchParser();
+		Search search = (Search) p.parse(null,
+				"search in(sip, \"127.255.2.1\", \"192.*.1\", \"*123*\", \"127.10.2.1\", \"10*\", \"*255\")");
+		Expression expr = search.getExpression();
+
+		LogMap map = new LogMap();
+		map.put("sip", "74.86.1.2");
+		assertFalse((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "211.123.1.1");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "192.168.0.1");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "10.2.2.2");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "44.2.2.255");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "127.10.2.1");
+		assertTrue((Boolean) expr.eval(map));
+
+		map = new LogMap();
+		map.put("sip", "127.255.2.2");
+		assertFalse((Boolean) expr.eval(map));
+	}
+
+	@Test
 	public void testLimit() {
 		SearchParser p = new SearchParser();
 		Search search = (Search) p.parse(null, "search limit=10 port > 1024");
