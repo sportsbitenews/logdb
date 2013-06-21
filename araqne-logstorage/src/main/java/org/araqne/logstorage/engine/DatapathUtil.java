@@ -26,16 +26,24 @@ public class DatapathUtil {
 		DatapathUtil.logDir = logDir;
 	}
 
-	public static File getIndexFile(int tableId, Date day) {
+	public static File getIndexFile(int tableId, Date day, String basePath) {
+		File baseDir = logDir;
+		if (basePath != null)
+			baseDir = new File(basePath);
+
 		String dateText = getDayText(day);
-		File tableDir = new File(logDir, Integer.toString(tableId));
+		File tableDir = new File(baseDir, Integer.toString(tableId));
 		File datafile = new File(tableDir, dateText + ".idx");
 		return datafile;
 	}
 
-	public static File getDataFile(int tableId, Date day) {
+	public static File getDataFile(int tableId, Date day, String basePath) {
+		File baseDir = logDir;
+		if (basePath != null)
+			baseDir = new File(basePath);
+
 		String dateText = getDayText(day);
-		File tableDir = new File(logDir, Integer.toString(tableId));
+		File tableDir = new File(baseDir, Integer.toString(tableId));
 		File datafile = new File(tableDir, dateText + ".dat");
 		return datafile;
 	}

@@ -40,12 +40,13 @@ class LogFileFetcher {
 
 	public LogFileReader fetch(String tableName, Date day) throws IOException {
 		int tableId = tableRegistry.getTableId(tableName);
+		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
-		File indexPath = DatapathUtil.getIndexFile(tableId, day);
+		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
 		if (!indexPath.exists())
 			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
 
-		File dataPath = DatapathUtil.getDataFile(tableId, day);
+		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
 		if (!dataPath.exists())
 			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
 

@@ -325,6 +325,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			c.remove();
 
 		// drop table metadata
+		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 		tableRegistry.dropTable(tableName);
 
 		// evict online writers
@@ -339,7 +340,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		}
 
 		// purge existing files
-		File tableDir = getTableDirectory(tableId);
+		File tableDir = getTableDirectory(tableId, basePath);
 		if (!tableDir.exists())
 			return;
 
@@ -387,19 +388,25 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			throw new IllegalArgumentException("table not exists: " + tableName);
 
 		int tableId = tableRegistry.getTableId(tableName);
-		return getTableDirectory(tableId);
+		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
+		return getTableDirectory(tableId, basePath);
 	}
 
-	private File getTableDirectory(int tableId) {
-		return new File(logDir, Integer.toString(tableId));
+	private File getTableDirectory(int tableId, String basePath) {
+		File baseDir = logDir;
+		if (basePath != null)
+			baseDir = new File(basePath);
+
+		return new File(baseDir, Integer.toString(tableId));
 	}
 
 	@Override
 	public Collection<Date> getLogDates(String tableName) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		int tableId = tableRegistry.getTableId(tableName);
+		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
-		File tableDir = getTableDirectory(tableId);
+		File tableDir = getTableDirectory(tableId, basePath);
 		File[] files = tableDir.listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File dir, String name) {
@@ -688,14 +695,16 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		if (onlineWriter != null)
 			buffer = (ArrayList<Log>) onlineWriter.getBuffer();
 
-		File indexPath = DatapathUtil.getIndexFile(tableId, day);
-		File dataPath = DatapathUtil.getDataFile(tableId, day);
+		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
+		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
+		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
 
 		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
 		if (logFileType == null)
 			logFileType = "v2";
 
-		LogFileReader reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
+		LogFileReader reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath,
+				dataPath));
 
 		return new LogCursorImpl(tableName, day, buffer, reader, ascending);
 	}
@@ -774,9 +783,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 	private long searchTablet(String tableName, Date day, Date from, Date to, long offset, long limit,
 			final LogSearchCallback callback) throws InterruptedException {
 		int tableId = tableRegistry.getTableId(tableName);
+		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
-		File indexPath = DatapathUtil.getIndexFile(tableId, day);
-		File dataPath = DatapathUtil.getDataFile(tableId, day);
+		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
+		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
 		LogFileReader reader = null;
 		TraverseCallback c = new TraverseCallback(from, to, callback);
 
@@ -866,7 +876,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				return false;
 			if (to != null && d.after(to))
 				return false;
-			
+
 			return true;
 		}
 	}

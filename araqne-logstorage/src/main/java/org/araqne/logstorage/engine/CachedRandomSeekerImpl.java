@@ -89,7 +89,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 				onlineBuffers.put(onlineKey, buffer);
 			}
 		}
-		
+
 		List<Log> ret = new ArrayList<Log>();
 		if (buffer != null) {
 			for (Log r : buffer) {
@@ -98,13 +98,13 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 				}
 			}
 		}
-		
+
 		// Because logs in online writer are in ascending order,
 		// reverse logs to descending order
 		Collections.reverse(ret);
 		return ret;
 	}
-	
+
 	// TODO : remove duplicated method convert (LogStorageEngine.convert())
 	private LogRecord convert(Log log) {
 		ByteBuffer bb = new FastEncodingRule().encode(log.getData());
@@ -112,7 +112,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		log.setBinaryLength(bb.remaining());
 		return logdata;
 	}
-	
+
 	private LogFileReader getReader(String tableName, int tableId, Date day) throws IOException {
 		TabletKey key = new TabletKey(tableId, day);
 		LogFileReader reader = cachedReaders.get(key);
@@ -139,7 +139,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		LogFileReader reader = getReader(tableName, tableId, day);
 		return reader.find(id);
 	}
-	
+
 	private List<Long> getFileLogIds(List<Log> onlineLogs, List<Long> ids) {
 		int onlineLogCnt = onlineLogs.size();
 		int retCnt = ids.size() - onlineLogCnt;
@@ -155,14 +155,14 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 
 			ret.add(id);
 		}
-		
+
 		if (ret.size() != retCnt) {
 			throw new IllegalStateException("log ids are wrong");
 		}
-		
+
 		return ret;
 	}
-	
+
 	@Override
 	public List<LogRecord> getLogRecords(String tableName, Date day, List<Long> ids) {
 		if (closed)
@@ -180,17 +180,17 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 			fileLogRecords = reader.find(fileLogIds);
 		} catch (IOException e) {
 		}
-		
+
 		// merge online log and file log
 		int i = 0;
 		int j = 0;
 		for (long id : ids) {
 			if (i < onlineLogs.size()) {
-				 Log l = onlineLogs.get(i);
-				 if (l.getId() == id) {
-					 ret.add(convert(l));
-					 ++i;
-				 }
+				Log l = onlineLogs.get(i);
+				if (l.getId() == id) {
+					ret.add(convert(l));
+					++i;
+				}
 			} else if (fileLogRecords != null && j < fileLogRecords.size()) {
 				LogRecord r = fileLogRecords.get(j);
 				if (r.getId() == id) {
@@ -202,7 +202,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 
 		return ret;
 	}
-	
+
 	@Override
 	public Log getLog(String tableName, Date day, long id) throws IOException {
 		if (closed)
@@ -212,7 +212,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 
 		// check memory buffer (flush waiting)
 		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, id);
-		if (bufferedLog != null) 
+		if (bufferedLog != null)
 			return bufferedLog;
 
 		LogFileReader reader = getReader(tableName, tableId, day);

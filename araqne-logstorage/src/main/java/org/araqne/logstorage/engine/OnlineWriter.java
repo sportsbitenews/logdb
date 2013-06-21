@@ -68,8 +68,10 @@ public class OnlineWriter {
 		this.logFileService = logFileService;
 		this.tableId = tableId;
 		this.day = day;
-		File indexPath = DatapathUtil.getIndexFile(tableId, day);
-		File dataPath = DatapathUtil.getDataFile(tableId, day);
+
+		String basePath = tableMetadata.get("base_path");
+		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
+		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
 
 		indexPath.getParentFile().mkdirs();
 		dataPath.getParentFile().mkdirs();
@@ -79,7 +81,6 @@ public class OnlineWriter {
 			writerConfig.put("tableName", tableName);
 			writerConfig.put("indexPath", indexPath);
 			writerConfig.put("dataPath", dataPath);
-
 			writer = this.logFileService.newWriter(writerConfig);
 		} catch (IllegalArgumentException e) {
 			throw e;
