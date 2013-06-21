@@ -515,6 +515,36 @@ public class LogApiScript implements Script {
 			context.println(e.getMessage());
 		}
 	}
+	
+	public void startLoggers(String[] args) {
+		int interval = 60000;
+		int loggerCnt = args.length;
+		try {
+			interval = Integer.parseInt(args[args.length - 1]);
+			loggerCnt = args.length - 1;
+		} catch (NumberFormatException e) {
+			// ignore
+		}
+		
+		for (int i = 0; i < loggerCnt; ++i) {
+			try {
+				Logger logger = loggerRegistry.getLogger(args[i]);
+				if (logger == null) {
+					context.println("logger not found");
+					continue;
+				}
+
+				if (logger.isPassive())
+					logger.start();
+				else
+					logger.start(interval);
+				context.println("logger started");
+
+			} catch (IllegalStateException e) {
+				context.println(e.getMessage());
+			}
+		}
+	}
 
 	@ScriptUsage(description = "stop the logger", arguments = {
 			@ScriptArgument(name = "logger name", type = "string", description = "the logger name to stop"),
@@ -539,6 +569,31 @@ public class LogApiScript implements Script {
 			context.println("logger stopped");
 		} catch (Exception e) {
 			context.println(e.getMessage());
+		}
+	}
+	
+	public void stopLoggers(String[] args) {
+		int maxWaitTime = 5000;
+		int loggerCnt = args.length;
+		try {
+			maxWaitTime = Integer.parseInt(args[args.length - 1]);
+			loggerCnt = args.length - 1;
+		} catch (NumberFormatException e) {
+			// ignore
+		}
+		
+		for (int i = 0; i < loggerCnt; ++i) {
+			Logger logger = loggerRegistry.getLogger(args[i]);
+			if (logger == null) {
+				context.println("logger not found");
+				continue;
+			}
+
+			if (!logger.isPassive())
+				context.println("waiting...");
+
+			logger.stop(maxWaitTime);
+			context.println("logger stopped");
 		}
 	}
 
