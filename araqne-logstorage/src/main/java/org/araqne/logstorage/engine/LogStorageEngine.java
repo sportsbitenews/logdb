@@ -764,7 +764,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			if (limit != 0 && needed <= 0)
 				break;
 
-			found += searchTablet(tableName, day, from, to, offset, needed, callback);
+			found += searchTablet(tableName, day, from, to, offset, needed, new TraverseCallback(from, to, callback));
 
 			if (offset > 0) {
 				if (found > offset) {
@@ -780,15 +780,15 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		return found;
 	}
 
-	private long searchTablet(String tableName, Date day, Date from, Date to, long offset, long limit,
-			final LogSearchCallback callback) throws InterruptedException {
+	@Override
+	public long searchTablet(String tableName, Date day, Date from, Date to, long offset, long limit,
+			LogMatchCallback c) throws InterruptedException {
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
 		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
 		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
 		LogFileReader reader = null;
-		TraverseCallback c = new TraverseCallback(from, to, callback);
 
 		try {
 			// do NOT use getOnlineWriter() here (it loads empty writer on cache
@@ -811,7 +811,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 							if (c.match(convert(logData))) {
 								c.onLog(logData);
 								if (--limit == 0)
-									return c.matched;
+									return c.getMatchedCount();
 							}
 						}
 					}
@@ -833,7 +833,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				reader.close();
 		}
 
-		return c.matched;
+		return c.getMatchedCount();
 	}
 
 	private class TraverseCallback implements LogMatchCallback {
@@ -841,7 +841,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		private Date from;
 		private Date to;
 		private LogSearchCallback callback;
-		private int matched = 0;
+		private long matched = 0;
 
 		public TraverseCallback(Date from, Date to, LogSearchCallback callback) {
 			this.from = from;
@@ -849,6 +849,11 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			this.callback = callback;
 		}
 
+		@Override
+		public long getMatchedCount() {
+			return matched;
+		}
+		
 		@Override
 		public void onLog(Log log) throws InterruptedException {
 			if (callback.isInterrupted())

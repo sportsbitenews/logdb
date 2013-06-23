@@ -119,4 +119,11 @@ public interface LogStorage {
 	 * @since 1.18.0
 	 */
 	void removeEventListener(LogStorageEventListener listener);
+
+	/**
+	 * 
+	 * @since 2.0.2
+	 */
+	long searchTablet(String tableName, Date day, Date from, Date to, long offset, long limit, LogMatchCallback c)
+			throws InterruptedException;
 }
