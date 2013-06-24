@@ -1113,9 +1113,12 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			for (OnlineWriterKey key : evicts) {
 				OnlineWriter evictee = onlineWriters.get(key);
 				if (evictee != null) {
-					evictee.close();
-					logger.trace("araqne logstorage: evict logger [{}]", key);
-					onlineWriters.remove(key);
+					if (evictee.tryClose()) {
+						logger.trace("araqne logstorage: evict logger [{}]", key);
+						onlineWriters.remove(key);
+					} else {
+						logger.warn("eviction failed: tryClose returned false ({}).", evictee.toString());
+					}
 				}
 			}
 		}

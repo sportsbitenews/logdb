@@ -181,6 +181,8 @@ public class OnlineWriter {
 			writer.sync();
 		}
 	}
+	
+	
 
 	public void close() {
 		if (closing)
@@ -197,5 +199,10 @@ public class OnlineWriter {
 		} catch (IOException e) {
 			logger.error("cannot close online log writer", e);
 		}
+	}
+
+	public boolean tryClose() {
+		flush();
+		return writer.tryClose();
 	}
 }

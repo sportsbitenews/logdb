@@ -47,4 +47,6 @@ public abstract class LogFileWriter {
 
 	public abstract boolean isClosed();
 
+	public abstract boolean tryClose();
+
 }
