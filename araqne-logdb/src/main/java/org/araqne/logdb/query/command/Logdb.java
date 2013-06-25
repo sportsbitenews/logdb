@@ -45,7 +45,7 @@ public class Logdb extends LogQueryCommand {
 			metadataService.query(context, objectType, args, metadataWriter);
 			completed = true;
 		} finally {
-			eof();
+			eof(false);
 		}
 	}
 
@@ -59,8 +59,8 @@ public class Logdb extends LogQueryCommand {
 	}
 
 	@Override
-	public void eof() {
-		super.eof();
+	public void eof(boolean canceled) {
+		super.eof(canceled);
 
 		if (!completed)
 			metadataWriter.cancelled = true;

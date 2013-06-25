@@ -185,7 +185,7 @@ public class Result extends LogQueryCommand {
 	}
 
 	@Override
-	public void eof() {
+	public void eof(boolean canceled) {
 		this.status = Status.Finalizing;
 
 		try {
@@ -195,9 +195,9 @@ public class Result extends LogQueryCommand {
 		} catch (IOException e) {
 		}
 
-		super.eof();
+		super.eof(canceled);
 		for (LogQueryCallback callback : callbacks)
-			callback.onEof();
+			callback.onEof(canceled);
 	}
 
 	public void purge() {

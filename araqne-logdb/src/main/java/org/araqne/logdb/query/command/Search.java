@@ -60,7 +60,7 @@ public class Search extends LogQueryCommand {
 		write(m);
 
 		if (limit != null && ++count >= limit)
-			eof();
+			eof(false);
 	}
 
 	@Override

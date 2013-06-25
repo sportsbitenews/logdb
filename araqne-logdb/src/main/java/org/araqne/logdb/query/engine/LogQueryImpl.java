@@ -163,12 +163,12 @@ public class LogQueryImpl implements LogQuery {
 		cancelled = true;
 
 		if (result.getStatus() != Status.End && result.getStatus() != Status.Finalizing)
-			result.eof();
+			result.eof(true);
 
 		for (int i = commands.size() - 1; i >= 0; i--) {
 			LogQueryCommand command = commands.get(i);
 			if (command.getStatus() != Status.End && command.getStatus() != Status.Finalizing) {
-				command.eof();
+				command.eof(true);
 			}
 		}
 	}
