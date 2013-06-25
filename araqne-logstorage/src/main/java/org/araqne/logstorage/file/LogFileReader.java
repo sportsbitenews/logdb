@@ -69,6 +69,15 @@ public abstract class LogFileReader {
 	public abstract void traverse(Date from, Date to, long offset, long limit, LogMatchCallback callback) throws IOException,
 			InterruptedException;
 
+	public abstract void traverse(Date from, Date to, long minId, long offset, long limit, LogMatchCallback callback)
+			throws IOException,
+			InterruptedException;
+
+	// maxId is inclusive
+	public abstract void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback)
+			throws IOException,
+			InterruptedException;
+
 	public abstract LogRecordCursor getCursor() throws IOException;
 
 	public abstract LogRecordCursor getCursor(boolean ascending) throws IOException;

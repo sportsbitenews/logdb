@@ -209,18 +209,34 @@ public class LogFileReaderV2 extends LogFileReader {
 	@Override
 	public void traverse(Date from, Date to, long offset, long limit, LogMatchCallback callback) throws IOException,
 			InterruptedException {
+		traverse(from, to, -1, offset, limit, callback);
+	}
+
+	@Override
+	public void traverse(Date from, Date to, long minId, long offset, long limit, LogMatchCallback callback) throws IOException,
+			InterruptedException {
+		traverse(from, to, minId, -1, offset, limit, callback);
+
+	}
+
+	@Override
+	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback)
+			throws IOException, InterruptedException {
 		for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
 			IndexBlockHeader index = indexBlockHeaders.get(i);
 			if (index.logCount <= offset) {
-				offset -= index.logCount;
+				offset -= index.logCount; // FIXME : offset bug??
 				continue;
 			}
+			
+			if ((maxId >=0 && index.firstId > maxId) || (minId >=0 && index.firstId + index.logCount <= minId) )
+				continue;
 
 			DataBlockHeader data = dataBlockHeaders.get(i);
 			Long fromTime = (from == null) ? null : from.getTime();
 			Long toTime = (to == null) ? null : to.getTime();
 			if ((fromTime == null || data.endDate >= fromTime) && (toTime == null || data.startDate < toTime)) {
-				long matched = readBlock(index, data, fromTime, toTime, offset, limit, callback);
+				long matched = readBlock(index, data, fromTime, toTime, minId, maxId, offset, limit, callback);
 				if (matched < offset)
 					offset -= matched;
 				else {
@@ -235,7 +251,7 @@ public class LogFileReaderV2 extends LogFileReader {
 		}
 	}
 
-	private long readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long offset, long limit,
+	private long readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long minId, long maxId, long offset, long limit,
 			LogMatchCallback callback) throws IOException, InterruptedException {
 		List<Integer> offsets = new ArrayList<Integer>();
 		long matched = 0;
@@ -250,7 +266,7 @@ public class LogFileReaderV2 extends LogFileReader {
 		for (int i = offsets.size() - 1; i >= 0; i--) {
 			long date = getLogRecordDate(data, offsets.get(i));
 			if (from != null && date < from)
-				return matched;
+				continue;
 			if (to != null && date >= to)
 				continue;
 
