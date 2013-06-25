@@ -764,7 +764,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			if (limit != 0 && needed <= 0)
 				break;
 
-			found += searchTablet(tableName, day, from, to, offset, needed, new TraverseCallback(from, to, callback));
+			found += searchTablet(tableName, day, from, to, -1, -1, offset, needed, new TraverseCallback(from, to, callback));
 
 			if (offset > 0) {
 				if (found > offset) {
@@ -779,9 +779,18 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 
 		return found;
 	}
-
+	
 	@Override
-	public long searchTablet(String tableName, Date day, Date from, Date to, long offset, long limit,
+	public long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogMatchCallback c) throws InterruptedException {
+		return searchTablet(tableName, day, from, to, minId, -1, 0, 0, c);
+	}
+	
+	@Override
+	public long searchTablet(String tableName, Date day, long minId, long maxId, LogMatchCallback c) throws InterruptedException {
+		return searchTablet(tableName, day, null, null, minId, maxId, 0, 0, c);
+	}
+	
+	private long searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId, long offset, long limit,
 			LogMatchCallback c) throws InterruptedException {
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
@@ -802,7 +811,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 					ListIterator<Log> li = buffer.listIterator(buffer.size());
 					while (li.hasPrevious()) {
 						Log logData = li.previous();
-						if ((from == null || logData.getDate().after(from)) && (to == null || logData.getDate().before(to))) {
+						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
+								&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
 							if (offset > 0) {
 								offset--;
 								continue;
@@ -823,7 +833,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				logFileType = "v2";
 
 			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
-			reader.traverse(from, to, offset, limit, c);
+			reader.traverse(from, to, minId, maxId, offset, limit, c);
 		} catch (InterruptedException e) {
 			throw e;
 		} catch (Exception e) {
