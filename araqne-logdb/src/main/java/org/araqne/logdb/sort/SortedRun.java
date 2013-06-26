@@ -15,8 +15,14 @@
  */
 package org.araqne.logdb.sort;
 
+import java.io.IOException;
+
 public interface SortedRun {
 	int length();
 
-	Item get(int offset);
+	void open() throws IOException;
+
+	Item get(int offset) throws IOException;
+
+	void close();
 }

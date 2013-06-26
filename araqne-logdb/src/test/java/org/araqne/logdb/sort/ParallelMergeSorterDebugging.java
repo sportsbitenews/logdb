@@ -6,7 +6,7 @@ import java.util.Comparator;
 import java.util.Random;
 
 public class ParallelMergeSorterDebugging {
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, InterruptedException {
 		sampleRun(args);
 	}
 	
@@ -19,8 +19,8 @@ public class ParallelMergeSorterDebugging {
 		}
 	}
 	
-	public static void sampleRun(String[] args) throws IOException {
-		ParallelMergeSorter sorter = new ParallelMergeSorter(new ItemComparer());
+	public static void sampleRun(String[] args) throws IOException, InterruptedException {
+		ParallelMergeSorter sorter = new ParallelMergeSorter(new ItemComparer(), 10);
 
 		Random rand1 = new Random(1);
 		
@@ -44,7 +44,6 @@ public class ParallelMergeSorterDebugging {
 			
 			last = current;
 		}
-		
 		sorted.close();
 	}
 }
