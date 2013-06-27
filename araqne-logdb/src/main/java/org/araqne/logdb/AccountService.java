@@ -23,6 +23,9 @@ public interface AccountService {
 
 	Session getSession(String guid);
 
+	/**
+	 * @since 1.2.5
+	 */
 	Session newSession(String loginName);
 
 	Session login(String loginName, String hash, String nonce);
