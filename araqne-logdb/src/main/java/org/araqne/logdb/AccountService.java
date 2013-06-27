@@ -23,6 +23,8 @@ public interface AccountService {
 
 	Session getSession(String guid);
 
+	Session newSession(String loginName);
+
 	Session login(String loginName, String hash, String nonce);
 
 	Session login(String loginName, String password);

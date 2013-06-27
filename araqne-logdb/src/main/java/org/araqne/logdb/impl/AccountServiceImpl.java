@@ -223,6 +223,17 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 	}
 
 	@Override
+	public Session newSession(String loginName) {
+		verifyNotNull(loginName, "login name");
+
+		Account account = localAccounts.get(loginName);
+		if (account == null)
+			throw new IllegalStateException("account-not-found");
+
+		return registerSession(account);
+	}
+
+	@Override
 	public Session login(String loginName, String hash, String nonce) {
 		verifyNotNull(loginName, "login name");
 		verifyNotNull(hash, "hash");
