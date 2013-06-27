@@ -220,7 +220,9 @@ public class LogDbClient implements TrapListener {
 	}
 
 	public IndexTokenizerFactoryInfo getIndexTokenizerFactory(String name) throws IOException {
-		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.getIndexTokenizerFactory");
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", name);
+		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.getIndexTokenizerFactoryInfo", params);
 		return parseIndexTokenizerFactory(resp.getParameters().get("factory"));
 	}
 
