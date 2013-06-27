@@ -279,7 +279,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 
 	@Override
 	public void logout(Session session) {
-		if (!sessions.remove(session.getGuid(), session))
+		if (sessions.remove(session.getGuid()) == null)
 			throw new IllegalStateException("session not found: " + session.getGuid());
 
 		// invoke callbacks
