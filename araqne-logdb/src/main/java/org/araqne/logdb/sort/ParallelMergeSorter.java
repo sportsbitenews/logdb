@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Future Systems
+ * Copyright 2012 Future Systems 
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,11 +38,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ParallelMergeSorter {
+	private static final int DEFAULT_CACHE_SIZE = 10000;
+	private static final int DEFAULT_RUN_LENGTH = 20000;
 	private final Logger logger = LoggerFactory.getLogger(ParallelMergeSorter.class);
 	private Queue<Run> runs = new LinkedBlockingDeque<Run>();
 	private Queue<PartitionMergeTask> merges = new LinkedBlockingQueue<PartitionMergeTask>();
 	private LinkedList<Item> buffer;
-	private Comparator<Item> comparer;
+	private Comparator<Item> comparator;
 	private int runLength = 20000;
 	private AtomicInteger runIndexer;
 	private volatile int flushTaskCount;
@@ -51,12 +53,21 @@ public class ParallelMergeSorter {
 	private ExecutorService executor;
 	private CountDownLatch mergeLatch;
 
-	public ParallelMergeSorter(Comparator<Item> comparer) {
-		this.comparer = comparer;
+	public ParallelMergeSorter(Comparator<Item> comparator) {
+		this(comparator, DEFAULT_RUN_LENGTH, DEFAULT_CACHE_SIZE);
+	}
+
+	public ParallelMergeSorter(Comparator<Item> comparator, int runLength) {
+		this(comparator, runLength, DEFAULT_CACHE_SIZE);
+	}
+
+	public ParallelMergeSorter(Comparator<Item> comparator, int runLength, int memoryRunCount) {
+		this.runLength = runLength;
+		this.comparator = comparator;
 		this.buffer = new LinkedList<Item>();
 		this.runIndexer = new AtomicInteger();
 		this.executor = new ThreadPoolExecutor(8, 8, 10, TimeUnit.SECONDS, new LimitedQueue<Runnable>(8));
-		this.cacheCount = new AtomicInteger(10000);
+		this.cacheCount = new AtomicInteger(memoryRunCount);
 	}
 
 	public class LimitedQueue<E> extends ArrayBlockingQueue<E> {
@@ -77,7 +88,6 @@ public class ParallelMergeSorter {
 			}
 			return false;
 		}
-
 	}
 
 	public void add(Item item) throws IOException {
@@ -108,6 +118,7 @@ public class ParallelMergeSorter {
 		// flush rest objects
 		flushRun();
 		buffer = null;
+		logger.trace("flush finished.");
 
 		// wait flush done
 		while (true) {
@@ -124,9 +135,9 @@ public class ParallelMergeSorter {
 		}
 
 		// partition
-		logger.debug("araqne logdb: start partitioning");
+		logger.trace("araqne logdb: start partitioning");
 		long begin = new Date().getTime();
-		Partitioner partitioner = new Partitioner(comparer);
+		Partitioner partitioner = new Partitioner(comparator);
 		List<SortedRun> sortedRuns = new LinkedList<SortedRun>();
 		for (Run run : runs)
 			sortedRuns.add(new SortedRunImpl(run));
@@ -139,11 +150,13 @@ public class ParallelMergeSorter {
 			((SortedRunImpl) r).close();
 
 		long elapsed = new Date().getTime() - begin;
-		logger.debug("araqne logdb: [{}] partitioning completed in {}ms", partitionCount, elapsed);
+		logger.trace("araqne logdb: [{}] partitioning completed in {}ms", partitionCount, elapsed);
 
 		// n-way merge
 		Run run = mergeAll(partitions);
 		executor.shutdown();
+
+		logger.trace("merge ended");
 
 		if (run.cached != null)
 			return new CacheRunIterator(run.cached.iterator());
@@ -162,14 +175,15 @@ public class ParallelMergeSorter {
 
 	private static class SortedRunImpl implements SortedRun {
 		private RunInputRandomAccess ra;
+		private Run run;
 
 		public SortedRunImpl(Run run) throws IOException {
-			this.ra = new RunInputRandomAccess(run);
+			this.run = run;
 		}
 
 		@Override
 		public int length() {
-			return ra.run.length;
+			return run.length;
 		}
 
 		@Override
@@ -182,7 +196,14 @@ public class ParallelMergeSorter {
 		}
 
 		public void close() {
-			ra.close();
+			if (ra != null)
+				ra.close();
+			ra = null;
+		}
+
+		@Override
+		public void open() throws IOException {
+			this.ra = new RunInputRandomAccess(run);
 		}
 	}
 
@@ -195,7 +216,7 @@ public class ParallelMergeSorter {
 			List<Run> runParts = new LinkedList<Run>();
 			for (SortedRunRange range : p.getRunRanges()) {
 				SortedRunImpl ri = (SortedRunImpl) range.getRun();
-				Run run = ri.ra.run;
+				Run run = ri.run;
 				int newId = runIndexer.incrementAndGet();
 
 				if (run.cached != null) {
@@ -267,7 +288,7 @@ public class ParallelMergeSorter {
 		}
 
 		private void doFlush() throws IOException {
-			Collections.sort(buffered, comparer);
+			Collections.sort(buffered, comparator);
 
 			int id = runIndexer.incrementAndGet();
 			RunOutput out = new RunOutput(id, buffered.size(), cacheCount);
@@ -416,7 +437,7 @@ public class ParallelMergeSorter {
 
 		@Override
 		public int compare(RunItem o1, RunItem o2) {
-			return comparer.compare(o1.item, o2.item);
+			return comparator.compare(o1.item, o2.item);
 		}
 
 	}

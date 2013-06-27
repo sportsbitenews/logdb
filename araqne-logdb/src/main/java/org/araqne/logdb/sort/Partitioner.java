@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.sort;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -47,9 +48,16 @@ public class Partitioner {
 		// find median of each runs
 		PriorityQueue<Median> q = new PriorityQueue<Median>();
 		for (SortedRunStatus status : sortedRuns) {
-			status.boundary = status.left + (status.right - status.left) / 2;
-			status.median = status.run.get(status.boundary);
-			q.add(new Median(status, status.boundary, status.median));
+			try {
+				status.run.open();
+				status.boundary = status.left + (status.right - status.left) / 2;
+				status.median = status.run.get(status.boundary);
+				q.add(new Median(status, status.boundary, status.median));
+			} catch (IOException e) {
+				throw new IllegalStateException("IOException while finding median of each runs in divide()", e);
+			} finally {
+				status.run.close();
+			}
 		}
 
 		// sort by median
@@ -113,28 +121,36 @@ public class Partitioner {
 		int mid = 0;
 		Item value = null;
 
-		while (left <= right) {
-			mid = left + ((right - left) / 2);
-			value = runStatus.run.get(mid);
-			int ret = comparator.compare(medianOfMedian, value);
+		try {
+			runStatus.run.open();
 
-			if (ret < 0) {
-				right = mid - 1;
-			} else if (ret > 0) {
-				left = mid + 1;
-			} else {
-				break;
+			while (left <= right) {
+				mid = left + ((right - left) / 2);
+				value = runStatus.run.get(mid);
+				int ret = comparator.compare(medianOfMedian, value);
+
+				if (ret < 0) {
+					right = mid - 1;
+				} else if (ret > 0) {
+					left = mid + 1;
+				} else {
+					break;
+				}
 			}
-		}
 
-		// check predicate
-		while (left <= mid) {
-			value = runStatus.run.get(mid);
-			int ret = comparator.compare(medianOfMedian, value);
-			if (ret < 0)
-				mid--;
-			else
-				break;
+			// check predicate
+			while (left <= mid) {
+				value = runStatus.run.get(mid);
+				int ret = comparator.compare(medianOfMedian, value);
+				if (ret < 0)
+					mid--;
+				else
+					break;
+			}
+		} catch (IOException e) {
+			throw new IllegalStateException("IOException in findBoundary", e);
+		} finally {
+			runStatus.run.close();
 		}
 
 		runStatus.boundary = mid + 1;
