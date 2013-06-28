@@ -56,9 +56,14 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			dateExtractPattern = Pattern.compile(dateExtractRegex);
 
 		// optional
+		String dateLocale = getConfig().get("date_locale");
+		if (dateLocale == null)
+			dateLocale = "en";
+
+		// optional
 		String dateFormatString = getConfig().get("date_format");
 		if (dateFormatString != null)
-			dateFormat = new SimpleDateFormat(dateFormatString, Locale.ENGLISH);
+			dateFormat = new SimpleDateFormat(dateFormatString, new Locale(dateLocale));
 
 		// optional
 		String newlogRegex = getConfig().get("newlog_designator");

@@ -73,6 +73,8 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				"date format to parse date and time strings. e.g. yyyy-MM-dd HH:mm:ss",
 				"날짜 및 시각 문자열을 파싱하는데 사용할 포맷. 예) yyyy-MM-dd HH:mm:ss"), false);
 
+		LoggerConfigOption dateLocale = new StringConfigType("date_locale", t("Date locale", "날짜 로케일"), t("date locale, e.g. en", "날짜 로케일, 예를 들면 ko"), false);
+
 		LoggerConfigOption newlogRegex = new StringConfigType("newlog_designator",
 				t("New log designator (Regex)", "로그 구분 정규식"),
 				t("Regular expression to determine whether the line is start of new log."
@@ -82,7 +84,7 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 		LoggerConfigOption charset = new StringConfigType("charset", t("Charset", "문자 집합"), t("charset encoding",
 				"텍스트 파일의 문자 인코딩 방식"), false);
 
-		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, newlogRegex, charset);
+		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, newlogRegex, charset);
 	}
 
 	private Map<Locale, String> t(String enText, String koText) {
