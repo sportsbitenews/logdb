@@ -295,7 +295,7 @@ public class LogQueryPlugin {
 		}
 
 		@Override
-		public void onEof() {
+		public void onEof(boolean canceled) {
 			try {
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("id", query.getId());

@@ -71,7 +71,7 @@ public class OutputCsv extends LogQueryCommand {
 	}
 
 	@Override
-	public void eof() {
+	public void eof(boolean canceled) {
 
 		this.status = Status.Finalizing;
 		try {
@@ -83,6 +83,6 @@ public class OutputCsv extends LogQueryCommand {
 			os.close();
 		} catch (IOException e) {
 		}
-		super.eof();
+		super.eof(canceled);
 	}
 }

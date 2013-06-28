@@ -63,12 +63,11 @@ public class Script extends LogQueryCommand {
 	public boolean isReducer() {
 		return true;
 	}
-
 	@Override
-	public void eof() {
+	public void eof(boolean canceled) {
 		this.status = Status.Finalizing;
 		script.eof(output);
-		super.eof();
+		super.eof(canceled);
 	}
 
 	private void out(LogMap data) {

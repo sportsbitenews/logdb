@@ -40,7 +40,7 @@ public class OutputCsvParserTest {
 		} finally {
 			// to close csv file handle
 			if (csv != null)
-				csv.eof();
+				csv.eof(false);
 			new File("logexport.csv").delete();
 		}
 	}

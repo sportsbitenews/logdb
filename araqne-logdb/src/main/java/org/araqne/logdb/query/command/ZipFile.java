@@ -89,7 +89,7 @@ public class ZipFile extends LogQueryCommand {
 			}
 		}
 
-		eof();
+		eof(false);
 	}
 
 	@Override

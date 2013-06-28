@@ -36,7 +36,7 @@ public abstract class EmptyLogQueryCallback implements LogQueryCallback {
 	}
 
 	@Override
-	public void onEof() {
+	public void onEof(boolean canceled) {
 	}
 
 }

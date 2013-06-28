@@ -24,5 +24,5 @@ public interface LogQueryCallback {
 
 	void onPageLoaded();
 
-	void onEof();
+	void onEof(boolean canceled);
 }

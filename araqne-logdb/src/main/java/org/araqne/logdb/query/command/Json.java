@@ -37,7 +37,7 @@ public class Json extends LogQueryCommand {
 		status = Status.Running;
 		for (LogMap log : logs)
 			write(log);
-		eof();
+		eof(false);
 	}
 
 	@Override
