@@ -342,7 +342,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 		}
 
 		@Override
-		public void onEof() {
+		public void onEof(boolean canceled) {
 			invokeCallbacks(query, LogQueryStatus.Eof);
 			Date now = new Date();
 

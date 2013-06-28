@@ -132,9 +132,9 @@ public class Stats extends LogQueryCommand {
 	}
 
 	@Override
-	public void eof() {
+	public void eof(boolean canceled) {
 		this.status = Status.Finalizing;
-
+		
 		logger.debug("araqne logdb: stats sort input count [{}]", inputCount);
 		CloseableIterator it = null;
 		try {
@@ -215,7 +215,7 @@ public class Stats extends LogQueryCommand {
 			// support sorter cache GC when query processing is ended
 			sorter = null;
 
-			super.eof();
+			super.eof(canceled);
 		}
 	}
 
