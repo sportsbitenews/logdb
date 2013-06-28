@@ -764,7 +764,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			if (limit != 0 && needed <= 0)
 				break;
 
-			found += searchTablet(tableName, day, from, to, -1, -1, offset, needed, new TraverseCallback(from, to, callback));
+			found += searchTablet(tableName, day, from, to, -1, -1, offset, needed, new TraverseCallback(from, to, callback), false);
 
 			if (offset > 0) {
 				if (found > offset) {
@@ -782,16 +782,16 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 	
 	@Override
 	public long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogMatchCallback c) throws InterruptedException {
-		return searchTablet(tableName, day, from, to, minId, -1, 0, 0, c);
+		return searchTablet(tableName, day, from, to, minId, -1, 0, 0, c, false);
 	}
 	
 	@Override
-	public long searchTablet(String tableName, Date day, long minId, long maxId, LogMatchCallback c) throws InterruptedException {
-		return searchTablet(tableName, day, null, null, minId, maxId, 0, 0, c);
+	public long searchTablet(String tableName, Date day, long minId, long maxId, LogMatchCallback c, boolean forWrite) throws InterruptedException {
+		return searchTablet(tableName, day, null, null, minId, maxId, 0, 0, c, forWrite);
 	}
 	
 	private long searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId, long offset, long limit,
-			LogMatchCallback c) throws InterruptedException {
+			LogMatchCallback c, boolean forWrite) throws InterruptedException {
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
@@ -833,7 +833,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				logFileType = "v2";
 
 			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
-			reader.traverse(from, to, minId, maxId, offset, limit, c);
+			// TODO : change maxId to onlineLog's minId
+			reader.traverse(from, to, minId, maxId, offset, limit, c, forWrite);
 		} catch (InterruptedException e) {
 			throw e;
 		} catch (Exception e) {

@@ -74,7 +74,7 @@ public abstract class LogFileReader {
 			InterruptedException;
 
 	// maxId is inclusive
-	public abstract void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback)
+	public abstract void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback, boolean forWrite)
 			throws IOException,
 			InterruptedException;
 
