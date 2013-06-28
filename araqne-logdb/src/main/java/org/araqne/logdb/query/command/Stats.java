@@ -39,6 +39,8 @@ public class Stats extends LogQueryCommand {
 	private int inputCount;
 	private List<AggregationField> fields;
 	private List<String> clauses;
+	private final int clauseCount;
+	private final List<Object> EMPTY_KEY;
 
 	// clone template
 	private AggregationFunction[] funcs;
@@ -48,7 +50,9 @@ public class Stats extends LogQueryCommand {
 	private Map<List<Object>, AggregationFunction[]> buffer;
 
 	public Stats(List<AggregationField> fields, List<String> clause) {
+		this.EMPTY_KEY = new ArrayList<Object>(0);
 		this.clauses = clause;
+		this.clauseCount = clauses.size();
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
 		this.buffer = new HashMap<List<Object>, AggregationFunction[]>();
 		this.fields = fields;
@@ -77,13 +81,17 @@ public class Stats extends LogQueryCommand {
 
 	@Override
 	public void push(LogMap m) {
-		List<Object> keys = new ArrayList<Object>(clauses.size());
-		for (String clause : clauses) {
-			Object keyValue = m.get(clause);
-			if (keyValue == null)
-				return;
+		List<Object> keys = EMPTY_KEY;
+		if (clauseCount > 0) {
+			keys = new ArrayList<Object>(clauses.size());
 
-			keys.add(keyValue);
+			for (String clause : clauses) {
+				Object keyValue = m.get(clause);
+				if (keyValue == null)
+					return;
+
+				keys.add(keyValue);
+			}
 		}
 
 		try {
