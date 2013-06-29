@@ -37,7 +37,7 @@ public abstract class LogFileWriter {
 
 	public abstract List<Log> getBuffer();
 
-	public abstract boolean flush() throws IOException;
+	public abstract boolean flush(boolean sweep) throws IOException;
 
 	public abstract void sync() throws IOException;
 

@@ -163,7 +163,7 @@ public class LogFileWriterV1 extends LogFileWriter {
 
 		// flush if condition met
 		if (bufferedLogs.size() > maxLogBuffering)
-			flush();
+			flush(false);
 
 		count++;
 	}
@@ -190,7 +190,7 @@ public class LogFileWriterV1 extends LogFileWriter {
 	}
 
 	@Override
-	public boolean flush() throws IOException {
+	public boolean flush(boolean sweep) throws IOException {
 		lastFlush = new Date();
 
 		List<Log> b = bufferedLogs;
@@ -299,7 +299,7 @@ public class LogFileWriterV1 extends LogFileWriter {
 
 	@Override
 	public void close() throws IOException {
-		flush();
+		flush(true);
 
 		// renew block header
 		if (lastBlockHeaderFp != null) {

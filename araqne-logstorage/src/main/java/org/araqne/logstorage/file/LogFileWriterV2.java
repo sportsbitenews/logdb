@@ -198,7 +198,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 		if ((blockEndLogTime != null && blockEndLogTime > data.getDate().getTime()) || indexBuffer.remaining() < INDEX_ITEM_SIZE
 				|| dataBuffer.remaining() < 20 + data.getData().remaining())
-			flush();
+			flush(false);
 
 		// add to index buffer
 		prepareInt(dataBuffer.position(), intbuf);
@@ -264,7 +264,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 	}
 
 	@Override
-	public boolean flush() throws IOException {
+	public boolean flush(boolean sweep) throws IOException {
 		// check if writer is closed
 		if (indexFile == null || dataFile == null)
 			return false;
@@ -370,7 +370,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 	@Override
 	public void close() throws IOException {
-		flush();
+		flush(true);
 
 		if (indexFile != null) {
 			indexFile.close();
