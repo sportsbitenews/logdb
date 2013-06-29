@@ -106,8 +106,8 @@ public class Marshaler {
 	private static String dateFormatting(Date date) {
 		if (date == null)
 			return null;
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ssZ");
-		return dateFormat.format(date);
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+		return df.format(date);
 	}
 
 }
