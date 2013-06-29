@@ -206,5 +206,6 @@
 		<module>araqne-logdb-geoip</module>
 		<module>araqne-logdb-client</module>
 		<module>araqne-logdb-jython</module>
+		<module>araqne-regex-tester</module>
 	</modules>
 </project>
