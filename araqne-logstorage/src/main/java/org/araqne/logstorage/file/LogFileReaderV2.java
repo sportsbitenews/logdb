@@ -220,7 +220,7 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback, boolean forWrite)
+	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback, boolean doParallel)
 			throws IOException, InterruptedException {
 		for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
 			IndexBlockHeader index = indexBlockHeaders.get(i);

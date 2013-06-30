@@ -781,17 +781,17 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 	}
 	
 	@Override
-	public long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogMatchCallback c) throws InterruptedException {
-		return searchTablet(tableName, day, from, to, minId, -1, 0, 0, c, false);
+	public long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogMatchCallback c, boolean doParallel) throws InterruptedException {
+		return searchTablet(tableName, day, from, to, minId, -1, 0, 0, c, doParallel);
 	}
 	
 	@Override
-	public long searchTablet(String tableName, Date day, long minId, long maxId, LogMatchCallback c, boolean forWrite) throws InterruptedException {
-		return searchTablet(tableName, day, null, null, minId, maxId, 0, 0, c, forWrite);
+	public long searchTablet(String tableName, Date day, long minId, long maxId, LogMatchCallback c, boolean doParallel) throws InterruptedException {
+		return searchTablet(tableName, day, null, null, minId, maxId, 0, 0, c, doParallel);
 	}
 	
 	private long searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId, long offset, long limit,
-			LogMatchCallback c, boolean forWrite) throws InterruptedException {
+			LogMatchCallback c, boolean doParallel) throws InterruptedException {
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
@@ -834,7 +834,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 
 			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
 			// TODO : change maxId to onlineLog's minId
-			reader.traverse(from, to, minId, maxId, offset, limit, c, forWrite);
+			reader.traverse(from, to, minId, maxId, offset, limit, c, doParallel);
 		} catch (InterruptedException e) {
 			throw e;
 		} catch (Exception e) {

@@ -141,7 +141,7 @@ public class LogFileReaderV1 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback, boolean forWrite) throws IOException,
+	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback, boolean doParallel) throws IOException,
 			InterruptedException {
 		int matched = 0;
 
