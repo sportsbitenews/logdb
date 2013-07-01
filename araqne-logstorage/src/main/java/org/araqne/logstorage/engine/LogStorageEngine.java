@@ -798,6 +798,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
 		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
 		LogFileReader reader = null;
+		
+		long onlineMinId = -1;
 
 		try {
 			// do NOT use getOnlineWriter() here (it loads empty writer on cache
@@ -819,6 +821,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 							}
 
 							if (c.match(convert(logData)) && c.onLog(logData)) {
+								if (onlineMinId < 0 || logData.getId() < onlineMinId)
+									onlineMinId = logData.getId();
+								
 								if (--limit == 0)
 									return c.getMatchedCount();
 							}
@@ -832,8 +837,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				logFileType = "v2";
 
 			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
-			// TODO : change maxId to onlineLog's minId
-			reader.traverse(from, to, minId, maxId, offset, limit, c, doParallel);
+			long flushedMaxId = (onlineMinId > 0)? onlineMinId - 1: maxId;
+			if (minId < 0 || flushedMaxId < 0 || flushedMaxId >= minId)
+				reader.traverse(from, to, minId, flushedMaxId, offset, limit, c, doParallel);
 		} catch (InterruptedException e) {
 			throw e;
 		} catch (Exception e) {
