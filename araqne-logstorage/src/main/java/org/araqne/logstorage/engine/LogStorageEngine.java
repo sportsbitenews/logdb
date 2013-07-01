@@ -818,8 +818,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 								continue;
 							}
 
-							if (c.match(convert(logData))) {
-								c.onLog(logData);
+							if (c.match(convert(logData)) && c.onLog(logData)) {
 								if (--limit == 0)
 									return c.getMatchedCount();
 							}
@@ -866,7 +865,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		}
 		
 		@Override
-		public void onLog(Log log) throws InterruptedException {
+		public boolean onLog(Log log) throws InterruptedException {
 			if (callback.isInterrupted())
 				throw new InterruptedException("interrupted log traverse");
 
@@ -876,7 +875,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				logger.debug("araqne logdb: traverse log [{}]", log);
 				callback.onLog(log);
 
-				return;
+				return true;
 			} catch (Exception e) {
 				if (callback.isInterrupted())
 					throw new InterruptedException("interrupted log traverse");

@@ -276,8 +276,7 @@ public class LogFileReaderV2 extends LogFileReader {
 			}
 
 			LogRecord record = getLogRecord(data, offsets.get(i));
-			if (callback.match(record)) {
-				callback.onLog(LogMarshaler.convert(tableName, record));
+			if (callback.match(record) && callback.onLog(LogMarshaler.convert(tableName, record))) {
 				if (++matched == offset + limit)
 					return matched;
 			}

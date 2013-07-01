@@ -201,8 +201,7 @@ public class LogFileReaderV1 extends LogFileReader {
 
 			ByteBuffer bb = ByteBuffer.wrap(data, 0, dataLen);
 			LogRecord record = new LogRecord(dataDate, dataId, bb);
-			if (callback.match(record)) {
-				callback.onLog(LogMarshaler.convert(tableName, record));
+			if (callback.match(record) && callback.onLog(LogMarshaler.convert(tableName, record))) {
 				if (++matched == offset + limit)
 					return;
 			}
