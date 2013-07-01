@@ -185,7 +185,10 @@ public class Console {
 		} catch (Throwable t) {
 			w(t.getMessage());
 			if (client != null) {
-				client.close();
+				try {
+					client.close();
+				} catch (IOException e) {
+				}
 				client = null;
 			}
 		}
@@ -198,7 +201,10 @@ public class Console {
 		}
 
 		w("closing connection...");
-		client.close();
+		try {
+			client.close();
+		} catch (IOException e) {
+		}
 		w("disconnected");
 		client = null;
 	}

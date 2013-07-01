@@ -100,7 +100,7 @@ public abstract class AbstractLogDbSession implements LogDbSession {
 		listeners.remove(listener);
 	}
 
-	public void close() {
+	public void close() throws IOException {
 		try {
 			if (isClosed())
 				return;

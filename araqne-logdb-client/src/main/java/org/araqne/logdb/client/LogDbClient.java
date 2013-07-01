@@ -757,7 +757,7 @@ public class LogDbClient implements TrapListener {
 			throw new MessageException("query-not-found", "query [" + id + "] does not exist", null);
 	}
 
-	public void close() {
+	public void close() throws IOException {
 		if (session != null)
 			session.close();
 	}
@@ -788,6 +788,9 @@ public class LogDbClient implements TrapListener {
 
 	@Override
 	public void onClose(Throwable t) {
-		close();
+		try {
+			close();
+		} catch (IOException e) {
+		}
 	}
 }
