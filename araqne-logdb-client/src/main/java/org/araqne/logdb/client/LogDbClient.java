@@ -220,7 +220,9 @@ public class LogDbClient implements TrapListener {
 	}
 
 	public IndexTokenizerFactoryInfo getIndexTokenizerFactory(String name) throws IOException {
-		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.getIndexTokenizerFactory");
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", name);
+		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.getIndexTokenizerFactoryInfo", params);
 		return parseIndexTokenizerFactory(resp.getParameters().get("factory"));
 	}
 
@@ -755,7 +757,7 @@ public class LogDbClient implements TrapListener {
 			throw new MessageException("query-not-found", "query [" + id + "] does not exist", null);
 	}
 
-	public void close() {
+	public void close() throws IOException {
 		if (session != null)
 			session.close();
 	}
@@ -786,6 +788,9 @@ public class LogDbClient implements TrapListener {
 
 	@Override
 	public void onClose(Throwable t) {
-		close();
+		try {
+			close();
+		} catch (IOException e) {
+		}
 	}
 }

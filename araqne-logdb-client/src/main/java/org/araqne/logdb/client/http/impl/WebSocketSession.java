@@ -104,13 +104,13 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 	}
 
 	@Override
-	public void close() {
+	public void close() throws IOException {
+		if (isClosed())
+			return;
+
 		super.close();
-		try {
-			websocket.close();
-			table.close();
-		} catch (IOException e) {
-			logger.error("araqne logdb client: cannot close websocket", e);
-		}
+
+		table.close();
+		websocket.close();
 	}
 }

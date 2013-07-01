@@ -237,13 +237,6 @@ public class LogQueryPlugin {
 		query.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, new LogQueryContext(dbSession));
 	}
 
-	@MsgbusMethod(type = CallbackType.SessionClosed)
-	public void sessionClosed(Session session) {
-		org.araqne.logdb.Session dbSession = getDbSession(session);
-		if (dbSession != null)
-			accountService.logout(dbSession);
-	}
-
 	private class MsgbusLogQueryCallback implements LogQueryCallback {
 		private String orgDomain;
 		private LogQuery query;
@@ -302,7 +295,7 @@ public class LogQueryPlugin {
 		}
 
 		@Override
-		public void onEof() {
+		public void onEof(boolean canceled) {
 			try {
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("id", query.getId());

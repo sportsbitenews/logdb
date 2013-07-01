@@ -31,6 +31,7 @@ import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.query.command.Table;
 import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
 
 public class TableParser implements LogQueryCommandParser {
@@ -57,6 +58,9 @@ public class TableParser implements LogQueryCommandParser {
 	@SuppressWarnings("unchecked")
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+		if (logStorage.getStatus() != LogStorageStatus.Open)
+			throw new LogQueryParseException("archive-not-opened", -1);
+
 		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length(),
 				Arrays.asList("from", "to", "offset", "limit", "duration"));
 		Map<String, String> options = (Map<String, String>) r.value;

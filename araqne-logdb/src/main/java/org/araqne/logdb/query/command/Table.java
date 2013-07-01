@@ -185,7 +185,7 @@ public class Table extends LogQueryCommand {
 		} catch (Error e) {
 			logger.error("araqne logdb: table error", e);
 		}
-		eof();
+		eof(false);
 	}
 
 	@Override
@@ -222,7 +222,7 @@ public class Table extends LogQueryCommand {
 							parsed.put("_time", log.getDate());
 						else if (!(time instanceof Date)) {
 							logger.error("araqne logdb: parser returned wrong _time type: " + time.getClass().getName());
-							eof();
+							eof(true);
 						}
 
 						m = parsed;
@@ -259,7 +259,7 @@ public class Table extends LogQueryCommand {
 
 		@Override
 		public void interrupt() {
-			eof();
+			eof(true);
 		}
 
 		@Override

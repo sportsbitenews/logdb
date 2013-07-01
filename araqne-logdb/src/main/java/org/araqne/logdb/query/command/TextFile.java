@@ -89,7 +89,7 @@ public class TextFile extends LogQueryCommand {
 			}
 		}
 
-		eof();
+		eof(false);
 	}
 
 	@Override

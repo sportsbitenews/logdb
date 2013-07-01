@@ -171,7 +171,7 @@ public class OnlineWriter {
 		}
 
 		synchronized (this) {
-			writer.flush();
+			writer.flush(true);
 			notifyAll();
 		}
 	}
@@ -189,7 +189,6 @@ public class OnlineWriter {
 		try {
 			synchronized (this) {
 				closing = true;
-				flush();
 				writer.close();
 				notifyAll();
 			}

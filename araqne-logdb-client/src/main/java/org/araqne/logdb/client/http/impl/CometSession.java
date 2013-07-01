@@ -129,7 +129,10 @@ public class CometSession extends AbstractLogDbSession implements TrapListener {
 		}
 	}
 
-	public void close() {
+	public void close() throws IOException {
+		if (isClosed())
+			return;
+
 		super.close();
 
 		if (trapReceiver != null) {

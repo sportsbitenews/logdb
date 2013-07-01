@@ -234,7 +234,7 @@ public class Timechart extends LogQueryCommand {
 	}
 
 	@Override
-	public void eof() {
+	public void eof(boolean canceled) {
 		this.status = Status.Finalizing;
 
 		CloseableIterator it = null;
@@ -259,13 +259,13 @@ public class Timechart extends LogQueryCommand {
 				} catch (IOException e) {
 				}
 			}
-			super.eof();
+			super.eof(canceled);
 		}
 
 		// support sorter cache GC when query processing is ended
 		sorter = null;
 
-		super.eof();
+		super.eof(canceled);
 	}
 
 	private void mergeAndWrite(CloseableIterator it) {

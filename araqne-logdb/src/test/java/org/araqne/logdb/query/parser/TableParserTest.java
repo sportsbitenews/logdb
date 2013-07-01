@@ -31,6 +31,7 @@ import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.query.command.Table;
 import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
 
 public class TableParserTest {
@@ -152,6 +153,7 @@ public class TableParserTest {
 		LogParserFactoryRegistry mockParserFactoryRegistry = mock(LogParserFactoryRegistry.class);
 		LogParserRegistry mockParserRegistry = mock(LogParserRegistry.class);
 
+		when(mockStorage.getStatus()).thenReturn(LogStorageStatus.Open);
 		when(mockTableRegistry.exists("iis")).thenReturn(true);
 		when(mockTableRegistry.exists("xtm")).thenReturn(true);
 		when(mockTableRegistry.getTableMetadata("iis", "logparser")).thenReturn(null);

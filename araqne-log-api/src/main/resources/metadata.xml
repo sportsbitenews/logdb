@@ -21,4 +21,5 @@
 	<instance component="chain-parser-factory" />
 	<instance component="field-mapping-parser-factory" />
 	<instance component="tag-parser-factory" />
+	<instance component="rolling-log-writer-factory" />
 </ipojo>

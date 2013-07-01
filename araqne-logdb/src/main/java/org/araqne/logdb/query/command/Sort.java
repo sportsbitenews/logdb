@@ -84,7 +84,7 @@ public class Sort extends LogQueryCommand {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void eof() {
+	public void eof(boolean canceled) {
 		this.status = Status.Finalizing;
 		// TODO: use LONG instead!
 		int count = limit != null ? limit : Integer.MAX_VALUE;
@@ -116,7 +116,7 @@ public class Sort extends LogQueryCommand {
 		// support sorter cache GC when query processing is ended
 		sorter = null;
 
-		super.eof();
+		super.eof(false);
 	}
 
 	private class DefaultComparator implements Comparator<Item> {

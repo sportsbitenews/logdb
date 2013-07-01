@@ -679,7 +679,7 @@ public class CometClient implements TrapListener {
 			throw new MessageException("query-not-found", "query [" + id + "] does not exist", null);
 	}
 
-	public void close() {
+	public void close() throws IOException {
 		if (session != null)
 			session.close();
 	}
@@ -710,6 +710,9 @@ public class CometClient implements TrapListener {
 
 	@Override
 	public void onClose(Throwable t) {
-		close();
+		try {
+			close();
+		} catch (IOException e) {
+		}
 	}
 }

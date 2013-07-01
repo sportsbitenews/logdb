@@ -52,6 +52,6 @@ public interface LogDbSession {
 
 	void removeListener(TrapListener listener);
 
-	void close();
+	void close() throws IOException;
 
 }
