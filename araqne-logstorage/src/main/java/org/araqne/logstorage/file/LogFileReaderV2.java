@@ -224,11 +224,7 @@ public class LogFileReaderV2 extends LogFileReader {
 			throws IOException, InterruptedException {
 		for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
 			IndexBlockHeader index = indexBlockHeaders.get(i);
-			if (index.logCount <= offset) {
-				offset -= index.logCount; // FIXME : offset bug??
-				continue;
-			}
-			
+
 			if ((maxId >=0 && index.firstId > maxId) || (minId >=0 && index.firstId + index.logCount <= minId) )
 				continue;
 
