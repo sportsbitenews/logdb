@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.msgbus;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -30,7 +31,6 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
-import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCallback;
 import org.araqne.logdb.LogQueryContext;
@@ -46,7 +46,6 @@ import org.araqne.msgbus.PushApi;
 import org.araqne.msgbus.Request;
 import org.araqne.msgbus.Response;
 import org.araqne.msgbus.Session;
-import org.araqne.msgbus.handler.CallbackType;
 import org.araqne.msgbus.handler.MsgbusMethod;
 import org.araqne.msgbus.handler.MsgbusPlugin;
 import org.slf4j.Logger;
@@ -68,9 +67,6 @@ public class LogQueryPlugin {
 
 	@Requires
 	private PushApi pushApi;
-
-	@Requires
-	private AccountService accountService;
 
 	@MsgbusMethod
 	public void logs(Request req, Response resp) {
@@ -204,14 +200,22 @@ public class LogQueryPlugin {
 	}
 
 	private byte[] compress(byte[] b) throws IOException {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream(b.length);
 		Deflater c = new Deflater();
 		try {
 			c.reset();
 			c.setInput(b);
 			c.finish();
-			ByteBuffer compressed = ByteBuffer.allocate(b.length);
-			int compressedSize = c.deflate(compressed.array());
-			return Arrays.copyOf(compressed.array(), compressedSize);
+			byte[] compressed = new byte[b.length];
+
+			while (true) {
+				int compressedSize = c.deflate(compressed);
+				if (compressedSize == 0)
+					break;
+				bos.write(compressed, 0, compressedSize);
+			}
+
+			return bos.toByteArray();
 		} finally {
 			c.end();
 		}
