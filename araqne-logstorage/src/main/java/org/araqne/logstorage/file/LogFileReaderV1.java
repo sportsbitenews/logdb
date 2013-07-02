@@ -132,6 +132,17 @@ public class LogFileReaderV1 extends LogFileReader {
 	@Override
 	public void traverse(Date from, Date to, long offset, long limit, LogMatchCallback callback) throws IOException,
 			InterruptedException {
+		traverse(from, to, -1, offset, limit, callback);
+	}
+	
+	@Override
+	public void traverse(Date from, Date to, long minId, long offset, long limit, LogMatchCallback callback) throws IOException, InterruptedException {
+		traverse(from, to, minId, -1, offset, limit, callback, false);
+	}
+
+	@Override
+	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback, boolean doParallel) throws IOException,
+			InterruptedException {
 		int matched = 0;
 
 		int block = blockHeaders.size() - 1;
@@ -142,6 +153,7 @@ public class LogFileReaderV1 extends LogFileReader {
 			blockLogNum = (indexFile.length() - (header.fp + 18)) / INDEX_ITEM_SIZE;
 
 		// block validate
+		// TODO : block skipping by id
 		while ((from != null && header.endTime != 0L && header.endTime < from.getTime())
 				|| (to != null && header.startTime > to.getTime())) {
 			if (--block < 0)
@@ -189,8 +201,7 @@ public class LogFileReaderV1 extends LogFileReader {
 
 			ByteBuffer bb = ByteBuffer.wrap(data, 0, dataLen);
 			LogRecord record = new LogRecord(dataDate, dataId, bb);
-			if (callback.match(record)) {
-				callback.onLog(LogMarshaler.convert(tableName, record));
+			if (callback.match(record) && callback.onLog(LogMarshaler.convert(tableName, record))) {
 				if (++matched == offset + limit)
 					return;
 			}

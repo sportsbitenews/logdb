@@ -764,7 +764,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			if (limit != 0 && needed <= 0)
 				break;
 
-			found += searchTablet(tableName, day, from, to, offset, needed, new TraverseCallback(from, to, callback));
+			found += searchTablet(tableName, day, from, to, -1, -1, offset, needed, new TraverseCallback(from, to, callback), false);
 
 			if (offset > 0) {
 				if (found > offset) {
@@ -779,16 +779,27 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 
 		return found;
 	}
-
+	
 	@Override
-	public long searchTablet(String tableName, Date day, Date from, Date to, long offset, long limit,
-			LogMatchCallback c) throws InterruptedException {
+	public long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogMatchCallback c, boolean doParallel) throws InterruptedException {
+		return searchTablet(tableName, day, from, to, minId, -1, 0, 0, c, doParallel);
+	}
+	
+	@Override
+	public long searchTablet(String tableName, Date day, long minId, long maxId, LogMatchCallback c, boolean doParallel) throws InterruptedException {
+		return searchTablet(tableName, day, null, null, minId, maxId, 0, 0, c, doParallel);
+	}
+	
+	private long searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId, long offset, long limit,
+			LogMatchCallback c, boolean doParallel) throws InterruptedException {
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
 		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
 		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
 		LogFileReader reader = null;
+		
+		long onlineMinId = -1;
 
 		try {
 			// do NOT use getOnlineWriter() here (it loads empty writer on cache
@@ -802,14 +813,17 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 					ListIterator<Log> li = buffer.listIterator(buffer.size());
 					while (li.hasPrevious()) {
 						Log logData = li.previous();
-						if ((from == null || logData.getDate().after(from)) && (to == null || logData.getDate().before(to))) {
+						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
+								&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
 							if (offset > 0) {
 								offset--;
 								continue;
 							}
 
-							if (c.match(convert(logData))) {
-								c.onLog(logData);
+							if (c.match(convert(logData)) && c.onLog(logData)) {
+								if (onlineMinId < 0 || logData.getId() < onlineMinId)
+									onlineMinId = logData.getId();
+								
 								if (--limit == 0)
 									return c.getMatchedCount();
 							}
@@ -823,7 +837,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				logFileType = "v2";
 
 			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
-			reader.traverse(from, to, offset, limit, c);
+			long flushedMaxId = (onlineMinId > 0)? onlineMinId - 1: maxId;
+			if (minId < 0 || flushedMaxId < 0 || flushedMaxId >= minId)
+				reader.traverse(from, to, minId, flushedMaxId, offset, limit, c, doParallel);
 		} catch (InterruptedException e) {
 			throw e;
 		} catch (Exception e) {
@@ -855,7 +871,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		}
 		
 		@Override
-		public void onLog(Log log) throws InterruptedException {
+		public boolean onLog(Log log) throws InterruptedException {
 			if (callback.isInterrupted())
 				throw new InterruptedException("interrupted log traverse");
 
@@ -865,7 +881,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				logger.debug("araqne logdb: traverse log [{}]", log);
 				callback.onLog(log);
 
-				return;
+				return true;
 			} catch (Exception e) {
 				if (callback.isInterrupted())
 					throw new InterruptedException("interrupted log traverse");
