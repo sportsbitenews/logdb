@@ -53,7 +53,11 @@ public class LoggerPlugin {
 
 	@MsgbusMethod
 	public void getLoggerFactories(Request req, Response resp) {
+		String s = req.getString("locale");
 		Locale locale = req.getSession().getLocale();
+		if (s != null)
+			locale = new Locale(s);
+
 		resp.put("factories", Marshaler.marshal(loggerFactoryRegistry.getLoggerFactories(), locale));
 	}
 
