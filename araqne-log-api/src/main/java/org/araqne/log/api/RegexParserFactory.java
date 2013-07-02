@@ -44,7 +44,7 @@ public class RegexParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "정규표현식";
 		return "Regex";
 	}
@@ -56,7 +56,7 @@ public class RegexParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "정규표현식을 이용하여 로그를 파싱합니다.";
 		return "parse log using regular expression";
 	}

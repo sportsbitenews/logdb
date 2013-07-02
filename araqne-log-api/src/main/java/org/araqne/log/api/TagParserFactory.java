@@ -40,7 +40,7 @@ public class TagParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "태그";
 		return "tag";
 	}
@@ -52,7 +52,7 @@ public class TagParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "지정된 태그를 추가합니다.";
 		return "add specified tags";
 	}

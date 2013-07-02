@@ -36,7 +36,7 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "디렉터리 와처";
 		return "Directory watcher";
 	}
@@ -48,7 +48,7 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "지정된 디렉터리에서 파일이름 패턴과 일치하는 모든 텍스트 로그 파일을 수집합니다.";
 		return "collect all text log files in specified directory";
 	}
@@ -73,7 +73,8 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				"date format to parse date and time strings. e.g. yyyy-MM-dd HH:mm:ss",
 				"날짜 및 시각 문자열을 파싱하는데 사용할 포맷. 예) yyyy-MM-dd HH:mm:ss"), false);
 
-		LoggerConfigOption dateLocale = new StringConfigType("date_locale", t("Date locale", "날짜 로케일"), t("date locale, e.g. en", "날짜 로케일, 예를 들면 ko"), false);
+		LoggerConfigOption dateLocale = new StringConfigType("date_locale", t("Date locale", "날짜 로케일"), t("date locale, e.g. en",
+				"날짜 로케일, 예를 들면 ko"), false);
 
 		LoggerConfigOption newlogRegex = new StringConfigType("newlog_designator",
 				t("New log designator (Regex)", "로그 구분 정규식"),

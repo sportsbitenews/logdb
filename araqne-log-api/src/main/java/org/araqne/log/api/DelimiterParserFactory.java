@@ -47,7 +47,7 @@ public class DelimiterParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "구분자";
 		return "delimiter";
 	}
@@ -59,7 +59,7 @@ public class DelimiterParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "구분자로 구분된 각 토큰에 대하여 설정된 필드 이름들을 순서대로 적용하여 파싱합니다.";
 		return "devide a string into tokens based on the given delimiter and column names";
 	}

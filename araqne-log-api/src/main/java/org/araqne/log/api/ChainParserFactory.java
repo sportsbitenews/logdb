@@ -46,7 +46,7 @@ public class ChainParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "파서 체인";
 		return "parser chain";
 	}
@@ -58,7 +58,7 @@ public class ChainParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "여러개 파서를 조합하여 만든 체인을 이용하여 파싱합니다.";
 		return "parse log using mutli parser chain";
 	}

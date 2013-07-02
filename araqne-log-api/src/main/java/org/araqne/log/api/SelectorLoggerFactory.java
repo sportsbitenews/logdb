@@ -41,7 +41,7 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "선택자";
 		return "selector";
 	}
@@ -53,7 +53,7 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale == Locale.KOREAN)
+		if (locale.equals(Locale.KOREAN))
 			return "다른 로거로부터 패턴 매칭되는 특정 로그들만 수집합니다.";
 		return "select logs from logger using text matching";
 	}

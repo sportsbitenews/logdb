@@ -53,8 +53,8 @@ public class LoggerPlugin {
 
 	@MsgbusMethod
 	public void getLoggerFactories(Request req, Response resp) {
-		String s = req.getString("locale");
 		Locale locale = req.getSession().getLocale();
+		String s = req.getString("locale");
 		if (s != null)
 			locale = new Locale(s);
 
@@ -64,6 +64,10 @@ public class LoggerPlugin {
 	@MsgbusMethod
 	public void getParserFactories(Request req, Response resp) {
 		Locale locale = req.getSession().getLocale();
+		String s = req.getString("locale");
+		if (s != null)
+			locale = new Locale(s);
+		
 		List<Object> l = new ArrayList<Object>();
 
 		for (String name : parserFactoryRegistry.getNames()) {
@@ -98,6 +102,10 @@ public class LoggerPlugin {
 	public void getFactoryOptions(Request req, Response resp) {
 		String loggerFactoryName = req.getString("factory");
 		Locale locale = req.getSession().getLocale();
+		String s = req.getString("locale");
+		if (s != null)
+			locale = new Locale(s);
+
 		LoggerFactory loggerFactory = loggerFactoryRegistry.getLoggerFactory(loggerFactoryName);
 		resp.put("options", Marshaler.marshal(loggerFactory.getConfigOptions(), locale));
 	}
