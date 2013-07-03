@@ -562,10 +562,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		File idxFile = new File(dir, fileName + ".idx");
 		File datFile = new File(dir, fileName + ".dat");
 
-		logger.debug("araqne logstorage: try to purge log data of table [{}], day [{}]", tableName, fileName);
-		ensureDelete(idxFile);
-		ensureDelete(datFile);
-
 		for (LogStorageEventListener listener : listeners) {
 			try {
 				listener.onPurge(tableName, day);
@@ -573,6 +569,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 				logger.error("araqne logstorage: storage event listener should not throw any exception", t);
 			}
 		}
+		
+		logger.debug("araqne logstorage: try to purge log data of table [{}], day [{}]", tableName, fileName);
+		ensureDelete(idxFile);
+		ensureDelete(datFile);
 	}
 
 	@Override
