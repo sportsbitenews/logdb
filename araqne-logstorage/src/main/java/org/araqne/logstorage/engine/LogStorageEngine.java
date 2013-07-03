@@ -764,7 +764,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			if (limit != 0 && needed <= 0)
 				break;
 
-			found += searchTablet(tableName, day, from, to, -1, -1, offset, needed, new TraverseCallback(from, to, callback), false);
+			found += searchTablet(tableName, day, from, to, -1, -1, offset, needed, new TraverseCallback(from, to, callback), true);
 
 			if (offset > 0) {
 				if (found > offset) {
