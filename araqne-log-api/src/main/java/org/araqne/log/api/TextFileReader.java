@@ -30,24 +30,33 @@ public class TextFileReader {
 	private int buflen = 0;
 	private long readBytes;
 	private boolean closed;
+	private final boolean needLastNewLine;
 
 	public TextFileReader(File file, long offset, String charsetName) throws IOException {
+		this(file, offset, charsetName, false);
+	}
+
+	public TextFileReader(File file, long offset, String charsetName, boolean needLastNewLine) throws IOException {
 		this.charsetName = charsetName;
 		this.fis = new FileInputStream(file);
 		this.fis.skip(offset);
 		this.readBytes += offset;
+		this.needLastNewLine = needLastNewLine;
 	}
 
 	public String readLine() throws IOException {
 		if (closed)
 			throw new IOException("Already closed");
 
+		long bytes = 0;
 		bos.reset();
 		String line = null;
 		boolean lineEnd = false;
 		while (!lineEnd) {
 			if (buflen < 0) {
 				if (bos.size() == 0)
+					return null;
+				else if (needLastNewLine)
 					return null;
 				else
 					return bos.toString(charsetName);
@@ -66,7 +75,7 @@ public class TextFileReader {
 				int begin = bufpos;
 				while (bufpos < buflen) {
 					byte b = buf[bufpos++];
-					readBytes++;
+					bytes++;
 					if (b == 0xa) {
 						found = true;
 						break;
@@ -79,11 +88,20 @@ public class TextFileReader {
 					break;
 			}
 
-			if (bos.size() == 0)
+			if (bos.size() == 0) {
+				if (!needLastNewLine) {
+					readBytes += bytes;
+					bytes = 0;
+				}
 				return null;
+			}
 
 			line = bos.toString(charsetName);
 			lineEnd = line.endsWith("\n");
+			if (lineEnd || !needLastNewLine) {
+				readBytes += bytes;
+				bytes = 0;
+			}
 		}
 
 		int len = line.length();
