@@ -122,8 +122,8 @@ public interface LogStorage {
 
 	/**
 	 * 
-	 * @since 2.0.2
+	 * @since 2.0.3
 	 */
-	long searchTablet(String tableName, Date day, Date from, Date to, long offset, long limit, LogMatchCallback c)
-			throws InterruptedException;
+	long searchTablet(String tableName, Date day, long minId, long maxId, LogMatchCallback c, boolean doParallel) throws InterruptedException;
+	long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogMatchCallback c, boolean doParallel) throws InterruptedException;
 }

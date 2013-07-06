@@ -19,6 +19,6 @@ import org.araqne.logstorage.file.LogRecord;
 
 public interface LogMatchCallback {
 	boolean match(LogRecord record);
-	void onLog(Log log) throws InterruptedException;
+	boolean onLog(Log log) throws InterruptedException;
 	long getMatchedCount();
 }
