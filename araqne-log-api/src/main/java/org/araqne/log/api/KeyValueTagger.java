@@ -19,9 +19,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class KeyValueTagger implements LogTransformer {
+	private LogTransformerFactory factory;
 	private Map<String, String> tagMap = new HashMap<String, String>();
 
-	public KeyValueTagger(Map<String, String> config) {
+	public KeyValueTagger(LogTransformerFactory factory, Map<String, String> config) {
+		this.factory = factory;
 		String tags = config.get("tags");
 		for (String tag : tags.split(",")) {
 			int p = tag.indexOf("=");
@@ -29,6 +31,11 @@ public class KeyValueTagger implements LogTransformer {
 			String value = tag.substring(p + 1).trim();
 			tagMap.put(key, value);
 		}
+	}
+
+	@Override
+	public LogTransformerFactory getTransformerFactory() {
+		return factory;
 	}
 
 	@Override

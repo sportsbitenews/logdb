@@ -26,4 +26,8 @@ public interface LogTransformerFactoryRegistry {
 
 	LogTransformerFactory getFactory(String name);
 
+	void addListener(LogTransformerFactoryRegistryEventListener listener);
+
+	void removeListener(LogTransformerFactoryRegistryEventListener listener);
+
 }

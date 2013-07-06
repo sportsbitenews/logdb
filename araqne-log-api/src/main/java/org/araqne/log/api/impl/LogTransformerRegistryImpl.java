@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -33,12 +34,17 @@ import org.araqne.confdb.Predicates;
 import org.araqne.log.api.LogTransformer;
 import org.araqne.log.api.LogTransformerFactory;
 import org.araqne.log.api.LogTransformerFactoryRegistry;
+import org.araqne.log.api.LogTransformerFactoryRegistryEventListener;
 import org.araqne.log.api.LogTransformerProfile;
 import org.araqne.log.api.LogTransformerRegistry;
+import org.araqne.log.api.LogTransformerRegistryEventListener;
+import org.araqne.log.api.Logger;
+import org.araqne.log.api.LoggerRegistry;
 
 @Component(name = "log-transformer-registry")
 @Provides
 public class LogTransformerRegistryImpl implements LogTransformerRegistry {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(LogTransformerRegistryImpl.class);
 
 	@Requires
 	private ConfigService conf;
@@ -46,42 +52,63 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 	@Requires
 	private LogTransformerFactoryRegistry factoryRegistry;
 
-	private ConcurrentMap<String, LogTransformerProfile> profiles;
+	@Requires
+	private LoggerRegistry loggerRegistry;
+
+	private ConcurrentMap<String, ProfileStatus> profileStatuses;
+
+	private CopyOnWriteArraySet<LogTransformerRegistryEventListener> listeners;
+
+	private ProfileUpdater updater = new ProfileUpdater();
 
 	@Validate
 	public void start() {
-		profiles = new ConcurrentHashMap<String, LogTransformerProfile>();
+		listeners = new CopyOnWriteArraySet<LogTransformerRegistryEventListener>();
+		profileStatuses = new ConcurrentHashMap<String, ProfileStatus>();
 
 		ConfigDatabase db = conf.ensureDatabase("araqne-log-api");
 		ConfigIterator it = db.find(LogTransformerProfile.class, null);
 
 		for (LogTransformerProfile p : it.getDocuments(LogTransformerProfile.class)) {
-			profiles.put(p.getName(), p);
+			loadProfile(p);
 		}
+
+		factoryRegistry.addListener(updater);
 	}
 
 	@Invalidate
 	public void stop() {
-		profiles.clear();
+		if (factoryRegistry != null)
+			factoryRegistry.removeListener(updater);
+
+		listeners.clear();
+		profileStatuses.clear();
 	}
 
 	@Override
 	public List<LogTransformerProfile> getProfiles() {
-		return new ArrayList<LogTransformerProfile>(profiles.values());
+		ArrayList<LogTransformerProfile> profiles = new ArrayList<LogTransformerProfile>();
+		for (ProfileStatus status : profileStatuses.values()) {
+			if (status.valid)
+				profiles.add(status.profile);
+		}
+
+		return profiles;
 	}
 
 	@Override
 	public LogTransformerProfile getProfile(String name) {
 		if (name == null)
 			return null;
-		return profiles.get(name);
+		ProfileStatus s = profileStatuses.get(name);
+		if (s == null)
+			return null;
+		return s.valid ? s.profile : null;
 	}
 
 	@Override
 	public void createProfile(LogTransformerProfile profile) {
-		LogTransformerProfile old = profiles.putIfAbsent(profile.getName(), profile);
-		if (old != null)
-			throw new IllegalStateException("duplicated transformer profile: " + profile.getName());
+		loadProfile(profile);
 
 		ConfigDatabase db = conf.ensureDatabase("araqne-log-api");
 		db.add(profile);
@@ -94,21 +121,124 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 		if (c != null)
 			c.remove();
 
-		LogTransformerProfile old = profiles.remove(name);
+		unloadProfile(name);
+	}
+
+	private void loadProfile(LogTransformerProfile profile) {
+		boolean valid = factoryRegistry.getFactory(profile.getFactoryName()) != null;
+		ProfileStatus status = new ProfileStatus(profile, valid);
+		ProfileStatus old = profileStatuses.putIfAbsent(profile.getName(), status);
+		if (old != null)
+			throw new IllegalStateException("duplicated transformer profile: " + profile.getName());
+
+		setTransformers(profile);
+
+		for (LogTransformerRegistryEventListener listener : listeners) {
+			try {
+				listener.profileAdded(profile);
+			} catch (Throwable t) {
+				slog.warn("araqne log api: transformer registry listener should not throw any exception", t);
+			}
+		}
+	}
+
+	private void setTransformers(LogTransformerProfile profile) {
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			String transformerName = logger.getConfig().get("transformer");
+			if (profile.getName().equals(transformerName)) {
+				try {
+					LogTransformer transformer = newTransformer(transformerName);
+					logger.setTransformer(transformer);
+				} catch (Throwable t) {
+					slog.error("araqne log api: cannot start pending logger, " + logger.getFullName(), t);
+				}
+			}
+		}
+	}
+
+	private void unloadProfile(String name) {
+		ProfileStatus old = profileStatuses.remove(name);
 		if (old == null)
 			throw new IllegalStateException("transformer profile not found: " + name);
+
+		// unset transformer and stop loggers
+		unsetTransformers(name);
+
+		for (LogTransformerRegistryEventListener listener : listeners) {
+			try {
+				listener.profileRemoved(old.profile);
+			} catch (Throwable t) {
+				slog.warn("araqne log api: transformer registry listener should not throw any exception", t);
+			}
+		}
+	}
+
+	private void unsetTransformers(String name) {
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			String transformerName = logger.getConfig().get("transformer");
+			if (transformerName != null && transformerName.equals(name)) {
+				logger.setTransformer(null);
+			}
+		}
 	}
 
 	@Override
 	public LogTransformer newTransformer(String name) {
-		LogTransformerProfile profile = profiles.get(name);
-		if (profile == null)
+		ProfileStatus status = profileStatuses.get(name);
+		if (status == null)
 			throw new IllegalStateException("transformer profile not found: " + name);
 
+		LogTransformerProfile profile = status.profile;
 		LogTransformerFactory factory = factoryRegistry.getFactory(profile.getFactoryName());
 		if (factory == null)
 			throw new IllegalStateException("transformer factory not found: " + profile.getFactoryName());
 
 		return factory.newTransformer(profile.getConfigs());
+	}
+
+	@Override
+	public void addListener(LogTransformerRegistryEventListener listener) {
+		listeners.add(listener);
+	}
+
+	@Override
+	public void removeListener(LogTransformerRegistryEventListener listener) {
+		listeners.remove(listener);
+	}
+
+	private class ProfileUpdater implements LogTransformerFactoryRegistryEventListener {
+
+		@Override
+		public void factoryAdded(LogTransformerFactory factory) {
+			slog.debug("araqne log api: transformer factory [{}] added", factory.getName());
+			for (ProfileStatus s : profileStatuses.values()) {
+				if (s.profile.getFactoryName().equals(factory.getName())) {
+					slog.debug("araqne log api: validating transformer profile [{}]", s.profile.getName());
+					s.valid = true;
+					setTransformers(s.profile);
+				}
+			}
+		}
+
+		@Override
+		public void factoryRemoved(LogTransformerFactory factory) {
+			for (ProfileStatus s : profileStatuses.values()) {
+				if (s.profile.getFactoryName().equals(factory.getName())) {
+					slog.debug("araqne log api: invalidating transformer profile [{}]", s.profile.getName());
+					s.valid = false;
+					unsetTransformers(s.profile.getName());
+				}
+			}
+		}
+	}
+
+	private static class ProfileStatus {
+		public LogTransformerProfile profile;
+		public boolean valid;
+
+		public ProfileStatus(LogTransformerProfile profile, boolean valid) {
+			this.profile = profile;
+			this.valid = valid;
+		}
 	}
 }

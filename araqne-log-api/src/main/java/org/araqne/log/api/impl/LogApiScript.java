@@ -512,10 +512,13 @@ public class LogApiScript implements Script {
 		} catch (NumberFormatException e) {
 			context.println("interval should be number in milliseconds");
 		} catch (IllegalStateException e) {
-			context.println(e.getMessage());
+			if (e.getMessage().contains("pending"))
+				context.println("cannot start logger, " + e.getMessage());
+			else
+				context.println(e.getMessage());
 		}
 	}
-	
+
 	public void startLoggers(String[] args) {
 		int interval = 60000;
 		int loggerCnt = args.length;
@@ -525,7 +528,7 @@ public class LogApiScript implements Script {
 		} catch (NumberFormatException e) {
 			// ignore
 		}
-		
+
 		for (int i = 0; i < loggerCnt; ++i) {
 			try {
 				Logger logger = loggerRegistry.getLogger(args[i]);
@@ -571,7 +574,7 @@ public class LogApiScript implements Script {
 			context.println(e.getMessage());
 		}
 	}
-	
+
 	public void stopLoggers(String[] args) {
 		int maxWaitTime = 5000;
 		int loggerCnt = args.length;
@@ -581,7 +584,7 @@ public class LogApiScript implements Script {
 		} catch (NumberFormatException e) {
 			// ignore
 		}
-		
+
 		for (int i = 0; i < loggerCnt; ++i) {
 			Logger logger = loggerRegistry.getLogger(args[i]);
 			if (logger == null) {
@@ -626,7 +629,13 @@ public class LogApiScript implements Script {
 			if (!transformerName.isEmpty())
 				config.put("transformer", transformerName);
 
-			Logger logger = loggerFactory.newLogger(loggerNamespace, loggerName, description, config);
+			LoggerSpecification spec = new LoggerSpecification();
+			spec.setNamespace(loggerNamespace);
+			spec.setName(loggerName);
+			spec.setDescription(description);
+			spec.setConfig(config);
+
+			Logger logger = loggerFactory.newLogger(spec);
 			if (logger == null) {
 				context.println("failed to create logger");
 				return;

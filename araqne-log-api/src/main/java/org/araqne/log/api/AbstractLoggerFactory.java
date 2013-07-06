@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -45,7 +44,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 
 	private BundleContext bc;
 	private boolean started;
-	private DbSync sync = new DbSync();;
+	private DbSync sync = new DbSync();
 
 	public AbstractLoggerFactory() {
 		this("local");
@@ -109,16 +108,21 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		}
 
 		try {
-			Logger newLogger = handleNewLogger(config.getNamespace(), config.getName(), config.getDescription(),
-					config.getCount(), config.getLastLogDate(), config.getConfigs(), true);
+			LoggerSpecification spec = new LoggerSpecification(config.getNamespace(), config.getName(), config.getDescription(),
+					config.getCount(), config.getLastLogDate(), config.getInterval(), config.getConfigs());
+
+			Logger newLogger = handleNewLogger(spec, true);
+			if (config.isPending())
+				newLogger.setPending(true);
+
 			newLogger.setPassive(config.isPassive());
 			slog.info("araqne log api: logger [{}] is loaded", config.getFullname());
-			if (config.isRunning() && config.getInterval() != -1) {
+			if (config.isRunning() && !newLogger.isPending()) {
 				newLogger.start(config.getInterval());
 				slog.info("araqne log api: logger [{}] started with interval {}ms", config.getFullname(), config.getInterval());
 			}
 		} catch (Exception e) {
-			slog.error(String.format("araqne log api: cannot load logger %s, saved config deleted.", config.getFullname()), e);
+			slog.error(String.format("araqne log api: cannot load logger %s", config.getFullname()), e);
 		}
 	}
 
@@ -178,30 +182,33 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 	}
 
 	@Override
-	public final Logger newLogger(String name, String description, Map<String, String> config) {
-		return newLogger("local", name, description, config);
+	public Logger newLogger(LoggerSpecification spec) {
+		return handleNewLogger(spec, false);
 	}
 
-	@Override
-	public final Logger newLogger(String namespace, String name, String description, Map<String, String> config) {
-		return newLogger(namespace, name, description, 0, null, config);
-	}
+	private Logger handleNewLogger(LoggerSpecification spec, boolean booting) {
+		Map<String, String> config = spec.getConfig();
+		Logger logger = createLogger(spec);
 
-	@Override
-	public Logger newLogger(String namespace, String name, String description, long logCount, Date lastLogDate,
-			Map<String, String> config) {
-		return handleNewLogger(namespace, name, description, logCount, lastLogDate, config, false);
-	}
+		// try to set log transformer
+		if (config.containsKey("transformer")) {
+			String transformerName = config.get("transformer");
+			LogTransformerRegistry transformerRegistry = getTransformerRegistry();
+			LogTransformer transformer = null;
+			if (transformerName != null) {
+				if (transformerRegistry.getProfile(transformerName) != null) {
+					transformer = transformerRegistry.newTransformer(transformerName);
+					logger.setTransformer(transformer);
+				}
+			}
+		}
 
-	private Logger handleNewLogger(String namespace, String name, String description, long logCount, Date lastLogDate,
-			Map<String, String> config, boolean booting) {
-		Logger logger = createLogger(new LoggerSpecification(namespace, name, description, logCount, lastLogDate, config));
 		loggers.put(logger.getFullName(), logger);
 
 		// add listener, save config, and register logger
 		logger.addEventListener(sync);
 		if (!booting)
-			saveLoggerConfig(logger, config);
+			saveLoggerConfig(logger, spec.getConfig());
 
 		LoggerRegistry loggerRegistry = getLoggerRegistry();
 		loggerRegistry.addLogger(logger);
@@ -210,19 +217,6 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			callback.loggerCreated(this, logger, config);
 		}
 
-		// add log transformer
-		if (config.containsKey("transformer")) {
-			String transformerName = config.get("transformer");
-			LogTransformerRegistry transformerRegistry = getTransformerRegistry();
-			LogTransformer transformer = null;
-			if (transformerName != null && transformerRegistry != null)
-				transformer = transformerRegistry.newTransformer(transformerName);
-
-			if (transformer != null)
-				logger.setTransformer(transformer);
-			else
-				slog.warn("araqne log api: logger [{}]'s transformer [{}] is not loaded", logger.getFullName(), transformerName);
-		}
 		return logger;
 	}
 
@@ -234,7 +228,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 	@Override
 	public void deleteLogger(String namespace, String name) {
 		String fullName = namespace + "\\" + name;
-		Logger logger = loggers.get(fullName);
+		Logger logger = loggers.remove(fullName);
 		if (logger == null)
 			throw new IllegalStateException("logger not found: " + fullName);
 
@@ -317,6 +311,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 
 			LoggerConfig model = c.getDocument(LoggerConfig.class);
 			model.setRunning(true);
+			model.setPending(logger.isPending());
 			model.setInterval(logger.getInterval());
 			db.update(c, model);
 
@@ -339,6 +334,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 				slog.trace("araqne log api: [{}] stopped state saved", logger.getFullName());
 				model.setRunning(false);
 			}
+			model.setPending(logger.isPending());
 			model.setCount(logger.getLogCount());
 			model.setLastLogDate(logger.getLastLogDate());
 			db.update(c, model);

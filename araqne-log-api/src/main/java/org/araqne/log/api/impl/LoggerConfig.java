@@ -33,6 +33,7 @@ public class LoggerConfig {
 	private String description;
 	private boolean isPassive;
 	private boolean isRunning;
+	private boolean isPending;
 	private int interval;
 
 	@FieldOption(skip = true)
@@ -55,6 +56,7 @@ public class LoggerConfig {
 		this.description = logger.getDescription();
 		this.isPassive = logger.isPassive();
 		this.isRunning = logger.isRunning();
+		this.isPending = logger.isPending();
 		this.interval = logger.getInterval();
 		this.count = logger.getLogCount();
 		this.lastLogDate = logger.getLastLogDate();
@@ -122,6 +124,14 @@ public class LoggerConfig {
 
 	public void setRunning(boolean isRunning) {
 		this.isRunning = isRunning;
+	}
+
+	public boolean isPending() {
+		return isPending;
+	}
+
+	public void setPending(boolean isPending) {
+		this.isPending = isPending;
 	}
 
 	public int getInterval() {

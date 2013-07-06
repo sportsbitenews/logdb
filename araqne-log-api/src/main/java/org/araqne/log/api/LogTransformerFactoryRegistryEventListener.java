@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 NCHOVY
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,19 +15,8 @@
  */
 package org.araqne.log.api;
 
-import java.util.Collection;
+public interface LogTransformerFactoryRegistryEventListener {
+	void factoryAdded(LogTransformerFactory factory);
 
-public interface LoggerFactoryRegistry {
-
-	Collection<LoggerFactory> getLoggerFactories();
-
-	LoggerFactory getLoggerFactory(String name);
-
-	LoggerFactory getLoggerFactory(String namespace, String name);
-
-	Logger newLogger(String factoryName, LoggerSpecification spec);
-
-	void addListener(LoggerFactoryRegistryEventListener callback);
-
-	void removeListener(LoggerFactoryRegistryEventListener callback);
+	void factoryRemoved(LogTransformerFactory factory);
 }

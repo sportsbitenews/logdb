@@ -46,6 +46,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private volatile LoggerStatus status = LoggerStatus.Stopped;
 	private volatile boolean doStop = false;
 	private volatile boolean stopped = true;
+	private volatile boolean pending = false;
 
 	private volatile Date lastStartDate;
 	private volatile Date lastRunDate;
@@ -61,34 +62,42 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	public AbstractLogger(LoggerSpecification spec, LoggerFactory factory) {
 		this(spec.getNamespace(), spec.getName(), spec.getDescription(), factory, spec.getLogCount(), spec.getLastLogDate(), spec
 				.getConfig());
+		this.interval = spec.getInterval();
 	}
 
+	@Deprecated
 	public AbstractLogger(String name, String description, LoggerFactory loggerFactory) {
 		this(name, description, loggerFactory, new HashMap<String, String>());
 	}
 
+	@Deprecated
 	public AbstractLogger(String name, String description, LoggerFactory loggerFactory, Map<String, String> config) {
 		this("local", name, loggerFactory.getNamespace(), loggerFactory.getName(), description, config);
 	}
 
+	@Deprecated
 	public AbstractLogger(String namespace, String name, String description, LoggerFactory loggerFactory) {
 		this(namespace, name, description, loggerFactory, new HashMap<String, String>());
 	}
 
+	@Deprecated
 	public AbstractLogger(String namespace, String name, String description, LoggerFactory loggerFactory,
 			Map<String, String> config) {
 		this(namespace, name, loggerFactory.getNamespace(), loggerFactory.getName(), description, config);
 	}
 
+	@Deprecated
 	public AbstractLogger(String namespace, String name, String description, LoggerFactory loggerFactory, long logCount,
 			Date lastLogDate, Map<String, String> config) {
 		this(namespace, name, loggerFactory.getNamespace(), loggerFactory.getName(), description, logCount, lastLogDate, config);
 	}
 
+	@Deprecated
 	public AbstractLogger(String namespace, String name, String factoryNamespace, String factoryName, Map<String, String> config) {
 		this(namespace, name, factoryNamespace, factoryName, "", config);
 	}
 
+	@Deprecated
 	public AbstractLogger(String namespace, String name, String factoryNamespace, String factoryName, String description,
 			Map<String, String> config) {
 		this(namespace, name, factoryNamespace, factoryName, description, 0, null, config);
@@ -190,6 +199,15 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		return !stopped;
 	}
 
+	public boolean isPending() {
+		return pending;
+	}
+
+	@Override
+	public void setPending(boolean pending) {
+		this.pending = pending;
+	}
+
 	@Override
 	public LoggerStatus getStatus() {
 		return status;
@@ -200,17 +218,28 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		return interval;
 	}
 
+	/**
+	 * start passive logger
+	 */
 	@Override
-	public void start() { // Passive
+	public void start() {
+		verifyTransformer();
+
 		if (!isPassive())
 			throw new IllegalStateException("not passive mode. use start(interval)");
 
+		pending = false;
 		stopped = false;
 		invokeStartCallback();
 	}
 
+	/**
+	 * start active logger
+	 */
 	@Override
-	public void start(int interval) { // Active
+	public void start(int interval) {
+		verifyTransformer();
+
 		if (isPassive()) {
 			start();
 			return;
@@ -232,7 +261,13 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			getExecutor().execute(this);
 		}
 
+		pending = false;
 		invokeStartCallback();
+	}
+
+	private void verifyTransformer() {
+		if (config.get("transformer") != null && transformer == null)
+			throw new IllegalStateException("pending transformer");
 	}
 
 	protected ExecutorService getExecutor() {
@@ -256,9 +291,14 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 	@Override
 	public void stop() {
+		stop(false);
+	}
+
+	private void stop(boolean pending) {
 		if (isPassive()) {
 			stopped = true;
 			status = LoggerStatus.Stopped;
+			this.pending = pending;
 			invokeStopCallback();
 		} else
 			stop(INFINITE);
@@ -266,8 +306,12 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 	@Override
 	public void stop(int maxWaitTime) {
+		stop(maxWaitTime, false);
+	}
+
+	private void stop(int maxWaitTime, boolean pending) {
 		if (isPassive()) {
-			stop();
+			stop(pending);
 			return;
 		}
 
@@ -295,23 +339,26 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 					Thread.sleep(50);
 				}
+
+				status = LoggerStatus.Stopped;
+				stopped = true;
 			} catch (InterruptedException e) {
 			}
 		} else {
 			status = LoggerStatus.Stopped;
 			stopped = true;
-			try {
-				onStop();
-			} catch (Exception e) {
-				log.warn("araqne log api: [" + fullName + "] stop callback should not throw any exception", e);
-			}
 		}
 
+		this.pending = pending;
 		invokeStopCallback();
 	}
 
 	private void invokeStopCallback() {
-		onStop();
+		try {
+			onStop();
+		} catch (Exception e) {
+			log.warn("araqne log api: [" + fullName + "] stop callback should not throw any exception", e);
+		}
 
 		for (LoggerEventListener callback : eventListeners) {
 			try {
@@ -324,9 +371,11 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 	protected abstract void runOnce();
 
+	// can be overridden
 	protected void onStart() {
 	}
 
+	// can be overridden
 	protected void onStop() {
 	}
 
@@ -443,6 +492,12 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public void setTransformer(LogTransformer transformer) {
 		this.transformer = transformer;
+
+		if (isPending() && transformer != null)
+			start(getInterval());
+		if (isRunning() && config.get("transformer") != null && transformer == null) {
+			stop(5000, true);
+		}
 	}
 
 	@Override

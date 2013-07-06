@@ -47,6 +47,10 @@ public interface Logger {
 
 	boolean isRunning();
 
+	boolean isPending();
+
+	void setPending(boolean pending);
+
 	LoggerStatus getStatus();
 
 	int getInterval();

@@ -69,7 +69,7 @@ public class KeyValueTaggerFactory implements LogTransformerFactory {
 
 	@Override
 	public LogTransformer newTransformer(Map<String, String> config) {
-		return new KeyValueTagger(config);
+		return new KeyValueTagger(this, config);
 	}
 
 	@Override

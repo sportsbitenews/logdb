@@ -18,8 +18,6 @@ package org.araqne.log.api.impl;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -35,6 +33,7 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerFactoryRegistry;
 import org.araqne.log.api.LoggerFactoryRegistryEventListener;
 import org.araqne.log.api.LoggerRegistry;
+import org.araqne.log.api.LoggerSpecification;
 import org.osgi.framework.BundleContext;
 
 @Component(name = "logger-factory-registry")
@@ -131,20 +130,16 @@ public class LoggerFactoryRegistryImpl implements LoggerFactoryRegistry, LoggerF
 	}
 
 	@Override
-	public Logger newLogger(String factoryName, String loggerNamespace, String loggerName, String description,
-			Map<String, String> config) {
+	public Logger newLogger(String factoryName, LoggerSpecification spec) {
 		if (factoryName == null)
 			throw new IllegalArgumentException("name must be not null");
-
-		if (config == null)
-			config = new HashMap<String, String>();
 
 		LoggerFactory factory = loggerFactories.get(factoryName);
 		if (factory == null)
 			throw new IllegalStateException("factory not found: " + factoryName);
 
 		// creates logger and invokes callbacks
-		return factory.newLogger(loggerNamespace, loggerName, description, config);
+		return factory.newLogger(spec);
 	}
 
 	@Override

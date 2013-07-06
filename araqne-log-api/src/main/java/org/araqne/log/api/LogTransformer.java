@@ -16,5 +16,7 @@
 package org.araqne.log.api;
 
 public interface LogTransformer {
+	LogTransformerFactory getTransformerFactory();
+
 	Log transform(Log log);
 }

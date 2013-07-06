@@ -31,6 +31,7 @@ import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerFactoryRegistry;
 import org.araqne.log.api.LoggerRegistry;
+import org.araqne.log.api.LoggerSpecification;
 import org.araqne.msgbus.Request;
 import org.araqne.msgbus.Response;
 import org.araqne.msgbus.handler.MsgbusMethod;
@@ -67,7 +68,7 @@ public class LoggerPlugin {
 		String s = req.getString("locale");
 		if (s != null)
 			locale = new Locale(s);
-		
+
 		List<Object> l = new ArrayList<Object>();
 
 		for (String name : parserFactoryRegistry.getNames()) {
@@ -157,7 +158,12 @@ public class LoggerPlugin {
 			}
 		}
 
-		loggerFactory.newLogger(loggerNamespace, loggerName, description, config);
+		LoggerSpecification spec = new LoggerSpecification();
+		spec.setNamespace(loggerNamespace);
+		spec.setName(loggerName);
+		spec.setDescription(description);
+		spec.setConfig(config);
+		loggerFactory.newLogger(spec);
 	}
 
 	@MsgbusMethod

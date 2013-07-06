@@ -16,22 +16,18 @@
 package org.araqne.log.api;
 
 import java.util.Collection;
-import java.util.Date;
 import java.util.Locale;
-import java.util.Map;
 
 import org.osgi.framework.BundleContext;
 
 public interface LoggerFactory {
 	/**
-	 * logger factory registry calls onStart() when logger factory component is
-	 * registered to OSGi service registry
+	 * logger factory registry calls onStart() when logger factory component is registered to OSGi service registry
 	 */
 	void onStart(BundleContext bc);
 
 	/**
-	 * logger factory registry calls onStop() when logger factory component is
-	 * unregistering from OSGi service registry
+	 * logger factory registry calls onStop() when logger factory component is unregistering from OSGi service registry
 	 */
 	void onStop();
 
@@ -51,12 +47,7 @@ public interface LoggerFactory {
 
 	Collection<LoggerConfigOption> getConfigOptions();
 
-	Logger newLogger(String name, String description, Map<String, String> config);
-
-	Logger newLogger(String namespace, String name, String description, Map<String, String> config);
-
-	Logger newLogger(String namespace, String name, String description, long logCount, Date lastLogDate,
-			Map<String, String> config);
+	Logger newLogger(LoggerSpecification spec);
 
 	void deleteLogger(String name);
 

@@ -16,6 +16,7 @@
 package org.araqne.log.api;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 public class LoggerSpecification {
@@ -25,20 +26,25 @@ public class LoggerSpecification {
 	private long logCount;
 	private boolean isPassive;
 	private Date lastLogDate;
-	private Map<String, String> config;
+	private int interval;
+	private Map<String, String> config = new HashMap<String, String>();
 
-	public LoggerSpecification(String namespace, String name, String description, long logCount, Date lastLogDate,
-			Map<String, String> config) {
-		this(namespace, name, description, logCount, lastLogDate, config, false);
+	public LoggerSpecification() {
 	}
 
 	public LoggerSpecification(String namespace, String name, String description, long logCount, Date lastLogDate,
-			Map<String, String> config, boolean isPassive) {
+			int interval, Map<String, String> config) {
+		this(namespace, name, description, logCount, lastLogDate, interval, config, false);
+	}
+
+	public LoggerSpecification(String namespace, String name, String description, long logCount, Date lastLogDate,
+			int interval, Map<String, String> config, boolean isPassive) {
 		this.namespace = namespace;
 		this.name = name;
 		this.description = description;
 		this.logCount = logCount;
 		this.lastLogDate = lastLogDate;
+		this.interval = interval;
 		this.config = config;
 		this.isPassive = isPassive;
 	}
@@ -47,28 +53,63 @@ public class LoggerSpecification {
 		return namespace;
 	}
 
+	public void setNamespace(String namespace) {
+		this.namespace = namespace;
+	}
+
 	public String getName() {
 		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	public String getDescription() {
 		return description;
 	}
 
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
 	public long getLogCount() {
 		return logCount;
+	}
+
+	public void setLogCount(long logCount) {
+		this.logCount = logCount;
 	}
 
 	public boolean isPassive() {
 		return isPassive;
 	}
 
+	public void setPassive(boolean isPassive) {
+		this.isPassive = isPassive;
+	}
+
 	public Date getLastLogDate() {
 		return lastLogDate;
+	}
+
+	public void setLastLogDate(Date lastLogDate) {
+		this.lastLogDate = lastLogDate;
+	}
+
+	public int getInterval() {
+		return interval;
+	}
+
+	public void setInterval(int interval) {
+		this.interval = interval;
 	}
 
 	public Map<String, String> getConfig() {
 		return config;
 	}
 
+	public void setConfig(Map<String, String> config) {
+		this.config = config;
+	}
 }

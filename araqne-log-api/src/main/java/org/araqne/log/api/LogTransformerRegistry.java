@@ -27,4 +27,8 @@ public interface LogTransformerRegistry {
 	void removeProfile(String name);
 
 	LogTransformer newTransformer(String name);
+	
+	void addListener(LogTransformerRegistryEventListener listener);
+	
+	void removeListener(LogTransformerRegistryEventListener listener);
 }

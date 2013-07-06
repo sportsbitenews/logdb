@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -26,19 +27,19 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.log.api.LogTransformerFactory;
 import org.araqne.log.api.LogTransformerFactoryRegistry;
+import org.araqne.log.api.LogTransformerFactoryRegistryEventListener;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Component(name = "log-transformer-factory-registry")
 @Provides
 public class LogTransformerFactoryRegistryImpl implements LogTransformerFactoryRegistry {
-	private final Logger logger = LoggerFactory.getLogger(LogTransformerFactoryRegistryImpl.class);
+	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LogTransformerFactoryRegistryImpl.class);
 	private BundleContext bc;
 	private Tracker tracker;
-	private ConcurrentMap<String, LogTransformerFactory> factoryMap = new ConcurrentHashMap<String, LogTransformerFactory>();
+	private ConcurrentMap<String, LogTransformerFactory> factoryMap;
+	private CopyOnWriteArraySet<LogTransformerFactoryRegistryEventListener> listeners;
 
 	public LogTransformerFactoryRegistryImpl(BundleContext bc) {
 		this.bc = bc;
@@ -47,12 +48,14 @@ public class LogTransformerFactoryRegistryImpl implements LogTransformerFactoryR
 
 	@Validate
 	public void start() {
-		factoryMap.clear();
+		listeners = new CopyOnWriteArraySet<LogTransformerFactoryRegistryEventListener>();
+		factoryMap = new ConcurrentHashMap<String, LogTransformerFactory>();
 		tracker.open();
 	}
 
 	@Invalidate
 	public void stop() {
+		listeners.clear();
 		tracker.close();
 	}
 
@@ -62,7 +65,15 @@ public class LogTransformerFactoryRegistryImpl implements LogTransformerFactoryR
 		if (old != null)
 			throw new IllegalStateException("duplicated transformer factory mapping: " + factory.getName());
 
-		logger.info("araqne-log-api: new transformer factory [{}] added", factory.getName());
+		for (LogTransformerFactoryRegistryEventListener el : listeners) {
+			try {
+				el.factoryAdded(factory);
+			} catch (Throwable t) {
+				logger.warn("araqne log api: transformer factory event listener should not throw any exception", t);
+			}
+		}
+
+		logger.info("araqne log api: new transformer factory [{}] added", factory.getName());
 	}
 
 	@Override
@@ -70,7 +81,15 @@ public class LogTransformerFactoryRegistryImpl implements LogTransformerFactoryR
 		if (!factoryMap.remove(factory.getName(), factory))
 			throw new IllegalStateException("transformer factory not found: " + factory.getName());
 
-		logger.info("araqne-log-api: transformer factory [{}] removed", factory.getName());
+		for (LogTransformerFactoryRegistryEventListener el : listeners) {
+			try {
+				el.factoryRemoved(factory);
+			} catch (Throwable t) {
+				logger.warn("araqne log api: transformer factory event listener should not throw any exception", t);
+			}
+		}
+
+		logger.info("araqne log api: transformer factory [{}] removed", factory.getName());
 	}
 
 	@Override
@@ -81,6 +100,16 @@ public class LogTransformerFactoryRegistryImpl implements LogTransformerFactoryR
 	@Override
 	public LogTransformerFactory getFactory(String name) {
 		return factoryMap.get(name);
+	}
+
+	@Override
+	public void addListener(LogTransformerFactoryRegistryEventListener listener) {
+		listeners.add(listener);
+	}
+
+	@Override
+	public void removeListener(LogTransformerFactoryRegistryEventListener listener) {
+		listeners.remove(listener);
 	}
 
 	private class Tracker extends ServiceTracker {
