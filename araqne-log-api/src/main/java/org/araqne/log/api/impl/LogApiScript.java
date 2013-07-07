@@ -268,8 +268,8 @@ public class LogApiScript implements Script {
 							"description"), Arrays.asList("l!factory name", "l!display name", "l!description"))));
 		} else {
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered, Arrays.asList("name", "displayName"), Arrays
-							.asList("l!name", "l!display name"))));
+					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered, Arrays.asList("fullName", "displayName"), Arrays
+							.asList("l!factory name", "l!display name"))));
 		}
 	}
 
