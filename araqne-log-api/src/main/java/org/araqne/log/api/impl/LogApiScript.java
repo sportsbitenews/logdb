@@ -506,7 +506,7 @@ public class LogApiScript implements Script {
 	public void startLogger(String[] args) {
 		try {
 			String fullName = args[0];
-			int interval = 60000;
+			int interval = 0;
 			if (args.length > 1)
 				interval = Integer.parseInt(args[1]);
 
@@ -518,8 +518,10 @@ public class LogApiScript implements Script {
 
 			if (logger.isPassive())
 				logger.start();
-			else
+			else if (interval > 0)
 				logger.start(interval);
+			else
+				throw new IllegalStateException("cannot start logger, interval is required");
 			context.println("logger started");
 		} catch (NumberFormatException e) {
 			context.println("interval should be number in milliseconds");
