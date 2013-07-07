@@ -58,7 +58,11 @@ public class OutputCsv extends LogQueryCommand {
 		int i = 0;
 		for (String field : fields) {
 			Object o = m.get(field);
-			csvLine[i++] = o == null ? "" : o.toString();
+			String s = o == null ? "" : o.toString();
+			int p = s.indexOf('\n');
+			if (p >= 0)
+				s = s.substring(0, p);
+			csvLine[i++] = s;
 		}
 
 		writer.writeNext(csvLine);
