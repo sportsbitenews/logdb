@@ -126,7 +126,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 					break;
 
 				String line = reader.readLine();
-				if (line == null || line.trim().isEmpty())
+				if (line == null)
 					break;
 				if (newlogDsgnMatcher != null) {
 					// multi-line logger
@@ -143,6 +143,10 @@ public class DirectoryWatchLogger extends AbstractLogger {
 						sb.append(line);
 					}
 				} else {
+					// empty line is allowed for multiline log
+					if (line.trim().isEmpty())
+						break;
+
 					writeLog(fileDateStr, line);
 				}
 			}
