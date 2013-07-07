@@ -21,7 +21,7 @@ import java.util.Map;
 import org.araqne.confdb.CollectionName;
 
 @CollectionName("transformer_profiles")
-public class LogTransformerProfile {
+public class LogTransformerProfile implements Comparable<LogTransformerProfile> {
 	private String name;
 	private String factoryName;
 	private Map<String, String> configs = new HashMap<String, String>();
@@ -53,6 +53,13 @@ public class LogTransformerProfile {
 	@Override
 	public String toString() {
 		return "name=" + name + ", factory=" + factoryName + ", configs=" + configs;
+	}
+
+	@Override
+	public int compareTo(LogTransformerProfile o) {
+		if (o == null)
+			return -1;
+		return name.compareTo(o.name);
 	}
 
 }

@@ -118,10 +118,22 @@ public class LogApiScript implements Script {
 		}
 	}
 
+	@ScriptUsage(description = "print transformer profiles", arguments = {
+			@ScriptArgument(name = "name", type = "string", description = "filter by name", optional = true)
+	})
 	public void transformers(String[] args) {
+		String filter = null;
+		if (args.length > 0)
+			filter = args[0];
+
 		context.println("Log Transformer Profiles");
 		context.println("--------------------------");
-		for (LogTransformerProfile profile : transformerRegistry.getProfiles()) {
+		List<LogTransformerProfile> profiles = transformerRegistry.getProfiles();
+		Collections.sort(profiles);
+		for (LogTransformerProfile profile : profiles) {
+			if (filter != null && !profile.getName().contains(filter))
+				continue;
+
 			context.println(profile);
 		}
 	}
