@@ -82,7 +82,11 @@ public class ManagementPlugin {
 		Session session = req.getSession();
 		org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) session.get("araqne_logdb_session");
 		if (dbSession != null) {
-			accountService.logout(dbSession);
+			try {
+				accountService.logout(dbSession);
+			} catch (Throwable t) {
+			}
+
 			session.unsetProperty("araqne_logdb_session");
 		}
 
@@ -98,7 +102,11 @@ public class ManagementPlugin {
 
 		org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) session.get("araqne_logdb_session");
 		if (dbSession != null) {
-			accountService.logout(dbSession);
+			try {
+				accountService.logout(dbSession);
+			} catch (Throwable t) {
+			}
+
 			session.unsetProperty("araqne_logdb_session");
 		}
 	}
