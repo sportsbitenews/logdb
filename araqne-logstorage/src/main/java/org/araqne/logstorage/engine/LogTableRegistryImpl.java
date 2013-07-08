@@ -203,7 +203,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 	@Override
 	public void dropTable(String tableName) {
-		LogTableSchema old = tableSchemas.remove(tableName);
+		LogTableSchema old = tableSchemas.get(tableName);
 		if (old == null)
 			throw new IllegalStateException("table not found: " + tableName);
 
