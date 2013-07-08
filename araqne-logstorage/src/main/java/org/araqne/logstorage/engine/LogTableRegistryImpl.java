@@ -213,10 +213,6 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 			return;
 		db.remove(c);
 
-		LogTableSchema t = tableSchemas.remove(tableName);
-		if (t != null)
-			tableNames.remove(t.getId());
-
 		// invoke callbacks
 		for (LogTableEventListener callback : callbacks) {
 			try {
@@ -225,6 +221,10 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 				logger.warn("araqne logstorage: table event listener should not throw any exception", e);
 			}
 		}
+
+		LogTableSchema t = tableSchemas.remove(tableName);
+		if (t != null)
+			tableNames.remove(t.getId());
 	}
 
 	@Deprecated
