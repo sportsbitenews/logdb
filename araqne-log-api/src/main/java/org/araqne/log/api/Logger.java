@@ -43,6 +43,11 @@ public interface Logger {
 
 	Date getLastLogDate();
 
+	/**
+	 * @since 2.3.1
+	 */
+	long getDropCount();
+
 	long getLogCount();
 
 	boolean isRunning();

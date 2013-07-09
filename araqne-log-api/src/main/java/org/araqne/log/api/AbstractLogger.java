@@ -52,6 +52,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private volatile Date lastRunDate;
 	private volatile Date lastLogDate;
 	private AtomicLong logCounter;
+	private AtomicLong dropCounter;
 
 	private Set<LoggerEventListener> eventListeners;
 	private LogTransformer transformer;
@@ -118,6 +119,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		this.factoryFullName = factoryNamespace + "\\" + factoryName;
 
 		this.logCounter = new AtomicLong(logCount);
+		this.dropCounter = new AtomicLong(0);
 		this.lastLogDate = lastLogDate;
 		this.pipes = new LogPipe[0];
 
@@ -192,6 +194,11 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public long getLogCount() {
 		return logCounter.get();
+	}
+
+	@Override
+	public long getDropCount() {
+		return dropCounter.get();
 	}
 
 	@Override
@@ -453,6 +460,12 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		// transform
 		if (transformer != null)
 			log = transformer.transform(log);
+
+		// transform may return null to filter log
+		if (log == null) {
+			dropCounter.incrementAndGet();
+			return;
+		}
 
 		// notify all
 		LogPipe[] capturedPipes = pipes;

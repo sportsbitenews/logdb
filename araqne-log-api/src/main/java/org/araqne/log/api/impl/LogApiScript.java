@@ -328,6 +328,10 @@ public class LogApiScript implements Script {
 			return logger.getLogCount();
 		}
 
+		public long getDropCount() {
+			return logger.getDropCount();
+		}
+
 		public Date getLastStartDate() {
 			return logger.getLastStartDate();
 		}
@@ -383,8 +387,8 @@ public class LogApiScript implements Script {
 					new CollectionASCIITableAware<LoggerListItem>(filtered, new PropertyColumn("fullName", "l!name"),
 							new PropertyColumn("factoryFullName", "l!factory"), new PropertyColumn("status", "l!status"),
 							new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
-							new PropertyColumn("lastStartDate", "l!last start"), new PropertyColumn("lastRunDate", "l!last run"),
-							new PropertyColumn("lastLogDate", "l!last log"))));
+							new PropertyColumn("dropCount", "drop"), new PropertyColumn("lastStartDate", "l!last start"),
+							new PropertyColumn("lastRunDate", "l!last run"), new PropertyColumn("lastLogDate", "l!last log"))));
 		else
 			context.println(ASCIITable.getInstance().getTable(
 					new CollectionASCIITableAware<LoggerListItem>(filtered, new PropertyColumn("fullName", "l!name"),
@@ -426,6 +430,7 @@ public class LogApiScript implements Script {
 		context.println(" * Last Log: " + lastLogDate);
 		context.println(" * Last Run: " + lastRunDate);
 		context.println(" * Log Count: " + logger.getLogCount());
+		context.println(" * Drop Count: " + logger.getDropCount());
 		context.println("");
 
 		context.println("Configuration");
