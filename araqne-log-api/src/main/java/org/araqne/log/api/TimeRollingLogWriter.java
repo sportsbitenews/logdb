@@ -49,7 +49,7 @@ public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegist
 		String s = config.get("charset");
 		this.charsetName = s != null ? s : "utf-8";
 		String osName = System.getProperty("os.name");
-		this.addCR = osName != null && osName.toLowerCase().contains("indows");
+		this.addCR = osName != null && osName.toLowerCase().contains("windows");
 
 	}
 
