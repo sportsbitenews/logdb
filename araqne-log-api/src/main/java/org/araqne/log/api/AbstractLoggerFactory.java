@@ -117,7 +117,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 
 			newLogger.setPassive(config.isPassive());
 			slog.info("araqne log api: logger [{}] is loaded", config.getFullname());
-			if (config.isRunning() && !newLogger.isPending()) {
+			if (!config.isManualStart() && config.isRunning() && !newLogger.isPending()) {
 				newLogger.start(config.getInterval());
 				slog.info("araqne log api: logger [{}] started with interval {}ms", config.getFullname(), config.getInterval());
 			}

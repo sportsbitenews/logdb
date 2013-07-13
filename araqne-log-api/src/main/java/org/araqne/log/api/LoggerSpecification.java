@@ -27,6 +27,12 @@ public class LoggerSpecification {
 	private boolean isPassive;
 	private Date lastLogDate;
 	private int interval;
+
+	/**
+	 * @since 2.4.0
+	 */
+	private boolean manualStart;
+
 	private Map<String, String> config = new HashMap<String, String>();
 
 	public LoggerSpecification() {
@@ -103,6 +109,20 @@ public class LoggerSpecification {
 
 	public void setInterval(int interval) {
 		this.interval = interval;
+	}
+
+	/**
+	 * @since 2.4.0
+	 */
+	public boolean isManualStart() {
+		return manualStart;
+	}
+
+	/**
+	 * @since 2.4.0
+	 */
+	public void setManualStart(boolean manualStart) {
+		this.manualStart = manualStart;
 	}
 
 	public Map<String, String> getConfig() {

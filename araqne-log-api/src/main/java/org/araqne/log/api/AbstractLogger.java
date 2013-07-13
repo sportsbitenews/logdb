@@ -47,6 +47,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private volatile boolean doStop = false;
 	private volatile boolean stopped = true;
 	private volatile boolean pending = false;
+	private volatile boolean manualStart = false;
 
 	private volatile Date lastStartDate;
 	private volatile Date lastRunDate;
@@ -213,6 +214,17 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public void setPending(boolean pending) {
 		this.pending = pending;
+	}
+
+	@Override
+	public boolean isManualStart() {
+		return manualStart;
+	}
+
+	@Override
+	public void setManualStart(boolean manualStart) {
+		this.manualStart = manualStart;
+		updateConfig(config);
 	}
 
 	@Override

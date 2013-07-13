@@ -56,6 +56,16 @@ public interface Logger {
 
 	void setPending(boolean pending);
 
+	/**
+	 * @since 2.4.0
+	 */
+	boolean isManualStart();
+
+	/**
+	 * @since 2.4.0
+	 */
+	void setManualStart(boolean manualStart);
+
 	LoggerStatus getStatus();
 
 	int getInterval();

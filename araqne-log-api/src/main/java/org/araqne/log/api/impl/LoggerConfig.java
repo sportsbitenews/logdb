@@ -34,6 +34,12 @@ public class LoggerConfig {
 	private boolean isPassive;
 	private boolean isRunning;
 	private boolean isPending;
+
+	/**
+	 * @since 2.4.0
+	 */
+	private boolean manualStart;
+
 	private int interval;
 
 	@FieldOption(skip = true)
@@ -57,6 +63,7 @@ public class LoggerConfig {
 		this.isPassive = logger.isPassive();
 		this.isRunning = logger.isRunning();
 		this.isPending = logger.isPending();
+		this.manualStart = logger.isManualStart();
 		this.interval = logger.getInterval();
 		this.count = logger.getLogCount();
 		this.lastLogDate = logger.getLastLogDate();
@@ -132,6 +139,14 @@ public class LoggerConfig {
 
 	public void setPending(boolean isPending) {
 		this.isPending = isPending;
+	}
+
+	public boolean isManualStart() {
+		return manualStart;
+	}
+
+	public void setManualStart(boolean manualStart) {
+		this.manualStart = manualStart;
 	}
 
 	public int getInterval() {
