@@ -372,6 +372,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		invokeStopCallback();
 	}
 
+	/**
+	 * called in explicit stop() call context
+	 */
 	private void invokeStopCallback() {
 		try {
 			onStop();
@@ -484,6 +487,15 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		for (LogPipe pipe : capturedPipes) {
 			try {
 				pipe.onLog(this, log);
+			} catch (LoggerStopException e) {
+				this.log.warn("araqne-log-api: stopping logger [" + getFullName() + "] by exception", t);
+				if (isPassive())
+					stop(false);
+				else {
+					doStop = true;
+					status = LoggerStatus.Stopping;
+					invokeStopCallback();
+				}
 			} catch (Exception e) {
 				if (e.getMessage() != null && e.getMessage().startsWith("invalid time"))
 					this.log.warn("araqne-log-api: log pipe should not throw exception" + e.getMessage());
