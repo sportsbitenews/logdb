@@ -21,8 +21,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -36,6 +38,7 @@ import org.araqne.logstorage.DiskSpaceType;
 import org.araqne.logstorage.LogRetentionPolicy;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageMonitor;
+import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,13 +138,12 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 		checkRetentions(true);
 	}
 
-	private boolean isDiskLack() {
-		File dir = storage.getDirectory();
+	private boolean isDiskLack(File dir) {
 		long usable = dir.getUsableSpace();
 		long total = dir.getTotalSpace();
 
-		logger.trace("araqne logstorage: check {} {} free space, current [{}/{}]", new Object[] { minFreeSpaceValue,
-				minFreeSpaceType.toString().toLowerCase(), usable, total });
+		logger.trace("araqne logstorage: check {} {} free space of partition [{}], current [{}/{}]", new Object[] { minFreeSpaceValue,
+				minFreeSpaceType.toString().toLowerCase(), dir.getAbsolutePath(), usable, total });
 		if (minFreeSpaceType == DiskSpaceType.Percentage) {
 			int percent = (int) (usable * 100 / total);
 			if (percent < minFreeSpaceValue) {
@@ -198,15 +200,38 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 	}
 
 	private void checkDiskLack() {
-		if (isDiskLack()) {
-			logger.warn("araqne logstorage: not enough disk space, current minimum free space config [{}] {}", minFreeSpaceValue,
+		// categorize by partition path
+		Map<File, List<String>> partitionTables = new HashMap<File, List<String>>();
+
+		for (String tableName : tableRegistry.getTableNames()) {
+			File dir = storage.getTableDirectory(tableName).getParentFile();
+
+			List<String> tables = partitionTables.get(dir);
+			if (tables == null) {
+				tables = new ArrayList<String>();
+				partitionTables.put(dir, tables);
+			}
+
+			tables.add(tableName);
+		}
+
+		for (File dir : partitionTables.keySet()) {
+			checkDiskPartitions(dir, partitionTables.get(dir));
+		}
+	}
+
+	private void checkDiskPartitions(File partitionPath, List<String> tableNames) {
+		if (isDiskLack(partitionPath)) {
+			logger.trace("araqne logstorage: not enough disk space, current minimum free space config [{}] {}", minFreeSpaceValue,
 					(minFreeSpaceType == DiskSpaceType.Percentage ? "%" : "MB"));
 			if (diskLackAction == DiskLackAction.StopLogging) {
-				logger.info("araqne logstorage: stop logging");
-				storage.stop();
+				if (storage.getStatus() == LogStorageStatus.Open) {
+					logger.error("araqne logstorage: [{}] not enough space, stop logging", partitionPath.getAbsolutePath());
+					storage.stop();
+				}
 			} else if (diskLackAction == DiskLackAction.RemoveOldLog) {
 				List<LogFile> files = new ArrayList<LogFile>();
-				for (String tableName : tableRegistry.getTableNames()) {
+				for (String tableName : tableNames) {
 					for (Date date : storage.getLogDates(tableName))
 						files.add(new LogFile(tableName, date));
 				}
@@ -216,17 +241,25 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 
 				do {
 					if (index >= files.size()) {
-						logger.info("araqne logstorage: stop logging");
-						storage.stop();
+						if (storage.getStatus() == LogStorageStatus.Open) {
+							logger.error("araqne logstorage: no more data files in [{}], stop logging", partitionPath.getAbsolutePath());
+							storage.stop();
+						}
 						break;
 					}
-					LogFile lf = files.get(index++);
-					logger.info("araqne logstorage: remove old log, table {}, {}", lf.tableName, sdf.format(lf.date));
-					storage.purge(lf.tableName, lf.date);
-				} while (isDiskLack());
 
-				for (DiskLackCallback callback : diskLackCallbacks)
+					LogFile lf = files.get(index++);
+					logger.info("araqne logstorage: removing old log, table [{}], date [{}]", lf.tableName, sdf.format(lf.date));
+					storage.purge(lf.tableName, lf.date);
+				} while (isDiskLack(partitionPath));
+			}
+
+			for (DiskLackCallback callback : diskLackCallbacks) {
+				try {
 					callback.callback();
+				} catch (Throwable t) {
+					logger.warn("araqne logstorage: disk lack callback should not throw any exception", t);
+				}
 			}
 		}
 	}
