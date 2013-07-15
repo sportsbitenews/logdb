@@ -165,12 +165,33 @@ public class ManagementPlugin {
 		accountService.grantPrivilege(session, loginName, tableName, Permission.READ);
 	}
 
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void grantPrivileges(Request req, Response resp) {
+		org.araqne.logdb.Session session = checkPermission(req);
+		String loginName = req.getString("login_name");
+		List<String> tableNames = (List<String>) req.get("table_names");
+
+		for (String tableName : tableNames)
+			accountService.grantPrivilege(session, loginName, tableName, Permission.READ);
+	}
+
 	@MsgbusMethod
 	public void revokePrivilege(Request req, Response resp) {
 		org.araqne.logdb.Session session = checkPermission(req);
 		String loginName = req.getString("login_name");
 		String tableName = req.getString("table_name");
 		accountService.revokePrivilege(session, loginName, tableName, Permission.READ);
+	}
+
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void revokePrivileges(Request req, Response resp) {
+		org.araqne.logdb.Session session = checkPermission(req);
+		String loginName = req.getString("login_name");
+		List<String> tableNames = (List<String>) req.get("table_names");
+		for (String tableName : tableNames)
+			accountService.revokePrivilege(session, loginName, tableName, Permission.READ);
 	}
 
 	@MsgbusMethod
