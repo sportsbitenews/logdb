@@ -16,9 +16,7 @@
 package org.araqne.logdb.jython;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -37,9 +35,9 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 
 	private LoggerFactory factory;
 	private LoggerSpecification spec;
+	private LogTransformer transformer;
 	private CopyOnWriteArraySet<LogPipe> pipes = new CopyOnWriteArraySet<LogPipe>();
 	private CopyOnWriteArraySet<LoggerEventListener> listeners = new CopyOnWriteArraySet<LoggerEventListener>();
-	private CopyOnWriteArrayList<LogTransformer> transformerChain = new CopyOnWriteArrayList<LogTransformer>();
 
 	private Thread t;
 	private int interval;
@@ -48,10 +46,13 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	private volatile LoggerStatus status = LoggerStatus.Stopped;
 	private volatile boolean doStop = false;
 	private volatile boolean stopped = true;
+	private volatile boolean pending;
+	private volatile boolean manualStart;
 	private volatile Date lastStartDate;
 	private volatile Date lastRunDate;
 	private volatile Date lastLogDate;
 	private AtomicLong logCounter = new AtomicLong();
+	private AtomicLong dropCounter = new AtomicLong();
 
 	public abstract void init(LoggerSpecification spec);
 
@@ -269,9 +270,13 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		logCounter.incrementAndGet();
 
 		// transform
-		if (!getTransformerChain().isEmpty()) {
-			for (LogTransformer transformer : getTransformerChain())
-				log = transformer.transform(log);
+		if (transformer != null) {
+			log = transformer.transform(log);
+		}
+
+		if (log == null) {
+			dropCounter.incrementAndGet();
+			return;
 		}
 
 		// notify all
@@ -327,8 +332,38 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public List<LogTransformer> getTransformerChain() {
-		return transformerChain;
+	public long getDropCount() {
+		return dropCounter.get();
+	}
+
+	@Override
+	public boolean isPending() {
+		return pending;
+	}
+
+	@Override
+	public void setPending(boolean pending) {
+		this.pending = pending;
+	}
+
+	@Override
+	public boolean isManualStart() {
+		return manualStart;
+	}
+
+	@Override
+	public void setManualStart(boolean manualStart) {
+		this.manualStart = manualStart;
+	}
+
+	@Override
+	public LogTransformer getTransformer() {
+		return transformer;
+	}
+
+	@Override
+	public void setTransformer(LogTransformer transformer) {
+		this.transformer = transformer;
 	}
 
 	@Override
