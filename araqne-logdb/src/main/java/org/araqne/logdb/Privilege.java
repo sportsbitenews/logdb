@@ -16,6 +16,7 @@
 package org.araqne.logdb;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Privilege {
@@ -24,6 +25,12 @@ public class Privilege {
 	private List<Permission> permissions = new ArrayList<Permission>();
 
 	public Privilege() {
+	}
+
+	public Privilege(String loginName, String tableName, Permission... permissions) {
+		this.loginName = loginName;
+		this.tableName = tableName;
+		this.permissions = Arrays.asList(permissions);
 	}
 
 	public Privilege(String loginName, String tableName, List<Permission> permissions) {

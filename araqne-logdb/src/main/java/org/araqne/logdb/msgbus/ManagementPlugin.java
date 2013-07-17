@@ -157,6 +157,20 @@ public class ManagementPlugin {
 		accountService.removeAccount(session, loginName);
 	}
 
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void setPrivileges(Request req, Response resp) {
+		org.araqne.logdb.Session session = checkPermission(req);
+		String loginName = req.getString("login_name");
+		List<String> tableNames = (List<String>) req.get("table_names");
+
+		List<Privilege> privileges = new ArrayList<Privilege>();
+		for (String tableName : tableNames)
+			privileges.add(new Privilege(loginName, tableName, Permission.READ));
+
+		accountService.setPrivileges(session, loginName, privileges);
+	}
+
 	@MsgbusMethod
 	public void grantPrivilege(Request req, Response resp) {
 		org.araqne.logdb.Session session = checkPermission(req);

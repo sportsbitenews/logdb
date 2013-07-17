@@ -182,6 +182,30 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		return privileges;
 	}
 
+	@Override
+	public void setPrivileges(Session session, String loginName, List<Privilege> privileges) {
+		verifyNotNull(session, "session");
+		verifyNotNull(loginName, "loginName");
+		verifyNotNull(privileges, "privileges");
+
+		if (!sessions.containsKey(session.getGuid()))
+			throw new IllegalStateException("invalid session");
+
+		// master admin only
+		if (!session.isAdmin())
+			throw new IllegalStateException("no permission");
+
+		Account account = ensureAccount(loginName);
+		List<String> tables = account.getReadableTables();
+		tables.clear();
+
+		for (Privilege privilege : privileges)
+			if (privilege.getLoginName() != null && privilege.getLoginName().equals(loginName))
+				tables.add(privilege.getTableName());
+
+		updateAccount(account);
+	}
+
 	private boolean checkOwner(Session session, String loginName) {
 		Account account = ensureAccount(session.getLoginName());
 		if (account.isAdmin())

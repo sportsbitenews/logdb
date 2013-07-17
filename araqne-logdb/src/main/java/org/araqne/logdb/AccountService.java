@@ -63,6 +63,8 @@ public interface AccountService {
 
 	List<Privilege> getPrivileges(Session session, String loginName);
 
+	void setPrivileges(Session session, String loginName, List<Privilege> privileges);
+
 	void grantPrivilege(Session session, String loginName, String tableName, Permission... permissions);
 
 	void revokePrivilege(Session session, String loginName, String tableName, Permission... permissions);
