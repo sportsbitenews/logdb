@@ -16,6 +16,7 @@
 package org.araqne.logdb.msgbus;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +64,8 @@ public class ManagementPlugin {
 		if (session.get("araqne_logdb_session") != null)
 			throw new MsgbusException("logdb", "already-logon");
 
-		String loginName = req.getString("login_name");
-		String password = req.getString("password");
+		String loginName = req.getString("login_name", true);
+		String password = req.getString("password", true);
 
 		org.araqne.logdb.Session dbSession = accountService.login(loginName, password);
 
@@ -137,32 +138,47 @@ public class ManagementPlugin {
 	@MsgbusMethod
 	public void changePassword(Request req, Response resp) {
 		org.araqne.logdb.Session session = checkPermission(req);
-		String loginName = req.getString("login_name");
-		String password = req.getString("password");
+		String loginName = req.getString("login_name", true);
+		String password = req.getString("password", true);
 		accountService.changePassword(session, loginName, password);
 	}
 
 	@MsgbusMethod
 	public void createAccount(Request req, Response resp) {
 		org.araqne.logdb.Session session = checkPermission(req);
-		String loginName = req.getString("login_name");
-		String password = req.getString("password");
+		String loginName = req.getString("login_name", true);
+		String password = req.getString("password", true);
 		accountService.createAccount(session, loginName, password);
 	}
 
 	@MsgbusMethod
 	public void removeAccount(Request req, Response resp) {
 		org.araqne.logdb.Session session = checkPermission(req);
-		String loginName = req.getString("login_name");
+		String loginName = req.getString("login_name", true);
 		accountService.removeAccount(session, loginName);
+	}
+
+	@MsgbusMethod
+	public void getPrivileges(Request req, Response resp) {
+		org.araqne.logdb.Session session = checkPermission(req);
+		String loginName = req.getString("login_name", true);
+
+		List<Privilege> privileges = accountService.getPrivileges(session, loginName);
+
+		Map<String, List<String>> m = new HashMap<String, List<String>>();
+		List<String> l = Arrays.asList(Permission.READ.toString());
+		for (Privilege p : privileges)
+			m.put(p.getTableName(), l);
+
+		resp.putAll(m);
 	}
 
 	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void setPrivileges(Request req, Response resp) {
 		org.araqne.logdb.Session session = checkPermission(req);
-		String loginName = req.getString("login_name");
-		List<String> tableNames = (List<String>) req.get("table_names");
+		String loginName = req.getString("login_name", true);
+		List<String> tableNames = (List<String>) req.get("table_names", true);
 
 		List<Privilege> privileges = new ArrayList<Privilege>();
 		for (String tableName : tableNames)
@@ -174,8 +190,8 @@ public class ManagementPlugin {
 	@MsgbusMethod
 	public void grantPrivilege(Request req, Response resp) {
 		org.araqne.logdb.Session session = checkPermission(req);
-		String loginName = req.getString("login_name");
-		String tableName = req.getString("table_name");
+		String loginName = req.getString("login_name", true);
+		String tableName = req.getString("table_name", true);
 		accountService.grantPrivilege(session, loginName, tableName, Permission.READ);
 	}
 
@@ -183,8 +199,8 @@ public class ManagementPlugin {
 	@MsgbusMethod
 	public void grantPrivileges(Request req, Response resp) {
 		org.araqne.logdb.Session session = checkPermission(req);
-		String loginName = req.getString("login_name");
-		List<String> tableNames = (List<String>) req.get("table_names");
+		String loginName = req.getString("login_name", true);
+		List<String> tableNames = (List<String>) req.get("table_names", true);
 
 		for (String tableName : tableNames)
 			accountService.grantPrivilege(session, loginName, tableName, Permission.READ);
@@ -193,8 +209,8 @@ public class ManagementPlugin {
 	@MsgbusMethod
 	public void revokePrivilege(Request req, Response resp) {
 		org.araqne.logdb.Session session = checkPermission(req);
-		String loginName = req.getString("login_name");
-		String tableName = req.getString("table_name");
+		String loginName = req.getString("login_name", true);
+		String tableName = req.getString("table_name", true);
 		accountService.revokePrivilege(session, loginName, tableName, Permission.READ);
 	}
 
@@ -202,7 +218,7 @@ public class ManagementPlugin {
 	@MsgbusMethod
 	public void revokePrivileges(Request req, Response resp) {
 		org.araqne.logdb.Session session = checkPermission(req);
-		String loginName = req.getString("login_name");
+		String loginName = req.getString("login_name", true);
 		List<String> tableNames = (List<String>) req.get("table_names");
 		for (String tableName : tableNames)
 			accountService.revokePrivilege(session, loginName, tableName, Permission.READ);
@@ -224,7 +240,7 @@ public class ManagementPlugin {
 	public void getTableInfo(Request req, Response resp) {
 		checkPermission(req);
 
-		String tableName = req.getString("table");
+		String tableName = req.getString("table", true);
 		resp.put("table", getTableMetadata(tableName));
 	}
 
@@ -241,8 +257,8 @@ public class ManagementPlugin {
 	public void setTableMetadata(Request req, Response resp) {
 		checkPermission(req);
 
-		String tableName = req.getString("table");
-		Map<String, Object> metadata = (Map<String, Object>) req.get("metadata");
+		String tableName = req.getString("table", true);
+		Map<String, Object> metadata = (Map<String, Object>) req.get("metadata", true);
 
 		for (String key : metadata.keySet()) {
 			Object value = metadata.get(key);
@@ -255,8 +271,8 @@ public class ManagementPlugin {
 	public void unsetTableMetadata(Request req, Response resp) {
 		checkPermission(req);
 
-		String tableName = req.getString("table");
-		List<Object> keys = (List<Object>) req.get("keys");
+		String tableName = req.getString("table", true);
+		List<Object> keys = (List<Object>) req.get("keys", true);
 
 		for (Object key : keys) {
 			tableRegistry.unsetTableMetadata(tableName, key.toString());
@@ -266,10 +282,10 @@ public class ManagementPlugin {
 	@MsgbusMethod
 	public void createTable(Request req, Response resp) {
 		checkPermission(req);
-		String tableName = req.getString("table");
+		String tableName = req.getString("table", true);
 
 		@SuppressWarnings("unchecked")
-		Map<String, String> metadata = (Map<String, String>) req.get("metadata");
+		Map<String, String> metadata = (Map<String, String>) req.get("metadata", true);
 		try {
 			storage.createTable(tableName, "v3p", metadata);
 		} catch (UnsupportedLogFileTypeException e) {
@@ -280,7 +296,7 @@ public class ManagementPlugin {
 	@MsgbusMethod
 	public void dropTable(Request req, Response resp) {
 		checkPermission(req);
-		String tableName = req.getString("table");
+		String tableName = req.getString("table", true);
 		storage.dropTable(tableName);
 	}
 
