@@ -18,6 +18,9 @@ package org.araqne.logdb.client.http.impl;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.araqne.logdb.client.AbstractLogDbSession;
 import org.araqne.logdb.client.Message;
@@ -36,15 +39,21 @@ import org.slf4j.LoggerFactory;
  */
 public class WebSocketSession extends AbstractLogDbSession implements WebSocketListener {
 	private final Logger logger = LoggerFactory.getLogger(WebSocketSession.class);
+	private Object sendLock = new Object();
 	private WebSocket websocket;
 	private WebSocketBlockingTable table = new WebSocketBlockingTable();
+	private final Timer timer;
 
 	public WebSocketSession(String host, int port) throws IOException {
 		try {
 			this.websocket = new WebSocket(new URI("http://" + host + ":" + port + "/websocket"));
 			websocket.addListener(this);
 		} catch (URISyntaxException e) {
+			throw new IllegalArgumentException("invalid host: " + host);
 		}
+
+		this.timer = new Timer();
+		timer.scheduleAtFixedRate(new PingTask(), new Date(), 2000);
 	}
 
 	@Override
@@ -57,7 +66,10 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 		WaitingCall call = table.set(req.getGuid());
 
 		String json = MessageCodec.encode(req);
-		websocket.send(json);
+
+		synchronized (sendLock) {
+			websocket.send(json);
+		}
 
 		// wait response infinitely
 		Message m;
@@ -100,7 +112,24 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 	}
 
 	@Override
-	public void onError(Exception e) {
+	public void onError(Throwable t) {
+	}
+
+	@Override
+	public void onClose(Throwable t) {
+		for (TrapListener listener : listeners) {
+			try {
+				listener.onClose(t);
+			} catch (Throwable t2) {
+				logger.error("araqne logdb client: trap listener should not throw any exception", t2);
+			}
+		}
+
+		// close for server side reset
+		try {
+			releaseResources();
+		} catch (IOException e) {
+		}
 	}
 
 	@Override
@@ -108,9 +137,31 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 		if (isClosed())
 			return;
 
-		super.close();
+		releaseResources();
+	}
 
+	private void releaseResources() throws IOException {
+		super.close();
+		timer.cancel();
 		table.close();
 		websocket.close();
+	}
+
+	private class PingTask extends TimerTask {
+
+		@Override
+		public void run() {
+			if (websocket.isClosed())
+				return;
+
+			try {
+				synchronized (sendLock) {
+					// send msgbus ping
+					websocket.send("ping");
+				}
+			} catch (Throwable t) {
+				// ignore ping fail
+			}
+		}
 	}
 }

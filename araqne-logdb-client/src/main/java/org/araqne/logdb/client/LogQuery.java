@@ -50,7 +50,9 @@ public class LogQuery {
 			waitingConditions.add(cond);
 			synchronized (cond.signal) {
 				try {
-					while (!status.equals("Ended") && (count == null || loadedCount < count))
+					while (!status.equals("Ended") &&
+							!status.equals("Cancelled") &&
+							(count == null || loadedCount < count))
 						cond.signal.wait(100);
 				} catch (InterruptedException e) {
 				}
@@ -74,7 +76,7 @@ public class LogQuery {
 
 	public void updateStatus(String status) {
 		this.status = status;
-		if (status.equals("Ended")) {
+		if (status.equals("Ended") || status.equals("Cancelled")) {
 			for (WaitingCondition cond : waitingConditions) {
 				synchronized (cond.signal) {
 					cond.signal.notifyAll();

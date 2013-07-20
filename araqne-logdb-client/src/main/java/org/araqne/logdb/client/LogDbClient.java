@@ -561,6 +561,9 @@ public class LogDbClient implements TrapListener {
 		startQuery(id);
 		LogQuery q = queries.get(id);
 		q.waitUntil(null);
+		if (q.getStatus().equals("Cancelled"))
+			throw new IllegalStateException("query cancelled, id [" + q.getId() + "] query string [" + queryString + "]");
+
 		long total = q.getLoadedCount();
 
 		return new LogCursorImpl(id, 0L, total, true, fetchSize);
@@ -788,9 +791,7 @@ public class LogDbClient implements TrapListener {
 
 	@Override
 	public void onClose(Throwable t) {
-		try {
-			close();
-		} catch (IOException e) {
-		}
+		for (LogQuery q : queries.values())
+			q.updateStatus("Cancelled");
 	}
 }
