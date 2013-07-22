@@ -226,11 +226,23 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void listTables(Request req, Response resp) {
-		checkPermission(req);
+		org.araqne.logdb.Session session = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
+		if (session == null)
+			throw new SecurityException("logdb session not found: " + req.getSession().getAdminLoginName());
 
 		Map<String, Object> tables = new HashMap<String, Object>();
-		for (String tableName : tableRegistry.getTableNames()) {
-			tables.put(tableName, getTableMetadata(tableName));
+
+		if (session.isAdmin()) {
+			for (String tableName : tableRegistry.getTableNames()) {
+				tables.put(tableName, getTableMetadata(tableName));
+			}
+		} else {
+			List<Privilege> privileges = accountService.getPrivileges(session, session.getLoginName());
+			for (Privilege p : privileges) {
+				if (p.getPermissions().size() > 0 && tableRegistry.exists(p.getTableName())) {
+					tables.put(p.getTableName(), getTableMetadata(p.getTableName()));
+				}
+			}
 		}
 
 		resp.put("tables", tables);
@@ -238,10 +250,11 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void getTableInfo(Request req, Response resp) {
-		checkPermission(req);
-
 		String tableName = req.getString("table", true);
+		checkTableAccess(req, tableName, Permission.READ);
+
 		resp.put("table", getTableMetadata(tableName));
+
 	}
 
 	private Map<String, Object> getTableMetadata(String tableName) {
@@ -277,6 +290,16 @@ public class ManagementPlugin {
 		for (Object key : keys) {
 			tableRegistry.unsetTableMetadata(tableName, key.toString());
 		}
+	}
+
+	private void checkTableAccess(Request req, String tableName, Permission permission) {
+		org.araqne.logdb.Session session = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
+		if (session == null)
+			throw new MsgbusException("logdb", "no-logdb-session");
+
+		boolean allowed = session.isAdmin() || accountService.checkPermission(session, tableName, permission);
+		if (!allowed)
+			throw new MsgbusException("logdb", "no-permission");
 	}
 
 	@MsgbusMethod
