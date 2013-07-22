@@ -114,7 +114,7 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void listAccounts(Request req, Response resp) {
-		org.araqne.logdb.Session session = checkPermission(req);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
 		List<Object> accounts = new ArrayList<Object>();
 		for (String loginName : accountService.getAccountNames()) {
 			List<Privilege> privileges = accountService.getPrivileges(session, loginName);
@@ -137,7 +137,7 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void changePassword(Request req, Response resp) {
-		org.araqne.logdb.Session session = checkPermission(req);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
 		String loginName = req.getString("login_name", true);
 		String password = req.getString("password", true);
 		accountService.changePassword(session, loginName, password);
@@ -145,7 +145,7 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void createAccount(Request req, Response resp) {
-		org.araqne.logdb.Session session = checkPermission(req);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
 		String loginName = req.getString("login_name", true);
 		String password = req.getString("password", true);
 		accountService.createAccount(session, loginName, password);
@@ -153,14 +153,14 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void removeAccount(Request req, Response resp) {
-		org.araqne.logdb.Session session = checkPermission(req);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
 		String loginName = req.getString("login_name", true);
 		accountService.removeAccount(session, loginName);
 	}
 
 	@MsgbusMethod
 	public void getPrivileges(Request req, Response resp) {
-		org.araqne.logdb.Session session = checkPermission(req);
+		org.araqne.logdb.Session session = ensureDbSession(req);
 		String loginName = req.getString("login_name", true);
 
 		List<Privilege> privileges = accountService.getPrivileges(session, loginName);
@@ -176,7 +176,7 @@ public class ManagementPlugin {
 	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void setPrivileges(Request req, Response resp) {
-		org.araqne.logdb.Session session = checkPermission(req);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
 		String loginName = req.getString("login_name", true);
 		List<String> tableNames = (List<String>) req.get("table_names", true);
 
@@ -189,7 +189,7 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void grantPrivilege(Request req, Response resp) {
-		org.araqne.logdb.Session session = checkPermission(req);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
 		String loginName = req.getString("login_name", true);
 		String tableName = req.getString("table_name", true);
 		accountService.grantPrivilege(session, loginName, tableName, Permission.READ);
@@ -198,7 +198,7 @@ public class ManagementPlugin {
 	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void grantPrivileges(Request req, Response resp) {
-		org.araqne.logdb.Session session = checkPermission(req);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
 		String loginName = req.getString("login_name", true);
 		List<String> tableNames = (List<String>) req.get("table_names", true);
 
@@ -208,7 +208,7 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void revokePrivilege(Request req, Response resp) {
-		org.araqne.logdb.Session session = checkPermission(req);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
 		String loginName = req.getString("login_name", true);
 		String tableName = req.getString("table_name", true);
 		accountService.revokePrivilege(session, loginName, tableName, Permission.READ);
@@ -217,7 +217,7 @@ public class ManagementPlugin {
 	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void revokePrivileges(Request req, Response resp) {
-		org.araqne.logdb.Session session = checkPermission(req);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
 		String loginName = req.getString("login_name", true);
 		List<String> tableNames = (List<String>) req.get("table_names");
 		for (String tableName : tableNames)
@@ -226,9 +226,7 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void listTables(Request req, Response resp) {
-		org.araqne.logdb.Session session = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
-		if (session == null)
-			throw new SecurityException("logdb session not found: " + req.getSession().getAdminLoginName());
+		org.araqne.logdb.Session session = ensureDbSession(req);
 
 		Map<String, Object> tables = new HashMap<String, Object>();
 
@@ -268,7 +266,7 @@ public class ManagementPlugin {
 	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void setTableMetadata(Request req, Response resp) {
-		checkPermission(req);
+		ensureAdminSession(req);
 
 		String tableName = req.getString("table", true);
 		Map<String, Object> metadata = (Map<String, Object>) req.get("metadata", true);
@@ -282,7 +280,7 @@ public class ManagementPlugin {
 	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void unsetTableMetadata(Request req, Response resp) {
-		checkPermission(req);
+		ensureAdminSession(req);
 
 		String tableName = req.getString("table", true);
 		List<Object> keys = (List<Object>) req.get("keys", true);
@@ -304,7 +302,7 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void createTable(Request req, Response resp) {
-		checkPermission(req);
+		ensureAdminSession(req);
 		String tableName = req.getString("table", true);
 
 		@SuppressWarnings("unchecked")
@@ -318,15 +316,22 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void dropTable(Request req, Response resp) {
-		checkPermission(req);
+		ensureAdminSession(req);
 		String tableName = req.getString("table", true);
 		storage.dropTable(tableName);
 	}
 
-	private org.araqne.logdb.Session checkPermission(Request req) {
+	private org.araqne.logdb.Session ensureAdminSession(Request req) {
 		org.araqne.logdb.Session session = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
 		if (session != null && !session.isAdmin())
 			throw new SecurityException("logdb management is not allowed to " + session.getLoginName());
+		return session;
+	}
+
+	private org.araqne.logdb.Session ensureDbSession(Request req) {
+		org.araqne.logdb.Session session = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
+		if (session == null)
+			throw new SecurityException("logdb session not found: " + req.getSession().getAdminLoginName());
 		return session;
 	}
 }
