@@ -23,6 +23,7 @@ import org.araqne.api.Script;
 import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
 import org.araqne.api.ScriptUsage;
+import org.araqne.logdb.Account;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.CsvLookupRegistry;
 import org.araqne.logdb.ExternalAuthService;
@@ -83,7 +84,11 @@ public class LogDBScript implements Script {
 		context.println("Accounts");
 		context.println("----------");
 		for (String loginName : accountService.getAccountNames()) {
-			context.println(loginName);
+			Account account = accountService.getAccount(loginName);
+			String admin = "";
+			if (account.isAdmin())
+				admin = " (admin)";
+			context.println(loginName + admin);
 		}
 	}
 

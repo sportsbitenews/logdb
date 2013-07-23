@@ -39,6 +39,7 @@ import org.araqne.confdb.ConfigCollection;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
+import org.araqne.logdb.Account;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.ExternalAuthService;
 import org.araqne.logdb.Permission;
@@ -223,6 +224,11 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 	}
 
 	@Override
+	public Account getAccount(String name) {
+		return localAccounts.get(name);
+	}
+
+	@Override
 	public boolean verifyPassword(String loginName, String password) {
 		verifyNotNull(loginName, "login name");
 		verifyNotNull(password, "password");
@@ -384,21 +390,22 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 
 	@Override
 	public void removeAccount(Session session, String loginName) {
-		verifyNotNull(session, "session");
 		verifyNotNull(loginName, "login name");
 
 		if (!localAccounts.containsKey(loginName))
 			throw new IllegalStateException("account not found");
 
-		if (!sessions.containsKey(session.getGuid()))
-			throw new IllegalStateException("invalid session");
+		if (session != null) {
+			if (!sessions.containsKey(session.getGuid()))
+				throw new IllegalStateException("invalid session");
 
-		if (session.getLoginName().equals(loginName))
-			throw new IllegalStateException("cannot delete your own account");
+			if (session.getLoginName().equals(loginName))
+				throw new IllegalStateException("cannot delete your own account");
 
-		// master admin only
-		if (!session.isAdmin())
-			throw new IllegalStateException("no permission");
+			// master admin only
+			if (!session.isAdmin())
+				throw new IllegalStateException("no permission");
+		}
 
 		localAccounts.remove(loginName);
 
@@ -501,6 +508,8 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 				account = new Account();
 				account.setLoginName(loginName);
 				account.setAuthServiceName(selectedExternalAuth);
+
+				localAccounts.put(loginName, account);
 				return account;
 			}
 		}

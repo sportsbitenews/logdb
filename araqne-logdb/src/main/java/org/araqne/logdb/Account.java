@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.impl;
+package org.araqne.logdb;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +21,11 @@ import java.util.List;
 import org.araqne.api.CollectionTypeHint;
 import org.araqne.confdb.CollectionName;
 
+/**
+ * @since 1.3.8 (exported)
+ * @author xeraph
+ * 
+ */
 @CollectionName("accounts")
 public class Account {
 	private String loginName;

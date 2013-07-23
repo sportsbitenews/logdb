@@ -36,6 +36,11 @@ public interface AccountService {
 
 	Set<String> getAccountNames();
 
+	/**
+	 * @since 1.3.8
+	 */
+	Account getAccount(String name);
+
 	boolean verifyPassword(String loginName, String password);
 
 	void createAccount(Session session, String loginName, String password);
