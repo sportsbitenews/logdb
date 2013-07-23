@@ -21,14 +21,22 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RegexParser implements LogParser {
-	private String field;
-	private Pattern p;
-	private String[] names;
+	private final String field;
+	private final Pattern p;
+	private final String[] names;
+	private final boolean includeOriginalField;
+	private final Matcher matcher;
 
 	public RegexParser(String field, Pattern p, String[] names) {
+		this(field, p, names, false);
+	}
+
+	public RegexParser(String field, Pattern p, String[] names, boolean includeOriginalField) {
 		this.field = field != null ? field : "line";
 		this.p = p;
 		this.names = names;
+		this.includeOriginalField = includeOriginalField;
+		this.matcher = p.matcher("");
 	}
 
 	@Override
@@ -36,12 +44,19 @@ public class RegexParser implements LogParser {
 		Map<String, Object> m = new HashMap<String, Object>();
 		String s = (String) params.get(field);
 
-		Matcher matcher = p.matcher(s);
+		matcher.reset(s);
 		if (matcher.find())
 			for (int i = 0; i < matcher.groupCount(); i++)
 				m.put(names[i], matcher.group(i + 1));
 
+		if (includeOriginalField)
+			m.put(field, s);
+
 		return m;
 	}
 
+	@Override
+	public String toString() {
+		return "regex parser: " + p.pattern();
+	}
 }

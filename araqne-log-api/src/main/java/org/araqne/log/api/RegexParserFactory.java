@@ -68,6 +68,8 @@ public class RegexParserFactory implements LogParserFactory {
 				"필드 이름이 포함된 정규표현식"), true));
 		options.add(new StringConfigType("field", t("field", "대상 필드"), t("parse target field. 'line' field by default",
 				"정규표현식을 적용할 필드, 미설정 시 기본값은 line"), false));
+		options.add(new StringConfigType("include_original_field", t("include original field", "원본 필드 포함"), t(
+				"return also original field (true or false)", "정규표현식으로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false"), false));
 		return options;
 	}
 
@@ -102,8 +104,13 @@ public class RegexParserFactory implements LogParserFactory {
 			regexToken = matcher.replaceFirst(quoted);
 		}
 
+		boolean includeOriginalField = false;
+		String s = config.get("include_original_field");
+		if (s != null)
+			includeOriginalField = Boolean.parseBoolean(s);
+
 		Pattern p = Pattern.compile(regexToken);
-		return new RegexParser(field, p, names.toArray(new String[0]));
+		return new RegexParser(field, p, names.toArray(new String[0]), includeOriginalField);
 	}
 
 	private String toNonCapturingGroup(String s) {
