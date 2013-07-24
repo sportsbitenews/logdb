@@ -75,7 +75,7 @@ public class LastPositionHelper {
 			for (String path : lastPositions.keySet()) {
 				String position = lastPositions.get(path);
 				String line = path + " " + position + "\n";
-				os.write(line.getBytes());
+				os.write(line.getBytes("utf-8"));
 			}
 		} catch (IOException e) {
 			logger.error("araqne log api: cannot write last position file", e);
