@@ -139,11 +139,18 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 	}
 
 	private boolean isDiskLack(File dir) {
+		if (!dir.exists())
+			return false;
+
 		long usable = dir.getUsableSpace();
 		long total = dir.getTotalSpace();
 
 		logger.trace("araqne logstorage: check {} {} free space of partition [{}], current [{}/{}]", new Object[] { minFreeSpaceValue,
 				minFreeSpaceType.toString().toLowerCase(), dir.getAbsolutePath(), usable, total });
+
+		if (total == 0)
+			return true;
+
 		if (minFreeSpaceType == DiskSpaceType.Percentage) {
 			int percent = (int) (usable * 100 / total);
 			if (percent < minFreeSpaceValue) {

@@ -25,12 +25,14 @@ public class Rex extends LogQueryCommand {
 
 	private String field;
 	private Pattern p;
+	private Matcher matcher;
 	private String[] names;
 
 	public Rex(String field, Pattern p, String[] names) {
 		this.field = field;
 		this.p = p;
 		this.names = names;
+		this.matcher = p.matcher("");
 	}
 
 	public String getInputField() {
@@ -55,7 +57,7 @@ public class Rex extends LogQueryCommand {
 
 		String s = o.toString();
 
-		Matcher matcher = p.matcher(s);
+		matcher.reset(s);
 		if (matcher.find())
 			for (int i = 0; i < matcher.groupCount(); i++)
 				m.put(names[i], matcher.group(i + 1));
