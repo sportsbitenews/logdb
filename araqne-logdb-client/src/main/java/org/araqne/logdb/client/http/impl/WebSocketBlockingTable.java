@@ -110,6 +110,8 @@ public class WebSocketBlockingTable {
 		// cancel all blocking calls
 		for (String guid : lockMap.keySet()) {
 			WaitingCall item = lockMap.get(guid);
+			if (item == null)
+				continue;
 
 			synchronized (item) {
 				item.done(interruptSignal);
