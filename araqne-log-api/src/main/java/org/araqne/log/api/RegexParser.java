@@ -45,9 +45,11 @@ public class RegexParser implements LogParser {
 		String s = (String) params.get(field);
 
 		matcher.reset(s);
-		if (matcher.find())
-			for (int i = 0; i < matcher.groupCount(); i++)
-				m.put(names[i], matcher.group(i + 1));
+		while (matcher.find())
+			for (int i = 0; i < matcher.groupCount(); i++) {
+				if (m.get(names[i]) == null)
+					m.put(names[i], matcher.group(i + 1));
+			}
 
 		if (includeOriginalField)
 			m.put(field, s);
