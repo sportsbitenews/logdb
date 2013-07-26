@@ -68,8 +68,6 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		// optional
 		String newlogRegex = getConfig().get("newlog_designator");
 		if (newlogRegex != null) {
-			if (!newlogRegex.startsWith("^"))
-				newlogRegex = "^" + newlogRegex;
 			newlogDsgnMatcher = Pattern.compile(newlogRegex).matcher("");
 		}
 
