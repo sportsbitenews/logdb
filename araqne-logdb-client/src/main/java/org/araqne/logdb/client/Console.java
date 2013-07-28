@@ -82,6 +82,8 @@ public class Console {
 					fetch(tokens);
 				else if (cmd.equals("queries"))
 					queries();
+				else if (cmd.equals("query_status"))
+					queryStatus(tokens);
 				else if (cmd.equals("create_table"))
 					createTable(tokens);
 				else if (cmd.equals("drop_table"))
@@ -214,15 +216,44 @@ public class Console {
 			w("connect first please");
 			return;
 		}
+		try {
+			List<LogQuery> queries = client.getQueries();
+			if (queries.size() == 0) {
+				w("no result");
+				return;
+			}
 
-		List<LogQuery> queries = client.getQueries();
-		if (queries.size() == 0) {
-			w("no result");
+			for (LogQuery query : queries) {
+				w(query.toString());
+			}
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void queryStatus(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+		
+		if (tokens.length < 2) {
+			w("Usage: query_status <query_id>");
 			return;
 		}
 
-		for (LogQuery query : queries) {
+		try {
+			LogQuery query = client.getQuery(Integer.valueOf(tokens[1]));
+			if (query == null) {
+				w("query not found");
+				return;
+			}
+
 			w(query.toString());
+			for (LogQueryCommand cmd : query.getCommands())
+				w("\t" + cmd);
+		} catch (Throwable t) {
+			w(t.getMessage());
 		}
 	}
 

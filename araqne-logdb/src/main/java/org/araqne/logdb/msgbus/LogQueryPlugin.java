@@ -241,6 +241,21 @@ public class LogQueryPlugin {
 		query.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, new LogQueryContext(dbSession));
 	}
 
+	/**
+	 * @since 1.4.0
+	 */
+	@MsgbusMethod
+	public void queryStatus(Request req, Response resp) {
+		int id = req.getInteger("id", true);
+		org.araqne.logdb.Session dbSession = getDbSession(req);
+
+		LogQuery query = service.getQuery(dbSession, id);
+		if (query == null)
+			throw new MsgbusException("logdb", "query-not-found");
+
+		resp.putAll(LogQueryHelper.getQuery(query));
+	}
+
 	private class MsgbusLogQueryCallback implements LogQueryCallback {
 		private String orgDomain;
 		private LogQuery query;

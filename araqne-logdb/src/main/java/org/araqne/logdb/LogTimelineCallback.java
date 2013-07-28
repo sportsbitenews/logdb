@@ -66,7 +66,7 @@ public abstract class LogTimelineCallback {
 		buildCallbackData(false);
 	}
 
-	public void eof(boolean canceled) {
+	public void eof(boolean cancelled) {
 		buildCallbackData(true);
 	}
 

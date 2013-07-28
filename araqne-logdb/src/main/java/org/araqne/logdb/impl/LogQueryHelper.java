@@ -38,34 +38,40 @@ public class LogQueryHelper {
 	public static List<Object> getQueries(Session session, LogQueryService service) {
 		List<Object> result = new ArrayList<Object>();
 		for (LogQuery lq : service.getQueries(session)) {
-			Long sec = null;
-			if (lq.getLastStarted() != null)
-				sec = new Date().getTime() - lq.getLastStarted().getTime();
-
-			List<Object> commands = new ArrayList<Object>();
-
-			if (lq.getCommands() != null) {
-				for (LogQueryCommand cmd : lq.getCommands()) {
-					Map<String, Object> c = new HashMap<String, Object>();
-					c.put("command", cmd.getQueryString());
-					c.put("status", cmd.getStatus());
-					c.put("push_count", cmd.getPushCount());
-					commands.add(c);
-				}
-			}
-
-			Map<String, Object> m = new HashMap<String, Object>();
-			m.put("id", lq.getId());
-			m.put("query_string", lq.getQueryString());
-			m.put("is_end", lq.isEnd());
-			m.put("last_started", lq.getLastStarted());
-			m.put("elapsed", sec);
-			m.put("background", lq.getRunMode() == RunMode.BACKGROUND);
-			m.put("commands", commands);
-
-			result.add(m);
+			result.add(getQuery(lq));
 		}
 		return result;
+	}
+
+	public static Map<String, Object> getQuery(LogQuery lq) {
+		Long sec = null;
+		if (lq.getLastStarted() != null)
+			sec = new Date().getTime() - lq.getLastStarted().getTime();
+
+		List<Object> commands = new ArrayList<Object>();
+
+		if (lq.getCommands() != null) {
+			for (LogQueryCommand cmd : lq.getCommands()) {
+				Map<String, Object> c = new HashMap<String, Object>();
+				c.put("command", cmd.getQueryString());
+				c.put("status", cmd.getStatus());
+				c.put("push_count", cmd.getPushCount());
+				commands.add(c);
+			}
+		}
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("id", lq.getId());
+		m.put("query_string", lq.getQueryString());
+		m.put("is_end", lq.isEnd());
+		m.put("is_eof", lq.isEof());
+		m.put("is_cancelled", lq.isCancelled());
+		m.put("last_started", lq.getLastStarted());
+		m.put("elapsed", sec);
+		m.put("background", lq.getRunMode() == RunMode.BACKGROUND);
+		m.put("commands", commands);
+
+		return m;
 	}
 
 	public static Map<String, Object> getResultData(LogQueryService qs, int id, int offset, int limit) throws IOException {

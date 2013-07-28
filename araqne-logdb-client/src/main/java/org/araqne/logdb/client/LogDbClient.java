@@ -18,6 +18,7 @@ package org.araqne.logdb.client;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
+import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -25,10 +26,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.zip.DataFormatException;
-import java.util.zip.Inflater;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.zip.DataFormatException;
+import java.util.zip.Inflater;
 
 import org.araqne.codec.EncodingRule;
 import org.araqne.logdb.client.http.WebSocketTransport;
@@ -75,12 +76,92 @@ public class LogDbClient implements TrapListener {
 		return session == null || session.isClosed();
 	}
 
-	public List<LogQuery> getQueries() {
+	public List<LogQuery> getQueries() throws IOException {
+		Message resp = session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.queries");
+
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> l = (List<Map<String, Object>>) resp.getParameters().get("queries");
+
+		for (Map<String, Object> q : l) {
+			int queryId = (Integer) q.get("id");
+			LogQuery query = queries.get(queryId);
+			if (query == null) {
+				query = new LogQuery(queryId, (String) q.get("query_string"));
+				queries.put(queryId, query);
+			}
+
+			parseQueryStatus(q, query);
+		}
+
 		return new ArrayList<LogQuery>(queries.values());
 	}
 
-	public LogQuery getQuery(int id) {
+	public LogQuery getQuery(int id) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("id", id);
+		Message resp = session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.queryStatus", params);
+
+		Map<String, Object> q = resp.getParameters();
+		int queryId = (Integer) q.get("id");
+		LogQuery query = queries.get(queryId);
+		if (query == null) {
+			query = new LogQuery(queryId, (String) q.get("query_string"));
+			queries.put(queryId, query);
+		}
+
+		parseQueryStatus(q, query);
+
 		return queries.get(id);
+	}
+
+	private void parseQueryStatus(Map<String, Object> q, LogQuery query) {
+		boolean end = (Boolean) q.get("is_end");
+		boolean eof = (Boolean) q.get("is_eof");
+		boolean cancelled = (Boolean) q.get("is_cancelled");
+
+		if (eof) {
+			query.updateStatus("Ended");
+			if (cancelled)
+				query.updateStatus("Cancelled");
+		} else if (end) {
+			query.updateStatus("Stopped");
+		} else {
+			query.updateStatus("Running");
+		}
+
+		query.setBackground((Boolean) q.get("background"));
+		query.setElapsed(toLong(q.get("elapsed")));
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+		if (q.get("last_started") != null)
+			query.setLastStarted(df.parse((String) q.get("last_started"), new ParsePosition(0)));
+
+		List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
+
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> cl = (List<Map<String, Object>>) q.get("commands");
+		for (Map<String, Object> cm : cl) {
+			LogQueryCommand c = new LogQueryCommand();
+			c.setStatus((String) cm.get("status"));
+			c.setPushCount(toLong(cm.get("push_count")));
+			c.setCommand((String) cm.get("command"));
+			commands.add(c);
+		}
+
+		query.setCommands(commands);
+	}
+
+	private Long toLong(Object v) {
+		if (v == null)
+			return null;
+
+		if (v instanceof Integer)
+			return (long) (Integer) v;
+
+		if (v instanceof Long)
+			return (Long) v;
+
+		return null;
 	}
 
 	public void connect(String host, String loginName, String password) throws IOException {

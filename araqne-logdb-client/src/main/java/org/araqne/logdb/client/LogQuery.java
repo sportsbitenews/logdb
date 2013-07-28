@@ -15,6 +15,9 @@
  */
 package org.araqne.logdb.client;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class LogQuery {
@@ -22,6 +25,10 @@ public class LogQuery {
 	private String queryString;
 	private String status;
 	private long loadedCount;
+	private boolean background;
+	private Date lastStarted;
+	private Long elapsed;
+	private List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 	private CopyOnWriteArrayList<WaitingCondition> waitingConditions;
 
 	public LogQuery(int id, String queryString) {
@@ -83,6 +90,38 @@ public class LogQuery {
 				}
 			}
 		}
+	}
+
+	public boolean isBackground() {
+		return background;
+	}
+
+	public void setBackground(boolean background) {
+		this.background = background;
+	}
+
+	public Date getLastStarted() {
+		return lastStarted;
+	}
+
+	public void setLastStarted(Date lastStarted) {
+		this.lastStarted = lastStarted;
+	}
+
+	public Long getElapsed() {
+		return elapsed;
+	}
+
+	public void setElapsed(Long elapsed) {
+		this.elapsed = elapsed;
+	}
+
+	public List<LogQueryCommand> getCommands() {
+		return commands;
+	}
+
+	public void setCommands(List<LogQueryCommand> commands) {
+		this.commands = commands;
 	}
 
 	private class WaitingCondition {

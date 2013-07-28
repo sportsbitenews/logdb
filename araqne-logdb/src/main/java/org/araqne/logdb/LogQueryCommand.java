@@ -24,9 +24,9 @@ public abstract class LogQueryCommand {
 		Waiting, Running, End, Finalizing
 	}
 
-	private boolean canceled = false;
+	private boolean cancelled = false;
 	private String queryString;
-	private int pushCount;
+	private long pushCount;
 	protected LogQuery logQuery;
 	protected LogQueryCommand next;
 	private boolean callbackTimeline;
@@ -74,7 +74,7 @@ public abstract class LogQueryCommand {
 		throw new UnsupportedOperationException();
 	}
 
-	public int getPushCount() {
+	public long getPushCount() {
 		return pushCount;
 	}
 
@@ -102,22 +102,22 @@ public abstract class LogQueryCommand {
 		this.callbackTimeline = callbackTimeline;
 	}
 
-	public void eof(boolean canceled) {
+	public void eof(boolean cancelled) {
 		status = Status.End;
-		
-		this.canceled = canceled;
+
+		this.cancelled = cancelled;
 
 		if (next != null && next.status != Status.End && next.status != Status.Finalizing)
-			next.eof(canceled);
+			next.eof(cancelled);
 
 		if (logQuery != null) {
 			if (callbackTimeline) {
 				for (LogTimelineCallback callback : logQuery.getTimelineCallbacks())
-					callback.eof(canceled);
+					callback.eof(cancelled);
 				logQuery.clearTimelineCallbacks();
 			}
 			if (logQuery.getCommands().get(0).status != Status.End)
-				logQuery.getCommands().get(0).eof(canceled);
+				logQuery.getCommands().get(0).eof(cancelled);
 		}
 	}
 }
