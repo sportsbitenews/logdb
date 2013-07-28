@@ -730,8 +730,8 @@ public class Console {
 				return;
 			}
 
-			w("Parsers");
-			w("----------");
+			w("Transformers");
+			w("--------------");
 			for (TransformerInfo transformer : transformers)
 				w(transformer.toString());
 		} catch (Throwable t) {
