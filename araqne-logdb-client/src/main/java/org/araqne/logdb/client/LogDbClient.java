@@ -99,43 +99,28 @@ public class LogDbClient implements TrapListener {
 	public LogQuery getQuery(int id) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("id", id);
-		Message resp = session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.queryStatus", params);
 
-		Map<String, Object> q = resp.getParameters();
-		int queryId = (Integer) q.get("id");
-		LogQuery query = queries.get(queryId);
-		if (query == null) {
-			query = new LogQuery(queryId, (String) q.get("query_string"));
-			queries.put(queryId, query);
+		try {
+			Message resp = session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.queryStatus", params);
+
+			Map<String, Object> q = resp.getParameters();
+			int queryId = (Integer) q.get("id");
+			LogQuery query = queries.get(queryId);
+			if (query == null) {
+				query = new LogQuery(queryId, (String) q.get("query_string"));
+				queries.put(queryId, query);
+			}
+
+			parseQueryStatus(q, query);
+		} catch (MessageException t) {
+			if (!t.getMessage().startsWith("msgbus-handler-not-found"))
+				throw t;
 		}
-
-		parseQueryStatus(q, query);
 
 		return queries.get(id);
 	}
 
 	private void parseQueryStatus(Map<String, Object> q, LogQuery query) {
-		boolean end = (Boolean) q.get("is_end");
-		boolean eof = (Boolean) q.get("is_eof");
-		boolean cancelled = (Boolean) q.get("is_cancelled");
-
-		if (eof) {
-			query.updateStatus("Ended");
-			if (cancelled)
-				query.updateStatus("Cancelled");
-		} else if (end) {
-			query.updateStatus("Stopped");
-		} else {
-			query.updateStatus("Running");
-		}
-
-		query.setBackground((Boolean) q.get("background"));
-		query.setElapsed(toLong(q.get("elapsed")));
-
-		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
-		if (q.get("last_started") != null)
-			query.setLastStarted(df.parse((String) q.get("last_started"), new ParsePosition(0)));
-
 		List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 
 		@SuppressWarnings("unchecked")
@@ -149,6 +134,37 @@ public class LogDbClient implements TrapListener {
 		}
 
 		query.setCommands(commands);
+		boolean end = (Boolean) q.get("is_end");
+
+		boolean eof = end;
+		if (q.containsKey("is_eof"))
+			eof = (Boolean) q.get("is_eof");
+
+		boolean cancelled = false;
+		if (q.containsKey("is_cancelled"))
+			cancelled = (Boolean) q.get("is_cancelled");
+
+		if (eof) {
+			if (!query.getCommands().get(0).getStatus().equalsIgnoreCase("Waiting"))
+				query.updateStatus("Ended");
+
+			if (cancelled)
+				query.updateStatus("Cancelled");
+		} else if (end) {
+			query.updateStatus("Stopped");
+		} else {
+			query.updateStatus("Running");
+		}
+
+		if (q.containsKey("background"))
+			query.setBackground((Boolean) q.get("background"));
+
+		query.setElapsed(toLong(q.get("elapsed")));
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+		if (q.get("last_started") != null)
+			query.setLastStarted(df.parse((String) q.get("last_started"), new ParsePosition(0)));
+
 	}
 
 	private Long toLong(Object v) {
