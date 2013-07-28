@@ -38,6 +38,6 @@ public class ParserInfo {
 
 	@Override
 	public String toString() {
-		return "name=" + name + ", factoryName=" + factoryName + ", configs=" + configs;
+		return "name=" + name + ", factory=" + factoryName + ", configs=" + configs;
 	}
 }
