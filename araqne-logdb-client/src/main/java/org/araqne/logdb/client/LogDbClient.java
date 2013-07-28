@@ -564,6 +564,22 @@ public class LogDbClient implements TrapListener {
 	}
 
 	@SuppressWarnings("unchecked")
+	public ParserFactoryInfo getParserFactoryInfo(String name) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("factory_name", name);
+
+		Message resp = session.rpc("org.logpresso.core.msgbus.ParserPlugin.getParserFactoryInfo", params);
+		Map<String, Object> m = (Map<String, Object>) resp.get("factory");
+
+		ParserFactoryInfo f = new ParserFactoryInfo();
+		f.setName((String) m.get("name"));
+		f.setDisplayName((String) m.get("display_name"));
+		f.setDescription((String) m.get("description"));
+		f.setConfigSpecs(parseConfigList((List<Object>) m.get("options")));
+		return f;
+	}
+
+	@SuppressWarnings("unchecked")
 	private List<ConfigSpec> parseConfigList(List<Object> l) {
 		List<ConfigSpec> specs = new ArrayList<ConfigSpec>();
 
@@ -580,6 +596,136 @@ public class LogDbClient implements TrapListener {
 		}
 
 		return specs;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<ParserInfo> getParsers() throws IOException {
+		Message resp = session.rpc("org.logpresso.core.msgbus.ParserPlugin.getParsers");
+		List<Object> l = (List<Object>) resp.get("parsers");
+
+		List<ParserInfo> parsers = new ArrayList<ParserInfo>();
+		for (Object o : l) {
+			parsers.add(parseParserInfo((Map<String, Object>) o));
+		}
+
+		return parsers;
+	}
+
+	public ParserInfo getParser(String name) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", name);
+		Message resp = session.rpc("org.logpresso.core.msgbus.ParserPlugin.getParser", params);
+
+		@SuppressWarnings("unchecked")
+		Map<String, Object> m = (Map<String, Object>) resp.get("parser");
+		return parseParserInfo(m);
+	}
+
+	@SuppressWarnings("unchecked")
+	private ParserInfo parseParserInfo(Map<String, Object> m) {
+		ParserInfo p = new ParserInfo();
+		p.setName((String) m.get("name"));
+		p.setFactoryName((String) m.get("factory_name"));
+		p.setConfigs((Map<String, String>) m.get("configs"));
+		return p;
+	}
+
+	public void createParser(ParserInfo parser) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", parser.getName());
+		params.put("factory_name", parser.getFactoryName());
+		params.put("configs", parser.getConfigs());
+
+		session.rpc("org.logpresso.core.msgbus.ParserPlugin.createParser", params);
+	}
+
+	public void removeParser(String name) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", name);
+		session.rpc("org.logpresso.core.msgbus.ParserPlugin.removeParser", params);
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<TransformerFactoryInfo> listTransformerFactories() throws IOException {
+		Message resp = session.rpc("org.logpresso.core.msgbus.TransformerPlugin.listTransformerFactories");
+		List<Object> l = (List<Object>) resp.get("factories");
+
+		List<TransformerFactoryInfo> parsers = new ArrayList<TransformerFactoryInfo>();
+		for (Object o : l) {
+			Map<String, Object> m = (Map<String, Object>) o;
+
+			TransformerFactoryInfo f = new TransformerFactoryInfo();
+			f.setName((String) m.get("name"));
+			f.setDisplayName((String) m.get("display_name"));
+			f.setDescription((String) m.get("description"));
+			f.setConfigSpecs(parseConfigList((List<Object>) m.get("options")));
+			parsers.add(f);
+		}
+
+		return parsers;
+	}
+
+	@SuppressWarnings("unchecked")
+	public TransformerFactoryInfo getTransformerFactoryInfo(String name) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("factory_name", name);
+
+		Message resp = session.rpc("org.logpresso.core.msgbus.TransformerPlugin.getTransformerFactoryInfo", params);
+		Map<String, Object> m = (Map<String, Object>) resp.get("factory");
+
+		TransformerFactoryInfo f = new TransformerFactoryInfo();
+		f.setName((String) m.get("name"));
+		f.setDisplayName((String) m.get("display_name"));
+		f.setDescription((String) m.get("description"));
+		f.setConfigSpecs(parseConfigList((List<Object>) m.get("options")));
+		return f;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<TransformerInfo> getTransformers() throws IOException {
+		Message resp = session.rpc("org.logpresso.core.msgbus.TransformerPlugin.getTransformers");
+		List<Object> l = (List<Object>) resp.get("transformers");
+
+		List<TransformerInfo> transformers = new ArrayList<TransformerInfo>();
+		for (Object o : l) {
+			transformers.add(parseTransformerInfo((Map<String, Object>) o));
+		}
+
+		return transformers;
+	}
+
+	public TransformerInfo getTransformer(String name) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", name);
+		Message resp = session.rpc("org.logpresso.core.msgbus.TransformerPlugin.getTransformer", params);
+
+		@SuppressWarnings("unchecked")
+		Map<String, Object> m = (Map<String, Object>) resp.get("transformer");
+		return parseTransformerInfo(m);
+	}
+
+	@SuppressWarnings("unchecked")
+	private TransformerInfo parseTransformerInfo(Map<String, Object> m) {
+		TransformerInfo p = new TransformerInfo();
+		p.setName((String) m.get("name"));
+		p.setFactoryName((String) m.get("factory_name"));
+		p.setConfigs((Map<String, String>) m.get("configs"));
+		return p;
+	}
+
+	public void createTransformer(TransformerInfo parser) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", parser.getName());
+		params.put("factory_name", parser.getFactoryName());
+		params.put("configs", parser.getConfigs());
+
+		session.rpc("org.logpresso.core.msgbus.TransformerPlugin.createTransformer", params);
+	}
+
+	public void removeTransformer(String name) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", name);
+		session.rpc("org.logpresso.core.msgbus.TransformerPlugin.removeTransformer", params);
 	}
 
 	@SuppressWarnings("unchecked")

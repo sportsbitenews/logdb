@@ -98,6 +98,24 @@ public class Console {
 					listLoggerFactories();
 				else if (cmd.equals("parser_factories"))
 					listParserFactories();
+				else if (cmd.equals("parser_factory"))
+					getParserFactoryInfo(tokens);
+				else if (cmd.equals("parsers"))
+					listParsers();
+				else if (cmd.equals("transformer_factories"))
+					listTransformerFactories();
+				else if (cmd.equals("transformer_factory"))
+					getTransformerFactoryInfo(tokens);
+				else if (cmd.equals("transformers"))
+					listTransformers();
+				else if (cmd.equals("create_transformer"))
+					createTransformer(tokens);
+				else if (cmd.equals("remove_transformer"))
+					removeTransformer(tokens);
+				else if (cmd.equals("create_parser"))
+					createParser(tokens);
+				else if (cmd.equals("remove_parser"))
+					removeParser(tokens);
 				else if (cmd.equals("create_logger"))
 					createLogger(tokens);
 				else if (cmd.equals("remove_logger"))
@@ -236,7 +254,7 @@ public class Console {
 			w("connect first please");
 			return;
 		}
-		
+
 		if (tokens.length < 2) {
 			w("Usage: query_status <query_id>");
 			return;
@@ -554,6 +572,228 @@ public class Console {
 			w("------------------");
 			for (ParserFactoryInfo f : client.listParserFactories())
 				w(f.toString());
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void getParserFactoryInfo(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: parser_factory <factory name>");
+			return;
+		}
+
+		try {
+			w("Parser Factory");
+			w("------------------");
+			ParserFactoryInfo f = client.getParserFactoryInfo(tokens[1]);
+			w(f.toString());
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void listParsers() {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		try {
+			List<ParserInfo> parsers = client.getParsers();
+			if (parsers.size() == 0) {
+				w("no result");
+				return;
+			}
+
+			w("Parsers");
+			w("----------");
+			for (ParserInfo parser : parsers)
+				w(parser.toString());
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void createParser(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: create_parser <factory_name> <name>");
+			return;
+		}
+
+		try {
+			ParserFactoryInfo f = client.getParserFactoryInfo(tokens[1]);
+
+			ParserInfo p = new ParserInfo();
+			p.setFactoryName(tokens[1]);
+			p.setName(tokens[2]);
+
+			for (ConfigSpec type : f.getConfigSpecs()) {
+				inputOption(p, type);
+			}
+
+			client.createParser(p);
+			w("created");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void inputOption(ParserInfo parser, ConfigSpec spec) throws IOException {
+		String directive = spec.isRequired() ? "(required)" : "(optional)";
+		System.out.print(spec.getDisplayName() + " " + directive + "? ");
+		String value = br.readLine();
+		if (!value.isEmpty())
+			parser.getConfigs().put(spec.getName(), value);
+
+		if (value.isEmpty() && spec.isRequired()) {
+			inputOption(parser, spec);
+		}
+	}
+
+	private void removeParser(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: remove_parser <name>");
+			return;
+		}
+
+		try {
+			client.removeParser(tokens[1]);
+			w("removed");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void listTransformerFactories() {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		try {
+			w("Transformer Factories");
+			w("------------------");
+			for (TransformerFactoryInfo f : client.listTransformerFactories())
+				w(f.toString());
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void getTransformerFactoryInfo(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: transformer_factory <factory name>");
+			return;
+		}
+
+		try {
+			w("Transformer Factory");
+			w("------------------");
+			TransformerFactoryInfo f = client.getTransformerFactoryInfo(tokens[1]);
+			w(f.toString());
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void listTransformers() {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		try {
+			List<TransformerInfo> transformers = client.getTransformers();
+			if (transformers.size() == 0) {
+				w("no result");
+				return;
+			}
+
+			w("Parsers");
+			w("----------");
+			for (TransformerInfo transformer : transformers)
+				w(transformer.toString());
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void createTransformer(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: create_transformer <factory_name> <name>");
+			return;
+		}
+
+		try {
+			TransformerFactoryInfo f = client.getTransformerFactoryInfo(tokens[1]);
+
+			TransformerInfo p = new TransformerInfo();
+			p.setFactoryName(tokens[1]);
+			p.setName(tokens[2]);
+
+			for (ConfigSpec type : f.getConfigSpecs()) {
+				inputOption(p, type);
+			}
+
+			client.createTransformer(p);
+			w("created");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void inputOption(TransformerInfo parser, ConfigSpec spec) throws IOException {
+		String directive = spec.isRequired() ? "(required)" : "(optional)";
+		System.out.print(spec.getDisplayName() + " " + directive + "? ");
+		String value = br.readLine();
+		if (!value.isEmpty())
+			parser.getConfigs().put(spec.getName(), value);
+
+		if (value.isEmpty() && spec.isRequired()) {
+			inputOption(parser, spec);
+		}
+	}
+
+	private void removeTransformer(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 2) {
+			w("Usage: remove_transformer <name>");
+			return;
+		}
+
+		try {
+			client.removeTransformer(tokens[1]);
+			w("removed");
 		} catch (Throwable t) {
 			w(t.getMessage());
 		}
