@@ -306,7 +306,7 @@ public class ManagementPlugin {
 		String tableName = req.getString("table", true);
 
 		@SuppressWarnings("unchecked")
-		Map<String, String> metadata = (Map<String, String>) req.get("metadata", true);
+		Map<String, String> metadata = (Map<String, String>) req.get("metadata");
 		try {
 			storage.createTable(tableName, "v3p", metadata);
 		} catch (UnsupportedLogFileTypeException e) {
