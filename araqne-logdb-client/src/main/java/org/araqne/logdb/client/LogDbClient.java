@@ -650,7 +650,7 @@ public class LogDbClient implements TrapListener {
 		Message resp = session.rpc("org.logpresso.core.msgbus.TransformerPlugin.listTransformerFactories");
 		List<Object> l = (List<Object>) resp.get("factories");
 
-		List<TransformerFactoryInfo> parsers = new ArrayList<TransformerFactoryInfo>();
+		List<TransformerFactoryInfo> factories = new ArrayList<TransformerFactoryInfo>();
 		for (Object o : l) {
 			Map<String, Object> m = (Map<String, Object>) o;
 
@@ -659,10 +659,10 @@ public class LogDbClient implements TrapListener {
 			f.setDisplayName((String) m.get("display_name"));
 			f.setDescription((String) m.get("description"));
 			f.setConfigSpecs(parseConfigList((List<Object>) m.get("options")));
-			parsers.add(f);
+			factories.add(f);
 		}
 
-		return parsers;
+		return factories;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -713,11 +713,11 @@ public class LogDbClient implements TrapListener {
 		return p;
 	}
 
-	public void createTransformer(TransformerInfo parser) throws IOException {
+	public void createTransformer(TransformerInfo transformer) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("name", parser.getName());
-		params.put("factory_name", parser.getFactoryName());
-		params.put("configs", parser.getConfigs());
+		params.put("name", transformer.getName());
+		params.put("factory_name", transformer.getFactoryName());
+		params.put("configs", transformer.getConfigs());
 
 		session.rpc("org.logpresso.core.msgbus.TransformerPlugin.createTransformer", params);
 	}
