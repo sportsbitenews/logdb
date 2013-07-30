@@ -66,6 +66,10 @@ public class Result extends LogQueryCommand {
 		BASE_DIR.mkdirs();
 	}
 
+	public long getCount() {
+		return count;
+	}
+
 	private class LogQueryCallbackInfo {
 		private int size;
 		private LogQueryCallback callback;
@@ -125,6 +129,11 @@ public class Result extends LogQueryCommand {
 				writer.write(new Log("$Result$", new Date(), count + 1, m.map()));
 			}
 		} catch (IOException e) {
+			// cancel query when disk is full
+			File dir = indexPath.getParentFile();
+			if (dir != null && dir.getFreeSpace() == 0)
+				eof(true);
+
 			throw new IllegalStateException(e);
 		}
 		count++;
@@ -174,14 +183,18 @@ public class Result extends LogQueryCommand {
 			throw new IOException(msg);
 		}
 
+		syncWriter();
+
+		// TODO : check tableName
+		LogFileReaderV2 reader = new LogFileReaderV2(null, indexPath, dataPath);
+		return new LogResultSetImpl(reader, count);
+	}
+
+	public void syncWriter() throws IOException {
 		synchronized (writer) {
 			writer.flush();
 			writer.sync();
 		}
-
-		// TODO : check tableName
-		LogFileReaderV2 reader = new LogFileReaderV2(null, indexPath, dataPath);
-		return new LogResultSetImpl(reader);
 	}
 
 	@Override
@@ -216,15 +229,17 @@ public class Result extends LogQueryCommand {
 	private static class LogResultSetImpl implements LogResultSet {
 		private LogFileReaderV2 reader;
 		private LogRecordCursor cursor;
+		private long count;
 
-		public LogResultSetImpl(LogFileReaderV2 reader) throws IOException {
+		public LogResultSetImpl(LogFileReaderV2 reader, long count) throws IOException {
 			this.reader = reader;
 			this.cursor = reader.getCursor(true);
+			this.count = count;
 		}
 
 		@Override
 		public long size() {
-			return reader.count();
+			return count;
 		}
 
 		@Override

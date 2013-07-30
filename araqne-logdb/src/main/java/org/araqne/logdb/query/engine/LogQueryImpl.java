@@ -58,6 +58,13 @@ public class LogQueryImpl implements LogQuery {
 		this.context = context;
 		this.queryString = queryString;
 		this.commands = commands;
+
+		try {
+			result = new Result();
+			result.setLogQuery(this);
+		} catch (IOException e) {
+			throw new IllegalStateException("cannot create result, maybe disk full", e);
+		}
 	}
 
 	@Override
@@ -70,8 +77,6 @@ public class LogQueryImpl implements LogQuery {
 			return;
 
 		try {
-			result = new Result();
-			result.setLogQuery(this);
 			commands.get(commands.size() - 1).setNextCommand(result);
 			for (LogQueryCallback callback : logQueryCallbacks)
 				result.registerCallback(callback);
@@ -137,8 +142,6 @@ public class LogQueryImpl implements LogQuery {
 	public boolean isEnd() {
 		if (commands.size() == 0)
 			return true;
-		if (result == null)
-			return true;
 		if (commands.get(0).getStatus() == Status.Waiting)
 			return true;
 		return result.getStatus().equals(Status.End);
@@ -157,7 +160,7 @@ public class LogQueryImpl implements LogQuery {
 
 	@Override
 	public void cancel() {
-		if (result == null)
+		if (cancelled)
 			return;
 
 		cancelled = true;
@@ -187,17 +190,13 @@ public class LogQueryImpl implements LogQuery {
 
 	@Override
 	public Long getResultCount() throws IOException {
-		if (result == null)
-			return null;
-
-		LogResultSet rs = null;
 		try {
-			rs = result.getResult();
-			return rs.size();
-		} finally {
-			if (rs != null)
-				rs.close();
+			result.syncWriter();
+		} catch (Throwable t) {
+			logger.debug("araqne logdb: result disk sync failed", t);
 		}
+
+		return result.getCount();
 	}
 
 	@Override
