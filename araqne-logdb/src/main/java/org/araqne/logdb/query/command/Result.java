@@ -56,6 +56,8 @@ public class Result extends LogQueryCommand {
 	 */
 	private volatile boolean purged;
 
+	private volatile boolean eofCalled;
+
 	public Result() throws IOException {
 		callbacks = new CopyOnWriteArraySet<LogQueryCallback>();
 		callbackQueue = new PriorityQueue<Result.LogQueryCallbackInfo>(11, new CallbackInfoComparator());
@@ -199,6 +201,10 @@ public class Result extends LogQueryCommand {
 
 	@Override
 	public void eof(boolean canceled) {
+		if (eofCalled)
+			return;
+
+		eofCalled = true;
 		this.status = Status.Finalizing;
 
 		try {
