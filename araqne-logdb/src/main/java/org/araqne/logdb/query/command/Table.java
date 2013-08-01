@@ -210,9 +210,11 @@ public class Table extends LogQueryCommand {
 		public void onLog(Log log) {
 			Map<String, Object> m = null;
 
+			Map<String, Object> data = log.getData();
 			if (parser != null) {
 				try {
-					Map<String, Object> parsed = parser.parse(log.getData());
+					data.put("_time", log.getDate());
+					Map<String, Object> parsed = parser.parse(data);
 					if (parsed != null) {
 						parsed.put("_table", log.getTableName());
 						parsed.put("_id", log.getId());
@@ -227,20 +229,20 @@ public class Table extends LogQueryCommand {
 
 						m = parsed;
 					} else {
-						logger.debug("araqne logdb: cannot parse log [{}]", log.getData());
+						logger.debug("araqne logdb: cannot parse log [{}]", data);
 						return;
 					}
 				} catch (Throwable t) {
 					if (!suppressBugAlert) {
 						logger.error(
 								"araqne logdb: PARSER BUG! original log => table " + log.getTableName() + ", id " + log.getId()
-										+ ", data " + log.getData(), t);
+										+ ", data " + data, t);
 						suppressBugAlert = true;
 					}
 
 					// can be unmodifiableMap when it comes from memory buffer.
 					m = new HashMap<String, Object>();
-					m.putAll(log.getData());
+					m.putAll(data);
 					m.put("_table", log.getTableName());
 					m.put("_id", log.getId());
 					m.put("_time", log.getDate());
@@ -248,7 +250,7 @@ public class Table extends LogQueryCommand {
 			} else {
 				// can be unmodifiableMap when it comes from memory buffer.
 				m = new HashMap<String, Object>();
-				m.putAll(log.getData());
+				m.putAll(data);
 				m.put("_table", log.getTableName());
 				m.put("_id", log.getId());
 				m.put("_time", log.getDate());
