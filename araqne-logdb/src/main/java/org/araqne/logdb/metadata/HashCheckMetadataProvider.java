@@ -71,6 +71,10 @@ public class HashCheckMetadataProvider implements MetadataProvider {
 
 		File dir = storage.getTableDirectory(tableName);
 
+		Map<String, String> tableMetadata = new HashMap<String, String>();
+		for (String key : tableRegistry.getTableMetadataKeys(tableName))
+			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+
 		for (Date day : storage.getLogDates(tableName)) {
 
 			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -80,7 +84,7 @@ public class HashCheckMetadataProvider implements MetadataProvider {
 			File dataPath = new File(dir, dateText + ".dat");
 			File keyPath = new File(dir, dateText + ".key");
 
-			Map<String, Object> options = new HashMap<String, Object>();
+			Map<String, Object> options = new HashMap<String, Object>(tableMetadata);
 			options.put("tableName", tableName);
 			options.put("indexPath", indexPath);
 			options.put("dataPath", dataPath);

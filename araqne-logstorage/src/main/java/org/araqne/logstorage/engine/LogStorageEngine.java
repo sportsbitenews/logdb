@@ -704,8 +704,12 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		if (logFileType == null)
 			logFileType = "v2";
 
-		LogFileReader reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath,
-				dataPath, keyPath));
+		Map<String, String> tableMetadata = new HashMap<String, String>();
+		for (String key : tableRegistry.getTableMetadataKeys(tableName))
+			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+
+		LogFileReader reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableMetadata, tableName,
+				indexPath, dataPath, keyPath));
 
 		return new LogCursorImpl(tableName, day, buffer, reader, ascending);
 	}
@@ -840,7 +844,13 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			if (logFileType == null)
 				logFileType = "v2";
 
-			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath, keyPath));
+			Map<String, String> tableMetadata = new HashMap<String, String>();
+			for (String key : tableRegistry.getTableMetadataKeys(tableName))
+				tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+
+			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableMetadata, tableName, indexPath,
+					dataPath, keyPath));
+
 			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
 			if (minId < 0 || flushedMaxId < 0 || flushedMaxId >= minId)
 				reader.traverse(from, to, minId, flushedMaxId, offset, limit, c, doParallel);

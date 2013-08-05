@@ -68,6 +68,10 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 		String tableName = tokens[1];
 		String type = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
 
+		Map<String, String> tableMetadata = new HashMap<String, String>();
+		for (String key : tableRegistry.getTableMetadataKeys(tableName))
+			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 		Date day = df.parse(tokens[2], new ParsePosition(0));
 
@@ -80,7 +84,7 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 		File dataPath = new File(dir, dateText + ".dat");
 		File keyPath = new File(dir, dateText + ".key");
 
-		Map<String, Object> options = new HashMap<String, Object>();
+		Map<String, Object> options = new HashMap<String, Object>(tableMetadata);
 		options.put("tableName", tableName);
 		options.put("indexPath", indexPath);
 		options.put("dataPath", dataPath);

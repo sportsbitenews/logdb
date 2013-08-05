@@ -44,6 +44,8 @@ import org.araqne.api.ScriptUsage;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogCryptoProfile;
+import org.araqne.logstorage.LogCryptoProfileRegistry;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogRetentionPolicy;
@@ -68,19 +70,62 @@ public class LogStorageScript implements Script {
 	private LogStorageMonitor monitor;
 	private ConfigService conf;
 	private LogFileServiceRegistry lfsRegistry;
+	private LogCryptoProfileRegistry cryptoRegistry;
 
 	public LogStorageScript(LogTableRegistry tableRegistry, LogStorage archive, LogStorageMonitor monitor, ConfigService conf,
-			LogFileServiceRegistry lfsRegistry) {
+			LogFileServiceRegistry lfsRegistry, LogCryptoProfileRegistry cryptoRegistry) {
 		this.tableRegistry = tableRegistry;
 		this.storage = archive;
 		this.monitor = monitor;
 		this.conf = conf;
 		this.lfsRegistry = lfsRegistry;
+		this.cryptoRegistry = cryptoRegistry;
 	}
 
 	@Override
 	public void setScriptContext(ScriptContext context) {
 		this.context = context;
+	}
+
+	public void cryptoProfiles(String[] args) {
+		context.println("Crypto Profiles");
+		context.println("-----------------");
+		for (LogCryptoProfile p : cryptoRegistry.getProfiles()) {
+			context.println(p);
+		}
+	}
+
+	@ScriptUsage(description = "create crypto profile", arguments = {
+			@ScriptArgument(name = "profile name", type = "string", description = "crypto profile name") })
+	public void createCryptoProfile(String[] args) throws InterruptedException {
+		LogCryptoProfile p = new LogCryptoProfile();
+		p.setName(args[0]);
+
+		context.print("pkcs12 path? ");
+		String line = context.readLine().trim();
+		p.setFilePath(line);
+
+		context.print("pkcs12 password? ");
+		line = context.readLine();
+		p.setPassword(line);
+
+		context.print("cipher algorithm? ");
+		line = context.readLine().trim();
+		p.setCipher(line.trim().isEmpty() ? null : line);
+
+		context.print("digest algorithm? ");
+		line = context.readLine().trim();
+		p.setDigest(line.trim().isEmpty() ? null : line);
+
+		cryptoRegistry.addProfile(p);
+		context.println("created");
+	}
+
+	@ScriptUsage(description = "create crypto profile", arguments = {
+			@ScriptArgument(name = "profile name", type = "string", description = "crypto profile name") })
+	public void removeCryptoProfile(String[] args) {
+		cryptoRegistry.removeProfile(args[0]);
+		context.println("removed");
 	}
 
 	public void forceRetentionCheck(String[] args) {

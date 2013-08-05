@@ -18,6 +18,8 @@ package org.araqne.logstorage.engine;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableRegistry;
@@ -55,7 +57,12 @@ class LogFileFetcher {
 			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
 
 		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
-		return lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath, keyPath));
+		
+		Map<String, String> tableMetadata = new HashMap<String, String>();
+		for (String key : tableRegistry.getTableMetadataKeys(tableName))
+			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+		
+		return lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath));
 
 	}
 }

@@ -22,6 +22,7 @@ import org.apache.felix.ipojo.annotations.ServiceProperty;
 import org.araqne.api.Script;
 import org.araqne.api.ScriptFactory;
 import org.araqne.confdb.ConfigService;
+import org.araqne.logstorage.LogCryptoProfileRegistry;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageMonitor;
@@ -49,8 +50,11 @@ public class LogStorageScriptFactory implements ScriptFactory {
 	@Requires
 	private LogFileServiceRegistry lfsr;
 
+	@Requires
+	private LogCryptoProfileRegistry cryptoRegistry;
+
 	@Override
 	public Script createScript() {
-		return new LogStorageScript(tableRegistry, storage, monitor, conf, lfsr);
+		return new LogStorageScript(tableRegistry, storage, monitor, conf, lfsr, cryptoRegistry);
 	}
 }

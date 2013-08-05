@@ -78,6 +78,7 @@ public class OnlineWriter {
 		dataPath.getParentFile().mkdirs();
 
 		try {
+			// options including table metadata
 			Map<String, Object> writerConfig = new HashMap<String, Object>(tableMetadata);
 			writerConfig.put("tableName", tableName);
 			writerConfig.put("indexPath", indexPath);

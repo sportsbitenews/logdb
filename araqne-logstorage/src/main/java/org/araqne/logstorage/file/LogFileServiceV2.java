@@ -40,7 +40,8 @@ public class LogFileServiceV2 implements LogFileService {
 	public static class Option extends TreeMap<String, Object> {
 		private static final long serialVersionUID = 1L;
 
-		public Option(String tableName, File indexPath, File dataPath, File keyPath) {
+		public Option(Map<String, String> tableMetadata, String tableName, File indexPath, File dataPath, File keyPath) {
+			this.putAll(tableMetadata);
 			this.put(OPT_TABLE_NAME, tableName);
 			this.put(OPT_INDEX_PATH, indexPath);
 			this.put(OPT_DATA_PATH, dataPath);
