@@ -48,6 +48,17 @@ public class DatapathUtil {
 		return datafile;
 	}
 
+	public static File getKeyFile(int tableId, Date day, String basePath) {
+		File baseDir = logDir;
+		if (basePath != null)
+			baseDir = new File(basePath);
+
+		String dateText = getDayText(day);
+		File tableDir = new File(baseDir, Integer.toString(tableId));
+		File keyfile = new File(tableDir, dateText + ".key");
+		return keyfile;
+	}
+
 	private static String getDayText(Date day) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		String dateText = dateFormat.format(day);

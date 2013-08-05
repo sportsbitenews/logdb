@@ -35,14 +35,16 @@ public class LogFileServiceV2 implements LogFileService {
 	private static final String OPT_TABLE_NAME = "tableName";
 	private static final String OPT_INDEX_PATH = "indexPath";
 	private static final String OPT_DATA_PATH = "dataPath";
+	private static final String OPT_KEY_PATH = "keyPath";
 
 	public static class Option extends TreeMap<String, Object> {
 		private static final long serialVersionUID = 1L;
 
-		public Option(String tableName, File indexPath, File dataPath) {
+		public Option(String tableName, File indexPath, File dataPath, File keyPath) {
 			this.put(OPT_TABLE_NAME, tableName);
 			this.put(OPT_INDEX_PATH, indexPath);
 			this.put(OPT_DATA_PATH, dataPath);
+			this.put(OPT_KEY_PATH, keyPath);
 		}
 	}
 

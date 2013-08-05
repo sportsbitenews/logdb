@@ -25,7 +25,8 @@ import org.araqne.logstorage.LogMatchCallback;
 
 public abstract class LogFileReader {
 	@Deprecated
-	public static LogFileReader getLogFileReader(String tableName, File indexPath, File dataPath) throws InvalidLogFileHeaderException, IOException {
+	public static LogFileReader getLogFileReader(String tableName, File indexPath, File dataPath) throws InvalidLogFileHeaderException,
+			IOException {
 		LogFileReader reader = null;
 		RandomAccessFile indexHeaderReader = null;
 		RandomAccessFile dataHeaderReader = null;
@@ -56,9 +57,9 @@ public abstract class LogFileReader {
 	}
 
 	public abstract LogRecord find(long id) throws IOException;
-	
+
 	public abstract List<LogRecord> find(List<Long> ids) throws IOException;
-	
+
 	public abstract void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException;
 
 	public abstract void traverse(long offset, long limit, LogMatchCallback callback) throws IOException, InterruptedException;
@@ -74,13 +75,19 @@ public abstract class LogFileReader {
 			InterruptedException;
 
 	// maxId is inclusive
-	public abstract void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback, boolean doParallel)
+	public abstract void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback,
+			boolean doParallel)
 			throws IOException,
 			InterruptedException;
 
 	public abstract LogRecordCursor getCursor() throws IOException;
 
 	public abstract LogRecordCursor getCursor(boolean ascending) throws IOException;
+
+	/**
+	 * @since 2.2.0
+	 */
+	public abstract LogBlockCursor getBlockCursor() throws IOException;
 
 	public abstract void close();
 }

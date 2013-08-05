@@ -50,8 +50,12 @@ class LogFileFetcher {
 		if (!dataPath.exists())
 			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
 
+		File keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
+		if (!keyPath.exists())
+			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
+
 		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
-		return lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath));
+		return lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableName, indexPath, dataPath, keyPath));
 
 	}
 }

@@ -181,13 +181,13 @@ public class LogFileReaderV2 extends LogFileReader {
 	@Override
 	public List<LogRecord> find(List<Long> ids) throws IOException {
 		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
-		
+
 		for (long id : ids) {
 			LogRecord result = find(id);
 			if (result != null)
 				ret.add(result);
 		}
-		
+
 		return ret;
 	}
 
@@ -225,7 +225,7 @@ public class LogFileReaderV2 extends LogFileReader {
 		for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
 			IndexBlockHeader index = indexBlockHeaders.get(i);
 
-			if ((maxId >=0 && index.firstId > maxId) || (minId >=0 && index.firstId + index.logCount <= minId) )
+			if ((maxId >= 0 && index.firstId > maxId) || (minId >= 0 && index.firstId + index.logCount <= minId))
 				continue;
 
 			DataBlockHeader data = dataBlockHeaders.get(i);
@@ -247,7 +247,8 @@ public class LogFileReaderV2 extends LogFileReader {
 		}
 	}
 
-	private long readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long minId, long maxId, long offset, long limit,
+	private long readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long minId, long maxId, long offset,
+			long limit,
 			LogMatchCallback callback) throws IOException, InterruptedException {
 		List<Integer> offsets = new ArrayList<Integer>();
 		long matched = 0;
@@ -408,6 +409,11 @@ public class LogFileReaderV2 extends LogFileReader {
 	@Override
 	public LogRecordCursor getCursor(boolean ascending) throws IOException {
 		return new LogCursorImpl(ascending);
+	}
+
+	@Override
+	public LogBlockCursor getBlockCursor() throws IOException {
+		throw new UnsupportedOperationException();
 	}
 
 	private class LogCursorImpl implements LogRecordCursor {

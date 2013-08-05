@@ -223,6 +223,11 @@ public class LogFileReaderV1 extends LogFileReader {
 	}
 
 	@Override
+	public LogBlockCursor getBlockCursor() throws IOException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public void close() {
 		indexFile.close();
 		dataFile.close();

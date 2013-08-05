@@ -72,6 +72,7 @@ public class OnlineWriter {
 		String basePath = tableMetadata.get("base_path");
 		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
 		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
+		File keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
 		indexPath.getParentFile().mkdirs();
 		dataPath.getParentFile().mkdirs();
@@ -81,6 +82,7 @@ public class OnlineWriter {
 			writerConfig.put("tableName", tableName);
 			writerConfig.put("indexPath", indexPath);
 			writerConfig.put("dataPath", dataPath);
+			writerConfig.put("keyPath", keyPath);
 			writer = this.logFileService.newWriter(writerConfig);
 		} catch (IllegalArgumentException e) {
 			throw e;

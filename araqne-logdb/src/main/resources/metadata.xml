@@ -14,4 +14,6 @@
 	<instance component="logdb-logdisk-metadata" />
 	<instance component="logdb-logcount-metadata" />
 	<instance component="logdb-table-metadata" />
+	<instance component="logdb-logblock-metadata" />
+	<instance component="logdb-hashcheck-metadata" />
 </ipojo>
