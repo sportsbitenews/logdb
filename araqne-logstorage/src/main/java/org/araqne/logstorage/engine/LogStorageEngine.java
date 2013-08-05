@@ -232,14 +232,21 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			if (files == null)
 				continue;
 
+			String fileType = tableRegistry.getTableMetadata(tableName, "_filetype");
+			LogFileService lfs = lfsRegistry.getLogFileService(fileType);
+			LogFileRepairer repairer = lfs.newRepairer();
+			if (repairer == null) {
+				logger.info("araqne logstorage: log table [{}] ({}) has no repairer", tableName, fileType);
+				continue;
+			}
+
 			for (File f : files) {
 				if (f.getName().endsWith(".idx")) {
 					String datFileName = f.getName().replace(".idx", ".dat");
 					File indexPath = f;
 					File dataPath = new File(dir, datFileName);
-
 					try {
-						LogFileFixReport report = new LogFileRepairer().fix(indexPath, dataPath);
+						LogFileFixReport report = repairer.fix(indexPath, dataPath);
 						if (report != null)
 							logger.info("araqne logstorage: fixed log table [{}], detail report: \n{}", tableName, report);
 					} catch (IOException e) {
@@ -289,15 +296,22 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			String datFileName = lastModifiedFile.getName().replace(".idx", ".dat");
 			File indexPath = lastModifiedFile;
 			File dataPath = new File(dir, datFileName);
-
-			try {
-				LogFileFixReport report = new LogFileRepairer().fix(indexPath, dataPath);
-				if (report != null)
-					logger.info("araqne logstorage: fixed log table [{}], detail report: \n{}", tableName, report);
-			} catch (IOException e) {
-				logger.error(
-						"araqne logstorage: cannot fix index [" + indexPath.getAbsoluteFile() + "], data ["
-								+ dataPath.getAbsolutePath() + "]", e);
+			
+			String fileType = tableRegistry.getTableMetadata(tableName, "_filetype");
+			LogFileService lfs = lfsRegistry.getLogFileService(fileType);
+			LogFileRepairer repairer = lfs.newRepairer();
+			if (repairer != null) {
+				try {
+					LogFileFixReport report = repairer.quickFix(indexPath, dataPath);
+					if (report != null)
+						logger.info("araqne logstorage: fixed log table [{}], detail report: \n{}", tableName, report);
+				} catch (IOException e) {
+					logger.error(
+							"araqne logstorage: cannot fix index [" + indexPath.getAbsoluteFile() + "], data ["
+									+ dataPath.getAbsolutePath() + "]", e);
+				}
+			} else {
+				logger.info("araqne logstorage: log table [{}] ({}) has no repairer", tableName, fileType);
 			}
 		}
 		logger.info("araqne logstorage: all table verifications are completed");

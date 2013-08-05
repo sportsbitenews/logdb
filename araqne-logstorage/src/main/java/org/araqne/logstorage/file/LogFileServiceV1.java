@@ -110,4 +110,10 @@ public class LogFileServiceV1 implements LogFileService {
 	public void unsetConfig(String key) {
 	}
 
+	@Override
+	public LogFileRepairer newRepairer() {
+		// V1 has no repairer
+		return null;
+	}
+
 }
