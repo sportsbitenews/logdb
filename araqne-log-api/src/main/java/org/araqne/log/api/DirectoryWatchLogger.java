@@ -122,7 +122,10 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			}
 
 
-			reader = new TextFileReader(new File(path), offset, charset, true);
+			if (newlogDsgnMatcher != null || newlogEndDsgnMatcher != null)
+				reader = new TextFileReader(new File(path), offset, charset, true);
+			else 
+				reader = new TextFileReader(new File(path), offset, charset, false);
 			// XXX
 			StringBuffer sb = buffers.get(path);
 			if (sb == null) {
