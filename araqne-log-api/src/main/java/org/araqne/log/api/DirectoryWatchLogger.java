@@ -39,6 +39,9 @@ public class DirectoryWatchLogger extends AbstractLogger {
 	protected SimpleDateFormat dateFormat;
 	private Matcher dateExtractMatcher;
 	private Matcher newlogDsgnMatcher;
+	private Matcher newlogEndDsgnMatcher;
+
+	Map<String, StringBuffer> buffers = new HashMap<String, StringBuffer>();
 
 	public DirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
@@ -70,6 +73,10 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		if (newlogRegex != null) {
 			newlogDsgnMatcher = Pattern.compile(newlogRegex).matcher("");
 		}
+		String newlogEndRegex = getConfig().get("newlog_end_designator");
+		if (newlogEndRegex != null) {
+			newlogEndDsgnMatcher = Pattern.compile(newlogEndRegex).matcher("");
+		}
 
 		// optional
 		charset = getConfig().get("charset");
@@ -80,7 +87,6 @@ public class DirectoryWatchLogger extends AbstractLogger {
 	@Override
 	protected void runOnce() {
 		List<String> logFiles = FileUtils.matchFiles(basePath, fileNamePattern);
-
 		Map<String, String> lastPositions = LastPositionHelper.readLastPositions(getLastLogFile());
 
 		for (String path : logFiles) {
@@ -115,10 +121,16 @@ public class DirectoryWatchLogger extends AbstractLogger {
 				logger.trace("logpresso igloo: target file [{}] skip offset [{}]", path, offset);
 			}
 
-			reader = new TextFileReader(new File(path), offset, charset);
+			reader = new TextFileReader(new File(path), offset, charset, false);
+
+			// XXX
+			StringBuffer sb = buffers.get(path);
+			if (sb == null) {
+				buffers.put(path, new StringBuffer());
+				sb = buffers.get(path);
+			}
 
 			// read and normalize log
-			StringBuffer sb = new StringBuffer();
 			while (true) {
 				if (getStatus() == LoggerStatus.Stopping || getStatus() == LoggerStatus.Stopped)
 					break;
@@ -126,38 +138,60 @@ public class DirectoryWatchLogger extends AbstractLogger {
 				String line = reader.readLine();
 				if (line == null)
 					break;
-				if (newlogDsgnMatcher != null) {
-					// multi-line logger
+
+				if (newlogDsgnMatcher != null)
 					newlogDsgnMatcher.reset(line);
-					if (newlogDsgnMatcher.find()) {
-						// new log detected.
-						if (sb.length() != 0)
+				if (newlogEndDsgnMatcher != null)
+					newlogEndDsgnMatcher.reset(line);
+				if (newlogDsgnMatcher != null || newlogEndDsgnMatcher != null) {
+					if (newlogDsgnMatcher != null && newlogDsgnMatcher.find()) {
+						if (sb != null && sb.length() != 0)
 							writeLog(fileDateStr, sb.toString());
-						sb = new StringBuffer();
+						//sb = new StringBuffer();
+						// XXX
+						buffers.put(path, new StringBuffer());
+						sb = buffers.get(path);
+
 						sb.append(line);
-					} else {
-						// append log to prev line
+						// handle start end desg in same line
+						if (newlogEndDsgnMatcher != null && newlogEndDsgnMatcher.find()) {
+							writeLog(fileDateStr, sb.toString());
+							buffers.remove(path);
+							sb = null;
+						}
+					} else if (sb != null && newlogEndDsgnMatcher != null && newlogEndDsgnMatcher.find()) {
+//					} else {
+//						// append log to prev line
 						sb.append("\n");
+						sb.append(line);
+						writeLog(fileDateStr, sb.toString());
+						buffers.remove(path);
+						sb = null;
+					} else {
+						if (sb == null) {
+							buffers.put(path, new StringBuffer());
+							sb = buffers.get(path);
+						}
+						if (sb.length() != 0)
+							sb.append("\n");
 						sb.append(line);
 					}
 				} else {
-					// empty line is allowed for multiline log
-					if (line.trim().isEmpty())
-						break;
-
 					writeLog(fileDateStr, line);
 				}
 			}
 			if (newlogDsgnMatcher != null) {
-				if (sb.length() != 0)
-					writeLog(fileDateStr, sb.toString());
+				if (newlogEndDsgnMatcher == null) {
+					if (sb.length() != 0)
+						writeLog(fileDateStr, sb.toString());
+				} else {
+					// skip
+				}
 			}
-
 			long position = reader.getPosition();
 			logger.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
 					offset, position });
 			lastPositions.put(path, Long.toString(position));
-
 		} catch (Throwable e) {
 			logger.error("araqne log api: [" + getName() + "] logger read error", e);
 		} finally {
