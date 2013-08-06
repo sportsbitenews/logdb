@@ -344,9 +344,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		if (!tableDir.exists())
 			return;
 
-		// delete all .idx and .dat files
+		// delete all .idx, .dat, .key files
 		for (File f : tableDir.listFiles()) {
-			if (f.isFile() && (f.getName().endsWith(".idx") || f.getName().endsWith(".dat"))) {
+			String name = f.getName();
+			if (f.isFile() && (name.endsWith(".idx") || name.endsWith(".dat") || name.endsWith(".key"))) {
 				ensureDelete(f);
 			}
 		}
