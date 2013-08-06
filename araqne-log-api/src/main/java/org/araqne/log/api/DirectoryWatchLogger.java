@@ -121,8 +121,8 @@ public class DirectoryWatchLogger extends AbstractLogger {
 				logger.trace("logpresso igloo: target file [{}] skip offset [{}]", path, offset);
 			}
 
-			reader = new TextFileReader(new File(path), offset, charset, false);
 
+			reader = new TextFileReader(new File(path), offset, charset, true);
 			// XXX
 			StringBuffer sb = buffers.get(path);
 			if (sb == null) {
@@ -181,12 +181,15 @@ public class DirectoryWatchLogger extends AbstractLogger {
 				}
 			}
 			if (newlogDsgnMatcher != null) {
-				if (newlogEndDsgnMatcher == null) {
-					if (sb.length() != 0)
-						writeLog(fileDateStr, sb.toString());
-				} else {
-					// skip
-				}
+//				if (newlogEndDsgnMatcher == null) {
+//					if (sb != null && sb.length() != 0) {
+//						writeLog(fileDateStr, sb.toString());
+//						buffers.remove(path);
+//						sb = null;
+//					}
+//				} else {
+//					// skip
+//				}
 			}
 			long position = reader.getPosition();
 			logger.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
