@@ -102,7 +102,7 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("table", tableName);
 				m.put("ver", data.get("ver"));
-				m.put("block_id", data.get("id"));
+				m.put("block_id", data.get("block_id"));
 				m.put("min_time", data.get("min_time"));
 				m.put("max_time", data.get("max_time"));
 				m.put("log_count", data.get("log_count"));
@@ -110,7 +110,7 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 				m.put("compressed_size", data.get("compressed_size"));
 				m.put("iv", data.get("iv"));
 				m.put("signature", data.get("signature"));
-				callback.onLog(new LogMap(data));
+				callback.onLog(new LogMap(m));
 			}
 		} catch (IOException e) {
 			logger.error("araqne logdb: cannot read block metadata", e);

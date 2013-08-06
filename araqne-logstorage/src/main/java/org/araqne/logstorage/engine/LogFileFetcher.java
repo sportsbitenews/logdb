@@ -53,16 +53,15 @@ class LogFileFetcher {
 			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
 
 		File keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
-		if (!keyPath.exists())
-			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
 
 		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
-		
+
 		Map<String, String> tableMetadata = new HashMap<String, String>();
 		for (String key : tableRegistry.getTableMetadataKeys(tableName))
 			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
-		
-		return lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath));
+
+		LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
+		return lfsRegistry.newReader(tableName, logFileType, options);
 
 	}
 }
