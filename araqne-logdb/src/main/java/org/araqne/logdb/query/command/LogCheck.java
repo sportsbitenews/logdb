@@ -102,6 +102,8 @@ public class LogCheck extends LogQueryCommand {
 			File indexPath = new File(dir, dateText + ".idx");
 			File dataPath = new File(dir, dateText + ".dat");
 			File keyPath = new File(dir, dateText + ".key");
+			if (!keyPath.exists())
+				continue;
 
 			Map<String, Object> options = new HashMap<String, Object>(tableMetadata);
 			options.put("tableName", tableName);
