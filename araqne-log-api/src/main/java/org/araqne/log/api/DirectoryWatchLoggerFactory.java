@@ -82,10 +82,16 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 						+ "(if a line does not matches, the line will be merged to prev line.).",
 						"새 로그의 시작을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)"), false);
 
+		LoggerConfigOption newlogEndRegex = new StringConfigType("newlog_end_designator",
+				t("New log end designator (Regex)", "로그 구분 정규식"),
+				t("Regular expression to determine whether the line is end of new log."
+						+ "(if a line does not matches, the line will be merged to prev line.).",
+						"로그의 끝을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)"), false);
+
 		LoggerConfigOption charset = new StringConfigType("charset", t("Charset", "문자 집합"), t("charset encoding",
 				"텍스트 파일의 문자 인코딩 방식"), false);
 
-		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, newlogRegex, charset);
+		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, newlogRegex, newlogEndRegex, charset);
 	}
 
 	private Map<Locale, String> t(String enText, String koText) {
