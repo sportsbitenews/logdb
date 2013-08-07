@@ -52,14 +52,19 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 
 	@Override
 	protected void onStop() {
-		if (loggerRegistry != null) {
-			Logger logger = loggerRegistry.getLogger(loggerName);
-			if (logger != null) {
-				slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
-				logger.removeLogPipe(this);
-			}
+		try {
+			if (loggerRegistry != null) {
+				Logger logger = loggerRegistry.getLogger(loggerName);
+				if (logger != null) {
+					slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
+					logger.removeLogPipe(this);
+				}
 
-			loggerRegistry.removeListener(this);
+				loggerRegistry.removeListener(this);
+			}
+		} catch (RuntimeException e) {
+			if (!e.getMessage().endsWith("unavailable"))
+				throw e;
 		}
 	}
 
