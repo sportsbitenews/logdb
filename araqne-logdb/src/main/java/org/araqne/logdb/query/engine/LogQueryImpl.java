@@ -63,6 +63,8 @@ public class LogQueryImpl implements LogQuery {
 			result = new Result();
 			result.setLogQuery(this);
 		} catch (IOException e) {
+			result.eof(true);
+			result.purge();
 			throw new IllegalStateException("cannot create result, maybe disk full", e);
 		}
 	}
@@ -86,7 +88,8 @@ public class LogQueryImpl implements LogQuery {
 			for (LogQueryCommand command : commands)
 				command.init();
 
-			commands.get(0).start();
+			for (int i = commands.size() - 1; i >= 0; i--)
+				commands.get(i).start();
 		} catch (Exception e) {
 			logger.error("araqne logdb: query failed - " + this, e);
 		}

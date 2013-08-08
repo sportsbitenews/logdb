@@ -19,4 +19,6 @@ import java.util.Iterator;
 
 public interface LogRecordCursor extends Iterator<LogRecord> {
 	void skip(long offset);
+
+	void reset();
 }

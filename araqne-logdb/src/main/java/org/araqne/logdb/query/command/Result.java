@@ -59,13 +59,17 @@ public class Result extends LogQueryCommand {
 	private volatile boolean eofCalled;
 
 	public Result() throws IOException {
+		this("");
+	}
+
+	public Result(String tag) throws IOException {
 		callbacks = new CopyOnWriteArraySet<LogQueryCallback>();
 		callbackQueue = new PriorityQueue<Result.LogQueryCallbackInfo>(11, new CallbackInfoComparator());
 
-		indexPath = File.createTempFile("result", ".idx", BASE_DIR);
-		dataPath = File.createTempFile("result", ".dat", BASE_DIR);
-		writer = new LogFileWriterV2(indexPath, dataPath, 1024 * 1024, 1);
 		BASE_DIR.mkdirs();
+		indexPath = File.createTempFile("result-" + tag, ".idx", BASE_DIR);
+		dataPath = File.createTempFile("result-" + tag, ".dat", BASE_DIR);
+		writer = new LogFileWriterV2(indexPath, dataPath, 1024 * 1024, 1);
 	}
 
 	public long getCount() {
@@ -257,6 +261,11 @@ public class Result extends LogQueryCommand {
 		public Map<String, Object> next() {
 			LogRecord next = cursor.next();
 			return EncodingRule.decodeMap(next.getData());
+		}
+
+		@Override
+		public void reset() {
+			cursor.reset();
 		}
 
 		@Override

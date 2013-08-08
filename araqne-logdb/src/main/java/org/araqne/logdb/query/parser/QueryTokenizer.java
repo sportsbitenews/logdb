@@ -118,13 +118,19 @@ public class QueryTokenizer {
 		StringBuilder sb = new StringBuilder();
 		char before = 0;
 		boolean b = false;
+		boolean subquery = false;
 
 		for (char c : query.toCharArray()) {
+			if (c == '[' && !b)
+				subquery = true;
+			else if (c == ']' && !b)
+				subquery = false;
+
 			if (c == '"' && before != '\\') {
 				b = !b;
 				sb.append(c);
 			} else {
-				if (c == '|' && !b) {
+				if (c == '|' && !b && !subquery) {
 					l.add(sb.toString());
 					sb = new StringBuilder();
 				} else
@@ -255,8 +261,7 @@ public class QueryTokenizer {
 	}
 
 	/**
-	 * find outermost keyword from query (ignore keyword in string or function
-	 * call)
+	 * find outermost keyword from query (ignore keyword in string or function call)
 	 */
 	public static int findKeyword(String haystack, String needle, int offset) {
 		if (offset >= haystack.length())
