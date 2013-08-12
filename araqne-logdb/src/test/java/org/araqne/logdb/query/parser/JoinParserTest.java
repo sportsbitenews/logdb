@@ -12,6 +12,7 @@ import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryParserService;
 import org.araqne.logdb.query.command.Join;
 import org.araqne.logdb.query.command.Table;
+import org.araqne.logdb.query.command.Table.TableParams;
 import org.junit.Test;
 
 public class JoinParserTest {
@@ -20,7 +21,10 @@ public class JoinParserTest {
 		System.setProperty("araqne.data.dir", ".");
 		String joinCommand = "join ip [ table users ]";
 		LogQueryParserService p = mock(LogQueryParserService.class);
-		LogQueryCommand table = new Table(Arrays.asList("users"));
+
+		TableParams params = new TableParams();
+		params.setTableNames(Arrays.asList("users"));
+		LogQueryCommand table = new Table(params);
 
 		ArrayList<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 		commands.add(table);
