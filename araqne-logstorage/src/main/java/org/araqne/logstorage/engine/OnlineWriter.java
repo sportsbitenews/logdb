@@ -200,4 +200,8 @@ public class OnlineWriter {
 			logger.error("cannot close online log writer", e);
 		}
 	}
+
+	public String getFileServiceType() {
+		return logFileService.getType();
+	}
 }
