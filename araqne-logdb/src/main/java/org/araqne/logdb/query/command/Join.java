@@ -144,6 +144,11 @@ public class Join extends LogQueryCommand {
 					subQuery.get(i).start();
 
 				subQuery.get(0).eof(false);
+				LogQueryCommand cmd = subQuery.get(subQuery.size() - 1);
+
+				synchronized (cmd) {
+					cmd.notifyAll();
+				}
 			} catch (Throwable t) {
 				logger.error("araqne logdb: subquery failed, query " + logQuery.getId(), t);
 			} finally {
