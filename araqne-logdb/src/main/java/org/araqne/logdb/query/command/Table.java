@@ -41,43 +41,19 @@ public class Table extends LogQueryCommand {
 	private LogParserFactoryRegistry parserFactoryRegistry;
 	private LogParserRegistry parserRegistry;
 
-	private List<String> tableNames;
-	private long offset;
-	private long limit;
-	private Date from;
-	private Date to;
+	private TableParams params = new TableParams();
 	private long found;
 
-	public Table(List<String> tableNames) {
-		this(tableNames, 0);
-	}
-
-	public Table(List<String> tableNames, long limit) {
-		this(tableNames, limit, null, null);
-	}
-
-	public Table(List<String> tableNames, Date from, Date to) {
-		this(tableNames, 0, from, to);
-	}
-
-	public Table(List<String> tableNames, long limit, Date from, Date to) {
-		this(tableNames, 0, 0, from, to);
-	}
-
-	public Table(List<String> tableNames, long offset, long limit, Date from, Date to) {
-		this.tableNames = tableNames;
-		this.offset = offset;
-		this.limit = limit;
-		this.from = from;
-		this.to = to;
+	public Table(TableParams params) {
+		this.params = params;
 	}
 
 	public List<String> getTableNames() {
-		return tableNames;
+		return params.tableNames;
 	}
 
 	public void setTableNames(List<String> tableNames) {
-		this.tableNames = tableNames;
+		params.tableNames = tableNames;
 	}
 
 	public LogStorage getStorage() {
@@ -113,27 +89,27 @@ public class Table extends LogQueryCommand {
 	}
 
 	public long getOffset() {
-		return offset;
+		return params.offset;
 	}
 
 	public void setOffset(long offset) {
-		this.offset = offset;
+		params.offset = offset;
 	}
 
 	public long getLimit() {
-		return limit;
+		return params.limit;
 	}
 
 	public void setLimit(long limit) {
-		this.limit = limit;
+		params.limit = limit;
 	}
 
 	public Date getFrom() {
-		return from;
+		return params.from;
 	}
 
 	public Date getTo() {
-		return to;
+		return params.to;
 	}
 
 	@Override
@@ -141,13 +117,24 @@ public class Table extends LogQueryCommand {
 		try {
 			status = Status.Running;
 
-			for (String tableName : tableNames) {
+			for (String tableName : params.tableNames) {
 				String parserName = tableRegistry.getTableMetadata(tableName, "parser");
+
+				// override parser
+				if (params.parserName != null)
+					parserName = params.parserName;
+
 				String parserFactoryName = tableRegistry.getTableMetadata(tableName, "logparser");
 
 				LogParser parser = null;
-				if (parserName != null)
-					parser = parserRegistry.newParser(parserName);
+				if (parserName != null && parserRegistry.getProfile(parserName) != null) {
+					try {
+						parser = parserRegistry.newParser(parserName);
+					} catch (IllegalStateException e) {
+						if (logger.isDebugEnabled())
+							logger.debug("araqne logdb: cannot create parser [{}], skipping", parserName);
+					}
+				}
 
 				LogParserFactory parserFactory = parserFactoryRegistry.get(parserFactoryName);
 				if (parser == null && parserFactory != null) {
@@ -163,17 +150,18 @@ public class Table extends LogQueryCommand {
 					parser = parserFactory.createParser(prop);
 				}
 
-				long needed = limit - found;
-				if (limit != 0 && needed <= 0)
+				long needed = params.limit - found;
+				if (params.limit != 0 && needed <= 0)
 					break;
 
-				found += storage.search(tableName, from, to, offset, limit == 0 ? 0 : needed, new LogSearchCallbackImpl(parser));
-				if (offset > 0) {
-					if (found > offset) {
-						found -= offset;
-						offset = 0;
+				found += storage.search(tableName, params.from, params.to, params.offset, params.limit == 0 ? 0 : needed,
+						new LogSearchCallbackImpl(parser));
+				if (params.offset > 0) {
+					if (found > params.offset) {
+						found -= params.offset;
+						params.offset = 0;
 					} else {
-						offset -= found;
+						params.offset -= found;
 						found = 0;
 					}
 				}
@@ -184,8 +172,9 @@ public class Table extends LogQueryCommand {
 			logger.error("araqne logdb: table exception", e);
 		} catch (Error e) {
 			logger.error("araqne logdb: table error", e);
+		} finally {
+			eof(false);
 		}
-		eof(false);
 	}
 
 	@Override
@@ -268,5 +257,63 @@ public class Table extends LogQueryCommand {
 		public boolean isInterrupted() {
 			return status.equals(Status.End);
 		}
+	}
+
+	public static class TableParams {
+		private List<String> tableNames;
+		private long offset;
+		private long limit;
+		private Date from;
+		private Date to;
+		private String parserName;
+
+		public List<String> getTableNames() {
+			return tableNames;
+		}
+
+		public void setTableNames(List<String> tableNames) {
+			this.tableNames = tableNames;
+		}
+
+		public long getOffset() {
+			return offset;
+		}
+
+		public void setOffset(long offset) {
+			this.offset = offset;
+		}
+
+		public long getLimit() {
+			return limit;
+		}
+
+		public void setLimit(long limit) {
+			this.limit = limit;
+		}
+
+		public Date getFrom() {
+			return from;
+		}
+
+		public void setFrom(Date from) {
+			this.from = from;
+		}
+
+		public Date getTo() {
+			return to;
+		}
+
+		public void setTo(Date to) {
+			this.to = to;
+		}
+
+		public String getParserName() {
+			return parserName;
+		}
+
+		public void setParserName(String parserName) {
+			this.parserName = parserName;
+		}
+
 	}
 }

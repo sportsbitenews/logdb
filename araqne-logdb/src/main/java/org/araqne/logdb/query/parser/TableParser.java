@@ -30,6 +30,7 @@ import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.query.command.Table;
+import org.araqne.logdb.query.command.Table.TableParams;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
@@ -62,7 +63,7 @@ public class TableParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("archive-not-opened", -1);
 
 		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length(),
-				Arrays.asList("from", "to", "offset", "limit", "duration"));
+				Arrays.asList("from", "to", "offset", "limit", "duration", "parser"));
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		List<String> tableNames = new ArrayList<String>();
@@ -77,6 +78,7 @@ public class TableParser implements LogQueryCommandParser {
 		Date to = null;
 		long offset = 0;
 		long limit = 0;
+		String parser = null;
 
 		if (options.containsKey("duration")) {
 			String duration = options.get("duration");
@@ -107,13 +109,24 @@ public class TableParser implements LogQueryCommandParser {
 		if (limit < 0)
 			throw new LogQueryParseException("negative-limit", -1);
 
+		if (options.containsKey("parser"))
+			parser = options.get("parser");
+
 		// check read permission
 		for (String tableName : tableNames) {
 			if (!accountService.checkPermission(context.getSession(), tableName, Permission.READ))
 				throw new LogQueryParseException("no-read-permission", -1, "table=" + tableName);
 		}
 
-		Table table = new Table(tableNames, offset, limit, from, to);
+		TableParams params = new TableParams();
+		params.setTableNames(tableNames);
+		params.setOffset(offset);
+		params.setLimit(limit);
+		params.setFrom(from);
+		params.setTo(to);
+		params.setParserName(parser);
+
+		Table table = new Table(params);
 		table.setTableRegistry(tableRegistry);
 		table.setStorage(logStorage);
 		table.setParserFactoryRegistry(parserFactoryRegistry);
