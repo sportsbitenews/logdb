@@ -172,8 +172,9 @@ public class Table extends LogQueryCommand {
 			logger.error("araqne logdb: table exception", e);
 		} catch (Error e) {
 			logger.error("araqne logdb: table error", e);
+		} finally {
+			eof(false);
 		}
-		eof(false);
 	}
 
 	@Override
