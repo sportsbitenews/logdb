@@ -40,19 +40,20 @@ public class Log implements Comparable<Log> {
 	}
 
 	public Log(String tableName, Date date, Map<String, Object> data) {
-		this(tableName, date, 0, data, null);
+		this(tableName, date, 0, data);
 	}
 
 	public Log(String tableName, Date date, long id, Map<String, Object> data) {
-		this(tableName, date, id, data, null);
-	}
-
-	public Log(String tableName, Date date, long id, Map<String, Object> data, Set<String> indexTokens) {
 		this.tableName = tableName;
 		this.date = date;
 		this.day = DateUtil.getDay(date);
 		this.id = id;
 		this.data = data;
+	}
+
+	@Deprecated
+	public Log(String tableName, Date date, long id, Map<String, Object> data, Set<String> indexTokens) {
+		this(tableName, date, id, data);
 		this.indexTokens = indexTokens;
 	}
 
@@ -80,6 +81,7 @@ public class Log implements Comparable<Log> {
 		return data;
 	}
 
+	@Deprecated
 	public Set<String> getIndexTokens() {
 		return indexTokens;
 	}
