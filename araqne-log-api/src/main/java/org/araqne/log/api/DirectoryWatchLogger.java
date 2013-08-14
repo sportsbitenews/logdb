@@ -42,6 +42,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 	private Matcher newlogEndDsgnMatcher;
 
 	Map<String, StringBuffer> buffers = new HashMap<String, StringBuffer>();
+	private boolean bmt;
 
 	public DirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
@@ -122,10 +123,8 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			}
 
 
-			if (newlogDsgnMatcher != null || newlogEndDsgnMatcher != null)
-				reader = new TextFileReader(new File(path), offset, charset, true);
-			else 
-				reader = new TextFileReader(new File(path), offset, charset, false);
+			reader = new TextFileReader(new File(path), offset, charset, true);
+			
 			// XXX
 			StringBuffer sb = buffers.get(path);
 			if (sb == null) {

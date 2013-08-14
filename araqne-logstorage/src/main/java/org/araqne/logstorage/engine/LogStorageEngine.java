@@ -21,18 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.ConcurrentModificationException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -61,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
 @Component(name = "logstorage-engine")
 @Provides
-public class LogStorageEngine implements LogStorage, LogTableEventListener {
+public class LogStorageEngine implements LogStorage, LogTableEventListener, LogFileServiceEventListener {
 	private static final String DEFAULT_LOGFILETYPE = "v2";
 
 	private final Logger logger = LoggerFactory.getLogger(LogStorageEngine.class.getName());
@@ -175,6 +164,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		}
 
 		tableRegistry.addListener(this);
+		lfsRegistry.addListener(this);
 
 		status = LogStorageStatus.Open;
 	}
@@ -186,9 +176,15 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 			throw new IllegalStateException("log archive already stopped");
 
 		status = LogStorageStatus.Stopping;
-
-		if (tableRegistry != null)
-			tableRegistry.removeListener(this);
+		
+		try {
+			if (tableRegistry != null) {
+				tableRegistry.removeListener(this);
+			}
+		} catch (IllegalStateException e) {
+			if (!e.getMessage().contains("Cannot create the Nullable Object"))
+				throw e;
+		}
 
 		writerSweeper.doStop = true;
 		writerSweeperThread.interrupt();
@@ -206,12 +202,18 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 
 		// close all writers
 		for (OnlineWriterKey key : onlineWriters.keySet()) {
-			OnlineWriter writer = onlineWriters.get(key);
-			if (writer != null)
-				writer.close();
+			try {
+				OnlineWriter writer = onlineWriters.get(key);
+				if (writer != null)
+					writer.close();
+			} catch (Throwable t) {
+				logger.warn("exception caught", t);
+			}
 		}
 
 		onlineWriters.clear();
+		
+		lfsRegistry.removeListener(this);
 
 		status = LogStorageStatus.Closed;
 	}
@@ -1268,5 +1270,19 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		for (OnlineWriterKey key : keys) {
 			onlineWriters.remove(key);
 		}
+	}
+
+	@Override
+	public void onUnloadingFileService(String engineName) {
+		for (OnlineWriterKey key : onlineWriters.keySet()) {
+			try {
+				OnlineWriter writer = onlineWriters.get(key);
+				if (writer != null && writer.getFileServiceType().equals(engineName))
+					writer.close();
+			} catch (Throwable t) {
+				logger.warn("exception caught", t);
+			}
+		}
+		
 	}
 }

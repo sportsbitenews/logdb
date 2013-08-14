@@ -27,4 +27,8 @@ public interface LogFileServiceRegistry {
 	 * @since 1.16.0
 	 */
 	void uninstall(String type);
+
+	void addListener(LogFileServiceEventListener listener);
+
+	void removeListener(LogFileServiceEventListener listener);
 }
