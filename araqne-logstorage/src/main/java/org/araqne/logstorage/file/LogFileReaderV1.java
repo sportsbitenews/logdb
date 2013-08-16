@@ -23,6 +23,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserBuilder;
+import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
 import org.slf4j.Logger;
@@ -98,7 +101,7 @@ public class LogFileReaderV1 extends LogFileReader {
 	@Override
 	public List<LogRecord> find(List<Long> ids) {
 		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
-		
+
 		for (long id : ids) {
 			LogRecord result = null;
 			try {
@@ -109,7 +112,7 @@ public class LogFileReaderV1 extends LogFileReader {
 			if (result != null)
 				ret.add(result);
 		}
-		
+
 		return ret;
 	}
 
@@ -252,5 +255,58 @@ public class LogFileReaderV1 extends LogFileReader {
 		private long read6Bytes(RandomAccessFile f) throws IOException {
 			return ((long) f.readInt() << 16) | (f.readShort() & 0xFFFF);
 		}
+	}
+
+	@Override
+	public List<Log> find(List<Long> ids, LogParserBuilder builder) {
+		List<Log> ret = new ArrayList<Log>(ids.size());
+		LogParser parser = null;
+		if (builder != null)
+			parser = builder.build();
+
+		for (long id : ids) {
+			LogRecord record = null;
+			try {
+				Long pos = null;
+				for (BlockHeader header : blockHeaders) {
+					if (id < header.firstId + header.blockLength / INDEX_ITEM_SIZE) {
+						// fp + header size + offset + (id + date) index
+						long indexPos = header.fp + 18 + (id - header.firstId) * INDEX_ITEM_SIZE + 10;
+						indexFile.seek(indexPos);
+						pos = read6Bytes(indexFile);
+						break;
+					}
+				}
+				if (pos == null)
+					return null;
+
+				// read data length
+				dataFile.seek(pos);
+				int key = dataFile.readInt();
+				Date date = new Date(dataFile.readLong());
+				int dataLen = dataFile.readInt();
+
+				// read block
+				byte[] block = new byte[dataLen];
+				dataFile.readFully(block);
+
+				ByteBuffer bb = ByteBuffer.wrap(block);
+				record = new LogRecord(date, key, bb);
+			} catch (IOException e) {
+				// TODO: error handling
+			}
+			if (record == null)
+				continue;
+
+			Log result = null;
+			try {
+				result = parse(tableName, parser, record, false);
+			} finally {
+				if (result != null)
+					ret.add(result);
+			}
+		}
+
+		return ret;
 	}
 }

@@ -28,6 +28,9 @@ import java.util.List;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserBuilder;
+import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
 import org.slf4j.Logger;
@@ -567,5 +570,52 @@ public class LogFileReaderV2 extends LogFileReader {
 		public void remove() {
 			throw new UnsupportedOperationException("log remove() is not supported");
 		}
+	}
+
+	@Override
+	public List<Log> find(List<Long> ids, LogParserBuilder builder) {
+		List<Log> ret = new ArrayList<Log>(ids.size());
+		LogParser parser = null;
+		if (builder != null)
+			parser = builder.build();
+
+		for (long id : ids) {
+			LogRecord record = null;
+			try {
+				if (id <= 0)
+					return null;
+
+				int l = 0;
+				int r = indexBlockHeaders.size() - 1;
+				while (r >= l) {
+					int m = (l + r) / 2;
+					IndexBlockHeader header = indexBlockHeaders.get(m);
+
+					if (id < header.firstId)
+						r = m - 1;
+					else if (header.firstId + header.logCount <= id)
+						l = m + 1;
+					else {
+						indexFile.seek(header.fp + (id - header.firstId + 1) * INDEX_ITEM_SIZE);
+						int offset = indexFile.readInt();
+						record = getLogRecord(dataBlockHeaders.get(m), offset);
+						break;
+					}
+				}
+			} catch (IOException e) {
+				// TODO: error handling
+			}
+			if (record == null)
+				continue;
+			Log result = null;
+			try {
+				result = parse(tableName, parser, record, false);				
+			} finally {
+				if (result != null)
+					ret.add(result);
+			}
+		}
+
+		return ret;
 	}
 }

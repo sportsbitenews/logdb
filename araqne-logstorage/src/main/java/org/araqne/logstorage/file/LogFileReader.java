@@ -18,9 +18,16 @@ package org.araqne.logstorage.file;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.text.ParseException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserBuilder;
+import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
 
 public abstract class LogFileReader {
@@ -55,9 +62,69 @@ public abstract class LogFileReader {
 
 		return reader;
 	}
+	
+	protected static Log parse(String tableName, LogParser parser, LogRecord record, boolean suppressBugAlert) {
+		Log log = LogMarshaler.convert(tableName, record);
 
+		Map<String, Object> m = null;
+		if (parser != null) {
+			try {
+				Map<String, Object> m2 = new HashMap<String, Object>(log.getData());
+				m2.put("_time", log.getDate());
+				Map<String, Object> parsed = parser.parse(m2);
+				if (parsed == null)
+					throw new ParseException("log parse failed", -1);
+
+				parsed.put("_table", log.getTableName());
+				parsed.put("_id", log.getId());
+
+				Object time = parsed.get("_time");
+				if (time == null)
+					parsed.put("_time", log.getDate());
+				else if (!(time instanceof Date)) {
+					/*logger.error("logpresso index: parser returned wrong _time type: " + time.getClass().getName());
+					eof(true); */
+					// TODO: error handling
+					return null;
+				}
+
+				m = parsed;
+			} catch (Throwable t) {
+				/*
+				if (!suppressBugAlert) {
+					logger.error(
+							"araqne logdb: PARSER BUG! original log => table " + log.getTableName() + ", id "
+									+ log.getId() + ", data " + log.getData(), t);
+				}*/
+				// TODO: error handling
+
+				// can be unmodifiableMap when it comes from memory
+				// buffer.
+				m = new HashMap<String, Object>();
+				m.putAll(log.getData());
+				m.put("_table", log.getTableName());
+				m.put("_id", log.getId());
+				m.put("_time", log.getDate());
+			}
+
+		} else {
+			// can be unmodifiableMap when it comes from memory
+			// buffer.
+			m = new HashMap<String, Object>();
+			m.putAll(log.getData());
+			m.put("_table", log.getTableName());
+			m.put("_id", log.getId());
+			m.put("_time", log.getDate());
+		}
+		
+		return new Log(tableName, log.getDate(), log.getId(), m);
+	}
+	
+	public abstract List<Log> find(List<Long> ids, LogParserBuilder builder);
+
+	@Deprecated
 	public abstract LogRecord find(long id) throws IOException;
-
+	@Deprecated
 	public abstract List<LogRecord> find(List<Long> ids) throws IOException;
 
 	public abstract void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException;
