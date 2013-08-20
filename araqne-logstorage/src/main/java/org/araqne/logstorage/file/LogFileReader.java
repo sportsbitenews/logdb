@@ -25,10 +25,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
+import org.araqne.logstorage.WrongTimeTypeException;
 
 public abstract class LogFileReader {
 	@Deprecated
@@ -63,13 +65,17 @@ public abstract class LogFileReader {
 		return reader;
 	}
 	
-	protected static Log parse(String tableName, LogParser parser, LogRecord record, boolean suppressBugAlert) {
+	protected static Log parse(String tableName, LogParser parser, LogRecord record, boolean suppressBugAlert) throws LogParserBugException {
 		Log log = LogMarshaler.convert(tableName, record);
 
+		Object time = log.getDate();
 		Map<String, Object> m = null;
 		if (parser != null) {
 			try {
-				Map<String, Object> m2 = log.getData();
+				// can be unmodifiableMap when it comes from memory
+				// buffer.
+				Map<String, Object> m2 = new HashMap<String, Object>();
+				m2.putAll(log.getData());
 				m2.put("_time", log.getDate());
 				Map<String, Object> parsed = parser.parse(m2);
 				if (parsed == null)
@@ -78,44 +84,40 @@ public abstract class LogFileReader {
 				parsed.put("_table", log.getTableName());
 				parsed.put("_id", log.getId());
 
-				Object time = parsed.get("_time");
-				if (time == null)
+				time = parsed.get("_time");
+				if (time == null) {
 					parsed.put("_time", log.getDate());
-				else if (!(time instanceof Date)) {
-					/*logger.error("logpresso index: parser returned wrong _time type: " + time.getClass().getName());
-					eof(true); */
-					// TODO: error handling
-					return null;
+					time = log.getDate();
+				} else if (!(time instanceof Date)) {
+					throw new WrongTimeTypeException(time);
 				}
 
 				m = parsed;
+			} catch (WrongTimeTypeException e) {
+				throw e;
 			} catch (Throwable t) {
-				/*
-				if (!suppressBugAlert) {
-					logger.error(
-							"araqne logdb: PARSER BUG! original log => table " + log.getTableName() + ", id "
-									+ log.getId() + ", data " + log.getData(), t);
-				}*/
-				// TODO: error handling
-
 				// can be unmodifiableMap when it comes from memory
 				// buffer.
-				m = log.getData();
+				m = new HashMap<String, Object>();
+				m.putAll(log.getData());
 				m.put("_table", log.getTableName());
 				m.put("_id", log.getId());
 				m.put("_time", log.getDate());
+
+				throw new LogParserBugException(t, log.getTableName(), log.getId(), (Date)time, m);
 			}
 
 		} else {
 			// can be unmodifiableMap when it comes from memory
 			// buffer.
-			m = log.getData();
+			m = new HashMap<String, Object>();
+			m.putAll(log.getData());
 			m.put("_table", log.getTableName());
 			m.put("_id", log.getId());
 			m.put("_time", log.getDate());
 		}
-		
-		return new Log(tableName, log.getDate(), log.getId(), m);
+
+		return new Log(tableName, (Date)time, log.getId(), m);
 	}
 	
 	public abstract List<Log> find(List<Long> ids, LogParserBuilder builder);

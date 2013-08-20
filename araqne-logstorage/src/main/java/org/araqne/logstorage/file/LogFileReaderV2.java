@@ -29,6 +29,7 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
@@ -574,6 +575,7 @@ public class LogFileReaderV2 extends LogFileReader {
 
 	@Override
 	public List<Log> find(List<Long> ids, LogParserBuilder builder) {
+		boolean suppressBugAlert = false;
 		List<Log> ret = new ArrayList<Log>(ids.size());
 		LogParser parser = null;
 		if (builder != null)
@@ -610,6 +612,13 @@ public class LogFileReaderV2 extends LogFileReader {
 			Log result = null;
 			try {
 				result = parse(tableName, parser, record, false);				
+			} catch (LogParserBugException e) {
+				result = new Log(e.tableName, e.date, e.id, e.logMap); 
+				if (!suppressBugAlert) {
+					logger.error("araqne logstorage: PARSER BUG! original log => table " +
+							result.getTableName() + ", id " + result.getId() + ", data " + result.getData(), e.cause);
+					suppressBugAlert = true;
+				}				
 			} finally {
 				if (result != null)
 					ret.add(result);
