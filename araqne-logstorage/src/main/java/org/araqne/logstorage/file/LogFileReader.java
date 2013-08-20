@@ -120,7 +120,7 @@ public abstract class LogFileReader {
 		return new Log(tableName, (Date)time, log.getId(), m);
 	}
 	
-	public abstract List<Log> find(List<Long> ids, LogParserBuilder builder);
+	public abstract List<Log> find(Date from, Date to, List<Long> ids, LogParserBuilder builder);
 
 	@Deprecated
 	public abstract LogRecord find(long id) throws IOException;

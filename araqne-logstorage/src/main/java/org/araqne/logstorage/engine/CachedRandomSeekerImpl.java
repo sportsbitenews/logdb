@@ -226,14 +226,14 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 
 	@Override
 	public Log getLog(String tableName, Date day, long id, LogParserBuilder builder) {
-		List<Log> result = getLogs(tableName, day, Arrays.asList(new Long[] {id}), builder);
+		List<Log> result = getLogs(tableName, day, null, null, Arrays.asList(new Long[] {id}), builder);
 		if (result == null || result.isEmpty())
 			return null;
 		return result.get(0);
 	}
 	
 	@Override
-	public List<Log> getLogs(String tableName, Date day, List<Long> ids, LogParserBuilder builder) {
+	public List<Log> getLogs(String tableName, Date day, Date from, Date to, List<Long> ids, LogParserBuilder builder) {
 		if (closed)
 			throw new IllegalStateException("already closed");
 
@@ -246,7 +246,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 
 		try {
 			LogFileReader reader = getReader(tableName, tableId, day);
-			fileLogs = reader.find(fileLogIds, builder);
+			fileLogs = reader.find(from, to, fileLogIds, builder);
 		} catch (IOException e) {
 		}
 

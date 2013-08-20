@@ -33,7 +33,7 @@ public interface CachedRandomSeeker {
 	
 	Log getLog(String tableName, Date day, long id, LogParserBuilder builder) throws IOException;
 
-	List<Log> getLogs(String tableName, Date day, List<Long> ids, LogParserBuilder builder);
+	List<Log> getLogs(String tableName, Date day, Date from, Date to, List<Long> ids, LogParserBuilder builder);
 
 	@Deprecated
 	LogRecord getLogRecord(String tableName, Date day, long id) throws IOException;

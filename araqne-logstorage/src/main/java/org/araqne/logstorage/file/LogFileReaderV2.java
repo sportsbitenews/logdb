@@ -574,7 +574,7 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	@Override
-	public List<Log> find(List<Long> ids, LogParserBuilder builder) {
+	public List<Log> find(Date from, Date to, List<Long> ids, LogParserBuilder builder) {
 		boolean suppressBugAlert = false;
 		List<Log> ret = new ArrayList<Log>(ids.size());
 		LogParser parser = null;
@@ -620,8 +620,17 @@ public class LogFileReaderV2 extends LogFileReader {
 					suppressBugAlert = true;
 				}				
 			} finally {
-				if (result != null)
+				if (result != null) {
+					if (from != null || to != null ) {
+						Date logDate = result.getDate();
+						if (from != null && logDate.before(from))
+							continue;
+						if (to != null && !logDate.before(to))
+							continue;
+					}
+					
 					ret.add(result);
+				}
 			}
 		}
 
