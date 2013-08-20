@@ -118,7 +118,6 @@ public class LogCountMetadataProvider implements MetadataProvider {
 				if (day == null)
 					continue;
 
-				System.out.println(from + " " + to + " " + day);
 				if (from != null && day.before(from))
 					continue;
 
