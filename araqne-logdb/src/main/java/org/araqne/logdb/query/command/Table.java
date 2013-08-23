@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserBuilder;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
@@ -28,9 +29,9 @@ import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logstorage.Log;
-import org.araqne.logstorage.LogSearchCallback;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.LogTraverseCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,50 +113,70 @@ public class Table extends LogQueryCommand {
 		return params.to;
 	}
 
+	private class TableLogParserBuilder implements LogParserBuilder {
+		LogParserRegistry parserRegistry;
+		
+		String tableParserName = null;
+		String tableParserFactoryName = null;
+		
+		LogParserFactory tableParserFactory = null;
+		Map<String, String> parserProperty = null;
+		
+		public TableLogParserBuilder(LogParserRegistry parserRegistry, LogParserFactoryRegistry parserFactoryRegistry,
+				LogTableRegistry tableRegistry, String tableName) {
+			this.parserRegistry = parserRegistry;
+
+			if (tableName != null) {
+				this.tableParserName = tableRegistry.getTableMetadata(tableName, "parser");
+				this.tableParserFactoryName = tableRegistry.getTableMetadata(tableName, "logparser");
+
+				if (tableParserFactoryName != null) {
+					this.tableParserFactory = parserFactoryRegistry.get(tableParserFactoryName);
+					parserProperty = new HashMap<String, String>();
+					for (LoggerConfigOption configOption : tableParserFactory.getConfigOptions()) {
+						String optionName = configOption.getName();
+						String optionValue = tableRegistry.getTableMetadata(tableName, optionName);
+						if (configOption.isRequired() && optionValue == null)
+							throw new IllegalArgumentException("require table metadata " + optionName);
+						parserProperty.put(optionName, optionValue);
+					}
+				}
+			}
+		}
+		
+		@Override
+		public LogParser build() {
+			LogParser parser = null;
+
+			if (tableParserName != null && parserRegistry.getProfile(tableParserName) != null) {
+				try {
+					parser = parserRegistry.newParser(tableParserName);
+				} catch (IllegalStateException e) {
+					if (logger.isDebugEnabled())
+						logger.debug("logpresso index: parser profile not found [{}]", tableParserName);
+				}
+			}
+			
+			if (parser == null && tableParserFactory != null) {
+				parser = tableParserFactory.createParser(parserProperty);
+			}
+			return parser;
+		}
+	}
+
 	@Override
 	public void start() {
 		try {
 			status = Status.Running;
 
 			for (String tableName : params.tableNames) {
-				String parserName = tableRegistry.getTableMetadata(tableName, "parser");
-
-				// override parser
-				if (params.parserName != null)
-					parserName = params.parserName;
-
-				String parserFactoryName = tableRegistry.getTableMetadata(tableName, "logparser");
-
-				LogParser parser = null;
-				if (parserName != null && parserRegistry.getProfile(parserName) != null) {
-					try {
-						parser = parserRegistry.newParser(parserName);
-					} catch (IllegalStateException e) {
-						if (logger.isDebugEnabled())
-							logger.debug("araqne logdb: cannot create parser [{}], skipping", parserName);
-					}
-				}
-
-				LogParserFactory parserFactory = parserFactoryRegistry.get(parserFactoryName);
-				if (parser == null && parserFactory != null) {
-					Map<String, String> prop = new HashMap<String, String>();
-					for (LoggerConfigOption configOption : parserFactory.getConfigOptions()) {
-						String optionName = configOption.getName();
-						String optionValue = tableRegistry.getTableMetadata(tableName, optionName);
-						if (configOption.isRequired() && optionValue == null)
-							throw new IllegalArgumentException("require table metadata " + optionName);
-						if (optionValue != null)
-							prop.put(optionName, optionValue);
-					}
-					parser = parserFactory.createParser(prop);
-				}
-
+				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry, tableName);
 				long needed = params.limit - found;
 				if (params.limit != 0 && needed <= 0)
 					break;
 
-				found += storage.search(tableName, params.from, params.to, params.offset, params.limit == 0 ? 0 : needed,
-						new LogSearchCallbackImpl(parser));
+				found += storage.search(tableName, params.from, params.to, params.offset, params.limit == 0 ? 0 : needed, 
+						builder, new LogTraverseCallbackImpl());
 				if (params.offset > 0) {
 					if (found > params.offset) {
 						found -= params.offset;
@@ -186,68 +207,18 @@ public class Table extends LogQueryCommand {
 	public boolean isReducer() {
 		return false;
 	}
-
-	private class LogSearchCallbackImpl implements LogSearchCallback {
-		private boolean suppressBugAlert = false;
-		private LogParser parser;
-
-		public LogSearchCallbackImpl(LogParser parser) {
-			this.parser = parser;
-		}
-
+	
+	private class LogTraverseCallbackImpl extends LogTraverseCallback {
 		@Override
-		public void onLog(Log log) {
-			Map<String, Object> m = null;
-
-			Map<String, Object> data = log.getData();
-			if (parser != null) {
-				try {
-					data.put("_time", log.getDate());
-					Map<String, Object> parsed = parser.parse(data);
-					if (parsed != null) {
-						parsed.put("_table", log.getTableName());
-						parsed.put("_id", log.getId());
-
-						Object time = parsed.get("_time");
-						if (time == null)
-							parsed.put("_time", log.getDate());
-						else if (!(time instanceof Date)) {
-							logger.error("araqne logdb: parser returned wrong _time type: " + time.getClass().getName());
-							eof(true);
-						}
-
-						m = parsed;
-					} else {
-						logger.debug("araqne logdb: cannot parse log [{}]", data);
-						return;
-					}
-				} catch (Throwable t) {
-					if (!suppressBugAlert) {
-						logger.error(
-								"araqne logdb: PARSER BUG! original log => table " + log.getTableName() + ", id " + log.getId()
-										+ ", data " + data, t);
-						suppressBugAlert = true;
-					}
-
-					// can be unmodifiableMap when it comes from memory buffer.
-					m = new HashMap<String, Object>();
-					m.putAll(data);
-					m.put("_table", log.getTableName());
-					m.put("_id", log.getId());
-					m.put("_time", log.getDate());
-				}
-			} else {
-				// can be unmodifiableMap when it comes from memory buffer.
-				m = new HashMap<String, Object>();
-				m.putAll(data);
-				m.put("_table", log.getTableName());
-				m.put("_id", log.getId());
-				m.put("_time", log.getDate());
-			}
-
-			write(new LogMap(m));
+		public boolean isMatch(Log log){
+			return true;
 		}
-
+		
+		@Override
+		protected void processLog(Log log) {
+			write(new LogMap(log.getData()));
+		}
+		
 		@Override
 		public void interrupt() {
 			eof(true);
@@ -256,7 +227,7 @@ public class Table extends LogQueryCommand {
 		@Override
 		public boolean isInterrupted() {
 			return status.equals(Status.End);
-		}
+		}		
 	}
 
 	public static class TableParams {
