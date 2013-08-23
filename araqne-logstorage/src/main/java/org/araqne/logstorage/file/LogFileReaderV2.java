@@ -34,6 +34,7 @@ import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
+import org.araqne.logstorage.LogTraverseCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -605,7 +606,6 @@ public class LogFileReaderV2 extends LogFileReader {
 					}
 				}
 			} catch (IOException e) {
-				// TODO: error handling
 			}
 			if (record == null)
 				continue;
@@ -635,5 +635,93 @@ public class LogFileReaderV2 extends LogFileReader {
 		}
 
 		return ret;
+	}
+
+	@Override
+	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogParserBuilder builder,
+			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException {
+		LogParser parser = null;
+		if (builder != null)
+			parser = builder.build();	
+
+		for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
+			IndexBlockHeader index = indexBlockHeaders.get(i);
+
+			if ((maxId >= 0 && index.firstId > maxId) || (minId >= 0 && index.firstId + index.logCount <= minId))
+				continue;
+
+			DataBlockHeader data = dataBlockHeaders.get(i);
+			Long fromTime = (from == null) ? null : from.getTime();
+			Long toTime = (to == null) ? null : to.getTime();
+			if ((fromTime == null || data.endDate >= fromTime) && (toTime == null || data.startDate < toTime)) {
+				long matched = readBlock(index, data, fromTime, toTime, minId, maxId, offset, limit, parser, callback);
+				if (matched < offset)
+					offset -= matched;
+				else {
+					matched -= offset;
+					offset = 0;
+					limit -= matched;
+				}
+
+				if (limit == 0)
+					return;
+			}
+		}
+	}
+	
+	private long readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long minId, long maxId, long offset,
+			long limit,
+			LogParser parser, LogTraverseCallback callback) throws IOException, InterruptedException {
+		List<Integer> offsets = new ArrayList<Integer>();
+		long matched = 0;
+		boolean suppressBugAlert = false;
+
+		indexFile.seek(index.fp + 4);
+		ByteBuffer indexBuffer = ByteBuffer.allocate(index.logCount * 4);
+		indexFile.read(indexBuffer.array());
+		for (int i = 0; i < index.logCount; i++)
+			offsets.add(indexBuffer.getInt());
+
+		// reverse order
+		for (int i = offsets.size() - 1; i >= 0; i--) {
+			long date = getLogRecordDate(data, offsets.get(i));
+			if (from != null && date < from)
+				continue;
+			if (to != null && date >= to)
+				continue;
+
+			LogRecord record = getLogRecord(data, offsets.get(i));
+			if (minId > 0 && record.getId() < minId)
+				continue;
+			if (maxId > 0 && record.getId() > maxId)
+				continue;
+
+			Log log = null;
+			try {
+				log = parse(tableName, parser, record, false);				
+			} catch (LogParserBugException e) {
+				log = new Log(e.tableName, e.date, e.id, e.logMap); 
+				if (!suppressBugAlert) {
+					logger.error("araqne logstorage: PARSER BUG! original log => table " +
+							log.getTableName() + ", id " + log.getId() + ", data " + log.getData(), e.cause);
+					suppressBugAlert = true;
+				}				
+			} finally {
+				if (log == null)
+					continue;
+				
+				if (callback.isMatch(log) && offset > matched) {
+					matched++;
+					continue;
+				}
+
+				if (callback.onLog(log)) {
+					if (++matched == offset + limit)
+						return matched;
+				}				
+			}
+		}
+
+		return matched;
 	}
 }

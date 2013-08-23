@@ -30,6 +30,7 @@ import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
+import org.araqne.logstorage.LogTraverseCallback;
 import org.araqne.logstorage.WrongTimeTypeException;
 
 public abstract class LogFileReader {
@@ -143,6 +144,11 @@ public abstract class LogFileReader {
 
 	// maxId is inclusive
 	public abstract void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback,
+			boolean doParallel)
+			throws IOException,
+			InterruptedException;
+
+	public abstract void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogParserBuilder builder, LogTraverseCallback callback,
 			boolean doParallel)
 			throws IOException,
 			InterruptedException;

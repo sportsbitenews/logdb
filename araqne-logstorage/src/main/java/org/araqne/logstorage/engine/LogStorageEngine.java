@@ -38,6 +38,7 @@ import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
+import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.*;
 import org.araqne.logstorage.file.LogFileFixReport;
 import org.araqne.logstorage.file.LogFileReader;
@@ -1284,5 +1285,115 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			}
 		}
 		
+	}
+
+	@Override
+	public long search(String tableName, Date from, Date to, long offset, long limit, LogParserBuilder builder, LogTraverseCallback c)
+			throws InterruptedException {
+		verify();
+
+		Collection<Date> days = getLogDates(tableName);
+
+		long found = 0;
+		List<Date> filtered = DateUtil.filt(days, from, to);
+		logger.trace("araqne logstorage: searching {} tablets of table [{}]", filtered.size(), tableName);
+
+		for (Date day : filtered) {
+			if (logger.isTraceEnabled())
+				logger.trace("araqne logstorage: searching table {}, date={}", tableName, DateUtil.getDayText(day));
+
+			long needed = limit - found;
+			if (limit != 0 && needed <= 0)
+				break;
+
+			found += searchTablet(tableName, day, from, to, -1, -1, offset, needed, builder, c, true);
+
+			if (offset > 0) {
+				if (found > offset) {
+					found -= offset;
+					offset = 0;
+				} else {
+					offset -= found;
+					found = 0;
+				}
+			}
+		}
+
+		return found;
+	}
+
+	private long searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId, long offset, long limit, LogParserBuilder builder, LogTraverseCallback c, boolean doParallel)
+			throws InterruptedException {
+		int tableId = tableRegistry.getTableId(tableName);
+		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
+
+		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
+		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
+		File keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
+		LogFileReader reader = null;
+
+		long onlineMinId = -1;
+
+		try {
+			// do NOT use getOnlineWriter() here (it loads empty writer on cache
+			// automatically if writer not found)
+			OnlineWriter onlineWriter = onlineWriters.get(new OnlineWriterKey(tableName, day, tableId));
+			if (onlineWriter != null) {
+				List<Log> buffer = onlineWriter.getBuffer();
+
+				if (buffer != null && !buffer.isEmpty()) {
+					logger.trace("araqne logstorage: {} logs in writer buffer.", buffer.size());
+					ListIterator<Log> li = buffer.listIterator(buffer.size());
+					while (li.hasPrevious()) {
+						Log logData = li.previous();
+						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
+								&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
+							if (offset > 0) {
+								offset--;
+								continue;
+							}
+
+							if (c.onLog(logData)) {
+								if (onlineMinId < 0 || logData.getId() < onlineMinId)
+									onlineMinId = logData.getId();
+
+								if (--limit == 0)
+									return c.getProcessedCount();
+							}
+						}
+					}
+				}
+			}
+
+			String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
+			if (logFileType == null)
+				logFileType = "v2";
+
+			Map<String, String> tableMetadata = new HashMap<String, String>();
+			for (String key : tableRegistry.getTableMetadataKeys(tableName))
+				tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+
+			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableMetadata, tableName, indexPath,
+					dataPath, keyPath));
+
+			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
+			if (minId < 0 || flushedMaxId < 0 || flushedMaxId >= minId)
+				reader.traverse(from, to, minId, flushedMaxId, offset, limit, builder, c, doParallel);
+		} catch (InterruptedException e) {
+			throw e;
+		} catch (Exception e) {
+			logger.error("araqne logstorage: search tablet failed", e);
+		} finally {
+			if (reader != null)
+				reader.close();
+		}
+
+		return c.getProcessedCount();
+	}
+
+	@Override
+	public long searchTablet(String tableName, Date day, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c,
+			boolean doParallel) throws InterruptedException {
+		return searchTablet(tableName, day, null, null, minId, maxId, 0, 0, builder, c, doParallel);
 	}
 }
