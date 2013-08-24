@@ -16,43 +16,37 @@
 package org.araqne.log.api;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RotationFileLogger extends AbstractLogger {
+public class RotationFileLogger extends AbstractLogger implements LogPipe {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(RotationFileLogger.class);
 	private final File dataDir;
 
-	private Pattern datePattern;
 	private String charset;
-	private SimpleDateFormat dateFormat;
-	private Matcher dateMatcher;
-	private Matcher beginMatcher;
-	private Matcher endMatcher;
+
+	private MultilineLogExtractor extractor;
 
 	public RotationFileLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
+
 		this.dataDir = new File(System.getProperty("araqne.data.dir"), "araqne-log-api");
 		this.dataDir.mkdirs();
 
+		extractor = new MultilineLogExtractor(this, this);
+
 		// optional
 		String datePatternRegex = getConfig().get("date_pattern");
-		if (datePatternRegex != null)
-			datePattern = Pattern.compile(datePatternRegex);
+		if (datePatternRegex != null) {
+			extractor.setDateMatcher(Pattern.compile(datePatternRegex).matcher(""));
+		}
 
 		// optional
 		String dateLocale = getConfig().get("date_locale");
@@ -62,23 +56,29 @@ public class RotationFileLogger extends AbstractLogger {
 		// optional
 		String dateFormatString = getConfig().get("date_format");
 		if (dateFormatString != null)
-			dateFormat = new SimpleDateFormat(dateFormatString, new Locale(dateLocale));
+			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)));
 
 		// optional
 		String beginRegex = getConfig().get("begin_regex");
-		if (beginRegex != null) {
-			beginMatcher = Pattern.compile(beginRegex).matcher("");
-		}
+		if (beginRegex != null)
+			extractor.setBeginMatcher(Pattern.compile(beginRegex).matcher(""));
 
 		String endRegex = getConfig().get("end_regex");
-		if (endRegex != null) {
-			endMatcher = Pattern.compile(endRegex).matcher("");
-		}
+		if (endRegex != null)
+			extractor.setEndMatcher(Pattern.compile(endRegex).matcher(""));
 
 		// optional
 		charset = getConfig().get("charset");
 		if (charset == null)
 			charset = "utf-8";
+
+		extractor.setCharset(charset);
+
+	}
+
+	@Override
+	public void onLog(Logger logger, Log log) {
+		write(log);
 	}
 
 	@Override
@@ -115,34 +115,7 @@ public class RotationFileLogger extends AbstractLogger {
 		try {
 			is = new FileInputStream(f);
 			is.skip(offset);
-
-			ByteArrayOutputStream logBuf = new ByteArrayOutputStream();
-
-			// last chunk of page which does not contains new line
-			ByteArrayOutputStream temp = new ByteArrayOutputStream();
-			byte[] b = new byte[128 * 1024];
-
-			while (true) {
-				LoggerStatus status = getStatus();
-				if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped)
-					break;
-
-				int next = 0;
-				int len = is.read(b);
-				if (len < 0)
-					break;
-
-				for (int i = 0; i < len; i++) {
-					if (b[i] == 0xa) {
-						buildAndWriteLog(logBuf, b, next, i - next + 1, lastPosition, temp);
-						next = i + 1;
-					}
-				}
-
-				// temp should be matched later (line regex test)
-				temp.write(b, next, len - next);
-			}
-
+			extractor.extract(is, lastPosition);
 		} catch (Throwable t) {
 			slog.error("araqne log api: cannot read file", t);
 		} finally {
@@ -176,150 +149,6 @@ public class RotationFileLogger extends AbstractLogger {
 				}
 			}
 		}
-	}
-
-	private void buildAndWriteLog(ByteArrayOutputStream logBuf, byte[] b, int offset, int length, AtomicLong lastPosition,
-			ByteArrayOutputStream temp) {
-		String log = null;
-		try {
-			log = buildLog(logBuf, b, offset, length, lastPosition, temp);
-		} catch (UnsupportedEncodingException e) {
-		}
-
-		if (log != null) {
-			log = log.trim();
-			if (log.length() > 0)
-				writeLog(log);
-		}
-	}
-
-	/**
-	 * @param buf
-	 *            the buffer which hold partial multiline log
-	 * @param b
-	 *            read block which contains new line
-	 * @param offset
-	 *            the new line offset
-	 * @param len
-	 *            the new line length
-	 * @param lastPosition
-	 *            the last position which read and written as log
-	 * @return new (multiline) log
-	 * @throws UnsupportedEncodingException
-	 */
-	private String buildLog(ByteArrayOutputStream buf, byte[] b, int offset, int len, AtomicLong lastPosition, ByteArrayOutputStream temp)
-			throws UnsupportedEncodingException {
-
-		String line = null;
-		if (temp.size() > 0) {
-			temp.write(b, offset, len);
-			line = new String(temp.toByteArray(), charset);
-		} else {
-			line = new String(b, offset, len, charset);
-		}
-
-		if (!line.endsWith("\n")) {
-			if (temp.size() == 0)
-				temp.write(b, offset, len);
-
-			return null;
-		}
-
-		if (beginMatcher != null)
-			beginMatcher.reset(line);
-
-		if (endMatcher != null)
-			endMatcher.reset(line);
-
-		if (beginMatcher == null && endMatcher == null) {
-			if (temp.size() > 0) {
-				byte[] t = temp.toByteArray();
-				buf.write(t, 0, t.length);
-				temp.reset();
-			} else {
-				buf.write(b, offset, len);
-			}
-
-			byte[] old = buf.toByteArray();
-			buf.reset();
-			lastPosition.addAndGet(old.length);
-			return new String(old, charset);
-		}
-
-		if (beginMatcher != null && beginMatcher.find()) {
-			byte[] old = buf.toByteArray();
-			String log = null;
-
-			if (old.length > 0) {
-				log = new String(old, charset);
-				lastPosition.addAndGet(old.length);
-				buf.reset();
-			}
-
-			if (temp.size() > 0) {
-				byte[] t = temp.toByteArray();
-				buf.write(t, 0, t.length);
-				temp.reset();
-			} else {
-				buf.write(b, offset, len);
-			}
-			return log;
-		} else if (endMatcher != null && endMatcher.find()) {
-			if (temp.size() > 0) {
-				byte[] t = temp.toByteArray();
-				buf.write(t, 0, t.length);
-				temp.reset();
-			} else {
-				buf.write(b, offset, len);
-			}
-			byte[] old = buf.toByteArray();
-			lastPosition.addAndGet(old.length);
-			String log = new String(old, charset);
-			buf.reset();
-			return log;
-		} else {
-			if (temp.size() > 0) {
-				byte[] t = temp.toByteArray();
-				buf.write(t, 0, t.length);
-				temp.reset();
-			} else {
-				buf.write(b, offset, len);
-			}
-		}
-
-		return null;
-	}
-
-	private void writeLog(String mline) {
-		Date d = parseDate(mline);
-		Map<String, Object> log = new HashMap<String, Object>();
-		log.put("line", mline);
-		write(new SimpleLog(d, getFullName(), log));
-	}
-
-	protected Date parseDate(String line) {
-		if (datePattern == null || dateFormat == null)
-			return new Date();
-
-		if (dateMatcher == null)
-			dateMatcher = datePattern.matcher(line);
-		else
-			dateMatcher.reset(line);
-
-		if (!dateMatcher.find())
-			return new Date();
-
-		String s = null;
-		int count = dateMatcher.groupCount();
-		for (int i = 1; i <= count; i++) {
-			if (s == null)
-				s = dateMatcher.group(i);
-			else
-				s += dateMatcher.group(i);
-		}
-
-		Date d = dateFormat.parse(s, new ParsePosition(0));
-		return d != null ? d : new Date();
 	}
 
 	private String readFirstLine(File f) {
