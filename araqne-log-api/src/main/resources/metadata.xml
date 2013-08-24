@@ -23,4 +23,5 @@
 	<instance component="regex-filter-transformer-factory" />
 	<instance component="time-rolling-log-writer-factory" />
 	<instance component="rotation-file-logger-factory" />
+	<instance component="exec-logger-factory" />
 </ipojo>

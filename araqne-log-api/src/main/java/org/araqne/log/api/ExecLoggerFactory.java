@@ -23,27 +23,26 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
-import org.apache.felix.ipojo.annotations.Requires;
 
-@Component(name = "selector-logger-factory")
+/**
+ * @since 2.4.6
+ * @author xeraph
+ *
+ */
+@Component(name = "exec-logger-factory")
 @Provides
-public class SelectorLoggerFactory extends AbstractLoggerFactory {
-	private static final String OPT_SOURCE_LOGGER = "source_logger";
-	private static final String OPT_PATTERN = "pattern";
-
-	@Requires
-	private LoggerRegistry loggerRegistry;
+public class ExecLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getName() {
-		return "selector";
+		return "exec";
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
-			return "로그 선택자";
-		return "Log Selector";
+			return "외부프로그램";
+		return "External Program";
 	}
 
 	@Override
@@ -54,8 +53,8 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
-			return "다른 로거로부터 패턴 매칭되는 특정 로그들만 수집합니다.";
-		return "select logs from logger using text matching";
+			return "외부 프로그램의 표준 출력을 로그로 수집합니다.";
+		return "Collect standard output of external program";
 	}
 
 	@Override
@@ -65,11 +64,9 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름"), true);
-		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Text pattern", "텍스트 패턴"), t("Text pattern to match",
-				"매칭할 대상 문자열"), true);
-		return Arrays.asList(loggerName, pattern);
+		LoggerConfigOption command = new StringConfigType("command", t("command", "명령어"), t("command to execute in shell",
+				"쉘에서 실행할 명령어"), true);
+		return Arrays.asList(command);
 	}
 
 	private Map<Locale, String> t(String enText, String koText) {
@@ -81,7 +78,6 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	protected Logger createLogger(LoggerSpecification spec) {
-		return new SelectorLogger(spec, this, loggerRegistry);
+		return new ExecLogger(spec, this);
 	}
-
 }

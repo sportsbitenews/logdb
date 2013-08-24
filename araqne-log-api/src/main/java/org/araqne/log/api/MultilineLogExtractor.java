@@ -27,6 +27,11 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 
+/**
+ * @since 2.4.6
+ * @author xeraph
+ * 
+ */
 public class MultilineLogExtractor {
 	private Logger logger;
 	private String charset;

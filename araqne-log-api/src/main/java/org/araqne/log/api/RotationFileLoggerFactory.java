@@ -38,7 +38,7 @@ public class RotationFileLoggerFactory extends AbstractLoggerFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "로테이션 로그 파일";
-		return "Rotation log file";
+		return "Rotation Log File";
 	}
 
 	@Override
