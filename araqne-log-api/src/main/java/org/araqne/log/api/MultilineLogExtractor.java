@@ -34,7 +34,7 @@ import java.util.regex.Matcher;
  */
 public class MultilineLogExtractor {
 	private Logger logger;
-	private String charset;
+	private String charset = "utf-8";
 	private Matcher beginMatcher;
 	private Matcher endMatcher;
 	private Matcher dateMatcher;
