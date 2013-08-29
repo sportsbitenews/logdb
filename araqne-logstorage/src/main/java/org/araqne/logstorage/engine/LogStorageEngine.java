@@ -1274,11 +1274,22 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 	@Override
 	public void onUnloadingFileService(String engineName) {
+		List<OnlineWriterKey> toRemove = new ArrayList<OnlineWriterKey>();
 		for (OnlineWriterKey key : onlineWriters.keySet()) {
 			try {
 				OnlineWriter writer = onlineWriters.get(key);
 				if (writer != null && writer.getFileServiceType().equals(engineName))
-					writer.close();
+					toRemove.add(key);
+			} catch (Throwable t) {
+				logger.warn("exception caught", t);
+			}
+		}
+		
+		for (OnlineWriterKey key: toRemove) {
+			try {
+				OnlineWriter writer = onlineWriters.get(key);
+				writer.close();
+				onlineWriters.remove(key);
 			} catch (Throwable t) {
 				logger.warn("exception caught", t);
 			}
