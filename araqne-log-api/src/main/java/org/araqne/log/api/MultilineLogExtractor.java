@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,6 +41,9 @@ public class MultilineLogExtractor {
 	private Matcher dateMatcher;
 	private SimpleDateFormat dateFormat;
 	private LogPipe pipe;
+
+	// assign current year to date
+	private Calendar yearModifier;
 
 	public MultilineLogExtractor(Logger logger, LogPipe pipe) {
 		this.logger = logger;
@@ -84,6 +88,8 @@ public class MultilineLogExtractor {
 
 	public void setDateFormat(SimpleDateFormat dateFormat) {
 		this.dateFormat = dateFormat;
+		if (dateFormat != null && !dateFormat.toPattern().contains("yyyy"))
+			yearModifier = Calendar.getInstance();
 	}
 
 	public void extract(InputStream is, AtomicLong lastPosition) throws IOException {
@@ -261,7 +267,17 @@ public class MultilineLogExtractor {
 		}
 
 		Date d = dateFormat.parse(s, new ParsePosition(0));
-		return d != null ? d : new Date();
+		if (d == null)
+			return new Date();
+
+		if (yearModifier != null) {
+			int year = Calendar.getInstance().get(Calendar.YEAR);
+			yearModifier.setTime(d);
+			yearModifier.set(Calendar.YEAR, year);
+			d = yearModifier.getTime();
+		}
+
+		return d;
 	}
 
 }
