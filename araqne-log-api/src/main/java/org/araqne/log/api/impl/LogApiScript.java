@@ -79,7 +79,7 @@ public class LogApiScript implements Script {
 
 	@ScriptUsage(description = "create parser profile", arguments = {
 			@ScriptArgument(name = "profile name", type = "string", description = "parser profile name"),
-			@ScriptArgument(name = "factory name", type = "string", description = "parser factory name") })
+			@ScriptArgument(name = "factory name", type = "string", description = "parser factory name", autocompletion = LogParserFactoryAutoCompleter.class) })
 	public void createParser(String[] args) throws InterruptedException {
 		String name = args[0];
 		String factoryName = args[1];
@@ -140,7 +140,7 @@ public class LogApiScript implements Script {
 
 	@ScriptUsage(description = "create transformer profile", arguments = {
 			@ScriptArgument(name = "profile name", type = "string", description = "transformer profile name"),
-			@ScriptArgument(name = "factory name", type = "string", description = "transformer factory name") })
+			@ScriptArgument(name = "factory name", type = "string", description = "transformer factory name", autocompletion = LogTransformerFactoryRegistry.class) })
 	public void createTransformer(String[] args) throws InterruptedException {
 		String name = args[0];
 		String factoryName = args[1];
@@ -506,7 +506,7 @@ public class LogApiScript implements Script {
 	}
 
 	@ScriptUsage(description = "start the logger", arguments = {
-			@ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname to start"),
+			@ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname to start", autocompletion = LoggerAutoCompleter.class),
 			@ScriptArgument(name = "interval", type = "int", description = "sleep time of active logger thread in milliseconds. 60000ms by default. passive logger will ignore interval", optional = true) })
 	public void startLogger(String[] args) {
 		try {
@@ -569,7 +569,7 @@ public class LogApiScript implements Script {
 	}
 
 	@ScriptUsage(description = "stop the logger", arguments = {
-			@ScriptArgument(name = "logger name", type = "string", description = "the logger name to stop"),
+			@ScriptArgument(name = "logger name", type = "string", description = "the logger name to stop", autocompletion = LoggerAutoCompleter.class),
 			@ScriptArgument(name = "max wait time", type = "int", description = "max wait time in milliseconds", optional = true) })
 	public void stopLogger(String[] args) {
 		try {
@@ -620,7 +620,7 @@ public class LogApiScript implements Script {
 	}
 
 	@ScriptUsage(description = "create new logger", arguments = {
-			@ScriptArgument(name = "logger factory name", type = "string", description = "logger factory name. try logapi.loggerFactories command."),
+			@ScriptArgument(name = "logger factory name", type = "string", description = "logger factory name. try logapi.loggerFactories command.", autocompletion = LoggerFactoryAutoCompleter.class),
 			@ScriptArgument(name = "logger namespace", type = "string", description = "new logger namespace"),
 			@ScriptArgument(name = "logger name", type = "string", description = "new logger name"),
 			@ScriptArgument(name = "description", type = "string", description = "the description of new logger", optional = true) })
@@ -669,7 +669,8 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "remove logger", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname") })
+	@ScriptUsage(description = "remove logger", arguments = {
+			@ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname", autocompletion = LoggerAutoCompleter.class) })
 	public void removeLogger(String[] args) {
 		try {
 			String fullName = args[0];
