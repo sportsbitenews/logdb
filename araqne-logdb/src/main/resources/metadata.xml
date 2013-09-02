@@ -15,4 +15,5 @@
 	<instance component="logdb-logcount-metadata" />
 	<instance component="logdb-table-metadata" />
 	<instance component="logdb-logblock-metadata" />
+	<instance component="csv-import-script-factory" />
 </ipojo>
