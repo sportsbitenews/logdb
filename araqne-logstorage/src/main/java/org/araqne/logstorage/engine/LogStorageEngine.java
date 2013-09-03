@@ -1348,7 +1348,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 						Log logData = li.previous();
 						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
 								&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
-							if (offset > 0) {
+							if (offset > 0 && c.isMatch(logData, true)) {
 								offset--;
 								continue;
 							}
@@ -1358,7 +1358,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 									onlineMinId = logData.getId();
 
 								if (--limit == 0)
-									return c.getProcessedCount();
+									return c.getMatchedCount();
 							}
 						}
 					}
@@ -1388,7 +1388,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				reader.close();
 		}
 
-		return c.getProcessedCount();
+		return c.getMatchedCount();
 	}
 
 	@Override

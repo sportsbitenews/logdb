@@ -18,13 +18,15 @@ package org.araqne.logstorage;
 
 public abstract class LogTraverseCallback {
 	private long processedCnt;
+	private long matchedCnt;
 	
 	public LogTraverseCallback() {
 		this.processedCnt = 0;
+		this.matchedCnt = 0;
 	}
 	
 	public boolean onLog(Log log) {
-		if (!isMatch(log))
+		if (!isMatch(log, true))
 			return false;
 		
 		
@@ -35,6 +37,18 @@ public abstract class LogTraverseCallback {
 	
 	public long getProcessedCount() {
 		return processedCnt;
+	}
+	
+	public long getMatchedCount() {
+		return matchedCnt;
+	}
+	
+	public boolean isMatch(Log log, boolean count) {
+		boolean ret = isMatch(log);
+		if (ret && count)
+			matchedCnt++;
+		
+		return ret;
 	}
 	
 	abstract public boolean isMatch(Log log);

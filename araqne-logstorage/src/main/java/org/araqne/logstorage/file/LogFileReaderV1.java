@@ -413,7 +413,7 @@ public class LogFileReaderV1 extends LogFileReader {
 				if (log == null)
 					continue;
 
-				if (callback.isMatch(log) && offset > matched) {
+				if (offset > matched && callback.isMatch(log, true)) {
 					matched++;
 					continue;
 				}
