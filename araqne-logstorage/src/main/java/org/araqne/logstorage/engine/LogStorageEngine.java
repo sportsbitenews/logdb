@@ -1396,4 +1396,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			boolean doParallel) throws InterruptedException {
 		return searchTablet(tableName, day, null, null, minId, maxId, 0, 0, builder, c, doParallel);
 	}
+
+	@Override
+	public long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder, LogTraverseCallback c,
+			boolean doParallel) throws InterruptedException {
+		return searchTablet(tableName, day, from, to, minId, -1, 0, 0, builder, c, doParallel);
+	}
 }

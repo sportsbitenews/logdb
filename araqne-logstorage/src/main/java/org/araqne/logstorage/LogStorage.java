@@ -126,7 +126,9 @@ public interface LogStorage {
 	 * 
 	 * @since 2.0.3
 	 */
+	@Deprecated
 	long searchTablet(String tableName, Date day, long minId, long maxId, LogMatchCallback c, boolean doParallel) throws InterruptedException;
+	@Deprecated
 	long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogMatchCallback c, boolean doParallel) throws InterruptedException;
 
 	/**
@@ -135,5 +137,6 @@ public interface LogStorage {
 	 */
 	long search(String tableName, Date from, Date to, long offset, long limit, LogParserBuilder builder, LogTraverseCallback c) throws InterruptedException;
 	long searchTablet(String tableName, Date day, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException;
+	long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException;
 
 }
