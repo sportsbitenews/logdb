@@ -15,8 +15,12 @@
  */
 package org.araqne.logdb.msgbus;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -334,4 +338,30 @@ public class ManagementPlugin {
 			throw new SecurityException("logdb session not found: " + req.getSession().getAdminLoginName());
 		return session;
 	}
+
+	@MsgbusMethod
+	public void purge(Request req, Response resp) {
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+		String tableName = req.getString("table");
+		Date fromDay = null;
+		Date toDay = null;
+		try {
+			fromDay = df.parse(req.getString("from_day"));
+			toDay = df.parse(req.getString("to_day"));
+		} catch (ParseException e) {
+			throw new MsgbusException("logdb", "not-parse-date");
+		}
+
+		storage.purge(tableName, fromDay, toDay);
+
+	}
+
+	@MsgbusMethod
+	public void getLogDates(Request req, Response resp) {
+		String tableName = req.getString("table");
+		Collection<Date> logDates = storage.getLogDates(tableName);
+
+		resp.put("logdates", logDates);
+	}
+
 }
