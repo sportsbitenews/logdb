@@ -21,6 +21,7 @@ import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.command.Import;
 import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.LogTableRegistry;
 
 /**
  * @since 1.6.6
@@ -29,9 +30,11 @@ import org.araqne.logstorage.LogStorage;
  */
 public class ImportParser implements LogQueryCommandParser {
 
+	private LogTableRegistry tableRegistry;
 	private LogStorage storage;
 
-	public ImportParser(LogStorage storage) {
+	public ImportParser(LogTableRegistry tableRegistry, LogStorage storage) {
+		this.tableRegistry = tableRegistry;
 		this.storage = storage;
 	}
 
@@ -46,6 +49,8 @@ public class ImportParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("no-permission", -1);
 
 		String tableName = commandString.substring(getCommandName().length()).trim();
+		if (!tableRegistry.exists(tableName))
+			throw new LogQueryParseException("table-not-found", -1);
 
 		return new Import(storage, tableName);
 	}

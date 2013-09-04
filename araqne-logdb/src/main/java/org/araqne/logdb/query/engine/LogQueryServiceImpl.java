@@ -162,7 +162,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 		parsers.add(new LogdbParser(metadataService));
 		parsers.add(new LogCheckParser(tableRegistry, logStorage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService));
-		parsers.add(new ImportParser(logStorage));
+		parsers.add(new ImportParser(tableRegistry, logStorage));
 
 		this.queryParsers = parsers;
 	}
