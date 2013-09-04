@@ -59,6 +59,8 @@ import org.araqne.logdb.query.parser.LogCheckParser;
 import org.araqne.logdb.query.parser.LogdbParser;
 import org.araqne.logdb.query.parser.LookupParser;
 import org.araqne.logdb.query.parser.OutputCsvParser;
+import org.araqne.logdb.query.parser.OutputJsonParser;
+import org.araqne.logdb.query.parser.OutputTxtParser;
 import org.araqne.logdb.query.parser.ParseParser;
 import org.araqne.logdb.query.parser.RenameParser;
 import org.araqne.logdb.query.parser.RexParser;
@@ -160,6 +162,8 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 		parsers.add(new TextFileParser(parserFactoryRegistry));
 		parsers.add(new ZipFileParser(parserFactoryRegistry));
 		parsers.add(new OutputCsvParser());
+		parsers.add(new OutputJsonParser());
+		parsers.add(new OutputTxtParser());
 		parsers.add(new LogdbParser(metadataService));
 		parsers.add(new LogCheckParser(tableRegistry, logStorage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService));
