@@ -40,13 +40,6 @@ public class WtmpLogger extends AbstractLogger {
 		path = spec.getConfig().get("path");
 	}
 
-	public static void main(String[] args) {
-		LoggerSpecification spec = new LoggerSpecification();
-		spec.getConfig().put("path", "d:/wtmp");
-		WtmpLogger logger = new WtmpLogger(spec, new WtmpLoggerFactory());
-		logger.runOnce();
-	}
-
 	@Override
 	protected void runOnce() {
 		Map<String, String> lastPositions = LastPositionHelper.readLastPositions(getLastLogFile());
