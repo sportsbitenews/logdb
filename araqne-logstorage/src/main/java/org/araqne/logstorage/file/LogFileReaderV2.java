@@ -460,6 +460,11 @@ public class LogFileReaderV2 extends LogFileReader {
 				replaceBuffer();
 		}
 
+		public void reset() {
+			pos = 0;
+			replaceBuffer();
+		}
+
 		private void replaceBuffer() {
 			Integer next = findIndexBlock(pos);
 			if (next == null)

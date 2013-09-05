@@ -42,8 +42,8 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
-			return "선택자";
-		return "selector";
+			return "로그 선택자";
+		return "Log Selector";
 	}
 
 	@Override

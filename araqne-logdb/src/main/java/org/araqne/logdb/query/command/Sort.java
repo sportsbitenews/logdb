@@ -16,12 +16,16 @@
 package org.araqne.logdb.query.command;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.query.parser.ParseResult;
+import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.araqne.logdb.sort.CloseableIterator;
 import org.araqne.logdb.sort.Item;
 import org.araqne.logdb.sort.ParallelMergeSorter;
@@ -156,6 +160,32 @@ public class Sort extends LogQueryCommand {
 	public static class SortField {
 		private String name;
 		private boolean asc;
+
+		public static List<SortField> parseSortFields(String line, ParseResult r) {
+			List<SortField> fields = new ArrayList<SortField>();
+			int next = r.next;
+			while (true) {
+				r = QueryTokenizer.nextString(line, next, ',');
+				String token = (String) r.value;
+				boolean asc = true;
+				char sign = token.charAt(0);
+				if (sign == '-') {
+					token = token.substring(1);
+					asc = false;
+				} else if (sign == '+') {
+					token = token.substring(1);
+				}
+
+				SortField field = new SortField(token.trim(), asc);
+				fields.add(field);
+				next = r.next;
+
+				if (line.length() == r.next)
+					break;
+			}
+
+			return fields;
+		}
 
 		public SortField(String name) {
 			this(name, true);

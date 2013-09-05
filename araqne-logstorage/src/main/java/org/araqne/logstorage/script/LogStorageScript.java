@@ -229,13 +229,22 @@ public class LogStorageScript implements Script {
 		}
 	}
 
+	@ScriptUsage(description = "list tables", arguments = {
+			@ScriptArgument(name = "filter", type = "string", description = "table name filter", optional = true) })
 	public void tables(String[] args) {
+		String filter = null;
+		if (args.length > 0)
+			filter = args[0];
+
 		context.println("Tables");
 		context.println("--------");
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
 		ArrayList<TableInfo> tables = new ArrayList<TableInfo>();
 		for (String tableName : tableRegistry.getTableNames()) {
+			if (filter != null && !tableName.contains(filter))
+				continue;
+
 			int tableId = tableRegistry.getTableId(tableName);
 			Iterator<Date> it = storage.getLogDates(tableName).iterator();
 			Date lastDay = null;

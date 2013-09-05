@@ -21,18 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.ConcurrentModificationException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -61,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
 @Component(name = "logstorage-engine")
 @Provides
-public class LogStorageEngine implements LogStorage, LogTableEventListener {
+public class LogStorageEngine implements LogStorage, LogTableEventListener, LogFileServiceEventListener {
 	private static final String DEFAULT_LOGFILETYPE = "v2";
 
 	private final Logger logger = LoggerFactory.getLogger(LogStorageEngine.class.getName());
@@ -182,6 +171,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		}
 
 		tableRegistry.addListener(this);
+		lfsRegistry.addListener(this);
 
 		status = LogStorageStatus.Open;		
 	}
@@ -201,9 +191,15 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		}
 
 		status = LogStorageStatus.Stopping;
-
-		if (tableRegistry != null)
-			tableRegistry.removeListener(this);
+		
+		try {
+			if (tableRegistry != null) {
+				tableRegistry.removeListener(this);
+			}
+		} catch (IllegalStateException e) {
+			if (!e.getMessage().contains("Cannot create the Nullable Object"))
+				throw e;
+		}
 
 		writerSweeper.doStop = true;
 		writerSweeperThread.interrupt();
@@ -221,12 +217,18 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		
 		// close all writers
 		for (OnlineWriterKey key : onlineWriters.keySet()) {
-			OnlineWriter writer = onlineWriters.get(key);
-			if (writer != null)
-				writer.close();
+			try {
+				OnlineWriter writer = onlineWriters.get(key);
+				if (writer != null)
+					writer.close();
+			} catch (Throwable t) {
+				logger.warn("exception caught", t);
+			}
 		}
 
 		onlineWriters.clear();
+		
+		lfsRegistry.removeListener(this);
 
 		status = LogStorageStatus.Closed;
 	}
@@ -273,9 +275,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		if (!tableDir.exists())
 			return;
 
-		// delete all .idx and .dat files
+		// delete all .idx, .dat, .key files
 		for (File f : tableDir.listFiles()) {
-			if (f.isFile() && (f.getName().endsWith(".idx") || f.getName().endsWith(".dat"))) {
+			String name = f.getName();
+			if (f.isFile() && (name.endsWith(".idx") || name.endsWith(".dat") || name.endsWith(".key"))) {
 				ensureDelete(f);
 			}
 		}
@@ -1321,5 +1324,30 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener {
 		for (OnlineWriterKey key : keys) {
 			onlineWriters.remove(key);
 		}
+	}
+
+	@Override
+	public void onUnloadingFileService(String engineName) {
+		List<OnlineWriterKey> toRemove = new ArrayList<OnlineWriterKey>();
+		for (OnlineWriterKey key : onlineWriters.keySet()) {
+			try {
+				OnlineWriter writer = onlineWriters.get(key);
+				if (writer != null && writer.getFileServiceType().equals(engineName))
+					toRemove.add(key);
+			} catch (Throwable t) {
+				logger.warn("exception caught", t);
+			}
+		}
+		
+		for (OnlineWriterKey key: toRemove) {
+			try {
+				OnlineWriter writer = onlineWriters.get(key);
+				writer.close();
+				onlineWriters.remove(key);
+			} catch (Throwable t) {
+				logger.warn("exception caught", t);
+			}
+		}
+		
 	}
 }

@@ -9,8 +9,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -19,6 +21,7 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.LogFileServiceEventListener;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileWriter;
@@ -35,6 +38,8 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	private ConcurrentHashMap<String, WaitEvent> availableEngines = new ConcurrentHashMap<String, WaitEvent>();
 
 	private ConcurrentMap<String, LogFileService> services = new ConcurrentHashMap<String, LogFileService>();
+
+	private Set<LogFileServiceEventListener> listeners = new CopyOnWriteArraySet<LogFileServiceEventListener>();
 
 	public LogFileServiceRegistryImpl(BundleContext bc) {
 		this.bc = bc;
@@ -152,6 +157,14 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 		if (ev == null)
 			throw new UnsupportedOperationException("not supported engine: " + type);
 
+		for (LogFileServiceEventListener l : listeners) {
+			try {
+				l.onUnloadingFileService(type);
+			} catch (Throwable t) {
+				logger.warn("exception caught", t);
+			}
+		}
+
 		ev.ready = false;
 		services.remove(type);
 
@@ -232,5 +245,15 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 				lock.unlock();
 			}
 		}
+	}
+
+	@Override
+	public void addListener(LogFileServiceEventListener listener) {
+		listeners.add(listener);
+	}
+
+	@Override
+	public void removeListener(LogFileServiceEventListener listener) {
+		listeners.remove(listener);
 	}
 }

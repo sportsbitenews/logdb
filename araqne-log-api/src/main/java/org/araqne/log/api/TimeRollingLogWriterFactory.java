@@ -37,7 +37,7 @@ public class TimeRollingLogWriterFactory extends AbstractLoggerFactory implement
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "시간별 롤링 로그 파일";
-		return "time rolling logfile";
+		return "Time Rolling Log File";
 	}
 
 	@Override

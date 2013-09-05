@@ -39,8 +39,18 @@ public class LogQueryParserServiceImpl implements LogQueryParserService {
 
 	@Override
 	public LogQuery parse(LogQueryContext context, String queryString) {
-		List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
+		List<LogQueryCommand> commands = parseCommands(context, queryString);
+
 		LogQuery lq = new LogQueryImpl(context, queryString, commands);
+		for (LogQueryCommand cmd : commands)
+			cmd.setLogQuery(lq);
+
+		return lq;
+	}
+
+	@Override
+	public List<LogQueryCommand> parseCommands(LogQueryContext context, String queryString) {
+		List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 
 		for (String q : QueryTokenizer.parseCommands(queryString)) {
 			q = q.trim();
@@ -53,7 +63,6 @@ public class LogQueryParserServiceImpl implements LogQueryParserService {
 
 			LogQueryCommand cmd = parser.parse(context, q);
 			cmd.setQueryString(q);
-			cmd.setLogQuery(lq);
 			commands.add(cmd);
 		}
 
@@ -72,8 +81,7 @@ public class LogQueryParserServiceImpl implements LogQueryParserService {
 		}
 		if (!setReducer)
 			commands.get(commands.size() - 1).setCallbackTimeline(true);
-
-		return lq;
+		return commands;
 	}
 
 	@Override

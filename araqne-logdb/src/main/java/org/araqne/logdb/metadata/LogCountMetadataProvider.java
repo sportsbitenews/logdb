@@ -74,24 +74,26 @@ public class LogCountMetadataProvider implements MetadataProvider {
 
 	@Override
 	public void verify(LogQueryContext context, String queryString) {
+		MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, queryString);
 	}
 
 	@Override
 	public void query(LogQueryContext context, String queryString, MetadataCallback callback) {
-		for (String tableName : MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, queryString))
-			countFiles(tableName, callback);
+		TableScanOption opt = MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, queryString);
+		for (String tableName : opt.getTableNames())
+			countFiles(tableName, opt.getFrom(), opt.getTo(), callback);
 	}
 
-	private void countFiles(String tableName, MetadataCallback callback) {
+	private void countFiles(String tableName, Date from, Date to, MetadataCallback callback) {
 		String fileType = tableRegistry.getTableMetadata(tableName, "_filetype");
 		if (fileType == null)
 			fileType = "v2";
 
 		File dir = storage.getTableDirectory(tableName);
-		countFiles(tableName, fileType, dir, callback);
+		countFiles(tableName, fileType, dir, from, to, callback);
 	}
 
-	private void countFiles(String tableName, String type, File dir, MetadataCallback callback) {
+	private void countFiles(String tableName, String type, File dir, Date from, Date to, MetadataCallback callback) {
 		File[] files = dir.listFiles();
 		if (files == null)
 			return;
@@ -114,6 +116,12 @@ public class LogCountMetadataProvider implements MetadataProvider {
 				long count = fileService.count(f);
 				Date day = df.parse(f.getName().substring(0, f.getName().length() - 4), new ParsePosition(0));
 				if (day == null)
+					continue;
+
+				if (from != null && day.before(from))
+					continue;
+
+				if (to != null && day.after(to))
 					continue;
 
 				writeCount(tableName, day, count, callback);

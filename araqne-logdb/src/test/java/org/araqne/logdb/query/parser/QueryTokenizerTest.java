@@ -27,11 +27,24 @@ import org.junit.Test;
 
 public class QueryTokenizerTest {
 	@Test
+	public void testParseSubQuery() {
+		String q = "table iis | join ip [ table users | fields user_id, ip ]";
+		List<String> commands = QueryTokenizer.parseCommands(q);
+		assertEquals(2, commands.size());
+	}
+
+	@Test
+	public void testParseNonSubQuery() {
+		String q = "table iis | search == \"*|[*\"";
+		List<String> commands = QueryTokenizer.parseCommands(q);
+		assertEquals(2, commands.size());
+	}
+
+	@Test
 	public void testParseCommands() {
 		String q = "table limit=1000000 local\\arko-guro | search sip contain \"10.1.\" | stats count by sip";
 		List<String> commands = QueryTokenizer.parseCommands(q);
-		for (String c : commands)
-			System.out.println(c);
+		assertEquals(3, commands.size());
 	}
 
 	@Test
@@ -138,7 +151,6 @@ public class QueryTokenizerTest {
 	@Test
 	public void testQuote() {
 		String s = "table limit=1 iis | rex field=line \"(?<d>\\\\d+-\\\\d+-\\\\d+)\" | eval d2 = date(d, \"yyyy-MM-dd HH:mm:ss\") | fields d, d2";
-		System.out.println(s);
 		List<String> commands = QueryTokenizer.parseCommands(s);
 		System.out.println(commands.get(1));
 	}

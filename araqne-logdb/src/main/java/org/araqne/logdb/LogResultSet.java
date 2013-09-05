@@ -23,5 +23,7 @@ public interface LogResultSet extends Iterator<Map<String, Object>> {
 	
 	void skip(long n);
 	
+	void reset();
+	
 	void close();
 }

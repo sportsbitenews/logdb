@@ -7,7 +7,6 @@
 	<instance component="log-parser-registry" />
 	<instance component="log-parser-factory-registry" />
 	<instance component="log-normalizer-factory-registry" />
-	<instance component="text-file-logger-factory" />
 	<instance component="logapi-logger-plugin" />
 	<instance component="delimiter-parser-factory" />
 	<instance component="regex-parser-factory" />
@@ -23,4 +22,7 @@
 	<instance component="rolling-log-writer-factory" />
 	<instance component="regex-filter-transformer-factory" />
 	<instance component="time-rolling-log-writer-factory" />
+	<instance component="rotation-file-logger-factory" />
+	<instance component="exec-logger-factory" />
+	<instance component="wtmp-logger-factory" />
 </ipojo>

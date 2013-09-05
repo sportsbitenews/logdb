@@ -48,8 +48,10 @@ public class LastPositionHelper {
 						if (line == null || line.trim().isEmpty())
 							break;
 
-						String[] tokens = line.split(" ");
-						lastPositions.put(tokens[0], tokens[1]);
+						int p = line.lastIndexOf(' ');
+						String path = line.substring(0, p);
+						String pos = line.substring(p + 1);
+						lastPositions.put(path, pos);
 					}
 				} finally {
 					ensureClose(is);

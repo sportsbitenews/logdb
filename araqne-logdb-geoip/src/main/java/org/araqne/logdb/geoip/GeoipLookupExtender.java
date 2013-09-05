@@ -53,7 +53,7 @@ public class GeoipLookupExtender implements LookupHandler {
 
 		if (value instanceof String) {
 			try {
-				ip = InetAddress.getByName((String) value);
+				ip = InetAddresses.forString((String) value);
 			} catch (Throwable t) {
 				return null;
 			}
@@ -62,13 +62,14 @@ public class GeoipLookupExtender implements LookupHandler {
 		if (ip == null)
 			return null;
 
+		if (dstField.equals("country"))
+			return geoip.locateCountry(ip);
+
 		GeoIpLocation location = geoip.locate(ip);
 		if (location == null)
 			return null;
 
-		if (dstField.equals("country"))
-			return location.getCountry();
-		else if (dstField.equals("region"))
+		if (dstField.equals("region"))
 			return location.getRegion();
 		else if (dstField.equals("city"))
 			return location.getCity();

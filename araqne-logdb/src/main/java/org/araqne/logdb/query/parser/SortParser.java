@@ -15,8 +15,8 @@
  */
 package org.araqne.logdb.query.parser;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.LogQueryCommand;
@@ -43,34 +43,12 @@ public class SortParser implements LogQueryCommandParser {
 		if (options.containsKey("limit"))
 			count = Integer.parseInt(options.get("limit"));
 
-		ArrayList<SortField> fields = new ArrayList<SortField>();
-
-		int next = r.next;
 		try {
-			while (true) {
-				r = QueryTokenizer.nextString(commandString, r.next, ',');
-				String token = (String) r.value;
-				boolean asc = true;
-				char sign = token.charAt(0);
-				if (sign == '-') {
-					token = token.substring(1);
-					asc = false;
-				} else if (sign == '+') {
-					token = token.substring(1);
-				}
-
-				SortField field = new SortField(token, asc);
-				fields.add(field);
-				next = r.next;
-
-				if (commandString.length() == r.next)
-					break;
-			}
-
+			List<SortField> fields = SortField.parseSortFields(commandString, r);
 			return new Sort(count, fields.toArray(new SortField[0]));
 		} catch (LogQueryParseException e) {
 			if (e.getType().equals("need-string-token"))
-				throw new LogQueryParseException("need-column", next);
+				throw new LogQueryParseException("need-column", r.next);
 			throw e;
 		}
 	}

@@ -71,7 +71,6 @@ public abstract class LogQueryCommand {
 	}
 
 	public void start() {
-		throw new UnsupportedOperationException();
 	}
 
 	public long getPushCount() {
@@ -83,7 +82,7 @@ public abstract class LogQueryCommand {
 	protected final void write(LogMap m) {
 		pushCount++;
 		if (next != null && next.status != Status.End) {
-			if (callbackTimeline) {
+			if (callbackTimeline && logQuery != null) {
 				for (LogTimelineCallback callback : logQuery.getTimelineCallbacks())
 					callback.put((Date) m.get(headerColumn.get("date")));
 			}

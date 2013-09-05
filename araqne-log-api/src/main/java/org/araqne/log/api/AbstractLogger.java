@@ -488,7 +488,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			try {
 				pipe.onLog(this, log);
 			} catch (LoggerStopException e) {
-				this.log.warn("araqne-log-api: stopping logger [" + getFullName() + "] by exception", t);
+				this.log.warn("araqne-log-api: stopping logger [" + getFullName() + "] by exception", e);
 				if (isPassive())
 					stop(false);
 				else {
