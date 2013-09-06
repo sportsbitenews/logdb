@@ -65,6 +65,10 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new In(args));
 		} else if (name.equals("ip")) {
 			exprStack.add(new ToIp(args));
+		} else if (name.equals("network")) {
+			exprStack.add(new Network(args));
+		} else if (name.equals("urldecode")) {
+			exprStack.add(new UrlDecode(args));
 		} else {
 			throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
 		}
