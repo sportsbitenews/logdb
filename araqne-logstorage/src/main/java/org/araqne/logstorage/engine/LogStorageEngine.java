@@ -160,7 +160,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		logFileCheckerThread.start();
 	}
 	
-	void checkFileCallback() {
+	void checkFilePostprocess() {
 		writerSweeperThread = new Thread(writerSweeper, "LogStorage LogWriter Sweeper");
 		writerSweeperThread.start();
 
@@ -994,7 +994,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		listeners.remove(listener);
 	}
 	
-	private class LogFileChecker implements Runnable {
+	private static class LogFileChecker implements Runnable {
 		private final Logger logger = LoggerFactory.getLogger(LogFileChecker.class.getName());
 
 		private LogFileServiceRegistry lfsRegistry;
@@ -1013,13 +1013,13 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			checkLatestLogFiles();
 			
 			// process remaining initializing tasks
-			engine.checkFileCallback();
+			engine.checkFilePostprocess();
 		}
 		
 		private void checkLatestLogFiles() {
 			logger.info("araqne logstorage: verifying all log tables");
 			for (String tableName : tableRegistry.getTableNames()) {
-				File dir = getTableDirectory(tableName);
+				File dir = engine.getTableDirectory(tableName);
 				if (dir == null) {
 					logger.error("araqne logstorage: table [{}] directory not found", tableName);
 					continue;
@@ -1078,7 +1078,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		private void checkAllLogFiles() {
 			logger.info("araqne logstorage: verifying all log tables");
 			for (String tableName : tableRegistry.getTableNames()) {
-				File dir = getTableDirectory(tableName);
+				File dir = engine.getTableDirectory(tableName);
 				if (dir == null) {
 					logger.error("araqne logstorage: table [{}] directory not found", tableName);
 					continue;
