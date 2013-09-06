@@ -74,7 +74,8 @@ public class QueryPrintHelper {
 				queryString = queryString.substring(0, 60) + "...";
 
 			String runMode = q.getRunMode() == RunMode.BACKGROUND ? " (bg)" : "";
-			context.println(String.format("[%d:%s%s%s] %s => %d", q.getId(), loginName, when, runMode, queryString, count));
+			String lastStatus = q.getCommands().get(q.getCommands().size() - 1).getStatus().toString();
+			context.println(String.format("[%d:%s:%s%s%s] %s => %d", q.getId(), lastStatus, loginName, when, runMode, queryString, count));
 		}
 	}
 

@@ -49,7 +49,7 @@ public class LogDiskMetadataProvider implements MetadataProvider {
 
 	@Requires
 	private LogStorage storage;
-	
+
 	@Requires
 	private MetadataService metadataService;
 
@@ -71,16 +71,18 @@ public class LogDiskMetadataProvider implements MetadataProvider {
 
 	@Override
 	public void verify(LogQueryContext context, String queryString) {
+		MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, queryString);
 	}
 
 	@Override
 	public void query(LogQueryContext context, String queryString, MetadataCallback callback) {
-		for (String tableName : MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, queryString))
-			writeLogDiskUsages(tableName, callback);
+		TableScanOption opt = MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, queryString);
+		for (String tableName : opt.getTableNames())
+			writeLogDiskUsages(tableName, opt.getFrom(), opt.getTo(), callback);
 
 	}
 
-	private void writeLogDiskUsages(String tableName, MetadataCallback callback) {
+	private void writeLogDiskUsages(String tableName, Date from, Date to, MetadataCallback callback) {
 		File dir = storage.getTableDirectory(tableName);
 
 		File[] files = dir.listFiles();
@@ -103,6 +105,12 @@ public class LogDiskMetadataProvider implements MetadataProvider {
 			if (day == null)
 				continue;
 
+			if (from != null && day.before(from))
+				continue;
+
+			if (to != null && day.after(to))
+				continue;
+
 			if (lastDay != null && !lastDay.equals(day)) {
 				writeDiskUsageLog(tableName, lastDay, diskUsage, callback);
 				diskUsage = 0;
@@ -112,7 +120,8 @@ public class LogDiskMetadataProvider implements MetadataProvider {
 			lastDay = day;
 		}
 
-		writeDiskUsageLog(tableName, lastDay, diskUsage, callback);
+		if (lastDay != null)
+			writeDiskUsageLog(tableName, lastDay, diskUsage, callback);
 	}
 
 	private void writeDiskUsageLog(String tableName, Date day, long diskUsage, MetadataCallback callback) {

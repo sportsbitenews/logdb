@@ -174,7 +174,11 @@ public class Timechart extends LogQueryCommand {
 
 	@Override
 	public void push(LogMap m) {
-		Date time = TimeUnit.getKey((Date) m.get("_time"), timeSpan);
+		Date time = (Date) m.get("_time");
+		if (time == null)
+			return;
+
+		Date timeSlot = TimeUnit.getKey(time, timeSpan);
 		String keyFieldValue = null;
 		if (keyField != null) {
 			if (m.get(keyField) == null)
@@ -184,7 +188,7 @@ public class Timechart extends LogQueryCommand {
 
 		// bucket is identified by truncated time and key field value. each
 		// bucket has function array.
-		TimechartKey key = new TimechartKey(time, keyFieldValue);
+		TimechartKey key = new TimechartKey(timeSlot, keyFieldValue);
 
 		// find or create flush waiting bucket
 		AggregationFunction[] fs = buffer.get(key);

@@ -52,7 +52,7 @@ public class RollingLogWriterFactory extends AbstractLoggerFactory implements Ru
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "롤링 로그 파일";
-		return "rolling logfile";
+		return "Rolling Log File";
 	}
 
 	@Override

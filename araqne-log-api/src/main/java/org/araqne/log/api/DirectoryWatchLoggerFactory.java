@@ -38,7 +38,7 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "디렉터리 와처";
-		return "Directory watcher";
+		return "Directory Watcher";
 	}
 
 	@Override

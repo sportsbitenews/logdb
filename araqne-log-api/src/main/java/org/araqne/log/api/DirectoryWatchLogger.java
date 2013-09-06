@@ -16,33 +16,26 @@
 package org.araqne.log.api;
 
 import java.io.File;
-import java.text.ParsePosition;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.araqne.log.api.impl.FileUtils;
 import org.araqne.log.api.impl.LastPositionHelper;
 
-public class DirectoryWatchLogger extends AbstractLogger {
+public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DirectoryWatchLogger.class.getName());
 	protected File dataDir;
 	protected String basePath;
 	protected Pattern fileNamePattern;
-	protected Pattern dateExtractPattern;
-	protected String charset;
-	protected SimpleDateFormat dateFormat;
-	private Matcher dateExtractMatcher;
-	private Matcher newlogDsgnMatcher;
-	private Matcher newlogEndDsgnMatcher;
 
-	Map<String, StringBuffer> buffers = new HashMap<String, StringBuffer>();
-	private boolean bmt;
+	private MultilineLogExtractor extractor;
 
 	public DirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
@@ -54,10 +47,12 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		String fileNameRegex = getConfig().get("filename_pattern");
 		fileNamePattern = Pattern.compile(fileNameRegex);
 
+		extractor = new MultilineLogExtractor(this, this);
+
 		// optional
 		String dateExtractRegex = getConfig().get("date_pattern");
 		if (dateExtractRegex != null)
-			dateExtractPattern = Pattern.compile(dateExtractRegex);
+			extractor.setDateMatcher(Pattern.compile(dateExtractRegex).matcher(""));
 
 		// optional
 		String dateLocale = getConfig().get("date_locale");
@@ -67,22 +62,28 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		// optional
 		String dateFormatString = getConfig().get("date_format");
 		if (dateFormatString != null)
-			dateFormat = new SimpleDateFormat(dateFormatString, new Locale(dateLocale));
+			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)));
 
 		// optional
 		String newlogRegex = getConfig().get("newlog_designator");
-		if (newlogRegex != null) {
-			newlogDsgnMatcher = Pattern.compile(newlogRegex).matcher("");
-		}
+		if (newlogRegex != null)
+			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
+
 		String newlogEndRegex = getConfig().get("newlog_end_designator");
-		if (newlogEndRegex != null) {
-			newlogEndDsgnMatcher = Pattern.compile(newlogEndRegex).matcher("");
-		}
+		if (newlogEndRegex != null)
+			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
 
 		// optional
-		charset = getConfig().get("charset");
+		String charset = getConfig().get("charset");
 		if (charset == null)
 			charset = "utf-8";
+
+		extractor.setCharset(charset);
+	}
+
+	@Override
+	public void onLog(Logger logger, Log log) {
+		write(log);
 	}
 
 	@Override
@@ -98,11 +99,11 @@ public class DirectoryWatchLogger extends AbstractLogger {
 	}
 
 	protected void processFile(Map<String, String> lastPositions, String path) {
-		TextFileReader reader = null;
+		FileInputStream is = null;
 
 		try {
 			// get date pattern-matched string from filename
-			String fileDateStr = null;
+			String dateFromFileName = null;
 			Matcher fileNameDateMatcher = fileNamePattern.matcher(path);
 			if (fileNameDateMatcher.find()) {
 				int fileNameGroupCount = fileNameDateMatcher.groupCount();
@@ -111,7 +112,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 					for (int i = 1; i <= fileNameGroupCount; ++i) {
 						sb.append(fileNameDateMatcher.group(i));
 					}
-					fileDateStr = sb.toString();
+					dateFromFileName = sb.toString();
 				}
 			}
 
@@ -122,127 +123,29 @@ public class DirectoryWatchLogger extends AbstractLogger {
 				logger.trace("logpresso igloo: target file [{}] skip offset [{}]", path, offset);
 			}
 
+			AtomicLong lastPosition = new AtomicLong(offset);
+			is = new FileInputStream(new File(path));
+			is.skip(offset);
 
-			reader = new TextFileReader(new File(path), offset, charset, true);
-			
-			// XXX
-			StringBuffer sb = buffers.get(path);
-			if (sb == null) {
-				buffers.put(path, new StringBuffer());
-				sb = buffers.get(path);
-			}
+			extractor.extract(is, lastPosition, dateFromFileName);
 
-			// read and normalize log
-			while (true) {
-				if (getStatus() == LoggerStatus.Stopping || getStatus() == LoggerStatus.Stopped)
-					break;
-
-				String line = reader.readLine();
-				if (line == null)
-					break;
-
-				if (newlogDsgnMatcher != null)
-					newlogDsgnMatcher.reset(line);
-				if (newlogEndDsgnMatcher != null)
-					newlogEndDsgnMatcher.reset(line);
-				if (newlogDsgnMatcher != null || newlogEndDsgnMatcher != null) {
-					if (newlogDsgnMatcher != null && newlogDsgnMatcher.find()) {
-						if (sb != null && sb.length() != 0)
-							writeLog(fileDateStr, sb.toString());
-						//sb = new StringBuffer();
-						// XXX
-						buffers.put(path, new StringBuffer());
-						sb = buffers.get(path);
-
-						sb.append(line);
-						// handle start end desg in same line
-						if (newlogEndDsgnMatcher != null && newlogEndDsgnMatcher.find()) {
-							writeLog(fileDateStr, sb.toString());
-							buffers.remove(path);
-							sb = null;
-						}
-					} else if (sb != null && newlogEndDsgnMatcher != null && newlogEndDsgnMatcher.find()) {
-//					} else {
-//						// append log to prev line
-						sb.append("\n");
-						sb.append(line);
-						writeLog(fileDateStr, sb.toString());
-						buffers.remove(path);
-						sb = null;
-					} else {
-						if (sb == null) {
-							buffers.put(path, new StringBuffer());
-							sb = buffers.get(path);
-						}
-						if (sb.length() != 0)
-							sb.append("\n");
-						sb.append(line);
-					}
-				} else {
-					writeLog(fileDateStr, line);
-				}
-			}
-			if (newlogDsgnMatcher != null) {
-//				if (newlogEndDsgnMatcher == null) {
-//					if (sb != null && sb.length() != 0) {
-//						writeLog(fileDateStr, sb.toString());
-//						buffers.remove(path);
-//						sb = null;
-//					}
-//				} else {
-//					// skip
-//				}
-			}
-			long position = reader.getPosition();
 			logger.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
-					offset, position });
-			lastPositions.put(path, Long.toString(position));
+					offset, lastPosition.get() });
+			lastPositions.put(path, Long.toString(lastPosition.get()));
 		} catch (Throwable e) {
 			logger.error("araqne log api: [" + getName() + "] logger read error", e);
 		} finally {
-			if (reader != null)
-				reader.close();
+			if (is != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+				}
+			}
 		}
-	}
-
-	private void writeLog(String fileDateStr, String mline) {
-		Date d = parseDate(fileDateStr, mline);
-		Map<String, Object> log = new HashMap<String, Object>();
-		log.put("line", mline);
-
-		write(new SimpleLog(d, getFullName(), log));
 	}
 
 	protected File getLastLogFile() {
 		return new File(dataDir, "dirwatch-" + getName() + ".lastlog");
 	}
 
-	protected Date parseDate(String fileDateStr, String line) {
-		if (dateExtractPattern == null || dateFormat == null)
-			return new Date();
-
-		if (dateExtractMatcher == null)
-			dateExtractMatcher = dateExtractPattern.matcher(line);
-		else
-			dateExtractMatcher.reset(line);
-
-		if (!dateExtractMatcher.find())
-			return new Date();
-
-		String s = null;
-		int count = dateExtractMatcher.groupCount();
-		for (int i = 1; i <= count; i++) {
-			if (s == null)
-				s = dateExtractMatcher.group(i);
-			else
-				s += dateExtractMatcher.group(i);
-		}
-
-		if (fileDateStr != null) {
-			s = fileDateStr + s;
-		}
-
-		Date d = dateFormat.parse(s, new ParsePosition(0));
-		return d != null ? d : new Date();
-	}
 }
