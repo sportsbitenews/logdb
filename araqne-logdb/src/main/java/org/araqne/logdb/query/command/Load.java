@@ -43,6 +43,7 @@ public class Load extends LogQueryCommand {
 		} catch (Throwable t) {
 			cancelled = true;
 		} finally {
+			cursor.close();
 			eof(cancelled);
 		}
 	}

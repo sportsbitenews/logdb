@@ -18,6 +18,7 @@ import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigIterator;
 import org.araqne.confdb.ConfigService;
+import org.araqne.confdb.Predicate;
 import org.araqne.confdb.Predicates;
 import org.araqne.logdb.SavedResult;
 import org.araqne.logdb.SavedResultManager;
@@ -54,7 +55,11 @@ public class SavedResultManagerImpl implements SavedResultManager {
 	@Override
 	public List<SavedResult> getResultList(String owner) {
 		ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
-		ConfigIterator it = db.find(SavedResult.class, null);
+		Predicate pred = null;
+		if (owner != null)
+			pred = Predicates.field("owner", owner);
+
+		ConfigIterator it = db.find(SavedResult.class, pred);
 		return new ArrayList<SavedResult>(it.getDocuments(SavedResult.class));
 	}
 

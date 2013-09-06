@@ -29,6 +29,7 @@ import java.util.zip.Deflater;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
+import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
 import org.araqne.logdb.LogQuery;
@@ -262,6 +263,14 @@ public class LogQueryPlugin {
 		resp.putAll(LogQueryHelper.getQuery(query));
 	}
 
+	@MsgbusMethod
+	public void getSavedResults(Request req, Response resp) {
+		org.araqne.logdb.Session dbSession = getDbSession(req);
+
+		List<SavedResult> l = savedResultManager.getResultList(dbSession.getLoginName());
+		resp.put("saved_results", PrimitiveConverter.serialize(l));
+	}
+
 	/**
 	 * @since 1.6.8
 	 */
@@ -293,6 +302,27 @@ public class LogQueryPlugin {
 		} finally {
 			if (rs != null)
 				rs.close();
+		}
+	}
+
+	/**
+	 * @since 1.6.8
+	 */
+	@MsgbusMethod
+	public void deleteResult(Request req, Response resp) {
+		org.araqne.logdb.Session dbSession = getDbSession(req);
+		String guid = req.getString("guid", true);
+		try {
+			SavedResult sr = savedResultManager.getResult(guid);
+			if (sr == null)
+				throw new MsgbusException("logdb", "saved-result-not-found");
+
+			if (!sr.getOwner().equals(dbSession.getLoginName()))
+				throw new MsgbusException("logdb", "no-permission");
+
+			savedResultManager.deleteResult(guid);
+		} catch (IOException e) {
+			throw new MsgbusException("logdb", "io-error");
 		}
 	}
 
