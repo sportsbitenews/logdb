@@ -32,6 +32,7 @@ import org.araqne.logdb.LogQueryScriptFactory;
 import org.araqne.logdb.LogQueryScriptRegistry;
 import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LookupHandlerRegistry;
+import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 
 public class LogDBScript implements Script {
@@ -41,14 +42,16 @@ public class LogDBScript implements Script {
 	private ScriptContext context;
 	private LookupHandlerRegistry lookup;
 	private AccountService accountService;
+	private SavedResultManager savedResultManager;
 
 	public LogDBScript(LogQueryService qs, LogQueryScriptRegistry scriptRegistry, LookupHandlerRegistry lookup,
-			CsvLookupRegistry csvRegistry, AccountService accountService) {
+			CsvLookupRegistry csvRegistry, AccountService accountService, SavedResultManager savedResultManager) {
 		this.qs = qs;
 		this.scriptRegistry = scriptRegistry;
 		this.lookup = lookup;
 		this.csvRegistry = csvRegistry;
 		this.accountService = accountService;
+		this.savedResultManager = savedResultManager;
 	}
 
 	@Override
@@ -94,7 +97,7 @@ public class LogDBScript implements Script {
 
 	@ScriptUsage(description = "open console", arguments = { @ScriptArgument(name = "login name", type = "string", description = "db account name") })
 	public void console(String[] args) {
-		new Console(context, accountService, qs).run(args[0]);
+		new Console(context, accountService, qs, savedResultManager).run(args[0]);
 	}
 
 	public void csvLookups(String[] args) {

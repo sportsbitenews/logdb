@@ -35,8 +35,11 @@ import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCallback;
 import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryService;
+import org.araqne.logdb.LogResultSet;
 import org.araqne.logdb.LogTimelineCallback;
 import org.araqne.logdb.RunMode;
+import org.araqne.logdb.SavedResult;
+import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.impl.LogQueryHelper;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
@@ -67,6 +70,9 @@ public class LogQueryPlugin {
 
 	@Requires
 	private PushApi pushApi;
+
+	@Requires
+	private SavedResultManager savedResultManager;
 
 	@MsgbusMethod
 	public void logs(Request req, Response resp) {
@@ -254,6 +260,40 @@ public class LogQueryPlugin {
 			throw new MsgbusException("logdb", "query-not-found");
 
 		resp.putAll(LogQueryHelper.getQuery(query));
+	}
+
+	/**
+	 * @since 1.6.8
+	 */
+	@MsgbusMethod
+	public void saveResult(Request req, Response resp) {
+		String title = req.getString("title", true);
+		int queryId = req.getInteger("query_id", true);
+		LogQuery query = service.getQuery(queryId);
+		if (query == null)
+			throw new MsgbusException("logdb", "query-not-found");
+
+		LogResultSet rs = null;
+		try {
+			rs = query.getResult();
+			org.araqne.logdb.Session dbSession = getDbSession(req);
+
+			SavedResult sr = new SavedResult();
+			sr.setType("v2");
+			sr.setOwner(dbSession.getLoginName());
+			sr.setQueryString(query.getQueryString());
+			sr.setTitle(title);
+			sr.setIndexPath(rs.getIndexPath().getAbsolutePath());
+			sr.setDataPath(rs.getDataPath().getAbsolutePath());
+
+			savedResultManager.saveResult(sr);
+		} catch (IOException e) {
+			logger.error("araqne logdb: cannot save result of query " + query.getId(), e);
+			throw new MsgbusException("logdb", "io-error");
+		} finally {
+			if (rs != null)
+				rs.close();
+		}
 	}
 
 	private class MsgbusLogQueryCallback implements LogQueryCallback {
