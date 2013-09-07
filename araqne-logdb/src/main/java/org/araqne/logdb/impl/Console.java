@@ -468,6 +468,7 @@ public class Console {
 		LogResultSet rs = null;
 		try {
 			rs = q.getResult();
+			long total = rs.getIndexPath().length() + rs.getDataPath().length();
 
 			SavedResult sr = new SavedResult();
 			sr.setType("v2");
@@ -476,8 +477,9 @@ public class Console {
 			sr.setTitle(title);
 			sr.setIndexPath(rs.getIndexPath().getAbsolutePath());
 			sr.setDataPath(rs.getDataPath().getAbsolutePath());
+			sr.setRowCount(rs.size());
+			sr.setFileSize(total);
 
-			long total = rs.getIndexPath().length() + rs.getDataPath().length();
 			savedResultManager.saveResult(sr);
 			context.println("saved " + total + " bytes");
 		} catch (IOException e) {

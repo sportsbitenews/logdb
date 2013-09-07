@@ -285,6 +285,8 @@ public class LogQueryPlugin {
 		LogResultSet rs = null;
 		try {
 			rs = query.getResult();
+			long total = rs.getIndexPath().length() + rs.getDataPath().length();
+
 			org.araqne.logdb.Session dbSession = getDbSession(req);
 
 			SavedResult sr = new SavedResult();
@@ -294,8 +296,11 @@ public class LogQueryPlugin {
 			sr.setTitle(title);
 			sr.setIndexPath(rs.getIndexPath().getAbsolutePath());
 			sr.setDataPath(rs.getDataPath().getAbsolutePath());
+			sr.setRowCount(rs.size());
+			sr.setFileSize(total);
 
 			savedResultManager.saveResult(sr);
+			resp.put("guid", sr.getGuid());
 		} catch (IOException e) {
 			logger.error("araqne logdb: cannot save result of query " + query.getId(), e);
 			throw new MsgbusException("logdb", "io-error");

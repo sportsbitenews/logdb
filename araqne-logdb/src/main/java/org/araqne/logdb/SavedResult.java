@@ -24,11 +24,17 @@ public class SavedResult {
 	@FieldOption(nullable = false)
 	private String type;
 
-	@FieldOption(nullable = false)
+	@FieldOption(skip = true)
 	private String indexPath;
 
-	@FieldOption(nullable = false)
+	@FieldOption(skip = true)
 	private String dataPath;
+
+	@FieldOption(nullable = false)
+	private long fileSize;
+
+	@FieldOption(nullable = false)
+	private long rowCount;
 
 	@FieldOption(nullable = false)
 	private Date created = new Date();
@@ -87,6 +93,22 @@ public class SavedResult {
 
 	public void setDataPath(String dataPath) {
 		this.dataPath = dataPath;
+	}
+
+	public long getFileSize() {
+		return fileSize;
+	}
+
+	public void setFileSize(long fileSize) {
+		this.fileSize = fileSize;
+	}
+
+	public long getRowCount() {
+		return rowCount;
+	}
+
+	public void setRowCount(long rowCount) {
+		this.rowCount = rowCount;
 	}
 
 	public Date getCreated() {
