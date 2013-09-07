@@ -18,12 +18,14 @@ package org.araqne.logdb.query.command;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.impl.TopSelector;
 import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.araqne.logdb.sort.CloseableIterator;
@@ -35,6 +37,7 @@ public class Sort extends LogQueryCommand {
 	private SortField[] fields;
 	private ParallelMergeSorter sorter;
 	private boolean reverse;
+	private TopSelector<Item> top;
 
 	public Sort(SortField[] fields) {
 		this(null, fields, false);
@@ -57,7 +60,10 @@ public class Sort extends LogQueryCommand {
 	@Override
 	public void init() {
 		super.init();
-		this.sorter = new ParallelMergeSorter(new DefaultComparator());
+		if (limit != null && limit <= 1000)
+			this.top = new TopSelector<Item>(limit, new DefaultComparator());
+		else
+			this.sorter = new ParallelMergeSorter(new DefaultComparator());
 	}
 
 	public Integer getLimit() {
@@ -75,7 +81,10 @@ public class Sort extends LogQueryCommand {
 	@Override
 	public void push(LogMap m) {
 		try {
-			sorter.add(new Item(m.map(), null));
+			if (top != null)
+				top.add(new Item(m.map(), null));
+			else
+				sorter.add(new Item(m.map(), null));
 		} catch (IOException e) {
 			throw new IllegalStateException("sort failed, query " + logQuery, e);
 		}
@@ -90,35 +99,48 @@ public class Sort extends LogQueryCommand {
 	@Override
 	public void eof(boolean canceled) {
 		this.status = Status.Finalizing;
-		// TODO: use LONG instead!
-		int count = limit != null ? limit : Integer.MAX_VALUE;
 
-		CloseableIterator it = null;
-		try {
-			it = sorter.sort();
-
+		if (top != null) {
+			Iterator<Item> it = top.getTopEntries();
 			while (it.hasNext()) {
-				Object o = it.next();
-				if (--count < 0)
-					break;
-
-				Map<String, Object> value = (Map<String, Object>) ((Item) o).getKey();
-				write(new LogMap(value));
+				Item item = it.next();
+				write(new LogMap((Map<String, Object>) item.getKey()));
 			}
 
-		} catch (IOException e) {
-		} finally {
-			// close and delete sorted run file
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
+			// support sorter cache GC when query processing is ended
+			top = null;
+
+		} else {
+			// TODO: use LONG instead!
+			int count = limit != null ? limit : Integer.MAX_VALUE;
+
+			CloseableIterator it = null;
+			try {
+				it = sorter.sort();
+
+				while (it.hasNext()) {
+					Object o = it.next();
+					if (--count < 0)
+						break;
+
+					Map<String, Object> value = (Map<String, Object>) ((Item) o).getKey();
+					write(new LogMap(value));
+				}
+
+			} catch (IOException e) {
+			} finally {
+				// close and delete sorted run file
+				if (it != null) {
+					try {
+						it.close();
+					} catch (IOException e) {
+					}
 				}
 			}
-		}
 
-		// support sorter cache GC when query processing is ended
-		sorter = null;
+			// support sorter cache GC when query processing is ended
+			sorter = null;
+		}
 
 		super.eof(false);
 	}
