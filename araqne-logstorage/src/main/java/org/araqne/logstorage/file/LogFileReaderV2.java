@@ -638,7 +638,7 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogParserBuilder builder,
+	public void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
 			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException {
 		LogParser parser = null;
 		if (builder != null)
@@ -654,26 +654,15 @@ public class LogFileReaderV2 extends LogFileReader {
 			Long fromTime = (from == null) ? null : from.getTime();
 			Long toTime = (to == null) ? null : to.getTime();
 			if ((fromTime == null || data.endDate >= fromTime) && (toTime == null || data.startDate < toTime)) {
-				long matched = readBlock(index, data, fromTime, toTime, minId, maxId, offset, limit, parser, callback);
-				if (matched < offset)
-					offset -= matched;
-				else {
-					matched -= offset;
-					offset = 0;
-					limit -= matched;
-				}
-
-				if (limit == 0)
+				if (!readBlock(index, data, fromTime, toTime, minId, maxId, parser, callback))
 					return;
 			}
 		}
 	}
 	
-	private long readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long minId, long maxId, long offset,
-			long limit,
+	private boolean readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long minId, long maxId, 
 			LogParser parser, LogTraverseCallback callback) throws IOException, InterruptedException {
 		List<Integer> offsets = new ArrayList<Integer>();
-		long matched = 0;
 		boolean suppressBugAlert = false;
 
 		indexFile.seek(index.fp + 4);
@@ -683,6 +672,7 @@ public class LogFileReaderV2 extends LogFileReader {
 			offsets.add(indexBuffer.getInt());
 
 		// reverse order
+		List<Log> logs = new ArrayList<Log>();
 		for (int i = offsets.size() - 1; i >= 0; i--) {
 			long date = getLogRecordDate(data, offsets.get(i));
 			if (from != null && date < from)
@@ -710,18 +700,12 @@ public class LogFileReaderV2 extends LogFileReader {
 				if (log == null)
 					continue;
 				
-				if (offset > matched && callback.isMatch(log, true)) {
-					matched++;
-					continue;
-				}
-
-				if (callback.onLog(log)) {
-					if (++matched == offset + limit)
-						return matched;
-				}				
+				logs.add(log);
 			}
 		}
+		
+		callback.writeLogs(logs);
 
-		return matched;
+		return !callback.isEof();
 	}
 }

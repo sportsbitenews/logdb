@@ -16,45 +16,79 @@
 
 package org.araqne.logstorage;
 
+import java.util.List;
+
 public abstract class LogTraverseCallback {
-	private long processedCnt;
-	private long matchedCnt;
-	
-	public LogTraverseCallback() {
-		this.processedCnt = 0;
-		this.matchedCnt = 0;
-	}
-	
-	public boolean onLog(Log log) {
-		if (!isMatch(log, true))
-			return false;
-		
-		
-		processLog(log);
-		processedCnt++;
-		return true;
-	}
-	
-	public long getProcessedCount() {
-		return processedCnt;
-	}
-	
-	public long getMatchedCount() {
-		return matchedCnt;
-	}
-	
-	public boolean isMatch(Log log, boolean count) {
-		boolean ret = isMatch(log);
-		if (ret && count)
-			matchedCnt++;
-		
-		return ret;
-	}
-	
-	abstract public boolean isMatch(Log log);
-	
+	private final Synchronizer synchronizer;
 	abstract public void interrupt();
 	abstract public boolean isInterrupted();
 	
-	abstract protected void processLog(Log log);
+	public boolean isEof() {
+		return synchronizer.isEof();
+	}
+	
+	public LogTraverseCallback(Synchronizer synchronizer) {
+		this.synchronizer = synchronizer;
+	}
+	
+	public void writeLogs(List<Log> logs) {
+		synchronizer.write(filter(logs));
+	}
+	
+	abstract protected List<Log> filter(List<Log> logs);
+
+	public static abstract class Synchronizer {
+		private final long offset;
+		private final long limit;
+		private long curr;
+		private boolean eof;
+		
+		public Synchronizer(long offset, long limit) {
+			this.offset = offset;
+			this.limit = limit;
+			this.curr = 0;
+			this.eof = false;
+		}
+		
+		public boolean isEof() {
+			return eof;
+		}
+		
+		// returns whether result is end or not
+		public boolean write(List<Log> logs) {
+			if (logs.isEmpty())
+				return !eof;
+			
+			long start = curr;
+			curr += logs.size();
+			
+			if (eof)
+				return false;
+			
+			if (offset > 0 && curr <= offset)
+				return true;
+			
+			int processBegin = 0;
+			int processEnd = logs.size();
+			
+			if (start <= offset) {
+				processBegin = (int)(offset - start);
+			}
+			
+			if (limit > 0 && curr >= offset + limit) {
+				processEnd = (int)(offset + limit - start);
+				eof = true;
+			}
+			
+			if (processBegin == 0 && processEnd == logs.size())
+				processLogs(logs);
+			else
+				processLogs(logs.subList(processBegin, processEnd));
+			
+			return !eof;
+		}
+		
+		protected abstract void processLogs(List<Log> logs);
+	}
+	
 }

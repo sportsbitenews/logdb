@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -328,10 +329,9 @@ public class LogFileReaderV1 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogParserBuilder builder,
+	public void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
 			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException {
 		boolean suppressBugAlert = false;
-		int matched = 0;
 
 		int block = blockHeaders.size() - 1;
 		BlockHeader header = blockHeaders.get(block);
@@ -413,15 +413,10 @@ public class LogFileReaderV1 extends LogFileReader {
 				if (log == null)
 					continue;
 
-				if (offset > matched && callback.isMatch(log, true)) {
-					matched++;
-					continue;
-				}
-				
-				if (callback.onLog(log)) {
-					if (++matched == offset + limit)
-						return;
-				}				
+				// TODO: modify this code to process log chunk
+				callback.writeLogs(Arrays.asList(new Log[] { log }));
+				if (callback.isEof())
+					return;				
 			}
 		}
 	}

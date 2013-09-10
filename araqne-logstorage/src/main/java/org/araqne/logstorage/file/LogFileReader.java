@@ -148,7 +148,7 @@ public abstract class LogFileReader {
 			throws IOException,
 			InterruptedException;
 
-	public abstract void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogParserBuilder builder, LogTraverseCallback callback,
+	public abstract void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback callback,
 			boolean doParallel)
 			throws IOException,
 			InterruptedException;

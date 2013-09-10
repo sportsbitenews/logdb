@@ -43,7 +43,6 @@ public class Table extends LogQueryCommand {
 	private LogParserRegistry parserRegistry;
 
 	private TableParams params = new TableParams();
-	private long found;
 
 	public Table(TableParams params) {
 		this.params = params;
@@ -168,24 +167,16 @@ public class Table extends LogQueryCommand {
 	public void start() {
 		try {
 			status = Status.Running;
+			
+			ResultSynchronizer synchronizer = new ResultSynchronizer(this, params.offset, params.limit);
 
 			for (String tableName : params.tableNames) {
 				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry, tableName);
-				long needed = params.limit - found;
-				if (params.limit != 0 && needed <= 0)
-					break;
 
-				found += storage.search(tableName, params.from, params.to, params.offset, params.limit == 0 ? 0 : needed, 
-						builder, new LogTraverseCallbackImpl());
-				if (params.offset > 0) {
-					if (found > params.offset) {
-						found -= params.offset;
-						params.offset = 0;
-					} else {
-						params.offset -= found;
-						found = 0;
-					}
-				}
+				storage.search(tableName, params.from, params.to,  
+						builder, new LogTraverseCallbackImpl(this, synchronizer));
+				if (synchronizer.isEof())
+					break;
 			}
 		} catch (InterruptedException e) {
 			logger.trace("araqne logdb: query interrupted");
@@ -208,25 +199,43 @@ public class Table extends LogQueryCommand {
 		return false;
 	}
 	
-	private class LogTraverseCallbackImpl extends LogTraverseCallback {
+	private static class ResultSynchronizer extends LogTraverseCallback.Synchronizer {
+		private final Table self;
+
+		public ResultSynchronizer(Table self, long offset, long limit) {
+			super(offset, limit);
+			this.self = self;
+		}
+
 		@Override
-		public boolean isMatch(Log log){
-			return true;
+		protected void processLogs(List<Log> logs) {
+			for (Log log : logs) {
+				self.write(new LogMap(log.getData()));
+			}
 		}
 		
-		@Override
-		protected void processLog(Log log) {
-			write(new LogMap(log.getData()));
+	}
+	
+	private static class LogTraverseCallbackImpl extends LogTraverseCallback {
+		private final Table self;
+		LogTraverseCallbackImpl(Table self, Synchronizer synchronizer) {
+			super(synchronizer);
+			this.self = self;
 		}
 		
 		@Override
 		public void interrupt() {
-			eof(true);
+			self.eof(true);
 		}
 
 		@Override
 		public boolean isInterrupted() {
-			return status.equals(Status.End);
+			return self.status.equals(Status.End);
+		}
+
+		@Override
+		protected List<Log> filter(List<Log> logs) {
+			return logs;
 		}		
 	}
 

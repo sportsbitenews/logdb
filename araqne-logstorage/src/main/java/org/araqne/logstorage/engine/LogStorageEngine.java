@@ -1353,13 +1353,12 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	}
 
 	@Override
-	public long search(String tableName, Date from, Date to, long offset, long limit, LogParserBuilder builder, LogTraverseCallback c)
+	public boolean search(String tableName, Date from, Date to, LogParserBuilder builder, LogTraverseCallback c)
 			throws InterruptedException {
 		verify();
 
 		Collection<Date> days = getLogDates(tableName);
 
-		long found = 0;
 		List<Date> filtered = DateUtil.filt(days, from, to);
 		logger.trace("araqne logstorage: searching {} tablets of table [{}]", filtered.size(), tableName);
 
@@ -1367,27 +1366,15 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			if (logger.isTraceEnabled())
 				logger.trace("araqne logstorage: searching table {}, date={}", tableName, DateUtil.getDayText(day));
 
-			long needed = limit - found;
-			if (limit != 0 && needed <= 0)
+			searchTablet(tableName, day, from, to, -1, -1, builder, c, true);
+			if (c.isEof())
 				break;
-
-			found += searchTablet(tableName, day, from, to, -1, -1, offset, needed, builder, c, true);
-
-			if (offset > 0) {
-				if (found > offset) {
-					found -= offset;
-					offset = 0;
-				} else {
-					offset -= found;
-					found = 0;
-				}
-			}
 		}
 
-		return found;
+		return !c.isEof();
 	}
 
-	private long searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId, long offset, long limit, LogParserBuilder builder, LogTraverseCallback c, boolean doParallel)
+	private boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c, boolean doParallel)
 			throws InterruptedException {
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
@@ -1408,25 +1395,20 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 				if (buffer != null && !buffer.isEmpty()) {
 					logger.trace("araqne logstorage: {} logs in writer buffer.", buffer.size());
+					List<Log> logs = new ArrayList<Log>(buffer.size());
 					ListIterator<Log> li = buffer.listIterator(buffer.size());
+					
 					while (li.hasPrevious()) {
 						Log logData = li.previous();
 						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
 								&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
-							if (offset > 0 && c.isMatch(logData, true)) {
-								offset--;
-								continue;
-							}
-
-							if (c.onLog(logData)) {
-								if (onlineMinId < 0 || logData.getId() < onlineMinId)
-									onlineMinId = logData.getId();
-
-								if (--limit == 0)
-									return c.getMatchedCount();
-							}
+							logs.add(logData);
 						}
 					}
+					c.writeLogs(logs);
+					
+					if (c.isEof())
+						return false;
 				}
 			}
 
@@ -1443,7 +1425,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
 			if (minId < 0 || flushedMaxId < 0 || flushedMaxId >= minId)
-				reader.traverse(from, to, minId, flushedMaxId, offset, limit, builder, c, doParallel);
+				reader.traverse(from, to, minId, flushedMaxId, builder, c, doParallel);
 		} catch (InterruptedException e) {
 			throw e;
 		} catch (Exception e) {
@@ -1453,18 +1435,18 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				reader.close();
 		}
 
-		return c.getMatchedCount();
+		return !c.isEof();
 	}
 
 	@Override
-	public long searchTablet(String tableName, Date day, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c,
+	public boolean searchTablet(String tableName, Date day, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c,
 			boolean doParallel) throws InterruptedException {
-		return searchTablet(tableName, day, null, null, minId, maxId, 0, 0, builder, c, doParallel);
+		return searchTablet(tableName, day, null, null, minId, maxId, builder, c, doParallel);
 	}
 
 	@Override
-	public long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder, LogTraverseCallback c,
+	public boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder, LogTraverseCallback c,
 			boolean doParallel) throws InterruptedException {
-		return searchTablet(tableName, day, from, to, minId, -1, 0, 0, builder, c, doParallel);
+		return searchTablet(tableName, day, from, to, minId, -1, builder, c, doParallel);
 	}
 }
