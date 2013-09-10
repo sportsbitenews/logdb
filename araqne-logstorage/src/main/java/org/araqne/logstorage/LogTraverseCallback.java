@@ -71,7 +71,7 @@ public abstract class LogTraverseCallback {
 			int processBegin = 0;
 			int processEnd = logs.size();
 			
-			if (start <= offset) {
+			if (offset > 0 && start <= offset) {
 				processBegin = (int)(offset - start);
 			}
 			
