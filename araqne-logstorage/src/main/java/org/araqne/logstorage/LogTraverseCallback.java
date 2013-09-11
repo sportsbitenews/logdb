@@ -19,31 +19,31 @@ package org.araqne.logstorage;
 import java.util.List;
 
 public abstract class LogTraverseCallback {
-	private final Synchronizer synchronizer;
+	private final Sink sink;
 	abstract public void interrupt();
 	abstract public boolean isInterrupted();
 	
 	public boolean isEof() {
-		return synchronizer.isEof();
+		return sink.isEof();
 	}
 	
-	public LogTraverseCallback(Synchronizer synchronizer) {
-		this.synchronizer = synchronizer;
+	public LogTraverseCallback(Sink sink) {
+		this.sink = sink;
 	}
 	
 	public void writeLogs(List<Log> logs) {
-		synchronizer.write(filter(logs));
+		sink.write(filter(logs));
 	}
 	
 	abstract protected List<Log> filter(List<Log> logs);
 
-	public static abstract class Synchronizer {
+	public static abstract class Sink {
 		private final long offset;
 		private final long limit;
 		private long curr;
 		private boolean eof;
 		
-		public Synchronizer(long offset, long limit) {
+		public Sink(long offset, long limit) {
 			this.offset = offset;
 			this.limit = limit;
 			this.curr = 0;

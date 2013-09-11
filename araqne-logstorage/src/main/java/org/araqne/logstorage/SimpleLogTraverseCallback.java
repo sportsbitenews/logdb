@@ -3,8 +3,8 @@ package org.araqne.logstorage;
 import java.util.List;
 
 public class SimpleLogTraverseCallback extends LogTraverseCallback {
-	public SimpleLogTraverseCallback(Synchronizer synchronizer) {
-		super(synchronizer);
+	public SimpleLogTraverseCallback(Sink sink) {
+		super(sink);
 	}
 
 	@Override

@@ -168,14 +168,14 @@ public class Table extends LogQueryCommand {
 		try {
 			status = Status.Running;
 			
-			ResultSynchronizer synchronizer = new ResultSynchronizer(this, params.offset, params.limit);
+			ResultSink sink = new ResultSink(this, params.offset, params.limit);
 
 			for (String tableName : params.tableNames) {
 				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry, tableName);
 
 				storage.search(tableName, params.from, params.to,  
-						builder, new LogTraverseCallbackImpl(this, synchronizer));
-				if (synchronizer.isEof())
+						builder, new LogTraverseCallbackImpl(this, sink));
+				if (sink.isEof())
 					break;
 			}
 		} catch (InterruptedException e) {
@@ -199,10 +199,10 @@ public class Table extends LogQueryCommand {
 		return false;
 	}
 	
-	private static class ResultSynchronizer extends LogTraverseCallback.Synchronizer {
+	private static class ResultSink extends LogTraverseCallback.Sink {
 		private final Table self;
 
-		public ResultSynchronizer(Table self, long offset, long limit) {
+		public ResultSink(Table self, long offset, long limit) {
 			super(offset, limit);
 			this.self = self;
 		}
@@ -218,8 +218,8 @@ public class Table extends LogQueryCommand {
 	
 	private static class LogTraverseCallbackImpl extends LogTraverseCallback {
 		private final Table self;
-		LogTraverseCallbackImpl(Table self, Synchronizer synchronizer) {
-			super(synchronizer);
+		LogTraverseCallbackImpl(Table self, Sink sink) {
+			super(sink);
 			this.self = self;
 		}
 		
