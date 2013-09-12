@@ -248,6 +248,16 @@ public class Result extends LogQueryCommand {
 		}
 
 		@Override
+		public File getIndexPath() {
+			return reader.getIndexPath();
+		}
+
+		@Override
+		public File getDataPath() {
+			return reader.getDataPath();
+		}
+
+		@Override
 		public long size() {
 			return count;
 		}

@@ -47,6 +47,7 @@ import org.araqne.logdb.LogQueryStatus;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.RunMode;
+import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
 import org.araqne.logdb.query.parser.DropParser;
@@ -55,6 +56,7 @@ import org.araqne.logdb.query.parser.FieldsParser;
 import org.araqne.logdb.query.parser.ImportParser;
 import org.araqne.logdb.query.parser.JoinParser;
 import org.araqne.logdb.query.parser.JsonParser;
+import org.araqne.logdb.query.parser.LoadParser;
 import org.araqne.logdb.query.parser.LogCheckParser;
 import org.araqne.logdb.query.parser.LogdbParser;
 import org.araqne.logdb.query.parser.LookupParser;
@@ -121,6 +123,9 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 	@Requires
 	private MetadataService metadataService;
 
+	@Requires
+	private SavedResultManager savedResultManager;
+
 	private BundleContext bc;
 	private ConcurrentMap<Integer, LogQuery> queries;
 
@@ -169,6 +174,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 		parsers.add(new JoinParser(queryParserService));
 		parsers.add(new ImportParser(tableRegistry, logStorage));
 		parsers.add(new ParseParser(parserRegistry));
+		parsers.add(new LoadParser(savedResultManager));
 
 		this.queryParsers = parsers;
 	}
