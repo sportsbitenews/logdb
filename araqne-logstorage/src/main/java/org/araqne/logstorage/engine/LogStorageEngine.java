@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -79,7 +81,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	// sweeping and flushing data
 	private WriterSweeper writerSweeper;
 	private Thread writerSweeperThread;
-	
+
 	// checking log files and fixing
 	private LogFileChecker logFileChecker;
 	private Thread logFileCheckerThread;
@@ -100,7 +102,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		writerSweeper = new WriterSweeper(checkInterval, maxIdleTime, flushInterval);
 		callbacks = new CopyOnWriteArraySet<LogCallback>();
 		tableNameCache = new ConcurrentHashMap<String, Integer>();
-		
+
 		logDir = new File(System.getProperty("araqne.data.dir"), "araqne-logstorage/log");
 		logDir = new File(getStringParameter(Constants.LogStorageDirectory, logDir.getAbsolutePath()));
 		logDir.mkdirs();
@@ -159,7 +161,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		logFileCheckerThread = new Thread(logFileChecker, "LogStorage File Checker");
 		logFileCheckerThread.start();
 	}
-	
+
 	void checkFilePostprocess() {
 		writerSweeperThread = new Thread(writerSweeper, "LogStorage LogWriter Sweeper");
 		writerSweeperThread.start();
@@ -173,9 +175,36 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		tableRegistry.addListener(this);
 		lfsRegistry.addListener(this);
 
-		status = LogStorageStatus.Open;		
+		createPidFile();
+
+		status = LogStorageStatus.Open;
+	}
+
+	private File getPidFile() {
+		return new File(System.getProperty("araqne.data.dir"), "araqne-logstorage/run.pid");
 	}
 	
+	private void createPidFile() {
+		try {
+			boolean created = getPidFile().createNewFile();
+			if (created)
+				return;
+			else 
+				throw new IllegalStateException("cannot create pid file");
+		} catch(Exception e) {
+			throw new IllegalStateException("cannot create pid file", e);
+		}
+	}
+
+	private void deletePidFile() {
+		boolean deleted = getPidFile().delete();
+		if (deleted) {
+			logger.info("araqne-logstorage: pid file successfully deleted");
+		} else {
+			logger.warn("araqne-logstorage: pid file couldn't be deleted.");
+		}
+	}
+
 	@Invalidate
 	@Override
 	public void stop() {
@@ -191,7 +220,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		}
 
 		status = LogStorageStatus.Stopping;
-		
+
 		try {
 			if (tableRegistry != null) {
 				tableRegistry.removeListener(this);
@@ -214,7 +243,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			}
 		} catch (InterruptedException e) {
 		}
-		
+
 		// close all writers
 		for (OnlineWriterKey key : onlineWriters.keySet()) {
 			try {
@@ -227,12 +256,13 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		}
 
 		onlineWriters.clear();
-		
+
 		lfsRegistry.removeListener(this);
+		
+		deletePidFile();
 
 		status = LogStorageStatus.Closed;
 	}
-
 
 	@Override
 	public void createTable(String tableName, String type) {
@@ -993,7 +1023,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	public void removeEventListener(LogStorageEventListener listener) {
 		listeners.remove(listener);
 	}
-	
+
 	private static class LogFileChecker implements Runnable {
 		private final Logger logger = LoggerFactory.getLogger(LogFileChecker.class.getName());
 
@@ -1006,16 +1036,16 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			this.lfsRegistry = lfsRegistry;
 			this.tableRegistry = tableRegistry;
 		}
-		
+
 		@Override
 		public void run() {
 			// checkAllLogFiles();
-			checkLatestLogFiles();
-			
+			// checkLatestLogFiles();
+
 			// process remaining initializing tasks
 			engine.checkFilePostprocess();
 		}
-		
+
 		private void checkLatestLogFiles() {
 			logger.info("araqne logstorage: verifying all log tables");
 			for (String tableName : tableRegistry.getTableNames()) {
@@ -1053,7 +1083,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				String datFileName = lastModifiedFile.getName().replace(".idx", ".dat");
 				File indexPath = lastModifiedFile;
 				File dataPath = new File(dir, datFileName);
-				
+
 				String fileType = tableRegistry.getTableMetadata(tableName, "_filetype");
 				LogFileService lfs = lfsRegistry.getLogFileService(fileType);
 				LogFileRepairer repairer = lfs.newRepairer();
@@ -1338,8 +1368,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				logger.warn("exception caught", t);
 			}
 		}
-		
-		for (OnlineWriterKey key: toRemove) {
+
+		for (OnlineWriterKey key : toRemove) {
 			try {
 				OnlineWriter writer = onlineWriters.get(key);
 				writer.close();
@@ -1348,6 +1378,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				logger.warn("exception caught", t);
 			}
 		}
-		
+
 	}
 }
