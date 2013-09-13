@@ -175,34 +175,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		tableRegistry.addListener(this);
 		lfsRegistry.addListener(this);
 
-		createPidFile();
-
 		status = LogStorageStatus.Open;
-	}
-
-	private File getPidFile() {
-		return new File(System.getProperty("araqne.data.dir"), "araqne-logstorage/run.pid");
-	}
-	
-	private void createPidFile() {
-		try {
-			boolean created = getPidFile().createNewFile();
-			if (created)
-				return;
-			else 
-				throw new IllegalStateException("cannot create pid file");
-		} catch(Exception e) {
-			throw new IllegalStateException("cannot create pid file", e);
-		}
-	}
-
-	private void deletePidFile() {
-		boolean deleted = getPidFile().delete();
-		if (deleted) {
-			logger.info("araqne-logstorage: pid file successfully deleted");
-		} else {
-			logger.warn("araqne-logstorage: pid file couldn't be deleted.");
-		}
 	}
 
 	@Invalidate
@@ -259,8 +232,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 		lfsRegistry.removeListener(this);
 		
-		deletePidFile();
-
 		status = LogStorageStatus.Closed;
 	}
 
