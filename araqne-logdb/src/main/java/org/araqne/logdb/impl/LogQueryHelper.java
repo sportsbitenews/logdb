@@ -17,7 +17,6 @@ package org.araqne.logdb.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,9 +43,7 @@ public class LogQueryHelper {
 	}
 
 	public static Map<String, Object> getQuery(LogQuery lq) {
-		Long sec = null;
-		if (lq.getLastStarted() != null)
-			sec = new Date().getTime() - lq.getLastStarted().getTime();
+		Long msec = lq.getElapsedTime();
 
 		List<Object> commands = new ArrayList<Object>();
 
@@ -67,7 +64,7 @@ public class LogQueryHelper {
 		m.put("is_eof", lq.isEof());
 		m.put("is_cancelled", lq.isCancelled());
 		m.put("last_started", lq.getLastStarted());
-		m.put("elapsed", sec);
+		m.put("elapsed", msec);
 		m.put("background", lq.getRunMode() == RunMode.BACKGROUND);
 		m.put("commands", commands);
 

@@ -29,7 +29,7 @@ public interface LogQuery extends Runnable {
 	int getId();
 
 	String getQueryString();
-	
+
 	boolean isEof();
 
 	boolean isEnd();
@@ -41,6 +41,13 @@ public interface LogQuery extends Runnable {
 	void purge();
 
 	Date getLastStarted();
+
+	/**
+	 * elapsed time between start and eof
+	 * 
+	 * @return the elapsed time in milliseconds, or return null if query is not started yet
+	 */
+	Long getElapsedTime();
 
 	/**
 	 * @return current loaded result count or null if query is not started

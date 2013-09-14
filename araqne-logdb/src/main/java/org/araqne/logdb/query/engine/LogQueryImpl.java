@@ -185,6 +185,18 @@ public class LogQueryImpl implements LogQuery {
 	}
 
 	@Override
+	public Long getElapsedTime() {
+		long end = System.currentTimeMillis();
+		if (result != null && result.getEofDate() != null)
+			end = result.getEofDate().getTime();
+
+		if (getLastStarted() != null)
+			return end - getLastStarted().getTime();
+
+		return null;
+	}
+
+	@Override
 	public LogResultSet getResult() throws IOException {
 		if (result != null)
 			return result.getResult();
