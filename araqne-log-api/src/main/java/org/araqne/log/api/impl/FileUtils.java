@@ -39,7 +39,7 @@ public class FileUtils {
 		ArrayList<String> logFiles = new ArrayList<String>();
 		if (files != null) {
 			for (File f : files) {
-				if (fileNamePattern.matcher(f.getName()).matches())
+				if (f.isFile() && fileNamePattern.matcher(f.getName()).matches())
 					logFiles.add(f.getAbsolutePath());
 			}
 		}

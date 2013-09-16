@@ -15,15 +15,20 @@
  */
 package org.araqne.logdb;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.Map;
 
 public interface LogResultSet extends Iterator<Map<String, Object>> {
+	File getIndexPath();
+
+	File getDataPath();
+
 	long size();
-	
+
 	void skip(long n);
-	
+
 	void reset();
-	
+
 	void close();
 }

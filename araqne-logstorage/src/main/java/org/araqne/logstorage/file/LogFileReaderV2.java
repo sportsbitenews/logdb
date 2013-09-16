@@ -145,6 +145,16 @@ public class LogFileReaderV2 extends LogFileReader {
 		}
 	}
 
+	@Override
+	public File getIndexPath() {
+		return indexPath;
+	}
+
+	@Override
+	public File getDataPath() {
+		return dataPath;
+	}
+
 	private int getInt(byte[] extraData) {
 		int value = 0;
 		for (int i = 0; i < 4; i++) {

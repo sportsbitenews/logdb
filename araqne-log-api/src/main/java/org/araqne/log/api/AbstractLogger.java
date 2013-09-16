@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -37,8 +38,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private String factoryName;
 	private String description;
 	private boolean isPassive;
-	private volatile LogPipe[] pipes;
-	private Object updateLock = new Object();
+	private CopyOnWriteArraySet<LogPipe> pipes;
 	private Thread t;
 	private int interval;
 	private Map<String, String> config;
@@ -48,6 +48,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private volatile boolean stopped = true;
 	private volatile boolean pending = false;
 	private volatile boolean manualStart = false;
+	private volatile boolean stopCallbacked = false;
 
 	private volatile Date lastStartDate;
 	private volatile Date lastRunDate;
@@ -122,7 +123,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		this.logCounter = new AtomicLong(logCount);
 		this.dropCounter = new AtomicLong(0);
 		this.lastLogDate = lastLogDate;
-		this.pipes = new LogPipe[0];
+		this.pipes = new CopyOnWriteArraySet<LogPipe>();
 
 		this.eventListeners = Collections.newSetFromMap(new ConcurrentHashMap<LoggerEventListener, Boolean>());
 	}
@@ -270,8 +271,6 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		status = LoggerStatus.Starting;
 		this.interval = interval;
 
-		onStart();
-
 		if (getExecutor() == null) {
 			t = new Thread(this, "Logger [" + fullName + "]");
 			t.start();
@@ -294,6 +293,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	private void invokeStartCallback() {
+		stopCallbacked = false;
+
 		onStart();
 
 		lastStartDate = new Date();
@@ -376,6 +377,11 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	 * called in explicit stop() call context
 	 */
 	private void invokeStopCallback() {
+		if (stopCallbacked)
+			return;
+
+		stopCallbacked = true;
+
 		try {
 			onStop();
 		} catch (Exception e) {
@@ -429,9 +435,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 				doStop = false;
 
 				try {
-					onStop();
+					invokeStopCallback();
 				} catch (Exception e) {
-					log.warn("krane log api: [" + fullName + "] stop callback should not throw any exception", e);
+					log.warn("araqne log api: [" + fullName + "] stop callback should not throw any exception", e);
 				}
 			}
 		} else {
@@ -483,8 +489,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		}
 
 		// notify all
-		LogPipe[] capturedPipes = pipes;
-		for (LogPipe pipe : capturedPipes) {
+		for (LogPipe pipe : pipes) {
 			try {
 				pipe.onLog(this, log);
 			} catch (LoggerStopException e) {
@@ -542,27 +547,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		if (pipe == null)
 			throw new IllegalArgumentException("pipe should be not null");
 
-		// read-copy-update
-		synchronized (updateLock) {
-			// check if already exists
-			boolean found = false;
-			for (int i = 0; i < pipes.length; i++)
-				if (pipes[i] == pipe)
-					found = true;
-
-			if (found)
-				return;
-
-			// copy old items
-			LogPipe[] newPipes = new LogPipe[pipes.length + 1];
-			for (int i = 0; i < pipes.length; i++)
-				newPipes[i] = pipes[i];
-
-			// add new item
-			newPipes[pipes.length] = pipe;
-
-			pipes = newPipes;
-		}
+		pipes.add(pipe);
 	}
 
 	@Override
@@ -570,28 +555,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		if (pipe == null)
 			throw new IllegalArgumentException("pipe should be not null");
 
-		// read-copy-update
-		synchronized (updateLock) {
-			// check if exists
-			boolean found = false;
-			for (int i = 0; i < pipes.length; i++)
-				if (pipes[i] == pipe)
-					found = true;
-
-			if (!found)
-				return;
-
-			LogPipe[] newPipes = new LogPipe[pipes.length - 1];
-			int j = 0;
-			for (int i = 0; i < pipes.length; i++) {
-				if (pipes[i] == pipe)
-					continue;
-
-				newPipes[j++] = pipes[i];
-			}
-
-			pipes = newPipes;
-		}
+		pipes.remove(pipe);
 	}
 
 	@Override

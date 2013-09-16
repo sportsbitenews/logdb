@@ -162,5 +162,15 @@ public abstract class LogFileReader {
 	 */
 	public abstract LogBlockCursor getBlockCursor() throws IOException;
 
+	/**
+	 * @since 2.2.4
+	 */
+	public abstract File getIndexPath();
+
+	/**
+	 * @since 2.2.4
+	 */
+	public abstract File getDataPath();
+
 	public abstract void close();
 }

@@ -38,6 +38,8 @@ public class LogFileReaderV1 extends LogFileReader {
 	private Logger logger = LoggerFactory.getLogger(LogFileReaderV1.class);
 	private static final int INDEX_ITEM_SIZE = 16;
 
+	private File indexPath;
+	private File dataPath;
 	private BufferedRandomAccessFileReader indexFile;
 	private BufferedRandomAccessFileReader dataFile;
 
@@ -46,6 +48,8 @@ public class LogFileReaderV1 extends LogFileReader {
 
 	public LogFileReaderV1(String tableName, File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
 		this.tableName = tableName;
+		this.indexPath = indexPath;
+		this.dataPath = dataPath;
 		this.indexFile = new BufferedRandomAccessFileReader(indexPath);
 		LogFileHeader indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
 		if (indexFileHeader.version() != 1)
@@ -70,6 +74,16 @@ public class LogFileReaderV1 extends LogFileReader {
 		LogFileHeader dataFileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
 		if (dataFileHeader.version() != 1)
 			throw new InvalidLogFileHeaderException("version not match");
+	}
+
+	@Override
+	public File getIndexPath() {
+		return indexPath;
+	}
+
+	@Override
+	public File getDataPath() {
+		return dataPath;
 	}
 
 	@Override
@@ -118,7 +132,6 @@ public class LogFileReaderV1 extends LogFileReader {
 		return ret;
 	}
 
-
 	@Override
 	public void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException {
 		traverse(0, limit, callback);
@@ -139,14 +152,16 @@ public class LogFileReaderV1 extends LogFileReader {
 			InterruptedException {
 		traverse(from, to, -1, offset, limit, callback);
 	}
-	
+
 	@Override
-	public void traverse(Date from, Date to, long minId, long offset, long limit, LogMatchCallback callback) throws IOException, InterruptedException {
+	public void traverse(Date from, Date to, long minId, long offset, long limit, LogMatchCallback callback) throws IOException,
+			InterruptedException {
 		traverse(from, to, minId, -1, offset, limit, callback, false);
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback, boolean doParallel) throws IOException,
+	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback, boolean doParallel)
+			throws IOException,
 			InterruptedException {
 		int matched = 0;
 

@@ -57,6 +57,7 @@ public class Result extends LogQueryCommand {
 	private volatile boolean purged;
 
 	private volatile boolean eofCalled;
+	private volatile Date eofDate;
 
 	public Result() throws IOException {
 		this("");
@@ -70,6 +71,10 @@ public class Result extends LogQueryCommand {
 		indexPath = File.createTempFile("result-" + tag, ".idx", BASE_DIR);
 		dataPath = File.createTempFile("result-" + tag, ".dat", BASE_DIR);
 		writer = new LogFileWriterV2(indexPath, dataPath, 1024 * 1024, 1);
+	}
+
+	public Date getEofDate() {
+		return eofDate;
 	}
 
 	public long getCount() {
@@ -218,6 +223,8 @@ public class Result extends LogQueryCommand {
 		} catch (IOException e) {
 		}
 
+		eofDate = new Date();
+
 		super.eof(canceled);
 		for (LogQueryCallback callback : callbacks)
 			callback.onEof(canceled);
@@ -245,6 +252,16 @@ public class Result extends LogQueryCommand {
 			this.reader = reader;
 			this.cursor = reader.getCursor(true);
 			this.count = count;
+		}
+
+		@Override
+		public File getIndexPath() {
+			return reader.getIndexPath();
+		}
+
+		@Override
+		public File getDataPath() {
+			return reader.getDataPath();
 		}
 
 		@Override

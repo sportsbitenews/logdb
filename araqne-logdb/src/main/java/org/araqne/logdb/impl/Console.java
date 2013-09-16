@@ -30,6 +30,8 @@ import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LogResultSet;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.RunMode;
+import org.araqne.logdb.SavedResult;
+import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,12 +41,14 @@ public class Console {
 	private ScriptContext context;
 	private LogQueryService queryService;
 	private AccountService accountService;
+	private SavedResultManager savedResultManager;
 	private Session session;
 
-	public Console(ScriptContext context, AccountService accountService, LogQueryService queryService) {
+	public Console(ScriptContext context, AccountService accountService, LogQueryService queryService, SavedResultManager savedResultManager) {
 		this.context = context;
 		this.accountService = accountService;
 		this.queryService = queryService;
+		this.savedResultManager = savedResultManager;
 	}
 
 	private String getPrompt(Session session) {
@@ -170,6 +174,11 @@ public class Console {
 					context.println("Usage: fg [query id]");
 				else
 					setRunMode(false, args[1]);
+			} else if (command.equals("save")) {
+				if (args.length < 3)
+					context.println("Usage: save [query id] [title]");
+				else
+					save(args[1], args[2]);
 			} else {
 				context.println("invalid syntax");
 			}
@@ -445,5 +454,40 @@ public class Console {
 		LogQuery q = queryService.getQuery(id);
 		q.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, new LogQueryContext(session));
 		context.println(background ? "run as a background task" : "run in the foreground");
+	}
+
+	private void save(String queryId, String title) {
+		int id = Integer.valueOf(queryId);
+
+		LogQuery q = queryService.getQuery(id);
+		if (q == null) {
+			context.println("query not found");
+			return;
+		}
+
+		LogResultSet rs = null;
+		try {
+			rs = q.getResult();
+			long total = rs.getIndexPath().length() + rs.getDataPath().length();
+
+			SavedResult sr = new SavedResult();
+			sr.setType("v2");
+			sr.setOwner(session.getLoginName());
+			sr.setQueryString(q.getQueryString());
+			sr.setTitle(title);
+			sr.setIndexPath(rs.getIndexPath().getAbsolutePath());
+			sr.setDataPath(rs.getDataPath().getAbsolutePath());
+			sr.setRowCount(rs.size());
+			sr.setFileSize(total);
+
+			savedResultManager.saveResult(sr);
+			context.println("saved " + total + " bytes");
+		} catch (IOException e) {
+			logger.error("araqne logdb: cannot save result", e);
+			context.println("save failed: " + e.getMessage());
+		} finally {
+			if (rs != null)
+				rs.close();
+		}
 	}
 }
