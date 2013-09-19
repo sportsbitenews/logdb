@@ -53,6 +53,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private volatile Date lastStartDate;
 	private volatile Date lastRunDate;
 	private volatile Date lastLogDate;
+	private volatile Log lastLog;
 	private AtomicLong logCounter;
 	private AtomicLong dropCounter;
 
@@ -191,6 +192,11 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public Date getLastLogDate() {
 		return lastLogDate;
+	}
+
+	@Override
+	public Log getLastLog() {
+		return lastLog;
 	}
 
 	@Override
@@ -476,6 +482,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		// update last log date
 		lastLogDate = log.getDate();
+		lastLog = log;
 		logCounter.incrementAndGet();
 
 		// transform

@@ -69,6 +69,30 @@ public class LogApiScript implements Script {
 		this.context = context;
 	}
 
+	/**
+	 * @since 2.6.0
+	 */
+	@ScriptUsage(description = "print last log of loggers", arguments = {
+			@ScriptArgument(name = "name filter", type = "string", description = "name filter", optional = true) })
+	public void lastLogs(String[] args) {
+		String filter = null;
+		if (args.length > 0)
+			filter = args[0];
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			if (logger.getLastLog() == null)
+				continue;
+
+			if (filter != null && !logger.getFullName().contains(filter))
+				continue;
+
+			context.println("----");
+			context.println("Logger [" + logger.getFullName() + "] Last Timestamp [" + df.format(logger.getLastLogDate()) + "]");
+			context.println(logger.getLastLog().getParams());
+		}
+	}
+
 	public void parsers(String[] args) {
 		context.println("Log Parser Profiles");
 		context.println("---------------------");
