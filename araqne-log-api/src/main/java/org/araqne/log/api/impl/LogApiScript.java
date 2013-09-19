@@ -147,10 +147,13 @@ public class LogApiScript implements Script {
 	})
 	public void transformers(String[] args) {
 		String filter = null;
-		if (args.length > 0)
+		String filtered = "";
+		if (args.length > 0) {
 			filter = args[0];
+			filtered = " (filtered)";
+		}
 
-		context.println("Log Transformer Profiles");
+		context.println("Log Transformer Profiles" + filtered);
 		context.println("--------------------------");
 		List<LogTransformerProfile> profiles = transformerRegistry.getProfiles();
 		Collections.sort(profiles);
@@ -280,31 +283,35 @@ public class LogApiScript implements Script {
 	}
 
 	public void loggerFactories(String[] args) {
-		context.println("Logger Factories");
-		context.println("---------------------");
-
 		ScriptOptionParser sop = new ScriptOptionParser(args);
 		ScriptOption verbOpt = sop.getOption("v", "verbose", false);
 		List<String> argl = sop.getArguments();
 
+		String filtered = "";
+		if (!argl.isEmpty())
+			filtered = " (filtered)";
+
+		context.println("Logger Factories" + filtered);
+		context.println("---------------------");
+
 		Collection<LoggerFactory> loggerFactories = loggerFactoryRegistry.getLoggerFactories();
-		List<LoggerFactoryListItem> filtered = new ArrayList<LoggerFactoryListItem>(loggerFactories.size());
+		List<LoggerFactoryListItem> filteredList = new ArrayList<LoggerFactoryListItem>(loggerFactories.size());
 		for (LoggerFactory loggerFactory : loggerFactories) {
 			if (argl.isEmpty())
-				filtered.add(new LoggerFactoryListItem(loggerFactory));
+				filteredList.add(new LoggerFactoryListItem(loggerFactory));
 			else if (containsTokens(loggerFactory.getFullName(), argl))
-				filtered.add(new LoggerFactoryListItem(loggerFactory));
+				filteredList.add(new LoggerFactoryListItem(loggerFactory));
 		}
 
-		Collections.sort(filtered);
+		Collections.sort(filteredList);
 
 		if (verbOpt != null) {
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered, Arrays.asList("fullName", "displayName",
+					new CollectionASCIITableAware<LoggerFactoryListItem>(filteredList, Arrays.asList("fullName", "displayName",
 							"description"), Arrays.asList("l!factory name", "l!display name", "l!description"))));
 		} else {
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerFactoryListItem>(filtered, Arrays.asList("fullName", "displayName"), Arrays
+					new CollectionASCIITableAware<LoggerFactoryListItem>(filteredList, Arrays.asList("fullName", "displayName"), Arrays
 							.asList("l!factory name", "l!display name"))));
 		}
 	}
@@ -372,20 +379,23 @@ public class LogApiScript implements Script {
 	}
 
 	public void loggers(String[] args) {
-		context.println("Loggers");
-		context.println("----------------------");
-
 		ScriptOptionParser sop = new ScriptOptionParser(args);
 		ScriptOption verbOpt = sop.getOption("v", "verbose", false);
 		ScriptOption fullVerbOpt = sop.getOption("V", "full-verbose", false);
 		ScriptOption factFilter = sop.getOption("f", "factory", true);
 
 		List<String> argl = sop.getArguments();
+		String filtered = "";
+		if (!argl.isEmpty())
+			filtered = " (filtered)";
 
-		List<LoggerListItem> filtered = new ArrayList<LoggerListItem>(loggerRegistry.getLoggers().size());
+		context.println("Loggers" + filtered);
+		context.println("----------------------");
+
+		List<LoggerListItem> filteredList = new ArrayList<LoggerListItem>(loggerRegistry.getLoggers().size());
 		for (Logger logger : loggerRegistry.getLoggers()) {
 			if (argl.size() == 0 && factFilter == null)
-				filtered.add(new LoggerListItem(logger));
+				filteredList.add(new LoggerListItem(logger));
 			else {
 				boolean matches = true;
 				if (argl.size() > 0 && !containsTokens(logger.getFullName(), argl))
@@ -393,29 +403,29 @@ public class LogApiScript implements Script {
 				if (factFilter != null && !containsTokens(logger.getFactoryFullName(), factFilter.values))
 					matches = false;
 				if (matches)
-					filtered.add(new LoggerListItem(logger));
+					filteredList.add(new LoggerListItem(logger));
 			}
 		}
 
-		if (filtered.isEmpty())
+		if (filteredList.isEmpty())
 			return;
 
-		Collections.sort(filtered);
+		Collections.sort(filteredList);
 
 		if (fullVerbOpt != null) {
-			for (LoggerListItem logger : filtered) {
+			for (LoggerListItem logger : filteredList) {
 				context.println(logger.toString());
 			}
 		} else if (verbOpt != null)
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerListItem>(filtered, new PropertyColumn("fullName", "l!name"),
+					new CollectionASCIITableAware<LoggerListItem>(filteredList, new PropertyColumn("fullName", "l!name"),
 							new PropertyColumn("factoryFullName", "l!factory"), new PropertyColumn("status", "l!status"),
 							new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
 							new PropertyColumn("dropCount", "drop"), new PropertyColumn("lastStartDate", "l!last start"),
 							new PropertyColumn("lastRunDate", "l!last run"), new PropertyColumn("lastLogDate", "l!last log"))));
 		else
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerListItem>(filtered, new PropertyColumn("fullName", "l!name"),
+					new CollectionASCIITableAware<LoggerListItem>(filteredList, new PropertyColumn("fullName", "l!name"),
 							new PropertyColumn("factoryName", "l!factory"), new PropertyColumn("status", "l!status"),
 							new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
 							new PropertyColumn("lastLogDate", "l!last log"))));
@@ -472,29 +482,62 @@ public class LogApiScript implements Script {
 		context.println();
 	}
 
+	@ScriptUsage(description = "print log parser factories", arguments = {
+			@ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
 	public void parserFactories(String[] args) {
-		context.println("Log Parser Factories");
+		String filter = null;
+		String filtered = "";
+		if (args.length > 0) {
+			filter = args[0];
+			filtered = " (filtered)";
+		}
+
+		context.println("Log Parser Factories" + filtered);
 		context.println("----------------------");
 
 		for (String name : parserFactoryRegistry.getNames()) {
+			if (filter != null && !name.contains(filter))
+				continue;
 			context.println(name);
 		}
 	}
 
+	@ScriptUsage(description = "print log normalizer factories", arguments = {
+			@ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
 	public void normalizerFactories(String[] args) {
-		context.println("Log Normalizers");
+		String filter = null;
+		String filtered = "";
+		if (args.length > 0) {
+			filter = args[0];
+			filtered = " (filtered)";
+		}
+
+		context.println("Log Normalizers" + filtered);
 		context.println("---------------------");
 
 		for (String name : normalizerFactoryRegistry.getNames()) {
+			if (filter != null && !name.contains(filter))
+				continue;
 			context.println(name);
 		}
 	}
 
+	@ScriptUsage(description = "print log transformer factories", arguments = {
+			@ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
 	public void transformerFactories(String[] args) {
-		context.println("Log Transformer Factories");
+		String filter = null;
+		String filtered = "";
+		if (args.length > 0) {
+			filter = args[0];
+			filtered = " (filtered)";
+		}
+
+		context.println("Log Transformer Factories" + filtered);
 		context.println("---------------------------");
 
 		for (LogTransformerFactory f : transformerFactoryRegistry.getFactories()) {
+			if (filter != null && !f.getName().contains(filter))
+				continue;
 			context.println(f.getName() + ": " + f);
 		}
 	}
