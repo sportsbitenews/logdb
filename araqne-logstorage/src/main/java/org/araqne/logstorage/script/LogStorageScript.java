@@ -279,10 +279,12 @@ public class LogStorageScript implements Script {
 
 	public void open(String[] args) {
 		storage.start();
+		context.println("opened");
 	}
 
 	public void close(String[] args) {
 		storage.stop();
+		context.println("closed");
 	}
 
 	public void reload(String[] args) {
