@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 
 /**
  * Log Parser for Palo Alto Networks PA Series
@@ -28,7 +28,7 @@ import org.araqne.log.api.LogParser;
  * @author xeraph
  * 
  */
-public class PaloAltoLogParser implements LogParser {
+public class PaloAltoLogParser extends V1LogParser {
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {

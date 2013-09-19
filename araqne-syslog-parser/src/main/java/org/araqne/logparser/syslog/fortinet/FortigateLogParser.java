@@ -17,12 +17,12 @@ package org.araqne.logparser.syslog.fortinet;
 
 import java.util.Map;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 import org.araqne.util.QuotedKeyValueParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FortigateLogParser implements LogParser {
+public class FortigateLogParser extends V1LogParser {
 	private Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	@SuppressWarnings("unchecked")

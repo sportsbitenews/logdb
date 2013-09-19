@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 NCHOVY
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,11 @@
  */
 package org.araqne.log.api;
 
-import java.util.Map;
+/**
+ * @since 2.6.0
+ * @author xeraph
+ *
+ */
+public abstract class AbstractLogTransformer implements LogTransformer {
 
-public interface LogParser {
-	int getVersion();
-
-	Map<String, Object> parse(Map<String, Object> params);
-
-	LogParserOutput parse(LogParserInput input);
 }

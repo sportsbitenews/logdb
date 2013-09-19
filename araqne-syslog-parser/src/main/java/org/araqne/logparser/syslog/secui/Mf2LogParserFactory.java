@@ -15,7 +15,6 @@
  */
 package org.araqne.logparser.syslog.secui;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
@@ -23,9 +22,8 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
-import org.araqne.log.api.LogParserFactory;
-import org.araqne.log.api.LoggerConfigOption;
 
 /**
  * @since 1.9.2
@@ -34,7 +32,7 @@ import org.araqne.log.api.LoggerConfigOption;
  */
 @Component(name = "mf2-log-parser-factory")
 @Provides
-public class Mf2LogParserFactory implements LogParserFactory {
+public class Mf2LogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
@@ -43,27 +41,26 @@ public class Mf2LogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "MF2";
-	}
-
-	@Override
-	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
-	}
-
-	@Override
-	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "시큐아이 MF2";
 		return "SECUI MF2";
 	}
 
 	@Override
-	public Collection<LoggerConfigOption> getConfigOptions() {
-		return new ArrayList<LoggerConfigOption>();
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+	}
+
+	@Override
+	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "시큐아이 MF2 방화벽 로그를 파싱합니다.";
+		return "SECUI MF2";
 	}
 
 	@Override

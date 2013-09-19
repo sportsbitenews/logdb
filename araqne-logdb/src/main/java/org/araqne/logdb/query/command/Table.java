@@ -23,6 +23,8 @@ import java.util.Map;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
+import org.araqne.log.api.LogParserInput;
+import org.araqne.log.api.LogParserOutput;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.logdb.LogMap;
@@ -154,8 +156,13 @@ public class Table extends LogQueryCommand {
 				if (params.limit != 0 && needed <= 0)
 					break;
 
-				found += storage.search(tableName, params.from, params.to, params.offset, params.limit == 0 ? 0 : needed,
-						new LogSearchCallbackImpl(parser));
+				LogSearchCallback searchCallback = null;
+				if (parser != null && parser.getVersion() == 2)
+					searchCallback = new LogSearchCallbackV2(parser);
+				else
+					searchCallback = new LogSearchCallbackV1(parser);
+
+				found += storage.search(tableName, params.from, params.to, params.offset, params.limit == 0 ? 0 : needed, searchCallback);
 				if (params.offset > 0) {
 					if (found > params.offset) {
 						found -= params.offset;
@@ -187,11 +194,11 @@ public class Table extends LogQueryCommand {
 		return false;
 	}
 
-	private class LogSearchCallbackImpl implements LogSearchCallback {
+	private class LogSearchCallbackV1 implements LogSearchCallback {
 		private boolean suppressBugAlert = false;
 		private LogParser parser;
 
-		public LogSearchCallbackImpl(LogParser parser) {
+		public LogSearchCallbackV1(LogParser parser) {
 			this.parser = parser;
 		}
 
@@ -246,6 +253,71 @@ public class Table extends LogQueryCommand {
 			}
 
 			write(new LogMap(m));
+		}
+
+		@Override
+		public void interrupt() {
+			eof(true);
+		}
+
+		@Override
+		public boolean isInterrupted() {
+			return status.equals(Status.End);
+		}
+	}
+
+	private class LogSearchCallbackV2 implements LogSearchCallback {
+		private boolean suppressBugAlert = false;
+		private final LogParser parser;
+		private final LogParserInput input = new LogParserInput();
+
+		public LogSearchCallbackV2(LogParser parser) {
+			this.parser = parser;
+		}
+
+		@Override
+		public void onLog(Log log) {
+			input.setDate(log.getDate());
+			input.setSource(log.getTableName());
+			input.setData(log.getData());
+
+			try {
+				LogParserOutput output = parser.parse(input);
+				if (output != null) {
+					for (Map<String, Object> row : output.getRows()) {
+						row.put("_table", log.getTableName());
+						row.put("_id", log.getId());
+
+						Object time = row.get("_time");
+						if (time == null)
+							row.put("_time", log.getDate());
+						else if (!(time instanceof Date)) {
+							logger.error("araqne logdb: parser returned wrong _time type: " + time.getClass().getName());
+							eof(true);
+						}
+
+						write(new LogMap(row));
+					}
+
+				} else {
+					logger.debug("araqne logdb: cannot parse log [{}]", log.getData());
+					return;
+				}
+			} catch (Throwable t) {
+				if (!suppressBugAlert) {
+					logger.error(
+							"araqne logdb: PARSER BUG! original log => table " + log.getTableName() + ", id " + log.getId()
+									+ ", data " + log.getData(), t);
+					suppressBugAlert = true;
+				}
+
+				// NOTE: log can be unmodifiableMap when it comes from memory buffer.
+				HashMap<String, Object> row = new HashMap<String, Object>(log.getData());
+				row.put("_table", log.getTableName());
+				row.put("_id", log.getId());
+				row.put("_time", log.getDate());
+				write(new LogMap(row));
+			}
 		}
 
 		@Override

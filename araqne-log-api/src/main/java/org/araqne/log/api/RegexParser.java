@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RegexParser implements LogParser {
+public class RegexParser extends V1LogParser {
 	private final String field;
 	private final Pattern p;
 	private final String[] names;

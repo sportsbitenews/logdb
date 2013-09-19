@@ -29,7 +29,7 @@ import org.apache.felix.ipojo.annotations.Requires;
 
 @Component(name = "chain-parser-factory")
 @Provides
-public class ChainParserFactory implements LogParserFactory {
+public class ChainParserFactory extends AbstractLogParserFactory {
 
 	@Requires
 	private LogParserRegistry parserRegistry;

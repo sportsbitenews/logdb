@@ -15,19 +15,31 @@
  */
 package org.araqne.log.api;
 
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Locale;
 
-public class TagParser extends V1LogParser {
-	private final Map<String, String> tags;
+/**
+ * @since 2.6.0
+ * @author xeraph
+ * 
+ */
+public abstract class AbstractLogNormalizerFactory implements LogNormalizerFactory {
 
-	public TagParser(Map<String, String> tags) {
-		this.tags = tags;
+	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH);
 	}
 
 	@Override
-	public Map<String, Object> parse(Map<String, Object> params) {
-		params.putAll(tags);
-		return params;
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH);
+	}
+
+	@Override
+	public Collection<LoggerConfigOption> getConfigOptions() {
+		return new ArrayList<LoggerConfigOption>();
 	}
 
 }

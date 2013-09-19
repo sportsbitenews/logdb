@@ -15,7 +15,6 @@
  */
 package org.araqne.logparser.syslog.juniper;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
@@ -23,13 +22,12 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
-import org.araqne.log.api.LogParserFactory;
-import org.araqne.log.api.LoggerConfigOption;
 
 @Component(name = "srx-log-parser-factory")
 @Provides
-public class SrxLogParserFactory implements LogParserFactory {
+public class SrxLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
@@ -38,27 +36,26 @@ public class SrxLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "SRX 서비스 게이트웨이";
 		return "SRX Series Service Gateway";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "주니퍼 SRX 시리즈 서비스 게이트웨이 로그를 파싱합니다.";
 		return "Juniper SRX Series Service Gateway";
-	}
-
-	@Override
-	public Collection<LoggerConfigOption> getConfigOptions() {
-		return new ArrayList<LoggerConfigOption>();
 	}
 
 	@Override

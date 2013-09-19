@@ -22,9 +22,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.DelimiterParser;
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 
-public class NxgLogParser implements LogParser {
+public class NxgLogParser extends V1LogParser {
 
 	private DelimiterParser p = new DelimiterParser(",", null);
 

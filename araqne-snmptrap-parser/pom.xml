@@ -8,7 +8,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-snmptrap-parser</artifactId>
-	<version>1.1.0</version>
+	<version>1.1.1</version>
 	<packaging>bundle</packaging>
 	<name>Araqne SNMP Trap Parser</name>
 	<build>
@@ -26,7 +26,7 @@
 						</Export-Package>
 						<Import-Package>
 							!org.junit,
-							org.araqne.log.api;version="2.0.0",
+							org.araqne.log.api;version="2.6.0",
 							*
 						</Import-Package>
 					</instructions>
@@ -58,7 +58,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>2.5.3</version>
+			<version>2.6.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>

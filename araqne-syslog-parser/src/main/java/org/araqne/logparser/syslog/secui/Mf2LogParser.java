@@ -19,14 +19,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 
 /**
  * @since 1.9.2
  * @author xeraph
  * 
  */
-public class Mf2LogParser implements LogParser {
+public class Mf2LogParser extends V1LogParser {
 
 	private static HashSet<String> numFields = new HashSet<String>();
 

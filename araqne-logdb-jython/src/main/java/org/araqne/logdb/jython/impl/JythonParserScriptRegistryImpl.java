@@ -40,6 +40,7 @@ import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.StringConfigType;
+import org.araqne.log.api.V1LogParser;
 import org.araqne.logdb.jython.JythonParserScriptRegistry;
 import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
@@ -190,7 +191,7 @@ public class JythonParserScriptRegistryImpl implements JythonParserScriptRegistr
 		return clazz;
 	}
 
-	private class WrapLogParser implements LogParser {
+	private class WrapLogParser extends V1LogParser {
 		private LogParser delegation;
 
 		public WrapLogParser(LogParser delegation) {

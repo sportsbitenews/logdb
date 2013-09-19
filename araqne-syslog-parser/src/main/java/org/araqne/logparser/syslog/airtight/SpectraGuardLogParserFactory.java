@@ -15,7 +15,6 @@
  */
 package org.araqne.logparser.syslog.airtight;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
@@ -23,13 +22,12 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
-import org.araqne.log.api.LogParserFactory;
-import org.araqne.log.api.LoggerConfigOption;
 
 @Component(name = "spectraguard-log-parser-factory")
 @Provides
-public class SpectraGuardLogParserFactory implements LogParserFactory {
+public class SpectraGuardLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getName() {
 		return "spectraguard";
@@ -37,27 +35,26 @@ public class SpectraGuardLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "스펙트라가드 엔터프라이즈";
 		return "SpectraGuard Enterprise";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "에어타이트 스펙트라가드 엔터프라이즈 WIPS 로그를 파싱합니다.";
 		return "AirTight SpectraGuard Enterprise";
-	}
-
-	@Override
-	public Collection<LoggerConfigOption> getConfigOptions() {
-		return new ArrayList<LoggerConfigOption>();
 	}
 
 	@Override

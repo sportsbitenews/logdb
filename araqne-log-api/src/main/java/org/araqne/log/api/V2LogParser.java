@@ -15,31 +15,22 @@
  */
 package org.araqne.log.api;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
-public class FieldMappingParser extends V1LogParser {
-	private Map<String, String> mappings = new HashMap<String, String>();
+/**
+ * @since 2.6.0
+ * @author xeraph
+ * 
+ */
+public abstract class V2LogParser implements LogParser {
 
-	public FieldMappingParser(Map<String, String> config) {
-		String line = config.get("mappings");
-		String[] tokens = line.split(",");
-		for (String token : tokens) {
-			int p = token.indexOf('=');
-			String from = token.substring(0, p);
-			String to = token.substring(p + 1);
-			mappings.put(from, to);
-		}
+	@Override
+	public int getVersion() {
+		return 2;
 	}
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
-		for (Entry<String, String> mapping : mappings.entrySet()) {
-			Object value = params.remove(mapping.getKey());
-			params.put(mapping.getValue(), value);
-		}
-		return params;
+		throw new UnsupportedOperationException();
 	}
-
 }

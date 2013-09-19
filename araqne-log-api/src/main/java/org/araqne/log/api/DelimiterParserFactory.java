@@ -28,7 +28,7 @@ import org.apache.felix.ipojo.annotations.Provides;
 
 @Component(name = "delimiter-parser-factory")
 @Provides
-public class DelimiterParserFactory implements LogParserFactory {
+public class DelimiterParserFactory extends AbstractLogParserFactory {
 
 	private static final String DELIMITER_TARGET = "delimiter_target";
 	private static final String DELIMITER = "delimiter";
@@ -49,7 +49,7 @@ public class DelimiterParserFactory implements LogParserFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "구분자";
-		return "delimiter";
+		return "Delimiter";
 	}
 
 	@Override

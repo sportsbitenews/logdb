@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserInput;
+import org.araqne.log.api.LogParserOutput;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommand;
@@ -36,6 +38,16 @@ public class QueryLogParser extends LogQueryCommand implements LogParser {
 
 		for (int i = commands.size() - 2; i >= 0; i--)
 			commands.get(i).setNextCommand(commands.get(i + 1));
+	}
+
+	@Override
+	public int getVersion() {
+		return 1;
+	}
+
+	@Override
+	public LogParserOutput parse(LogParserInput input) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

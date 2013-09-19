@@ -15,7 +15,6 @@
  */
 package org.araqne.logparser.syslog.juniper;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
@@ -23,13 +22,12 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
-import org.araqne.log.api.LogParserFactory;
-import org.araqne.log.api.LoggerConfigOption;
 
 @Component(name = "netscreen-log-parser-factory")
 @Provides
-public class NetScreenLogParserFactory implements LogParserFactory {
+public class NetScreenLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getName() {
 		return "netscreen-isg";
@@ -42,22 +40,21 @@ public class NetScreenLogParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "NetScreen Log Parser Factory";
+		if (locale.equals(Locale.KOREAN))
+			return "넷스크린";
+		return "NetScreen";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "넷스크린 방화벽 및 IPS 로그를 파싱합니다.";
 		return "Create netscreen log parser";
-	}
-
-	@Override
-	public Collection<LoggerConfigOption> getConfigOptions() {
-		return new ArrayList<LoggerConfigOption>();
 	}
 
 	@Override
