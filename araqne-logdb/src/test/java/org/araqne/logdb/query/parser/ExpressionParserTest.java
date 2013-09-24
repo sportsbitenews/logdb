@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.StringConstant;
 
 public class ExpressionParserTest {
 	@Test
@@ -59,13 +60,13 @@ public class ExpressionParserTest {
 		v = expr.eval(null);
 		assertEquals("this is a cat.", v);
 	}
-	
+
 	@Test
 	public void testCommaExpr() {
 		Expression expr = ExpressionParser.parse("1, 2");
 		Object v = expr.eval(null);
 		assertEquals("[1, 2]", v.toString());
-		
+
 		expr = ExpressionParser.parse("1, 2, (3, 4), 5");
 		v = expr.eval(null);
 		assertEquals("[1, 2, [3, 4], 5]", v.toString());
@@ -73,7 +74,7 @@ public class ExpressionParserTest {
 		expr = ExpressionParser.parse("(1, 2), (3, 4), 5");
 		v = expr.eval(null);
 		assertEquals("[[1, 2], [3, 4], 5]", v.toString());
-		
+
 		expr = ExpressionParser.parse("(1, 2, 3, (4, 5, 6), 7), 5");
 		v = expr.eval(null);
 		assertEquals("[[1, 2, 3, [4, 5, 6], 7], 5]", v.toString());
@@ -99,7 +100,7 @@ public class ExpressionParserTest {
 
 		expr = ExpressionParser.parse("3*-5");
 		v = expr.eval(null);
-		assertEquals(-15L, v);		
+		assertEquals(-15L, v);
 	}
 
 	@Test
@@ -362,4 +363,22 @@ public class ExpressionParserTest {
 		}
 	}
 
+	@Test
+	public void testStringEscape() {
+		String newline = "\"hello\\nworld\"";
+		StringConstant expr = (StringConstant) ExpressionParser.parse(newline);
+		assertEquals("hello\nworld", expr.getConstant());
+		
+		String tab = "\"hello\\tworld\\\\\"";
+		StringConstant expr2 = (StringConstant) ExpressionParser.parse(tab);
+		assertEquals("hello\tworld\\", expr2.getConstant());
+		
+		try {
+			String invalid = "\"hello\\tworld\\i\"";
+			ExpressionParser.parse(invalid);
+			fail();
+		} catch (LogQueryParseException e) {
+			assertEquals("invalid-escape-sequence", e.getType());
+		}
+	}
 }

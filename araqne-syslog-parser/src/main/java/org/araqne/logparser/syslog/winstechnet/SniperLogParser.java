@@ -20,9 +20,9 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 
-public class SniperLogParser implements LogParser {
+public class SniperLogParser extends V1LogParser {
 	private SimpleDateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
 	@Override

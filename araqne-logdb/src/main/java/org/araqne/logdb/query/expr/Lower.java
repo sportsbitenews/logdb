@@ -13,37 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.hdfs;
+package org.araqne.logdb.query.expr;
 
-import org.araqne.api.FieldOption;
-import org.araqne.confdb.CollectionName;
+import java.util.List;
 
-@CollectionName("sites")
-public class HdfsSite {
-	@FieldOption(nullable = false)
-	private String name;
+import org.araqne.logdb.LogMap;
 
-	@FieldOption(nullable = false)
-	private String fileSystemUri;
+public class Lower implements Expression {
 
-	public String getName() {
-		return name;
+	private Expression valueExpr;
+
+	public Lower(List<Expression> exprs) {
+		this.valueExpr = exprs.get(0);
 	}
 
-	public void setName(String name) {
-		this.name = name;
-	}
+	@Override
+	public Object eval(LogMap map) {
+		Object value = valueExpr.eval(map);
+		if (value == null)
+			return null;
 
-	public String getFileSystemUri() {
-		return fileSystemUri;
-	}
-
-	public void setFileSystemUri(String fileSystemUri) {
-		this.fileSystemUri = fileSystemUri;
+		return value.toString().toLowerCase();
 	}
 
 	@Override
 	public String toString() {
-		return "name=" + name + ", filesystem=" + fileSystemUri;
+		return "lower(" + valueExpr + ")";
 	}
+
 }

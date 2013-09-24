@@ -26,7 +26,7 @@ import org.apache.felix.ipojo.annotations.Provides;
 
 @Component(name = "tag-parser-factory")
 @Provides
-public class TagParserFactory implements LogParserFactory {
+public class TagParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
@@ -42,7 +42,7 @@ public class TagParserFactory implements LogParserFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "태그";
-		return "tag";
+		return "Tag";
 	}
 
 	@Override

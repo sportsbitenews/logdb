@@ -19,11 +19,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SrxLogParser implements LogParser {
+public class SrxLogParser extends V1LogParser {
 	private final Logger logger = LoggerFactory.getLogger(SrxLogParser.class.getName());
 
 	@Override

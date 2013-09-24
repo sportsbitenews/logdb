@@ -33,6 +33,7 @@ import org.araqne.logdb.sort.Item;
 import org.araqne.logdb.sort.ParallelMergeSorter;
 
 public class Sort extends LogQueryCommand {
+	private static final int TOP_OPTIMIZE_THRESHOLD = 10000;
 	private Integer limit;
 	private SortField[] fields;
 	private ParallelMergeSorter sorter;
@@ -60,7 +61,7 @@ public class Sort extends LogQueryCommand {
 	@Override
 	public void init() {
 		super.init();
-		if (limit != null && limit <= 1000)
+		if (limit != null && limit <= TOP_OPTIMIZE_THRESHOLD)
 			this.top = new TopSelector<Item>(limit, new DefaultComparator());
 		else
 			this.sorter = new ParallelMergeSorter(new DefaultComparator());

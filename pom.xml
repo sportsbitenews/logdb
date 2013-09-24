@@ -207,6 +207,6 @@
 		<module>araqne-logdb-client</module>
 		<module>araqne-logdb-jython</module>
 		<module>araqne-regex-tester</module>
-		<module>araqne-logdb-hdfs</module>
+		<module>araqne-logdb-jmx</module>
 	</modules>
 </project>

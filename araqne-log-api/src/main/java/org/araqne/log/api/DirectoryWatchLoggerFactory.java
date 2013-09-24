@@ -77,13 +77,13 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				"날짜 로케일, 예를 들면 ko"), false);
 
 		LoggerConfigOption newlogRegex = new StringConfigType("newlog_designator",
-				t("New log designator (Regex)", "로그 구분 정규식"),
+				t("Regex for first line", "로그 시작 정규식"),
 				t("Regular expression to determine whether the line is start of new log."
 						+ "(if a line does not matches, the line will be merged to prev line.).",
 						"새 로그의 시작을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)"), false);
 
 		LoggerConfigOption newlogEndRegex = new StringConfigType("newlog_end_designator",
-				t("New log end designator (Regex)", "로그 구분 정규식"),
+				t("Regex for last line", "로그 끝 정규식"),
 				t("Regular expression to determine whether the line is end of new log."
 						+ "(if a line does not matches, the line will be merged to prev line.).",
 						"로그의 끝을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)"), false);

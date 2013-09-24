@@ -30,6 +30,10 @@ public class StringConstant implements Expression {
 		return str;
 	}
 
+	public String getConstant() {
+		return str;
+	}
+
 	@Override
 	public String toString() {
 		return "\"" + str + "\"";

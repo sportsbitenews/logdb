@@ -13,28 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.hdfs.impl;
+package org.araqne.logdb.jmx.impl;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
-import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.ServiceProperty;
 import org.araqne.api.Script;
 import org.araqne.api.ScriptFactory;
-import org.araqne.logdb.hdfs.HdfsSiteManager;
 
-@Component(name = "hdfs-connector-script-factory")
+@Component(name = "jmx-script-factory")
 @Provides
-public class HdfsConnectorScriptFactory implements ScriptFactory {
-	@SuppressWarnings("unused")
-	@ServiceProperty(name = "alias", value = "logdb")
-	private String alias;
+public class JmxScriptFactory implements ScriptFactory {
 
-	@Requires
-	private HdfsSiteManager siteManager;
+	@SuppressWarnings("unused")
+	@ServiceProperty(name = "alias", value = "jmx")
+	private String alias;
 
 	@Override
 	public Script createScript() {
-		return new HdfsConnectorScript(siteManager);
+		return new JmxScript();
 	}
+
 }

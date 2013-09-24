@@ -46,7 +46,7 @@ public class RegexParserFactory implements LogParserFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "정규표현식";
-		return "Regex";
+		return "Regular Expression";
 	}
 
 	@Override

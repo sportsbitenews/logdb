@@ -15,7 +15,6 @@
  */
 package org.araqne.logparser.syslog.paloaltonetworks;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
@@ -23,9 +22,8 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
-import org.araqne.log.api.LogParserFactory;
-import org.araqne.log.api.LoggerConfigOption;
 
 /**
  * Log Parser Factory for PA Series
@@ -35,7 +33,7 @@ import org.araqne.log.api.LoggerConfigOption;
  */
 @Component(name = "paloalto-log-parser-factory")
 @Provides
-public class PaloAltoLogParserFactory implements LogParserFactory {
+public class PaloAltoLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
@@ -43,28 +41,27 @@ public class PaloAltoLogParserFactory implements LogParserFactory {
 	}
 
 	@Override
-	public Collection<LoggerConfigOption> getConfigOptions() {
-		return new ArrayList<LoggerConfigOption>();
-	}
-
-	@Override
 	public String getDisplayName(Locale locale) {
-		return "Palo Alto Log Parser";
+		if (locale.equals(Locale.KOREAN))
+			return "팔로알토 PA 시리즈";
+		return "Palo Alto PA Series";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "팔로알토 네트웍스 PA 시리즈 장비 로그를 파싱합니다.";
 		return "Palo Alto Network's PA series log parser";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override

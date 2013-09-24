@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class FieldMappingParser implements LogParser {
+public class FieldMappingParser extends V1LogParser {
 	private Map<String, String> mappings = new HashMap<String, String>();
 
 	public FieldMappingParser(Map<String, String> config) {

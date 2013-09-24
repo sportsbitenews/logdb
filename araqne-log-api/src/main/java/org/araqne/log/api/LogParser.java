@@ -18,5 +18,9 @@ package org.araqne.log.api;
 import java.util.Map;
 
 public interface LogParser {
+	int getVersion();
+
 	Map<String, Object> parse(Map<String, Object> params);
+
+	LogParserOutput parse(LogParserInput input);
 }

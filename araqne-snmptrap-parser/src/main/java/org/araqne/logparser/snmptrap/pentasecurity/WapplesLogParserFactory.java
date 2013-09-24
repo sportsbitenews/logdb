@@ -15,7 +15,6 @@
  */
 package org.araqne.logparser.snmptrap.pentasecurity;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
@@ -23,13 +22,12 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
-import org.araqne.log.api.LogParserFactory;
-import org.araqne.log.api.LoggerConfigOption;
 
 @Component(name = "wapples-trap-parser-factory")
 @Provides
-public class WapplesLogParserFactory implements LogParserFactory {
+public class WapplesLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
@@ -42,28 +40,27 @@ public class WapplesLogParserFactory implements LogParserFactory {
 	}
 
 	@Override
-	public Collection<LoggerConfigOption> getConfigOptions() {
-		return new ArrayList<LoggerConfigOption>();
-	}
-
-	@Override
 	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "와플 SNMP 트랩";
 		return "wapples snmp trap log parser";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "와플 SNMP 트랩 로그를 파싱합니다.";
 		return "wapples snmp trap log parser";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 }

@@ -20,11 +20,11 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WapplesLogParser implements LogParser {
+public class WapplesLogParser extends V1LogParser {
 	private final Logger logger = LoggerFactory.getLogger(WapplesLogParser.class.getName());
 
 	// detect oids

@@ -19,7 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class WtmpEntry {
-	enum Type {
+	public enum Type {
 		Unknown, RunLevel, BootTime, NewTime, OldTime, InitProcess, LoginProcess, UserProcess, DeadProcess, Accounting;
 	}
 

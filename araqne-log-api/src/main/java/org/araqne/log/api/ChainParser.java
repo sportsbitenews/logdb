@@ -18,7 +18,7 @@ package org.araqne.log.api;
 import java.util.List;
 import java.util.Map;
 
-public class ChainParser implements LogParser {
+public class ChainParser extends V1LogParser {
 
 	private final List<LogParser> parsers;
 

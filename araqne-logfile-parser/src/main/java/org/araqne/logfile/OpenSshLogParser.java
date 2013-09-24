@@ -23,9 +23,9 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 
-public class OpenSshLogParser implements LogParser {
+public class OpenSshLogParser extends V1LogParser {
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd HH:mm:ss", Locale.ENGLISH);

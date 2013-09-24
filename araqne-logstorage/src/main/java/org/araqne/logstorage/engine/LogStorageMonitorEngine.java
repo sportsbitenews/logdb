@@ -70,6 +70,8 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 	private DiskLackAction diskLackAction;
 	private Set<DiskLackCallback> diskLackCallbacks = new HashSet<DiskLackCallback>();
 
+	private boolean stopByLowDisk;
+
 	public LogStorageMonitorEngine() {
 		reload();
 	}
@@ -222,19 +224,33 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 			tables.add(tableName);
 		}
 
+		boolean lowDisk = false;
 		for (File dir : partitionTables.keySet()) {
-			checkDiskPartitions(dir, partitionTables.get(dir));
+			lowDisk |= checkDiskPartitions(dir, partitionTables.get(dir));
+		}
+
+		if (lowDisk) {
+			for (DiskLackCallback callback : diskLackCallbacks) {
+				try {
+					callback.callback();
+				} catch (Throwable t) {
+					logger.warn("araqne logstorage: disk lack callback should not throw any exception", t);
+				}
+			}
+		} else {
+			// open log storage if low disk problem is resolved
+			if (stopByLowDisk)
+				startStorage();
 		}
 	}
 
-	private void checkDiskPartitions(File partitionPath, List<String> tableNames) {
+	private boolean checkDiskPartitions(File partitionPath, List<String> tableNames) {
 		if (isDiskLack(partitionPath)) {
 			logger.trace("araqne logstorage: not enough disk space, current minimum free space config [{}] {}", minFreeSpaceValue,
 					(minFreeSpaceType == DiskSpaceType.Percentage ? "%" : "MB"));
 			if (diskLackAction == DiskLackAction.StopLogging) {
 				if (storage.getStatus() == LogStorageStatus.Open) {
-					logger.error("araqne logstorage: [{}] not enough space, stop logging", partitionPath.getAbsolutePath());
-					storage.stop();
+					stopStorage(partitionPath);
 				}
 			} else if (diskLackAction == DiskLackAction.RemoveOldLog) {
 				List<LogFile> files = new ArrayList<LogFile>();
@@ -249,8 +265,7 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 				do {
 					if (index >= files.size()) {
 						if (storage.getStatus() == LogStorageStatus.Open) {
-							logger.error("araqne logstorage: no more data files in [{}], stop logging", partitionPath.getAbsolutePath());
-							storage.stop();
+							stopStorage(partitionPath);
 						}
 						break;
 					}
@@ -261,14 +276,22 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 				} while (isDiskLack(partitionPath));
 			}
 
-			for (DiskLackCallback callback : diskLackCallbacks) {
-				try {
-					callback.callback();
-				} catch (Throwable t) {
-					logger.warn("araqne logstorage: disk lack callback should not throw any exception", t);
-				}
-			}
+			return true;
 		}
+
+		return false;
+	}
+
+	private void startStorage() {
+		logger.info("araqne logstorage: low disk problem is resolved, restart logstorage");
+		storage.start();
+		stopByLowDisk = false;
+	}
+
+	private void stopStorage(File partitionPath) {
+		logger.error("araqne logstorage: [{}] not enough space, stop logging", partitionPath.getAbsolutePath());
+		storage.stop();
+		stopByLowDisk = true;
 	}
 
 	private String getStringParameter(Constants key, String defaultValue) {

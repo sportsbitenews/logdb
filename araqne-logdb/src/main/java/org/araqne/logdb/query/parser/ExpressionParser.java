@@ -289,6 +289,10 @@ public class ExpressionParser {
 					sb.append('\\');
 				else if (c == '"')
 					sb.append('"');
+				else if (c == 'n')
+					sb.append('\n');
+				else if (c == 't')
+					sb.append('\t');
 				else
 					throw new LogQueryParseException("invalid-escape-sequence", -1, "char=" + c);
 				escape = false;
@@ -308,7 +312,7 @@ public class ExpressionParser {
 		for (int i = offset; i < s.length(); i++) {
 			char c = s.charAt(i);
 			if (escape) {
-				if (c == '\\' || c == '"')
+				if (c == '\\' || c == '"' || c == 'n' || c == 't')
 					escape = false;
 				else
 					throw new LogQueryParseException("invalid-escape-sequence", offset);

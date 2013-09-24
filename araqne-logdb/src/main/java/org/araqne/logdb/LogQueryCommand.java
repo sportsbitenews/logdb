@@ -83,8 +83,11 @@ public abstract class LogQueryCommand {
 		pushCount++;
 		if (next != null && next.status != Status.End) {
 			if (callbackTimeline && logQuery != null) {
-				for (LogTimelineCallback callback : logQuery.getTimelineCallbacks())
-					callback.put((Date) m.get(headerColumn.get("date")));
+				for (LogTimelineCallback callback : logQuery.getTimelineCallbacks()) {
+					Object date = m.get(headerColumn.get("date"));
+					if (date instanceof Date)
+						callback.put((Date) date);
+				}
 			}
 			next.status = Status.Running;
 			next.push(m);

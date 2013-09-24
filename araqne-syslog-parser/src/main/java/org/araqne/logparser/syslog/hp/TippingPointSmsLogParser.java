@@ -20,14 +20,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 
 /**
  * 
  * @author xeraph
  * @since 1.4.0
  */
-public class TippingPointSmsLogParser implements LogParser {
+public class TippingPointSmsLogParser extends V1LogParser {
 	private enum FieldType {
 		String, Integer, Date
 	};

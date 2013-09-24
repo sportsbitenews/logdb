@@ -20,11 +20,11 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SnortLogParser implements LogParser {
+public class SnortLogParser extends V1LogParser {
 	private Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	@Override

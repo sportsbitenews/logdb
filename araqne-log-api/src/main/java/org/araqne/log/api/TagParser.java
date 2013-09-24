@@ -17,7 +17,7 @@ package org.araqne.log.api;
 
 import java.util.Map;
 
-public class TagParser implements LogParser {
+public class TagParser extends V1LogParser {
 	private final Map<String, String> tags;
 
 	public TagParser(Map<String, String> tags) {

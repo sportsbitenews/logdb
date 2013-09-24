@@ -48,6 +48,8 @@ public class OutputTxtParser implements LogQueryCommandParser {
 
 		String delimiter = null;
 		ParseResult r = QueryTokenizer.parseOptions(commandString, "outputtxt".length(), Arrays.asList("delimiter"));
+
+		@SuppressWarnings("unchecked")
 		Map<String, Object> options = (Map<String, Object>) r.value;
 		if (options.containsKey("delimiter"))
 			delimiter = options.get("delimiter").toString();

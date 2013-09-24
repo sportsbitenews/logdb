@@ -19,9 +19,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 
-public class SecureWorksLogParser implements LogParser {
+public class SecureWorksLogParser extends V1LogParser {
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
