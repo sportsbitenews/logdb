@@ -19,8 +19,6 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -41,9 +39,7 @@ import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
 import org.araqne.logstorage.*;
-import org.araqne.logstorage.file.LogFileFixReport;
 import org.araqne.logstorage.file.LogFileReader;
-import org.araqne.logstorage.file.LogFileRepairer;
 import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogRecord;
 import org.araqne.logstorage.file.LogRecordCursor;
@@ -81,10 +77,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	// sweeping and flushing data
 	private WriterSweeper writerSweeper;
 	private Thread writerSweeperThread;
-
-	// checking log files and fixing
-	private LogFileChecker logFileChecker;
-	private Thread logFileCheckerThread;
 
 	private LogFileFetcher fetcher;
 
@@ -157,12 +149,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		status = LogStorageStatus.Starting;
 		fetcher = new LogFileFetcher(tableRegistry, lfsRegistry);
 
-		logFileChecker = new LogFileChecker(this, lfsRegistry, tableRegistry);
-		logFileCheckerThread = new Thread(logFileChecker, "LogStorage File Checker");
-		logFileCheckerThread.start();
-	}
-
-	void checkFilePostprocess() {
 		writerSweeperThread = new Thread(writerSweeper, "LogStorage LogWriter Sweeper");
 		writerSweeperThread.start();
 
@@ -183,14 +169,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	public void stop() {
 		if (status != LogStorageStatus.Open)
 			throw new IllegalStateException("log archive already stopped");
-
-		if (logFileCheckerThread.isAlive()) {
-			// wait logFileCheckerThread
-			try {
-				logFileCheckerThread.join(5000);
-			} catch (InterruptedException e) {
-			}
-		}
 
 		status = LogStorageStatus.Stopping;
 
@@ -993,131 +971,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	@Override
 	public void removeEventListener(LogStorageEventListener listener) {
 		listeners.remove(listener);
-	}
-
-	private static class LogFileChecker implements Runnable {
-		private final Logger logger = LoggerFactory.getLogger(LogFileChecker.class.getName());
-
-		private LogFileServiceRegistry lfsRegistry;
-		private LogTableRegistry tableRegistry;
-		private LogStorageEngine engine;
-
-		public LogFileChecker(LogStorageEngine engine, LogFileServiceRegistry lfsRegistry, LogTableRegistry tableRegistry) {
-			this.engine = engine;
-			this.lfsRegistry = lfsRegistry;
-			this.tableRegistry = tableRegistry;
-		}
-
-		@Override
-		public void run() {
-			// checkAllLogFiles();
-			// checkLatestLogFiles();
-
-			// process remaining initializing tasks
-			engine.checkFilePostprocess();
-		}
-
-		private void checkLatestLogFiles() {
-			logger.info("araqne logstorage: verifying all log tables");
-			for (String tableName : tableRegistry.getTableNames()) {
-				File dir = engine.getTableDirectory(tableName);
-				if (dir == null) {
-					logger.error("araqne logstorage: table [{}] directory not found", tableName);
-					continue;
-				}
-
-				logger.trace("araqne logstorage: checking for [{}] table", tableName);
-
-				File[] files = dir.listFiles();
-				if (files == null)
-					continue;
-
-				long lastModified = 0;
-				File lastModifiedFile = null;
-
-				// max lastmodified
-				for (File f : files) {
-					if (f.getName().endsWith(".idx") && lastModified < f.lastModified()) {
-						lastModified = f.lastModified();
-						lastModifiedFile = f;
-					}
-				}
-
-				if (lastModifiedFile == null) {
-					logger.trace("araqne logstorage: empty table [{}], skip verification", tableName);
-					continue;
-				}
-
-				if (logger.isDebugEnabled())
-					logger.debug("araqne logstorage: table [{}], last modified [{}]", tableName, new Date(lastModified));
-
-				String datFileName = lastModifiedFile.getName().replace(".idx", ".dat");
-				File indexPath = lastModifiedFile;
-				File dataPath = new File(dir, datFileName);
-
-				String fileType = tableRegistry.getTableMetadata(tableName, "_filetype");
-				LogFileService lfs = lfsRegistry.getLogFileService(fileType);
-				LogFileRepairer repairer = lfs.newRepairer();
-				if (repairer != null) {
-					try {
-						LogFileFixReport report = repairer.quickFix(indexPath, dataPath);
-						if (report != null)
-							logger.info("araqne logstorage: fixed log table [{}], detail report: \n{}", tableName, report);
-					} catch (IOException e) {
-						logger.error(
-								"araqne logstorage: cannot fix index [" + indexPath.getAbsoluteFile() + "], data ["
-										+ dataPath.getAbsolutePath() + "]", e);
-					}
-				} else {
-					logger.info("araqne logstorage: log table [{}] ({}) has no repairer", tableName, fileType);
-				}
-			}
-			logger.info("araqne logstorage: all table verifications are completed");
-		}
-
-		@SuppressWarnings("unused")
-		private void checkAllLogFiles() {
-			logger.info("araqne logstorage: verifying all log tables");
-			for (String tableName : tableRegistry.getTableNames()) {
-				File dir = engine.getTableDirectory(tableName);
-				if (dir == null) {
-					logger.error("araqne logstorage: table [{}] directory not found", tableName);
-					continue;
-				}
-
-				logger.trace("araqne logstorage: checking for [{}] table", tableName);
-
-				File[] files = dir.listFiles();
-				if (files == null)
-					continue;
-
-				String fileType = tableRegistry.getTableMetadata(tableName, "_filetype");
-				LogFileService lfs = lfsRegistry.getLogFileService(fileType);
-				LogFileRepairer repairer = lfs.newRepairer();
-				if (repairer == null) {
-					logger.info("araqne logstorage: log table [{}] ({}) has no repairer", tableName, fileType);
-					continue;
-				}
-
-				for (File f : files) {
-					if (f.getName().endsWith(".idx")) {
-						String datFileName = f.getName().replace(".idx", ".dat");
-						File indexPath = f;
-						File dataPath = new File(dir, datFileName);
-						try {
-							LogFileFixReport report = repairer.fix(indexPath, dataPath);
-							if (report != null)
-								logger.info("araqne logstorage: fixed log table [{}], detail report: \n{}", tableName, report);
-						} catch (IOException e) {
-							logger.error("araqne logstorage: cannot fix index [" + indexPath.getAbsoluteFile() + "], data ["
-									+ dataPath.getAbsolutePath() + "]", e);
-						}
-					}
-				}
-			}
-			logger.info("araqne logstorage: all table verifications are completed");
-		}
-
 	}
 
 	private class WriterSweeper implements Runnable {
