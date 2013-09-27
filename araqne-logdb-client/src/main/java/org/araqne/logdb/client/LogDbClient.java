@@ -378,6 +378,9 @@ public class LogDbClient implements TrapListener {
 		return getIndexInfo((Map<String, Object>) resp.getParameters().get("index"));
 	}
 
+	/**
+	 * @since 0.8.1
+	 */
 	@SuppressWarnings("unchecked")
 	public Set<String> testIndexTokenizer(String tableName, String indexName, Map<String, Object> data) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -658,6 +661,9 @@ public class LogDbClient implements TrapListener {
 		session.rpc("org.logpresso.core.msgbus.ParserPlugin.removeParser", params);
 	}
 
+	/**
+	 * @since 0.8.1
+	 */
 	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> testParser(String parserName, Map<String, Object> data) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
