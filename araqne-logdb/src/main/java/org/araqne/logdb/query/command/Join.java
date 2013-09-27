@@ -166,12 +166,13 @@ public class Join extends LogQueryCommand {
 
 		@Override
 		public void run() {
+			LogQueryCommand cmd = null;
 			try {
 				for (int i = subQuery.size() - 1; i >= 0; i--)
 					subQuery.get(i).start();
 
 				subQuery.get(0).eof(false);
-				LogQueryCommand cmd = subQuery.get(subQuery.size() - 1);
+				cmd = subQuery.get(subQuery.size() - 1);
 
 				try {
 					subQueryResultSet = subQueryResult.getResult();
@@ -184,12 +185,15 @@ public class Join extends LogQueryCommand {
 					logger.error("araqne logdb: cannot get subquery result of query " + logQuery.getId(), e);
 				}
 
-				synchronized (cmd) {
-					cmd.notifyAll();
-				}
 			} catch (Throwable t) {
 				logger.error("araqne logdb: subquery failed, query " + logQuery.getId(), t);
 			} finally {
+				if (cmd != null) {
+					synchronized (cmd) {
+						cmd.notifyAll();
+					}
+				}
+
 				logger.debug("araqne logdb: subquery end, query " + logQuery.getId());
 			}
 		}
