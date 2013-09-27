@@ -26,7 +26,7 @@ import org.apache.felix.ipojo.annotations.Provides;
 
 @Component(name = "field-mapping-parser-factory")
 @Provides
-public class FieldMappingParserFactory implements LogParserFactory {
+public class FieldMappingParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {

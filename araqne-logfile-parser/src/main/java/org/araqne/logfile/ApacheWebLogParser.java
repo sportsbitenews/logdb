@@ -24,9 +24,9 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 
-public class ApacheWebLogParser implements LogParser {
+public class ApacheWebLogParser extends V1LogParser {
 	private String logFormat;
 	private final static Map<String, FormatInfo> formats = new HashMap<String, FormatInfo>();
 

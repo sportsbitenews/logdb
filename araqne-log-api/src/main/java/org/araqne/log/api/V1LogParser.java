@@ -13,16 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.hdfs;
+package org.araqne.log.api;
 
-import java.util.List;
+/**
+ * @since 2.6.0
+ * @author xeraph
+ * 
+ */
+public abstract class V1LogParser implements LogParser {
 
-public interface HdfsSiteManager {
-	List<HdfsSite> getSites();
+	@Override
+	public int getVersion() {
+		return 1;
+	}
 
-	HdfsSite getSite(String name);
-
-	void addSite(HdfsSite site);
-
-	void removeSite(String name);
+	@Override
+	public LogParserOutput parse(LogParserInput input) {
+		throw new UnsupportedOperationException();
+	}
 }

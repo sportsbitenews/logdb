@@ -17,10 +17,10 @@ package org.araqne.logparser.syslog.xnsystems;
 
 import java.util.Map;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 import org.araqne.logparser.syslog.internal.KeyValueParser;
 
-public class NeoboxLogParser implements LogParser {
+public class NeoboxLogParser extends V1LogParser {
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
 		Map<String, Object> m = KeyValueParser.parse((String) params.get("line"));

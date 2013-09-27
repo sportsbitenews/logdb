@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 NCHOVY
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,31 @@
  */
 package org.araqne.log.api;
 
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 
-public interface LogParser {
-	int getVersion();
+/**
+ * @since 2.6.0
+ * @author xeraph
+ * 
+ */
+public abstract class AbstractLogTransformerFactory implements LogTransformerFactory {
 
-	Map<String, Object> parse(Map<String, Object> params);
+	@Override
+	public List<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH);
+	}
 
-	LogParserOutput parse(LogParserInput input);
+	@Override
+	public List<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH);
+	}
+
+	@Override
+	public List<LoggerConfigOption> getConfigOptions() {
+		return new ArrayList<LoggerConfigOption>();
+	}
+
 }

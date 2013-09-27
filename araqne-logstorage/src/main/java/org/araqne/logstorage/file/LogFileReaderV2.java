@@ -619,27 +619,30 @@ public class LogFileReaderV2 extends LogFileReader {
 			}
 			if (record == null)
 				continue;
-			Log result = null;
+			List<Log> result = null;
 			try {
-				result = parse(tableName, parser, record, false);				
+				result = parse(tableName, parser, record);				
 			} catch (LogParserBugException e) {
-				result = new Log(e.tableName, e.date, e.id, e.logMap); 
+				result = new ArrayList<Log>(1);
+				result.add(new Log(e.tableName, e.date, e.id, e.logMap)); 
 				if (!suppressBugAlert) {
 					logger.error("araqne logstorage: PARSER BUG! original log => table " +
-							result.getTableName() + ", id " + result.getId() + ", data " + result.getData(), e.cause);
+							e.tableName + ", id " + e.id + ", data " + e.logMap, e.cause);
 					suppressBugAlert = true;
 				}				
 			} finally {
 				if (result != null) {
-					if (from != null || to != null ) {
-						Date logDate = result.getDate();
-						if (from != null && logDate.before(from))
-							continue;
-						if (to != null && !logDate.before(to))
-							continue;
+					for (Log log : result) {
+						if (from != null || to != null) {
+							Date logDate = log.getDate();
+							if (from != null && logDate.before(from))
+								continue;
+							if (to != null && !logDate.before(to))
+								continue;
+						}
+
+						ret.add(log);
 					}
-					
-					ret.add(result);
 				}
 			}
 		}
@@ -696,21 +699,22 @@ public class LogFileReaderV2 extends LogFileReader {
 			if (maxId > 0 && record.getId() > maxId)
 				continue;
 
-			Log log = null;
+			List<Log> result = null;
 			try {
-				log = parse(tableName, parser, record, false);				
+				result = parse(tableName, parser, record);				
 			} catch (LogParserBugException e) {
-				log = new Log(e.tableName, e.date, e.id, e.logMap); 
+				result = new ArrayList<Log>(1);
+				result.add(new Log(e.tableName, e.date, e.id, e.logMap)); 
 				if (!suppressBugAlert) {
 					logger.error("araqne logstorage: PARSER BUG! original log => table " +
-							log.getTableName() + ", id " + log.getId() + ", data " + log.getData(), e.cause);
+							e.tableName + ", id " + e.id + ", data " + e.logMap, e.cause);
 					suppressBugAlert = true;
 				}				
 			} finally {
-				if (log == null)
+				if (result == null)
 					continue;
 				
-				logs.add(log);
+				logs.addAll(result);
 			}
 		}
 		

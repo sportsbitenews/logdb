@@ -15,7 +15,6 @@
  */
 package org.araqne.logparser.syslog.oullim;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
@@ -23,14 +22,13 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
-import org.araqne.log.api.LogParserFactory;
-import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.logparser.syslog.airtight.SpectraGuardLogParser;
 
 @Component(name = "secureworks-log-parser-factory")
 @Provides
-public class SecureWorksLogParserFactory implements LogParserFactory {
+public class SecureWorksLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getName() {
 		return "secureworks";
@@ -38,27 +36,26 @@ public class SecureWorksLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "시큐어웍스";
 		return "SecureWorks";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "어울림 시큐어웍스 방화벽 로그를 파싱합니다.";
 		return "Oullim SecureWorks";
-	}
-
-	@Override
-	public Collection<LoggerConfigOption> getConfigOptions() {
-		return new ArrayList<LoggerConfigOption>();
 	}
 
 	@Override

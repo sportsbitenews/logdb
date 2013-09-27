@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -315,27 +314,31 @@ public class LogFileReaderV1 extends LogFileReader {
 			if (record == null)
 				continue;
 
-			Log result = null;
+			List<Log> result = null;
 			try {
-				result = parse(tableName, parser, record, false);
+				result = parse(tableName, parser, record);
 			} catch (LogParserBugException e) {
-				result = new Log(e.tableName, e.date, e.id, e.logMap); 
+				result = new ArrayList<Log>(1);
+				result.add(new Log(e.tableName, e.date, e.id, e.logMap));
+				
 				if (!suppressBugAlert) {
 					logger.error("araqne logstorage: PARSER BUG! original log => table " +
-							result.getTableName() + ", id " + result.getId() + ", data " + result.getData(), e.cause);
+							e.tableName + ", id " + e.id + ", data " + e.logMap, e.cause);
 					suppressBugAlert = true;
 				}
 			} finally {
 				if (result != null) {
-					if (from != null || to != null ) {
-						Date logDate = result.getDate();
-						if (from != null && logDate.before(from))
-							continue;
-						if (to != null && !logDate.before(to))
-							continue;
+					for (Log log : result) {
+						if (from != null || to != null) {
+							Date logDate = log.getDate();
+							if (from != null && logDate.before(from))
+								continue;
+							if (to != null && !logDate.before(to))
+								continue;
+						}
+
+						ret.add(log);
 					}
-					
-					ret.add(result);
 				}
 			}
 		}
@@ -414,22 +417,22 @@ public class LogFileReaderV1 extends LogFileReader {
 			if (to != null && !d.before(to))
 				continue;
 
-			Log log = null;
+			List<Log> result = null;
 			try {
-				log = parse(tableName, parser, record, false);				
+				result = parse(tableName, parser, record);				
 			} catch (LogParserBugException e) {
-				log = new Log(e.tableName, e.date, e.id, e.logMap); 
+				result = new ArrayList<Log>(1);
+				result.add(new Log(e.tableName, e.date, e.id, e.logMap)); 
 				if (!suppressBugAlert) {
 					logger.error("araqne logstorage: PARSER BUG! original log => table " +
-							log.getTableName() + ", id " + log.getId() + ", data " + log.getData(), e.cause);
+							e.tableName + ", id " + e.id + ", data " + e.logMap, e.cause);
 					suppressBugAlert = true;
 				}				
 			} finally {
-				if (log == null)
+				if (result == null)
 					continue;
 
-				// TODO: modify this code to process log chunk
-				callback.writeLogs(Arrays.asList(new Log[] { log }));
+				callback.writeLogs(result);
 				if (callback.isEof())
 					return;				
 			}

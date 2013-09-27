@@ -18,7 +18,7 @@ package org.araqne.log.api;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DelimiterParser implements LogParser {
+public class DelimiterParser extends V1LogParser {
 	private final char delimiter;
 	private final String[] columnHeaders;
 	private final String targetField;

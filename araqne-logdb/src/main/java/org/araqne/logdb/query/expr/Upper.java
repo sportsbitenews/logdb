@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 NCHOVY
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.log.api;
+package org.araqne.logdb.query.expr;
 
-import java.util.Map;
+import java.util.List;
 
-public interface LogParser {
-	int getVersion();
+import org.araqne.logdb.LogMap;
 
-	Map<String, Object> parse(Map<String, Object> params);
+public class Upper implements Expression {
+	private Expression valueExpr;
 
-	LogParserOutput parse(LogParserInput input);
+	public Upper(List<Expression> exprs) {
+		this.valueExpr = exprs.get(0);
+	}
+
+	@Override
+	public Object eval(LogMap map) {
+		Object value = valueExpr.eval(map);
+		if (value == null)
+			return null;
+
+		return value.toString().toUpperCase();
+	}
+
+	@Override
+	public String toString() {
+		return "upper(" + valueExpr + ")";
+	}
 }

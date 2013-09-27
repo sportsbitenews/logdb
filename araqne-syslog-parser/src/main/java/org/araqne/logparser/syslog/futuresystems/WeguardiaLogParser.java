@@ -20,11 +20,11 @@ import java.util.Date;
 import java.util.Map;
 
 import org.araqne.log.api.DelimiterParser;
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WeguardiaLogParser implements LogParser {
+public class WeguardiaLogParser extends V1LogParser {
 	private static final String[] columnHeaders = new String[] { "type", "date", "oip", "sip", "nat_sip", "sport", "nat_sport",
 			"dip", "nat_dip", "dport", "nat_dport", "protocol", "logtype", "act", "severity", "product", "note", "count",
 			"category", "rule", "group_id", "usage", "user", "iface" };

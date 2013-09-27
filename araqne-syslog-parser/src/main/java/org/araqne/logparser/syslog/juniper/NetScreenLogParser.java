@@ -17,13 +17,13 @@ package org.araqne.logparser.syslog.juniper;
 
 import java.util.Map;
 
-import org.araqne.log.api.LogParser;
+import org.araqne.log.api.V1LogParser;
 import org.araqne.logparser.syslog.juniper.attack.JuniperAttackLogParser;
 import org.araqne.logparser.syslog.juniper.session.JuniperSessionLogParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NetScreenLogParser implements LogParser {
+public class NetScreenLogParser extends V1LogParser {
 	private Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	private JuniperSessionLogParser sessionPattern = JuniperSessionLogParser.newInstance();
