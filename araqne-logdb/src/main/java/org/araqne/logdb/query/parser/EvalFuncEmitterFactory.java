@@ -73,13 +73,23 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new Lower(args));
 		} else if (name.equals("upper")) {
 			exprStack.add(new Upper(args));
-		} else {
+		} else if (name.equals("dateadd")) {
+			exprStack.add(new DateAdd(args));
+		} else if (name.equals("now")) {
+			exprStack.add(new Now(args));
+		} else if (name.equals("datediff")) {
+			exprStack.add(new DateDiff(args));
+		}
+		else {
 			throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
 		}
 	}
 
 	private List<Expression> getArgsFromStack(Stack<Expression> exprStack) {
 		List<Expression> exprs = null;
+		if (exprStack.isEmpty())
+			return new ArrayList<Expression>();
+
 		Expression arg = exprStack.pop();
 		if (arg instanceof Comma) {
 			exprs = ((Comma) arg).getList();
