@@ -605,6 +605,10 @@ public class LogApiScript implements Script {
 		}
 	}
 
+	@ScriptUsage(description = "start loggers at once, passive logger will ignore interval",
+			arguments = {
+					@ScriptArgument(name = "logger names", type = "string", description = "a logger name  or many logger names separated by space"),
+					@ScriptArgument(name = "interval", type = "int", description = "run interval in milliseconds, 60000 by default", optional = true) })
 	public void startLoggers(String[] args) {
 		int interval = 60000;
 		int loggerCnt = args.length;
@@ -619,7 +623,7 @@ public class LogApiScript implements Script {
 			try {
 				Logger logger = loggerRegistry.getLogger(args[i]);
 				if (logger == null) {
-					context.println("logger not found");
+					context.println("logger [" + args[i] + "] not found");
 					continue;
 				}
 
@@ -627,7 +631,7 @@ public class LogApiScript implements Script {
 					logger.start();
 				else
 					logger.start(interval);
-				context.println("logger started");
+				context.println("logger [" + args[i] + "] started");
 
 			} catch (IllegalStateException e) {
 				context.println(e.getMessage());
@@ -636,8 +640,8 @@ public class LogApiScript implements Script {
 	}
 
 	@ScriptUsage(description = "stop the logger", arguments = {
-			@ScriptArgument(name = "logger name", type = "string", description = "the logger name to stop", autocompletion = LoggerAutoCompleter.class),
-			@ScriptArgument(name = "max wait time", type = "int", description = "max wait time in milliseconds", optional = true) })
+			@ScriptArgument(name = "logger names", type = "string", description = "the logger name to stop", autocompletion = LoggerAutoCompleter.class),
+			@ScriptArgument(name = "max wait time", type = "int", description = "max wait time in milliseconds, 5000 by default", optional = true) })
 	public void stopLogger(String[] args) {
 		try {
 			int maxWaitTime = 5000;
@@ -661,6 +665,10 @@ public class LogApiScript implements Script {
 		}
 	}
 
+	@ScriptUsage(description = "stop loggers at once",
+			arguments = {
+					@ScriptArgument(name = "logger", type = "string", description = "a logger name or many logger names separated by space"),
+					@ScriptArgument(name = "max wait time", type = "int", description = "stop wait time in milliseconds, 5000 by default", optional = true) })
 	public void stopLoggers(String[] args) {
 		int maxWaitTime = 5000;
 		int loggerCnt = args.length;
@@ -674,15 +682,15 @@ public class LogApiScript implements Script {
 		for (int i = 0; i < loggerCnt; ++i) {
 			Logger logger = loggerRegistry.getLogger(args[i]);
 			if (logger == null) {
-				context.println("logger not found");
+				context.println("logger [" + args[i] + "] not found");
 				continue;
 			}
 
 			if (!logger.isPassive())
-				context.println("waiting...");
+				context.println("waiting logger [" + args[i] + "] ...");
 
 			logger.stop(maxWaitTime);
-			context.println("logger stopped");
+			context.println("logger [" + args[i] + "] stopped");
 		}
 	}
 
