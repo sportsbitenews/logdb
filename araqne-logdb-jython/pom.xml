@@ -53,7 +53,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logdb</artifactId>
-			<version>1.7.2</version>
+			<version>1.7.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>

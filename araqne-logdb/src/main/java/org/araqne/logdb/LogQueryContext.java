@@ -15,8 +15,12 @@
  */
 package org.araqne.logdb;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class LogQueryContext {
 	private Session session;
+	private Map<String, Object> constants = new HashMap<String, Object>();
 
 	public LogQueryContext(Session session) {
 		this.session = session;
@@ -25,4 +29,9 @@ public class LogQueryContext {
 	public Session getSession() {
 		return session;
 	}
+
+	public Map<String, Object> getConstants() {
+		return constants;
+	}
+
 }

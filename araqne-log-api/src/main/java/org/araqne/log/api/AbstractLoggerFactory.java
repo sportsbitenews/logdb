@@ -233,9 +233,9 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			throw new IllegalStateException("logger not found: " + fullName);
 
 		// remove listener, remove from logger registry, and delete config
-		logger.removeEventListener(sync);
 		LoggerRegistry loggerRegistry = getLoggerRegistry();
 		loggerRegistry.removeLogger(logger);
+		logger.removeEventListener(sync);
 		deleteLoggerConfig(logger);
 
 		for (LoggerFactoryEventListener callback : callbacks) {

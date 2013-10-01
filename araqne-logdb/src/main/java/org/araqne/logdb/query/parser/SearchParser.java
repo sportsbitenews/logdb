@@ -49,7 +49,7 @@ public class SearchParser implements LogQueryCommandParser {
 
 		Expression expr = null;
 		if (!exprToken.trim().isEmpty())
-			expr = ExpressionParser.parse(exprToken);
+			expr = ExpressionParser.parse(context, exprToken);
 		return new Search(limit, expr);
 	}
 }
