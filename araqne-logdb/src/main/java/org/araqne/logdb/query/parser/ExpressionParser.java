@@ -24,6 +24,11 @@ import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.expr.Expression;
 
 public class ExpressionParser {
+	
+	@Deprecated
+	public static Expression parse(String s, ParsingRule r) {
+		return parse(null, s, r);
+	}
 
 	public static Expression parse(LogQueryContext context, String s, ParsingRule r) {
 		if (s == null)
