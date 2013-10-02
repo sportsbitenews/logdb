@@ -99,4 +99,26 @@ public class RexParserTest {
 		Rex rex = (Rex) parser.parse(null, s);
 		assertEquals("(\\d+-\\d+-\\d+)", rex.getPattern().toString());
 	}
+
+	// for araqne/issue#127
+	@Test
+	public void testIgnoreInnerKeyValueOptionPattern() {
+		String s = "rex field=line \"cpu_usage=\\\"(?<cpu_usage>.*)\\\" mem_usage=\\\"(?<mem_usage>.*)\\\"\"";
+		RexParser parser = new RexParser();
+		Rex rex = (Rex) parser.parse(null, s);
+
+		// Note that escape-quote sequence is preserved, it is intended result for query convenience.
+		assertEquals("cpu_usage=\\\"(.*)\\\" mem_usage=\\\"(.*)\\\"", rex.getPattern().toString());
+
+		DummyOutput out = new DummyOutput();
+		rex.setNextCommand(out);
+		LogMap map = new LogMap();
+		map.put("line", "sample cpu_usage=\"3 %\" mem_usage=\"60 %\"");
+
+		rex.push(map);
+		LogMap map2 = out.list.get(0);
+
+		assertEquals("3 %", map2.get("cpu_usage"));
+		assertEquals("60 %", map2.get("mem_usage"));
+	}
 }

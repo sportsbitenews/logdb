@@ -19,6 +19,11 @@ import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.query.expr.Expression;
 
+/**
+ * @since 1.7.3
+ * @author xeraph
+ * 
+ */
 public class Set extends LogQueryCommand {
 	private String field;
 	private Expression expr;

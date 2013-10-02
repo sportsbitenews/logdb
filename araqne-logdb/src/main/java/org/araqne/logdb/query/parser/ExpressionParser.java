@@ -67,6 +67,9 @@ public class ExpressionParser {
 		return parse(null, s);
 	}
 
+	/**
+	 * @since 1.7.3
+	 */
 	public static Expression parse(LogQueryContext context, String s) {
 		return parse(context, s, evalRule);
 	}

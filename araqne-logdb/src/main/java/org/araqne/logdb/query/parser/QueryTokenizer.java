@@ -97,8 +97,12 @@ public class QueryTokenizer {
 			char c = s.charAt(i);
 			if (c == '\\')
 				escape = !escape;
-			if (c == '"' && !escape)
-				quote = !quote;
+			if (c == '"') {
+				if (!escape)
+					quote = !quote;
+				else
+					escape = false;
+			}
 			if (c == '=' && !quote) {
 				if (i + 1 < s.length() && s.charAt(i + 1) == '=') {
 					// skip == token
