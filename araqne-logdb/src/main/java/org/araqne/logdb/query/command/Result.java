@@ -197,8 +197,15 @@ public class Result extends LogQueryCommand {
 		syncWriter();
 
 		// TODO : check tableName
-		LogFileReaderV2 reader = new LogFileReaderV2(null, indexPath, dataPath);
-		return new LogResultSetImpl(reader, count);
+		LogFileReaderV2 reader = null;
+		try {
+			reader = new LogFileReaderV2(null, indexPath, dataPath);
+			return new LogResultSetImpl(reader, count);
+		} catch (Throwable t) {
+			if (reader != null)
+				reader.close();
+			throw new IOException(t);
+		}
 	}
 
 	public void syncWriter() throws IOException {
