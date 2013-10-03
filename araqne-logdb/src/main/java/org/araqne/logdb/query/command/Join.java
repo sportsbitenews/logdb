@@ -15,8 +15,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Join extends LogQueryCommand {
-	private final Logger logger = LoggerFactory.getLogger(Join.class);
+	public enum JoinType {
+		Inner, Left
+	}
 
+	private final Logger logger = LoggerFactory.getLogger(Join.class);
+	private final JoinType joinType;
 	private Result subQueryResult;
 	private LogResultSet subQueryResultSet;
 
@@ -34,8 +38,9 @@ public class Join extends LogQueryCommand {
 
 	private SubQueryRunner subQueryRunner = new SubQueryRunner();
 
-	public Join(SortField[] sortFields, List<LogQueryCommand> subQuery) {
+	public Join(JoinType joinType, SortField[] sortFields, List<LogQueryCommand> subQuery) {
 		try {
+			this.joinType = joinType;
 			this.joinKeyCount = sortFields.length;
 			this.joinKeys = new JoinKeys(new Object[joinKeyCount]);
 			this.sortJoinKeys1 = new Object[sortFields.length];
@@ -58,6 +63,10 @@ public class Join extends LogQueryCommand {
 		} catch (IOException e) {
 			throw new IllegalStateException("cannot create join query", e);
 		}
+	}
+
+	public JoinType getType() {
+		return joinType;
 	}
 
 	public SortField[] getSortFields() {
@@ -101,8 +110,11 @@ public class Join extends LogQueryCommand {
 				joinKeys.keys[i++] = m.get(f.getName());
 
 			List<Object> l = hashJoinMap.get(joinKeys);
-			if (l == null)
+			if (l == null) {
+				if (joinType == JoinType.Left)
+					write(m);
 				return;
+			}
 
 			for (Object o : l) {
 				@SuppressWarnings("unchecked")
@@ -118,6 +130,7 @@ public class Join extends LogQueryCommand {
 		for (SortField f : sortFields)
 			sortJoinKeys1[i++] = m.get(f.getName());
 
+		boolean found = false;
 		while (subQueryResultSet.hasNext()) {
 			Map<String, Object> sm = subQueryResultSet.next();
 
@@ -129,8 +142,12 @@ public class Join extends LogQueryCommand {
 				Map<String, Object> joinMap = new HashMap<String, Object>(m.map());
 				joinMap.putAll(sm);
 				write(new LogMap(joinMap));
+				found = true;
 			}
 		}
+
+		if (joinType == JoinType.Left && !found)
+			write(m);
 	}
 
 	@Override
