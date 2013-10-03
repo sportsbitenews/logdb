@@ -185,11 +185,11 @@ public class Join extends LogQueryCommand {
 		public void run() {
 			LogQueryCommand cmd = null;
 			try {
+				cmd = subQuery.get(subQuery.size() - 1);
 				for (int i = subQuery.size() - 1; i >= 0; i--)
 					subQuery.get(i).start();
 
 				subQuery.get(0).eof(false);
-				cmd = subQuery.get(subQuery.size() - 1);
 
 				try {
 					subQueryResultSet = subQueryResult.getResult();

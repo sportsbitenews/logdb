@@ -103,6 +103,7 @@ public class ExpressionParser {
 					opStack.add(token);
 				} else if (((TokenTerm) token).getText().equals(")")) {
 					boolean foundMatchParens = false;
+					
 					while (!opStack.isEmpty()) {
 						Term last = opStack.pop();
 						if (last instanceof TokenTerm && ((TokenTerm) last).getText().equals("(")) {
@@ -221,7 +222,7 @@ public class ExpressionParser {
 				// remove last term and add function term instead
 				tokens.remove(tokens.size() - 1);
 				tokens.add(new FuncTerm(lastToken.trim()));
-			}
+			} 
 
 			OpTerm op = rule.getOpTerm().parse(token);
 
@@ -238,10 +239,21 @@ public class ExpressionParser {
 				}
 			}
 
-			if (op != null)
+			if (tokens.size() >= 2 && token.equals(")")) {
+				// function has no argument
+				int size = tokens.size();
+				if (tokens.get(size - 1).toString().equals("(") && tokens.get(size - 2) instanceof FuncTerm) {
+					tokens.remove(size - 1);
+					FuncTerm func = (FuncTerm) tokens.get(size - 2);
+					func.setHasArgument(false);
+				} else {
+					tokens.add(new TokenTerm(token));
+				}
+			} else if (op != null) {
 				tokens.add(op);
-			else
+			} else  {
 				tokens.add(new TokenTerm(token));
+			}
 
 			next = r.next;
 			lastToken = token;
@@ -381,7 +393,7 @@ public class ExpressionParser {
 	}
 
 	private static boolean isDelimiter(Term t, ParsingRule rule) {
-		if (rule.getOpTerm().isInstance(t) || t instanceof FuncTerm)
+		if (rule.getOpTerm().isInstance(t) || (t instanceof FuncTerm && ((FuncTerm)t).hasArgument()))
 			return true;
 
 		if (t instanceof TokenTerm) {
@@ -412,9 +424,11 @@ public class ExpressionParser {
 
 	public static class FuncTerm implements Term {
 		private String name;
+		private boolean argument;
 
 		public FuncTerm(String name) {
 			this.name = name;
+			this.argument = true;
 		}
 
 		@Override
@@ -424,6 +438,14 @@ public class ExpressionParser {
 
 		public String getName() {
 			return name;
+		}
+		
+		public boolean hasArgument() {
+			return argument;
+		}
+		
+		public void setHasArgument(boolean argument) {
+			this.argument = argument;
 		}
 	}
 

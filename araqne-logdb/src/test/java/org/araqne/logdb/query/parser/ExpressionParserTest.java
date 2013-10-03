@@ -17,10 +17,13 @@ package org.araqne.logdb.query.parser;
 
 import static org.junit.Assert.*;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 
 import org.junit.Test;
 import org.araqne.logdb.LogMap;
+import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.StringConstant;
@@ -380,5 +383,15 @@ public class ExpressionParserTest {
 		} catch (LogQueryParseException e) {
 			assertEquals("invalid-escape-sequence", e.getType());
 		}
+	}
+	
+	@Test
+	public void testFuncNoArg() {
+		LogQueryContext context = new LogQueryContext(null);
+		Expression expr = ExpressionParser.parse(context, "string(now(), \"yyyyMMdd\")");
+		assertEquals(expr.eval(null), new SimpleDateFormat("yyyyMMdd").format(new Date()));
+
+		expr = ExpressionParser.parse(context, "concat(\"a\",string(now(), \"yyyyMMdd\"))");
+		assertEquals(expr.eval(null), "a" + new SimpleDateFormat("yyyyMMdd").format(new Date()));
 	}
 }

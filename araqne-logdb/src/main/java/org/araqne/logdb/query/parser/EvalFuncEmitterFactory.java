@@ -14,7 +14,7 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 	@Override
 	public void emit(LogQueryContext context, Stack<Expression> exprStack, FuncTerm f) {
 		String name = f.getName();
-		List<Expression> args = getArgsFromStack(exprStack);
+		List<Expression> args = getArgsFromStack(f, exprStack);
 
 		if (name.equals("abs")) {
 			exprStack.add(new Abs(args.get(0)));
@@ -88,9 +88,9 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 		}
 	}
 
-	private List<Expression> getArgsFromStack(Stack<Expression> exprStack) {
+	private List<Expression> getArgsFromStack(FuncTerm f, Stack<Expression> exprStack) {
 		List<Expression> exprs = null;
-		if (exprStack.isEmpty())
+		if (exprStack.isEmpty() || !f.hasArgument())
 			return new ArrayList<Expression>();
 
 		Expression arg = exprStack.pop();
