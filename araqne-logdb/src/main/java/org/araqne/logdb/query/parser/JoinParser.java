@@ -40,7 +40,7 @@ public class JoinParser implements LogQueryCommandParser {
 		for (LogQueryCommand command : subCommands)
 			command.init();
 
-		ParseResult r = QueryTokenizer.parseOptions(fieldToken, 0, Arrays.asList("type"));
+		ParseResult r = QueryTokenizer.parseOptions(context, fieldToken, 0, Arrays.asList("type"));
 		@SuppressWarnings("unchecked")
 		Map<String, Object> options = (Map<String, Object>) r.value;
 

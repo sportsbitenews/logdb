@@ -82,6 +82,8 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new DateDiff(args));
 		} else if (name.equals("$")) {
 			exprStack.add(new ContextReference(context, args));
+		} else if (name.equals("guid")) {
+			exprStack.add(new Guid());
 		}
 		else {
 			throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);

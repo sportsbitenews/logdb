@@ -24,7 +24,29 @@ import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.expr.Expression;
 
 public class ExpressionParser {
-	
+
+	/**
+	 * @since 1.7.5
+	 */
+	public static boolean isContextReference(String optionValue) {
+		return optionValue != null && optionValue.startsWith("$(\"") && optionValue.endsWith("\")");
+	}
+
+	/**
+	 * @since 1.7.5
+	 */
+	public static String evalContextReference(LogQueryContext context, String s) {
+		if (ExpressionParser.isContextReference(s)) {
+			Expression contextReference = ExpressionParser.parse(context, s);
+			Object o = contextReference.eval(null);
+			if (o == null)
+				return "";
+			return o.toString();
+		}
+
+		return s;
+	}
+
 	@Deprecated
 	public static Expression parse(String s, ParsingRule r) {
 		return parse(null, s, r);
@@ -103,7 +125,7 @@ public class ExpressionParser {
 					opStack.add(token);
 				} else if (((TokenTerm) token).getText().equals(")")) {
 					boolean foundMatchParens = false;
-					
+
 					while (!opStack.isEmpty()) {
 						Term last = opStack.pop();
 						if (last instanceof TokenTerm && ((TokenTerm) last).getText().equals("(")) {
@@ -222,7 +244,7 @@ public class ExpressionParser {
 				// remove last term and add function term instead
 				tokens.remove(tokens.size() - 1);
 				tokens.add(new FuncTerm(lastToken.trim()));
-			} 
+			}
 
 			OpTerm op = rule.getOpTerm().parse(token);
 
@@ -251,7 +273,7 @@ public class ExpressionParser {
 				}
 			} else if (op != null) {
 				tokens.add(op);
-			} else  {
+			} else {
 				tokens.add(new TokenTerm(token));
 			}
 
@@ -393,7 +415,7 @@ public class ExpressionParser {
 	}
 
 	private static boolean isDelimiter(Term t, ParsingRule rule) {
-		if (rule.getOpTerm().isInstance(t) || (t instanceof FuncTerm && ((FuncTerm)t).hasArgument()))
+		if (rule.getOpTerm().isInstance(t) || (t instanceof FuncTerm && ((FuncTerm) t).hasArgument()))
 			return true;
 
 		if (t instanceof TokenTerm) {
@@ -439,11 +461,11 @@ public class ExpressionParser {
 		public String getName() {
 			return name;
 		}
-		
+
 		public boolean hasArgument() {
 			return argument;
 		}
-		
+
 		public void setHasArgument(boolean argument) {
 			this.argument = argument;
 		}

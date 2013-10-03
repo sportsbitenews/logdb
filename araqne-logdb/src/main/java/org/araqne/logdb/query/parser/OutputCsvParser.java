@@ -38,10 +38,11 @@ public class OutputCsvParser implements LogQueryCommandParser {
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
 			throw new LogQueryParseException("missing-field", commandString.length());
-		
+
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
 		List<String> fields = new ArrayList<String>();
 		String csvPath = tokens.firstArg();
+		csvPath = ExpressionParser.evalContextReference(context, csvPath);
 
 		List<QueryToken> fieldTokens = tokens.subtokens(2, tokens.size());
 		for (QueryToken t : fieldTokens) {
@@ -49,7 +50,7 @@ public class OutputCsvParser implements LogQueryCommandParser {
 			while (tok.hasMoreTokens())
 				fields.add(tok.nextToken().trim());
 		}
-		
+
 		if (fields.size() == 0)
 			throw new LogQueryParseException("missing-field", commandString.length());
 

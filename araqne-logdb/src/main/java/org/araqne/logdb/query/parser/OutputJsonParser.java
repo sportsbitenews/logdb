@@ -48,6 +48,8 @@ public class OutputJsonParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("missing-field", tokens.size());
 
 		String filePath = tokens.firstArg();
+		filePath = ExpressionParser.evalContextReference(context, filePath);
+		
 		List<String> fields = new ArrayList<String>();
 
 		List<QueryToken> queryFields = tokens.subtokens(2, tokens.size());

@@ -41,7 +41,7 @@ public class TimechartParser implements LogQueryCommandParser {
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
 		// timechart <options> <aggregation functions> by <clause>
-		ParseResult r = QueryTokenizer.parseOptions(commandString, COMMAND.length(), Arrays.asList("span"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, COMMAND.length(), Arrays.asList("span"));
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;

@@ -94,7 +94,9 @@ public abstract class LogQueryCommand {
 		}
 	}
 
-	public abstract boolean isReducer();
+	public boolean isReducer() {
+		return false;
+	}
 
 	public boolean isCallbackTimeline() {
 		return callbackTimeline;
