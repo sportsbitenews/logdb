@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb;
+package org.araqne.logdb.query.expr;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.UUID;
 
-public class LogQueryContext {
-	private Session session;
-	private Map<String, Object> constants = new HashMap<String, Object>();
+import org.araqne.logdb.LogMap;
 
-	public LogQueryContext(Session session) {
-		this.session = session;
-	}
+/**
+ * @since 1.7.5
+ * @author xeraph
+ *
+ */
+public class Guid implements Expression {
 
-	public Session getSession() {
-		return session;
-	}
-
-	public Map<String, Object> getConstants() {
-		return constants;
+	@Override
+	public Object eval(LogMap map) {
+		return UUID.randomUUID().toString();
 	}
 
 }

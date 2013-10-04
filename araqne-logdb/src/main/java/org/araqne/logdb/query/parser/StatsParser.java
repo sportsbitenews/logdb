@@ -60,7 +60,7 @@ public class StatsParser implements LogQueryCommandParser {
 		List<AggregationField> fields = new ArrayList<AggregationField>();
 
 		for (String aggTerm : aggTerms) {
-			AggregationField field = AggregationParser.parse(aggTerm);
+			AggregationField field = AggregationParser.parse(context, aggTerm);
 			fields.add(field);
 		}
 

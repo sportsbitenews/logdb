@@ -43,7 +43,7 @@ public class LogCheckParser implements LogQueryCommandParser {
 		if (!context.getSession().isAdmin())
 			throw new LogQueryParseException("no-permission", -1);
 
-		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length(),
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
 				Arrays.asList("from", "to"));
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");

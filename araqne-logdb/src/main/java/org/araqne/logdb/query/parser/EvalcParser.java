@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,17 @@ import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryParseException;
-import org.araqne.logdb.query.command.Eval;
+import org.araqne.logdb.query.command.Evalc;
 import org.araqne.logdb.query.expr.Expression;
 
-public class EvalParser implements LogQueryCommandParser {
+/**
+ * @since 1.7.5
+ * @author xeraph
+ *
+ */
+public class EvalcParser implements LogQueryCommandParser {
 
-	private static final String COMMAND = "eval";
+	private static final String COMMAND = "evalc";
 
 	@Override
 	public String getCommandName() {
@@ -38,17 +43,17 @@ public class EvalParser implements LogQueryCommandParser {
 		if (p < 0)
 			throw new LogQueryParseException("assign-token-not-found", commandString.length());
 
-		String field = commandString.substring(COMMAND.length(), p).trim();
+		String constantName = commandString.substring(COMMAND.length(), p).trim();
 		String exprToken = commandString.substring(p + 1).trim();
 
-		if (field.isEmpty())
-			throw new LogQueryParseException("field-name-not-found", commandString.length());
+		if (constantName.isEmpty())
+			throw new LogQueryParseException("constant-name-not-found", commandString.length());
 
 		if (exprToken.isEmpty())
 			throw new LogQueryParseException("expression-not-found", commandString.length());
 
 		Expression expr = ExpressionParser.parse(context, exprToken);
-		return new Eval(field, expr);
+		return new Evalc(context, constantName, expr);
 	}
 
 }

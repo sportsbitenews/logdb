@@ -62,7 +62,7 @@ public class TableParser implements LogQueryCommandParser {
 		if (logStorage.getStatus() != LogStorageStatus.Open)
 			throw new LogQueryParseException("archive-not-opened", -1);
 
-		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length(),
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
 				Arrays.asList("from", "to", "offset", "limit", "duration", "parser"));
 		Map<String, String> options = (Map<String, String>) r.value;
 
@@ -94,6 +94,7 @@ public class TableParser implements LogQueryCommandParser {
 
 		if (options.containsKey("from"))
 			from = QueryTokenizer.getDate(options.get("from"));
+
 		if (options.containsKey("to"))
 			to = QueryTokenizer.getDate(options.get("to"));
 

@@ -12,6 +12,7 @@ import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryParserService;
 import org.araqne.logdb.query.command.Join;
 import org.araqne.logdb.query.command.Table;
+import org.araqne.logdb.query.command.Join.JoinType;
 import org.araqne.logdb.query.command.Table.TableParams;
 import org.junit.Test;
 
@@ -20,6 +21,31 @@ public class JoinParserTest {
 	public void testParse() {
 		System.setProperty("araqne.data.dir", ".");
 		String joinCommand = "join ip [ table users ]";
+		LogQueryParserService p = prepareMockQueryParser();
+
+		Join join = (Join) new JoinParser(p).parse(null, joinCommand);
+		assertEquals(JoinType.Inner, join.getType());
+		assertEquals(1, join.getSortFields().length);
+		assertEquals("ip", join.getSortFields()[0].getName());
+		assertTrue(join.getSortFields()[0].isAsc());
+
+		assertTrue(join.getSubQuery().get(0) instanceof Table);
+	}
+
+	@Test
+	public void testLeftJoinType() {
+		LogQueryParserService p = prepareMockQueryParser();
+		Join join = (Join) new JoinParser(p).parse(null, "join type=left ip [ table users ]");
+
+		assertEquals(JoinType.Left, join.getType());
+		assertEquals(1, join.getSortFields().length);
+		assertEquals("ip", join.getSortFields()[0].getName());
+		assertTrue(join.getSortFields()[0].isAsc());
+
+		assertTrue(join.getSubQuery().get(0) instanceof Table);
+	}
+
+	private LogQueryParserService prepareMockQueryParser() {
 		LogQueryParserService p = mock(LogQueryParserService.class);
 
 		TableParams params = new TableParams();
@@ -29,12 +55,6 @@ public class JoinParserTest {
 		ArrayList<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 		commands.add(table);
 		when(p.parseCommands(null, "table users")).thenReturn(commands);
-
-		Join join = (Join) new JoinParser(p).parse(null, joinCommand);
-		assertEquals(1, join.getSortFields().length);
-		assertEquals("ip", join.getSortFields()[0].getName());
-		assertTrue(join.getSortFields()[0].isAsc());
-
-		assertTrue(join.getSubQuery().get(0) instanceof Table);
+		return p;
 	}
 }

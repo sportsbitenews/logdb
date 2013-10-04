@@ -41,7 +41,7 @@ public class RexParser implements LogQueryCommandParser {
 		// extract field names and remove placeholder
 		List<String> names = new ArrayList<String>();
 
-		ParseResult r = QueryTokenizer.parseOptions(commandString, "rex".length(), Arrays.asList("field"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "rex".length(), Arrays.asList("field"));
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 

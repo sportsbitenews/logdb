@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -377,6 +378,21 @@ public class LogDbClient implements TrapListener {
 		return getIndexInfo((Map<String, Object>) resp.getParameters().get("index"));
 	}
 
+	/**
+	 * @since 0.8.1
+	 */
+	@SuppressWarnings("unchecked")
+	public Set<String> testIndexTokenizer(String tableName, String indexName, Map<String, Object> data) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+		params.put("index", indexName);
+		params.put("data", data);
+
+		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.testIndexTokenizer", params);
+		return new HashSet<String>((List<String>) resp.getParameters().get("tokens"));
+
+	}
+
 	@SuppressWarnings("unchecked")
 	private IndexInfo getIndexInfo(Map<String, Object> m) {
 		IndexInfo index = new IndexInfo();
@@ -643,6 +659,19 @@ public class LogDbClient implements TrapListener {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
 		session.rpc("org.logpresso.core.msgbus.ParserPlugin.removeParser", params);
+	}
+
+	/**
+	 * @since 0.8.1
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> testParser(String parserName, Map<String, Object> data) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", parserName);
+		params.put("data", data);
+
+		Message resp = session.rpc("org.logpresso.core.msgbus.ParserPlugin.testParser", params);
+		return (List<Map<String, Object>>) resp.get("rows");
 	}
 
 	@SuppressWarnings("unchecked")

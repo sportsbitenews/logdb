@@ -17,6 +17,7 @@ package org.araqne.log.api;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -132,6 +133,9 @@ public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 			logger.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
 					offset, lastPosition.get() });
 			lastPositions.put(path, Long.toString(lastPosition.get()));
+		} catch (FileNotFoundException e) {
+			if (logger.isTraceEnabled())
+				logger.trace("araqne log api: [" + getName() + "] logger read failure: file not found: {}", e.getMessage());
 		} catch (Throwable e) {
 			logger.error("araqne log api: [" + getName() + "] logger read error", e);
 		} finally {

@@ -24,13 +24,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryParseException;
 
 public class QueryTokenizer {
 	private QueryTokenizer() {
 	}
 
+	@Deprecated
 	public static ParseResult parseOptions(String s, int offset, List<String> validKeys) {
+		return parseOptions(null, s, offset, validKeys);
+	}
+
+	/**
+	 * @since 1.7.5
+	 */
+	public static ParseResult parseOptions(LogQueryContext context, String s, int offset, List<String> validKeys) {
 		HashMap<String, Object> options = new HashMap<String, Object>();
 		int next = offset;
 		while (true) {
@@ -67,6 +76,7 @@ public class QueryTokenizer {
 					throw new LogQueryParseException("string-quote-mismatch", s.length());
 
 				String quotedValue = s.substring(p + 2, closingQuote);
+				quotedValue = ExpressionParser.evalContextReference(context, quotedValue);
 				options.put(key, quotedValue);
 				next = closingQuote + 1;
 			} else {
@@ -77,9 +87,11 @@ public class QueryTokenizer {
 					next = e;
 
 					String value = s.substring(p + 1);
+					value = ExpressionParser.evalContextReference(context, value);
 					options.put(key, value);
 				} else {
 					String value = s.substring(p + 1, e);
+					value = ExpressionParser.evalContextReference(context, value);
 					options.put(key, value);
 					next = e + 1;
 				}
@@ -97,8 +109,12 @@ public class QueryTokenizer {
 			char c = s.charAt(i);
 			if (c == '\\')
 				escape = !escape;
-			if (c == '"' && !escape)
-				quote = !quote;
+			if (c == '"') {
+				if (!escape)
+					quote = !quote;
+				else
+					escape = false;
+			}
 			if (c == '=' && !quote) {
 				if (i + 1 < s.length() && s.charAt(i + 1) == '=') {
 					// skip == token

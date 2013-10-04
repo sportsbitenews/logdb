@@ -43,7 +43,7 @@ public class ScriptParser implements LogQueryCommandParser {
 	@SuppressWarnings("unchecked")
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length(), new ArrayList<String>());
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>());
 		String name = commandString.substring(r.next);
 
 		LogQueryScript script = scriptRegistry.newScript("localhost", name, null);

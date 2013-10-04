@@ -36,7 +36,7 @@ public class SortParser implements LogQueryCommandParser {
 	@Override
 	@SuppressWarnings("unchecked")
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(commandString, "sort".length(), Arrays.asList("limit"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "sort".length(), Arrays.asList("limit"));
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		Integer count = null;

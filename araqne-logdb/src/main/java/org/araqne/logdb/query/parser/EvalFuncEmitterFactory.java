@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
+import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.expr.*;
 import org.araqne.logdb.query.parser.ExpressionParser.FuncTerm;
@@ -11,9 +12,9 @@ import org.araqne.logdb.query.parser.ExpressionParser.FuncTerm;
 public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 
 	@Override
-	public void emit(Stack<Expression> exprStack, FuncTerm f) {
+	public void emit(LogQueryContext context, Stack<Expression> exprStack, FuncTerm f) {
 		String name = f.getName();
-		List<Expression> args = getArgsFromStack(exprStack);
+		List<Expression> args = getArgsFromStack(f, exprStack);
 
 		if (name.equals("abs")) {
 			exprStack.add(new Abs(args.get(0)));
@@ -73,13 +74,27 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new Lower(args));
 		} else if (name.equals("upper")) {
 			exprStack.add(new Upper(args));
-		} else {
+		} else if (name.equals("dateadd")) {
+			exprStack.add(new DateAdd(args));
+		} else if (name.equals("now")) {
+			exprStack.add(new Now(args));
+		} else if (name.equals("datediff")) {
+			exprStack.add(new DateDiff(args));
+		} else if (name.equals("$")) {
+			exprStack.add(new ContextReference(context, args));
+		} else if (name.equals("guid")) {
+			exprStack.add(new Guid());
+		}
+		else {
 			throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
 		}
 	}
 
-	private List<Expression> getArgsFromStack(Stack<Expression> exprStack) {
+	private List<Expression> getArgsFromStack(FuncTerm f, Stack<Expression> exprStack) {
 		List<Expression> exprs = null;
+		if (exprStack.isEmpty() || !f.hasArgument())
+			return new ArrayList<Expression>();
+
 		Expression arg = exprStack.pop();
 		if (arg instanceof Comma) {
 			exprs = ((Comma) arg).getList();
