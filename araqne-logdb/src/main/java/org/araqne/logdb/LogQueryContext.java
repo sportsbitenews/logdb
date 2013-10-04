@@ -25,7 +25,7 @@ public class LogQueryContext {
 	public LogQueryContext(Session session) {
 		this.session = session;
 	}
-
+	
 	public Session getSession() {
 		return session;
 	}

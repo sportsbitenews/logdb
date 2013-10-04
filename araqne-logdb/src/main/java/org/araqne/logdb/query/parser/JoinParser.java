@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryContext;
@@ -39,7 +40,7 @@ public class JoinParser implements LogQueryCommandParser {
 		subCommands = queryParserService.parseCommands(context, subquery);
 		for (LogQueryCommand command : subCommands)
 			command.init();
-
+		
 		ParseResult r = QueryTokenizer.parseOptions(context, fieldToken, 0, Arrays.asList("type"));
 		@SuppressWarnings("unchecked")
 		Map<String, Object> options = (Map<String, Object>) r.value;
@@ -57,6 +58,6 @@ public class JoinParser implements LogQueryCommandParser {
 			joinType = JoinType.Left;
 
 		List<SortField> sortFields = SortField.parseSortFields(fieldToken, r);
-		return new Join(joinType, sortFields.toArray(new SortField[0]), subCommands);
+		return new Join(joinType, sortFields.toArray(new SortField[0]), subquery, subCommands);
 	}
 }
