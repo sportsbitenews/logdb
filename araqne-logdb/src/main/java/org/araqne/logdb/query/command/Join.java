@@ -121,8 +121,12 @@ public class Join extends LogQueryCommand {
 
 		if (hashJoinMap != null) {
 			int i = 0;
-			for (SortField f : sortFields)
-				joinKeys.keys[i++] = m.get(f.getName());
+			for (SortField f : sortFields) {
+				Object joinValue = m.get(f.getName());
+				if (joinValue instanceof Integer || joinValue instanceof Short)
+					joinValue = ((Number) joinValue).longValue();
+				joinKeys.keys[i++] = joinValue;
+			}
 
 			List<Object> l = hashJoinMap.get(joinKeys);
 			if (l == null) {
@@ -142,16 +146,24 @@ public class Join extends LogQueryCommand {
 		}
 
 		int i = 0;
-		for (SortField f : sortFields)
-			sortJoinKeys1[i++] = m.get(f.getName());
+		for (SortField f : sortFields) {
+			Object joinValue = m.get(f.getName());
+			if (joinValue instanceof Integer || joinValue instanceof Short)
+				joinValue = ((Number) joinValue).longValue();
+			sortJoinKeys1[i++] = joinValue;
+		}
 
 		boolean found = false;
 		while (subQueryResultSet.hasNext()) {
 			Map<String, Object> sm = subQueryResultSet.next();
 
 			i = 0;
-			for (SortField f : sortFields)
-				sortJoinKeys2[i++] = sm.get(f.getName());
+			for (SortField f : sortFields) {
+				Object joinValue = sm.get(f.getName());
+				if (joinValue instanceof Integer || joinValue instanceof Short)
+					joinValue = ((Number) joinValue).longValue();
+				sortJoinKeys2[i++] = joinValue;
+			}
 
 			if (Arrays.equals(sortJoinKeys1, sortJoinKeys2)) {
 				Map<String, Object> joinMap = new HashMap<String, Object>(m.map());
@@ -244,8 +256,13 @@ public class Join extends LogQueryCommand {
 				Map<String, Object> sm = subQueryResultSet.next();
 
 				Object[] keys = new Object[joinKeyCount];
-				for (int i = 0; i < joinKeyCount; i++)
-					keys[i] = sm.get(sortFields[i].getName());
+				for (int i = 0; i < joinKeyCount; i++) {
+					Object joinValue = sm.get(sortFields[i].getName());
+					if (joinValue instanceof Integer || joinValue instanceof Short) {
+						joinValue = ((Number) joinValue).longValue();
+					}
+					keys[i] = joinValue;
+				}
 
 				JoinKeys joinKeys = new JoinKeys(keys);
 				List<Object> l = hashJoinMap.get(joinKeys);
