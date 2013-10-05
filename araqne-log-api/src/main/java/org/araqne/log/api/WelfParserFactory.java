@@ -23,7 +23,7 @@ import java.util.Map;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 
-@Component(name = "tag-parser-factory")
+@Component(name = "welf-parser-factory")
 @Provides
 public class WelfParserFactory extends AbstractLogParserFactory {
 

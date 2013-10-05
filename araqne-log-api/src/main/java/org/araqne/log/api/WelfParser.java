@@ -15,11 +15,13 @@
  */
 package org.araqne.log.api;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 // id, time, fw, pri is required in order.
 public class WelfParser extends V1LogParser {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(WelfParser.class);
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
@@ -27,72 +29,70 @@ public class WelfParser extends V1LogParser {
 		if (line == null)
 			return params;
 
-		HashMap<String, Object> m = new HashMap<String, Object>();
+		try {
+			// tokenize pairs
 
-		String key = null;
-		boolean readingKey = true;
-		boolean openQuote = false;
-		char last = '\0';
-		int begin = 0;
-
-		int len = line.length();
-		for (int i = 0; i < len; i++) {
-			char c = line.charAt(i);
-			if ((c == '=' || c == ' ') && !openQuote) {
-				String t = line.substring(begin, i);
-				if (readingKey) {
-					key = t;
-				} else {
-					m.put(key, t);
+			ArrayList<String> tokens = new ArrayList<String>();
+			char last = '\0';
+			boolean quoteOpen = false;
+			int begin = 0;
+			for (int i = 0; i < line.length(); i++) {
+				char c = line.charAt(i);
+				if (last != '\\' && c == '"') {
+					if (quoteOpen) {
+						String t = line.substring(begin, i + 1).trim();
+						tokens.add(t);
+						quoteOpen = false;
+						begin = ++i;
+						continue;
+					} else
+						quoteOpen = true;
 				}
 
-				readingKey = !readingKey;
-				// System.out.println(t);
-
-				// to the next non-whitespace
-				while (++i < len) {
-					c = line.charAt(i);
-					if (c != ' ' && c != '\t')
-						break;
-				}
-
-				begin = i;
-			}
-
-			if (c == '"') {
-				if (openQuote && last != '\\') {
-					String t = line.substring(begin, i);
-					if (readingKey) {
-						key = t;
-					} else {
-						m.put(key, t);
-					}
-
-					readingKey = !readingKey;
-					// System.out.println(t);
-					openQuote = false;
-
-					// to the next non-whitespace
-					while (++i < len) {
-						c = line.charAt(i);
-						if (c != ' ' && c != '\t')
-							break;
-					}
-
-					begin = i;
-				} else {
-					openQuote = !openQuote;
+				if (c == ' ' && !quoteOpen) {
+					String t = line.substring(begin, i).trim();
+					tokens.add(t);
 					begin = i + 1;
 				}
+
+				last = c;
 			}
 
-			last = c;
-		}
-		
-		if (begin < len)
-			m.put(key, line.substring(begin, len));
+			tokens.add(line.substring(begin).trim());
 
-		return m;
+			// extract key value from each pair
+
+			System.out.println(tokens);
+			HashMap<String, Object> m = new HashMap<String, Object>();
+
+			int count = tokens.size();
+			for (int i = 0; i < count; i++) {
+				String t = tokens.get(i);
+				int p = t.indexOf('=');
+				if (p < 0) {
+					if (i + 1 < count) {
+						String value = tokens.get(++i);
+						if (value.startsWith("\"") && value.length() > 1)
+							value = value.substring(1, value.length() - 1);
+						m.put(t, value);
+					} else {
+						m.put(t, null);
+					}
+				} else {
+					String key = t.substring(0, p);
+					String value = t.substring(p + 1);
+					if (value.startsWith("\"") && value.length() > 1)
+						value = value.substring(1, value.length() - 1);
+					m.put(key, value);
+				}
+			}
+
+			return m;
+		} catch (Throwable t) {
+			if (slog.isDebugEnabled())
+				slog.debug("araqne log api: cannot parse welf format - line [{}]", line);
+			return params;
+		}
 	}
 
 }
