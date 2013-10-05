@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Map;
 
 import org.araqne.logstorage.file.LogFileReader;
+import org.araqne.logstorage.file.LogFileRepairer;
 import org.araqne.logstorage.file.LogFileWriter;
 
 public interface LogFileService {
@@ -20,6 +21,8 @@ public interface LogFileService {
 	LogFileWriter newWriter(Map<String, Object> options);
 
 	LogFileReader newReader(String tableName, Map<String, Object> options);
+	
+	LogFileRepairer newRepairer();
 
 	Map<String, String> getConfigs();
 

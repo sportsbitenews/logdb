@@ -8,9 +8,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.LogMap;
+import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogResultSet;
 import org.araqne.logdb.query.command.Sort.SortField;
+import org.araqne.logdb.query.engine.LogQueryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +25,7 @@ public class Join extends LogQueryCommand {
 	private final JoinType joinType;
 	private Result subQueryResult;
 	private LogResultSet subQueryResultSet;
+	private volatile boolean subQueryEnd = false;
 
 	// for later sort-merge join
 	private Object[] sortJoinKeys1;
@@ -34,11 +37,12 @@ public class Join extends LogQueryCommand {
 
 	private int joinKeyCount;
 	private SortField[] sortFields;
-	private List<LogQueryCommand> subQuery;
+	private String subQueryString;
+	private List<LogQueryCommand> subQueryCommands;
 
 	private SubQueryRunner subQueryRunner = new SubQueryRunner();
 
-	public Join(JoinType joinType, SortField[] sortFields, List<LogQueryCommand> subQuery) {
+	public Join(JoinType joinType, SortField[] sortFields, String subQueryString, List<LogQueryCommand> subQueryCommands) {
 		try {
 			this.joinType = joinType;
 			this.joinKeyCount = sortFields.length;
@@ -47,22 +51,33 @@ public class Join extends LogQueryCommand {
 			this.sortJoinKeys2 = new Object[sortFields.length];
 
 			this.sortFields = sortFields;
-			this.subQuery = subQuery;
+			this.subQueryCommands = subQueryCommands;
+			this.subQueryString = subQueryString;
 			this.subQueryResult = new Result("sub");
 
 			Sort sort = new Sort(sortFields);
 			sort.init();
 
-			LogQueryCommand lastCmd = subQuery.get(subQuery.size() - 1);
+			LogQueryCommand lastCmd = subQueryCommands.get(subQueryCommands.size() - 1);
 
 			lastCmd.setNextCommand(sort);
 			sort.setNextCommand(subQueryResult);
 
-			this.subQuery.add(sort);
-			this.subQuery.add(subQueryResult);
+			this.subQueryCommands.add(sort);
+			this.subQueryCommands.add(subQueryResult);
 		} catch (IOException e) {
 			throw new IllegalStateException("cannot create join query", e);
 		}
+	}
+
+	@Override
+	public void setLogQuery(LogQuery logQuery) {
+		LogQuery q = new LogQueryImpl(logQuery.getContext(), subQueryString, subQueryCommands);
+
+		for (LogQueryCommand cmd : subQueryCommands)
+			cmd.setLogQuery(q);
+
+		super.setLogQuery(logQuery);
 	}
 
 	public JoinType getType() {
@@ -74,7 +89,7 @@ public class Join extends LogQueryCommand {
 	}
 
 	public List<LogQueryCommand> getSubQuery() {
-		return subQuery;
+		return subQueryCommands;
 	}
 
 	@Override
@@ -85,11 +100,11 @@ public class Join extends LogQueryCommand {
 
 	@Override
 	public void push(LogMap m) {
-		LogQueryCommand cmd = subQuery.get(subQuery.size() - 1);
+		LogQueryCommand cmd = subQueryCommands.get(subQueryCommands.size() - 1);
 
 		// wait until subquery end
 		synchronized (cmd) {
-			while (subQueryResultSet == null && cmd.getStatus() != Status.End) {
+			while (!subQueryEnd) {
 				try {
 					cmd.wait(1000);
 				} catch (InterruptedException e) {
@@ -106,8 +121,12 @@ public class Join extends LogQueryCommand {
 
 		if (hashJoinMap != null) {
 			int i = 0;
-			for (SortField f : sortFields)
-				joinKeys.keys[i++] = m.get(f.getName());
+			for (SortField f : sortFields) {
+				Object joinValue = m.get(f.getName());
+				if (joinValue instanceof Integer || joinValue instanceof Short)
+					joinValue = ((Number) joinValue).longValue();
+				joinKeys.keys[i++] = joinValue;
+			}
 
 			List<Object> l = hashJoinMap.get(joinKeys);
 			if (l == null) {
@@ -127,16 +146,24 @@ public class Join extends LogQueryCommand {
 		}
 
 		int i = 0;
-		for (SortField f : sortFields)
-			sortJoinKeys1[i++] = m.get(f.getName());
+		for (SortField f : sortFields) {
+			Object joinValue = m.get(f.getName());
+			if (joinValue instanceof Integer || joinValue instanceof Short)
+				joinValue = ((Number) joinValue).longValue();
+			sortJoinKeys1[i++] = joinValue;
+		}
 
 		boolean found = false;
 		while (subQueryResultSet.hasNext()) {
 			Map<String, Object> sm = subQueryResultSet.next();
 
 			i = 0;
-			for (SortField f : sortFields)
-				sortJoinKeys2[i++] = sm.get(f.getName());
+			for (SortField f : sortFields) {
+				Object joinValue = sm.get(f.getName());
+				if (joinValue instanceof Integer || joinValue instanceof Short)
+					joinValue = ((Number) joinValue).longValue();
+				sortJoinKeys2[i++] = joinValue;
+			}
 
 			if (Arrays.equals(sortJoinKeys1, sortJoinKeys2)) {
 				Map<String, Object> joinMap = new HashMap<String, Object>(m.map());
@@ -157,7 +184,7 @@ public class Join extends LogQueryCommand {
 
 	@Override
 	public void eof(boolean cancelled) {
-		subQuery.get(0).eof(cancelled);
+		subQueryCommands.get(0).eof(cancelled);
 
 		if (subQueryResultSet != null) {
 			try {
@@ -183,13 +210,15 @@ public class Join extends LogQueryCommand {
 
 		@Override
 		public void run() {
+			boolean completed = false;
 			LogQueryCommand cmd = null;
 			try {
-				cmd = subQuery.get(subQuery.size() - 1);
-				for (int i = subQuery.size() - 1; i >= 0; i--)
-					subQuery.get(i).start();
+				cmd = subQueryCommands.get(subQueryCommands.size() - 1);
+				for (int i = subQueryCommands.size() - 1; i >= 0; i--)
+					subQueryCommands.get(i).start();
 
-				subQuery.get(0).eof(false);
+				subQueryCommands.get(0).eof(false);
+				completed = true;
 
 				try {
 					subQueryResultSet = subQueryResult.getResult();
@@ -203,8 +232,13 @@ public class Join extends LogQueryCommand {
 				}
 
 			} catch (Throwable t) {
+				if (!completed)
+					subQueryCommands.get(0).eof(true);
+
 				logger.error("araqne logdb: subquery failed, query " + logQuery.getId(), t);
 			} finally {
+				subQueryEnd = true;
+
 				if (cmd != null) {
 					synchronized (cmd) {
 						cmd.notifyAll();
@@ -222,8 +256,13 @@ public class Join extends LogQueryCommand {
 				Map<String, Object> sm = subQueryResultSet.next();
 
 				Object[] keys = new Object[joinKeyCount];
-				for (int i = 0; i < joinKeyCount; i++)
-					keys[i] = sm.get(sortFields[i].getName());
+				for (int i = 0; i < joinKeyCount; i++) {
+					Object joinValue = sm.get(sortFields[i].getName());
+					if (joinValue instanceof Integer || joinValue instanceof Short) {
+						joinValue = ((Number) joinValue).longValue();
+					}
+					keys[i] = joinValue;
+				}
 
 				JoinKeys joinKeys = new JoinKeys(keys);
 				List<Object> l = hashJoinMap.get(joinKeys);

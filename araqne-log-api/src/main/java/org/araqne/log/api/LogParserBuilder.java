@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb;
 
-import java.util.HashMap;
-import java.util.Map;
+package org.araqne.log.api;
 
-public class LogQueryContext {
-	private Session session;
-	private Map<String, Object> constants = new HashMap<String, Object>();
-
-	public LogQueryContext(Session session) {
-		this.session = session;
-	}
-	
-	public Session getSession() {
-		return session;
-	}
-
-	public Map<String, Object> getConstants() {
-		return constants;
-	}
-
+public interface LogParserBuilder {
+	LogParser build();
 }

@@ -23,8 +23,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserBugException;
+import org.araqne.log.api.LogParserBuilder;
+import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
+import org.araqne.logstorage.LogTraverseCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,7 +123,6 @@ public class LogFileReaderV1 extends LogFileReader {
 			try {
 				result = find(id);
 			} catch (IOException e) {
-				// TODO: error handling
 			}
 			if (result != null)
 				ret.add(result);
@@ -266,6 +270,172 @@ public class LogFileReaderV1 extends LogFileReader {
 
 		private long read6Bytes(RandomAccessFile f) throws IOException {
 			return ((long) f.readInt() << 16) | (f.readShort() & 0xFFFF);
+		}
+	}
+
+	@Override
+	public List<Log> find(Date from, Date to, List<Long> ids, LogParserBuilder builder) {
+		boolean suppressBugAlert = false;
+		List<Log> ret = new ArrayList<Log>(ids.size());
+		LogParser parser = null;
+		if (builder != null)
+			parser = builder.build();
+
+		for (long id : ids) {
+			LogRecord record = null;
+			try {
+				Long pos = null;
+				for (BlockHeader header : blockHeaders) {
+					if (id < header.firstId + header.blockLength / INDEX_ITEM_SIZE) {
+						// fp + header size + offset + (id + date) index
+						long indexPos = header.fp + 18 + (id - header.firstId) * INDEX_ITEM_SIZE + 10;
+						indexFile.seek(indexPos);
+						pos = read6Bytes(indexFile);
+						break;
+					}
+				}
+				if (pos == null)
+					return null;
+
+				// read data length
+				dataFile.seek(pos);
+				int key = dataFile.readInt();
+				Date date = new Date(dataFile.readLong());
+				int dataLen = dataFile.readInt();
+
+				// read block
+				byte[] block = new byte[dataLen];
+				dataFile.readFully(block);
+
+				ByteBuffer bb = ByteBuffer.wrap(block);
+				record = new LogRecord(date, key, bb);
+			} catch (IOException e) {
+			}
+			if (record == null)
+				continue;
+
+			List<Log> result = null;
+			try {
+				result = parse(tableName, parser, record);
+			} catch (LogParserBugException e) {
+				result = new ArrayList<Log>(1);
+				result.add(new Log(e.tableName, e.date, e.id, e.logMap));
+				
+				if (!suppressBugAlert) {
+					logger.error("araqne logstorage: PARSER BUG! original log => table " +
+							e.tableName + ", id " + e.id + ", data " + e.logMap, e.cause);
+					suppressBugAlert = true;
+				}
+			} finally {
+				if (result != null) {
+					for (Log log : result) {
+						if (from != null || to != null) {
+							Date logDate = log.getDate();
+							if (from != null && logDate.before(from))
+								continue;
+							if (to != null && !logDate.before(to))
+								continue;
+						}
+
+						ret.add(log);
+					}
+				}
+			}
+		}
+
+		return ret;
+	}
+
+	@Override
+	public void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
+			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException {
+		boolean suppressBugAlert = false;
+
+		int block = blockHeaders.size() - 1;
+		BlockHeader header = blockHeaders.get(block);
+		long blockLogNum = header.blockLength / INDEX_ITEM_SIZE;
+
+		if (header.endTime == 0)
+			blockLogNum = (indexFile.length() - (header.fp + 18)) / INDEX_ITEM_SIZE;
+
+		// block validate
+		// TODO : block skipping by id
+		while ((from != null && header.endTime != 0L && header.endTime < from.getTime())
+				|| (to != null && header.startTime > to.getTime())) {
+			if (--block < 0)
+				return;
+			header = blockHeaders.get(block);
+			blockLogNum = header.blockLength / INDEX_ITEM_SIZE;
+		}
+		
+		LogParser parser = null;
+		if (builder != null)
+			parser = builder.build();	
+
+		while (true) {
+			if (--blockLogNum < 0) {
+				do {
+					if (--block < 0)
+						return;
+					header = blockHeaders.get(block);
+					blockLogNum = header.blockLength / INDEX_ITEM_SIZE - 1;
+				} while ((from != null && header.endTime < from.getTime()) || (to != null && header.startTime > to.getTime()));
+			}
+
+			// begin of item (ignore id)
+			indexFile.seek(header.fp + 18 + INDEX_ITEM_SIZE * blockLogNum + 4);
+
+			// read index
+			Date indexDate = new Date(read6Bytes(indexFile));
+
+			if (from != null && indexDate.before(from))
+				continue;
+			if (to != null && indexDate.after(to))
+				continue;
+
+			// read data file fp
+			long pos = read6Bytes(indexFile);
+
+			// read data
+			dataFile.seek(pos);
+			int dataId = dataFile.readInt();
+			Date dataDate = new Date(dataFile.readLong());
+			int dataLen = dataFile.readInt();
+			byte[] data = new byte[dataLen];
+			dataFile.readFully(data);
+
+			ByteBuffer bb = ByteBuffer.wrap(data, 0, dataLen);
+			LogRecord record = new LogRecord(dataDate, dataId, bb);
+			if (minId > 0 && record.getId() < minId)
+				continue;
+			if (maxId > 0 && record.getId() > maxId)
+				continue;
+
+			Date d = record.getDate();
+			if (from != null && d.before(from))
+				continue;
+			if (to != null && !d.before(to))
+				continue;
+
+			List<Log> result = null;
+			try {
+				result = parse(tableName, parser, record);				
+			} catch (LogParserBugException e) {
+				result = new ArrayList<Log>(1);
+				result.add(new Log(e.tableName, e.date, e.id, e.logMap)); 
+				if (!suppressBugAlert) {
+					logger.error("araqne logstorage: PARSER BUG! original log => table " +
+							e.tableName + ", id " + e.id + ", data " + e.logMap, e.cause);
+					suppressBugAlert = true;
+				}				
+			} finally {
+				if (result == null)
+					continue;
+
+				callback.writeLogs(result);
+				if (callback.isEof())
+					return;				
+			}
 		}
 	}
 }

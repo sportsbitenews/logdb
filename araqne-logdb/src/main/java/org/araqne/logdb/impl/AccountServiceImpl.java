@@ -84,6 +84,7 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		tableRegistry.addListener(this);
 		sessions.clear();
 		localAccounts.clear();
+		authServices.clear();
 
 		// load accounts
 		ConfigDatabase db = conf.ensureDatabase(DB_NAME);

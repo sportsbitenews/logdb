@@ -38,10 +38,9 @@ import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
+import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.*;
-import org.araqne.logstorage.file.LogFileFixReport;
 import org.araqne.logstorage.file.LogFileReader;
-import org.araqne.logstorage.file.LogFileRepairer;
 import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogRecord;
 import org.araqne.logstorage.file.LogRecordCursor;
@@ -151,9 +150,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		status = LogStorageStatus.Starting;
 		fetcher = new LogFileFetcher(tableRegistry, lfsRegistry);
 
-		// checkAllLogFiles();
-		checkLatestLogFiles();
-
 		writerSweeperThread = new Thread(writerSweeper, "LogStorage LogWriter Sweeper");
 		writerSweeperThread.start();
 
@@ -176,7 +172,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			throw new IllegalStateException("log archive already stopped");
 
 		status = LogStorageStatus.Stopping;
-		
+
 		try {
 			if (tableRegistry != null) {
 				tableRegistry.removeListener(this);
@@ -212,97 +208,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		}
 
 		onlineWriters.clear();
-		
+
 		lfsRegistry.removeListener(this);
-
+		
 		status = LogStorageStatus.Closed;
-	}
-
-	@SuppressWarnings("unused")
-	private void checkAllLogFiles() {
-		logger.info("araqne logstorage: verifying all log tables");
-		for (String tableName : tableRegistry.getTableNames()) {
-			File dir = getTableDirectory(tableName);
-			if (dir == null) {
-				logger.error("araqne logstorage: table [{}] directory not found", tableName);
-				continue;
-			}
-
-			logger.trace("araqne logstorage: checking for [{}] table", tableName);
-
-			File[] files = dir.listFiles();
-			if (files == null)
-				continue;
-
-			for (File f : files) {
-				if (f.getName().endsWith(".idx")) {
-					String datFileName = f.getName().replace(".idx", ".dat");
-					File indexPath = f;
-					File dataPath = new File(dir, datFileName);
-
-					try {
-						LogFileFixReport report = new LogFileRepairer().fix(indexPath, dataPath);
-						if (report != null)
-							logger.info("araqne logstorage: fixed log table [{}], detail report: \n{}", tableName, report);
-					} catch (IOException e) {
-						logger.error("araqne logstorage: cannot fix index [" + indexPath.getAbsoluteFile() + "], data ["
-								+ dataPath.getAbsolutePath() + "]", e);
-					}
-				}
-			}
-		}
-		logger.info("araqne logstorage: all table verifications are completed");
-	}
-
-	private void checkLatestLogFiles() {
-		logger.info("araqne logstorage: verifying all log tables");
-		for (String tableName : tableRegistry.getTableNames()) {
-			File dir = getTableDirectory(tableName);
-			if (dir == null) {
-				logger.error("araqne logstorage: table [{}] directory not found", tableName);
-				continue;
-			}
-
-			logger.trace("araqne logstorage: checking for [{}] table", tableName);
-
-			File[] files = dir.listFiles();
-			if (files == null)
-				continue;
-
-			long lastModified = 0;
-			File lastModifiedFile = null;
-
-			// max lastmodified
-			for (File f : files) {
-				if (f.getName().endsWith(".idx") && lastModified < f.lastModified()) {
-					lastModified = f.lastModified();
-					lastModifiedFile = f;
-				}
-			}
-
-			if (lastModifiedFile == null) {
-				logger.trace("araqne logstorage: empty table [{}], skip verification", tableName);
-				continue;
-			}
-
-			if (logger.isDebugEnabled())
-				logger.debug("araqne logstorage: table [{}], last modified [{}]", tableName, new Date(lastModified));
-
-			String datFileName = lastModifiedFile.getName().replace(".idx", ".dat");
-			File indexPath = lastModifiedFile;
-			File dataPath = new File(dir, datFileName);
-
-			try {
-				LogFileFixReport report = new LogFileRepairer().fix(indexPath, dataPath);
-				if (report != null)
-					logger.info("araqne logstorage: fixed log table [{}], detail report: \n{}", tableName, report);
-			} catch (IOException e) {
-				logger.error(
-						"araqne logstorage: cannot fix index [" + indexPath.getAbsoluteFile() + "], data ["
-								+ dataPath.getAbsolutePath() + "]", e);
-			}
-		}
-		logger.info("araqne logstorage: all table verifications are completed");
 	}
 
 	@Override
@@ -1284,8 +1193,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				logger.warn("exception caught", t);
 			}
 		}
-		
-		for (OnlineWriterKey key: toRemove) {
+
+		for (OnlineWriterKey key : toRemove) {
 			try {
 				OnlineWriter writer = onlineWriters.get(key);
 				writer.close();
@@ -1294,6 +1203,104 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				logger.warn("exception caught", t);
 			}
 		}
-		
+
+	}
+
+	@Override
+	public boolean search(String tableName, Date from, Date to, LogParserBuilder builder, LogTraverseCallback c)
+			throws InterruptedException {
+		verify();
+
+		Collection<Date> days = getLogDates(tableName);
+
+		List<Date> filtered = DateUtil.filt(days, from, to);
+		logger.trace("araqne logstorage: searching {} tablets of table [{}]", filtered.size(), tableName);
+
+		for (Date day : filtered) {
+			if (logger.isTraceEnabled())
+				logger.trace("araqne logstorage: searching table {}, date={}", tableName, DateUtil.getDayText(day));
+
+			searchTablet(tableName, day, from, to, -1, -1, builder, c, true);
+			if (c.isEof())
+				break;
+		}
+
+		return !c.isEof();
+	}
+
+	private boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c, boolean doParallel)
+			throws InterruptedException {
+		int tableId = tableRegistry.getTableId(tableName);
+		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
+
+		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
+		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
+		File keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
+		LogFileReader reader = null;
+
+		long onlineMinId = -1;
+
+		try {
+			// do NOT use getOnlineWriter() here (it loads empty writer on cache
+			// automatically if writer not found)
+			OnlineWriter onlineWriter = onlineWriters.get(new OnlineWriterKey(tableName, day, tableId));
+			if (onlineWriter != null) {
+				List<Log> buffer = onlineWriter.getBuffer();
+
+				if (buffer != null && !buffer.isEmpty()) {
+					logger.trace("araqne logstorage: {} logs in writer buffer.", buffer.size());
+					List<Log> logs = new ArrayList<Log>(buffer.size());
+					ListIterator<Log> li = buffer.listIterator(buffer.size());
+					
+					while (li.hasPrevious()) {
+						Log logData = li.previous();
+						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
+								&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
+							logs.add(logData);
+						}
+					}
+					c.writeLogs(logs);
+					
+					if (c.isEof())
+						return false;
+				}
+			}
+
+			String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
+			if (logFileType == null)
+				logFileType = "v2";
+
+			Map<String, String> tableMetadata = new HashMap<String, String>();
+			for (String key : tableRegistry.getTableMetadataKeys(tableName))
+				tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+
+			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableMetadata, tableName, indexPath,
+					dataPath, keyPath));
+
+			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
+			if (minId < 0 || flushedMaxId < 0 || flushedMaxId >= minId)
+				reader.traverse(from, to, minId, flushedMaxId, builder, c, doParallel);
+		} catch (InterruptedException e) {
+			throw e;
+		} catch (Exception e) {
+			logger.error("araqne logstorage: search tablet failed", e);
+		} finally {
+			if (reader != null)
+				reader.close();
+		}
+
+		return !c.isEof();
+	}
+
+	@Override
+	public boolean searchTablet(String tableName, Date day, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c,
+			boolean doParallel) throws InterruptedException {
+		return searchTablet(tableName, day, null, null, minId, maxId, builder, c, doParallel);
+	}
+
+	@Override
+	public boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder, LogTraverseCallback c,
+			boolean doParallel) throws InterruptedException {
+		return searchTablet(tableName, day, from, to, minId, -1, builder, c, doParallel);
 	}
 }

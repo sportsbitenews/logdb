@@ -22,6 +22,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.log.api.LogParserBuilder;
+
 public interface LogStorage {
 	/**
 	 * @return the storage directory
@@ -124,6 +126,17 @@ public interface LogStorage {
 	 * 
 	 * @since 2.0.3
 	 */
+	@Deprecated
 	long searchTablet(String tableName, Date day, long minId, long maxId, LogMatchCallback c, boolean doParallel) throws InterruptedException;
+	@Deprecated
 	long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogMatchCallback c, boolean doParallel) throws InterruptedException;
+
+	/**
+	 * 
+	 * @since 2.x
+	 */
+	boolean search(String tableName, Date from, Date to, LogParserBuilder builder, LogTraverseCallback c) throws InterruptedException;
+	boolean searchTablet(String tableName, Date day, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException;
+	boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException;
+
 }

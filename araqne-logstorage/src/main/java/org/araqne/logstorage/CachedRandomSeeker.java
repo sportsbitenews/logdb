@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.araqne.logstorage.file.LogRecord;
+import org.araqne.log.api.LogParserBuilder;
 
 /**
  * cache opened reader while index seek (to prevent repetitive file open)
@@ -29,9 +30,15 @@ import org.araqne.logstorage.file.LogRecord;
  */
 public interface CachedRandomSeeker {
 	Log getLog(String tableName, Date day, long id) throws IOException;
+	
+	Log getLog(String tableName, Date day, long id, LogParserBuilder builder) throws IOException;
 
+	List<Log> getLogs(String tableName, Date day, Date from, Date to, List<Long> ids, LogParserBuilder builder);
+
+	@Deprecated
 	LogRecord getLogRecord(String tableName, Date day, long id) throws IOException;
 
+	@Deprecated
 	List<LogRecord> getLogRecords(String tableName, Date day, List<Long> ids);
 
 	void close();

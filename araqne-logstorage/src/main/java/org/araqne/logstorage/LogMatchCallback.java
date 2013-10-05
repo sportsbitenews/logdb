@@ -17,6 +17,7 @@ package org.araqne.logstorage;
 
 import org.araqne.logstorage.file.LogRecord;
 
+@Deprecated
 public interface LogMatchCallback {
 	boolean match(LogRecord record);
 	boolean onLog(Log log) throws InterruptedException;

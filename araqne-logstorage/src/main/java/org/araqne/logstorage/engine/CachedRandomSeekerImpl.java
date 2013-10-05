@@ -18,6 +18,7 @@ package org.araqne.logstorage.engine;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import org.araqne.codec.FastEncodingRule;
+import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.CachedRandomSeeker;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
@@ -205,22 +207,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 
 	@Override
 	public Log getLog(String tableName, Date day, long id) throws IOException {
-		if (closed)
-			throw new IllegalStateException("already closed");
-
-		int tableId = tableRegistry.getTableId(tableName);
-
-		// check memory buffer (flush waiting)
-		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, id);
-		if (bufferedLog != null)
-			return bufferedLog;
-
-		LogFileReader reader = getReader(tableName, tableId, day);
-		LogRecord log = reader.find(id);
-		if (log == null)
-			return null;
-
-		return LogMarshaler.convert(tableName, log);
+		return getLog(tableName, day, id, null);
 	}
 
 	@Override
@@ -235,5 +222,53 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		}
 
 		cachedReaders.clear();
+	}
+
+	@Override
+	public Log getLog(String tableName, Date day, long id, LogParserBuilder builder) {
+		List<Log> result = getLogs(tableName, day, null, null, Arrays.asList(new Long[] {id}), builder);
+		if (result == null || result.isEmpty())
+			return null;
+		return result.get(0);
+	}
+	
+	@Override
+	public List<Log> getLogs(String tableName, Date day, Date from, Date to, List<Long> ids, LogParserBuilder builder) {
+		if (closed)
+			throw new IllegalStateException("already closed");
+
+		int tableId = tableRegistry.getTableId(tableName);
+
+		List<Log> ret = new ArrayList<Log>(ids.size());
+		List<Log> onlineLogs = getLogsFromOnlineWriter(tableName, tableId, day, ids);
+		List<Long> fileLogIds = getFileLogIds(onlineLogs, ids);
+		List<Log> fileLogs = null;
+
+		try {
+			LogFileReader reader = getReader(tableName, tableId, day);
+			fileLogs = reader.find(from, to, fileLogIds, builder);
+		} catch (IOException e) {
+		}
+
+		// merge online log and file log
+		int i = 0;
+		int j = 0;
+		for (long id : ids) {
+			if (i < onlineLogs.size()) {
+				Log l = onlineLogs.get(i);
+				if (l.getId() == id) {
+					ret.add(l);
+					++i;
+				}
+			} else if (fileLogs != null && j < fileLogs.size()) {
+				Log l = fileLogs.get(j);
+				if (l.getId() == id) {
+					ret.add(l);
+					++j;
+				}
+			}
+		}
+
+		return ret;
 	}
 }

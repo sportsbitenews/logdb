@@ -114,4 +114,9 @@ public class LogFileServiceV2 implements LogFileService {
 	public void unsetConfig(String key) {
 	}
 
+	@Override
+	public LogFileRepairer newRepairer() {
+		return new LogFileRepairerV2();
+	}
+
 }
