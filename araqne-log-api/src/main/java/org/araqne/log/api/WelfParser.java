@@ -22,7 +22,7 @@ import java.util.Map;
 /**
  * @since 2.6.4
  * @author xeraph
- *
+ * 
  */
 public class WelfParser extends V1LogParser {
 	// id, time, fw, pri is required in order.
@@ -63,11 +63,11 @@ public class WelfParser extends V1LogParser {
 				last = c;
 			}
 
-			tokens.add(line.substring(begin).trim());
+			String lastToken = line.substring(begin).trim();
+			if (!lastToken.isEmpty())
+				tokens.add(lastToken);
 
 			// extract key value from each pair
-
-			System.out.println(tokens);
 			HashMap<String, Object> m = new HashMap<String, Object>();
 
 			int count = tokens.size();
@@ -76,7 +76,7 @@ public class WelfParser extends V1LogParser {
 				int p = t.indexOf('=');
 				if (p < 0) {
 					if (i + 1 < count) {
-						String value = tokens.get(++i);
+						String value = tokens.get(++i).trim();
 						if (value.startsWith("\"") && value.length() > 1)
 							value = value.substring(1, value.length() - 1);
 						m.put(t, value);
@@ -84,8 +84,8 @@ public class WelfParser extends V1LogParser {
 						m.put(t, null);
 					}
 				} else {
-					String key = t.substring(0, p);
-					String value = t.substring(p + 1);
+					String key = t.substring(0, p).trim();
+					String value = t.substring(p + 1).trim();
 					if (value.startsWith("\"") && value.length() > 1)
 						value = value.substring(1, value.length() - 1);
 					m.put(key, value);

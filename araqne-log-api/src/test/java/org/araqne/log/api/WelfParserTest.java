@@ -24,7 +24,7 @@ import static org.junit.Assert.*;
 /**
  * @since 2.6.4
  * @author xeraph
- *
+ * 
  */
 public class WelfParserTest {
 	@Test
@@ -101,7 +101,6 @@ public class WelfParserTest {
 
 		WelfParser p = new WelfParser();
 		Map<String, Object> m = p.parse(log);
-		System.out.println(m);
 
 		assertEquals("http sql injection keyword %252e", m.get("EventName"));
 		assertEquals("8110", m.get("SigIndex"));
@@ -119,5 +118,41 @@ public class WelfParserTest {
 
 		// if value has no closing quote, last char will be truncated
 		assertEquals("00 09 0F 09 00 07 00 1B ED A", m.get("Packet"));
+	}
+
+	@Test
+	public void testTessHealthLog() {
+		String line = "Health info SensorName=\"demo\" SensorIp=\"192.168.10.1\" "
+				+ "Connection=1 Time=\"2013/10/05 13:57:30\" CPU_Usage=\"4 %\" "
+				+ "MEMORY_Usage=\"19 %\" HDD_Usage=\"0 %\" PROCESS_Cnt=95 "
+				+ "EventPerSecond=\"0.00 \" SessionPerSecond=\"6.18 K\" PacketLossRate=\"0.00 %\" "
+				+ "TotalTraffic=\"5.49 M\" MaliciousTraffic=\"0.00  (0.00)\" TotalTrafficPps=\"2.35 K\" "
+				+ "MaliciousTrafficPps=\"0.00  (0.00)\"";
+
+		HashMap<String, Object> log = new HashMap<String, Object>();
+		log.put("line", line);
+
+		WelfParser p = new WelfParser();
+		Map<String, Object> m = p.parse(log);
+		assertEquals(16, m.size());
+
+		assertEquals("4 %", m.get("CPU_Usage"));
+		assertEquals("0.00  (0.00)", m.get("MaliciousTrafficPps"));
+		assertEquals("5.49 M", m.get("TotalTraffic"));
+		assertEquals("info", m.get("Health"));
+		assertEquals("1", m.get("Connection"));
+		assertEquals("0.00  (0.00)", m.get("MaliciousTraffic"));
+		
+		// NOTE: space in quote should be preserved
+		assertEquals("0.00 ", m.get("EventPerSecond"));
+		assertEquals("2.35 K", m.get("TotalTrafficPps"));
+		assertEquals("0 %", m.get("HDD_Usage"));
+		assertEquals("2013/10/05 13:57:30", m.get("Time"));
+		assertEquals("192.168.10.1", m.get("SensorIp"));
+		assertEquals("95", m.get("PROCESS_Cnt"));
+		assertEquals("demo", m.get("SensorName"));
+		assertEquals("0.00 %", m.get("PacketLossRate"));
+		assertEquals("19 %", m.get("MEMORY_Usage"));
+		assertEquals("6.18 K", m.get("SessionPerSecond"));
 	}
 }
