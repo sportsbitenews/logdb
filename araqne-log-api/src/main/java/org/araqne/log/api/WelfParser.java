@@ -19,8 +19,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-// id, time, fw, pri is required in order.
+/**
+ * @since 2.6.4
+ * @author xeraph
+ *
+ */
 public class WelfParser extends V1LogParser {
+	// id, time, fw, pri is required in order.
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(WelfParser.class);
 
 	@Override
