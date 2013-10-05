@@ -21,6 +21,11 @@ import java.util.Map;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+/**
+ * @since 2.6.4
+ * @author xeraph
+ *
+ */
 public class WelfParserTest {
 	@Test
 	public void testSample() {
