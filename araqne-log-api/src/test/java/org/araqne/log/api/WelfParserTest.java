@@ -1,3 +1,18 @@
+/*
+ * Copyright 2013 Eediom Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.araqne.log.api;
 
 import java.util.HashMap;
@@ -66,5 +81,38 @@ public class WelfParserTest {
 		assertEquals(
 				"Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 1.1.4322; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30; .NET CLR 3.0.04506.648; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)",
 				m.get("agent"));
+	}
+
+	@Test
+	public void parseTessPacketLog() {
+		String line = "EventName=\"http sql injection keyword %252e\" SigIndex=8110 Severity=Middle " +
+				"Time=\"2013/09/24 13:30:58\" Protocol=TCP AttackerIP=192.168.13.10 AttackerPort=3887 " +
+				"VictimIP=1.2.3.4 VictimPort=80 Count=1 PktCount=1 Pattern=\"%252E\" " +
+				"Direct= SensorIP=192.168.10.1 Sensor=demo Network=NODATA " +
+				"VSensor=demo Packet=\"00 09 0F 09 00 07 00 1B ED AD ";
+
+		HashMap<String, Object> log = new HashMap<String, Object>();
+		log.put("line", line);
+
+		WelfParser p = new WelfParser();
+		Map<String, Object> m = p.parse(log);
+		System.out.println(m);
+
+		assertEquals("http sql injection keyword %252e", m.get("EventName"));
+		assertEquals("8110", m.get("SigIndex"));
+		assertEquals("Middle", m.get("Severity"));
+		assertEquals("1.2.3.4", m.get("VictimIP"));
+		assertEquals("80", m.get("VictimPort"));
+		assertEquals("1", m.get("Count"));
+		assertEquals("1", m.get("PktCount"));
+		assertEquals("%252E", m.get("Pattern"));
+		assertEquals("", m.get("Direct"));
+		assertEquals("192.168.10.1", m.get("SensorIP"));
+		assertEquals("demo", m.get("Sensor"));
+		assertEquals("NODATA", m.get("Network"));
+		assertEquals("demo", m.get("VSensor"));
+
+		// if value has no closing quote, last char will be truncated
+		assertEquals("00 09 0F 09 00 07 00 1B ED A", m.get("Packet"));
 	}
 }
