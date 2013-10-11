@@ -26,7 +26,7 @@ public class LogFileFixReport {
 	private int truncatedIndexBlocks;
 	private int truncatedIndexBytes;
 	private int truncatedDataBytes;
-	private int lostLogCount;
+	private long lostLogCount;
 	private int addedIndexBlocks;
 	private int addedDataBlocks;
 	private long addedDataBytes;
@@ -99,7 +99,7 @@ public class LogFileFixReport {
 		return lostLogCount;
 	}
 
-	public void setLostLogCount(int lostLogCount) {
+	public void setLostLogCount(long lostLogCount) {
 		this.lostLogCount = lostLogCount;
 	}
 
