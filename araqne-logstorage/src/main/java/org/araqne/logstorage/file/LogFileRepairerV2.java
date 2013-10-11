@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+import org.araqne.logstorage.LogFileFixReport;
+import org.araqne.logstorage.LogFileRepairer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
