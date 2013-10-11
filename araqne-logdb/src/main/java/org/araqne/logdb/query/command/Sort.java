@@ -230,5 +230,10 @@ public class Sort extends LogQueryCommand {
 		public void reverseAsc() {
 			asc = !asc;
 		}
+
+		@Override
+		public String toString() {
+			return "SortField [name=" + name + ", asc=" + asc + "]";
+		}
 	}
 }

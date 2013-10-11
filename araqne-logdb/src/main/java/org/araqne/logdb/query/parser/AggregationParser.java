@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
@@ -58,7 +59,7 @@ public class AggregationParser {
 		t.put("range", Range.class);
 	}
 
-	public static AggregationField parse(String s) {
+	public static AggregationField parse(LogQueryContext context, String s) {
 		// find 'as' keyword
 		String funcPart = s.trim();
 		String alias = null;
@@ -69,7 +70,7 @@ public class AggregationParser {
 		}
 
 		// find aggregation function
-		AggregationFunction func = parseFunc(funcPart);
+		AggregationFunction func = parseFunc(context, funcPart);
 
 		// build and return
 		AggregationField field = new AggregationField();
@@ -78,7 +79,7 @@ public class AggregationParser {
 		return field;
 	}
 
-	private static AggregationFunction parseFunc(String s) {
+	private static AggregationFunction parseFunc(LogQueryContext context, String s) {
 		int p = s.indexOf('(');
 		String funcName = s;
 		String argsToken = "";
@@ -93,7 +94,7 @@ public class AggregationParser {
 		List<Expression> exprs = new ArrayList<Expression>();
 
 		for (String argToken : argTokens) {
-			Expression expr = ExpressionParser.parse(argToken);
+			Expression expr = ExpressionParser.parse(context, argToken);
 			exprs.add(expr);
 		}
 

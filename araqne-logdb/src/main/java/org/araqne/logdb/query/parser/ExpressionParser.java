@@ -19,12 +19,40 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
+import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.expr.Expression;
 
 public class ExpressionParser {
 
+	/**
+	 * @since 1.7.5
+	 */
+	public static boolean isContextReference(String optionValue) {
+		return optionValue != null && optionValue.startsWith("$(\"") && optionValue.endsWith("\")");
+	}
+
+	/**
+	 * @since 1.7.5
+	 */
+	public static String evalContextReference(LogQueryContext context, String s) {
+		if (ExpressionParser.isContextReference(s)) {
+			Expression contextReference = ExpressionParser.parse(context, s);
+			Object o = contextReference.eval(null);
+			if (o == null)
+				return "";
+			return o.toString();
+		}
+
+		return s;
+	}
+
+	@Deprecated
 	public static Expression parse(String s, ParsingRule r) {
+		return parse(null, s, r);
+	}
+
+	public static Expression parse(LogQueryContext context, String s, ParsingRule r) {
 		if (s == null)
 			throw new IllegalArgumentException("expression string should not be null");
 
@@ -35,7 +63,7 @@ public class ExpressionParser {
 		OpEmitterFactory of = r.getOpEmmiterFactory();
 		TermEmitterFactory tf = r.getTermEmitterFactory();
 		FuncEmitterFactory ff = r.getFuncEmitterFactory();
-		
+
 		for (Term term : output) {
 			if (r.getOpTerm().isInstance(term)) {
 				of.emit(exprStack, term);
@@ -46,7 +74,7 @@ public class ExpressionParser {
 			} else if (term instanceof FuncTerm) {
 				// parse function expression
 				FuncTerm f = (FuncTerm) term;
-				ff.emit(exprStack, f);
+				ff.emit(context, exprStack, f);
 			} else {
 				throw new LogQueryParseException("unexpected-term", -1, term.toString());
 			}
@@ -57,11 +85,20 @@ public class ExpressionParser {
 		}
 		return exprStack.pop();
 	}
-	
-	private static ParsingRule evalRule = new ParsingRule(EvalOpTerm.NOP, new EvalOpEmitterFactory(), new EvalFuncEmitterFactory(), new EvalTermEmitterFactory());
 
+	private static ParsingRule evalRule = new ParsingRule(EvalOpTerm.NOP, new EvalOpEmitterFactory(), new EvalFuncEmitterFactory(),
+			new EvalTermEmitterFactory());
+
+	@Deprecated
 	public static Expression parse(String s) {
-		return parse(s, evalRule);
+		return parse(null, s);
+	}
+
+	/**
+	 * @since 1.7.3
+	 */
+	public static Expression parse(LogQueryContext context, String s) {
+		return parse(context, s, evalRule);
 	}
 
 	private static List<Term> convertToPostfix(List<Term> tokens, ParsingRule rule) {
@@ -70,7 +107,7 @@ public class ExpressionParser {
 
 		int i = 0;
 		int len = tokens.size();
-		
+
 		OpTerm opTerm = rule.getOpTerm();
 		while (i < len) {
 			Term token = tokens.get(i);
@@ -88,6 +125,7 @@ public class ExpressionParser {
 					opStack.add(token);
 				} else if (((TokenTerm) token).getText().equals(")")) {
 					boolean foundMatchParens = false;
+
 					while (!opStack.isEmpty()) {
 						Term last = opStack.pop();
 						if (last instanceof TokenTerm && ((TokenTerm) last).getText().equals("(")) {
@@ -100,9 +138,9 @@ public class ExpressionParser {
 
 					if (!foundMatchParens)
 						throw new LogQueryParseException("parens-mismatch", -1);
-					
+
 					// postprocess for closed parenthesis
-					
+
 					// postprocess function term
 					if (!opStack.empty()) {
 						Term last = opStack.pop();
@@ -179,7 +217,7 @@ public class ExpressionParser {
 
 		if (rule.getOpTerm().parse(o) != null)
 			return true;
-		
+
 		return false;
 	}
 
@@ -205,7 +243,7 @@ public class ExpressionParser {
 			if (token.equals("(") && lastToken != null && !isOperator(lastToken, rule)) {
 				// remove last term and add function term instead
 				tokens.remove(tokens.size() - 1);
-				tokens.add(new FuncTerm(lastToken.trim()));			
+				tokens.add(new FuncTerm(lastToken.trim()));
 			}
 
 			OpTerm op = rule.getOpTerm().parse(token);
@@ -217,16 +255,27 @@ public class ExpressionParser {
 				if (!tokens.isEmpty()) {
 					lastTerm = tokens.get(tokens.size() - 1);
 				}
-				
+
 				if (lastToken == null || lastToken.equals("(") || rule.getOpTerm().isInstance(lastTerm)) {
 					op = EvalOpTerm.Neg;
 				}
 			}
 
-			if (op != null)
+			if (tokens.size() >= 2 && token.equals(")")) {
+				// function has no argument
+				int size = tokens.size();
+				if (tokens.get(size - 1).toString().equals("(") && tokens.get(size - 2) instanceof FuncTerm) {
+					tokens.remove(size - 1);
+					FuncTerm func = (FuncTerm) tokens.get(size - 2);
+					func.setHasArgument(false);
+				} else {
+					tokens.add(new TokenTerm(token));
+				}
+			} else if (op != null) {
 				tokens.add(op);
-			else
+			} else {
 				tokens.add(new TokenTerm(token));
+			}
 
 			next = r.next;
 			lastToken = token;
@@ -246,7 +295,7 @@ public class ExpressionParser {
 			String token = s.substring(begin, end + 1).trim();
 			return new ParseResult(token, end + 1);
 		}
-		
+
 		if (isAllWhitespaces(s, begin, r.next - 1)) {
 			// check if next token is quoted string
 			if (r.value.equals("\"")) {
@@ -254,14 +303,14 @@ public class ExpressionParser {
 				// int p = s.indexOf('"', r.next + 1);
 				if (p < 0) {
 					throw new LogQueryParseException("quote-mismatch", r.next + 1);
-//					String quoted = unveilEscape(s.substring(r.next));
-//					return new ParseResult(quoted, s.length());
+					// String quoted = unveilEscape(s.substring(r.next));
+					// return new ParseResult(quoted, s.length());
 				} else {
 					String quoted = unveilEscape(s.substring(r.next, p + 1));
 					return new ParseResult(quoted, p + 1);
 				}
 			}
-			
+
 			// check whitespace
 			String token = (String) r.value;
 			if (token.trim().isEmpty())
@@ -347,7 +396,7 @@ public class ExpressionParser {
 		for (OpTerm op : rule.getOpTerm().delimiters()) {
 			min(r, op.getSymbol(), s.indexOf(op.getSymbol(), begin), end);
 		}
-		
+
 		// check white spaces
 		// tabs are removed by ExpressionParser.parse, so it processes space only.
 		min(r, " ", s.indexOf(' ', begin), end);
@@ -366,7 +415,7 @@ public class ExpressionParser {
 	}
 
 	private static boolean isDelimiter(Term t, ParsingRule rule) {
-		if ( rule.getOpTerm().isInstance(t) || t instanceof FuncTerm)
+		if (rule.getOpTerm().isInstance(t) || (t instanceof FuncTerm && ((FuncTerm) t).hasArgument()))
 			return true;
 
 		if (t instanceof TokenTerm) {
@@ -397,18 +446,28 @@ public class ExpressionParser {
 
 	public static class FuncTerm implements Term {
 		private String name;
+		private boolean argument;
 
 		public FuncTerm(String name) {
 			this.name = name;
+			this.argument = true;
 		}
 
 		@Override
 		public String toString() {
-			return "func "+name+"()";
+			return "func " + name + "()";
 		}
 
 		public String getName() {
 			return name;
+		}
+
+		public boolean hasArgument() {
+			return argument;
+		}
+
+		public void setHasArgument(boolean argument) {
+			this.argument = argument;
 		}
 	}
 

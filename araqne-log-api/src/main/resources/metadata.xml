@@ -25,4 +25,5 @@
 	<instance component="rotation-file-logger-factory" />
 	<instance component="exec-logger-factory" />
 	<instance component="wtmp-logger-factory" />
+	<instance component="welf-parser-factory" />
 </ipojo>

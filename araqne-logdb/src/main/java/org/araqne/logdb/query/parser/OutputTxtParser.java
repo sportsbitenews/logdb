@@ -47,7 +47,7 @@ public class OutputTxtParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("missing-field", commandString.length());
 
 		String delimiter = null;
-		ParseResult r = QueryTokenizer.parseOptions(commandString, "outputtxt".length(), Arrays.asList("delimiter"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(), Arrays.asList("delimiter"));
 
 		@SuppressWarnings("unchecked")
 		Map<String, Object> options = (Map<String, Object>) r.value;
@@ -65,6 +65,8 @@ public class OutputTxtParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("missing-field", tokens.size());
 
 		String filePath = tokens.token(0).token;
+		filePath = ExpressionParser.evalContextReference(context, filePath);
+
 		List<String> fields = new ArrayList<String>();
 
 		List<QueryToken> queryFields = tokens.subtokens(1, tokens.size());

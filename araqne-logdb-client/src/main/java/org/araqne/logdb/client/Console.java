@@ -21,6 +21,7 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -55,7 +56,7 @@ public class Console {
 				if (line.trim().isEmpty())
 					continue;
 
-				String[] tokens = line.split(" ");
+				String[] tokens = tokenize(line);
 				if (tokens.length == 0)
 					continue;
 
@@ -116,6 +117,8 @@ public class Console {
 					createParser(tokens);
 				else if (cmd.equals("remove_parser"))
 					removeParser(tokens);
+				else if (cmd.equals("test_parse"))
+					testParse(tokens);
 				else if (cmd.equals("create_logger"))
 					createLogger(tokens);
 				else if (cmd.equals("remove_logger"))
@@ -134,6 +137,8 @@ public class Console {
 					createIndex(tokens);
 				else if (cmd.equals("drop_index"))
 					dropIndex(tokens);
+				else if (cmd.equals("test_index_tokenize"))
+					testIndexTokenize(tokens);
 				else if (cmd.equals("accounts"))
 					listAccounts(tokens);
 				else if (cmd.equals("create_account"))
@@ -680,6 +685,37 @@ public class Console {
 		}
 	}
 
+	private void testParse(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 3) {
+			w("Usage: test_parse <parser name> <line>");
+			return;
+		}
+
+		try {
+			String name = tokens[1];
+			String line = tokens[2];
+
+			Map<String, Object> data = new HashMap<String, Object>();
+			data.put("line", line);
+
+			List<Map<String, Object>> rows = client.testParser(name, data);
+
+			w("Parsed rows");
+			w("-------------");
+			for (Map<String, Object> row : rows) {
+				w(row.toString());
+			}
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+
+	}
+
 	private void listTransformerFactories() {
 		if (client == null) {
 			w("connect first please");
@@ -1077,6 +1113,36 @@ public class Console {
 		}
 	}
 
+	private void testIndexTokenize(String[] tokens) {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		if (tokens.length < 4) {
+			w("Usage: test_index_tokenize <table name> <index name> <line>");
+			return;
+		}
+
+		try {
+			String tableName = tokens[1];
+			String indexName = tokens[2];
+			String line = tokens[3];
+
+			Map<String, Object> data = new HashMap<String, Object>();
+			data.put("line", line);
+
+			Set<String> s = client.testIndexTokenizer(tableName, indexName, data);
+			w("Fulltext Tokens");
+			w("-----------------");
+			for (String t : s)
+				w(t);
+
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
 	private void listAccounts(String[] tokens) {
 		if (client == null) {
 			w("connect first please");
@@ -1294,4 +1360,88 @@ public class Console {
 	private static void w(String s) {
 		System.out.println(s);
 	}
+
+	public static String[] tokenize(String line) {
+		StringBuilder sb = new StringBuilder();
+		List<String> args = new ArrayList<String>();
+
+		boolean quoteOpen = false;
+		boolean squoteOpen = false;
+		boolean escape = false;
+
+		int i = 0;
+		while (true) {
+			if (i >= line.length())
+				break;
+
+			char c = line.charAt(i);
+
+			i++;
+
+			if (c == '\\') {
+				if (escape) {
+					escape = false;
+					sb.append(c);
+				} else if (squoteOpen) {
+					sb.append(c);
+				} else {
+					escape = true;
+				}
+				continue;
+			}
+
+			if (c == '"') {
+				if (escape) {
+					escape = false;
+					sb.append(c);
+				} else if (squoteOpen) {
+					sb.append(c);
+				} else {
+					quoteOpen = !quoteOpen;
+					if (!quoteOpen) {
+						args.add(sb.toString());
+						sb = new StringBuilder();
+					}
+				}
+				continue;
+			}
+
+			if (c == '\'') {
+				if (escape) {
+					escape = false;
+					sb.append(c);
+				} else {
+					quoteOpen = !quoteOpen;
+					squoteOpen = !squoteOpen;
+					if (!quoteOpen) {
+						args.add(sb.toString());
+						sb = new StringBuilder();
+					}
+				}
+				continue;
+			}
+
+			if (c == ' ' && !(quoteOpen)) {
+				String parsed = sb.toString();
+				if (!parsed.trim().isEmpty())
+					args.add(parsed);
+				sb = new StringBuilder();
+				continue;
+			}
+
+			if (c != '\\' && escape) {
+				sb.append('\\');
+				escape = false;
+			}
+
+			sb.append(c);
+		}
+
+		String parsed = sb.toString();
+		if (!parsed.trim().isEmpty())
+			args.add(sb.toString());
+
+		return args.toArray(new String[0]);
+	}
+
 }

@@ -43,7 +43,7 @@ public class TextFileParser implements LogQueryCommandParser {
 
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(commandString, getCommandName().length(), new ArrayList<String>());
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>());
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 		String filePath = commandString.substring(r.next).trim();
