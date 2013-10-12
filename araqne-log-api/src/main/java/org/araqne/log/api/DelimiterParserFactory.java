@@ -67,7 +67,8 @@ public class DelimiterParserFactory extends AbstractLogParserFactory {
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		List<LoggerConfigOption> options = new ArrayList<LoggerConfigOption>();
-		options.add(new StringConfigType(DELIMITER, t(DELIMITER, "구분자"), t("delimiter character", "여러 개의 구분자를 붙여서 입력 가능"), true));
+		options.add(new StringConfigType(DELIMITER, t(DELIMITER, "구분자"), t(
+				"one delimiter character or 4-digit unicode escape sequence (e.g. \u0007)", "하나의 아스키 구분자 혹은 4자리 유니코드 이스케이프 시퀀스 (예: \u0007)"), true));
 		options.add(new StringConfigType(COLUMN_HEADERS, t("column headers", "필드 이름 목록"), t("separated by comma",
 				"쉼표로 구분된 필드 이름들"), false));
 		options.add(new StringConfigType(DELIMITER_TARGET, t("delimiter target field", "대상 필드"), t("delimiter target field name",
