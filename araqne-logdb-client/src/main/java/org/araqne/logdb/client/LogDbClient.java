@@ -828,6 +828,52 @@ public class LogDbClient implements TrapListener {
 		session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.stopLogger", params);
 	}
 
+	@SuppressWarnings("unchecked")
+	public List<JdbcProfileInfo> listJdbcProfiles() throws IOException {
+		List<JdbcProfileInfo> l = new ArrayList<JdbcProfileInfo>();
+
+		Message resp = session.rpc("org.logpresso.jdbc.JdbcProfilePlugin.getProfiles");
+
+		List<Object> profiles = (List<Object>) resp.get("profiles");
+
+		for (Object o : profiles) {
+			Map<String, Object> m = (Map<String, Object>) o;
+			JdbcProfileInfo info = new JdbcProfileInfo();
+			info.setName((String) m.get("name"));
+			info.setConnectionString((String) m.get("connection_string"));
+			info.setReadOnly((Boolean) m.get("readonly"));
+			info.setUser((String) m.get("user"));
+			l.add(info);
+		}
+
+		return l;
+	}
+
+	public void createJdbcProfile(JdbcProfileInfo profile) throws IOException {
+		checkNotNull("profile", profile);
+		checkNotNull("profile.name", profile.getName());
+		checkNotNull("profile.connectionString", profile.getConnectionString());
+		checkNotNull("profile.user", profile.getUser());
+
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", profile.getName());
+		params.put("connection_string", profile.getConnectionString());
+		params.put("readonly", profile.isReadOnly());
+		params.put("user", profile.getUser());
+		params.put("password", profile.getPassword());
+
+		session.rpc("org.logpresso.jdbc.JdbcProfilePlugin.createProfile", params);
+	}
+
+	public void removeJdbcProfile(String name) throws IOException {
+		checkNotNull("name", name);
+
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", name);
+
+		session.rpc("org.logpresso.jdbc.JdbcProfilePlugin.removeProfile", params);
+	}
+
 	public LogCursor query(String queryString) throws IOException {
 		int id = createQuery(queryString);
 		startQuery(id);
@@ -1065,5 +1111,10 @@ public class LogDbClient implements TrapListener {
 	public void onClose(Throwable t) {
 		for (LogQuery q : queries.values())
 			q.updateStatus("Cancelled");
+	}
+
+	private void checkNotNull(String name, Object o) {
+		if (o == null)
+			throw new IllegalArgumentException(name + " parameter should be not null");
 	}
 }
