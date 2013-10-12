@@ -317,7 +317,10 @@ public class LogDbClient implements TrapListener {
 
 	@SuppressWarnings("unchecked")
 	public List<IndexTokenizerFactoryInfo> listIndexTokenizerFactories() throws IOException {
-		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.listIndexTokenizerFactories");
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("locale", locale.getLanguage());
+
+		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.listIndexTokenizerFactories", params);
 
 		List<IndexTokenizerFactoryInfo> l = new ArrayList<IndexTokenizerFactoryInfo>();
 		for (Object o : (List<Object>) resp.getParameters().get("factories")) {
@@ -331,6 +334,8 @@ public class LogDbClient implements TrapListener {
 	public IndexTokenizerFactoryInfo getIndexTokenizerFactory(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
+		params.put("locale", locale.getLanguage());
+
 		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.getIndexTokenizerFactoryInfo", params);
 		return parseIndexTokenizerFactory(resp.getParameters().get("factory"));
 	}
@@ -578,7 +583,7 @@ public class LogDbClient implements TrapListener {
 	public List<ParserFactoryInfo> listParserFactories() throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("locale", locale.getLanguage());
-		
+
 		Message resp = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getParserFactories", params);
 		List<Object> l = (List<Object>) resp.get("factories");
 
