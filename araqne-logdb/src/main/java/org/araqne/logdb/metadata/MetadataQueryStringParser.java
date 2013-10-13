@@ -4,8 +4,11 @@ import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQueryContext;
@@ -14,34 +17,27 @@ import org.araqne.logdb.Privilege;
 import org.araqne.logstorage.LogTableRegistry;
 
 public class MetadataQueryStringParser {
+
 	public static TableScanOption getTableNames(LogQueryContext context, LogTableRegistry tableRegistry,
 			AccountService accountService, String token) {
 		token = token.trim();
-		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 
-		int b = -1;
-		int e = -1;
 		Date from = null;
+		Date to = null;
 
-		b = token.indexOf("from=");
-		if (b >= 0) {
-			e = token.indexOf(' ', b + 5);
-			if (e < 0)
-				e = token.length();
+		Map<String, Object> optionTokens = parseOptions(token);
 
-			from = df.parse(token.substring(b + 5, e), new ParsePosition(0));
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+		String fromToken = (String) optionTokens.get("from");
+		if (fromToken != null) {
+			from = df.parse(fromToken, new ParsePosition(0));
 			if (from == null)
 				throw new LogQueryParseException("invalid-from", -1);
 		}
 
-		Date to = null;
-		b = token.indexOf("to=");
-		if (b >= 0) {
-			e = token.indexOf(' ', b + 3);
-			if (e < 0)
-				e = token.length();
-
-			to = df.parse(token.substring(b + 3, e), new ParsePosition(0));
+		String toToken = (String) optionTokens.get("to");
+		if (toToken != null) {
+			to = df.parse(toToken, new ParsePosition(0));
 			if (to == null)
 				throw new LogQueryParseException("invalid-to", -1);
 		}
@@ -49,8 +45,8 @@ public class MetadataQueryStringParser {
 		if (to != null && from != null && to.before(from))
 			throw new LogQueryParseException("invalid-date-range", -1);
 
-		if (e >= 0)
-			token = token.substring(e).trim();
+		int next = (Integer) optionTokens.get("next");
+		token = token.substring(next).trim();
 
 		HashSet<String> tableFilter = null;
 		String[] argTableNames = null;
@@ -87,7 +83,38 @@ public class MetadataQueryStringParser {
 		opt.setTableNames(tableNames);
 		opt.setFrom(from);
 		opt.setTo(to);
+
+		if (optionTokens.containsKey("diskonly"))
+			opt.setDiskOnly(Boolean.parseBoolean((String) optionTokens.get("diskonly")));
+
 		return opt;
+	}
+
+	private static Map<String, Object> parseOptions(String token) {
+		Set<String> keys = new HashSet<String>();
+		keys.add("from");
+		keys.add("to");
+		keys.add("diskonly");
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		int next = 0;
+		for (String pairs : token.split(" ")) {
+			int p = pairs.indexOf('=');
+			if (p < 0)
+				break;
+
+			String key = pairs.substring(0, p);
+			if (!keys.contains(key))
+				throw new LogQueryParseException("invalid-logdb-option", -1);
+
+			String value = pairs.substring(p + 1);
+			m.put(key, value);
+
+			next = token.indexOf(pairs) + pairs.length();
+		}
+
+		m.put("next", next);
+		return m;
 	}
 
 }
