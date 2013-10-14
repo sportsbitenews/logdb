@@ -41,7 +41,7 @@ public class Console {
 	}
 
 	public void run() throws IOException {
-		w("Araqne LogDB Console 0.6.0 (2013-06-01)");
+		w("Araqne LogDB Console 0.8.2 (2013-10-13)");
 		w("Type \"help\" for more information");
 
 		br = new BufferedReader(new InputStreamReader(System.in));

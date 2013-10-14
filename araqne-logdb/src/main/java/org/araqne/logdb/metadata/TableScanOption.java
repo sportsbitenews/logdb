@@ -23,6 +23,7 @@ public class TableScanOption {
 	private List<String> tableNames = new ArrayList<String>();
 	private Date from;
 	private Date to;
+	private boolean diskOnly;
 
 	public List<String> getTableNames() {
 		return tableNames;
@@ -46,5 +47,13 @@ public class TableScanOption {
 
 	public void setTo(Date to) {
 		this.to = to;
+	}
+
+	public boolean isDiskOnly() {
+		return diskOnly;
+	}
+
+	public void setDiskOnly(boolean diskOnly) {
+		this.diskOnly = diskOnly;
 	}
 }
