@@ -36,11 +36,11 @@ import org.araqne.log.api.StringConfigType;
 @Component(name = "summary-logger-factory")
 @Provides
 public class SummaryLoggerFactory extends AbstractLoggerFactory {
-	private static final String OPT_SOURCE_LOGGER = "source_logger";
-	private static final String OPT_QUERY = "stats_query";
-	private static final String OPT_MIN_INTERVAL = "aggr_interval"; 
-	private static final String OPT_FLUSH_INTERVAL = "flush_interval";
-	private static final String OPT_MEMORY_ITEMSIZE = "max_itemsize";
+	public static final String OPT_SOURCE_LOGGER = "source_logger";
+	public static final String OPT_QUERY = "stats_query";
+	public static final String OPT_MIN_INTERVAL = "aggr_interval"; 
+	public static final String OPT_FLUSH_INTERVAL = "flush_interval";
+	public static final String OPT_MEMORY_ITEMSIZE = "max_itemsize";
 
 	@Requires
 	private LoggerRegistry loggerRegistry;

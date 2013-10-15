@@ -15,6 +15,8 @@
  */
 package org.araqne.logdb.summary;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.AbstractLogger;
@@ -91,11 +93,25 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 
 	@Override
 	public boolean isPassive() {
-		return true;
+		return false;
 	}
 
 	@Override
 	protected void runOnce() {
+		// if needed, flush in memory items
+		if (needFlush()) {
+			flush();
+		}
+	}
+	
+	private boolean needFlush() {
+		return false;
+	}
+
+	public void flush() {
+		slog.trace("flush called");
+		for (Log log: logs) 
+			write(new SimpleLog(log.getDate(), getFullName(), log.getParams()));
 	}
 
 	@Override
@@ -113,15 +129,14 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 			logger.removeLogPipe(this);
 		}
 	}
+	
+	List<Log> logs = new ArrayList<Log>();
 
 	@Override
 	public void onLog(Logger logger, Log log) {
 		String line = (String) log.getParams().get("line");
 		if (line == null)
 			return;
-
-		if (line.startsWith(pattern)) {
-			write(new SimpleLog(log.getDate(), getFullName(), log.getParams()));
-		}
+		logs.add(log);
 	}
 }
