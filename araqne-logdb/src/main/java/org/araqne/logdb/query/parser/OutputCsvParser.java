@@ -18,7 +18,9 @@ package org.araqne.logdb.query.parser;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 import org.araqne.logdb.LogQueryCommand;
@@ -34,17 +36,24 @@ public class OutputCsvParser implements LogQueryCommandParser {
 		return "outputcsv";
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
 			throw new LogQueryParseException("missing-field", commandString.length());
 
-		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
+		boolean overwrite = false;
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overwrite"));
+		Map<String, String> options = (Map<String, String>) r.value;
+		if (options != null && options.containsKey("overwrite"))
+			overwrite = Boolean.parseBoolean(options.get("overwrite"));
+
+		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
 		List<String> fields = new ArrayList<String>();
-		String csvPath = tokens.firstArg();
+		String csvPath = tokens.string(0);
 		csvPath = ExpressionParser.evalContextReference(context, csvPath);
 
-		List<QueryToken> fieldTokens = tokens.subtokens(2, tokens.size());
+		List<QueryToken> fieldTokens = tokens.subtokens(1, tokens.size());
 		for (QueryToken t : fieldTokens) {
 			StringTokenizer tok = new StringTokenizer(t.token, ",");
 			while (tok.hasMoreTokens())
@@ -55,7 +64,7 @@ public class OutputCsvParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("missing-field", commandString.length());
 
 		File csvFile = new File(csvPath);
-		if (csvFile.exists())
+		if (csvFile.exists() && !overwrite)
 			throw new IllegalStateException("csv file exists: " + csvFile.getAbsolutePath());
 
 		try {
