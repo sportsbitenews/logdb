@@ -15,6 +15,8 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,13 +35,36 @@ public class StatsParser implements LogQueryCommandParser {
 	public String getCommandName() {
 		return COMMAND;
 	}
-
+	
+	public static class SyntaxParseResult {
+		public SyntaxParseResult(List<String> clauses, List<String> aggTerms) {
+			this.clauses = clauses;
+			this.aggTerms = aggTerms;
+		}
+		public List<String> clauses;
+		public List<String> aggTerms;
+	}
+	
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+		SyntaxParseResult pr = parseSyntax(context, commandString);
+	
+		// parse aggregations
+		List<AggregationField> fields = new ArrayList<AggregationField>();
+
+		for (String aggTerm : pr.aggTerms) {
+			AggregationField field = AggregationParser.parse(context, aggTerm);
+			fields.add(field);
+		}
+
+		return new Stats(fields, pr.clauses);
+	}
+
+	public SyntaxParseResult parseSyntax(LogQueryContext context, String commandString) {
 		// stats <aggregation function holder> by <stats-fields>
 
-		String aggsPart = commandString.substring(COMMAND.length());
 		List<String> clauses = new ArrayList<String>();
+		String aggsPart = commandString.substring(COMMAND.length());
 
 		// parse clauses
 		int byPos = QueryTokenizer.findKeyword(commandString, BY, 0);
@@ -57,14 +82,8 @@ public class StatsParser implements LogQueryCommandParser {
 
 		// parse aggregations
 		List<String> aggTerms = QueryTokenizer.parseByComma(aggsPart);
-		List<AggregationField> fields = new ArrayList<AggregationField>();
-
-		for (String aggTerm : aggTerms) {
-			AggregationField field = AggregationParser.parse(context, aggTerm);
-			fields.add(field);
-		}
-
-		return new Stats(fields, clauses);
+		
+		return new SyntaxParseResult(clauses, aggTerms);
 	}
 
 }

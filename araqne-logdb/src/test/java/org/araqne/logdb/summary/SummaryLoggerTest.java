@@ -98,7 +98,7 @@ public class SummaryLoggerTest {
 
 		Map<String, String> config = new HashMap<String, String>();
 		config.put(SummaryLoggerFactory.OPT_SOURCE_LOGGER, "local\\source");
-		config.put(SummaryLoggerFactory.OPT_QUERY, "stats count, sum(val), min(val), avg(val) by logtype, msg");
+		config.put(SummaryLoggerFactory.OPT_QUERY, "stats count, sum(val), min(val), avg(val) by type, line");
 		config.put(SummaryLoggerFactory.OPT_MIN_INTERVAL, "60");
 		config.put(SummaryLoggerFactory.OPT_FLUSH_INTERVAL, "60");
 		config.put(SummaryLoggerFactory.OPT_MEMORY_ITEMSIZE, "60");
