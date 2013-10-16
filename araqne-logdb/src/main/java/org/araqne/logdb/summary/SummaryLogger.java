@@ -30,6 +30,7 @@ import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerRegistryEventListener;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.SimpleLog;
+import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.query.aggregator.AggregationField;
@@ -82,6 +83,8 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	private int flushInterval;
 	private int maxItemSize;
 	private KeyExtractor keyExtractor;
+	private AggregationFunction[] funcs;
+	private List<String> clauses;
 
 	public SummaryLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
 		super(spec, factory);
@@ -110,15 +113,25 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 		// get AST
 		SyntaxParseResult pr = new StatsParser().parseSyntax(null, queryString);
 
-		// generate aggr fields  
+		// generate aggr fields
 		LogQueryContext context = new LogQueryContext(new EmptySession());
-		List<AggregationField> fields = new ArrayList<AggregationField>();
+		clauses = pr.clauses;
+		fields = new ArrayList<AggregationField>();
 		for (String aggTerm : pr.aggTerms) {
-			AggregationField field = AggregationParser.parse(context, aggTerm/*, funcTable */);
+			AggregationField field = AggregationParser.parse(context, aggTerm/* , funcTable */);
 			fields.add(field);
 		}
-		
+
 		keyExtractor = new KeyExtractor(aggrInterval, pr.clauses);
+
+		funcs = new AggregationFunction[fields.size()];
+		for (int i = 0; i < fields.size(); ++i) {
+			this.funcs[i] = fields.get(i).getFunction();
+		}
+
+		for (AggregationFunction f : funcs) {
+			f.clean();
+		}
 	}
 
 	@Override
@@ -191,11 +204,40 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	}
 
 	List<Log> logs = new ArrayList<Log>();
+	private List<AggregationField> fields;
+	private int inputCount;
+
+	private Map<SummaryKey, AggregationFunction[]> buffer = new HashMap<SummaryKey, AggregationFunction[]>();
 
 	@Override
 	public void onLog(Logger logger, Log log) {
 		String line = (String) log.getParams().get("line");
 		SummaryKey key = keyExtractor.extract(log);
-		slog.info("{}", key);
+		if (slog.isDebugEnabled())
+			slog.debug("{}", key);
+
+		try {
+			inputCount ++;
+			AggregationFunction[] fs = buffer.get(key);
+			if (fs == null) {
+				fs = new AggregationFunction[funcs.length];
+				for (int i = 0; i < fs.length; ++i) {
+					fs[i] = funcs[i].clone();
+				}
+				buffer.put(key, fs);
+			}
+			
+			// XXX: using LogMap
+			for (AggregationFunction f: fs) {
+				f.apply(new LogMap(log.getParams()));
+			}
+			
+			// flush
+			if (needFlush())
+				flush();
+		} catch(Throwable t) {
+			throw new IllegalStateException("logger-name: " + logger.getName() + ", log: " + log.toString(), t);
+		}
+		
 	}
 }
