@@ -165,7 +165,7 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	}
 
 	private boolean needFlush() {
-		return false;
+		return true;
 	}
 
 	public void flush() {
@@ -195,8 +195,6 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	@Override
 	public void onLog(Logger logger, Log log) {
 		String line = (String) log.getParams().get("line");
-		if (line == null)
-			return;
 		SummaryKey key = keyExtractor.extract(log);
 		slog.info("{}", key);
 	}

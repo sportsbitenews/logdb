@@ -3,8 +3,19 @@ package org.araqne.logdb.summary;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.text.ParseException;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -39,15 +50,48 @@ public class SummaryLoggerTest {
 			};
 		}
 
+		private static Path toPath(URL url) {
+			try {
+				return new File(url.toURI()).toPath();
+			} catch (URISyntaxException e) {
+				return null;
+			}
+		}
+
 		@Override
 		protected void runOnce() {
 			slog.trace("source - runOnce called");
-			write(new SimpleLog(new Date(), this.getName(), l("cat1", "msg1")));
-			write(new SimpleLog(new Date(), this.getName(), l("cat2", "msg2")));
-			write(new SimpleLog(new Date(), this.getName(), l("cat3", "msg3")));
+
+			try {
+				List<String> lines = Files.readAllLines(toPath(this.getClass().getResource("/SummaryLoggerTest-Sample1.txt")),
+						Charset.forName("utf-8"));
+				for (String line : lines) {
+					Map<String, Object> data = parseLine(line);
+					write(new SimpleLog((Date) data.get("date"), this.getName(), data));
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			synchronized (this) {
 				this.notify();
 			}
+		}
+
+		private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+		private Map<String, Object> parseLine(String line) {
+			HashMap<String, Object> m = new HashMap<String, Object>();
+			ParsePosition pp = new ParsePosition(0);
+			m.put("date", sdf.parse(line, pp));
+			line = line.substring(pp.getIndex() + 1);
+			String[] terms = line.split("[ ]");
+			m.put("rid", Integer.parseInt(terms[0]));
+			m.put("cat1", terms[1]);
+			m.put("cat2", terms[2]);
+			m.put("val1", Integer.parseInt(terms[3]));
+			m.put("val2", Integer.parseInt(terms[4]));
+
+			return m;
 		}
 	}
 
@@ -98,7 +142,7 @@ public class SummaryLoggerTest {
 
 		Map<String, String> config = new HashMap<String, String>();
 		config.put(SummaryLoggerFactory.OPT_SOURCE_LOGGER, "local\\source");
-		config.put(SummaryLoggerFactory.OPT_QUERY, "stats count, sum(val), min(val), avg(val) by type, line");
+		config.put(SummaryLoggerFactory.OPT_QUERY, "stats count, sum(val1), avg(val1), sum(val2), avg(val2) by cat1, cat2");
 		config.put(SummaryLoggerFactory.OPT_MIN_INTERVAL, "60");
 		config.put(SummaryLoggerFactory.OPT_FLUSH_INTERVAL, "60");
 		config.put(SummaryLoggerFactory.OPT_MEMORY_ITEMSIZE, "60");
@@ -111,11 +155,11 @@ public class SummaryLoggerTest {
 			logger.start(1000);
 
 			startAndWaitForRunOnce(sourceLogger);
-			
+
 			logger.runOnce(); // flush
-			
+
 			// check the result of sink
-			
+
 			logger.stop(5000);
 		} finally {
 			if (logger.isRunning())
