@@ -52,6 +52,10 @@ public class BoxPlot extends LogQueryCommand {
 
 	@Override
 	public void push(LogMap m) {
+		Object value = expr.eval(m);
+		if (value == null)
+			return;
+
 		Object[] item = new Object[clauseCount + 1];
 
 		int i = 0;
@@ -72,7 +76,6 @@ public class BoxPlot extends LogQueryCommand {
 			count.incrementAndGet();
 		}
 
-		Object value = expr.eval(m);
 		item[i] = value;
 
 		try {
@@ -105,6 +108,8 @@ public class BoxPlot extends LogQueryCommand {
 				Item item = it.next();
 				Object[] values = (Object[]) item.getKey();
 				Object value = values[clauseCount];
+				if (value == null)
+					continue;
 
 				Object[] keys = Arrays.copyOfRange(values, 0, values.length - 1);
 				GroupKey groupKey = new GroupKey(keys);
