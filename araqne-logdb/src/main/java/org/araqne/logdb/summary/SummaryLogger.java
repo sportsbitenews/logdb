@@ -15,6 +15,10 @@
  */
 package org.araqne.logdb.summary;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.AbstractLogger;
@@ -26,11 +30,41 @@ import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerRegistryEventListener;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.SimpleLog;
+import org.araqne.logdb.LogQueryContext;
+import org.araqne.logdb.Session;
+import org.araqne.logdb.query.aggregator.AggregationField;
+import org.araqne.logdb.query.aggregator.AggregationFunction;
+import org.araqne.logdb.query.parser.AggregationParser;
+import org.araqne.logdb.query.parser.StatsParser;
+import org.araqne.logdb.query.parser.StatsParser.SyntaxParseResult;
 
 public class SummaryLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
+	public class EmptySession implements Session {
+		@Override
+		public String getGuid() {
+			return "";
+		}
+
+		@Override
+		public String getLoginName() {
+			return "user";
+		}
+
+		@Override
+		public Date getCreated() {
+			return new Date();
+		}
+
+		@Override
+		public boolean isAdmin() {
+			return false;
+		}
+
+	}
+
 	private static final String OPT_SOURCE_LOGGER = "source_logger";
 	private static final String OPT_QUERY = "stats_query";
-	private static final String OPT_MIN_INTERVAL = "aggr_interval"; 
+	private static final String OPT_MIN_INTERVAL = "aggr_interval";
 	private static final String OPT_FLUSH_INTERVAL = "flush_interval";
 	private static final String OPT_MEMORY_ITEMSIZE = "max_itemsize";
 
@@ -47,6 +81,7 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	private int aggrInterval;
 	private int flushInterval;
 	private int maxItemSize;
+	private KeyExtractor keyExtractor;
 
 	public SummaryLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
 		super(spec, factory);
@@ -57,6 +92,33 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 		aggrInterval = Integer.parseInt(config.get(OPT_MIN_INTERVAL));
 		flushInterval = Integer.parseInt(config.get(OPT_FLUSH_INTERVAL));
 		maxItemSize = Integer.parseInt(config.get(OPT_MEMORY_ITEMSIZE));
+
+		init();
+	}
+
+	static Map<String, Class<? extends AggregationFunction>> funcTable = new HashMap<String, Class<? extends AggregationFunction>>();
+	{
+		// funcTable.put("sum", org.araqne.logdb.summary.Sum.class);
+	}
+
+	private void init() {
+		// sanitize queryString
+		queryString = queryString.trim();
+		if (!queryString.startsWith("stats "))
+			queryString = "stats " + queryString;
+
+		// get AST
+		SyntaxParseResult pr = new StatsParser().parseSyntax(null, queryString);
+
+		// generate aggr fields  
+		LogQueryContext context = new LogQueryContext(new EmptySession());
+		List<AggregationField> fields = new ArrayList<AggregationField>();
+		for (String aggTerm : pr.aggTerms) {
+			AggregationField field = AggregationParser.parse(context, aggTerm/*, funcTable */);
+			fields.add(field);
+		}
+		
+		keyExtractor = new KeyExtractor(aggrInterval, pr.clauses);
 	}
 
 	@Override
@@ -91,11 +153,25 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 
 	@Override
 	public boolean isPassive() {
-		return true;
+		return false;
 	}
 
 	@Override
 	protected void runOnce() {
+		// if needed, flush in memory items
+		if (needFlush()) {
+			flush();
+		}
+	}
+
+	private boolean needFlush() {
+		return false;
+	}
+
+	public void flush() {
+		slog.trace("flush called");
+		for (Log log : logs)
+			write(new SimpleLog(log.getDate(), getFullName(), log.getParams()));
 	}
 
 	@Override
@@ -114,14 +190,14 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 		}
 	}
 
+	List<Log> logs = new ArrayList<Log>();
+
 	@Override
 	public void onLog(Logger logger, Log log) {
 		String line = (String) log.getParams().get("line");
 		if (line == null)
 			return;
-
-		if (line.startsWith(pattern)) {
-			write(new SimpleLog(log.getDate(), getFullName(), log.getParams()));
-		}
+		SummaryKey key = keyExtractor.extract(log);
+		slog.info("{}", key);
 	}
 }
