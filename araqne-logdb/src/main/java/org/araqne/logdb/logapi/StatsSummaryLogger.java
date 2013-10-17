@@ -109,12 +109,6 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	}
 
 	private void init() {
-		try {
-			parser = parserRegistry.newParser(parserName);
-		} catch (Exception e) {
-			slog.warn("stats-summary-logger: could not find parser [" + parserName + "]", e);
-		}
-
 		buffer = new HashMap<StatsSummaryKey, AggregationFunction[]>(maxItemSize);
 
 		// sanitize queryString
@@ -158,6 +152,13 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 			logger.addLogPipe(this);
 		} else
 			slog.debug("araqne log api: source logger [{}] not found", loggerName);
+		
+		try {
+			if (parserName != null)
+				parser = parserRegistry.newParser(parserName);
+		} catch (Exception e) {
+			slog.warn("stats-summary-logger: could not find parser [" + parserName + "]", e);
+		}
 	}
 
 	@Override
