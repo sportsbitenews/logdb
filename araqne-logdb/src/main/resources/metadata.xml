@@ -20,4 +20,5 @@
 	<instance component="saved-result-manager" />
 	<instance component="query-transform-logger-factory" />
 	<instance component="query-log-transformer-factory" />
+	<instance component="stats-summary-logger-factory" />
 </ipojo>
