@@ -34,7 +34,8 @@
 							org.araqne.logdb.query.engine,
 							org.araqne.logdb.query.command,
 							org.araqne.logdb.msgbus,
-							org.araqne.logdb.metadata
+							org.araqne.logdb.metadata,
+							org.araqne.logdb.logapi,
 						</Private-Package>
 						<Import-Package>
 							!org.junit,

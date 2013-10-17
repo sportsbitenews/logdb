@@ -18,4 +18,6 @@
 	<instance component="csv-import-script-factory" />
 	<instance component="query-log-parser-factory" />
 	<instance component="saved-result-manager" />
+	<instance component="query-transform-logger-factory" />
+	<instance component="query-log-transformer-factory" />
 </ipojo>

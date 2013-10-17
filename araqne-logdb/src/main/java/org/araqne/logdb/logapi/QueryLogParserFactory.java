@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.impl;
+package org.araqne.logdb.logapi;
 
 import java.util.Arrays;
 import java.util.Collection;
