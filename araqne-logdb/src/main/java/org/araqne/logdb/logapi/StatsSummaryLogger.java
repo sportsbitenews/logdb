@@ -105,7 +105,8 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	}
 
 	private void init() {
-		parser = parserRegistry.newParser(parserName);
+		if (parserName != null)
+			parser = parserRegistry.newParser(parserName);
 
 		// sanitize queryString
 		queryString = queryString.trim();
@@ -259,10 +260,10 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 				}
 				buffer.put(key, fs);
 			}
-			
+
 			// XXX: distinguish v1 v2
 			log.getParams().put("_time", log.getDate());
-			
+
 			// parse log
 			Map<String, Object> parsed = log.getParams();
 			if (parser != null)
