@@ -20,15 +20,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.araqne.log.api.AbstractLogger;
-import org.araqne.log.api.AbstractLoggerFactory;
-import org.araqne.log.api.Log;
-import org.araqne.log.api.LogPipe;
-import org.araqne.log.api.Logger;
-import org.araqne.log.api.LoggerFactory;
-import org.araqne.log.api.LoggerRegistry;
-import org.araqne.log.api.LoggerSpecification;
-import org.araqne.log.api.SimpleLog;
+import org.araqne.log.api.*;
 import org.araqne.logdb.logapi.StatsSummaryLogger;
 import org.araqne.logdb.logapi.StatsSummaryLoggerFactory;
 import org.junit.Test;
@@ -144,6 +136,7 @@ public class StatsSummaryLoggerTest {
 	public void test() {
 		LoggerFactory factory = mock(LoggerFactory.class);
 		LoggerRegistry loggerRegistry = mock(LoggerRegistry.class);
+		LogParserRegistry parserRegistry = mock(LogParserRegistry.class);
 
 		LogPipe sink = mock(LogPipe.class);
 
@@ -166,6 +159,7 @@ public class StatsSummaryLoggerTest {
 
 		Map<String, String> config = new HashMap<String, String>();
 		config.put(StatsSummaryLoggerFactory.OPT_SOURCE_LOGGER, "local\\source");
+		config.put(StatsSummaryLoggerFactory.OPT_PARSER, "");
 		config.put(StatsSummaryLoggerFactory.OPT_QUERY,
 				"stats count, sum(val1) as sum_val1, avg(val1) as avg_val1, sum(val2) as sum_val2, avg(val2) as avg_val2 by cat1, cat2");
 		config.put(StatsSummaryLoggerFactory.OPT_MIN_INTERVAL, "600");
@@ -173,7 +167,7 @@ public class StatsSummaryLoggerTest {
 		config.put(StatsSummaryLoggerFactory.OPT_MEMORY_ITEMSIZE, "50000");
 		LoggerSpecification spec = new LoggerSpecification("local", "test", "", 0, null, 0, config);
 
-		StatsSummaryLogger logger = new StatsSummaryLogger(spec, factory, loggerRegistry);
+		StatsSummaryLogger logger = new StatsSummaryLogger(spec, factory, loggerRegistry, parserRegistry);
 
 		try {
 			logger.addLogPipe(sink);

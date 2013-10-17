@@ -26,6 +26,7 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.log.api.AbstractLoggerFactory;
 import org.araqne.log.api.IntegerConfigType;
+import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.LoggerRegistry;
@@ -41,9 +42,13 @@ public class StatsSummaryLoggerFactory extends AbstractLoggerFactory {
 	public static final String OPT_MIN_INTERVAL = "aggr_interval"; 
 	public static final String OPT_FLUSH_INTERVAL = "flush_interval";
 	public static final String OPT_MEMORY_ITEMSIZE = "max_itemsize";
+	public static final String OPT_PARSER = "parser";
 
 	@Requires
 	private LoggerRegistry loggerRegistry;
+	
+	@Requires
+	private LogParserRegistry parserRegistry;
 
 	@Override
 	public String getName() {
@@ -79,6 +84,9 @@ public class StatsSummaryLoggerFactory extends AbstractLoggerFactory {
 		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, 
 				t("Source logger name", "원본 로거 이름"), 
 				t("Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름"), true);
+		LoggerConfigOption parserName = new StringConfigType(OPT_PARSER, 
+				t("Parser name", "파서 이름"), 
+				t("", ""), true);
 		LoggerConfigOption query = new StringConfigType(OPT_QUERY, 
 				t("Stats Query", "통계 쿼리"), 
 				t("functions and key fields to aggregate by", "집계 함수와 키(key) 필드를 정의합니다."), true);
@@ -91,7 +99,7 @@ public class StatsSummaryLoggerFactory extends AbstractLoggerFactory {
 		LoggerConfigOption memItemSize = new IntegerConfigType(OPT_MEMORY_ITEMSIZE,
 				t("Max Item Count in Memory", "최대 메모리 상주 항목 개수"),
 				t("", ""), true);
-		return Arrays.asList(loggerName, query, aggrInterval, flushInterval, memItemSize);
+		return Arrays.asList(loggerName, parserName, query, aggrInterval, flushInterval, memItemSize);
 	}
 
 	private Map<Locale, String> t(String enText, String koText) {
@@ -103,7 +111,7 @@ public class StatsSummaryLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	protected Logger createLogger(LoggerSpecification spec) {
-		return new StatsSummaryLogger(spec, this, loggerRegistry);
+		return new StatsSummaryLogger(spec, this, loggerRegistry, parserRegistry);
 	}
 
 }

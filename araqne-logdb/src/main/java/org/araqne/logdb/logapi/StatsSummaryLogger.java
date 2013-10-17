@@ -21,15 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.log.api.AbstractLogger;
-import org.araqne.log.api.Log;
-import org.araqne.log.api.LogPipe;
-import org.araqne.log.api.Logger;
-import org.araqne.log.api.LoggerFactory;
-import org.araqne.log.api.LoggerRegistry;
-import org.araqne.log.api.LoggerRegistryEventListener;
-import org.araqne.log.api.LoggerSpecification;
-import org.araqne.log.api.SimpleLog;
+import org.araqne.log.api.*;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.Session;
@@ -68,6 +60,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	private static final String OPT_MIN_INTERVAL = "aggr_interval";
 	private static final String OPT_FLUSH_INTERVAL = "flush_interval";
 	private static final String OPT_MEMORY_ITEMSIZE = "max_itemsize";
+	private static final String OPT_PARSER = "parser";
 
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(StatsSummaryLogger.class.getName());
 	private LoggerRegistry loggerRegistry;
@@ -86,16 +79,22 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	private AggregationFunction[] funcs;
 	private List<String> clauses;
 	private Date lastFlush = new Date();
+	private LogParserRegistry parserRegistry;
+	private String parserName;
+	private LogParser parser;
 
-	public StatsSummaryLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
+	public StatsSummaryLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry,
+			LogParserRegistry parserRegistry) {
 		super(spec, factory);
 		this.loggerRegistry = loggerRegistry;
+		this.parserRegistry = parserRegistry;
 		Map<String, String> config = spec.getConfig();
 		loggerName = config.get(OPT_SOURCE_LOGGER);
 		queryString = config.get(OPT_QUERY);
 		aggrInterval = Integer.parseInt(config.get(OPT_MIN_INTERVAL));
 		flushInterval = Integer.parseInt(config.get(OPT_FLUSH_INTERVAL));
 		maxItemSize = Integer.parseInt(config.get(OPT_MEMORY_ITEMSIZE));
+		parserName = config.get(OPT_PARSER);
 
 		init();
 	}
@@ -106,6 +105,8 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	}
 
 	private void init() {
+		parser = parserRegistry.newParser(parserName);
+
 		// sanitize queryString
 		queryString = queryString.trim();
 		if (!queryString.startsWith("stats "))
@@ -244,7 +245,6 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 
 	@Override
 	public void onLog(Logger logger, Log log) {
-		String line = (String) log.getParams().get("line");
 		StatsSummaryKey key = keyExtractor.extract(log);
 		// if (slog.isDebugEnabled())
 		// slog.debug("{}", key);
@@ -259,10 +259,18 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 				}
 				buffer.put(key, fs);
 			}
+			
+			// XXX: distinguish v1 v2
+			log.getParams().put("_time", log.getDate());
+			
+			// parse log
+			Map<String, Object> parsed = log.getParams();
+			if (parser != null)
+				parsed = parser.parse(log.getParams());
 
 			// XXX: replace LogMap to more proper type
 			for (AggregationFunction f : fs) {
-				f.apply(new LogMap(log.getParams()));
+				f.apply(new LogMap(parsed));
 			}
 
 			// flush
