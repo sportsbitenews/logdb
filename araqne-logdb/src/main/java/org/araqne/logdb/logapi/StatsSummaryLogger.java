@@ -20,6 +20,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.araqne.log.api.*;
 import org.araqne.logdb.LogMap;
@@ -82,6 +85,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	private LogParserRegistry parserRegistry;
 	private String parserName;
 	private LogParser parser;
+	private ArrayBlockingQueue<Log> logList;
 
 	public StatsSummaryLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry,
 			LogParserRegistry parserRegistry) {
@@ -105,8 +109,13 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	}
 
 	private void init() {
-		if (parserName != null)
+		try {
 			parser = parserRegistry.newParser(parserName);
+		} catch (Exception e) {
+			slog.warn("stats-summary-logger: could not find parser [" + parserName + "]", e);
+		}
+
+		buffer = new HashMap<StatsSummaryKey, AggregationFunction[]>(maxItemSize);
 
 		// sanitize queryString
 		queryString = queryString.trim();
@@ -135,6 +144,8 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 		for (AggregationFunction f : funcs) {
 			f.clean();
 		}
+
+		logList = new ArrayBlockingQueue<Log>(250000);
 	}
 
 	@Override
@@ -152,6 +163,10 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	@Override
 	protected void onStop() {
 		try {
+			// XXX: not working now.
+			processLogs();
+			flush();
+
 			if (loggerRegistry != null) {
 				Logger logger = loggerRegistry.getLogger(loggerName);
 				if (logger != null) {
@@ -176,8 +191,18 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	protected void runOnce() {
 		// if needed, flush in memory items
 		slog.trace("summary-logger - runOnce called");
-		if (needFlush()) {
+
+		processLogs();
+
+		if (needFlush())
 			flush();
+	}
+
+	private void processLogs() {
+		Log log = null;
+		while ((log = logList.peek()) != null) {
+			processLog(log);
+			logList.poll();
 		}
 	}
 
@@ -187,22 +212,21 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 			forceFlush = false;
 			return true;
 		}
-		if (buffer.size() >= maxItemSize)
-			return true;
 		long interval = 1000 * flushInterval;
-		if ((lastFlush.getTime() / interval + 1) * interval < new Date().getTime())
-			return true;
-		return false;
+		return (lastFlush.getTime() / interval + 1) * interval < new Date().getTime();
 	}
 
 	public void flush() {
 		slog.trace("flush called");
 
-		for (StatsSummaryKey key : buffer.keySet()) {
+		Map<StatsSummaryKey, AggregationFunction[]> captured = buffer;
+		buffer = new HashMap<StatsSummaryKey, AggregationFunction[]>(maxItemSize);
+
+		for (StatsSummaryKey key : captured.keySet()) {
 			HashMap<String, Object> m = new HashMap<String, Object>();
 
 			// put summary values
-			AggregationFunction[] fs = buffer.get(key);
+			AggregationFunction[] fs = captured.get(key);
 			for (int i = 0; i < fs.length; ++i) {
 				m.put(fields.get(i).getName(), fs[i].eval());
 			}
@@ -217,8 +241,6 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 		}
 
 		lastFlush = new Date();
-
-		buffer.clear();
 	}
 
 	@Override
@@ -241,46 +263,67 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	private List<AggregationField> fields;
 	private int inputCount;
 
-	private Map<StatsSummaryKey, AggregationFunction[]> buffer = new HashMap<StatsSummaryKey, AggregationFunction[]>();
+	private Map<StatsSummaryKey, AggregationFunction[]> buffer;
 	private boolean forceFlush = false;
+	private boolean warnSuppressed;
 
 	@Override
 	public void onLog(Logger logger, Log log) {
-		StatsSummaryKey key = keyExtractor.extract(log);
-		// if (slog.isDebugEnabled())
-		// slog.debug("{}", key);
-
 		try {
 			inputCount++;
-			AggregationFunction[] fs = buffer.get(key);
-			if (fs == null) {
-				fs = new AggregationFunction[funcs.length];
-				for (int i = 0; i < fs.length; ++i) {
-					fs[i] = funcs[i].clone();
+
+			if (!isRunning() && !warnSuppressed) {
+				slog.warn("logs are being dropped because logger is not running: {}", this.getName());
+				warnSuppressed = true;
+			}
+
+			if (isRunning() && warnSuppressed) {
+				warnSuppressed = false;
+			}
+
+			boolean offer = logList.offer(log, 30, TimeUnit.SECONDS);
+			if (!offer) {
+				if (!isRunning()) {
+					slog.warn("log is dropped because logger is stopped: {}", this.getName());
+				} else {
+					// second chance
+					logList.offer(log, 30, TimeUnit.SECONDS);
+					slog.error("log is dropped because logger is congested: {}", this.getName());
 				}
-				buffer.put(key, fs);
 			}
 
-			// XXX: distinguish v1 v2
-			log.getParams().put("_time", log.getDate());
-
-			// parse log
-			Map<String, Object> parsed = log.getParams();
-			if (parser != null)
-				parsed = parser.parse(log.getParams());
-
-			// XXX: replace LogMap to more proper type
-			for (AggregationFunction f : fs) {
-				f.apply(new LogMap(parsed));
-			}
-
-			// flush
-			if (needFlush())
-				flush();
 		} catch (Throwable t) {
 			throw new IllegalStateException("logger-name: " + logger.getName() + ", log: " + log.toString(), t);
 		}
 
+	}
+
+	private void processLog(Log log) {
+		// parse log
+		Map<String, Object> parsed = log.getParams();
+		if (parser != null) {
+			// XXX: distinguish v1 v2
+			log.getParams().put("_time", log.getDate());
+			parsed = parser.parse(log.getParams());
+		}
+
+		StatsSummaryKey key = keyExtractor.extract(log);
+
+		if (!buffer.containsKey(key)) {
+			if (buffer.size() == maxItemSize)
+				flush();
+
+			AggregationFunction[] fs = new AggregationFunction[funcs.length];
+			for (int i = 0; i < fs.length; ++i) {
+				fs[i] = funcs[i].clone();
+			}
+			buffer.put(key, fs);
+		}
+		// XXX: replace LogMap to more proper type
+		AggregationFunction[] fs = buffer.get(key);
+		for (AggregationFunction f : fs) {
+			f.apply(new LogMap(parsed));
+		}
 	}
 
 	public void setForceFlush() {

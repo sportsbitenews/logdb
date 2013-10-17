@@ -178,9 +178,7 @@ public class StatsSummaryLoggerTest {
 			slog.trace("source logger stopped");
 
 			logger.setForceFlush();
-			logger.runOnce(); // flush
-			logger.stop(5000);
-
+			logger.runOnce();
 			// check the result of sink
 			Map<String, long[]> rm = new HashMap<String, long[]>();
 
@@ -208,6 +206,8 @@ public class StatsSummaryLoggerTest {
 			assertArrayEquals(rm.get("BY"), new long[] { 352, 6938, 42074 });
 			assertArrayEquals(rm.get("CY"), new long[] { 525, 15590, 67903 });
 
+			// XXX: can be tested after logger stopped.
+			logger.stop(5000);
 		} finally {
 			if (logger.isRunning())
 				logger.stop();
