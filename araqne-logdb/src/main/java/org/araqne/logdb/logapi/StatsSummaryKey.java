@@ -1,4 +1,4 @@
-package org.araqne.logdb.summary;
+package org.araqne.logdb.logapi;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -6,11 +6,11 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 
-public class SummaryKey {
+public class StatsSummaryKey {
 	private Date date;
 	private Object[] keys;
 	
-	public SummaryKey(Date date, Object[] keys) {
+	public StatsSummaryKey(Date date, Object[] keys) {
 		this.date = (Date) date.clone();
 		this.keys = Arrays.copyOf(keys, keys.length);
 	}
@@ -37,7 +37,7 @@ public class SummaryKey {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		SummaryKey other = (SummaryKey) obj;
+		StatsSummaryKey other = (StatsSummaryKey) obj;
 		if (date == null) {
 			if (other.date != null)
 				return false;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.summary;
+package org.araqne.logdb.logapi;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,9 +33,9 @@ import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.SelectorLogger;
 import org.araqne.log.api.StringConfigType;
 
-@Component(name = "summary-logger-factory")
+@Component(name = "stats-summary-logger-factory")
 @Provides
-public class SummaryLoggerFactory extends AbstractLoggerFactory {
+public class StatsSummaryLoggerFactory extends AbstractLoggerFactory {
 	public static final String OPT_SOURCE_LOGGER = "source_logger";
 	public static final String OPT_QUERY = "stats_query";
 	public static final String OPT_MIN_INTERVAL = "aggr_interval"; 
@@ -103,7 +103,7 @@ public class SummaryLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	protected Logger createLogger(LoggerSpecification spec) {
-		return new SummaryLogger(spec, this, loggerRegistry);
+		return new StatsSummaryLogger(spec, this, loggerRegistry);
 	}
 
 }

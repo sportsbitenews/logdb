@@ -1,4 +1,4 @@
-package org.araqne.logdb.summary;
+package org.araqne.logdb.logapi;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.mockito.Matchers.any;
@@ -29,12 +29,14 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.SimpleLog;
+import org.araqne.logdb.logapi.StatsSummaryLogger;
+import org.araqne.logdb.logapi.StatsSummaryLoggerFactory;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-public class SummaryLoggerTest {
-	private static org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SummaryLoggerTest.class);
+public class StatsSummaryLoggerTest {
+	private static org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(StatsSummaryLoggerTest.class);
 
 	public static class SampleLogger extends AbstractLogger {
 		private int runCount;
@@ -163,15 +165,15 @@ public class SummaryLoggerTest {
 		when(loggerRegistry.getLogger("local\\source")).thenReturn(sourceLogger);
 
 		Map<String, String> config = new HashMap<String, String>();
-		config.put(SummaryLoggerFactory.OPT_SOURCE_LOGGER, "local\\source");
-		config.put(SummaryLoggerFactory.OPT_QUERY,
+		config.put(StatsSummaryLoggerFactory.OPT_SOURCE_LOGGER, "local\\source");
+		config.put(StatsSummaryLoggerFactory.OPT_QUERY,
 				"stats count, sum(val1) as sum_val1, avg(val1) as avg_val1, sum(val2) as sum_val2, avg(val2) as avg_val2 by cat1, cat2");
-		config.put(SummaryLoggerFactory.OPT_MIN_INTERVAL, "600");
-		config.put(SummaryLoggerFactory.OPT_FLUSH_INTERVAL, "1");
-		config.put(SummaryLoggerFactory.OPT_MEMORY_ITEMSIZE, "50000");
+		config.put(StatsSummaryLoggerFactory.OPT_MIN_INTERVAL, "600");
+		config.put(StatsSummaryLoggerFactory.OPT_FLUSH_INTERVAL, "1");
+		config.put(StatsSummaryLoggerFactory.OPT_MEMORY_ITEMSIZE, "50000");
 		LoggerSpecification spec = new LoggerSpecification("local", "test", "", 0, null, 0, config);
 
-		SummaryLogger logger = new SummaryLogger(spec, factory, loggerRegistry);
+		StatsSummaryLogger logger = new StatsSummaryLogger(spec, factory, loggerRegistry);
 
 		try {
 			logger.addLogPipe(sink);

@@ -1,4 +1,4 @@
-package org.araqne.logdb.summary;
+package org.araqne.logdb.logapi;
 
 import java.util.Calendar;
 import java.util.Collections;
@@ -8,14 +8,14 @@ import java.util.Map;
 
 import org.araqne.log.api.Log;
 
-public class KeyExtractor {
+public class StatsSummaryKeyExtractor {
 	List<String> clauses;
 	Calendar cal;
 	private int minInterval;
 	private int intervalDivisor;
 	private int intervalTimeUnit;
 
-	public KeyExtractor(int minInterval, List<String> clauses) {
+	public StatsSummaryKeyExtractor(int minInterval, List<String> clauses) {
 		this.clauses = Collections.unmodifiableList(clauses);
 		this.minInterval = minInterval;
 		
@@ -38,14 +38,14 @@ public class KeyExtractor {
 		this.cal = Calendar.getInstance();
 	}
 	
-	public SummaryKey extract(Log log) {
+	public StatsSummaryKey extract(Log log) {
 		Map<String, Object> data = log.getParams();
 		Object[] keys = new Object[clauses.size()];
 		int cnt = 0;
 		for (String c: clauses)
 			keys[cnt++] = data.get(c);
 		
-		return new SummaryKey(floorDate(cal, log.getDate(), intervalDivisor, intervalTimeUnit), keys);
+		return new StatsSummaryKey(floorDate(cal, log.getDate(), intervalDivisor, intervalTimeUnit), keys);
 	}
 	
 	public List<String> getClauses() {

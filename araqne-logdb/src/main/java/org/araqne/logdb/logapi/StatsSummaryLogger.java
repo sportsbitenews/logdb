@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.summary;
+package org.araqne.logdb.logapi;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -39,7 +39,7 @@ import org.araqne.logdb.query.parser.AggregationParser;
 import org.araqne.logdb.query.parser.StatsParser;
 import org.araqne.logdb.query.parser.StatsParser.SyntaxParseResult;
 
-public class SummaryLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
+public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
 	public class EmptySession implements Session {
 		@Override
 		public String getGuid() {
@@ -69,7 +69,7 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	private static final String OPT_FLUSH_INTERVAL = "flush_interval";
 	private static final String OPT_MEMORY_ITEMSIZE = "max_itemsize";
 
-	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SummaryLogger.class.getName());
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(StatsSummaryLogger.class.getName());
 	private LoggerRegistry loggerRegistry;
 
 	/**
@@ -82,12 +82,12 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	private int aggrInterval;
 	private long flushInterval;
 	private int maxItemSize;
-	private KeyExtractor keyExtractor;
+	private StatsSummaryKeyExtractor keyExtractor;
 	private AggregationFunction[] funcs;
 	private List<String> clauses;
 	private Date lastFlush = new Date();
 
-	public SummaryLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
+	public StatsSummaryLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
 		super(spec, factory);
 		this.loggerRegistry = loggerRegistry;
 		Map<String, String> config = spec.getConfig();
@@ -123,7 +123,7 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 			fields.add(field);
 		}
 
-		keyExtractor = new KeyExtractor(aggrInterval, pr.clauses);
+		keyExtractor = new StatsSummaryKeyExtractor(aggrInterval, pr.clauses);
 
 		funcs = new AggregationFunction[fields.size()];
 		for (int i = 0; i < fields.size(); ++i) {
@@ -196,7 +196,7 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	public void flush() {
 		slog.trace("flush called");
 
-		for (SummaryKey key : buffer.keySet()) {
+		for (StatsSummaryKey key : buffer.keySet()) {
 			HashMap<String, Object> m = new HashMap<String, Object>();
 
 			// put summary values
@@ -239,13 +239,13 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	private List<AggregationField> fields;
 	private int inputCount;
 
-	private Map<SummaryKey, AggregationFunction[]> buffer = new HashMap<SummaryKey, AggregationFunction[]>();
+	private Map<StatsSummaryKey, AggregationFunction[]> buffer = new HashMap<StatsSummaryKey, AggregationFunction[]>();
 	private boolean forceFlush = false;
 
 	@Override
 	public void onLog(Logger logger, Log log) {
 		String line = (String) log.getParams().get("line");
-		SummaryKey key = keyExtractor.extract(log);
+		StatsSummaryKey key = keyExtractor.extract(log);
 		// if (slog.isDebugEnabled())
 		// slog.debug("{}", key);
 
