@@ -1,4 +1,4 @@
-/*package org.araqne.logdb.summary;
+package org.araqne.logdb.summary;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.mockito.Matchers.any;
@@ -232,4 +232,4 @@ public class SummaryLoggerTest {
 		}
 	}
 }
-*/
+
