@@ -84,6 +84,8 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new ContextReference(context, args));
 		} else if (name.equals("guid")) {
 			exprStack.add(new Guid());
+		} else if (name.equals("seq")) {
+			exprStack.add(new Seq());
 		}
 		else {
 			throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
