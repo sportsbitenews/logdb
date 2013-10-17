@@ -18,6 +18,8 @@ package org.araqne.logdb.logapi;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.araqne.log.api.AbstractLogger;
 import org.araqne.log.api.Log;
@@ -51,6 +53,10 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 	private LogQueryCommand first;
 	private Log currentLog;
 
+	private volatile boolean stopRunner = false;
+	private QueryRunner runner;
+	private ArrayBlockingQueue<Log> queue = new ArrayBlockingQueue<Log>(100000);
+
 	public QueryTransformLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry, LogQuery q) {
 		super(spec, factory);
 		this.loggerRegistry = loggerRegistry;
@@ -64,28 +70,40 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 
 		for (int i = commands.size() - 2; i >= 0; i--)
 			commands.get(i).setNextCommand(commands.get(i + 1));
-
 	}
 
 	@Override
 	protected void onStart() {
+		if (runner == null) {
+			runner = new QueryRunner();
+			runner.run();
+		}
+
 		loggerRegistry.addListener(this);
 		Logger logger = loggerRegistry.getLogger(loggerName);
 
 		if (logger != null) {
-			slog.debug("araqne log api: connect pipe to source logger [{}]", loggerName);
+			slog.debug("araqne logdb: connect pipe to source logger [{}]", loggerName);
 			logger.addLogPipe(this);
 		} else
-			slog.debug("araqne log api: source logger [{}] not found", loggerName);
+			slog.debug("araqne logdb: source logger [{}] not found", loggerName);
 	}
 
 	@Override
 	protected void onStop() {
 		try {
+			stopRunner = true;
+			runner.interrupt();
+			try {
+				runner.join(5000);
+			} catch (InterruptedException e) {
+				slog.info("araqne logdb: failed to join query runner, logger [{}]", getFullName());
+			}
+
 			if (loggerRegistry != null) {
 				Logger logger = loggerRegistry.getLogger(loggerName);
 				if (logger != null) {
-					slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
+					slog.debug("araqne logdb: disconnect pipe from source logger [{}]", loggerName);
 					logger.removeLogPipe(this);
 				}
 
@@ -109,7 +127,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 	@Override
 	public void loggerAdded(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
-			slog.debug("araqne log api: source logger [{}] loaded", loggerName);
+			slog.debug("araqne logdb: source logger [{}] loaded", loggerName);
 			logger.addLogPipe(this);
 		}
 	}
@@ -117,15 +135,19 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 	@Override
 	public void loggerRemoved(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
-			slog.debug("araqne log api: source logger [{}] unloaded", loggerName);
+			slog.debug("araqne logdb: source logger [{}] unloaded", loggerName);
 			logger.removeLogPipe(this);
 		}
 	}
 
 	@Override
 	public void onLog(Logger logger, Log log) {
-		currentLog = log;
-		first.push(new LogMap(log.getParams()));
+		try {
+			if (isRunning())
+				queue.put(log);
+		} catch (Throwable t) {
+			slog.error("araqne logdb: cannot evaluate query, log [" + log.getParams() + "], logger " + getFullName(), t);
+		}
 	}
 
 	private class QueryResult extends LogQueryCommand {
@@ -135,5 +157,35 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 			SimpleLog log = new SimpleLog(date, loggerName, m.map());
 			QueryTransformLogger.this.write(log);
 		}
+	}
+
+	private class QueryRunner extends Thread {
+
+		@Override
+		public void run() {
+			try {
+				slog.info("araqne logdb: begin query runner, logger [{}]", getFullName());
+				while (!stopRunner) {
+					Log log = null;
+					try {
+						log = queue.poll(1, TimeUnit.SECONDS);
+						if (log == null)
+							continue;
+
+						currentLog = log;
+						first.push(new LogMap(log.getParams()));
+					} catch (Throwable t) {
+						if (log != null)
+							slog.error("araqne logdb: cannot evaluate query, log [" + log.getParams() + "], logger " + getFullName(), t);
+					}
+				}
+			} catch (Throwable t) {
+				slog.error("araqne logdb: query runner failed, logger " + getFullName(), t);
+			} finally {
+				stopRunner = false;
+				runner = null;
+			}
+		}
+
 	}
 }
