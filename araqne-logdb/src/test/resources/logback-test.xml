@@ -4,8 +4,8 @@
 			<pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
 		</layout>
 	</appender>
-
-	<logger name="org.araqne.logdb.summary.SummaryLoggerTest" level="TRACE" />
+	<logger name="#org.araqne.logdb.summary.SummaryLogger" level="TRACE" />
+	<logger name="#org.araqne.logdb.summary.SummaryLoggerTest" level="TRACE" />
 	<root level="info">
 		<appender-ref ref="STDOUT" />
 	</root>

@@ -1,18 +1,19 @@
 /*package org.araqne.logdb.summary;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -36,8 +37,11 @@ public class SummaryLoggerTest {
 	private static org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SummaryLoggerTest.class);
 
 	public static class SampleLogger extends AbstractLogger {
-		public SampleLogger(LoggerSpecification spec, LoggerFactory factory) {
+		private int runCount;
+
+		public SampleLogger(LoggerSpecification spec, LoggerFactory factory, int runCount) {
 			super(spec, factory);
+			this.runCount = runCount;
 		}
 
 		@SuppressWarnings("serial")
@@ -50,11 +54,24 @@ public class SummaryLoggerTest {
 			};
 		}
 
-		private static Path toPath(URL url) {
+		public List<String> readAllLines(File file, Charset cs) throws IOException {
+			BufferedReader reader = null;
 			try {
-				return new File(url.toURI()).toPath();
-			} catch (URISyntaxException e) {
-				return null;
+				ArrayList<String> lines = new ArrayList<String>();
+				FileInputStream fis = new FileInputStream(file);
+				reader = new BufferedReader(new InputStreamReader(fis, cs));
+				String line = null;
+				while ((line = reader.readLine()) != null) {
+					lines.add(line);
+				}
+				return lines;
+			} finally {
+				if (reader != null)
+					try {
+						reader.close();
+					} catch (IOException e) {
+
+					}
 			}
 		}
 
@@ -63,7 +80,7 @@ public class SummaryLoggerTest {
 			slog.trace("source - runOnce called");
 
 			try {
-				List<String> lines = Files.readAllLines(toPath(this.getClass().getResource("/SummaryLoggerTest-Sample1.txt")),
+				List<String> lines = readAllLines(new File(this.getClass().getResource("/SummaryLoggerTest-Sample1.txt").toURI()),
 						Charset.forName("utf-8"));
 				for (String line : lines) {
 					Map<String, Object> data = parseLine(line);
@@ -71,10 +88,13 @@ public class SummaryLoggerTest {
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
+			} catch (URISyntaxException e) {
+				e.printStackTrace();
 			}
-			synchronized (this) {
-				this.notify();
-			}
+			if (--runCount == 0)
+				synchronized (this) {
+					this.notifyAll();
+				}
 		}
 
 		private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -113,7 +133,7 @@ public class SummaryLoggerTest {
 
 		@Override
 		protected Logger createLogger(LoggerSpecification spec) {
-			return new SampleLogger(spec, this);
+			return new SampleLogger(spec, this, 1);
 		}
 
 	}
@@ -125,27 +145,30 @@ public class SummaryLoggerTest {
 
 		LogPipe sink = mock(LogPipe.class);
 
+		final ArrayList<Log> logs = new ArrayList<Log>();
+
 		doAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				Object[] arguments = invocation.getArguments();
-				System.out.println(arguments[1].toString());
+				logs.add((Log) arguments[1]);
 				return null;
 			}
 		}).when(sink).onLog(any(Logger.class), any(Log.class));
 
 		SampleLogger sourceLogger = new SampleLogger(
 				new LoggerSpecification("local", "source", "", 0, null, 0, new HashMap<String, String>()),
-				new SampleLoggerFactory());
+				new SampleLoggerFactory(), 1);
 
 		when(loggerRegistry.getLogger("local\\source")).thenReturn(sourceLogger);
 
 		Map<String, String> config = new HashMap<String, String>();
 		config.put(SummaryLoggerFactory.OPT_SOURCE_LOGGER, "local\\source");
-		config.put(SummaryLoggerFactory.OPT_QUERY, "stats count, sum(val1), avg(val1), sum(val2), avg(val2) by cat1, cat2");
-		config.put(SummaryLoggerFactory.OPT_MIN_INTERVAL, "1800");
-		config.put(SummaryLoggerFactory.OPT_FLUSH_INTERVAL, "60");
-		config.put(SummaryLoggerFactory.OPT_MEMORY_ITEMSIZE, "60");
+		config.put(SummaryLoggerFactory.OPT_QUERY,
+				"stats count, sum(val1) as sum_val1, avg(val1) as avg_val1, sum(val2) as sum_val2, avg(val2) as avg_val2 by cat1, cat2");
+		config.put(SummaryLoggerFactory.OPT_MIN_INTERVAL, "600");
+		config.put(SummaryLoggerFactory.OPT_FLUSH_INTERVAL, "1");
+		config.put(SummaryLoggerFactory.OPT_MEMORY_ITEMSIZE, "50000");
 		LoggerSpecification spec = new LoggerSpecification("local", "test", "", 0, null, 0, config);
 
 		SummaryLogger logger = new SummaryLogger(spec, factory, loggerRegistry);
@@ -156,12 +179,39 @@ public class SummaryLoggerTest {
 
 			startAndWaitForRunOnce(sourceLogger);
 
+			slog.trace("source logger stopped");
+
 			logger.setForceFlush();
 			logger.runOnce(); // flush
+			logger.stop(5000);
 
 			// check the result of sink
+			Map<String, long[]> rm = new HashMap<String, long[]>();
 
-			logger.stop(5000);
+			for (Log l : logs) {
+				String c1 = (String) l.getParams().get("cat1");
+				String c2 = (String) l.getParams().get("cat2");
+				long v1 = (Long) l.getParams().get("sum_val1");
+				long v2 = (Long) l.getParams().get("sum_val2");
+				long c = (Long) l.getParams().get("count");
+
+				long[] v = rm.get(c1 + c2);
+				if (v == null) {
+					v = new long[3];
+					rm.put(c1 + c2, v);
+				}
+				v[0] += c;
+				v[1] += v1;
+				v[2] += v2;
+			}
+
+			assertArrayEquals(rm.get("AX"), new long[] { 691, 6590, 75694 });
+			assertArrayEquals(rm.get("BX"), new long[] { 691, 13546, 82538 });
+			assertArrayEquals(rm.get("CX"), new long[] { 1003, 29633, 130000 });
+			assertArrayEquals(rm.get("AY"), new long[] { 338, 3141, 36973 });
+			assertArrayEquals(rm.get("BY"), new long[] { 352, 6938, 42074 });
+			assertArrayEquals(rm.get("CY"), new long[] { 525, 15590, 67903 });
+
 		} finally {
 			if (logger.isRunning())
 				logger.stop();

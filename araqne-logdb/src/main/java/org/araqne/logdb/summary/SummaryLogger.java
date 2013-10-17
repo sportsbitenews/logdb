@@ -80,7 +80,7 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	private String pattern;
 	private String queryString;
 	private int aggrInterval;
-	private int flushInterval;
+	private long flushInterval;
 	private int maxItemSize;
 	private KeyExtractor keyExtractor;
 	private AggregationFunction[] funcs;
@@ -173,6 +173,7 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	@Override
 	protected void runOnce() {
 		// if needed, flush in memory items
+		slog.trace("summary-logger - runOnce called");
 		if (needFlush()) {
 			flush();
 		}
@@ -186,15 +187,16 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 		}
 		if (buffer.size() >= maxItemSize)
 			return true;
-		if (lastFlush.getTime() / flushInterval * (flushInterval + 1) < new Date().getTime())
+		long interval = 1000 * flushInterval;
+		if ((lastFlush.getTime() / interval + 1) * interval < new Date().getTime())
 			return true;
 		return false;
 	}
 
 	public void flush() {
 		slog.trace("flush called");
-		
-		for (SummaryKey key: buffer.keySet()) {
+
+		for (SummaryKey key : buffer.keySet()) {
 			HashMap<String, Object> m = new HashMap<String, Object>();
 
 			// put summary values
@@ -202,18 +204,18 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 			for (int i = 0; i < fs.length; ++i) {
 				m.put(fields.get(i).getName(), fs[i].eval());
 			}
-			
+
 			// put key
 			List<String> cs = keyExtractor.getClauses();
 			for (int i = 0; i < key.size(); ++i) {
 				m.put(cs.get(i), key.get(i));
 			}
-			
+
 			write(new SimpleLog(key.getDate(), this.getName(), m));
 		}
-		
+
 		lastFlush = new Date();
-		
+
 		buffer.clear();
 	}
 
@@ -244,11 +246,11 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	public void onLog(Logger logger, Log log) {
 		String line = (String) log.getParams().get("line");
 		SummaryKey key = keyExtractor.extract(log);
-		if (slog.isDebugEnabled())
-			slog.debug("{}", key);
+		// if (slog.isDebugEnabled())
+		// slog.debug("{}", key);
 
 		try {
-			inputCount ++;
+			inputCount++;
 			AggregationFunction[] fs = buffer.get(key);
 			if (fs == null) {
 				fs = new AggregationFunction[funcs.length];
@@ -257,19 +259,19 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 				}
 				buffer.put(key, fs);
 			}
-			
+
 			// XXX: replace LogMap to more proper type
-			for (AggregationFunction f: fs) {
+			for (AggregationFunction f : fs) {
 				f.apply(new LogMap(log.getParams()));
 			}
-			
+
 			// flush
 			if (needFlush())
 				flush();
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			throw new IllegalStateException("logger-name: " + logger.getName() + ", log: " + log.toString(), t);
 		}
-		
+
 	}
 
 	public void setForceFlush() {
