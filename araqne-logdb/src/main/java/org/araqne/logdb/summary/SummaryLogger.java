@@ -85,6 +85,7 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	private KeyExtractor keyExtractor;
 	private AggregationFunction[] funcs;
 	private List<String> clauses;
+	private Date lastFlush = new Date();
 
 	public SummaryLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
 		super(spec, factory);
@@ -178,13 +179,42 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	}
 
 	private boolean needFlush() {
-		return true;
+		// XXX
+		if (forceFlush) {
+			forceFlush = false;
+			return true;
+		}
+		if (buffer.size() >= maxItemSize)
+			return true;
+		if (lastFlush.getTime() / flushInterval * (flushInterval + 1) < new Date().getTime())
+			return true;
+		return false;
 	}
 
 	public void flush() {
 		slog.trace("flush called");
-		for (Log log : logs)
-			write(new SimpleLog(log.getDate(), getFullName(), log.getParams()));
+		
+		for (SummaryKey key: buffer.keySet()) {
+			HashMap<String, Object> m = new HashMap<String, Object>();
+
+			// put summary values
+			AggregationFunction[] fs = buffer.get(key);
+			for (int i = 0; i < fs.length; ++i) {
+				m.put(fields.get(i).getName(), fs[i].eval());
+			}
+			
+			// put key
+			List<String> cs = keyExtractor.getClauses();
+			for (int i = 0; i < key.size(); ++i) {
+				m.put(cs.get(i), key.get(i));
+			}
+			
+			write(new SimpleLog(key.getDate(), this.getName(), m));
+		}
+		
+		lastFlush = new Date();
+		
+		buffer.clear();
 	}
 
 	@Override
@@ -208,6 +238,7 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 	private int inputCount;
 
 	private Map<SummaryKey, AggregationFunction[]> buffer = new HashMap<SummaryKey, AggregationFunction[]>();
+	private boolean forceFlush = false;
 
 	@Override
 	public void onLog(Logger logger, Log log) {
@@ -227,7 +258,7 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 				buffer.put(key, fs);
 			}
 			
-			// XXX: using LogMap
+			// XXX: replace LogMap to more proper type
 			for (AggregationFunction f: fs) {
 				f.apply(new LogMap(log.getParams()));
 			}
@@ -239,5 +270,9 @@ public class SummaryLogger extends AbstractLogger implements LoggerRegistryEvent
 			throw new IllegalStateException("logger-name: " + logger.getName() + ", log: " + log.toString(), t);
 		}
 		
+	}
+
+	public void setForceFlush() {
+		forceFlush = true;
 	}
 }

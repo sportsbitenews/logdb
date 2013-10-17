@@ -1,6 +1,7 @@
 package org.araqne.logdb.summary;
 
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +16,7 @@ public class KeyExtractor {
 	private int intervalTimeUnit;
 
 	public KeyExtractor(int minInterval, List<String> clauses) {
-		this.clauses = clauses;
+		this.clauses = Collections.unmodifiableList(clauses);
 		this.minInterval = minInterval;
 		
 		intervalDivisor = minInterval;
@@ -45,6 +46,10 @@ public class KeyExtractor {
 			keys[cnt++] = data.get(c);
 		
 		return new SummaryKey(floorDate(cal, log.getDate(), intervalDivisor, intervalTimeUnit), keys);
+	}
+	
+	public List<String> getClauses() {
+		return clauses;
 	}
 
 	private static Date floorDate(Calendar cal, Date date, int divisor, int timeUnit) {

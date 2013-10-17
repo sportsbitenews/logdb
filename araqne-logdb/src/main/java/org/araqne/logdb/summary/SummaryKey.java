@@ -11,9 +11,8 @@ public class SummaryKey {
 	private Object[] keys;
 	
 	public SummaryKey(Date date, Object[] keys) {
-		this.date = date;
-		this.keys = keys;
-		
+		this.date = (Date) date.clone();
+		this.keys = Arrays.copyOf(keys, keys.length);
 	}
 
 	@Override
@@ -47,5 +46,17 @@ public class SummaryKey {
 		if (!Arrays.equals(keys, other.keys))
 			return false;
 		return true;
+	}
+
+	public Object get(int i) {
+		return keys[i];
+	}
+
+	public int size() {
+		return keys.length;
+	}
+
+	public Date getDate() {
+		return date;
 	}
 }

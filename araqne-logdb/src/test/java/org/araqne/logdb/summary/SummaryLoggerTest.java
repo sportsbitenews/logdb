@@ -143,7 +143,7 @@ public class SummaryLoggerTest {
 		Map<String, String> config = new HashMap<String, String>();
 		config.put(SummaryLoggerFactory.OPT_SOURCE_LOGGER, "local\\source");
 		config.put(SummaryLoggerFactory.OPT_QUERY, "stats count, sum(val1), avg(val1), sum(val2), avg(val2) by cat1, cat2");
-		config.put(SummaryLoggerFactory.OPT_MIN_INTERVAL, "60");
+		config.put(SummaryLoggerFactory.OPT_MIN_INTERVAL, "1800");
 		config.put(SummaryLoggerFactory.OPT_FLUSH_INTERVAL, "60");
 		config.put(SummaryLoggerFactory.OPT_MEMORY_ITEMSIZE, "60");
 		LoggerSpecification spec = new LoggerSpecification("local", "test", "", 0, null, 0, config);
@@ -156,6 +156,7 @@ public class SummaryLoggerTest {
 
 			startAndWaitForRunOnce(sourceLogger);
 
+			logger.setForceFlush();
 			logger.runOnce(); // flush
 
 			// check the result of sink
@@ -174,6 +175,7 @@ public class SummaryLoggerTest {
 			synchronized (sourceLogger) {
 				sourceLogger.start(1000);
 				sourceLogger.wait();
+				sourceLogger.stop();
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
