@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.logapi;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -165,6 +166,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 		public void run() {
 			try {
 				slog.info("araqne logdb: begin query runner, logger [{}]", getFullName());
+				ArrayList<Log> buffer = new ArrayList<Log>(10002);
 				while (!stopRunner) {
 					Log log = null;
 					try {
@@ -172,11 +174,19 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 						if (log == null)
 							continue;
 
-						currentLog = log;
-						first.push(new LogMap(log.getParams()));
+						buffer.add(log);
+						queue.drainTo(buffer, 10000);
+
+						for (Log l : buffer) {
+							currentLog = log;
+							first.push(new LogMap(l.getParams()));
+						}
+
 					} catch (Throwable t) {
 						if (log != null)
 							slog.error("araqne logdb: cannot evaluate query, log [" + log.getParams() + "], logger " + getFullName(), t);
+					} finally {
+						buffer.clear();
 					}
 				}
 			} catch (Throwable t) {
@@ -186,6 +196,5 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 				runner = null;
 			}
 		}
-
 	}
 }
