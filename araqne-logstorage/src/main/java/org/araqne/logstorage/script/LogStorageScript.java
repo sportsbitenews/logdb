@@ -119,7 +119,7 @@ public class LogStorageScript implements Script {
 
 		Set<String> tableNames = new HashSet<String>();
 
-		context.print("Table names (enter to backup all tables):");
+		context.print("Table names (enter to backup all tables): ");
 		String tableInput = context.readLine();
 		if (tableInput.isEmpty()) {
 			tableNames = new HashSet<String>(tableRegistry.getTableNames());
