@@ -21,15 +21,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryParseException;
-import org.json.JSONException;
-import org.json.JSONWriter;
+import org.json.JSONConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +42,6 @@ public class OutputJson extends LogQueryCommand {
 	private FileOutputStream fos;
 	private OutputStreamWriter osw;
 	private List<String> fields;
-	private JSONWriter jwriter;
-	private SimpleDateFormat sdf;
 	private String lineSeparator;
 	private BufferedOutputStream bos;
 	private final boolean hasFields;
@@ -60,9 +57,6 @@ public class OutputJson extends LogQueryCommand {
 			this.fos = new FileOutputStream(f);
 			this.bos = new BufferedOutputStream(fos);
 			this.osw = new OutputStreamWriter(bos, Charset.forName("utf-8"));
-			this.jwriter = new JSONWriter(osw);
-			this.jwriter.array();
-			this.sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 			this.lineSeparator = System.getProperty("line.separator");
 			this.hasFields = !fields.isEmpty();
 		} catch (Throwable t) {
@@ -82,19 +76,14 @@ public class OutputJson extends LogQueryCommand {
 	@Override
 	public void push(LogMap m) {
 		try {
-			jwriter.object();
+			HashMap<String, Object> json = new HashMap<String, Object>();
 
-			for (String field : hasFields ? fields : m.map().keySet()) {
-				Object o = m.get(field);
-				String s = o == null ? "" : o.toString();
-				if (o instanceof Date) {
-					s = sdf.format(o);
-				}
-				jwriter.key(field).value(s);
+			Map<String, Object> origin = m.map();
+			for (String field : hasFields ? fields : origin.keySet()) {
+				json.put(field, origin.get(field));
 			}
 
-			jwriter.endObject();
-
+			osw.write(JSONConverter.jsonize(json));
 			osw.write(lineSeparator);
 		} catch (Throwable t) {
 			if (logger.isDebugEnabled())
@@ -111,10 +100,6 @@ public class OutputJson extends LogQueryCommand {
 
 	@Override
 	public void eof(boolean cancelled) {
-		try {
-			jwriter.endArray();
-		} catch (JSONException e1) {
-		}
 		this.status = Status.Finalizing;
 
 		close();

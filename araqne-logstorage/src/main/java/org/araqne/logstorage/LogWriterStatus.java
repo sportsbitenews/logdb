@@ -48,15 +48,22 @@ public class LogWriterStatus {
 		this.lastWrite = lastWrite;
 	}
 
-	@Override
-	public String toString() {
-		SimpleDateFormat dayFormat = new SimpleDateFormat("yyyy-MM-dd");
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		return "table=" + tableName + ", day=" + dayFormat.format(day) + ", buffer size=" + bufferSize 
-				+ ", last write=" + dateFormat.format(lastWrite);
+	/**
+	 * @since 2.2.6
+	 */
+	public int getBufferSize() {
+		return bufferSize;
 	}
 
 	public void setBufferSize(int size) {
 		this.bufferSize = size;
+	}
+
+	@Override
+	public String toString() {
+		SimpleDateFormat dayFormat = new SimpleDateFormat("yyyy-MM-dd");
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		return "table=" + tableName + ", day=" + dayFormat.format(day) + ", buffer size=" + bufferSize
+				+ ", last write=" + dateFormat.format(lastWrite);
 	}
 }

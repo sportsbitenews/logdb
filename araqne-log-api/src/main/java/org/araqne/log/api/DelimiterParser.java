@@ -29,7 +29,11 @@ public class DelimiterParser extends V1LogParser {
 	}
 
 	public DelimiterParser(String delimiter, String[] columnHeaders, String targetField, boolean includeTargetField) {
-		this.delimiter = delimiter.charAt(0);
+		if (delimiter.startsWith("\\u")) {
+			this.delimiter = (char) Integer.parseInt(delimiter.substring(2, 6), 16);
+		} else {
+			this.delimiter = delimiter.charAt(0);
+		}
 		this.columnHeaders = columnHeaders;
 		this.targetField = targetField;
 		this.includeTargetField = includeTargetField;

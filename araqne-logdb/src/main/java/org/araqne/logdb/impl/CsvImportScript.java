@@ -50,12 +50,6 @@ public class CsvImportScript implements Script {
 		this.context = context;
 	}
 
-	public static void main(String[] args) {
-		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm", new Locale("en"));
-		Date d = df.parse("2013-08-26 15:52", new ParsePosition(0));
-		System.out.println(d);
-	}
-
 	@ScriptUsage(description = "import text log file", arguments = {
 			@ScriptArgument(name = "table name", type = "string", description = "table name"),
 			@ScriptArgument(name = "file path", type = "string", description = "text log file path"),

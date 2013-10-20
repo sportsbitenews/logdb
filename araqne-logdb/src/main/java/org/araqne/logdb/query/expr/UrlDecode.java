@@ -15,13 +15,14 @@
  */
 package org.araqne.logdb.query.expr;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.List;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @since 1.6.7
@@ -29,6 +30,7 @@ import org.araqne.logdb.LogQueryParseException;
  * 
  */
 public class UrlDecode implements Expression {
+	private final Logger logger = LoggerFactory.getLogger(UrlDecode.class);
 	private Expression valueExpr;
 	private String charset;
 
@@ -52,8 +54,11 @@ public class UrlDecode implements Expression {
 
 		try {
 			return URLDecoder.decode(value.toString(), charset);
-		} catch (UnsupportedEncodingException e) {
-			return null;
+		} catch (Throwable t) {
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logdb: cannot decode url [" + value + "]", t);
+
+			return value;
 		}
 	}
 }

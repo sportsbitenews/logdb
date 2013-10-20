@@ -26,4 +26,5 @@
 	<instance component="exec-logger-factory" />
 	<instance component="wtmp-logger-factory" />
 	<instance component="welf-parser-factory" />
+	<instance component="parse-logger-factory" />
 </ipojo>

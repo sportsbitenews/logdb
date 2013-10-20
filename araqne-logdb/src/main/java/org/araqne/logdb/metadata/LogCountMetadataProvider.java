@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -38,6 +39,7 @@ import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.LogWriterStatus;
 
 @Component(name = "logdb-logcount-metadata")
 public class LogCountMetadataProvider implements MetadataProvider {
@@ -80,20 +82,33 @@ public class LogCountMetadataProvider implements MetadataProvider {
 	@Override
 	public void query(LogQueryContext context, String queryString, MetadataCallback callback) {
 		TableScanOption opt = MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, queryString);
+		List<LogWriterStatus> memoryBuffers = new ArrayList<LogWriterStatus>();
+		if (!opt.isDiskOnly())
+			memoryBuffers = storage.getWriterStatuses();
+
 		for (String tableName : opt.getTableNames())
-			countFiles(tableName, opt.getFrom(), opt.getTo(), callback);
+			countFiles(tableName, opt.getFrom(), opt.getTo(), memoryBuffers, callback);
 	}
 
-	private void countFiles(String tableName, Date from, Date to, MetadataCallback callback) {
+	private int getMemoryCount(List<LogWriterStatus> memoryBuffers, String tableName, Date day) {
+		for (LogWriterStatus buffer : memoryBuffers)
+			if (buffer.getTableName().equals(tableName) && buffer.getDay().equals(day))
+				return buffer.getBufferSize();
+
+		return 0;
+	}
+
+	private void countFiles(String tableName, Date from, Date to, List<LogWriterStatus> memoryBuffers, MetadataCallback callback) {
 		String fileType = tableRegistry.getTableMetadata(tableName, "_filetype");
 		if (fileType == null)
 			fileType = "v2";
 
 		File dir = storage.getTableDirectory(tableName);
-		countFiles(tableName, fileType, dir, from, to, callback);
+		countFiles(tableName, fileType, dir, from, to, memoryBuffers, callback);
 	}
 
-	private void countFiles(String tableName, String type, File dir, Date from, Date to, MetadataCallback callback) {
+	private void countFiles(String tableName, String type, File dir, Date from, Date to, List<LogWriterStatus> memoryBuffers,
+			MetadataCallback callback) {
 		File[] files = dir.listFiles();
 		if (files == null)
 			return;
@@ -124,6 +139,7 @@ public class LogCountMetadataProvider implements MetadataProvider {
 				if (to != null && day.after(to))
 					continue;
 
+				count += getMemoryCount(memoryBuffers, tableName, day);
 				writeCount(tableName, day, count, callback);
 			}
 		}
