@@ -15,12 +15,14 @@
  */
 package org.araqne.logdb.client;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class LogQuery {
+	private LogDbClient client;
 	private int id;
 	private String queryString;
 	private String status;
@@ -31,7 +33,8 @@ public class LogQuery {
 	private List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 	private CopyOnWriteArrayList<WaitingCondition> waitingConditions;
 
-	public LogQuery(int id, String queryString) {
+	public LogQuery(LogDbClient client, int id, String queryString) {
+		this.client = client;
 		this.id = id;
 		this.queryString = queryString;
 		this.status = "Stopped";
@@ -48,6 +51,22 @@ public class LogQuery {
 	}
 
 	public String getStatus() {
+		return getStatus(false);
+	}
+
+	/**
+	 * @since 0.8.3
+	 */
+	public String getStatus(boolean refresh) {
+		if (refresh) {
+			try {
+				// comet client do not support refresh
+				if (client != null)
+					client.getQuery(id);
+			} catch (IOException e) {
+			}
+		}
+
 		return status;
 	}
 

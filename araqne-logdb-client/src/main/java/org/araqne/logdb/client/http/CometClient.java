@@ -612,7 +612,7 @@ public class CometClient implements TrapListener {
 		session.registerTrap("logstorage-query-" + id);
 		session.registerTrap("logstorage-query-timeline-" + id);
 
-		queries.put(id, new LogQuery(id, queryString));
+		queries.put(id, new LogQuery(null, id, queryString));
 		return id;
 	}
 
