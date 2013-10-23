@@ -30,7 +30,7 @@ public class ParseLogger extends AbstractLogger implements LoggerRegistryEventLi
 	protected void onStart() {
 		if (runner == null) {
 			runner = new ParseRunner();
-			runner.run();
+			runner.start();
 		}
 
 		parser = parserRegistry.newParser(getConfig().get("parser_name"));
