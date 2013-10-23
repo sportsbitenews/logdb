@@ -24,7 +24,7 @@
 						<Export-Package>
 							org.araqne.logstorage;version=${project.version},
 							org.araqne.logstorage.file;version=${project.version},
-							org.araqne.logstorage.index;version=${project.version}
+							org.araqne.logstorage.backup;version=${project.version}
 						</Export-Package>
 						<Private-Package>
 							org.araqne.logstorage.engine,

@@ -58,8 +58,8 @@ public class AggregationParser {
 		t.put("per_second", PerSecond.class);
 		t.put("range", Range.class);
 	}
-
-	public static AggregationField parse(LogQueryContext context, String s) {
+	
+	public static AggregationField parse(LogQueryContext context, String s, Map<String, Class<? extends AggregationFunction>> funcTable) {
 		// find 'as' keyword
 		String funcPart = s.trim();
 		String alias = null;
@@ -70,7 +70,7 @@ public class AggregationParser {
 		}
 
 		// find aggregation function
-		AggregationFunction func = parseFunc(context, funcPart);
+		AggregationFunction func = parseFunc(context, funcTable, funcPart);
 
 		// build and return
 		AggregationField field = new AggregationField();
@@ -79,7 +79,11 @@ public class AggregationParser {
 		return field;
 	}
 
-	private static AggregationFunction parseFunc(LogQueryContext context, String s) {
+	public static AggregationField parse(LogQueryContext context, String s) {
+		return parse(context, s, t);
+	}
+
+	private static AggregationFunction parseFunc(LogQueryContext context, Map<String, Class<? extends AggregationFunction>> funcTable, String s) {
 		int p = s.indexOf('(');
 		String funcName = s;
 		String argsToken = "";
@@ -99,7 +103,7 @@ public class AggregationParser {
 		}
 
 		// find function
-		Class<?> c = t.get(funcName);
+		Class<?> c = funcTable.get(funcName);
 		if (c == null)
 			throw new LogQueryParseException("invalid-aggregation-function", -1, "function name token is [" + funcName + "]");
 

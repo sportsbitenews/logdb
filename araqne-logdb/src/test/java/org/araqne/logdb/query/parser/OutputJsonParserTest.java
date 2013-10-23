@@ -43,7 +43,6 @@ public class OutputJsonParserTest {
 			fail();
 		} catch (LogQueryParseException e) {
 			assertEquals("missing-field", e.getType());
-			assertEquals(1, (int) e.getOffset());
 		} finally {
 			new File("logexport.json").delete();
 		}

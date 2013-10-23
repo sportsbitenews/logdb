@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logstorage.file;
+package org.araqne.logstorage;
 
 import java.io.File;
 
@@ -26,8 +26,10 @@ public class LogFileFixReport {
 	private int truncatedIndexBlocks;
 	private int truncatedIndexBytes;
 	private int truncatedDataBytes;
-	private int lostLogCount;
+	private long lostLogCount;
 	private int addedIndexBlocks;
+	private int addedDataBlocks;
+	private long addedDataBytes;
 
 	public File getIndexPath() {
 		return indexPath;
@@ -97,7 +99,7 @@ public class LogFileFixReport {
 		return lostLogCount;
 	}
 
-	public void setLostLogCount(int lostLogCount) {
+	public void setLostLogCount(long lostLogCount) {
 		this.lostLogCount = lostLogCount;
 	}
 
@@ -108,6 +110,23 @@ public class LogFileFixReport {
 	public void setAddedIndexBlocks(int addedIndexBlocks) {
 		this.addedIndexBlocks = addedIndexBlocks;
 	}
+	
+	public int getAddedDataBlocks() {
+		return addedDataBlocks;
+	}
+
+	public void setAddedDataBlocks(int addedDataBlocks) {
+		this.addedDataBlocks = addedDataBlocks;
+	}
+	
+	public void setAddedDataBytes(long addedDataBytes) {
+		this.addedDataBytes = addedDataBytes;
+	}
+	public long getAddedDataBytes() {
+		return addedDataBytes;
+	}
+	
+	
 
 	@Override
 	public String toString() {
@@ -115,6 +134,7 @@ public class LogFileFixReport {
 				+ "\ntotal log count: " + totalLogCount + "\ntotal index blocks: " + totalIndexBlocks + "\ntotal data blocks: "
 				+ totalDataBlocks + "\nlost logs: " + lostLogCount + "\ntruncated index blocks: " + truncatedIndexBlocks
 				+ "\ntruncated index bytes: " + truncatedIndexBytes + "\ntruncated data bytes: " + truncatedDataBytes
+				+ "\nadded data blocks: " + addedDataBlocks + "\nadded data bytes: " + addedDataBytes
 				+ "\nadded index blocks: " + addedIndexBlocks;
 	}
 }

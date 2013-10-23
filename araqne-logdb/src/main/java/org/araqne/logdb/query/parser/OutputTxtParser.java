@@ -46,15 +46,19 @@ public class OutputTxtParser implements LogQueryCommandParser {
 		if (commandString.trim().endsWith(","))
 			throw new LogQueryParseException("missing-field", commandString.length());
 
+		boolean overwrite = false;
 		String delimiter = null;
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(), Arrays.asList("delimiter"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(), Arrays.asList("delimiter", "overwrite"));
 
 		@SuppressWarnings("unchecked")
 		Map<String, Object> options = (Map<String, Object>) r.value;
-		if (options.containsKey("delimiter"))
+		if (options.get("delimiter") != null)
 			delimiter = options.get("delimiter").toString();
 		if (delimiter == null)
 			delimiter = " ";
+
+		if (options.get("overwrite") != null)
+			overwrite = Boolean.parseBoolean(options.get("overwrite").toString());
 
 		int next = r.next;
 		if (next < 0)
@@ -85,7 +89,7 @@ public class OutputTxtParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("missing-field", remainCommandString.length());
 
 		File txtFile = new File(filePath);
-		if (txtFile.exists())
+		if (txtFile.exists() && !overwrite)
 			throw new IllegalStateException("txt file exists: " + txtFile.getAbsolutePath());
 
 		try {

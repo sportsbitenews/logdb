@@ -17,7 +17,9 @@ package org.araqne.logdb.query.parser;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 import org.araqne.logdb.LogQueryCommand;
@@ -38,21 +40,28 @@ public class OutputJsonParser implements LogQueryCommandParser {
 		return "outputjson";
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
 			throw new LogQueryParseException("missing-field", commandString.length());
 
-		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
-		if (tokens.size() < 2)
+		boolean overwrite = false;
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overwrite"));
+		Map<String, String> options = (Map<String, String>) r.value;
+		if (options != null && options.containsKey("overwrite"))
+			overwrite = Boolean.parseBoolean(options.get("overwrite"));
+
+		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
+		if (tokens.size() < 1)
 			throw new LogQueryParseException("missing-field", tokens.size());
 
-		String filePath = tokens.firstArg();
+		String filePath = tokens.string(0);
 		filePath = ExpressionParser.evalContextReference(context, filePath);
-		
+
 		List<String> fields = new ArrayList<String>();
 
-		List<QueryToken> queryFields = tokens.subtokens(2, tokens.size());
+		List<QueryToken> queryFields = tokens.subtokens(1, tokens.size());
 		for (QueryToken token : queryFields) {
 			if (!token.token.contains(",")) {
 				fields.add(token.token.trim());
@@ -65,12 +74,11 @@ public class OutputJsonParser implements LogQueryCommandParser {
 		}
 
 		File jsonFile = new File(filePath);
-		if (jsonFile.exists())
+		if (jsonFile.exists() && !overwrite)
 			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
 
 		if (jsonFile.getParentFile() != null)
 			jsonFile.getParentFile().mkdirs();
 		return new OutputJson(jsonFile, fields);
 	}
-
 }

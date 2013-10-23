@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.Map;
 
 import org.araqne.logstorage.file.LogFileReader;
-import org.araqne.logstorage.file.LogFileRepairer;
 import org.araqne.logstorage.file.LogFileWriter;
 
 public interface LogFileService {

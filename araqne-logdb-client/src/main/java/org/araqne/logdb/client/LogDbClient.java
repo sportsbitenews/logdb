@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
@@ -50,7 +52,7 @@ public class LogDbClient implements TrapListener {
 	private LogDbTransport transport;
 	private LogDbSession session;
 	private int fetchSize = 10000;
-	private Map<Integer, LogQuery> queries = new HashMap<Integer, LogQuery>();
+	private ConcurrentMap<Integer, LogQuery> queries = new ConcurrentHashMap<Integer, LogQuery>();
 	private Locale locale = Locale.getDefault();
 
 	public LogDbClient() {
@@ -98,8 +100,10 @@ public class LogDbClient implements TrapListener {
 			int queryId = (Integer) q.get("id");
 			LogQuery query = queries.get(queryId);
 			if (query == null) {
-				query = new LogQuery(queryId, (String) q.get("query_string"));
-				queries.put(queryId, query);
+				query = new LogQuery(this, queryId, (String) q.get("query_string"));
+				LogQuery old = queries.putIfAbsent(queryId, query);
+				if (old != null)
+					query = old;
 			}
 
 			parseQueryStatus(q, query);
@@ -119,8 +123,10 @@ public class LogDbClient implements TrapListener {
 			int queryId = (Integer) q.get("id");
 			LogQuery query = queries.get(queryId);
 			if (query == null) {
-				query = new LogQuery(queryId, (String) q.get("query_string"));
-				queries.put(queryId, query);
+				query = new LogQuery(this, queryId, (String) q.get("query_string"));
+				LogQuery old = queries.putIfAbsent(queryId, query);
+				if (old != null)
+					query = old;
 			}
 
 			parseQueryStatus(q, query);
@@ -1000,7 +1006,7 @@ public class LogDbClient implements TrapListener {
 		session.registerTrap("logstorage-query-" + id);
 		session.registerTrap("logstorage-query-timeline-" + id);
 
-		queries.put(id, new LogQuery(id, queryString));
+		queries.putIfAbsent(id, new LogQuery(this, id, queryString));
 		return id;
 	}
 

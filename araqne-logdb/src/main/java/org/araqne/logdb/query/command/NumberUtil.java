@@ -50,6 +50,22 @@ public class NumberUtil {
 	public static Number getValue(Object obj, Number defaultValue) {
 		if (obj == null)
 			return defaultValue;
+
+		if (obj instanceof Long)
+			return (Number) obj;
+
+		if (obj instanceof Integer)
+			return (long) (Integer) obj;
+
+		if (obj instanceof Short)
+			return (long) (Short) obj;
+
+		if (obj instanceof Double)
+			return (Number) obj;
+
+		if (obj instanceof Float)
+			return (double) (Float) obj;
+
 		try {
 			return Long.parseLong(obj.toString());
 		} catch (NumberFormatException e) {

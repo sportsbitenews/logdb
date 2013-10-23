@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.araqne.api.Script;
 import org.araqne.api.ScriptArgument;
@@ -435,11 +437,13 @@ public class LogApiScript implements Script {
 	private boolean containsTokens(String fullName, List<String> args) {
 		if (fullName == null)
 			return false;
-		for (String arg : args) {
-			if (!fullName.contains(arg))
-				return false;
-		}
-		return true;
+
+		Pattern p = WildcardMatcher.buildPattern(args.get(0));
+		if (p == null)
+			return fullName.contains(args.get(0));
+
+		Matcher m = p.matcher(fullName);
+		return m.find();
 	}
 
 	@ScriptUsage(description = "print logger configuration", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "logger fullname") })
@@ -607,34 +611,64 @@ public class LogApiScript implements Script {
 
 	@ScriptUsage(description = "start loggers at once, passive logger will ignore interval",
 			arguments = {
-					@ScriptArgument(name = "logger names", type = "string", description = "a logger name  or many logger names separated by space"),
-					@ScriptArgument(name = "interval", type = "int", description = "run interval in milliseconds, 60000 by default", optional = true) })
+					@ScriptArgument(name = "logger names", type = "string", description = "logger name wildcard expression"),
+					@ScriptArgument(name = "interval", type = "int", description = "run interval in milliseconds, 5000 by default", optional = true) })
 	public void startLoggers(String[] args) {
-		int interval = 60000;
-		int loggerCnt = args.length;
+		if (!args[0].contains("*")) {
+			context.println("logger name expression should contains one or more wildcard");
+			return;
+		}
+
+		Pattern pattern = WildcardMatcher.buildPattern(args[0]);
+		int interval = 5000;
 		try {
-			interval = Integer.parseInt(args[args.length - 1]);
-			loggerCnt = args.length - 1;
+			if (args.length > 1) {
+				interval = Integer.parseInt(args[1]);
+			}
 		} catch (NumberFormatException e) {
 			// ignore
 		}
 
-		for (int i = 0; i < loggerCnt; ++i) {
+		Matcher matcher = pattern.matcher("");
+		// start passive logger first
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			matcher.reset(logger.getFullName());
+			if (!matcher.find())
+				continue;
+
 			try {
-				Logger logger = loggerRegistry.getLogger(args[i]);
-				if (logger == null) {
-					context.println("logger [" + args[i] + "] not found");
-					continue;
+				if (logger.isPassive()) {
+					if (logger.isRunning()) {
+						context.println("logger [" + logger.getFullName() + "] is already started");
+					} else {
+						logger.start();
+						context.println("logger [" + logger.getFullName() + "] started");
+					}
 				}
+			} catch (Throwable t) {
+				context.println("cannot start logger [" + logger.getFullName() + "], " + t.getMessage());
+				slog.error("araqne log api: canont start logger " + logger.getFullName(), t);
+			}
+		}
 
-				if (logger.isPassive())
-					logger.start();
-				else
-					logger.start(interval);
-				context.println("logger [" + args[i] + "] started");
+		// then, start active loggers
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			matcher.reset(logger.getFullName());
+			if (!matcher.find())
+				continue;
 
-			} catch (IllegalStateException e) {
-				context.println(e.getMessage());
+			try {
+				if (!logger.isPassive()) {
+					if (logger.isRunning()) {
+						context.println("logger [" + logger.getFullName() + "] is already started");
+					} else {
+						logger.start(interval);
+						context.println("logger [" + logger.getFullName() + "] started with interval " + interval + "ms");
+					}
+				}
+			} catch (Throwable t) {
+				context.println("cannot start logger [" + logger.getFullName() + "], " + t.getMessage());
+				slog.error("araqne log api: canont start logger " + logger.getFullName(), t);
 			}
 		}
 	}
@@ -670,28 +704,65 @@ public class LogApiScript implements Script {
 					@ScriptArgument(name = "logger", type = "string", description = "a logger name or many logger names separated by space"),
 					@ScriptArgument(name = "max wait time", type = "int", description = "stop wait time in milliseconds, 5000 by default", optional = true) })
 	public void stopLoggers(String[] args) {
+		if (!args[0].contains("*")) {
+			context.println("logger name expression should contains one or more wildcard");
+			return;
+		}
+
+		Pattern pattern = WildcardMatcher.buildPattern(args[0]);
 		int maxWaitTime = 5000;
-		int loggerCnt = args.length;
 		try {
-			maxWaitTime = Integer.parseInt(args[args.length - 1]);
-			loggerCnt = args.length - 1;
+			if (args.length > 1) {
+				maxWaitTime = Integer.parseInt(args[1]);
+			}
 		} catch (NumberFormatException e) {
 			// ignore
 		}
 
-		for (int i = 0; i < loggerCnt; ++i) {
-			Logger logger = loggerRegistry.getLogger(args[i]);
-			if (logger == null) {
-				context.println("logger [" + args[i] + "] not found");
+		Matcher matcher = pattern.matcher("");
+
+		// stop active loggers first
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			matcher.reset(logger.getFullName());
+			if (!matcher.find())
 				continue;
+
+			try {
+				if (!logger.isPassive()) {
+					if (!logger.isRunning()) {
+						context.println("logger [" + logger.getFullName() + "] is not running");
+					} else {
+						logger.stop(maxWaitTime);
+						context.println("logger [" + logger.getFullName() + "] stopped");
+					}
+				}
+			} catch (Throwable t) {
+				context.println("cannot start logger [" + logger.getFullName() + "], " + t.getMessage());
+				slog.error("araqne log api: canont start logger " + logger.getFullName(), t);
 			}
-
-			if (!logger.isPassive())
-				context.println("waiting logger [" + args[i] + "] ...");
-
-			logger.stop(maxWaitTime);
-			context.println("logger [" + args[i] + "] stopped");
 		}
+
+		// then stop passive loggers
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			matcher.reset(logger.getFullName());
+			if (!matcher.find())
+				continue;
+
+			try {
+				if (logger.isPassive()) {
+					if (!logger.isRunning()) {
+						context.println("logger [" + logger.getFullName() + "] is not running");
+					} else {
+						logger.stop();
+						context.println("logger [" + logger.getFullName() + "] stopped");
+					}
+				}
+			} catch (Throwable t) {
+				context.println("cannot start logger [" + logger.getFullName() + "], " + t.getMessage());
+				slog.error("araqne log api: canont start logger " + logger.getFullName(), t);
+			}
+		}
+
 	}
 
 	@ScriptUsage(description = "create new logger", arguments = {
