@@ -324,8 +324,7 @@ public class BackupManagerImpl implements BackupManager {
 						ByteArrayInputStream is = new ByteArrayInputStream(b);
 						media.copyToMedia(new TransferRequest(tableName, is, TABLE_METADATA_JSON));
 					} catch (Exception e) {
-						if (logger.isDebugEnabled())
-							logger.debug("araqne logstorage: table metadata backup failed", e);
+						logger.error("araqne logstorage: table metadata backup failed", e);
 					}
 
 					// transfer files
@@ -341,7 +340,8 @@ public class BackupManagerImpl implements BackupManager {
 							media.copyToMedia(tr);
 						} catch (IOException e) {
 							storageFile.setException(e);
-							logger.error("araqne logstorage: backup failed", e);
+							if (logger.isDebugEnabled())
+								logger.debug("araqne logstorage: table backup failed", e);
 						} finally {
 							storageFile.setDone(true);
 
