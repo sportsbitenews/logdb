@@ -20,6 +20,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
@@ -29,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import org.json.JSONConverter;
 import org.json.JSONException;
@@ -128,15 +130,30 @@ public class FileBackupMedia implements BackupMedia {
 		File tableDir = new File(path + "/table", tableName);
 		logger.info("araqne logstorage: get backup file list for table [{}], dir [{}]", tableName, tableDir.getAbsolutePath());
 
-		File[] files = tableDir.listFiles();
-		if (files == null)
+		if (tableDir.listFiles() == null)
 			return mediaFiles;
 
-		for (File f : files) {
-			String name = f.getName();
-			if (name.endsWith(".idx") || name.endsWith(".dat") || name.endsWith(".key")) {
-				MediaFile bf = new MediaFile(tableName, name, f.length());
-				mediaFiles.add(bf);
+		Stack<File> dirs = new Stack<File>();
+		dirs.push(tableDir);
+		
+		while (!dirs.empty()) {
+			File dir = dirs.pop();
+			for (File f : dir.listFiles()) {
+				if (f.isDirectory() && !(f.getName().equals(".") || f.getName().equals(".."))) {
+					dirs.push(f);
+				} else {
+					String name = f.getName();
+					if (name.endsWith(".idx") || name.endsWith(".dat") || name.endsWith(".key")) {
+						String fpath = f.getAbsolutePath();
+						String ppath = tableDir.getAbsolutePath();
+						if (fpath.startsWith(ppath)) {
+							fpath = fpath.substring(ppath.length() + 1);
+							fpath = fpath.replace('\\', '/');
+							MediaFile bf = new MediaFile(tableName, fpath, f.length());
+							mediaFiles.add(bf);
+						}
+					}
+				}
 			}
 		}
 

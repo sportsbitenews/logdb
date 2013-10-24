@@ -224,7 +224,8 @@ public class BackupManagerImpl implements BackupManager {
 					List<MediaFile> files = job.getSourceFiles().get(tableName);
 
 					for (MediaFile mediaFile : files) {
-						File storageFilePath = new File(storage.getTableDirectory(tableName), mediaFile.getFileName());
+						String storageFilename = new File(mediaFile.getFileName()).getName(); // omit old table id
+						File storageFilePath = new File(storage.getTableDirectory(tableName), storageFilename);
 						StorageFile storageFile = new StorageFile(tableName, storageFilePath);
 						TransferRequest tr = new TransferRequest(storageFile, mediaFile);
 						try {
@@ -276,10 +277,17 @@ public class BackupManagerImpl implements BackupManager {
 				String text = new String(bos.toByteArray(), "utf-8");
 				Map<String, String> metadata = new HashMap<String, String>();
 				Map<String, Object> m = JSONConverter.parse(new JSONObject(text));
-				for (String key : m.keySet())
-					metadata.put(key, m.get(key) == null ? null : m.get(key).toString());
+				@SuppressWarnings("unchecked")
+				Map<String, Object> mm = (Map<String, Object>) m.get("metadata");
+				if (mm != null) {
+					for (String key : mm.keySet())
+						metadata.put(key, mm.get(key) == null ? null : mm.get(key).toString());
 
-				return metadata;
+					return metadata;
+				} else {
+					throw new IllegalStateException("cannot read metadata from " + TABLE_METADATA_JSON 
+							+ ": no 'metadata' child element: " + tableName);
+				}
 			} catch (JSONException e) {
 				throw new IOException("cannot parse backup table metadata: " + tableName, e);
 			} finally {
@@ -334,7 +342,8 @@ public class BackupManagerImpl implements BackupManager {
 					List<StorageFile> files = job.getSourceFiles().get(tableName);
 
 					for (StorageFile storageFile : files) {
-						MediaFile mediaFile = new MediaFile(tableName, storageFile.getFile().getName(), storageFile.getLength());
+						String subPath = storageFile.getFile().getParentFile().getName() + File.separator + storageFile.getFile().getName();
+						MediaFile mediaFile = new MediaFile(tableName, subPath, storageFile.getLength());
 						TransferRequest tr = new TransferRequest(storageFile, mediaFile);
 						try {
 							if (monitor != null)
