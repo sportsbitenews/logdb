@@ -65,7 +65,7 @@ public class ParseLogger extends AbstractLogger implements LoggerRegistryEventLi
 				loggerRegistry.removeListener(this);
 			}
 		} catch (RuntimeException e) {
-			if (!e.getMessage().endsWith("unavailable"))
+			if (e.getMessage() == null || !e.getMessage().endsWith("unavailable"))
 				throw e;
 		}
 	}
