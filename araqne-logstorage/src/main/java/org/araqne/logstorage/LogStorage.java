@@ -133,7 +133,7 @@ public interface LogStorage {
 
 	/**
 	 * 
-	 * @since 2.x
+	 * @since 2.3.1
 	 */
 	boolean search(String tableName, Date from, Date to, LogParserBuilder builder, LogTraverseCallback c) throws InterruptedException;
 	boolean searchTablet(String tableName, Date day, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException;
