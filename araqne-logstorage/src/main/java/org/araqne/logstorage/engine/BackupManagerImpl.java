@@ -91,9 +91,9 @@ public class BackupManagerImpl implements BackupManager {
 				int tableId = tableRegistry.getTableId(tableName);
 				String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
-				totalBytes += addStorageFile(files, tableName, DatapathUtil.getIndexFile(tableId, day, basePath));
-				totalBytes += addStorageFile(files, tableName, DatapathUtil.getDataFile(tableId, day, basePath));
-				totalBytes += addStorageFile(files, tableName, DatapathUtil.getKeyFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableId, tableName, DatapathUtil.getIndexFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableId, tableName, DatapathUtil.getDataFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableId, tableName, DatapathUtil.getKeyFile(tableId, day, basePath));
 			}
 
 			storageFiles.put(tableName, files);
@@ -135,7 +135,7 @@ public class BackupManagerImpl implements BackupManager {
 		return job;
 	}
 
-	private long addStorageFile(List<StorageFile> files, String tableName, File f) {
+	private long addStorageFile(List<StorageFile> files, int tableId, String tableName, File f) {
 		if (!f.exists())
 			return 0;
 
@@ -312,11 +312,13 @@ public class BackupManagerImpl implements BackupManager {
 						monitor.onBeginTable(job, tableName);
 
 					// overwrite table metadata file
-					Map<String, String> metadata = new HashMap<String, String>();
+					Map<String, Object> metadata = new HashMap<String, Object>();
 					metadata.put("_tablename", tableName);
+					Map<String, String> tableMetadata = new HashMap<String, String>();
 					for (String key : tableRegistry.getTableMetadataKeys(tableName)) {
-						metadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+						tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 					}
+					metadata.put("metadata", tableMetadata);
 
 					try {
 						String json = JSONConverter.jsonize(metadata);
