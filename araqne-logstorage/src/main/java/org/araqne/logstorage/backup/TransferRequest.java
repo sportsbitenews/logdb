@@ -15,7 +15,6 @@
  */
 package org.araqne.logstorage.backup;
 
-import java.io.InputStream;
 
 /**
  * @since 2.2.7
@@ -23,34 +22,18 @@ import java.io.InputStream;
  * 
  */
 public class TransferRequest {
-	// original table name
-	private String tableName;
 
 	private StorageFile storageFile;
 	private MediaFile mediaFile;
+	private ToMediaStream transferStream;
 
-	// use input stream and filename instead of storage input file
-	private InputStream inputStream;
-	private String mediaFileName;
-
-	public TransferRequest(String tableName, InputStream is, String mediaFileName) {
-		this.tableName = tableName;
-		this.inputStream = is;
-		this.mediaFileName = mediaFileName;
+	public TransferRequest(ToMediaStream transferStream) {
+		this.transferStream = transferStream;
 	}
 
 	public TransferRequest(StorageFile storageFile, MediaFile mediaFile) {
-		this.tableName = storageFile.getTableName();
 		this.storageFile = storageFile;
 		this.mediaFile = mediaFile;
-	}
-
-	public String getTableName() {
-		return tableName;
-	}
-	
-	public InputStream getInputStream() {
-		return inputStream;
 	}
 
 	public StorageFile getStorageFile() {
@@ -61,7 +44,7 @@ public class TransferRequest {
 		return mediaFile;
 	}
 
-	public String getMediaFileName() {
-		return mediaFileName;
+	public ToMediaStream getToMediaStream() {
+		return transferStream;
 	}
 }

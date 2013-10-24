@@ -22,7 +22,6 @@ import java.util.Set;
 
 import org.araqne.api.ScriptContext;
 import org.araqne.logstorage.backup.BackupJob;
-import org.araqne.logstorage.backup.BaseFile;
 import org.araqne.logstorage.backup.Job;
 import org.araqne.logstorage.backup.JobProgressMonitor;
 import org.araqne.logstorage.backup.RestoreJob;
@@ -51,25 +50,25 @@ class BackupProgressPrinter implements JobProgressMonitor {
 	@Override
 	public void onBeginTable(Job job, String tableName) {
 		if (!disabled)
-			context.println(getTimestamp() + ">> table [" + tableName + "] " + getType(job));
+			context.println(getTimestamp() + ">> " + getType(job) + " table [" + tableName + "]");
 	}
 
 	@Override
 	public void onCompleteTable(Job job, String tableName) {
 		if (!disabled)
-			context.println(getTimestamp() + "<< table [" + tableName + "] " + getType(job));
+			context.println(getTimestamp() + "<< " + getType(job) + " table [" + tableName + "]");
 	}
 
 	@Override
-	public void onBeginFile(Job job, BaseFile bf) {
+	public void onBeginFile(Job job, String tableName, String fileName) {
 		if (!disabled)
-			context.println(getTimestamp() + "> file [" + bf.getTableName() + ":" + bf.getFileName() + "] " + getType(job));
+			context.println(getTimestamp() + "> " + getType(job) + " file [" + tableName + ":" + fileName + "]");
 	}
 
 	@Override
-	public void onCompleteFile(Job job, BaseFile bf) {
+	public void onCompleteFile(Job job, String tableName, String fileName) {
 		if (!disabled)
-			context.println(getTimestamp() + "< file [" + bf.getTableName() + ":" + bf.getFileName() + "] " + getType(job));
+			context.println(getTimestamp() + "< " + getType(job) + " file [" + tableName + ":" + fileName + "]");
 	}
 
 	@Override
@@ -104,7 +103,7 @@ class BackupProgressPrinter implements JobProgressMonitor {
 		if (job instanceof BackupJob)
 			return ((BackupJob) job).getSourceFiles().keySet();
 		else
-			return ((RestoreJob) job).getSourceFiles().keySet();
+			return ((RestoreJob) job).getMediaFiles().keySet();
 	}
 
 	private String formatNumber(long bytes) {

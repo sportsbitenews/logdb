@@ -17,11 +17,9 @@ package org.araqne.logstorage.engine;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.text.SimpleDateFormat;
@@ -41,18 +39,16 @@ import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.backup.BackupJob;
 import org.araqne.logstorage.backup.BackupManager;
 import org.araqne.logstorage.backup.BackupMedia;
-import org.araqne.logstorage.backup.JobProgressMonitor;
 import org.araqne.logstorage.backup.BackupRequest;
-import org.araqne.logstorage.backup.BaseFile;
 import org.araqne.logstorage.backup.Job;
+import org.araqne.logstorage.backup.JobProgressMonitor;
 import org.araqne.logstorage.backup.MediaFile;
 import org.araqne.logstorage.backup.RestoreJob;
 import org.araqne.logstorage.backup.RestoreRequest;
 import org.araqne.logstorage.backup.StorageFile;
+import org.araqne.logstorage.backup.ToMediaStream;
 import org.araqne.logstorage.backup.TransferRequest;
 import org.json.JSONConverter;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,9 +87,9 @@ public class BackupManagerImpl implements BackupManager {
 				int tableId = tableRegistry.getTableId(tableName);
 				String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
-				totalBytes += addStorageFile(files, tableId, tableName, DatapathUtil.getIndexFile(tableId, day, basePath));
-				totalBytes += addStorageFile(files, tableId, tableName, DatapathUtil.getDataFile(tableId, day, basePath));
-				totalBytes += addStorageFile(files, tableId, tableName, DatapathUtil.getKeyFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableName, tableId, DatapathUtil.getIndexFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableName, tableId, DatapathUtil.getDataFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableName, tableId, DatapathUtil.getKeyFile(tableId, day, basePath));
 			}
 
 			storageFiles.put(tableName, files);
@@ -120,7 +116,7 @@ public class BackupManagerImpl implements BackupManager {
 		for (String t : reqTables) {
 			if (remoteTables.contains(t)) {
 				List<MediaFile> files = media.getFiles(t);
-				for (BaseFile f : files)
+				for (MediaFile f : files)
 					totalBytes += f.getLength();
 
 				targetFiles.put(t, files);
@@ -129,17 +125,17 @@ public class BackupManagerImpl implements BackupManager {
 
 		RestoreJob job = new RestoreJob();
 		job.setRequest(req);
-		job.setSourceFiles(targetFiles);
+		job.setMediaFiles(targetFiles);
 		job.setTotalBytes(totalBytes);
 
 		return job;
 	}
 
-	private long addStorageFile(List<StorageFile> files, int tableId, String tableName, File f) {
+	private long addStorageFile(List<StorageFile> files, String tableName, int tableId, File f) {
 		if (!f.exists())
 			return 0;
 
-		StorageFile bf = new StorageFile(tableName, f);
+		StorageFile bf = new StorageFile(tableName, tableId, f);
 		files.add(bf);
 		return bf.getLength();
 	}
@@ -202,7 +198,7 @@ public class BackupManagerImpl implements BackupManager {
 				monitor.onBeginJob(job);
 
 			try {
-				Set<String> tableNames = job.getSourceFiles().keySet();
+				Set<String> tableNames = job.getMediaFiles().keySet();
 
 				for (String tableName : tableNames) {
 					// restore table metadata
@@ -221,16 +217,17 @@ public class BackupManagerImpl implements BackupManager {
 					}
 
 					// transfer files
-					List<MediaFile> files = job.getSourceFiles().get(tableName);
+					int tableId = tableRegistry.getTableId(tableName);
+					List<MediaFile> files = job.getMediaFiles().get(tableName);
 
 					for (MediaFile mediaFile : files) {
 						String storageFilename = new File(mediaFile.getFileName()).getName(); // omit old table id
 						File storageFilePath = new File(storage.getTableDirectory(tableName), storageFilename);
-						StorageFile storageFile = new StorageFile(tableName, storageFilePath);
+						StorageFile storageFile = new StorageFile(tableName, tableId, storageFilePath);
 						TransferRequest tr = new TransferRequest(storageFile, mediaFile);
 						try {
 							if (monitor != null)
-								monitor.onBeginFile(job, mediaFile);
+								monitor.onBeginFile(job, tableName, mediaFile.getFileName());
 
 							media.copyFromMedia(tr);
 						} catch (IOException e) {
@@ -241,7 +238,7 @@ public class BackupManagerImpl implements BackupManager {
 							mediaFile.setDone(true);
 
 							if (monitor != null)
-								monitor.onCompleteFile(job, mediaFile);
+								monitor.onCompleteFile(job, tableName, mediaFile.getFileName());
 						}
 					}
 
@@ -284,7 +281,7 @@ public class BackupManagerImpl implements BackupManager {
 
 					// overwrite table metadata file
 					Map<String, Object> metadata = new HashMap<String, Object>();
-					metadata.put("_tablename", tableName);
+					metadata.put("table_name", tableName);
 					Map<String, String> tableMetadata = new HashMap<String, String>();
 					for (String key : tableRegistry.getTableMetadataKeys(tableName)) {
 						tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
@@ -295,7 +292,10 @@ public class BackupManagerImpl implements BackupManager {
 						String json = JSONConverter.jsonize(metadata);
 						byte[] b = json.getBytes("utf-8");
 						ByteArrayInputStream is = new ByteArrayInputStream(b);
-						media.copyToMedia(new TransferRequest(tableName, is, TABLE_METADATA_JSON));
+						int tableId = tableRegistry.getTableId(tableName);
+
+						ToMediaStream stream = new ToMediaStream(tableName, tableId, is, TABLE_METADATA_JSON);
+						media.copyToMedia(new TransferRequest(stream));
 					} catch (Exception e) {
 						logger.error("araqne logstorage: table metadata backup failed", e);
 					}
@@ -309,7 +309,7 @@ public class BackupManagerImpl implements BackupManager {
 						TransferRequest tr = new TransferRequest(storageFile, mediaFile);
 						try {
 							if (monitor != null)
-								monitor.onBeginFile(job, storageFile);
+								monitor.onBeginFile(job, tableName, storageFile.getFileName());
 
 							media.copyToMedia(tr);
 						} catch (IOException e) {
@@ -320,7 +320,7 @@ public class BackupManagerImpl implements BackupManager {
 							storageFile.setDone(true);
 
 							if (monitor != null)
-								monitor.onCompleteFile(job, storageFile);
+								monitor.onCompleteFile(job, tableName, storageFile.getFileName());
 						}
 					}
 
@@ -368,7 +368,7 @@ public class BackupManagerImpl implements BackupManager {
 			if (type.equals("backup"))
 				tables = ((BackupJob) job).getSourceFiles().keySet();
 			else
-				tables = ((RestoreJob) job).getSourceFiles().keySet();
+				tables = ((RestoreJob) job).getMediaFiles().keySet();
 
 			for (String table : tables) {
 				writeLine(bw, "Table [" + table + "]");
@@ -376,12 +376,12 @@ public class BackupManagerImpl implements BackupManager {
 				if (type.equals("backup")) {
 					for (StorageFile bf : ((BackupJob) job).getSourceFiles().get(table)) {
 						String path = bf.getFile().getAbsolutePath();
-						writeReportLog(bw, bf, path);
+						writeReportLog(bw, path, bf.getLength(), bf.getException());
 					}
 				} else {
-					for (MediaFile bf : ((RestoreJob) job).getSourceFiles().get(table)) {
+					for (MediaFile bf : ((RestoreJob) job).getMediaFiles().get(table)) {
 						String path = bf.getFileName();
-						writeReportLog(bw, bf, path);
+						writeReportLog(bw, path, bf.getLength(), bf.getException());
 					}
 				}
 
@@ -406,11 +406,11 @@ public class BackupManagerImpl implements BackupManager {
 		}
 	}
 
-	private void writeReportLog(BufferedWriter bw, BaseFile bf, String path) throws IOException {
-		if (bf.getException() == null)
-			writeLine(bw, "[O] " + path + ":" + bf.getLength());
+	private void writeReportLog(BufferedWriter bw, String path, long length, Throwable t) throws IOException {
+		if (t == null)
+			writeLine(bw, "[O] " + path + ":" + length);
 		else
-			writeLine(bw, "[X] " + path + ":" + bf.getLength() + ":" + bf.getException().getMessage());
+			writeLine(bw, "[X] " + path + ":" + length + ":" + t.getMessage());
 	}
 
 	private void writeLine(Writer writer, String line) throws IOException {

@@ -194,7 +194,7 @@ public class LogStorageScript implements Script {
 		BackupProgressPrinter printer = new BackupProgressPrinter(context);
 		req.setProgressMonitor(printer);
 
-		context.print("backup path: ");
+		context.print("Backup path: ");
 		String path = context.readLine().trim();
 		BackupMedia media = new FileBackupMedia(new File(path));
 		req.setMedia(media);
@@ -209,7 +209,7 @@ public class LogStorageScript implements Script {
 		}
 
 		RestoreJob job = backupManager.prepareRestore(req);
-		int tableCount = job.getSourceFiles().keySet().size();
+		int tableCount = job.getMediaFiles().keySet().size();
 		context.println("Total " + tableCount + " tables");
 		context.println("Restore " + formatNumber(job.getTotalBytes()) + " bytes");
 

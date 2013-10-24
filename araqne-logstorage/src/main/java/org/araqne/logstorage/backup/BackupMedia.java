@@ -27,7 +27,6 @@ import java.util.Set;
  * 
  */
 public interface BackupMedia {
-
 	Set<String> getTableNames() throws IOException;
 
 	Map<String, String> getTableMetadata(String tableName) throws IOException;

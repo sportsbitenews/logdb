@@ -21,7 +21,7 @@ import java.util.Set;
 /**
  * @since 2.2.7
  * @author xeraph
- *
+ * 
  */
 public abstract class Request {
 	private Set<String> tableNames;

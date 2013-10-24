@@ -26,13 +26,13 @@ import java.util.Map;
 public class RestoreJob extends Job {
 
 	// table to files
-	private Map<String, List<MediaFile>> sourceFiles;
+	private Map<String, List<MediaFile>> mediaFiles;
 
-	public Map<String, List<MediaFile>> getSourceFiles() {
-		return sourceFiles;
+	public Map<String, List<MediaFile>> getMediaFiles() {
+		return mediaFiles;
 	}
 
-	public void setSourceFiles(Map<String, List<MediaFile>> sourceFiles) {
-		this.sourceFiles = sourceFiles;
+	public void setMediaFiles(Map<String, List<MediaFile>> sourceFiles) {
+		this.mediaFiles = sourceFiles;
 	}
 }

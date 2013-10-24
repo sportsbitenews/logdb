@@ -22,17 +22,68 @@ import java.io.File;
  * @author xeraph
  * 
  */
-public class StorageFile extends BaseFile {
+public class StorageFile {
+	private String tableName;
+
+	private int tableId;
+
+	private long length;
+
+	private boolean done;
+
+	// save exception if io failed
+	private Throwable exception;
+
 	// storage or media file path
 	private File file;
 
-	public StorageFile(String tableName, File file) {
+	public StorageFile(String tableName, int tableId, File file) {
 		this.tableName = tableName;
+		this.tableId = tableId;
 		this.file = file;
 		this.length = file.length();
 	}
 
-	@Override
+	public String getTableName() {
+		return tableName;
+	}
+
+	public void setTableName(String tableName) {
+		this.tableName = tableName;
+	}
+
+	public int getTableId() {
+		return tableId;
+	}
+
+	public void setTableId(int tableId) {
+		this.tableId = tableId;
+	}
+
+	public long getLength() {
+		return length;
+	}
+
+	public void setLength(long length) {
+		this.length = length;
+	}
+
+	public boolean isDone() {
+		return done;
+	}
+
+	public void setDone(boolean done) {
+		this.done = done;
+	}
+
+	public Throwable getException() {
+		return exception;
+	}
+
+	public void setException(Throwable exception) {
+		this.exception = exception;
+	}
+
 	public String getFileName() {
 		return file.getName();
 	}

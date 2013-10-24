@@ -25,9 +25,9 @@ public interface JobProgressMonitor {
 
 	void onCompleteTable(Job job, String tableName);
 
-	void onBeginFile(Job job, BaseFile bf);
+	void onBeginFile(Job job, String tableName, String fileName);
 
-	void onCompleteFile(Job job, BaseFile bf);
+	void onCompleteFile(Job job, String tableName, String fileName);
 
 	void onBeginJob(Job job);
 

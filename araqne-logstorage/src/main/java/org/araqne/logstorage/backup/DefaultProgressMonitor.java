@@ -31,11 +31,11 @@ public class DefaultProgressMonitor implements JobProgressMonitor {
 	}
 
 	@Override
-	public void onBeginFile(Job job, BaseFile bf) {
+	public void onBeginFile(Job job, String tableName, String fileName) {
 	}
 
 	@Override
-	public void onCompleteFile(Job job, BaseFile bf) {
+	public void onCompleteFile(Job job, String tableName, String fileName) {
 	}
 
 	@Override

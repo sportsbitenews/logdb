@@ -20,13 +20,54 @@ package org.araqne.logstorage.backup;
  * @author xeraph
  * 
  */
-public class MediaFile extends BaseFile {
+public class MediaFile {
 	private String fileName;
+
+	private String tableName;
+
+	private long length;
+
+	private boolean done;
+
+	// save exception if io failed
+	protected Throwable exception;
 
 	public MediaFile(String tableName, String fileName, long length) {
 		this.tableName = tableName;
 		this.fileName = fileName;
 		this.length = length;
+	}
+
+	public String getTableName() {
+		return tableName;
+	}
+
+	public void setTableName(String tableName) {
+		this.tableName = tableName;
+	}
+
+	public long getLength() {
+		return length;
+	}
+
+	public void setLength(long length) {
+		this.length = length;
+	}
+
+	public boolean isDone() {
+		return done;
+	}
+
+	public void setDone(boolean done) {
+		this.done = done;
+	}
+
+	public Throwable getException() {
+		return exception;
+	}
+
+	public void setException(Throwable exception) {
+		this.exception = exception;
 	}
 
 	public String getFileName() {
