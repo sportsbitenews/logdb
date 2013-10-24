@@ -91,9 +91,9 @@ public class BackupManagerImpl implements BackupManager {
 				int tableId = tableRegistry.getTableId(tableName);
 				String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
-				totalBytes += addStorageFile(files, tableName, DatapathUtil.getIndexFile(tableId, day, basePath));
-				totalBytes += addStorageFile(files, tableName, DatapathUtil.getDataFile(tableId, day, basePath));
-				totalBytes += addStorageFile(files, tableName, DatapathUtil.getKeyFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableId, tableName, DatapathUtil.getIndexFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableId, tableName, DatapathUtil.getDataFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableId, tableName, DatapathUtil.getKeyFile(tableId, day, basePath));
 			}
 
 			storageFiles.put(tableName, files);
@@ -135,7 +135,7 @@ public class BackupManagerImpl implements BackupManager {
 		return job;
 	}
 
-	private long addStorageFile(List<StorageFile> files, String tableName, File f) {
+	private long addStorageFile(List<StorageFile> files, int tableId, String tableName, File f) {
 		if (!f.exists())
 			return 0;
 
@@ -207,7 +207,7 @@ public class BackupManagerImpl implements BackupManager {
 				for (String tableName : tableNames) {
 					// restore table metadata
 					try {
-						Map<String, String> metadata = readTableMetadata(media, tableName);
+						Map<String, String> metadata = media.getTableMetadata(tableName);
 						String type = metadata.get("_filetype");
 						if (type == null)
 							throw new IOException("storage type not found for table " + tableName);
@@ -224,7 +224,8 @@ public class BackupManagerImpl implements BackupManager {
 					List<MediaFile> files = job.getSourceFiles().get(tableName);
 
 					for (MediaFile mediaFile : files) {
-						File storageFilePath = new File(storage.getTableDirectory(tableName), mediaFile.getFileName());
+						String storageFilename = new File(mediaFile.getFileName()).getName(); // omit old table id
+						File storageFilePath = new File(storage.getTableDirectory(tableName), storageFilename);
 						StorageFile storageFile = new StorageFile(tableName, storageFilePath);
 						TransferRequest tr = new TransferRequest(storageFile, mediaFile);
 						try {
@@ -257,36 +258,6 @@ public class BackupManagerImpl implements BackupManager {
 					monitor.onCompleteJob(job);
 			}
 		}
-
-		private Map<String, String> readTableMetadata(BackupMedia media, String tableName) throws IOException {
-			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			InputStream is = null;
-			try {
-				is = media.getInputStream(tableName, TABLE_METADATA_JSON);
-				byte[] b = new byte[8096];
-
-				while (true) {
-					int len = is.read(b);
-					if (len < 0)
-						break;
-
-					bos.write(b, 0, len);
-				}
-
-				String text = new String(bos.toByteArray(), "utf-8");
-				Map<String, String> metadata = new HashMap<String, String>();
-				Map<String, Object> m = JSONConverter.parse(new JSONObject(text));
-				for (String key : m.keySet())
-					metadata.put(key, m.get(key) == null ? null : m.get(key).toString());
-
-				return metadata;
-			} catch (JSONException e) {
-				throw new IOException("cannot parse backup table metadata: " + tableName, e);
-			} finally {
-				if (is != null)
-					is.close();
-			}
-		}
 	}
 
 	private class BackupRunner extends Thread {
@@ -312,11 +283,13 @@ public class BackupManagerImpl implements BackupManager {
 						monitor.onBeginTable(job, tableName);
 
 					// overwrite table metadata file
-					Map<String, String> metadata = new HashMap<String, String>();
+					Map<String, Object> metadata = new HashMap<String, Object>();
 					metadata.put("_tablename", tableName);
+					Map<String, String> tableMetadata = new HashMap<String, String>();
 					for (String key : tableRegistry.getTableMetadataKeys(tableName)) {
-						metadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+						tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 					}
+					metadata.put("metadata", tableMetadata);
 
 					try {
 						String json = JSONConverter.jsonize(metadata);
@@ -331,7 +304,8 @@ public class BackupManagerImpl implements BackupManager {
 					List<StorageFile> files = job.getSourceFiles().get(tableName);
 
 					for (StorageFile storageFile : files) {
-						MediaFile mediaFile = new MediaFile(tableName, storageFile.getFile().getName(), storageFile.getLength());
+						String subPath = storageFile.getFile().getParentFile().getName() + File.separator + storageFile.getFile().getName();
+						MediaFile mediaFile = new MediaFile(tableName, subPath, storageFile.getLength());
 						TransferRequest tr = new TransferRequest(storageFile, mediaFile);
 						try {
 							if (monitor != null)

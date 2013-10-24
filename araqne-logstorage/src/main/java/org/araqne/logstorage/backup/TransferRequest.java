@@ -48,7 +48,7 @@ public class TransferRequest {
 	public String getTableName() {
 		return tableName;
 	}
-
+	
 	public InputStream getInputStream() {
 		return inputStream;
 	}
