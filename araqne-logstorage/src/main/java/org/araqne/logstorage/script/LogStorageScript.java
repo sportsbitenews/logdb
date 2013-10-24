@@ -199,7 +199,7 @@ public class LogStorageScript implements Script {
 		BackupMedia media = new FileBackupMedia(new File(path));
 		req.setMedia(media);
 
-		context.print("Table names (enter to backup all tables): ");
+		context.print("Table names (enter to restore all tables): ");
 		String tables = context.readLine().trim();
 
 		if (tables.isEmpty()) {
