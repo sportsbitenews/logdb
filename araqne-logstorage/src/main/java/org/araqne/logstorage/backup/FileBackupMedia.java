@@ -20,7 +20,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
@@ -62,17 +61,23 @@ public class FileBackupMedia implements BackupMedia {
 		for (File f : files) {
 			if (f.isDirectory()) {
 				// TODO: check table metadata
-				tableNames.add(f.getName());
+				File metaFile = new File(f, "table-metadata.json");
+				Map<String, Object> tableMetadata;
+				try {
+					tableMetadata = readTableMetadataJson(metaFile);
+					String tableName = (String) tableMetadata.get("_tablename");
+
+					tableNames.add(tableName);
+				} catch (IOException e) {
+					logger.warn("while reading " + metaFile.getAbsolutePath(), e);
+				}
 			}
 		}
 
 		return tableNames;
 	}
 
-	@Override
-	public Map<String, String> getTableMetadata(String tableName) throws IOException {
-		File tableDir = new File(path + "/table", tableName);
-		File metaFile = new File(tableDir, "table-metadata.json");
+	private Map<String, Object> readTableMetadataJson(File metaFile) throws IOException {
 		if (!metaFile.isFile())
 			throw new IOException("table metadata file does not exist: " + metaFile.getAbsolutePath());
 
@@ -85,15 +90,9 @@ public class FileBackupMedia implements BackupMedia {
 			JSONObject json = new JSONObject(config);
 
 			Map<String, Object> m = JSONConverter.parse(json);
-			Map<String, String> metadata = new HashMap<String, String>();
-			for (String key : m.keySet()) {
-				Object value = metadata.get(key);
-				metadata.put(key, value == null ? null : value.toString());
-			}
-
-			return metadata;
+			return m;
 		} catch (JSONException e) {
-			throw new IOException("cannot parse table [" + tableName + "] metadata file: " + metaFile.getAbsolutePath());
+			throw new IOException("cannot parse metadata file: " + metaFile.getAbsolutePath());
 		}
 	}
 
@@ -121,7 +120,7 @@ public class FileBackupMedia implements BackupMedia {
 			}
 		}
 	}
-
+	
 	@Override
 	public List<MediaFile> getFiles(String tableName) {
 		// TODO: check table metadata
@@ -135,7 +134,7 @@ public class FileBackupMedia implements BackupMedia {
 
 		Stack<File> dirs = new Stack<File>();
 		dirs.push(tableDir);
-		
+
 		while (!dirs.empty()) {
 			File dir = dirs.pop();
 			for (File f : dir.listFiles()) {
@@ -277,5 +276,40 @@ public class FileBackupMedia implements BackupMedia {
 				c.close();
 		} catch (IOException e) {
 		}
+	}
+
+	@Override
+	public Map<String, String> getTableMetadata(String tableName) throws IOException {
+		File baseDir = new File(path, "table");
+		File[] files = baseDir.listFiles();
+
+		for (File f : files) {
+			if (f.isDirectory()) {
+				// TODO: check table metadata
+				File metaFile = new File(f, "table-metadata.json");
+				Map<String, Object> tableMetadata;
+				try {
+					tableMetadata = readTableMetadataJson(metaFile);
+					String tn = (String) tableMetadata.get("_tablename");
+					if (tn.equals(tableName)) {
+						Map<String, String> metadata = new HashMap<String, String>();
+						@SuppressWarnings("unchecked")
+						Map<String, Object> mm = (Map<String, Object>) tableMetadata.get("metadata");
+						if (mm != null) {
+							for (String key : mm.keySet())
+								metadata.put(key, mm.get(key) == null ? null : mm.get(key).toString());
+
+							return metadata;
+						} else {
+							throw new IllegalStateException("cannot read metadata from " + "table-metadata.json"
+									+ ": no 'metadata' child element: " + metaFile);
+						}
+					}
+				} catch (IOException e) {
+					logger.warn("while reading " + metaFile.getAbsolutePath(), e);
+				}
+			}
+		}
+		return null;
 	}
 }

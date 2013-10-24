@@ -207,7 +207,7 @@ public class BackupManagerImpl implements BackupManager {
 				for (String tableName : tableNames) {
 					// restore table metadata
 					try {
-						Map<String, String> metadata = readTableMetadata(media, tableName);
+						Map<String, String> metadata = media.getTableMetadata(tableName);
 						String type = metadata.get("_filetype");
 						if (type == null)
 							throw new IOException("storage type not found for table " + tableName);
@@ -256,43 +256,6 @@ public class BackupManagerImpl implements BackupManager {
 
 				if (monitor != null)
 					monitor.onCompleteJob(job);
-			}
-		}
-
-		private Map<String, String> readTableMetadata(BackupMedia media, String tableName) throws IOException {
-			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			InputStream is = null;
-			try {
-				is = media.getInputStream(tableName, TABLE_METADATA_JSON);
-				byte[] b = new byte[8096];
-
-				while (true) {
-					int len = is.read(b);
-					if (len < 0)
-						break;
-
-					bos.write(b, 0, len);
-				}
-
-				String text = new String(bos.toByteArray(), "utf-8");
-				Map<String, String> metadata = new HashMap<String, String>();
-				Map<String, Object> m = JSONConverter.parse(new JSONObject(text));
-				@SuppressWarnings("unchecked")
-				Map<String, Object> mm = (Map<String, Object>) m.get("metadata");
-				if (mm != null) {
-					for (String key : mm.keySet())
-						metadata.put(key, mm.get(key) == null ? null : mm.get(key).toString());
-
-					return metadata;
-				} else {
-					throw new IllegalStateException("cannot read metadata from " + TABLE_METADATA_JSON 
-							+ ": no 'metadata' child element: " + tableName);
-				}
-			} catch (JSONException e) {
-				throw new IOException("cannot parse backup table metadata: " + tableName, e);
-			} finally {
-				if (is != null)
-					is.close();
 			}
 		}
 	}
