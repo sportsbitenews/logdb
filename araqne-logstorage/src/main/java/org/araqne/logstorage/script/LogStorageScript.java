@@ -27,7 +27,6 @@ import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -108,6 +107,15 @@ public class LogStorageScript implements Script {
 		BackupProgressPrinter printer = new BackupProgressPrinter(context);
 		req.setProgressMonitor(printer);
 
+		context.print("Backup path: ");
+		File backupPath = new File(context.readLine().trim());
+		if (!backupPath.exists() || !backupPath.isDirectory()) {
+			context.println("invalid backup directory");
+			return;
+		}
+
+		req.setMedia(new FileStorageBackupMedia(backupPath));
+
 		Set<String> tableNames = new HashSet<String>();
 
 		context.print("Table names (enter to backup all tables): ");
@@ -141,19 +149,16 @@ public class LogStorageScript implements Script {
 
 		req.setTo(to);
 
-		context.print("Backup path: ");
-		File backupPath = new File(context.readLine().trim());
-		if (!backupPath.exists() || !backupPath.isDirectory()) {
-			context.println("invalid backup directory");
-			return;
-		}
-
-		req.setMedia(new FileStorageBackupMedia(backupPath));
-
 		StorageBackupJob job = backupManager.prepare(req);
 		int tableCount = job.getStorageFiles().keySet().size();
 		context.println("Total " + tableCount + " tables");
 		context.println("Requires " + formatNumber(job.getTotalBytes()) + " bytes");
+
+		long freeSpace = req.getMedia().getFreeSpace();
+		if (freeSpace < job.getTotalBytes()) {
+			context.println("Not enough space on media, Aborted");
+			return;
+		}
 
 		context.print("Proceed? (y/N): ");
 		String proceed = context.readLine();
@@ -188,12 +193,13 @@ public class LogStorageScript implements Script {
 		req.setMedia(media);
 
 		context.print("Table names (enter to restore all tables): ");
-		String tables = context.readLine().trim();
+		String tableExpr = context.readLine().trim();
 
-		if (tables.isEmpty()) {
-			req.setTableNames(media.getTableNames());
+		Set<String> allTableNames = media.getTableNames();
+		if (tableExpr.isEmpty()) {
+			req.setTableNames(allTableNames);
 		} else {
-			req.setTableNames(new HashSet<String>(Arrays.asList(tables.split(","))));
+			req.setTableNames(TableWildcardMatcher.apply(allTableNames, tableExpr));
 		}
 
 		StorageBackupJob job = backupManager.prepare(req);
