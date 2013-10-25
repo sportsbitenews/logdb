@@ -60,6 +60,7 @@ import org.araqne.logstorage.LogStorageEventListener;
 import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogWriterStatus;
+import org.araqne.logstorage.TableWildcardMatcher;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.logstorage.backup.FileStorageBackupMedia;
 import org.araqne.logstorage.backup.StorageBackupJob;
@@ -110,15 +111,12 @@ public class LogStorageScript implements Script {
 		Set<String> tableNames = new HashSet<String>();
 
 		context.print("Table names (enter to backup all tables): ");
-		String tableInput = context.readLine();
-		if (tableInput.isEmpty()) {
-			tableNames = new HashSet<String>(tableRegistry.getTableNames());
+		String tableExpr = context.readLine();
+		HashSet<String> allTableNames = new HashSet<String>(tableRegistry.getTableNames());
+		if (tableExpr.isEmpty()) {
+			tableNames = allTableNames;
 		} else {
-			for (String s : tableInput.split(",")) {
-				s = s.trim();
-				if (tableRegistry.exists(s))
-					tableNames.add(s);
-			}
+			tableNames = TableWildcardMatcher.apply(allTableNames, tableExpr);
 		}
 
 		req.setTableNames(tableNames);
