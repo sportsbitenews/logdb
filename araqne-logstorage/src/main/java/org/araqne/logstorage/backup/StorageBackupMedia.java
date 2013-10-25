@@ -15,24 +15,30 @@
  */
 package org.araqne.logstorage.backup;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @since 2.2.7
  * @author xeraph
  * 
  */
-public class RestoreJob extends Job {
+public interface StorageBackupMedia {
+	Set<String> getTableNames() throws IOException;
 
-	// table to files
-	private Map<String, List<MediaFile>> mediaFiles;
+	Map<String, String> getTableMetadata(String tableName) throws IOException;
 
-	public Map<String, List<MediaFile>> getMediaFiles() {
-		return mediaFiles;
-	}
+	List<StorageMediaFile> getFiles(String tableName) throws IOException;
 
-	public void setMediaFiles(Map<String, List<MediaFile>> sourceFiles) {
-		this.mediaFiles = sourceFiles;
-	}
+	InputStream getInputStream(String tableName, String fileName) throws IOException;
+
+	long getFreeSpace() throws IOException;
+
+	void copyFromMedia(StorageTransferRequest req) throws IOException;
+
+	void copyToMedia(StorageTransferRequest req) throws IOException;
+
 }

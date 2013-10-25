@@ -21,17 +21,17 @@ package org.araqne.logstorage.backup;
  * @author xeraph
  * 
  */
-public class TransferRequest {
+public class StorageTransferRequest {
 
 	private StorageFile storageFile;
-	private MediaFile mediaFile;
-	private ToMediaStream transferStream;
+	private StorageMediaFile mediaFile;
+	private StorageTransferStream transferStream;
 
-	public TransferRequest(ToMediaStream transferStream) {
+	public StorageTransferRequest(StorageTransferStream transferStream) {
 		this.transferStream = transferStream;
 	}
 
-	public TransferRequest(StorageFile storageFile, MediaFile mediaFile) {
+	public StorageTransferRequest(StorageFile storageFile, StorageMediaFile mediaFile) {
 		this.storageFile = storageFile;
 		this.mediaFile = mediaFile;
 	}
@@ -40,11 +40,11 @@ public class TransferRequest {
 		return storageFile;
 	}
 
-	public MediaFile getMediaFile() {
+	public StorageMediaFile getMediaFile() {
 		return mediaFile;
 	}
 
-	public ToMediaStream getToMediaStream() {
+	public StorageTransferStream getToMediaStream() {
 		return transferStream;
 	}
 }

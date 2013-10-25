@@ -2,7 +2,7 @@ package org.araqne.logstorage.backup;
 
 import java.io.InputStream;
 
-public class ToMediaStream {
+public class StorageTransferStream {
 	// original table name for stream write
 	private String tableName;
 
@@ -14,7 +14,7 @@ public class ToMediaStream {
 
 	private String mediaFileName;
 
-	public ToMediaStream(String tableName, int tableId, InputStream is, String mediaFileName) {
+	public StorageTransferStream(String tableName, int tableId, InputStream is, String mediaFileName) {
 		this.tableName = tableName;
 		this.tableId = tableId;
 		this.inputStream = is;

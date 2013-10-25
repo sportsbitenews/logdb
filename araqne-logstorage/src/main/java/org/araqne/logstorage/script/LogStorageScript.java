@@ -61,13 +61,12 @@ import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogWriterStatus;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
-import org.araqne.logstorage.backup.BackupManager;
-import org.araqne.logstorage.backup.BackupMedia;
-import org.araqne.logstorage.backup.BackupRequest;
-import org.araqne.logstorage.backup.FileBackupMedia;
-import org.araqne.logstorage.backup.BackupJob;
-import org.araqne.logstorage.backup.RestoreJob;
-import org.araqne.logstorage.backup.RestoreRequest;
+import org.araqne.logstorage.backup.FileStorageBackupMedia;
+import org.araqne.logstorage.backup.StorageBackupJob;
+import org.araqne.logstorage.backup.StorageBackupManager;
+import org.araqne.logstorage.backup.StorageBackupMedia;
+import org.araqne.logstorage.backup.StorageBackupRequest;
+import org.araqne.logstorage.backup.StorageBackupType;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
 import org.araqne.logstorage.engine.LogTableSchema;
@@ -83,10 +82,10 @@ public class LogStorageScript implements Script {
 	private ConfigService conf;
 	private LogFileServiceRegistry lfsRegistry;
 	private LogCryptoProfileRegistry cryptoRegistry;
-	private BackupManager backupManager;
+	private StorageBackupManager backupManager;
 
 	public LogStorageScript(LogTableRegistry tableRegistry, LogStorage archive, LogStorageMonitor monitor, ConfigService conf,
-			LogFileServiceRegistry lfsRegistry, LogCryptoProfileRegistry cryptoRegistry, BackupManager backupManager) {
+			LogFileServiceRegistry lfsRegistry, LogCryptoProfileRegistry cryptoRegistry, StorageBackupManager backupManager) {
 		this.tableRegistry = tableRegistry;
 		this.storage = archive;
 		this.monitor = monitor;
@@ -101,19 +100,10 @@ public class LogStorageScript implements Script {
 		this.context = context;
 	}
 
-	public void backupJobs(String[] args) {
-		context.println("Running Backup Jobs");
-		context.println("---------------------");
-		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		for (BackupJob job : backupManager.getBackupJobs()) {
-			context.println("submit at " + df.format(job.getSubmitAt()));
-		}
-	}
-
 	public void backup(String[] args) throws InterruptedException, IOException {
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 
-		BackupRequest req = new BackupRequest();
+		StorageBackupRequest req = new StorageBackupRequest(StorageBackupType.BACKUP);
 		BackupProgressPrinter printer = new BackupProgressPrinter(context);
 		req.setProgressMonitor(printer);
 
@@ -160,10 +150,10 @@ public class LogStorageScript implements Script {
 			return;
 		}
 
-		req.setMedia(new FileBackupMedia(backupPath));
+		req.setMedia(new FileStorageBackupMedia(backupPath));
 
-		BackupJob job = backupManager.prepareBackup(req);
-		int tableCount = job.getSourceFiles().keySet().size();
+		StorageBackupJob job = backupManager.prepare(req);
+		int tableCount = job.getStorageFiles().keySet().size();
 		context.println("Total " + tableCount + " tables");
 		context.println("Requires " + formatNumber(job.getTotalBytes()) + " bytes");
 
@@ -190,13 +180,13 @@ public class LogStorageScript implements Script {
 	}
 
 	public void restore(String[] args) throws InterruptedException, IOException {
-		RestoreRequest req = new RestoreRequest();
+		StorageBackupRequest req = new StorageBackupRequest(StorageBackupType.RESTORE);
 		BackupProgressPrinter printer = new BackupProgressPrinter(context);
 		req.setProgressMonitor(printer);
 
 		context.print("Backup path: ");
 		String path = context.readLine().trim();
-		BackupMedia media = new FileBackupMedia(new File(path));
+		StorageBackupMedia media = new FileStorageBackupMedia(new File(path));
 		req.setMedia(media);
 
 		context.print("Table names (enter to restore all tables): ");
@@ -208,7 +198,7 @@ public class LogStorageScript implements Script {
 			req.setTableNames(new HashSet<String>(Arrays.asList(tables.split(","))));
 		}
 
-		RestoreJob job = backupManager.prepareRestore(req);
+		StorageBackupJob job = backupManager.prepare(req);
 		int tableCount = job.getMediaFiles().keySet().size();
 		context.println("Total " + tableCount + " tables");
 		context.println("Restore " + formatNumber(job.getTotalBytes()) + " bytes");

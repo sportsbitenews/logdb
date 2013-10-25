@@ -18,7 +18,31 @@ package org.araqne.logstorage.backup;
 /**
  * @since 2.2.7
  * @author xeraph
- *
+ * 
  */
-public class BackupRequest extends Request {
+public class DefaultStorageBackupProgressMonitor implements StorageBackupProgressMonitor {
+
+	@Override
+	public void onBeginTable(StorageBackupJob job, String tableName) {
+	}
+
+	@Override
+	public void onCompleteTable(StorageBackupJob job, String tableName) {
+	}
+
+	@Override
+	public void onBeginFile(StorageBackupJob job, String tableName, String fileName) {
+	}
+
+	@Override
+	public void onCompleteFile(StorageBackupJob job, String tableName, String fileName) {
+	}
+
+	@Override
+	public void onBeginJob(StorageBackupJob job) {
+	}
+
+	@Override
+	public void onCompleteJob(StorageBackupJob job) {
+	}
 }

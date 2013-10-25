@@ -20,7 +20,7 @@ package org.araqne.logstorage.backup;
  * @author xeraph
  * 
  */
-public class MediaFile {
+public class StorageMediaFile {
 	private String fileName;
 
 	private String tableName;
@@ -32,7 +32,7 @@ public class MediaFile {
 	// save exception if io failed
 	protected Throwable exception;
 
-	public MediaFile(String tableName, String fileName, long length) {
+	public StorageMediaFile(String tableName, String fileName, long length) {
 		this.tableName = tableName;
 		this.fileName = fileName;
 		this.length = length;

@@ -15,30 +15,11 @@
  */
 package org.araqne.logstorage.backup;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 /**
  * @since 2.2.7
  * @author xeraph
  * 
  */
-public interface BackupMedia {
-	Set<String> getTableNames() throws IOException;
-
-	Map<String, String> getTableMetadata(String tableName) throws IOException;
-
-	List<MediaFile> getFiles(String tableName) throws IOException;
-
-	InputStream getInputStream(String tableName, String fileName) throws IOException;
-
-	long getFreeSpace() throws IOException;
-
-	void copyFromMedia(TransferRequest req) throws IOException;
-
-	void copyToMedia(TransferRequest req) throws IOException;
-
+public enum StorageBackupType {
+	BACKUP, RESTORE
 }

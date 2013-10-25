@@ -27,7 +27,7 @@ import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogTableRegistry;
-import org.araqne.logstorage.backup.BackupManager;
+import org.araqne.logstorage.backup.StorageBackupManager;
 
 @Component(name = "logstorage-script-factory")
 @Provides
@@ -55,7 +55,7 @@ public class LogStorageScriptFactory implements ScriptFactory {
 	private LogCryptoProfileRegistry cryptoRegistry;
 
 	@Requires
-	private BackupManager backupManager;
+	private StorageBackupManager backupManager;
 
 	@Override
 	public Script createScript() {

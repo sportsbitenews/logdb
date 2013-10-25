@@ -41,13 +41,13 @@ import org.slf4j.LoggerFactory;
  * @author xeraph
  * 
  */
-public class FileBackupMedia implements BackupMedia {
-	private final Logger logger = LoggerFactory.getLogger(FileBackupMedia.class);
+public class FileStorageBackupMedia implements StorageBackupMedia {
+	private final Logger logger = LoggerFactory.getLogger(FileStorageBackupMedia.class);
 	private File path;
 
 	private Map<String, TableSchema> cachedSchemas;
 
-	public FileBackupMedia(File path) {
+	public FileStorageBackupMedia(File path) {
 		this.path = path;
 		this.cachedSchemas = new HashMap<String, TableSchema>();
 
@@ -121,12 +121,12 @@ public class FileBackupMedia implements BackupMedia {
 	}
 
 	@Override
-	public List<MediaFile> getFiles(String tableName) throws IOException {
+	public List<StorageMediaFile> getFiles(String tableName) throws IOException {
 		TableSchema schema = cachedSchemas.get(tableName);
 		if (!cachedSchemas.containsKey(tableName))
 			throw new IOException("table [" + tableName + "] not found in backup media");
 
-		List<MediaFile> mediaFiles = new ArrayList<MediaFile>();
+		List<StorageMediaFile> mediaFiles = new ArrayList<StorageMediaFile>();
 		File tableDir = schema.dir;
 		logger.info("araqne logstorage: get backup file list for table [{}], dir [{}]", tableName, tableDir.getAbsolutePath());
 
@@ -149,7 +149,7 @@ public class FileBackupMedia implements BackupMedia {
 						if (fpath.startsWith(ppath)) {
 							fpath = fpath.substring(ppath.length() + 1);
 							fpath = fpath.replace('\\', '/');
-							MediaFile bf = new MediaFile(tableName, fpath, f.length());
+							StorageMediaFile bf = new StorageMediaFile(tableName, fpath, f.length());
 							mediaFiles.add(bf);
 						}
 					}
@@ -175,7 +175,7 @@ public class FileBackupMedia implements BackupMedia {
 		return new FileInputStream(file);
 	}
 
-	private File getMediaFile(TransferRequest req) throws IOException {
+	private File getMediaFile(StorageTransferRequest req) throws IOException {
 		String tableName = req.getMediaFile().getTableName();
 		TableSchema schema = cachedSchemas.get(tableName);
 		if (schema == null)
@@ -185,7 +185,7 @@ public class FileBackupMedia implements BackupMedia {
 	}
 
 	@Override
-	public void copyFromMedia(TransferRequest req) throws IOException {
+	public void copyFromMedia(StorageTransferRequest req) throws IOException {
 		StorageFile dst = req.getStorageFile();
 		if (dst.getFile().exists())
 			throw new IOException("file already exists: " + dst.getFile().getAbsolutePath());
@@ -221,7 +221,7 @@ public class FileBackupMedia implements BackupMedia {
 	}
 
 	@Override
-	public void copyToMedia(TransferRequest req) throws IOException {
+	public void copyToMedia(StorageTransferRequest req) throws IOException {
 		StorageFile src = req.getStorageFile();
 
 		if (src != null) {
@@ -255,7 +255,7 @@ public class FileBackupMedia implements BackupMedia {
 			}
 
 		} else {
-			ToMediaStream stream = req.getToMediaStream();
+			StorageTransferStream stream = req.getToMediaStream();
 			File dst = new File(path, "table/" + stream.getTableId() + "/" + stream.getMediaFileName());
 			if (dst.exists())
 				throw new IOException("file already exists: " + dst.getAbsolutePath());

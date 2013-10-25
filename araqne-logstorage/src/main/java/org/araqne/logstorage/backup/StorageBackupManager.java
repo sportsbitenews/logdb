@@ -15,25 +15,15 @@
  */
 package org.araqne.logstorage.backup;
 
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
 
 /**
  * @since 2.2.7
  * @author xeraph
  * 
  */
-public class BackupJob extends Job {
+public interface StorageBackupManager {
+	StorageBackupJob prepare(StorageBackupRequest req) throws IOException;
 
-	// table to files
-	private Map<String, List<StorageFile>> sourceFiles;
-
-	public Map<String, List<StorageFile>> getSourceFiles() {
-		return sourceFiles;
-	}
-
-	public void setSourceFiles(Map<String, List<StorageFile>> sourceFiles) {
-		this.sourceFiles = sourceFiles;
-	}
-
+	void execute(StorageBackupJob job);
 }

@@ -20,16 +20,16 @@ package org.araqne.logstorage.backup;
  * @author xeraph
  * 
  */
-public interface JobProgressMonitor {
-	void onBeginTable(Job job, String tableName);
+public interface StorageBackupProgressMonitor {
+	void onBeginTable(StorageBackupJob job, String tableName);
 
-	void onCompleteTable(Job job, String tableName);
+	void onCompleteTable(StorageBackupJob job, String tableName);
 
-	void onBeginFile(Job job, String tableName, String fileName);
+	void onBeginFile(StorageBackupJob job, String tableName, String fileName);
 
-	void onCompleteFile(Job job, String tableName, String fileName);
+	void onCompleteFile(StorageBackupJob job, String tableName, String fileName);
 
-	void onBeginJob(Job job);
+	void onBeginJob(StorageBackupJob job);
 
-	void onCompleteJob(Job job);
+	void onCompleteJob(StorageBackupJob job);
 }

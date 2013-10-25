@@ -21,17 +21,16 @@ import java.util.Date;
 import java.util.Set;
 
 import org.araqne.api.ScriptContext;
-import org.araqne.logstorage.backup.BackupJob;
-import org.araqne.logstorage.backup.Job;
-import org.araqne.logstorage.backup.JobProgressMonitor;
-import org.araqne.logstorage.backup.RestoreJob;
+import org.araqne.logstorage.backup.StorageBackupJob;
+import org.araqne.logstorage.backup.StorageBackupProgressMonitor;
+import org.araqne.logstorage.backup.StorageBackupType;
 
 /**
  * @since 2.2.7
  * @author xeraph
  * 
  */
-class BackupProgressPrinter implements JobProgressMonitor {
+class BackupProgressPrinter implements StorageBackupProgressMonitor {
 	private ScriptContext context;
 	private boolean disabled = false;
 
@@ -48,38 +47,38 @@ class BackupProgressPrinter implements JobProgressMonitor {
 	}
 
 	@Override
-	public void onBeginTable(Job job, String tableName) {
+	public void onBeginTable(StorageBackupJob job, String tableName) {
 		if (!disabled)
 			context.println(getTimestamp() + ">> " + getType(job) + " table [" + tableName + "]");
 	}
 
 	@Override
-	public void onCompleteTable(Job job, String tableName) {
+	public void onCompleteTable(StorageBackupJob job, String tableName) {
 		if (!disabled)
 			context.println(getTimestamp() + "<< " + getType(job) + " table [" + tableName + "]");
 	}
 
 	@Override
-	public void onBeginFile(Job job, String tableName, String fileName) {
+	public void onBeginFile(StorageBackupJob job, String tableName, String fileName) {
 		if (!disabled)
 			context.println(getTimestamp() + "> " + getType(job) + " file [" + tableName + ":" + fileName + "]");
 	}
 
 	@Override
-	public void onCompleteFile(Job job, String tableName, String fileName) {
+	public void onCompleteFile(StorageBackupJob job, String tableName, String fileName) {
 		if (!disabled)
 			context.println(getTimestamp() + "< " + getType(job) + " file [" + tableName + ":" + fileName + "]");
 	}
 
 	@Override
-	public void onBeginJob(Job job) {
+	public void onBeginJob(StorageBackupJob job) {
 		if (!disabled)
 			context.println(getTimestamp() + getType(job) + " started table [" + getTableNames(job) + "], ["
 					+ formatNumber(job.getTotalBytes()) + "] bytes");
 	}
 
 	@Override
-	public void onCompleteJob(Job job) {
+	public void onCompleteJob(StorageBackupJob job) {
 		if (!disabled) {
 			context.println(getTimestamp() + getType(job) + " completed, table " + getTableNames(job) + ", ["
 					+ formatNumber(job.getTotalBytes()) + "] bytes");
@@ -92,23 +91,19 @@ class BackupProgressPrinter implements JobProgressMonitor {
 		return "[" + df.format(new Date()) + "] ";
 	}
 
-	private String getType(Job job) {
-		if (job instanceof BackupJob)
-			return "backup";
-		else
-			return "restore";
+	private String getType(StorageBackupJob job) {
+		return job.getRequest().getType().toString().toLowerCase();
 	}
 
-	private Set<String> getTableNames(Job job) {
-		if (job instanceof BackupJob)
-			return ((BackupJob) job).getSourceFiles().keySet();
+	private Set<String> getTableNames(StorageBackupJob job) {
+		if (job.getRequest().getType() == StorageBackupType.BACKUP)
+			return job.getStorageFiles().keySet();
 		else
-			return ((RestoreJob) job).getMediaFiles().keySet();
+			return job.getMediaFiles().keySet();
 	}
 
 	private String formatNumber(long bytes) {
 		DecimalFormat formatter = new DecimalFormat("###,###");
 		return formatter.format(bytes);
 	}
-
 }
