@@ -21,21 +21,17 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
-import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
@@ -59,14 +55,7 @@ import org.araqne.logstorage.LogStorageEventListener;
 import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogWriterStatus;
-import org.araqne.logstorage.TableWildcardMatcher;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
-import org.araqne.logstorage.backup.FileStorageBackupMedia;
-import org.araqne.logstorage.backup.StorageBackupJob;
-import org.araqne.logstorage.backup.StorageBackupManager;
-import org.araqne.logstorage.backup.StorageBackupMedia;
-import org.araqne.logstorage.backup.StorageBackupRequest;
-import org.araqne.logstorage.backup.StorageBackupType;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
 import org.araqne.logstorage.engine.LogTableSchema;
@@ -82,156 +71,20 @@ public class LogStorageScript implements Script {
 	private ConfigService conf;
 	private LogFileServiceRegistry lfsRegistry;
 	private LogCryptoProfileRegistry cryptoRegistry;
-	private StorageBackupManager backupManager;
 
 	public LogStorageScript(LogTableRegistry tableRegistry, LogStorage archive, LogStorageMonitor monitor, ConfigService conf,
-			LogFileServiceRegistry lfsRegistry, LogCryptoProfileRegistry cryptoRegistry, StorageBackupManager backupManager) {
+			LogFileServiceRegistry lfsRegistry, LogCryptoProfileRegistry cryptoRegistry) {
 		this.tableRegistry = tableRegistry;
 		this.storage = archive;
 		this.monitor = monitor;
 		this.conf = conf;
 		this.lfsRegistry = lfsRegistry;
 		this.cryptoRegistry = cryptoRegistry;
-		this.backupManager = backupManager;
 	}
 
 	@Override
 	public void setScriptContext(ScriptContext context) {
 		this.context = context;
-	}
-
-	public void backup(String[] args) throws InterruptedException, IOException {
-		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
-
-		StorageBackupRequest req = new StorageBackupRequest(StorageBackupType.BACKUP);
-		BackupProgressPrinter printer = new BackupProgressPrinter(context);
-		req.setProgressMonitor(printer);
-
-		context.print("Backup path: ");
-		File backupPath = new File(context.readLine().trim());
-		if (!backupPath.exists() || !backupPath.isDirectory()) {
-			context.println("invalid backup directory");
-			return;
-		}
-
-		req.setMedia(new FileStorageBackupMedia(backupPath));
-
-		Set<String> tableNames = new HashSet<String>();
-
-		context.print("Table names (enter to backup all tables): ");
-		String tableExpr = context.readLine();
-		HashSet<String> allTableNames = new HashSet<String>(tableRegistry.getTableNames());
-		if (tableExpr.isEmpty()) {
-			tableNames = allTableNames;
-		} else {
-			tableNames = TableWildcardMatcher.apply(allTableNames, tableExpr);
-		}
-
-		req.setTableNames(tableNames);
-
-		context.print("Range from (yyyyMMdd, enter to unlimited): ");
-		String fromStr = context.readLine().trim();
-		Date from = df.parse(fromStr, new ParsePosition(0));
-		if (!fromStr.isEmpty() && from == null) {
-			context.println("invalid date format");
-			return;
-		}
-
-		req.setFrom(from);
-
-		context.print("Range to (yyyyMMdd, enter to unlimited): ");
-		String toStr = context.readLine().trim();
-		Date to = df.parse(toStr, new ParsePosition(0));
-		if (!toStr.isEmpty() && to == null) {
-			context.println("invalid date format");
-			return;
-		}
-
-		req.setTo(to);
-
-		StorageBackupJob job = backupManager.prepare(req);
-		int tableCount = job.getStorageFiles().keySet().size();
-		context.println("Total " + tableCount + " tables");
-		context.println("Requires " + formatNumber(job.getTotalBytes()) + " bytes");
-
-		long freeSpace = req.getMedia().getFreeSpace();
-		if (freeSpace < job.getTotalBytes()) {
-			context.println("Not enough space on media, Aborted");
-			return;
-		}
-
-		context.print("Proceed? (y/N): ");
-		String proceed = context.readLine();
-		if (!proceed.equalsIgnoreCase("y")) {
-			context.println("cancelled");
-			return;
-		}
-
-		backupManager.execute(job);
-		context.println("started backup job");
-
-		try {
-			while (true) {
-				context.readLine();
-			}
-		} catch (InterruptedException e) {
-			if (!job.isDone())
-				context.println("backup will be continued in background");
-		} finally {
-			printer.setDisabled(true);
-		}
-	}
-
-	public void restore(String[] args) throws InterruptedException, IOException {
-		StorageBackupRequest req = new StorageBackupRequest(StorageBackupType.RESTORE);
-		BackupProgressPrinter printer = new BackupProgressPrinter(context);
-		req.setProgressMonitor(printer);
-
-		context.print("Backup path: ");
-		String path = context.readLine().trim();
-		StorageBackupMedia media = new FileStorageBackupMedia(new File(path));
-		req.setMedia(media);
-
-		context.print("Table names (enter to restore all tables): ");
-		String tableExpr = context.readLine().trim();
-
-		Set<String> allTableNames = media.getTableNames();
-		if (tableExpr.isEmpty()) {
-			req.setTableNames(allTableNames);
-		} else {
-			req.setTableNames(TableWildcardMatcher.apply(allTableNames, tableExpr));
-		}
-
-		StorageBackupJob job = backupManager.prepare(req);
-		int tableCount = job.getMediaFiles().keySet().size();
-		context.println("Total " + tableCount + " tables");
-		context.println("Restore " + formatNumber(job.getTotalBytes()) + " bytes");
-
-		context.print("Proceed? (y/N): ");
-		String proceed = context.readLine();
-		if (!proceed.equalsIgnoreCase("y")) {
-			context.println("cancelled");
-			return;
-		}
-
-		backupManager.execute(job);
-		context.println("started restore job");
-
-		try {
-			while (true) {
-				context.readLine();
-			}
-		} catch (InterruptedException e) {
-			if (!job.isDone())
-				context.println("restore will be continued in background");
-		} finally {
-			printer.setDisabled(true);
-		}
-	}
-
-	private String formatNumber(long bytes) {
-		DecimalFormat formatter = new DecimalFormat("###,###");
-		return formatter.format(bytes);
 	}
 
 	public void cryptoProfiles(String[] args) {
