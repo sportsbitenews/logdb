@@ -73,7 +73,7 @@ class BackupProgressPrinter implements StorageBackupProgressMonitor {
 	@Override
 	public void onBeginJob(StorageBackupJob job) {
 		if (!disabled)
-			context.println(getTimestamp() + getType(job) + " started table [" + getTableNames(job) + "], ["
+			context.println(getTimestamp() + getType(job) + " started table " + getTableNames(job) + ", ["
 					+ formatNumber(job.getTotalBytes()) + "] bytes");
 	}
 

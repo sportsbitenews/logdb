@@ -20,9 +20,12 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
+import org.araqne.log.api.WildcardMatcher;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
@@ -65,14 +68,8 @@ public class TableParser implements LogQueryCommandParser {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
 				Arrays.asList("from", "to", "offset", "limit", "duration", "parser"));
 		Map<String, String> options = (Map<String, String>) r.value;
-
-		List<String> tableNames = new ArrayList<String>();
-		for (String tableNameToken : commandString.substring(r.next).split(",")) {
-			String tableName = tableNameToken.trim();
-			if (!tableRegistry.exists(tableName))
-				throw new LogQueryParseException("table-not-found", -1, "table=" + tableName);
-			tableNames.add(tableName);
-		}
+		String tableTokens = commandString.substring(r.next);
+		List<String> tableNames = parseTableNames(context, tableTokens);
 
 		Date from = null;
 		Date to = null;
@@ -113,12 +110,6 @@ public class TableParser implements LogQueryCommandParser {
 		if (options.containsKey("parser"))
 			parser = options.get("parser");
 
-		// check read permission
-		for (String tableName : tableNames) {
-			if (!accountService.checkPermission(context.getSession(), tableName, Permission.READ))
-				throw new LogQueryParseException("no-read-permission", -1, "table=" + tableName);
-		}
-
 		TableParams params = new TableParams();
 		params.setTableNames(tableNames);
 		params.setOffset(offset);
@@ -135,4 +126,37 @@ public class TableParser implements LogQueryCommandParser {
 		return table;
 	}
 
+	private List<String> parseTableNames(LogQueryContext context, String tableTokens) {
+		List<String> tableNames = new ArrayList<String>();
+		for (String tableNameToken : tableTokens.split(",")) {
+			String tableName = tableNameToken.trim();
+
+			if (tableName.contains("*")) {
+				Pattern p = WildcardMatcher.buildPattern(tableName);
+				addWildMatchTables(context, tableNames, p.matcher(""));
+			} else {
+				if (!tableRegistry.exists(tableName))
+					throw new LogQueryParseException("table-not-found", -1, "table=" + tableName);
+
+				if (!accountService.checkPermission(context.getSession(), tableName, Permission.READ))
+					throw new LogQueryParseException("no-read-permission", -1, "table=" + tableName);
+
+				tableNames.add(tableName);
+			}
+		}
+		return tableNames;
+	}
+
+	private void addWildMatchTables(LogQueryContext context, List<String> tableNames, Matcher matcher) {
+		for (String tableName : tableRegistry.getTableNames()) {
+			matcher.reset(tableName);
+			if (!matcher.matches())
+				continue;
+
+			if (!accountService.checkPermission(context.getSession(), tableName, Permission.READ))
+				continue;
+
+			tableNames.add(tableName);
+		}
+	}
 }

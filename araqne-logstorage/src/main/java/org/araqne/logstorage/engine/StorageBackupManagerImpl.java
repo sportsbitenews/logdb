@@ -81,8 +81,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 			List<StorageFile> files = new ArrayList<StorageFile>();
 
 			for (Date day : storage.getLogDates(tableName)) {
-				if ((req.getFrom() != null && day.before(req.getFrom())) ||
-						(req.getTo() != null && day.after(req.getTo())))
+				if ((req.getFrom() != null && day.before(req.getFrom())) || (req.getTo() != null && day.after(req.getTo())))
 					continue;
 
 				int tableId = tableRegistry.getTableId(tableName);
@@ -173,6 +172,9 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 				Set<String> tableNames = job.getMediaFiles().keySet();
 
 				for (String tableName : tableNames) {
+					if (monitor != null)
+						monitor.onBeginTable(job, tableName);
+
 					// restore table metadata
 					try {
 						Map<String, String> metadata = media.getTableMetadata(tableName);
@@ -184,6 +186,9 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 							tableRegistry.createTable(tableName, type, metadata);
 						}
 					} catch (IOException e) {
+						if (monitor != null)
+							monitor.onCompleteTable(job, tableName);
+
 						logger.error("araqne logstorage: cannot read backup table metadata", e);
 						continue;
 					}
@@ -193,7 +198,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 					List<StorageMediaFile> files = job.getMediaFiles().get(tableName);
 
 					for (StorageMediaFile mediaFile : files) {
-						String storageFilename = new File(mediaFile.getFileName()).getName(); // omit old table id
+						String storageFilename = new File(mediaFile.getFileName()).getName();
 						File storageFilePath = new File(storage.getTableDirectory(tableName), storageFilename);
 						StorageFile storageFile = new StorageFile(tableName, tableId, storageFilePath);
 						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
@@ -276,7 +281,8 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 					List<StorageFile> files = job.getStorageFiles().get(tableName);
 
 					for (StorageFile storageFile : files) {
-						String subPath = storageFile.getFile().getParentFile().getName() + File.separator + storageFile.getFile().getName();
+						String subPath = storageFile.getFile().getParentFile().getName() + File.separator
+								+ storageFile.getFile().getName();
 						StorageMediaFile mediaFile = new StorageMediaFile(tableName, subPath, storageFile.getLength());
 						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
 						try {
