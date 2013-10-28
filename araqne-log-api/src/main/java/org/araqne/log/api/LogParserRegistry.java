@@ -27,4 +27,8 @@ public interface LogParserRegistry {
 	void removeProfile(String name);
 
 	LogParser newParser(String name);
+
+	void addLogParserEventListener(LogParserEventListener listener);
+
+	void removeLogParserEventListener(LogParserEventListener listener);
 }
