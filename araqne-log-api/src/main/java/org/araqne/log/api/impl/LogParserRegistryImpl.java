@@ -40,6 +40,7 @@ import org.araqne.log.api.LogParserRegistry;
 @Component(name = "log-parser-registry")
 @Provides
 public class LogParserRegistryImpl implements LogParserRegistry {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(LogParserRegistryImpl.class);
 
 	@Requires
 	private ConfigService conf;
@@ -86,6 +87,14 @@ public class LogParserRegistryImpl implements LogParserRegistry {
 
 		ConfigDatabase db = conf.ensureDatabase("araqne-log-api");
 		db.add(profile);
+
+		for (LogParserEventListener listener : listeners) {
+			try {
+				listener.parserCreated(profile);
+			} catch (Throwable t) {
+				slog.warn("araqne log api: parser event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -98,10 +107,12 @@ public class LogParserRegistryImpl implements LogParserRegistry {
 		LogParserProfile old = profiles.remove(name);
 		if (old == null)
 			throw new IllegalStateException("parser profile not found: " + name);
+
 		for (LogParserEventListener listener : listeners) {
 			try {
-				listener.removeLogParser(name);
+				listener.parserRemoved(old);
 			} catch (Throwable t) {
+				slog.warn("araqne log api: parser event listener should not throw any exception", t);
 			}
 		}
 	}
@@ -122,11 +133,17 @@ public class LogParserRegistryImpl implements LogParserRegistry {
 		return factory.createParser(profile.getConfigs());
 	}
 
-	public void addLogParserEventListener(LogParserEventListener listener) {
+	public void addListener(LogParserEventListener listener) {
+		if (listener == null)
+			throw new IllegalArgumentException("listener should not be null");
+
 		listeners.add(listener);
 	}
 
-	public void removeLogParserEventListener(LogParserEventListener listener) {
+	public void removeListener(LogParserEventListener listener) {
+		if (listener == null)
+			throw new IllegalArgumentException("listener should not be null");
+
 		listeners.remove(listener);
 	}
 }

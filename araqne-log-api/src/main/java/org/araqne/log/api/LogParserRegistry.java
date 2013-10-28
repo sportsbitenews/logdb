@@ -28,7 +28,13 @@ public interface LogParserRegistry {
 
 	LogParser newParser(String name);
 
-	void addLogParserEventListener(LogParserEventListener listener);
+	/**
+	 * @since 2.6.8
+	 */
+	void addListener(LogParserEventListener listener);
 
-	void removeLogParserEventListener(LogParserEventListener listener);
+	/**
+	 * @since 2.6.8
+	 */
+	void removeListener(LogParserEventListener listener);
 }
