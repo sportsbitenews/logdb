@@ -15,24 +15,21 @@
  */
 package org.araqne.logstorage.backup;
 
-import java.util.List;
-import java.util.Map;
-
 /**
  * @since 2.2.7
  * @author xeraph
  * 
  */
-public class RestoreJob extends Job {
+public interface StorageBackupProgressMonitor {
+	void onBeginTable(StorageBackupJob job, String tableName);
 
-	// table to files
-	private Map<String, List<MediaFile>> sourceFiles;
+	void onCompleteTable(StorageBackupJob job, String tableName);
 
-	public Map<String, List<MediaFile>> getSourceFiles() {
-		return sourceFiles;
-	}
+	void onBeginFile(StorageBackupJob job, String tableName, String fileName);
 
-	public void setSourceFiles(Map<String, List<MediaFile>> sourceFiles) {
-		this.sourceFiles = sourceFiles;
-	}
+	void onCompleteFile(StorageBackupJob job, String tableName, String fileName);
+
+	void onBeginJob(StorageBackupJob job);
+
+	void onCompleteJob(StorageBackupJob job);
 }

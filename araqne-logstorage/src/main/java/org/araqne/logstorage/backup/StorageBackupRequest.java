@@ -21,14 +21,27 @@ import java.util.Set;
 /**
  * @since 2.2.7
  * @author xeraph
- *
+ * 
  */
-public abstract class Request {
+public class StorageBackupRequest {
+	private StorageBackupType type;
 	private Set<String> tableNames;
 	private Date from;
 	private Date to;
-	private BackupMedia media;
-	private JobProgressMonitor progressMonitor;
+	private StorageBackupMedia media;
+	private StorageBackupProgressMonitor progressMonitor;
+
+	public StorageBackupRequest(StorageBackupType type) {
+		this.type = type;
+	}
+
+	public StorageBackupType getType() {
+		return type;
+	}
+
+	public void setType(StorageBackupType type) {
+		this.type = type;
+	}
 
 	public Set<String> getTableNames() {
 		return tableNames;
@@ -54,19 +67,19 @@ public abstract class Request {
 		this.to = to;
 	}
 
-	public BackupMedia getMedia() {
+	public StorageBackupMedia getMedia() {
 		return media;
 	}
 
-	public void setMedia(BackupMedia media) {
+	public void setMedia(StorageBackupMedia media) {
 		this.media = media;
 	}
 
-	public JobProgressMonitor getProgressMonitor() {
+	public StorageBackupProgressMonitor getProgressMonitor() {
 		return progressMonitor;
 	}
 
-	public void setProgressMonitor(JobProgressMonitor progressMonitor) {
+	public void setProgressMonitor(StorageBackupProgressMonitor progressMonitor) {
 		this.progressMonitor = progressMonitor;
 	}
 }

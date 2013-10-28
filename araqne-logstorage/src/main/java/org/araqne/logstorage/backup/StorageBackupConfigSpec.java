@@ -15,31 +15,40 @@
  */
 package org.araqne.logstorage.backup;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 /**
- * @since 2.2.7
+ * @since 2.3.0
  * @author xeraph
  * 
  */
-public interface BackupMedia {
+public class StorageBackupConfigSpec {
+	private String key;
+	private Map<Locale, String> displayNames;
+	private Map<Locale, String> descriptions;
 
-	Set<String> getTableNames() throws IOException;
+	public String getKey() {
+		return key;
+	}
 
-	Map<String, String> getTableMetadata(String tableName) throws IOException;
+	public void setKey(String key) {
+		this.key = key;
+	}
 
-	List<MediaFile> getFiles(String tableName) throws IOException;
+	public Map<Locale, String> getDisplayNames() {
+		return displayNames;
+	}
 
-	InputStream getInputStream(String tableName, String fileName) throws IOException;
+	public void setDisplayNames(Map<Locale, String> displayNames) {
+		this.displayNames = displayNames;
+	}
 
-	long getFreeSpace() throws IOException;
+	public Map<Locale, String> getDescriptions() {
+		return descriptions;
+	}
 
-	void copyFromMedia(TransferRequest req) throws IOException;
-
-	void copyToMedia(TransferRequest req) throws IOException;
-
+	public void setDescriptions(Map<Locale, String> descriptions) {
+		this.descriptions = descriptions;
+	}
 }

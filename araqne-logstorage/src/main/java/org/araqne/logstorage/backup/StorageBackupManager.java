@@ -15,21 +15,15 @@
  */
 package org.araqne.logstorage.backup;
 
+import java.io.IOException;
+
 /**
  * @since 2.2.7
  * @author xeraph
  * 
  */
-public interface JobProgressMonitor {
-	void onBeginTable(Job job, String tableName);
+public interface StorageBackupManager {
+	StorageBackupJob prepare(StorageBackupRequest req) throws IOException;
 
-	void onCompleteTable(Job job, String tableName);
-
-	void onBeginFile(Job job, BaseFile bf);
-
-	void onCompleteFile(Job job, BaseFile bf);
-
-	void onBeginJob(Job job);
-
-	void onCompleteJob(Job job);
+	void execute(StorageBackupJob job);
 }

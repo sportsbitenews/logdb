@@ -10,4 +10,7 @@
 	<instance component="logstorage-log-file-service-registry" />
 	<instance component="logstorage-crypto-profile-registry" />
 	<instance component="logstorage-backup-manager" />
+	<instance component="logstorage-backup-media-registry" />
+	<instance component="logstorage-file-backup-media-factory" />
+	<instance component="logstorage-backup-script-factory" />
 </ipojo>

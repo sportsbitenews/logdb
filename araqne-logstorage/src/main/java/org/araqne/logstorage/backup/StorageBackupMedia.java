@@ -15,34 +15,30 @@
  */
 package org.araqne.logstorage.backup;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * @since 2.2.7
  * @author xeraph
  * 
  */
-public class DefaultProgressMonitor implements JobProgressMonitor {
+public interface StorageBackupMedia {
+	Set<String> getTableNames() throws IOException;
 
-	@Override
-	public void onBeginTable(Job job, String tableName) {
-	}
+	Map<String, String> getTableMetadata(String tableName) throws IOException;
 
-	@Override
-	public void onCompleteTable(Job job, String tableName) {
-	}
+	List<StorageMediaFile> getFiles(String tableName) throws IOException;
 
-	@Override
-	public void onBeginFile(Job job, BaseFile bf) {
-	}
+	InputStream getInputStream(String tableName, String fileName) throws IOException;
 
-	@Override
-	public void onCompleteFile(Job job, BaseFile bf) {
-	}
+	long getFreeSpace() throws IOException;
 
-	@Override
-	public void onBeginJob(Job job) {
-	}
+	void copyFromMedia(StorageTransferRequest req) throws IOException;
 
-	@Override
-	public void onCompleteJob(Job job) {
-	}
+	void copyToMedia(StorageTransferRequest req) throws IOException;
+
 }

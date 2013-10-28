@@ -200,10 +200,18 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	}
 
 	private void processLogs() {
-		Log log = null;
-		while ((log = logList.peek()) != null) {
-			processLog(log);
-			logList.poll();
+		ArrayList<Log> logs = new ArrayList<Log>(10000);
+		while (true) {
+			logList.drainTo(logs, 10000);
+			
+			for (Log log: logs) {
+				processLog(log);	
+			}
+			
+			if (logs.size() != 10000)
+				break;
+			
+			logs.clear();
 		}
 	}
 

@@ -17,16 +17,13 @@ package org.araqne.logstorage.engine;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -38,21 +35,17 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
-import org.araqne.logstorage.backup.BackupJob;
-import org.araqne.logstorage.backup.BackupManager;
-import org.araqne.logstorage.backup.BackupMedia;
-import org.araqne.logstorage.backup.JobProgressMonitor;
-import org.araqne.logstorage.backup.BackupRequest;
-import org.araqne.logstorage.backup.BaseFile;
-import org.araqne.logstorage.backup.Job;
-import org.araqne.logstorage.backup.MediaFile;
-import org.araqne.logstorage.backup.RestoreJob;
-import org.araqne.logstorage.backup.RestoreRequest;
+import org.araqne.logstorage.backup.StorageMediaFile;
+import org.araqne.logstorage.backup.StorageBackupJob;
+import org.araqne.logstorage.backup.StorageBackupManager;
+import org.araqne.logstorage.backup.StorageBackupMedia;
+import org.araqne.logstorage.backup.StorageBackupProgressMonitor;
+import org.araqne.logstorage.backup.StorageBackupRequest;
+import org.araqne.logstorage.backup.StorageBackupType;
 import org.araqne.logstorage.backup.StorageFile;
-import org.araqne.logstorage.backup.TransferRequest;
+import org.araqne.logstorage.backup.StorageTransferStream;
+import org.araqne.logstorage.backup.StorageTransferRequest;
 import org.json.JSONConverter;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,9 +56,9 @@ import org.slf4j.LoggerFactory;
  */
 @Component(name = "logstorage-backup-manager")
 @Provides
-public class BackupManagerImpl implements BackupManager {
+public class StorageBackupManagerImpl implements StorageBackupManager {
 	private static final String TABLE_METADATA_JSON = "table-metadata.json";
-	private final Logger logger = LoggerFactory.getLogger(BackupManagerImpl.class);
+	private final Logger logger = LoggerFactory.getLogger(StorageBackupManagerImpl.class);
 
 	@Requires
 	private LogTableRegistry tableRegistry;
@@ -73,141 +66,118 @@ public class BackupManagerImpl implements BackupManager {
 	@Requires
 	private LogStorage storage;
 
-	private List<BackupRunner> backupRunners = Collections.synchronizedList(new ArrayList<BackupRunner>());
-	private List<RestoreRunner> restoreRunners = Collections.synchronizedList(new ArrayList<RestoreRunner>());
-
 	@Override
-	public BackupJob prepareBackup(BackupRequest req) {
+	public StorageBackupJob prepare(StorageBackupRequest req) throws IOException {
+		if (req.getType() == StorageBackupType.BACKUP)
+			return prepareBackup(req);
+		else
+			return prepareRestore(req);
+	}
+
+	private StorageBackupJob prepareBackup(StorageBackupRequest req) {
 		Map<String, List<StorageFile>> storageFiles = new HashMap<String, List<StorageFile>>();
 		long totalBytes = 0;
 		for (String tableName : req.getTableNames()) {
 			List<StorageFile> files = new ArrayList<StorageFile>();
 
 			for (Date day : storage.getLogDates(tableName)) {
-				if ((req.getFrom() != null && day.before(req.getFrom())) ||
-						(req.getTo() != null && day.after(req.getTo())))
+				if ((req.getFrom() != null && day.before(req.getFrom())) || (req.getTo() != null && day.after(req.getTo())))
 					continue;
 
 				int tableId = tableRegistry.getTableId(tableName);
 				String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
-				totalBytes += addStorageFile(files, tableName, DatapathUtil.getIndexFile(tableId, day, basePath));
-				totalBytes += addStorageFile(files, tableName, DatapathUtil.getDataFile(tableId, day, basePath));
-				totalBytes += addStorageFile(files, tableName, DatapathUtil.getKeyFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableName, tableId, DatapathUtil.getIndexFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableName, tableId, DatapathUtil.getDataFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableName, tableId, DatapathUtil.getKeyFile(tableId, day, basePath));
 			}
 
 			storageFiles.put(tableName, files);
 		}
 
-		BackupJob job = new BackupJob();
+		StorageBackupJob job = new StorageBackupJob();
 		job.setRequest(req);
-		job.setSourceFiles(storageFiles);
+		job.setStorageFiles(storageFiles);
 		job.setTotalBytes(totalBytes);
-
 		return job;
 	}
 
-	@Override
-	public RestoreJob prepareRestore(RestoreRequest req) throws IOException {
-		Map<String, List<MediaFile>> targetFiles = new HashMap<String, List<MediaFile>>();
+	public StorageBackupJob prepareRestore(StorageBackupRequest req) throws IOException {
+		Map<String, List<StorageMediaFile>> targetFiles = new HashMap<String, List<StorageMediaFile>>();
 		long totalBytes = 0;
 
-		BackupMedia media = req.getMedia();
+		StorageBackupMedia media = req.getMedia();
 
 		Set<String> remoteTables = media.getTableNames();
 		Set<String> reqTables = req.getTableNames();
 
 		for (String t : reqTables) {
 			if (remoteTables.contains(t)) {
-				List<MediaFile> files = media.getFiles(t);
-				for (BaseFile f : files)
+				List<StorageMediaFile> files = media.getFiles(t);
+				for (StorageMediaFile f : files)
 					totalBytes += f.getLength();
 
 				targetFiles.put(t, files);
 			}
 		}
 
-		RestoreJob job = new RestoreJob();
+		StorageBackupJob job = new StorageBackupJob();
 		job.setRequest(req);
-		job.setSourceFiles(targetFiles);
+		job.setMediaFiles(targetFiles);
 		job.setTotalBytes(totalBytes);
-
 		return job;
 	}
 
-	private long addStorageFile(List<StorageFile> files, String tableName, File f) {
+	private long addStorageFile(List<StorageFile> files, String tableName, int tableId, File f) {
 		if (!f.exists())
 			return 0;
 
-		StorageFile bf = new StorageFile(tableName, f);
+		StorageFile bf = new StorageFile(tableName, tableId, f);
 		files.add(bf);
 		return bf.getLength();
 	}
 
 	@Override
-	public void execute(BackupJob job) {
+	public void execute(StorageBackupJob job) {
 		if (job == null)
 			throw new IllegalArgumentException("job should not be null");
 
-		BackupRunner runner = new BackupRunner(job);
-		job.setSubmitAt(new Date());
-		runner.start();
-	}
-
-	@Override
-	public void execute(RestoreJob job) {
-		if (job == null)
-			throw new IllegalArgumentException("job should not be null");
-
-		RestoreRunner runner = new RestoreRunner(job);
-		job.setSubmitAt(new Date());
-		runner.start();
-	}
-
-	@Override
-	public List<BackupJob> getBackupJobs() {
-		ArrayList<BackupJob> jobs = new ArrayList<BackupJob>();
-
-		for (BackupRunner runner : backupRunners) {
-			jobs.add(runner.job);
+		if (job.getRequest().getType() == StorageBackupType.BACKUP) {
+			BackupRunner runner = new BackupRunner(job);
+			job.setSubmitAt(new Date());
+			runner.start();
+		} else {
+			RestoreRunner runner = new RestoreRunner(job);
+			job.setSubmitAt(new Date());
+			runner.start();
 		}
-
-		return jobs;
-	}
-
-	@Override
-	public List<RestoreJob> getRestoreJobs() {
-		ArrayList<RestoreJob> jobs = new ArrayList<RestoreJob>();
-
-		for (RestoreRunner runner : restoreRunners) {
-			jobs.add(runner.job);
-		}
-
-		return jobs;
 	}
 
 	private class RestoreRunner extends Thread {
-		private final RestoreJob job;
+		private final StorageBackupJob job;
 
-		public RestoreRunner(RestoreJob job) {
+		public RestoreRunner(StorageBackupJob job) {
 			super("LogStorage Restore");
 			this.job = job;
 		}
 
 		@Override
 		public void run() {
-			BackupMedia media = job.getRequest().getMedia();
-			JobProgressMonitor monitor = job.getRequest().getProgressMonitor();
+			StorageBackupMedia media = job.getRequest().getMedia();
+			StorageBackupProgressMonitor monitor = job.getRequest().getProgressMonitor();
 			if (monitor != null)
 				monitor.onBeginJob(job);
 
 			try {
-				Set<String> tableNames = job.getSourceFiles().keySet();
+				Set<String> tableNames = job.getMediaFiles().keySet();
 
 				for (String tableName : tableNames) {
+					if (monitor != null)
+						monitor.onBeginTable(job, tableName);
+
 					// restore table metadata
 					try {
-						Map<String, String> metadata = readTableMetadata(media, tableName);
+						Map<String, String> metadata = media.getTableMetadata(tableName);
 						String type = metadata.get("_filetype");
 						if (type == null)
 							throw new IOException("storage type not found for table " + tableName);
@@ -216,20 +186,25 @@ public class BackupManagerImpl implements BackupManager {
 							tableRegistry.createTable(tableName, type, metadata);
 						}
 					} catch (IOException e) {
+						if (monitor != null)
+							monitor.onCompleteTable(job, tableName);
+
 						logger.error("araqne logstorage: cannot read backup table metadata", e);
 						continue;
 					}
 
 					// transfer files
-					List<MediaFile> files = job.getSourceFiles().get(tableName);
+					int tableId = tableRegistry.getTableId(tableName);
+					List<StorageMediaFile> files = job.getMediaFiles().get(tableName);
 
-					for (MediaFile mediaFile : files) {
-						File storageFilePath = new File(storage.getTableDirectory(tableName), mediaFile.getFileName());
-						StorageFile storageFile = new StorageFile(tableName, storageFilePath);
-						TransferRequest tr = new TransferRequest(storageFile, mediaFile);
+					for (StorageMediaFile mediaFile : files) {
+						String storageFilename = new File(mediaFile.getFileName()).getName();
+						File storageFilePath = new File(storage.getTableDirectory(tableName), storageFilename);
+						StorageFile storageFile = new StorageFile(tableName, tableId, storageFilePath);
+						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
 						try {
 							if (monitor != null)
-								monitor.onBeginFile(job, mediaFile);
+								monitor.onBeginFile(job, tableName, mediaFile.getFileName());
 
 							media.copyFromMedia(tr);
 						} catch (IOException e) {
@@ -240,7 +215,7 @@ public class BackupManagerImpl implements BackupManager {
 							mediaFile.setDone(true);
 
 							if (monitor != null)
-								monitor.onCompleteFile(job, mediaFile);
+								monitor.onCompleteFile(job, tableName, mediaFile.getFileName());
 						}
 					}
 
@@ -257,96 +232,73 @@ public class BackupManagerImpl implements BackupManager {
 					monitor.onCompleteJob(job);
 			}
 		}
-
-		private Map<String, String> readTableMetadata(BackupMedia media, String tableName) throws IOException {
-			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			InputStream is = null;
-			try {
-				is = media.getInputStream(tableName, TABLE_METADATA_JSON);
-				byte[] b = new byte[8096];
-
-				while (true) {
-					int len = is.read(b);
-					if (len < 0)
-						break;
-
-					bos.write(b, 0, len);
-				}
-
-				String text = new String(bos.toByteArray(), "utf-8");
-				Map<String, String> metadata = new HashMap<String, String>();
-				Map<String, Object> m = JSONConverter.parse(new JSONObject(text));
-				for (String key : m.keySet())
-					metadata.put(key, m.get(key) == null ? null : m.get(key).toString());
-
-				return metadata;
-			} catch (JSONException e) {
-				throw new IOException("cannot parse backup table metadata: " + tableName, e);
-			} finally {
-				if (is != null)
-					is.close();
-			}
-		}
 	}
 
 	private class BackupRunner extends Thread {
-		private final BackupJob job;
+		private final StorageBackupJob job;
 
-		public BackupRunner(BackupJob job) {
+		public BackupRunner(StorageBackupJob job) {
 			super("LogStorage Backup");
 			this.job = job;
 		}
 
 		@Override
 		public void run() {
-			BackupMedia media = job.getRequest().getMedia();
-			JobProgressMonitor monitor = job.getRequest().getProgressMonitor();
+			StorageBackupMedia media = job.getRequest().getMedia();
+			StorageBackupProgressMonitor monitor = job.getRequest().getProgressMonitor();
 			if (monitor != null)
 				monitor.onBeginJob(job);
 
 			try {
-				Set<String> tableNames = job.getSourceFiles().keySet();
+				Set<String> tableNames = job.getStorageFiles().keySet();
 
 				for (String tableName : tableNames) {
 					if (monitor != null)
 						monitor.onBeginTable(job, tableName);
 
 					// overwrite table metadata file
-					Map<String, String> metadata = new HashMap<String, String>();
-					metadata.put("_tablename", tableName);
+					Map<String, Object> metadata = new HashMap<String, Object>();
+					metadata.put("table_name", tableName);
+					Map<String, String> tableMetadata = new HashMap<String, String>();
 					for (String key : tableRegistry.getTableMetadataKeys(tableName)) {
-						metadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+						tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 					}
+					metadata.put("metadata", tableMetadata);
 
 					try {
 						String json = JSONConverter.jsonize(metadata);
 						byte[] b = json.getBytes("utf-8");
 						ByteArrayInputStream is = new ByteArrayInputStream(b);
-						media.copyToMedia(new TransferRequest(tableName, is, TABLE_METADATA_JSON));
+						int tableId = tableRegistry.getTableId(tableName);
+
+						StorageTransferStream stream = new StorageTransferStream(tableName, tableId, is, TABLE_METADATA_JSON);
+						media.copyToMedia(new StorageTransferRequest(stream));
 					} catch (Exception e) {
-						if (logger.isDebugEnabled())
-							logger.debug("araqne logstorage: table metadata backup failed", e);
+						logger.error("araqne logstorage: table metadata backup failed", e);
 					}
 
 					// transfer files
-					List<StorageFile> files = job.getSourceFiles().get(tableName);
+					List<StorageFile> files = job.getStorageFiles().get(tableName);
 
 					for (StorageFile storageFile : files) {
-						MediaFile mediaFile = new MediaFile(tableName, storageFile.getFile().getName(), storageFile.getLength());
-						TransferRequest tr = new TransferRequest(storageFile, mediaFile);
+						String subPath = storageFile.getFile().getParentFile().getName() + File.separator
+								+ storageFile.getFile().getName();
+						StorageMediaFile mediaFile = new StorageMediaFile(tableName, subPath, storageFile.getLength());
+						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
 						try {
 							if (monitor != null)
-								monitor.onBeginFile(job, storageFile);
+								monitor.onBeginFile(job, tableName, storageFile.getFileName());
 
 							media.copyToMedia(tr);
 						} catch (IOException e) {
 							storageFile.setException(e);
-							logger.error("araqne logstorage: backup failed", e);
+							if (logger.isDebugEnabled())
+								logger.debug("araqne logstorage: table backup failed", e);
 						} finally {
 							storageFile.setDone(true);
 
 							if (monitor != null)
-								monitor.onCompleteFile(job, storageFile);
+								monitor.onCompleteFile(job, tableName, storageFile.getFileName());
 						}
 					}
 
@@ -367,8 +319,8 @@ public class BackupManagerImpl implements BackupManager {
 
 	}
 
-	private void generateReport(Job job) {
-		String type = job.getRequest() instanceof BackupRequest ? "backup" : "restore";
+	private void generateReport(StorageBackupJob job) {
+		String type = job.getRequest().getType().toString().toLowerCase();
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmm");
 		SimpleDateFormat df2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
@@ -392,22 +344,22 @@ public class BackupManagerImpl implements BackupManager {
 
 			Set<String> tables = null;
 			if (type.equals("backup"))
-				tables = ((BackupJob) job).getSourceFiles().keySet();
+				tables = job.getStorageFiles().keySet();
 			else
-				tables = ((RestoreJob) job).getSourceFiles().keySet();
+				tables = job.getMediaFiles().keySet();
 
 			for (String table : tables) {
 				writeLine(bw, "Table [" + table + "]");
 
 				if (type.equals("backup")) {
-					for (StorageFile bf : ((BackupJob) job).getSourceFiles().get(table)) {
+					for (StorageFile bf : job.getStorageFiles().get(table)) {
 						String path = bf.getFile().getAbsolutePath();
-						writeReportLog(bw, bf, path);
+						writeReportLog(bw, path, bf.getLength(), bf.getException());
 					}
 				} else {
-					for (MediaFile bf : ((RestoreJob) job).getSourceFiles().get(table)) {
+					for (StorageMediaFile bf : job.getMediaFiles().get(table)) {
 						String path = bf.getFileName();
-						writeReportLog(bw, bf, path);
+						writeReportLog(bw, path, bf.getLength(), bf.getException());
 					}
 				}
 
@@ -432,11 +384,11 @@ public class BackupManagerImpl implements BackupManager {
 		}
 	}
 
-	private void writeReportLog(BufferedWriter bw, BaseFile bf, String path) throws IOException {
-		if (bf.getException() == null)
-			writeLine(bw, "[O] " + path + ":" + bf.getLength());
+	private void writeReportLog(BufferedWriter bw, String path, long length, Throwable t) throws IOException {
+		if (t == null)
+			writeLine(bw, "[O] " + path + ":" + length);
 		else
-			writeLine(bw, "[X] " + path + ":" + bf.getLength() + ":" + bf.getException().getMessage());
+			writeLine(bw, "[X] " + path + ":" + length + ":" + t.getMessage());
 	}
 
 	private void writeLine(Writer writer, String line) throws IOException {

@@ -18,50 +18,43 @@ package org.araqne.logstorage.backup;
 import java.io.InputStream;
 
 /**
- * @since 2.2.7
+ * @since 2.3.0
  * @author xeraph
  * 
  */
-public class TransferRequest {
-	// original table name
+public class StorageTransferStream {
+	// original table name for stream write
 	private String tableName;
 
-	private StorageFile storageFile;
-	private MediaFile mediaFile;
+	// original table id for stream write
+	private int tableId;
 
 	// use input stream and filename instead of storage input file
 	private InputStream inputStream;
+
 	private String mediaFileName;
 
-	public TransferRequest(String tableName, InputStream is, String mediaFileName) {
+	public StorageTransferStream(String tableName, int tableId, InputStream is, String mediaFileName) {
 		this.tableName = tableName;
+		this.tableId = tableId;
 		this.inputStream = is;
 		this.mediaFileName = mediaFileName;
-	}
-
-	public TransferRequest(StorageFile storageFile, MediaFile mediaFile) {
-		this.tableName = storageFile.getTableName();
-		this.storageFile = storageFile;
-		this.mediaFile = mediaFile;
 	}
 
 	public String getTableName() {
 		return tableName;
 	}
 
+	public int getTableId() {
+		return tableId;
+	}
+
 	public InputStream getInputStream() {
 		return inputStream;
-	}
-
-	public StorageFile getStorageFile() {
-		return storageFile;
-	}
-
-	public MediaFile getMediaFile() {
-		return mediaFile;
 	}
 
 	public String getMediaFileName() {
 		return mediaFileName;
 	}
+
 }

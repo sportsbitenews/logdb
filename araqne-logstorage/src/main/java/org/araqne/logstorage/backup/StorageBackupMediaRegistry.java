@@ -15,26 +15,19 @@
  */
 package org.araqne.logstorage.backup;
 
+import java.util.List;
+
 /**
- * @since 2.2.7
+ * @since 2.3.0
  * @author xeraph
  * 
  */
-public class MediaFile extends BaseFile {
-	private String fileName;
+public interface StorageBackupMediaRegistry {
+	List<StorageBackupMediaFactory> getFactories();
 
-	public MediaFile(String tableName, String fileName, long length) {
-		this.tableName = tableName;
-		this.fileName = fileName;
-		this.length = length;
-	}
+	StorageBackupMediaFactory getFactory(String name);
 
-	public String getFileName() {
-		return fileName;
-	}
+	void registerFactory(StorageBackupMediaFactory factory);
 
-	public void setFileName(String fileName) {
-		this.fileName = fileName;
-	}
-
+	void unregisterFactory(StorageBackupMediaFactory factory);
 }

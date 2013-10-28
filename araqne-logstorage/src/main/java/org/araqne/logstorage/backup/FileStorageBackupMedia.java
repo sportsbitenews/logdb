@@ -25,10 +25,10 @@ import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import org.json.JSONConverter;
 import org.json.JSONException;
@@ -41,36 +41,44 @@ import org.slf4j.LoggerFactory;
  * @author xeraph
  * 
  */
-public class FileBackupMedia implements BackupMedia {
-	private final Logger logger = LoggerFactory.getLogger(FileBackupMedia.class);
+public class FileStorageBackupMedia implements StorageBackupMedia {
+	private final Logger logger = LoggerFactory.getLogger(FileStorageBackupMedia.class);
 	private File path;
 
-	public FileBackupMedia(File path) {
+	private Map<String, TableSchema> cachedSchemas;
+
+	public FileStorageBackupMedia(File path) {
 		this.path = path;
+		this.cachedSchemas = new HashMap<String, TableSchema>();
+
+		File baseDir = new File(path, "table");
+		File[] files = baseDir.listFiles();
+
+		if (files == null)
+			return;
+
+		for (File tableDir : files) {
+			File metaFile = new File(tableDir, "table-metadata.json");
+			if (!metaFile.exists() || !metaFile.canRead())
+				continue;
+
+			try {
+				Map<String, Object> metadata = readTableSchema(metaFile);
+				String tableName = (String) metadata.get("table_name");
+				TableSchema schema = new TableSchema(metadata, tableDir);
+				cachedSchemas.put(tableName, schema);
+			} catch (IOException e) {
+				logger.error("araqne logstorage: cannot load table metadata", e);
+			}
+		}
 	}
 
 	@Override
 	public Set<String> getTableNames() {
-		Set<String> tableNames = new HashSet<String>();
-		File baseDir = new File(path, "table");
-		File[] files = baseDir.listFiles();
-		if (files == null)
-			return tableNames;
-
-		for (File f : files) {
-			if (f.isDirectory()) {
-				// TODO: check table metadata
-				tableNames.add(f.getName());
-			}
-		}
-
-		return tableNames;
+		return cachedSchemas.keySet();
 	}
 
-	@Override
-	public Map<String, String> getTableMetadata(String tableName) throws IOException {
-		File tableDir = new File(path + "/table", tableName);
-		File metaFile = new File(tableDir, "table-metadata.json");
+	private Map<String, Object> readTableSchema(File metaFile) throws IOException {
 		if (!metaFile.isFile())
 			throw new IOException("table metadata file does not exist: " + metaFile.getAbsolutePath());
 
@@ -81,17 +89,9 @@ public class FileBackupMedia implements BackupMedia {
 
 		try {
 			JSONObject json = new JSONObject(config);
-
-			Map<String, Object> m = JSONConverter.parse(json);
-			Map<String, String> metadata = new HashMap<String, String>();
-			for (String key : m.keySet()) {
-				Object value = metadata.get(key);
-				metadata.put(key, value == null ? null : value.toString());
-			}
-
-			return metadata;
+			return JSONConverter.parse(json);
 		} catch (JSONException e) {
-			throw new IOException("cannot parse table [" + tableName + "] metadata file: " + metaFile.getAbsolutePath());
+			throw new IOException("cannot parse metadata file: " + metaFile.getAbsolutePath());
 		}
 	}
 
@@ -121,22 +121,39 @@ public class FileBackupMedia implements BackupMedia {
 	}
 
 	@Override
-	public List<MediaFile> getFiles(String tableName) {
-		// TODO: check table metadata
+	public List<StorageMediaFile> getFiles(String tableName) throws IOException {
+		TableSchema schema = cachedSchemas.get(tableName);
+		if (!cachedSchemas.containsKey(tableName))
+			throw new IOException("table [" + tableName + "] not found in backup media");
 
-		List<MediaFile> mediaFiles = new ArrayList<MediaFile>();
-		File tableDir = new File(path + "/table", tableName);
+		List<StorageMediaFile> mediaFiles = new ArrayList<StorageMediaFile>();
+		File tableDir = schema.dir;
 		logger.info("araqne logstorage: get backup file list for table [{}], dir [{}]", tableName, tableDir.getAbsolutePath());
 
-		File[] files = tableDir.listFiles();
-		if (files == null)
+		if (tableDir.listFiles() == null)
 			return mediaFiles;
 
-		for (File f : files) {
-			String name = f.getName();
-			if (name.endsWith(".idx") || name.endsWith(".dat") || name.endsWith(".key")) {
-				MediaFile bf = new MediaFile(tableName, name, f.length());
-				mediaFiles.add(bf);
+		Stack<File> dirs = new Stack<File>();
+		dirs.push(tableDir);
+
+		while (!dirs.empty()) {
+			File dir = dirs.pop();
+			for (File f : dir.listFiles()) {
+				if (f.isDirectory() && !(f.getName().equals(".") || f.getName().equals(".."))) {
+					dirs.push(f);
+				} else {
+					String name = f.getName();
+					if (name.endsWith(".idx") || name.endsWith(".dat") || name.endsWith(".key")) {
+						String fpath = f.getAbsolutePath();
+						String ppath = tableDir.getAbsolutePath();
+						if (fpath.startsWith(ppath)) {
+							fpath = fpath.substring(ppath.length() + 1);
+							fpath = fpath.replace('\\', '/');
+							StorageMediaFile bf = new StorageMediaFile(tableName, fpath, f.length());
+							mediaFiles.add(bf);
+						}
+					}
+				}
 			}
 		}
 
@@ -150,18 +167,25 @@ public class FileBackupMedia implements BackupMedia {
 
 	@Override
 	public InputStream getInputStream(String tableName, String fileName) throws IOException {
-		File file = new File(path, "table/" + tableName + "/" + fileName);
+		TableSchema schema = cachedSchemas.get(tableName);
+		if (schema == null)
+			throw new IOException("table [" + tableName + "] not found in backup media");
+
+		File file = new File(schema.dir, fileName);
 		return new FileInputStream(file);
 	}
 
-	private File getMediaFile(TransferRequest req) {
-		if (req.getMediaFile() != null)
-			return new File(path, "table/" + req.getTableName() + "/" + req.getMediaFile().getFileName());
-		return new File(path, "table/" + req.getTableName() + "/" + req.getMediaFileName());
+	private File getMediaFile(StorageTransferRequest req) throws IOException {
+		String tableName = req.getMediaFile().getTableName();
+		TableSchema schema = cachedSchemas.get(tableName);
+		if (schema == null)
+			throw new IOException("table [" + tableName + "] not found in backup media");
+
+		return new File(schema.dir, req.getMediaFile().getFileName());
 	}
 
 	@Override
-	public void copyFromMedia(TransferRequest req) throws IOException {
+	public void copyFromMedia(StorageTransferRequest req) throws IOException {
 		StorageFile dst = req.getStorageFile();
 		if (dst.getFile().exists())
 			throw new IOException("file already exists: " + dst.getFile().getAbsolutePath());
@@ -197,18 +221,17 @@ public class FileBackupMedia implements BackupMedia {
 	}
 
 	@Override
-	public void copyToMedia(TransferRequest req) throws IOException {
-		File dst = getMediaFile(req);
-		if (dst.exists())
-			throw new IOException("file already exists: " + dst.getAbsolutePath());
-
-		File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
-
-		dstTmp.getParentFile().mkdirs();
-
+	public void copyToMedia(StorageTransferRequest req) throws IOException {
 		StorageFile src = req.getStorageFile();
 
 		if (src != null) {
+			File dst = new File(path, "table/" + src.getTableId() + "/" + src.getFileName());
+			if (dst.exists())
+				throw new IOException("file already exists: " + dst.getAbsolutePath());
+
+			File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
+			dstTmp.getParentFile().mkdirs();
+
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(), dstTmp.getAbsolutePath());
 
@@ -232,7 +255,14 @@ public class FileBackupMedia implements BackupMedia {
 			}
 
 		} else {
-			InputStream is = req.getInputStream();
+			StorageTransferStream stream = req.getToMediaStream();
+			File dst = new File(path, "table/" + stream.getTableId() + "/" + stream.getMediaFileName());
+			if (dst.exists())
+				throw new IOException("file already exists: " + dst.getAbsolutePath());
+
+			dst.getParentFile().mkdirs();
+
+			InputStream is = stream.getInputStream();
 			if (is == null)
 				return;
 
@@ -259,6 +289,26 @@ public class FileBackupMedia implements BackupMedia {
 			if (c != null)
 				c.close();
 		} catch (IOException e) {
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Map<String, String> getTableMetadata(String tableName) throws IOException {
+		TableSchema schema = cachedSchemas.get(tableName);
+		if (schema == null)
+			throw new IOException("table [" + tableName + "] not found in backup media");
+
+		return (Map<String, String>) schema.schema.get("metadata");
+	}
+
+	private static class TableSchema {
+		private Map<String, Object> schema;
+		private File dir;
+
+		public TableSchema(Map<String, Object> schema, File dir) {
+			this.schema = schema;
+			this.dir = dir;
 		}
 	}
 }

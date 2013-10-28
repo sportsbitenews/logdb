@@ -15,33 +15,27 @@
  */
 package org.araqne.logstorage.backup;
 
-import java.io.File;
-
 /**
  * @since 2.2.7
  * @author xeraph
  * 
  */
-public class StorageFile {
-	private String tableName;
+public class StorageMediaFile {
+	private String fileName;
 
-	private int tableId;
+	private String tableName;
 
 	private long length;
 
 	private boolean done;
 
 	// save exception if io failed
-	private Throwable exception;
+	protected Throwable exception;
 
-	// storage or media file path
-	private File file;
-
-	public StorageFile(String tableName, int tableId, File file) {
+	public StorageMediaFile(String tableName, String fileName, long length) {
 		this.tableName = tableName;
-		this.tableId = tableId;
-		this.file = file;
-		this.length = file.length();
+		this.fileName = fileName;
+		this.length = length;
 	}
 
 	public String getTableName() {
@@ -50,14 +44,6 @@ public class StorageFile {
 
 	public void setTableName(String tableName) {
 		this.tableName = tableName;
-	}
-
-	public int getTableId() {
-		return tableId;
-	}
-
-	public void setTableId(int tableId) {
-		this.tableId = tableId;
 	}
 
 	public long getLength() {
@@ -85,10 +71,11 @@ public class StorageFile {
 	}
 
 	public String getFileName() {
-		return file.getName();
+		return fileName;
 	}
 
-	public File getFile() {
-		return file;
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
 	}
+
 }

@@ -15,52 +15,36 @@
  */
 package org.araqne.logstorage.backup;
 
+
 /**
  * @since 2.2.7
  * @author xeraph
  * 
  */
-public abstract class BaseFile {
-	protected String tableName;
+public class StorageTransferRequest {
 
-	protected long length;
+	private StorageFile storageFile;
+	private StorageMediaFile mediaFile;
+	private StorageTransferStream transferStream;
 
-	protected boolean done;
-
-	// save exception if io failed
-	protected Throwable exception;
-
-	public String getTableName() {
-		return tableName;
+	public StorageTransferRequest(StorageTransferStream transferStream) {
+		this.transferStream = transferStream;
 	}
 
-	public void setTableName(String tableName) {
-		this.tableName = tableName;
+	public StorageTransferRequest(StorageFile storageFile, StorageMediaFile mediaFile) {
+		this.storageFile = storageFile;
+		this.mediaFile = mediaFile;
 	}
 
-	public long getLength() {
-		return length;
+	public StorageFile getStorageFile() {
+		return storageFile;
 	}
 
-	public void setLength(long length) {
-		this.length = length;
+	public StorageMediaFile getMediaFile() {
+		return mediaFile;
 	}
 
-	public boolean isDone() {
-		return done;
+	public StorageTransferStream getToMediaStream() {
+		return transferStream;
 	}
-
-	public void setDone(boolean done) {
-		this.done = done;
-	}
-
-	public Throwable getException() {
-		return exception;
-	}
-
-	public void setException(Throwable exception) {
-		this.exception = exception;
-	}
-
-	public abstract String getFileName();
 }

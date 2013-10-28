@@ -77,7 +77,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 	protected void onStart() {
 		if (runner == null) {
 			runner = new QueryRunner();
-			runner.run();
+			runner.start();
 		}
 
 		loggerRegistry.addListener(this);
@@ -111,7 +111,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 				loggerRegistry.removeListener(this);
 			}
 		} catch (RuntimeException e) {
-			if (!e.getMessage().endsWith("unavailable"))
+			if (e.getMessage() == null || !e.getMessage().endsWith("unavailable"))
 				throw e;
 		}
 	}

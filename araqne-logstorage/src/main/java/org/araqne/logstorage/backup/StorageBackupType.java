@@ -18,7 +18,8 @@ package org.araqne.logstorage.backup;
 /**
  * @since 2.2.7
  * @author xeraph
- *
+ * 
  */
-public class BackupRequest extends Request {
+public enum StorageBackupType {
+	BACKUP, RESTORE
 }
