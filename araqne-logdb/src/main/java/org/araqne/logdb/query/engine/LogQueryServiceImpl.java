@@ -50,7 +50,6 @@ import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
-import org.araqne.logdb.query.command.BoxPlot;
 import org.araqne.logdb.query.parser.BoxPlotParser;
 import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;
@@ -194,6 +193,32 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 
 		// receive log table event and register it to data source registry
 		storage.ensureTable(QUERY_LOG_TABLE, "v2");
+
+		// delete all temporary query files
+		File queryResultDir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query/");
+		File[] resultFiles = queryResultDir.listFiles();
+		if (resultFiles == null)
+			return;
+
+		for (File f : resultFiles) {
+			String name = f.getName();
+			if (name.startsWith("result-") && (name.endsWith(".idx") || name.endsWith(".dat")))
+				f.delete();
+		}
+
+		// delete all temporary sort files
+		String dataDir = System.getProperty("araqne.sort.dir", System.getProperty("araqne.data.dir"));
+		File sortDir = new File(dataDir, "araqne-logdb/sort");
+
+		File[] runFiles = sortDir.listFiles();
+		if (runFiles == null)
+			return;
+
+		for (File f : runFiles) {
+			String name = f.getName();
+			if (name.startsWith("run") && (name.endsWith(".idx") || name.endsWith(".dat")))
+				f.delete();
+		}
 	}
 
 	@Invalidate
