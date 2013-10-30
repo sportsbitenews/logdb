@@ -30,6 +30,15 @@ public class LogFileFixReport {
 	private int addedIndexBlocks;
 	private int addedDataBlocks;
 	private long addedDataBytes;
+	private boolean fixed;
+	
+	public boolean isFixed() {
+		return fixed;
+	}
+	
+	public void setFixed() {
+		this.fixed = true;
+	}
 
 	public File getIndexPath() {
 		return indexPath;
