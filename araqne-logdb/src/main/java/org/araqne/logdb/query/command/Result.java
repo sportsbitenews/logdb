@@ -170,7 +170,7 @@ public class Result extends LogQueryCommand {
 
 	@Override
 	public boolean isReducer() {
-		return false;
+		return true;
 	}
 
 	public void registerCallback(LogQueryCallback callback) {

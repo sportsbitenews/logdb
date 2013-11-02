@@ -30,6 +30,7 @@ public class FieldsParserTest {
 		assertEquals(1, fields.getFields().size());
 		assertTrue(fields.isSelector());
 		assertEquals("sport", fields.getFields().get(0));
+		assertEquals("fields sport", fields.toString());
 	}
 
 	@Test
@@ -43,6 +44,7 @@ public class FieldsParserTest {
 		assertEquals("sport", fields.getFields().get(1));
 		assertEquals("dip", fields.getFields().get(2));
 		assertEquals("dport", fields.getFields().get(3));
+		assertEquals("fields sip, sport, dip, dport", fields.toString());
 	}
 
 	@Test
@@ -54,6 +56,7 @@ public class FieldsParserTest {
 		assertFalse(fields.isSelector());
 		assertEquals("note", fields.getFields().get(0));
 		assertEquals("user", fields.getFields().get(1));
+		assertEquals("fields - note, user", fields.toString());
 	}
 
 	@Test

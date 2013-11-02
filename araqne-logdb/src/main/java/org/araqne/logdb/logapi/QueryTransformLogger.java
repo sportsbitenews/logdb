@@ -32,7 +32,6 @@ import org.araqne.log.api.LoggerRegistryEventListener;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.SimpleLog;
 import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommand;
 
 /**
@@ -58,14 +57,14 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 	private QueryRunner runner;
 	private ArrayBlockingQueue<Log> queue = new ArrayBlockingQueue<Log>(100000);
 
-	public QueryTransformLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry, LogQuery q) {
+	public QueryTransformLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry,
+			List<LogQueryCommand> commands) {
 		super(spec, factory);
 		this.loggerRegistry = loggerRegistry;
 
 		Map<String, String> config = spec.getConfig();
 		loggerName = config.get("source_logger");
 
-		List<LogQueryCommand> commands = q.getCommands();
 		first = commands.get(0);
 		commands.add(queryResult);
 
@@ -184,7 +183,8 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 
 					} catch (Throwable t) {
 						if (log != null)
-							slog.error("araqne logdb: cannot evaluate query, log [" + log.getParams() + "], logger " + getFullName(), t);
+							slog.error("araqne logdb: cannot evaluate query, log [" + log.getParams() + "], logger "
+									+ getFullName(), t);
 					} finally {
 						buffer.clear();
 					}

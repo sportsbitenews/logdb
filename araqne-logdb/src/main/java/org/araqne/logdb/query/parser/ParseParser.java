@@ -50,7 +50,7 @@ public class ParseParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("parser-not-found", -1);
 
 		try {
-			return new Parse(registry.newParser(parserName));
+			return new Parse(parserName, registry.newParser(parserName));
 		} catch (Throwable t) {
 			throw new LogQueryParseException("parser-init-failure", -1);
 		}

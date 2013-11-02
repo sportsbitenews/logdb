@@ -24,19 +24,26 @@ import java.util.List;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.impl.Strings;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
 public class OutputCsv extends LogQueryCommand {
 	private Charset utf8;
 	private List<String> fields;
+
+	// for query string generation
+	private String pathToken;
 	private File f;
+	private boolean overwrite;
 	private FileOutputStream os;
 	private CSVWriter writer;
 	private String[] csvLine;
 
-	public OutputCsv(File f, List<String> fields) throws IOException {
+	public OutputCsv(String pathToken, File f, boolean overwrite, List<String> fields) throws IOException {
+		this.pathToken = pathToken;
 		this.f = f;
+		this.overwrite = overwrite;
 		this.os = new FileOutputStream(f);
 		this.fields = fields;
 		this.utf8 = Charset.forName("utf-8");
@@ -47,6 +54,10 @@ public class OutputCsv extends LogQueryCommand {
 
 	public File getCsvFile() {
 		return f;
+	}
+
+	public boolean isOverwrite() {
+		return overwrite;
 	}
 
 	public List<String> getFields() {
@@ -68,7 +79,7 @@ public class OutputCsv extends LogQueryCommand {
 
 	@Override
 	public boolean isReducer() {
-		return false;
+		return true;
 	}
 
 	@Override
@@ -85,5 +96,14 @@ public class OutputCsv extends LogQueryCommand {
 		} catch (IOException e) {
 		}
 		super.eof(canceled);
+	}
+
+	@Override
+	public String toString() {
+		String overwriteOption = " ";
+		if (overwrite)
+			overwriteOption = " overwrite=true ";
+
+		return "outputcsv" + overwriteOption + pathToken + " " + Strings.join(fields, ", ");
 	}
 }

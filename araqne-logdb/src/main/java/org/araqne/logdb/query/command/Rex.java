@@ -28,11 +28,15 @@ public class Rex extends LogQueryCommand {
 	private Matcher matcher;
 	private String[] names;
 
-	public Rex(String field, Pattern p, String[] names) {
+	// for query string generation convenience
+	private String originalRegexToken;
+
+	public Rex(String field, String originalRegexToken, Pattern p, String[] names) {
 		this.field = field;
 		this.p = p;
 		this.names = names;
 		this.matcher = p.matcher("");
+		this.originalRegexToken = originalRegexToken;
 	}
 
 	public String getInputField() {
@@ -70,4 +74,8 @@ public class Rex extends LogQueryCommand {
 		return false;
 	}
 
+	@Override
+	public String toString() {
+		return "rex field=" + field + " " + originalRegexToken;
+	}
 }

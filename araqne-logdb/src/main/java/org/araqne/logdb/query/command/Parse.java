@@ -35,9 +35,11 @@ public class Parse extends LogQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Parse.class);
 	private final int parserVersion;
 	private final LogParserInput input = new LogParserInput();
+	private String parserName;
 	private LogParser parser;
 
-	public Parse(LogParser parser) {
+	public Parse(String parserName, LogParser parser) {
+		this.parserName = parserName;
 		this.parser = parser;
 		this.parserVersion = parser.getVersion();
 	}
@@ -96,5 +98,10 @@ public class Parse extends LogQueryCommand {
 	@Override
 	public boolean isReducer() {
 		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "parse " + parserName;
 	}
 }

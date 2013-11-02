@@ -18,6 +18,7 @@ package org.araqne.logdb.logapi;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -30,7 +31,7 @@ import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.StringConfigType;
-import org.araqne.logdb.LogQuery;
+import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryParserService;
 import org.araqne.logdb.LogQueryService;
 
@@ -49,7 +50,6 @@ public class QueryTransformLoggerFactory extends AbstractLoggerFactory {
 	private LoggerRegistry loggerRegistry;
 
 	// force to wait dynamic query parser instance loading
-	@SuppressWarnings("unused")
 	@Requires
 	private LogQueryService queryService;
 
@@ -90,9 +90,9 @@ public class QueryTransformLoggerFactory extends AbstractLoggerFactory {
 		LoggerConfigOption sourceLogger = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름"), t(
 				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름"), true);
 
-		LoggerConfigOption querystring = new StringConfigType("querystring", t("Query string", "쿼리 문자열"),
-				t("Configure query string to evaluating and transforming input log data",
-						"입력 로그를 변환하여 출력하는데 사용할 쿼리 문자열을 설정합니다. 그룹 함수 사용은 허용되지 않습니다."), true);
+		LoggerConfigOption querystring = new StringConfigType("querystring", t("Query string", "쿼리 문자열"), t(
+				"Configure query string to evaluating and transforming input log data",
+				"입력 로그를 변환하여 출력하는데 사용할 쿼리 문자열을 설정합니다. 그룹 함수 사용은 허용되지 않습니다."), true);
 
 		return Arrays.asList(sourceLogger, querystring);
 	}
@@ -108,11 +108,8 @@ public class QueryTransformLoggerFactory extends AbstractLoggerFactory {
 	protected Logger createLogger(LoggerSpecification spec) {
 		String queryString = spec.getConfig().get("querystring");
 
-		LogQuery q = queryParser.parse(null, queryString);
-		if (q == null)
-			return null;
-
-		return new QueryTransformLogger(spec, this, loggerRegistry, q);
+		List<LogQueryCommand> commands = queryParser.parseCommands(null, queryString);
+		return new QueryTransformLogger(spec, this, loggerRegistry, commands);
 	}
 
 }

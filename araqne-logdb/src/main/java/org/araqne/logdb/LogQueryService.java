@@ -39,4 +39,8 @@ public interface LogQueryService {
 	void addListener(LogQueryEventListener listener);
 
 	void removeListener(LogQueryEventListener listener);
+
+	void addPlanner(LogQueryPlanner planner);
+
+	void removePlanner(LogQueryPlanner planner);
 }

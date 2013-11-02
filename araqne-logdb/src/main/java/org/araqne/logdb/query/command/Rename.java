@@ -48,4 +48,10 @@ public class Rename extends LogQueryCommand {
 	public boolean isReducer() {
 		return false;
 	}
+
+	@Override
+	public String toString() {
+		return "rename " + from + " as " + to;
+	}
+
 }

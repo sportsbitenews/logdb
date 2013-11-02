@@ -47,4 +47,11 @@ public class EvalParserTest {
 			assertEquals("expression-not-found", e.getType());
 		}
 	}
+
+	@Test
+	public void testEvalQueryGeneration() {
+		EvalParser p = new EvalParser();
+		Eval eval = (Eval) p.parse(null, "eval n=1+2");
+		assertEquals("eval n=(1 + 2)", eval.toString());
+	}
 }

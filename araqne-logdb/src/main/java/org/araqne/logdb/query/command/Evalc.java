@@ -46,4 +46,10 @@ public class Evalc extends LogQueryCommand {
 		constants.put(constantName, expr.eval(m));
 		write(m);
 	}
+
+	@Override
+	public String toString() {
+		return "evalc " + constantName + "=" + expr;
+	}
+
 }

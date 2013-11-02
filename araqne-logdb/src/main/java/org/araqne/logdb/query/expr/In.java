@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.impl.Strings;
 
 public class In implements Expression {
 	private static abstract class FieldMatcher {
@@ -32,11 +33,7 @@ public class In implements Expression {
 
 	static class StringMatcher extends FieldMatcher {
 		public static enum StringMatchMethod {
-			EQUALS,
-			STARTSWITH,
-			ENDSWITH,
-			CONTAINS,
-			PATTERN,
+			EQUALS, STARTSWITH, ENDSWITH, CONTAINS, PATTERN,
 		}
 
 		private String term;
@@ -64,8 +61,7 @@ public class In implements Expression {
 				if (pattern != null) {
 					matchMethod = StringMatchMethod.PATTERN;
 					matcher = pattern.matcher("");
-				}
-				else
+				} else
 					matchMethod = StringMatchMethod.EQUALS;
 			}
 		}
@@ -91,7 +87,7 @@ public class In implements Expression {
 				return false;
 			}
 		}
-		
+
 		private int countOfAsterisk(String term2) {
 			int cnt = 0;
 			int start = -1;
@@ -99,7 +95,7 @@ public class In implements Expression {
 				int p = term2.indexOf('*', start + 1);
 				if (p == -1)
 					break;
-				cnt ++;
+				cnt++;
 				start = p;
 			}
 			return cnt;
@@ -146,8 +142,7 @@ public class In implements Expression {
 					exactTerms.add(needle);
 				else
 					matchers.add(new StringMatcher(needle));
-			}
-			else
+			} else
 				matchers.add(new GenericMatcher(expr));
 		}
 	}
@@ -157,7 +152,7 @@ public class In implements Expression {
 		Object o = field.eval(map);
 		if (o == null)
 			return false;
-		
+
 		if (exactTerms.contains(o))
 			return true;
 
@@ -172,6 +167,6 @@ public class In implements Expression {
 
 	@Override
 	public String toString() {
-		return "in(" + exprs + ")";
+		return "in(" + Strings.join(exprs, ", ") + ")";
 	}
 }

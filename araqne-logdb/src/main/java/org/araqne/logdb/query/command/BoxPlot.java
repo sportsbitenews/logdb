@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.impl.Strings;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.sort.CloseableIterator;
 import org.araqne.logdb.sort.Item;
@@ -48,6 +49,14 @@ public class BoxPlot extends LogQueryCommand {
 		this.clauseCount = clauses.size();
 		this.groupCounts = new HashMap<GroupKey, AtomicLong>();
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
+	}
+
+	public Expression getExpression() {
+		return expr;
+	}
+
+	public List<String> getClauses() {
+		return clauses;
 	}
 
 	@Override
@@ -171,6 +180,16 @@ public class BoxPlot extends LogQueryCommand {
 		summary.put("max", max);
 
 		write(new LogMap(summary));
+	}
+
+	@Override
+	public boolean isReducer() {
+		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "boxplot " + expr + " by " + Strings.join(clauses, ", ");
 	}
 
 	private static class ItemComparer implements Comparator<Item> {

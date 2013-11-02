@@ -52,6 +52,11 @@ public class Import extends LogQueryCommand {
 
 	@Override
 	public boolean isReducer() {
-		return false;
+		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "import " + tableName;
 	}
 }

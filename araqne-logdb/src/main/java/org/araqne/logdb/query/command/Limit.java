@@ -53,7 +53,7 @@ public class Limit extends LogQueryCommand {
 
 	@Override
 	public boolean isReducer() {
-		return false;
+		return true;
 	}
 
 }

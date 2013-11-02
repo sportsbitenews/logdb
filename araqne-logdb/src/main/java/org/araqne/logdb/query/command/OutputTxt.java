@@ -99,7 +99,7 @@ public class OutputTxt extends LogQueryCommand {
 
 	@Override
 	public boolean isReducer() {
-		return false;
+		return true;
 	}
 
 	@Override
