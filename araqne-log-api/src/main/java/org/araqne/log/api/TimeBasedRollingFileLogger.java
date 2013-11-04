@@ -46,8 +46,8 @@ public class TimeBasedRollingFileLogger extends AbstractLogger {
 
 	private DateParser dateParser = null;
 
-	public TimeBasedRollingFileLogger(LoggerSpecification spec, LoggerFactory loggerFactory) {
-		super(spec.getName(), spec.getDescription(), loggerFactory, spec.getConfig());
+	public TimeBasedRollingFileLogger(LoggerSpecification spec, LoggerFactory factory) {
+		super(spec, factory);
 
 		if (spec.getConfig().containsKey(optNameStartTime))
 			try {

@@ -71,8 +71,13 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		if (!started)
 			throw new IllegalStateException("logger factory [" + fullName + "] is not started");
 
-		unloadLoggers();
 		started = false;
+		unloadLoggers();
+	}
+
+	@Override
+	public boolean isAvailable() {
+		return started;
 	}
 
 	private void loadLoggers() {
@@ -115,7 +120,6 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			if (config.isPending())
 				newLogger.setPending(true);
 
-			newLogger.setPassive(config.isPassive());
 			slog.info("araqne log api: logger [{}] is loaded", config.getFullname());
 			if (!config.isManualStart() && config.isRunning() && !newLogger.isPending()) {
 				newLogger.start(config.getInterval());

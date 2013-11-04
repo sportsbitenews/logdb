@@ -56,4 +56,6 @@ public interface LoggerFactory {
 	void addListener(LoggerFactoryEventListener callback);
 
 	void removeListener(LoggerFactoryEventListener callback);
+	
+	boolean isAvailable();
 }

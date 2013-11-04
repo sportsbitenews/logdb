@@ -35,8 +35,6 @@ public interface Logger {
 
 	boolean isPassive();
 
-	void setPassive(boolean isPassive);
-
 	Date getLastStartDate();
 
 	Date getLastRunDate();
@@ -100,4 +98,6 @@ public interface Logger {
 	LogTransformer getTransformer();
 
 	void setTransformer(LogTransformer transformer);
+
+	LoggerFactory getFactory();
 }
