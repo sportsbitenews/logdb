@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.command;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
@@ -35,13 +36,15 @@ public class Parse extends LogQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Parse.class);
 	private final int parserVersion;
 	private final LogParserInput input = new LogParserInput();
-	private String parserName;
-	private LogParser parser;
+	private final String parserName;
+	private final LogParser parser;
+	private final boolean overlay;
 
-	public Parse(String parserName, LogParser parser) {
+	public Parse(String parserName, LogParser parser, boolean overlay) {
 		this.parserName = parserName;
 		this.parser = parser;
 		this.parserVersion = parser.getVersion();
+		this.overlay = overlay;
 	}
 
 	@Override
@@ -73,7 +76,13 @@ public class Parse extends LogQueryCommand {
 						if (table != null && !row.containsKey("_table"))
 							row.put("_table", m.get("_table"));
 
-						write(new LogMap(row));
+						if (overlay) {
+							Map<String, Object> source = new HashMap<String, Object>(m.map());
+							source.putAll(row);
+							write(new LogMap(source));
+						} else {
+							write(new LogMap(row));
+						}
 					}
 				}
 			} else {
@@ -86,7 +95,13 @@ public class Parse extends LogQueryCommand {
 					if (!row.containsKey("_table"))
 						row.put("_table", m.get("_table"));
 
-					write(new LogMap(row));
+					if (overlay) {
+						Map<String, Object> source = new HashMap<String, Object>(m.map());
+						source.putAll(row);
+						write(new LogMap(source));
+					} else {
+						write(new LogMap(row));
+					}
 				}
 			}
 		} catch (Throwable t) {
