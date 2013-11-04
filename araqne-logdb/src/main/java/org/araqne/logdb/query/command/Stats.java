@@ -142,7 +142,7 @@ public class Stats extends LogQueryCommand {
 	@Override
 	public void eof(boolean canceled) {
 		this.status = Status.Finalizing;
-		
+
 		logger.debug("araqne logdb: stats sort input count [{}]", inputCount);
 		CloseableIterator it = null;
 		try {
@@ -244,6 +244,14 @@ public class Stats extends LogQueryCommand {
 
 		@Override
 		public int compare(Item o1, Item o2) {
+			boolean o1null = o1 == null;
+			boolean o2null = o2 == null;
+			if (o1null && o2null)
+				return 0;
+			if (o1null)
+				return 1;
+			if (o2null)
+				return -1;
 			return cmp.compare(o1.getKey(), o2.getKey());
 		}
 
