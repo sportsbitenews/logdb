@@ -30,6 +30,7 @@ public class JsonParser implements LogQueryCommandParser {
 		if (!text.startsWith("\"") || !text.endsWith("\""))
 			throw new LogQueryParseException("missing-json-quotation", -1);
 
+		String json = text;
 		text = text.substring(1, text.length() - 1);
 		text = text.replaceAll("\\\\\\\\", "\\\\").replaceAll("\\\\\"", "\"");
 
@@ -51,6 +52,6 @@ public class JsonParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("invalid-json", -1);
 		}
 
-		return new Json(logs);
+		return new Json(logs, json);
 	}
 }

@@ -17,9 +17,11 @@ import org.araqne.logstorage.LogCursor;
 public class Load extends LogQueryCommand {
 
 	private LogCursor cursor;
+	private String guid;
 
-	public Load(LogCursor cursor) {
+	public Load(LogCursor cursor, String guid) {
 		this.cursor = cursor;
+		this.guid = guid;
 	}
 
 	@Override
@@ -55,6 +57,11 @@ public class Load extends LogQueryCommand {
 	@Override
 	public boolean isReducer() {
 		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "load " + guid;
 	}
 
 }

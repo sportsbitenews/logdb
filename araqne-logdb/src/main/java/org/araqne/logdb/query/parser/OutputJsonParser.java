@@ -47,7 +47,8 @@ public class OutputJsonParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("missing-field", commandString.length());
 
 		boolean overwrite = false;
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overwrite"));
+		ParseResult r = QueryTokenizer
+				.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overwrite"));
 		Map<String, String> options = (Map<String, String>) r.value;
 		if (options != null && options.containsKey("overwrite"))
 			overwrite = Boolean.parseBoolean(options.get("overwrite"));
@@ -79,6 +80,6 @@ public class OutputJsonParser implements LogQueryCommandParser {
 
 		if (jsonFile.getParentFile() != null)
 			jsonFile.getParentFile().mkdirs();
-		return new OutputJson(jsonFile, fields);
+		return new OutputJson(jsonFile, filePath, overwrite, fields);
 	}
 }

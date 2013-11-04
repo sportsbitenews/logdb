@@ -48,7 +48,8 @@ public class OutputTxtParser implements LogQueryCommandParser {
 
 		boolean overwrite = false;
 		String delimiter = null;
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(), Arrays.asList("delimiter", "overwrite"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(),
+				Arrays.asList("delimiter", "overwrite"));
 
 		@SuppressWarnings("unchecked")
 		Map<String, Object> options = (Map<String, Object>) r.value;
@@ -95,7 +96,7 @@ public class OutputTxtParser implements LogQueryCommandParser {
 		try {
 			if (txtFile.getParentFile() != null)
 				txtFile.getParentFile().mkdirs();
-			return new OutputTxt(txtFile, delimiter, fields);
+			return new OutputTxt(txtFile, filePath, overwrite, delimiter, fields);
 		} catch (IOException e) {
 			throw new LogQueryParseException("io-error", -1, e.getMessage());
 		}

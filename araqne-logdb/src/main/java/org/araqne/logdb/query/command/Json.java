@@ -24,8 +24,20 @@ public class Json extends LogQueryCommand {
 
 	private List<LogMap> logs;
 
-	public Json(List<LogMap> logs) {
+	// original json string for toString convenience
+	private String json;
+
+	public Json(List<LogMap> logs, String json) {
 		this.logs = logs;
+		this.json = json;
+	}
+
+	public List<LogMap> getLogs() {
+		return logs;
+	}
+
+	public String getJson() {
+		return json;
 	}
 
 	@Override
@@ -43,5 +55,10 @@ public class Json extends LogQueryCommand {
 	@Override
 	public boolean isReducer() {
 		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "json " + json;
 	}
 }

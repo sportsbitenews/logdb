@@ -36,6 +36,14 @@ public class Limit extends LogQueryCommand {
 		this.limit = limit;
 	}
 
+	public long getOffset() {
+		return offset;
+	}
+
+	public long getLimit() {
+		return limit;
+	}
+
 	@Override
 	public void push(LogMap m) {
 		if (skip < offset) {
@@ -54,6 +62,13 @@ public class Limit extends LogQueryCommand {
 	@Override
 	public boolean isReducer() {
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		if (offset == 0)
+			return "limit " + limit;
+		return "limit " + offset + " " + limit;
 	}
 
 }

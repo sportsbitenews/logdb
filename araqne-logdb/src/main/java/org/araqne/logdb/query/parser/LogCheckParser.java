@@ -70,7 +70,7 @@ public class LogCheckParser implements LogQueryCommandParser {
 		String tableToken = commandString.substring(r.next).trim();
 
 		Set<String> tableNames = getFilteredTableNames(tableToken);
-		return new LogCheck(tableNames, from, to, tableRegistry, storage, fileServiceRegistry);
+		return new LogCheck(tableNames, from, to, tableToken, tableRegistry, storage, fileServiceRegistry);
 	}
 
 	private Set<String> getFilteredTableNames(String t) {

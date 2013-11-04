@@ -28,6 +28,7 @@ import java.util.List;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.impl.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,10 +47,14 @@ public class OutputTxt extends LogQueryCommand {
 	private String lineSeparator;
 	private String delimiter;
 	private File f;
+	private String filePath;
+	private boolean overwrite;
 
-	public OutputTxt(File f, String delimiter, List<String> fields) throws IOException {
+	public OutputTxt(File f, String filePath, boolean overwrite, String delimiter, List<String> fields) throws IOException {
 		try {
 			this.f = f;
+			this.filePath = filePath;
+			this.overwrite = overwrite;
 			this.fields = fields;
 			this.fos = new FileOutputStream(f);
 			this.bos = new BufferedOutputStream(fos);
@@ -126,5 +131,24 @@ public class OutputTxt extends LogQueryCommand {
 				fos.close();
 		} catch (IOException e) {
 		}
+	}
+
+	@Override
+	public String toString() {
+		String overwriteOption = "";
+		if (overwrite)
+			overwriteOption = " overwrite=true ";
+
+		String delimiterOption = "";
+		if (!delimiter.equals(" "))
+			delimiterOption = " delimiter=" + delimiter;
+
+		String path = " " + filePath;
+
+		String fieldsOption = "";
+		if (!fields.isEmpty())
+			fieldsOption = " " + Strings.join(fields, ", ");
+
+		return "outputjson" + overwriteOption + delimiterOption + path + fieldsOption;
 	}
 }

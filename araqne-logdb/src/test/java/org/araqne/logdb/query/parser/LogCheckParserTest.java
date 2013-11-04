@@ -28,6 +28,7 @@ public class LogCheckParserTest {
 		assertTrue(c.getTableNames().contains("text_log"));
 		assertNull(c.getFrom());
 		assertNull(c.getTo());
+		assertEquals("logcheck", c.toString());
 	}
 
 	@Test
@@ -39,6 +40,7 @@ public class LogCheckParserTest {
 		assertTrue(c.getTableNames().contains("text_log"));
 		assertNull(c.getFrom());
 		assertNull(c.getTo());
+		assertEquals("logcheck *", c.toString());
 	}
 
 	@Test
@@ -51,6 +53,8 @@ public class LogCheckParserTest {
 		assertTrue(c.getTableNames().contains("text_log"));
 		assertNull(c.getFrom());
 		assertNull(c.getTo());
+
+		assertEquals(query, c.toString());
 	}
 
 	@Test
@@ -62,6 +66,8 @@ public class LogCheckParserTest {
 		assertTrue(c.getTableNames().contains("secure_event"));
 		assertNull(c.getFrom());
 		assertNull(c.getTo());
+
+		assertEquals(query, c.toString());
 	}
 
 	@Test
@@ -75,6 +81,8 @@ public class LogCheckParserTest {
 		assertTrue(c.getTableNames().contains("secure_event"));
 		assertEquals("20130806", df.format(c.getFrom()));
 		assertEquals("20130808", df.format(c.getTo()));
+		
+		assertEquals(query, c.toString());
 	}
 
 	private LogCheck parse(String query) {

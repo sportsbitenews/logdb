@@ -27,6 +27,8 @@ public class OutputJsonParserTest {
 			assertEquals("logexport.json", f.getName());
 			assertEquals("sip", json.getFields().get(0));
 			assertEquals("dip", json.getFields().get(1));
+			
+			assertEquals("outputjson logexport.json sip, dip", json.toString());
 		} finally {
 			if (json != null)
 				json.eof(false);

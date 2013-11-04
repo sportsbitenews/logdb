@@ -43,15 +43,19 @@ public class LogCheck extends LogQueryCommand {
 	private Date from;
 	private Date to;
 
+	// for toString query generation
+	private String tableToken;
+
 	private LogTableRegistry tableRegistry;
 	private LogStorage storage;
 	private LogFileServiceRegistry fileServiceRegistry;
 
-	public LogCheck(Set<String> tableNames, Date from, Date to, LogTableRegistry tableRegistry, LogStorage storage,
-			LogFileServiceRegistry fileSerivceRegistry) {
+	public LogCheck(Set<String> tableNames, Date from, Date to, String tableToken, LogTableRegistry tableRegistry,
+			LogStorage storage, LogFileServiceRegistry fileSerivceRegistry) {
 		this.tableNames = tableNames;
 		this.from = from;
 		this.to = to;
+		this.tableToken = tableToken;
 		this.tableRegistry = tableRegistry;
 		this.storage = storage;
 		this.fileServiceRegistry = fileSerivceRegistry;
@@ -110,6 +114,12 @@ public class LogCheck extends LogQueryCommand {
 		for (Date day : storage.getLogDates(tableName)) {
 			if (getStatus() == Status.End)
 				break;
+
+			if (from != null && day.before(from))
+				continue;
+
+			if (to != null && day.after(to))
+				continue;
 
 			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 			String dateText = dateFormat.format(day);
@@ -176,5 +186,24 @@ public class LogCheck extends LogQueryCommand {
 				}
 			}
 		}
+	}
+
+	@Override
+	public String toString() {
+		String fromOption = "";
+		String toOption = "";
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+		if (from != null)
+			fromOption = " from=" + df.format(from);
+
+		if (to != null)
+			toOption = " to=" + df.format(to);
+
+		String tables = tableToken;
+		if (!tables.isEmpty())
+			tables = " " + tables;
+
+		return "logcheck" + fromOption + toOption + tables;
 	}
 }
