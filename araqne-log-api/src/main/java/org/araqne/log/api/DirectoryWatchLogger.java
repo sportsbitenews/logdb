@@ -28,7 +28,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.araqne.log.api.impl.FileUtils;
-import org.araqne.log.api.impl.LastPositionHelper;
 
 public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DirectoryWatchLogger.class.getName());
@@ -90,7 +89,7 @@ public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 	@Override
 	protected void runOnce() {
 		List<String> logFiles = FileUtils.matchFiles(basePath, fileNamePattern);
-		Map<String, String> lastPositions = LastPositionHelper.readLastPositions(getLastLogFile());
+		Map<String, LastPosition> lastPositions = LastPositionHelper.readLastPositions(getLastLogFile());
 
 		for (String path : logFiles) {
 			processFile(lastPositions, path);
@@ -99,7 +98,7 @@ public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 		LastPositionHelper.updateLastPositionFile(getLastLogFile(), lastPositions);
 	}
 
-	protected void processFile(Map<String, String> lastPositions, String path) {
+	protected void processFile(Map<String, LastPosition> lastPositions, String path) {
 		FileInputStream is = null;
 
 		try {
@@ -120,7 +119,8 @@ public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 			// skip previous read part
 			long offset = 0;
 			if (lastPositions.containsKey(path)) {
-				offset = Long.valueOf(lastPositions.get(path));
+				LastPosition inform = lastPositions.get(path);
+				offset = inform.getPosition();
 				logger.trace("logpresso igloo: target file [{}] skip offset [{}]", path, offset);
 			}
 
@@ -132,7 +132,12 @@ public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 
 			logger.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
 					offset, lastPosition.get() });
-			lastPositions.put(path, Long.toString(lastPosition.get()));
+			LastPosition inform = lastPositions.get(path);
+			if (inform == null) {
+				inform = new LastPosition(path);
+			}
+			inform.setPosition(lastPosition.get());
+			lastPositions.put(path, inform);
 		} catch (FileNotFoundException e) {
 			if (logger.isTraceEnabled())
 				logger.trace("araqne log api: [" + getName() + "] logger read failure: file not found: {}", e.getMessage());

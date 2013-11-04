@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.araqne.log.api.WtmpEntry.Type;
-import org.araqne.log.api.impl.LastPositionHelper;
 
 public class WtmpLogger extends AbstractLogger {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(WtmpLogger.class);
@@ -42,12 +41,11 @@ public class WtmpLogger extends AbstractLogger {
 
 	@Override
 	protected void runOnce() {
-		Map<String, String> lastPositions = LastPositionHelper.readLastPositions(getLastLogFile());
-
-		String s = lastPositions.get(path);
-		long pos = 0;
-		if (s != null)
-			pos = Long.valueOf(s);
+		Map<String, LastPosition> lastPositions = LastPositionHelper.readLastPositions(getLastLogFile());
+		LastPosition inform = lastPositions.get(path);
+		if (inform == null)
+			inform = new LastPosition(path);
+		long pos = inform.getPosition();
 
 		File wtmpFile = new File(path);
 		if (!wtmpFile.exists()) {
@@ -102,8 +100,8 @@ public class WtmpLogger extends AbstractLogger {
 				} catch (IOException e) {
 				}
 			}
-
-			lastPositions.put(path, Long.toString(pos));
+			inform.setPosition(pos);
+			lastPositions.put(path, inform);
 			LastPositionHelper.updateLastPositionFile(getLastLogFile(), lastPositions);
 		}
 	}
@@ -143,8 +141,7 @@ public class WtmpLogger extends AbstractLogger {
 
 		bb.get(new byte[36]); // addr + unused padding
 
-		return new WtmpEntry(Type.values()[type], c.getTime(), pid, parse(user), parse(host),
-				session);
+		return new WtmpEntry(Type.values()[type], c.getTime(), pid, parse(user), parse(host), session);
 	}
 
 	private static int swap(int v) {
