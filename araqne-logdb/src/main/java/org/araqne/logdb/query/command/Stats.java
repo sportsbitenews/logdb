@@ -256,4 +256,29 @@ public class Stats extends LogQueryCommand {
 		}
 
 	}
+
+	@Override
+	public String toString() {
+		String aggregation = "";
+		int i = 0;
+		for (AggregationField f : this.fields) {
+			if (i++ != 0)
+				aggregation += ",";
+			aggregation += " " + f.toString();
+		}
+
+		String clause = "";
+		if (!clauses.isEmpty()) {
+			clause = " by";
+			i = 0;
+			for (String c : clauses) {
+				if (i++ != 0)
+					clause += ",";
+				clause += " " + c;
+			}
+		}
+
+		return "stats" + aggregation + clause;
+	}
+
 }

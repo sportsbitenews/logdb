@@ -29,11 +29,13 @@ public class StatsParserTest {
 		Stats stats = (Stats) p.parse(null, "stats count");
 		assertEquals(1, stats.getAggregationFields().size());
 		assertEquals("count", stats.getAggregationFields().get(0).getName());
+		assertEquals("stats count", stats.toString());
 
 		// abbreviation form
 		stats = (Stats) p.parse(null, "stats c");
 		assertEquals(1, stats.getAggregationFields().size());
 		assertEquals("count", stats.getAggregationFields().get(0).getName());
+		assertEquals("stats count", stats.toString());
 	}
 
 	@Test
@@ -42,6 +44,7 @@ public class StatsParserTest {
 		Stats stats = (Stats) p.parse(null, "stats sum(min(10000, sport)) as foo");
 		AggregationField field = stats.getAggregationFields().get(0);
 		assertEquals("foo", field.getName());
+		assertEquals("stats sum(min(10000, sport)) as foo", stats.toString());
 	}
 
 	@Test
@@ -50,6 +53,7 @@ public class StatsParserTest {
 		Stats stats = (Stats) p.parse(null, "stats sum(rcvd) by sip");
 		assertEquals(1, stats.getAggregationFields().size());
 		assertEquals("sum(rcvd)", stats.getAggregationFields().get(0).getName());
+		assertEquals("stats sum(rcvd) by sip", stats.toString());
 	}
 
 	@Test
@@ -62,6 +66,7 @@ public class StatsParserTest {
 		assertEquals("sent", stats.getAggregationFields().get(1).getName());
 		assertEquals("sip", stats.getClauses().get(0));
 		assertEquals("dip", stats.getClauses().get(1));
+		assertEquals("stats sum(rcvd) as rcvd, sum(sent) as sent by sip, dip", stats.toString());
 	}
 
 	@Test

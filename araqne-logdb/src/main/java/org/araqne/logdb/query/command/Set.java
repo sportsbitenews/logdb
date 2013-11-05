@@ -51,4 +51,8 @@ public class Set extends LogQueryCommand {
 		return false;
 	}
 
+	@Override
+	public String toString() {
+		return "set " + field + "=" + expr;
+	}
 }

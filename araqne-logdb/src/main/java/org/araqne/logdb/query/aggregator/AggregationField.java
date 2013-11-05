@@ -37,4 +37,11 @@ public class AggregationField {
 	public void setFunction(AggregationFunction function) {
 		this.function = function;
 	}
+
+	@Override
+	public String toString() {
+		if (function.toString().equals(name))
+			return function.toString();
+		return function + " as " + name;
+	}
 }

@@ -63,6 +63,7 @@ public class Script extends LogQueryCommand {
 	public boolean isReducer() {
 		return true;
 	}
+
 	@Override
 	public void eof(boolean canceled) {
 		this.status = Status.Finalizing;
@@ -86,6 +87,20 @@ public class Script extends LogQueryCommand {
 		public Map<String, Object> getData() {
 			return data;
 		}
+	}
+
+	@Override
+	public String toString() {
+		String opts = "";
+		for (String key : params.keySet()) {
+			String val = params.get(key);
+			if (val == null)
+				val = "";
+
+			opts += " " + key + "=" + val;
+		}
+
+		return "script" + opts + " " + scriptName;
 	}
 
 	private class DefaultScriptOutput implements LogQueryScriptOutput {

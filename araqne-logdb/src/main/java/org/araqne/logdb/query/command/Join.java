@@ -55,7 +55,7 @@ public class Join extends LogQueryCommand {
 			this.subQueryString = subQueryString;
 			this.subQueryResult = new Result("sub");
 
-			Sort sort = new Sort(sortFields);
+			Sort sort = new Sort(null, sortFields);
 			sort.init();
 
 			LogQueryCommand lastCmd = subQueryCommands.get(subQueryCommands.size() - 1);
