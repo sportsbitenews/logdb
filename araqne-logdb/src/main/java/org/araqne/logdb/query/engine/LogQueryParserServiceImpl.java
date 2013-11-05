@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
-import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryContext;
@@ -36,17 +35,6 @@ import org.araqne.logdb.query.parser.QueryTokenizer;
 public class LogQueryParserServiceImpl implements LogQueryParserService {
 
 	private ConcurrentMap<String, LogQueryCommandParser> commandParsers = new ConcurrentHashMap<String, LogQueryCommandParser>();
-
-	@Override
-	public LogQuery parse(LogQueryContext context, String queryString) {
-		List<LogQueryCommand> commands = parseCommands(context, queryString);
-
-		LogQuery lq = new LogQueryImpl(context, queryString, commands);
-		for (LogQueryCommand cmd : commands)
-			cmd.setLogQuery(lq);
-
-		return lq;
-	}
 
 	@Override
 	public List<LogQueryCommand> parseCommands(LogQueryContext context, String queryString) {
@@ -62,6 +50,7 @@ public class LogQueryParserServiceImpl implements LogQueryParserService {
 				throw new LogQueryParseException("unsupported-command", -1, "command is [" + commandType + "]");
 
 			LogQueryCommand cmd = parser.parse(context, q);
+			cmd.setName(parser.getCommandName());
 			cmd.setQueryString(q);
 			commands.add(cmd);
 		}

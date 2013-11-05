@@ -79,4 +79,12 @@ public class Logdb extends LogQueryCommand {
 			write(log);
 		}
 	}
+
+	@Override
+	public String toString() {
+		String arguments = args;
+		if (!arguments.isEmpty())
+			arguments = " " + arguments;
+		return "logdb " + objectType + arguments;
+	}
 }

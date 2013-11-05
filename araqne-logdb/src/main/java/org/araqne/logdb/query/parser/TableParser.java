@@ -129,19 +129,31 @@ public class TableParser implements LogQueryCommandParser {
 	private List<String> parseTableNames(LogQueryContext context, String tableTokens) {
 		List<String> tableNames = new ArrayList<String>();
 		for (String tableNameToken : tableTokens.split(",")) {
-			String tableName = tableNameToken.trim();
+			String fqdn = tableNameToken.trim();
 
-			if (tableName.contains("*")) {
-				Pattern p = WildcardMatcher.buildPattern(tableName);
+			// strip namespace
+			String name = fqdn;
+			String namespace = null;
+			int pos = fqdn.lastIndexOf(':');
+			if (pos >= 0) {
+				namespace = fqdn.substring(0, pos);
+				name = fqdn.substring(pos + 1);
+			}
+
+			if (name.contains("*")) {
+				Pattern p = WildcardMatcher.buildPattern(name);
 				addWildMatchTables(context, tableNames, p.matcher(""));
 			} else {
-				if (!tableRegistry.exists(tableName))
-					throw new LogQueryParseException("table-not-found", -1, "table=" + tableName);
+				if (namespace == null) {
+					// check only local tables
+					if (!tableRegistry.exists(name))
+						throw new LogQueryParseException("table-not-found", -1, "table=" + fqdn);
 
-				if (!accountService.checkPermission(context.getSession(), tableName, Permission.READ))
-					throw new LogQueryParseException("no-read-permission", -1, "table=" + tableName);
+					if (!accountService.checkPermission(context.getSession(), name, Permission.READ))
+						throw new LogQueryParseException("no-read-permission", -1, "table=" + fqdn);
+				}
 
-				tableNames.add(tableName);
+				tableNames.add(fqdn);
 			}
 		}
 		return tableNames;

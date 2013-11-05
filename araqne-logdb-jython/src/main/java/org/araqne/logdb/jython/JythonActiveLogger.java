@@ -142,11 +142,6 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public void setPassive(boolean isPassive) {
-		// ignore
-	}
-
-	@Override
 	public Date getLastStartDate() {
 		return lastStartDate;
 	}

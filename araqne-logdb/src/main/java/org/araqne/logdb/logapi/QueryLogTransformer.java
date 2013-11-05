@@ -23,7 +23,6 @@ import org.araqne.log.api.LogTransformer;
 import org.araqne.log.api.LogTransformerFactory;
 import org.araqne.log.api.SimpleLog;
 import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommand;
 
 /**
@@ -36,10 +35,9 @@ public class QueryLogTransformer extends LogQueryCommand implements LogTransform
 	private LogQueryCommand first;
 	private Map<String, Object> last;
 
-	public QueryLogTransformer(LogTransformerFactory factory, LogQuery q) {
+	public QueryLogTransformer(LogTransformerFactory factory, List<LogQueryCommand> commands) {
 		this.factory = factory;
 
-		List<LogQueryCommand> commands = q.getCommands();
 		first = commands.get(0);
 		commands.add(this);
 

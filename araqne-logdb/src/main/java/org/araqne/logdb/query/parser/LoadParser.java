@@ -37,7 +37,7 @@ public class LoadParser implements LogQueryCommandParser {
 		LogCursor cursor = null;
 		try {
 			cursor = savedResultManager.getCursor(guid);
-			return new Load(cursor);
+			return new Load(cursor, guid);
 		} catch (Throwable t) {
 			if (cursor != null)
 				cursor.close();

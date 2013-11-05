@@ -15,6 +15,9 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.Arrays;
+import java.util.Map;
+
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
@@ -40,9 +43,17 @@ public class ParseParser implements LogQueryCommandParser {
 		return "parse";
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
-		String parserName = commandString.substring(getCommandName().length()).trim();
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overlay"));
+		Map<String, String> options = (Map<String, String>) r.value;
+		String s = options.get("overlay");
+		boolean overlay = false;
+		if (s != null)
+			overlay = Boolean.parseBoolean(s);
+
+		String parserName = commandString.substring(r.next).trim();
 		if (parserName.isEmpty())
 			throw new LogQueryParseException("missing-parser-name", -1);
 
@@ -50,7 +61,7 @@ public class ParseParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("parser-not-found", -1);
 
 		try {
-			return new Parse(registry.newParser(parserName));
+			return new Parse(parserName, registry.newParser(parserName), overlay);
 		} catch (Throwable t) {
 			throw new LogQueryParseException("parser-init-failure", -1);
 		}

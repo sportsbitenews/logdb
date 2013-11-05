@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.query.parser;
+package org.araqne.log.api;
 
-import org.araqne.logdb.query.command.Drop;
-import org.junit.Test;
-import static org.junit.Assert.*;
+/**
+ * @since 2.6.8
+ */
+public interface LogParserEventListener {
+	void parserCreated(LogParserProfile profile);
 
-public class DropParserTest {
-	@Test
-	public void testNormalCase() {
-		// no argument at all, it's sink hole
-		DropParser p = new DropParser();
-		p.parse(null, "drop ");
-		assertEquals("drop", new Drop().toString());
-	}
+	void parserRemoved(LogParserProfile profile);
 }

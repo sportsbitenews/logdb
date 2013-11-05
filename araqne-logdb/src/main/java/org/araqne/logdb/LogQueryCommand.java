@@ -25,6 +25,7 @@ public abstract class LogQueryCommand {
 	}
 
 	private boolean cancelled = false;
+	private String name;
 	private String queryString;
 	private long pushCount;
 	protected LogQuery logQuery;
@@ -38,6 +39,18 @@ public abstract class LogQueryCommand {
 		headerColumn.put("table", "_table");
 		headerColumn.put("id", "_id");
 		headerColumn.put("date", "_time");
+	}
+
+	public boolean isCancelled() {
+		return cancelled;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	public String getQueryString() {

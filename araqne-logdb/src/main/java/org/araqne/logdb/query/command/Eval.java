@@ -27,11 +27,11 @@ public class Eval extends LogQueryCommand {
 		this.field = field;
 		this.expr = expr;
 	}
-	
+
 	public String getField() {
 		return field;
 	}
-	
+
 	public Expression getExpression() {
 		return expr;
 	}
@@ -45,5 +45,10 @@ public class Eval extends LogQueryCommand {
 	@Override
 	public boolean isReducer() {
 		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "eval " + field + "=" + expr;
 	}
 }

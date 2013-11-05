@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logdb</artifactId>
-	<version>1.8.1-SNAPSHOT</version>
+	<version>1.8.4-SNAPSHOT</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log DB</name>
 	<build>
@@ -27,12 +27,12 @@
 							org.araqne.logdb.query.parser;version=${project.version},
 							org.araqne.logdb.query.aggregator;version=${project.version},
 							org.araqne.logdb.query.expr;version=${project.version},
-							org.araqne.logdb.sort;version=${project.version}
+							org.araqne.logdb.sort;version=${project.version},
+							org.araqne.logdb.query.command;version=${project.version}
 						</Export-Package>
 						<Private-Package>
 							org.araqne.logdb.impl,
 							org.araqne.logdb.query.engine,
-							org.araqne.logdb.query.command,
 							org.araqne.logdb.msgbus,
 							org.araqne.logdb.metadata,
 							org.araqne.logdb.logapi,
@@ -42,7 +42,7 @@
 							org.araqne.confdb;version="0.11.0",
 							org.araqne.logstorage;version="2.2.6",
 							org.araqne.logstorage.file;version="2.2.6",
-							org.araqne.log.api;version="2.6.0",
+							org.araqne.log.api;version="2.7.0",
 							org.araqne.msgbus;version="1.9.0",
 							*
 						</Import-Package>
@@ -112,12 +112,12 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logstorage</artifactId>
-			<version>2.3.1-SNAPSHOT</version>
+			<version>2.3.2-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>2.6.8-SNAPSHOT</version>
+			<version>2.7.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>

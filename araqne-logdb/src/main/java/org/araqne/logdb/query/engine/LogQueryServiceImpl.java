@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -37,10 +38,12 @@ import org.araqne.log.api.LogParserRegistry;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.EmptyLogQueryCallback;
 import org.araqne.logdb.LogQuery;
+import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryContext;
 import org.araqne.logdb.LogQueryEventListener;
 import org.araqne.logdb.LogQueryParserService;
+import org.araqne.logdb.LogQueryPlanner;
 import org.araqne.logdb.LogQueryScriptRegistry;
 import org.araqne.logdb.LogQueryService;
 import org.araqne.logdb.LogQueryStatus;
@@ -50,7 +53,6 @@ import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
-import org.araqne.logdb.query.command.BoxPlot;
 import org.araqne.logdb.query.parser.BoxPlotParser;
 import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;
@@ -138,10 +140,13 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 
 	private List<LogQueryCommandParser> queryParsers;
 
+	private List<LogQueryPlanner> planners;
+
 	public LogQueryServiceImpl(BundleContext bc) {
 		this.bc = bc;
 		this.queries = new ConcurrentHashMap<Integer, LogQuery>();
 		this.callbacks = new CopyOnWriteArraySet<LogQueryEventListener>();
+		this.planners = new CopyOnWriteArrayList<LogQueryPlanner>();
 
 		// ensure directory
 		File dir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query");
@@ -194,6 +199,32 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 
 		// receive log table event and register it to data source registry
 		storage.ensureTable(QUERY_LOG_TABLE, "v2");
+
+		// delete all temporary query files
+		File queryResultDir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query/");
+		File[] resultFiles = queryResultDir.listFiles();
+		if (resultFiles == null)
+			return;
+
+		for (File f : resultFiles) {
+			String name = f.getName();
+			if (name.startsWith("result-") && (name.endsWith(".idx") || name.endsWith(".dat")))
+				f.delete();
+		}
+
+		// delete all temporary sort files
+		String dataDir = System.getProperty("araqne.sort.dir", System.getProperty("araqne.data.dir"));
+		File sortDir = new File(dataDir, "araqne-logdb/sort");
+
+		File[] runFiles = sortDir.listFiles();
+		if (runFiles == null)
+			return;
+
+		for (File f : runFiles) {
+			String name = f.getName();
+			if (name.startsWith("run") && (name.endsWith(".idx") || name.endsWith(".dat")))
+				f.delete();
+		}
 	}
 
 	@Invalidate
@@ -214,7 +245,15 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]", new Object[] { query, session.getGuid(),
 					session.getLoginName() });
 
-		LogQuery lq = queryParserService.parse(new LogQueryContext(session), query);
+		LogQueryContext context = new LogQueryContext(session);
+		List<LogQueryCommand> commands = queryParserService.parseCommands(context, query);
+		for (LogQueryPlanner planner : planners)
+			commands = planner.plan(commands);
+
+		LogQuery lq = new LogQueryImpl(context, query, commands);
+		for (LogQueryCommand cmd : commands)
+			cmd.setLogQuery(lq);
+
 		queries.put(lq.getId(), lq);
 		lq.registerQueryCallback(new EofReceiver(lq));
 		invokeCallbacks(lq, LogQueryStatus.Created);
@@ -328,6 +367,16 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 	@Override
 	public void removeListener(LogQueryEventListener listener) {
 		callbacks.remove(listener);
+	}
+
+	@Override
+	public void addPlanner(LogQueryPlanner planner) {
+		planners.add(planner);
+	}
+
+	@Override
+	public void removePlanner(LogQueryPlanner planner) {
+		planners.remove(planner);
 	}
 
 	private void invokeCallbacks(LogQuery lq, LogQueryStatus status) {

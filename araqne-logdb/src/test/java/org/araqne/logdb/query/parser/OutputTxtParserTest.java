@@ -29,6 +29,8 @@ public class OutputTxtParserTest {
 			assertEquals("sip", txt.getFields().get(0));
 			assertEquals("dip", txt.getFields().get(1));
 			assertEquals(" ", txt.getDelimiter());
+
+			assertEquals("outputjson logexport.txt sip, dip", txt.toString());
 		} finally {
 			if (txt != null)
 				txt.eof(false);
@@ -45,6 +47,7 @@ public class OutputTxtParserTest {
 			txt = (OutputTxt) p.parse(null, "outputtxt delimiter=\"|\" logexport.txt sip, dip ");
 
 			assertEquals("|", txt.getDelimiter());
+			assertEquals("outputjson delimiter=| logexport.txt sip, dip", txt.toString());
 		} finally {
 			if (txt != null)
 				txt.eof(false);

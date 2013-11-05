@@ -39,7 +39,7 @@ public class Lookup extends LogQueryCommand {
 		this.lookupOutputField = lookupOutputField;
 		this.targetField = targetField;
 	}
-	
+
 	public String getHandlerName() {
 		return handlerName;
 	}
@@ -76,5 +76,18 @@ public class Lookup extends LogQueryCommand {
 	@Override
 	public boolean isReducer() {
 		return false;
+	}
+
+	@Override
+	public String toString() {
+		String input = sourceField;
+		if (!lookupInputField.equals(sourceField))
+			input += " as " + lookupInputField;
+
+		String output = lookupOutputField;
+		if (!lookupOutputField.equals(targetField))
+			output += " as " + targetField;
+
+		return "lookup " + handlerName + " " + input + " output " + output;
 	}
 }

@@ -31,7 +31,6 @@ public class LoggerConfig {
 	private String fullname;
 	private String name;
 	private String description;
-	private boolean isPassive;
 	private boolean isRunning;
 	private boolean isPending;
 
@@ -60,7 +59,6 @@ public class LoggerConfig {
 		this.fullname = logger.getFullName();
 		this.name = logger.getName();
 		this.description = logger.getDescription();
-		this.isPassive = logger.isPassive();
 		this.isRunning = logger.isRunning();
 		this.isPending = logger.isPending();
 		this.manualStart = logger.isManualStart();
@@ -115,14 +113,6 @@ public class LoggerConfig {
 
 	public void setDescription(String description) {
 		this.description = description;
-	}
-
-	public boolean isPassive() {
-		return isPassive;
-	}
-
-	public void setPassive(boolean isPassive) {
-		this.isPassive = isPassive;
 	}
 
 	public boolean isRunning() {
@@ -183,7 +173,7 @@ public class LoggerConfig {
 
 	@Override
 	public String toString() {
-		return "factory=" + factoryNamespace + "\\" + factoryName + ", fullname=" + fullname + ", passive=" + isPassive
-				+ ", running=" + isRunning + ", interval=" + interval + ", configs=" + configs;
+		return "factory=" + factoryNamespace + "\\" + factoryName + ", fullname=" + fullname + ", running=" + isRunning
+				+ ", interval=" + interval + ", configs=" + configs;
 	}
 }

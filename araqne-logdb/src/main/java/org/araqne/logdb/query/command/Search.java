@@ -67,4 +67,12 @@ public class Search extends LogQueryCommand {
 	public boolean isReducer() {
 		return false;
 	}
+
+	@Override
+	public String toString() {
+		String limitOption = "";
+		if (limit != null)
+			limitOption = " limit=" + limit;
+		return "search" + limitOption + (expr == null ? "" : " " + expr.toString());
+	}
 }

@@ -18,6 +18,7 @@ package org.araqne.logdb.logapi;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -28,7 +29,7 @@ import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.StringConfigType;
-import org.araqne.logdb.LogQuery;
+import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryParserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,10 +88,8 @@ public class QueryLogParserFactory implements LogParserFactory {
 		String query = configs.get("query");
 
 		try {
-			LogQuery q = queryParser.parse(null, query);
-			if (q == null)
-				return null;
-			return new QueryLogParser(q);
+			List<LogQueryCommand> commands = queryParser.parseCommands(null, query);
+			return new QueryLogParser(query, commands);
 		} catch (Throwable t) {
 			logger.debug("araqne logdb: cannot parse query string for parser - query [" + query + "]", t);
 		}

@@ -28,6 +28,8 @@ public class RenameParserTest {
 		Rename rename = (Rename) p.parse(null, "rename sent as Sent");
 		assertEquals("sent", rename.getFrom());
 		assertEquals("Sent", rename.getTo());
+
+		assertEquals("rename sent as Sent", rename.toString());
 	}
 
 	@Test

@@ -33,7 +33,7 @@ public class RexParserTest {
 		String[] names = new String[] { "from", "to" };
 
 		DummyOutput out = new DummyOutput();
-		Rex rex = new Rex("raw", p, names);
+		Rex rex = new Rex("raw", "", p, names);
 		rex.setNextCommand(out);
 
 		LogMap m = new LogMap();
@@ -75,6 +75,15 @@ public class RexParserTest {
 	}
 
 	@Test
+	public void testRexQueryGeneration() {
+		String QUERY = "rex field=_raw \"From: (?<from>.*) To: (?<to>.*)\"";
+		RexParser parser = new RexParser();
+		Rex rex = (Rex) parser.parse(null, QUERY);
+		String query = rex.toString();
+		assertEquals(QUERY, query);
+	}
+
+	@Test
 	public void testRexCommandParse2() {
 		String s = "Close[00:00:20. SF. FIN] NAT[313]  R[16]";
 		LogMap map = new LogMap();
@@ -100,6 +109,15 @@ public class RexParserTest {
 		assertEquals("(\\d+-\\d+-\\d+)", rex.getPattern().toString());
 	}
 
+	@Test
+	public void testEscapeQueryGeneration() {
+		String s = "rex field=line \"(?<d>\\d+-\\d+-\\d+)\" ";
+		RexParser parser = new RexParser();
+		Rex rex = (Rex) parser.parse(null, s);
+		String query = rex.toString();
+		assertEquals(s, query);
+	}
+
 	// for araqne/issue#127
 	@Test
 	public void testIgnoreInnerKeyValueOptionPattern() {
@@ -107,7 +125,8 @@ public class RexParserTest {
 		RexParser parser = new RexParser();
 		Rex rex = (Rex) parser.parse(null, s);
 
-		// Note that escape-quote sequence is preserved, it is intended result for query convenience.
+		// Note that escape-quote sequence is preserved, it is intended result
+		// for query convenience.
 		assertEquals("cpu_usage=\\\"(.*)\\\" mem_usage=\\\"(.*)\\\"", rex.getPattern().toString());
 
 		DummyOutput out = new DummyOutput();

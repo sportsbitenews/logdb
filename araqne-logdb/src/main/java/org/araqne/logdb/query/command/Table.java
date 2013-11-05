@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query.command;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.impl.Strings;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
@@ -295,5 +297,24 @@ public class Table extends LogQueryCommand {
 			this.parserName = parserName;
 		}
 
+	}
+
+	@Override
+	public String toString() {
+		String s = "table";
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
+		if (params.getFrom() != null)
+			s += " from=" + df.format(params.getFrom());
+
+		if (params.getTo() != null)
+			s += " to=" + df.format(params.getTo());
+
+		s += " offset=" + params.getOffset();
+
+		if (params.getLimit() > 0)
+			s += " limit=" + params.getLimit();
+
+		return s + " " + Strings.join(params.getTableNames(), ", ");
 	}
 }

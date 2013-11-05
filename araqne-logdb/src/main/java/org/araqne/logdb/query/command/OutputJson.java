@@ -28,6 +28,7 @@ import java.util.Map;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.impl.Strings;
 import org.json.JSONConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,9 +47,13 @@ public class OutputJson extends LogQueryCommand {
 	private BufferedOutputStream bos;
 	private final boolean hasFields;
 	private File f;
+	private String filePathToken;
+	private boolean overwrite;
 
-	public OutputJson(File f, List<String> fields) {
+	public OutputJson(File f, String filePathToken, boolean overwrite, List<String> fields) {
 		this.f = f;
+		this.overwrite = overwrite;
+		this.filePathToken = filePathToken;
 		this.fields = fields;
 		this.fos = null;
 		this.bos = null;
@@ -95,7 +100,7 @@ public class OutputJson extends LogQueryCommand {
 
 	@Override
 	public boolean isReducer() {
-		return false;
+		return true;
 	}
 
 	@Override
@@ -125,5 +130,18 @@ public class OutputJson extends LogQueryCommand {
 				fos.close();
 		} catch (IOException e) {
 		}
+	}
+
+	@Override
+	public String toString() {
+		String overwriteOption = " ";
+		if (overwrite)
+			overwriteOption = " overwrite=true ";
+
+		String fieldsOption = "";
+		if (!fields.isEmpty())
+			fieldsOption = " " + Strings.join(fields, ", ");
+
+		return "outputjson" + overwriteOption + filePathToken + fieldsOption;
 	}
 }

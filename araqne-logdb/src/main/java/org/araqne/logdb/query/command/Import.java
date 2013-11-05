@@ -28,13 +28,41 @@ import org.araqne.logstorage.LogStorage;
  * 
  */
 public class Import extends LogQueryCommand {
-
 	private LogStorage storage;
 	private String tableName;
 
-	public Import(LogStorage storage, String tableName) {
+	/**
+	 * @since 1.8.2
+	 */
+	private boolean create;
+
+	public Import(LogStorage storage, String tableName, boolean create) {
 		this.storage = storage;
 		this.tableName = tableName;
+		this.create = create;
+	}
+
+	@Override
+	public void start() {
+		if (create) {
+			try {
+				storage.createTable(tableName, "v3p");
+			} catch (Throwable t) {
+			}
+
+			try {
+				storage.createTable(tableName, "v2");
+			} catch (Throwable t) {
+			}
+		}
+	}
+
+	public String getTableName() {
+		return tableName;
+	}
+
+	public boolean isCreate() {
+		return create;
 	}
 
 	@Override
@@ -52,6 +80,15 @@ public class Import extends LogQueryCommand {
 
 	@Override
 	public boolean isReducer() {
-		return false;
+		return true;
+	}
+
+	@Override
+	public String toString() {
+		String createOption = "";
+		if (create)
+			createOption = "create=true ";
+
+		return "import " + createOption + tableName;
 	}
 }

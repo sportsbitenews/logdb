@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -30,6 +31,7 @@ import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
 import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserEventListener;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserProfile;
@@ -38,6 +40,7 @@ import org.araqne.log.api.LogParserRegistry;
 @Component(name = "log-parser-registry")
 @Provides
 public class LogParserRegistryImpl implements LogParserRegistry {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(LogParserRegistryImpl.class);
 
 	@Requires
 	private ConfigService conf;
@@ -46,6 +49,7 @@ public class LogParserRegistryImpl implements LogParserRegistry {
 	private LogParserFactoryRegistry parserFactoryRegistry;
 
 	private ConcurrentMap<String, LogParserProfile> profiles;
+	private CopyOnWriteArraySet<LogParserEventListener> listeners;
 
 	@Validate
 	public void start() {
@@ -55,6 +59,7 @@ public class LogParserRegistryImpl implements LogParserRegistry {
 		for (LogParserProfile p : db.find(LogParserProfile.class, null).getDocuments(LogParserProfile.class)) {
 			profiles.put(p.getName(), p);
 		}
+		listeners = new CopyOnWriteArraySet<LogParserEventListener>();
 	}
 
 	@Invalidate
@@ -82,6 +87,14 @@ public class LogParserRegistryImpl implements LogParserRegistry {
 
 		ConfigDatabase db = conf.ensureDatabase("araqne-log-api");
 		db.add(profile);
+
+		for (LogParserEventListener listener : listeners) {
+			try {
+				listener.parserCreated(profile);
+			} catch (Throwable t) {
+				slog.warn("araqne log api: parser event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -94,6 +107,14 @@ public class LogParserRegistryImpl implements LogParserRegistry {
 		LogParserProfile old = profiles.remove(name);
 		if (old == null)
 			throw new IllegalStateException("parser profile not found: " + name);
+
+		for (LogParserEventListener listener : listeners) {
+			try {
+				listener.parserRemoved(old);
+			} catch (Throwable t) {
+				slog.warn("araqne log api: parser event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -110,5 +131,19 @@ public class LogParserRegistryImpl implements LogParserRegistry {
 			throw new IllegalStateException("parser factory not found: " + profile.getFactoryName());
 
 		return factory.createParser(profile.getConfigs());
+	}
+
+	public void addListener(LogParserEventListener listener) {
+		if (listener == null)
+			throw new IllegalArgumentException("listener should not be null");
+
+		listeners.add(listener);
+	}
+
+	public void removeListener(LogParserEventListener listener) {
+		if (listener == null)
+			throw new IllegalArgumentException("listener should not be null");
+
+		listeners.remove(listener);
 	}
 }

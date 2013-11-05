@@ -28,7 +28,7 @@ import org.araqne.log.api.AbstractLogTransformerFactory;
 import org.araqne.log.api.LogTransformer;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.StringConfigType;
-import org.araqne.logdb.LogQuery;
+import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryParserService;
 import org.araqne.logdb.LogQueryService;
 
@@ -41,7 +41,6 @@ import org.araqne.logdb.LogQueryService;
 @Provides
 public class QueryLogTransformerFactory extends AbstractLogTransformerFactory {
 	// force to wait dynamic query parser instance loading
-	@SuppressWarnings("unused")
 	@Requires
 	private LogQueryService queryService;
 
@@ -79,9 +78,9 @@ public class QueryLogTransformerFactory extends AbstractLogTransformerFactory {
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption querystring = new StringConfigType("querystring", t("Query string", "쿼리 문자열"),
-				t("Configure query string to evaluating and transforming input log data",
-						"입력 로그를 변환하여 출력하는데 사용할 쿼리 문자열을 설정합니다. 그룹 함수 사용은 허용되지 않습니다."), true);
+		LoggerConfigOption querystring = new StringConfigType("querystring", t("Query string", "쿼리 문자열"), t(
+				"Configure query string to evaluating and transforming input log data",
+				"입력 로그를 변환하여 출력하는데 사용할 쿼리 문자열을 설정합니다. 그룹 함수 사용은 허용되지 않습니다."), true);
 
 		return Arrays.asList(querystring);
 	}
@@ -97,11 +96,8 @@ public class QueryLogTransformerFactory extends AbstractLogTransformerFactory {
 	public LogTransformer newTransformer(Map<String, String> config) {
 		String queryString = config.get("querystring");
 
-		LogQuery q = queryParser.parse(null, queryString);
-		if (q == null)
-			return null;
-
-		return new QueryLogTransformer(this, q);
+		List<LogQueryCommand> commands = queryParser.parseCommands(null, queryString);
+		return new QueryLogTransformer(this, commands);
 	}
 
 }

@@ -50,4 +50,10 @@ public class Signature extends LogQueryCommand {
 		}
 		return sb.toString();
 	}
+
+	@Override
+	public String toString() {
+		return "signature";
+	}
+	
 }

@@ -51,9 +51,12 @@ public class RexParser implements LogQueryCommandParser {
 
 		Pattern placeholder = Pattern.compile("\\(\\?<(.*?)>(.*?)\\)");
 		String regexToken = commandString.substring(r.next);
-		if (!QueryTokenizer.isQuoted(regexToken))
+		if (!QueryTokenizer.isQuoted(regexToken.trim()))
 			throw new LogQueryParseException("invalid-regex", commandString.length());
 
+		// for later toString convenience
+		String originalRegexToken = regexToken;
+		
 		regexToken = QueryTokenizer.removeQuotes(regexToken);
 		regexToken = toNonCapturingGroup(regexToken);
 
@@ -72,7 +75,7 @@ public class RexParser implements LogQueryCommandParser {
 		}
 
 		Pattern p = Pattern.compile(regexToken);
-		return new Rex(field, p, names.toArray(new String[0]));
+		return new Rex(field, originalRegexToken, p, names.toArray(new String[0]));
 	}
 
 	private String toNonCapturingGroup(String s) {

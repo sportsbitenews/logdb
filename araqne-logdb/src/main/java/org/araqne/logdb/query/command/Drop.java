@@ -27,4 +27,9 @@ public class Drop extends LogQueryCommand {
 	public boolean isReducer() {
 		return true;
 	}
+
+	@Override
+	public String toString() {
+		return "drop";
+	}
 }

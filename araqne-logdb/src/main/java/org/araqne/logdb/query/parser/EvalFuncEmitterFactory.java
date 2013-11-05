@@ -86,8 +86,11 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new Guid());
 		} else if (name.equals("seq")) {
 			exprStack.add(new Seq());
-		}
-		else {
+		} else if (name.equals("ip2long")) {
+			exprStack.add(new Ip2Long(args));
+		} else if (name.equals("long2ip")) {
+			exprStack.add(new Long2Ip(args));
+		} else {
 			throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
 		}
 	}

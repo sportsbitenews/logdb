@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.query.parser;
+package org.araqne.logdb.impl;
 
-import org.araqne.logdb.query.command.Drop;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import java.util.Collection;
 
-public class DropParserTest {
-	@Test
-	public void testNormalCase() {
-		// no argument at all, it's sink hole
-		DropParser p = new DropParser();
-		p.parse(null, "drop ");
-		assertEquals("drop", new Drop().toString());
+public class Strings {
+	private Strings() {
+	}
+
+	public static String join(Collection<?> tokens, String sep) {
+		StringBuilder sb = new StringBuilder();
+		int i = 0;
+		for (Object s : tokens) {
+			if (i++ != 0)
+				sb.append(sep);
+			sb.append(s);
+		}
+		return sb.toString();
 	}
 }

@@ -43,15 +43,17 @@ public class OutputCsvParser implements LogQueryCommandParser {
 			throw new LogQueryParseException("missing-field", commandString.length());
 
 		boolean overwrite = false;
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overwrite"));
+		ParseResult r = QueryTokenizer
+				.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overwrite"));
+
 		Map<String, String> options = (Map<String, String>) r.value;
 		if (options != null && options.containsKey("overwrite"))
 			overwrite = Boolean.parseBoolean(options.get("overwrite"));
 
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
 		List<String> fields = new ArrayList<String>();
-		String csvPath = tokens.string(0);
-		csvPath = ExpressionParser.evalContextReference(context, csvPath);
+		String originalCsvPath = tokens.string(0);
+		String csvPath = ExpressionParser.evalContextReference(context, originalCsvPath);
 
 		List<QueryToken> fieldTokens = tokens.subtokens(1, tokens.size());
 		for (QueryToken t : fieldTokens) {
@@ -70,7 +72,7 @@ public class OutputCsvParser implements LogQueryCommandParser {
 		try {
 			if (csvFile.getParentFile() != null)
 				csvFile.getParentFile().mkdirs();
-			return new OutputCsv(csvFile, fields);
+			return new OutputCsv(originalCsvPath, csvFile, overwrite, fields);
 		} catch (IOException e) {
 			throw new LogQueryParseException("io-error", -1, e.getMessage());
 		}

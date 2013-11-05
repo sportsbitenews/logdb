@@ -46,6 +46,29 @@ public class OutputCsvParserTest {
 	}
 
 	@Test
+	public void testOverwriteQueryGeneration() {
+		new File("logexport.csv").delete();
+		OutputCsv csv = null;
+		try {
+			OutputCsvParser p = new OutputCsvParser();
+			csv = (OutputCsv) p.parse(null, "outputcsv overwrite=true logexport.csv sip, dip ");
+
+			File f = csv.getCsvFile();
+			assertEquals("logexport.csv", f.getName());
+			assertEquals("sip", csv.getFields().get(0));
+			assertEquals("dip", csv.getFields().get(1));
+
+		} finally {
+			// to close csv file handle
+			if (csv != null)
+				csv.eof(false);
+			new File("logexport.csv").delete();
+		}
+		
+		assertEquals("outputcsv overwrite=true logexport.csv sip, dip", csv.toString());
+	}
+
+	@Test
 	public void testMissingField1() {
 		new File("logexport.csv").delete();
 		try {

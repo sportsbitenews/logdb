@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.impl.Strings;
 
 public class Fields extends LogQueryCommand {
 	private List<String> fields;
@@ -61,4 +62,14 @@ public class Fields extends LogQueryCommand {
 	public boolean isSelector() {
 		return selector;
 	}
+
+	@Override
+	public String toString() {
+		String removeOption = "";
+		if (!selector)
+			removeOption = "- ";
+
+		return "fields " + removeOption + Strings.join(fields, ", ");
+	}
+
 }

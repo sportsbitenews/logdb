@@ -42,6 +42,8 @@ public class SearchParserTest {
 		map = new LogMap();
 		map.put("sip", "10.2.2.2");
 		assertFalse((Boolean) expr.eval(map));
+
+		assertEquals("search (sip == \"10.1.*\")", search.toString());
 	}
 
 	// iisidx.i1 == "74.86.*" or iisidx.i1 == "211.*" or iisidx.i1 ==
@@ -68,13 +70,14 @@ public class SearchParserTest {
 		map = new LogMap();
 		map.put("sip", "10.2.2.2");
 		assertFalse((Boolean) expr.eval(map));
+
+		assertEquals("search (((sip == \"74.86.*\") or (sip == \"211.*\")) or (sip == \"110.221.*\"))", search.toString());
 	}
 
 	@Test
 	public void testInExact() {
 		SearchParser p = new SearchParser();
-		Search search = (Search) p.parse(null,
-				"search in(sip, \"192.168.0.1\", \"211.123.1.1\", \"10.2.2.2\")");
+		Search search = (Search) p.parse(null, "search in(sip, \"192.168.0.1\", \"211.123.1.1\", \"10.2.2.2\")");
 		Expression expr = search.getExpression();
 
 		LogMap map = new LogMap();
@@ -92,13 +95,14 @@ public class SearchParserTest {
 		map = new LogMap();
 		map.put("sip", "10.2.2.2");
 		assertTrue((Boolean) expr.eval(map));
+		
+		assertEquals("search in(sip, \"192.168.0.1\", \"211.123.1.1\", \"10.2.2.2\")", search.toString());
 	}
 
 	@Test
 	public void testInPattern() {
 		SearchParser p = new SearchParser();
-		Search search = (Search) p.parse(null,
-				"search in(sip, \"192.*.1\", \"*123*\", \"10*\", \"*255\")");
+		Search search = (Search) p.parse(null, "search in(sip, \"192.*.1\", \"*123*\", \"10*\", \"*255\")");
 		Expression expr = search.getExpression();
 
 		LogMap map = new LogMap();
@@ -180,6 +184,7 @@ public class SearchParserTest {
 		assertTrue((Boolean) expr.eval(map));
 
 		assertEquals(10L, (long) search.getLimit());
+		assertEquals("search limit=10 (port > 1024)", search.toString());
 	}
 
 	@Test
@@ -187,6 +192,7 @@ public class SearchParserTest {
 		SearchParser p = new SearchParser();
 		Search search = (Search) p.parse(null, "search limit=10");
 		assertEquals(10, (long) search.getLimit());
+		assertEquals("search limit=10", search.toString());
 	}
 
 	@Test
@@ -222,7 +228,6 @@ public class SearchParserTest {
 		String query = "search in (method,\"<iframe src=\\\"http://www.w3schools.com\\\">,,,,,,\\\"\\\",,\\\"<\\\"<<<\\\"<,,</iframe>\") and d_port == \"21\"";
 		SearchParser p = new SearchParser();
 		Search search = (Search) p.parse(null, query);
-		System.out.println(search.getExpression());
 		Output output = new Output();
 		search.setNextCommand(output);
 
@@ -231,7 +236,6 @@ public class SearchParserTest {
 		m.put("method", "<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>");
 		search.push(m);
 		assertEquals(m, output.m);
-
 	}
 
 	/**

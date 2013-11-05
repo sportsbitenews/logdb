@@ -15,6 +15,9 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.Arrays;
+import java.util.Map;
+
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryContext;
@@ -43,15 +46,22 @@ public class ImportParser implements LogQueryCommandParser {
 		return "import";
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
 		if (context == null || !context.getSession().isAdmin())
 			throw new LogQueryParseException("no-permission", -1);
 
-		String tableName = commandString.substring(getCommandName().length()).trim();
-		if (!tableRegistry.exists(tableName))
+		boolean create = false;
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("create"));
+		Map<String, String> m = (Map<String, String>) r.value;
+		if (m != null && m.containsKey("create"))
+			create = Boolean.parseBoolean(m.get("create"));
+
+		String tableName = commandString.substring(r.next).trim();
+		if (!tableRegistry.exists(tableName) && !create)
 			throw new LogQueryParseException("table-not-found", -1);
 
-		return new Import(storage, tableName);
+		return new Import(storage, tableName, create);
 	}
 }

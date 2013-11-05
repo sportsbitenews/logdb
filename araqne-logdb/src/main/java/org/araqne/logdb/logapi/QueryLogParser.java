@@ -22,7 +22,6 @@ import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
 import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommand;
 
 public class QueryLogParser extends LogQueryCommand implements LogParser {
@@ -30,9 +29,8 @@ public class QueryLogParser extends LogQueryCommand implements LogParser {
 	private LogQueryCommand first;
 	private Map<String, Object> last;
 
-	public QueryLogParser(LogQuery q) {
-		queryString = q.getQueryString();
-		List<LogQueryCommand> commands = q.getCommands();
+	public QueryLogParser(String queryString, List<LogQueryCommand> commands) {
+		this.queryString = queryString;
 		first = commands.get(0);
 		commands.add(this);
 

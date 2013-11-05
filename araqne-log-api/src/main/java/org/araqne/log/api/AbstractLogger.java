@@ -17,7 +17,6 @@ package org.araqne.log.api;
 
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,7 +36,6 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private String factoryNamespace;
 	private String factoryName;
 	private String description;
-	private boolean isPassive;
 	private CopyOnWriteArraySet<LogPipe> pipes;
 	private Thread t;
 	private int interval;
@@ -59,74 +57,33 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 	private Set<LoggerEventListener> eventListeners;
 	private LogTransformer transformer;
+	private LoggerFactory factory;
 
 	/**
 	 * @since 1.7.0
 	 */
 	public AbstractLogger(LoggerSpecification spec, LoggerFactory factory) {
-		this(spec.getNamespace(), spec.getName(), spec.getDescription(), factory, spec.getLogCount(), spec.getLastLogDate(), spec
-				.getConfig());
-		this.interval = spec.getInterval();
-	}
-
-	@Deprecated
-	public AbstractLogger(String name, String description, LoggerFactory loggerFactory) {
-		this(name, description, loggerFactory, new HashMap<String, String>());
-	}
-
-	@Deprecated
-	public AbstractLogger(String name, String description, LoggerFactory loggerFactory, Map<String, String> config) {
-		this("local", name, loggerFactory.getNamespace(), loggerFactory.getName(), description, config);
-	}
-
-	@Deprecated
-	public AbstractLogger(String namespace, String name, String description, LoggerFactory loggerFactory) {
-		this(namespace, name, description, loggerFactory, new HashMap<String, String>());
-	}
-
-	@Deprecated
-	public AbstractLogger(String namespace, String name, String description, LoggerFactory loggerFactory,
-			Map<String, String> config) {
-		this(namespace, name, loggerFactory.getNamespace(), loggerFactory.getName(), description, config);
-	}
-
-	@Deprecated
-	public AbstractLogger(String namespace, String name, String description, LoggerFactory loggerFactory, long logCount,
-			Date lastLogDate, Map<String, String> config) {
-		this(namespace, name, loggerFactory.getNamespace(), loggerFactory.getName(), description, logCount, lastLogDate, config);
-	}
-
-	@Deprecated
-	public AbstractLogger(String namespace, String name, String factoryNamespace, String factoryName, Map<String, String> config) {
-		this(namespace, name, factoryNamespace, factoryName, "", config);
-	}
-
-	@Deprecated
-	public AbstractLogger(String namespace, String name, String factoryNamespace, String factoryName, String description,
-			Map<String, String> config) {
-		this(namespace, name, factoryNamespace, factoryName, description, 0, null, config);
-	}
-
-	public AbstractLogger(String namespace, String name, String factoryNamespace, String factoryName, String description,
-			long logCount, Date lastLogDate, Map<String, String> config) {
 		// logger info
-		this.namespace = namespace;
-		this.name = name;
+		this.namespace = spec.getNamespace();
+		this.name = spec.getName();
 		this.fullName = namespace + "\\" + name;
-		this.description = description;
-		this.config = config;
+		this.description = spec.getDescription();
+		this.config = spec.getConfig();
 
 		// logger factory info
-		this.factoryNamespace = factoryNamespace;
-		this.factoryName = factoryName;
+		this.factoryNamespace = factory.getNamespace();
+		this.factoryName = factory.getName();
 		this.factoryFullName = factoryNamespace + "\\" + factoryName;
 
-		this.logCounter = new AtomicLong(logCount);
+		this.logCounter = new AtomicLong(spec.getLogCount());
 		this.dropCounter = new AtomicLong(0);
 		this.lastLogDate = lastLogDate;
 		this.pipes = new CopyOnWriteArraySet<LogPipe>();
 
 		this.eventListeners = Collections.newSetFromMap(new ConcurrentHashMap<LoggerEventListener, Boolean>());
+
+		this.interval = spec.getInterval();
+		this.factory = factory;
 	}
 
 	@Override
@@ -166,17 +123,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 	@Override
 	public boolean isPassive() {
-		return isPassive;
-	}
-
-	@Override
-	public void setPassive(boolean isPassive) {
-		if (!stopped)
-			throw new IllegalStateException("logger is running");
-
-		this.isPassive = isPassive;
-		if (isPassive)
-			lastRunDate = null;
+		return false;
 	}
 
 	@Override
@@ -242,6 +189,11 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public int getInterval() {
 		return interval;
+	}
+
+	@Override
+	public LoggerFactory getFactory() {
+		return factory;
 	}
 
 	/**

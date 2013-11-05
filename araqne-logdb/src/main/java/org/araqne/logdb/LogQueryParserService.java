@@ -18,8 +18,6 @@ package org.araqne.logdb;
 import java.util.List;
 
 public interface LogQueryParserService {
-	LogQuery parse(LogQueryContext context, String queryString);
-
 	List<LogQueryCommand> parseCommands(LogQueryContext context, String queryString);
 
 	void addCommandParser(LogQueryCommandParser parser);
