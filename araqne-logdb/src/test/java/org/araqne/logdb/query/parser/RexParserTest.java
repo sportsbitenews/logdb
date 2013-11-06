@@ -21,10 +21,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.junit.Test;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.query.command.Rex;
+import org.junit.Test;
 
 public class RexParserTest {
 	@Test
@@ -139,5 +139,18 @@ public class RexParserTest {
 
 		assertEquals("3 %", map2.get("cpu_usage"));
 		assertEquals("60 %", map2.get("mem_usage"));
+	}
+
+	@Test
+	public void testInvalidOptionBug() {
+		String s = "rex field=line \"\\d+\\s+(?<xtime>\\d+-\\d+-\\d+\\w+\\d+:\\d+:\\d+\\.\\d+)[-\\w\\d].+RT_FLOW\\s+-\\s+(?<xstatus>\\w+)\\s+[-@=\\[\\w\\d\\\"\\.\\s].+\\s+"
+				+ "source-address=\\\"(?<s_info>[\\.\\d]+)\\\"\\s+source-port=\\\"(?<s_port>\\d+)\\\"\\s+destination-address=\\\"(?<d_info>[\\.\\d]+)\\\"\\s+"
+				+ "destination-port=\\\"(?<d_port>\\d+)\\\"\\s+(?<ext5>[-=\\w\\\"].+?)(\\s+nat-source-address=\\\"(?<xext1_ip>[\\.\\d]+)\\\"\\s+nat-source-port=\\\"(?<xext1_port>[\\d]+)\\\"\\s+"
+				+ "nat-destination-address=\\\"(?<xext2_ip>[\\.\\d]+)\\\"\\s+nat-destination-port=\\\"(?<xext2_port>[\\d]+)\\\"\\s+(?<xnote1>[-=\\w\\s\\\"].+)\\s+|\\s+)protocol-id=\\\"(?<protocol>\\d+)\\\"+(\\s+|[-\\s\\w=\\d\\\"].+)"
+				+ "policy-name=\\\"(?<ext4>\\d+)\\\"+\\s+(?<xnote2>[-=\\w\\s\\\"].+?)\\s++(?<xnote3>[-=\\w\\s\\\"].+?)\\s+(session-id-32=\\\"(?<user_id>\\d+)\\\"\\s|\\s*)(?<xnote4>[-=\\w\\s\\\"].+)\\]\" ";
+
+		RexParser parser = new RexParser();
+		Rex rex = (Rex) parser.parse(null, s);
+		assertEquals("line", rex.getInputField());
 	}
 }

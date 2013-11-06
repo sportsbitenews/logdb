@@ -61,7 +61,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logdb</artifactId>
-			<version>1.8.3</version>
+			<version>1.8.4</version>
 		</dependency>
 	</dependencies>
 </project>
