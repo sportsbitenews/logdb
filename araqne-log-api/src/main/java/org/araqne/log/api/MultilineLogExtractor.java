@@ -43,6 +43,9 @@ public class MultilineLogExtractor {
 	private SimpleDateFormat dateFormat;
 	private LogPipe pipe;
 
+	// XXX
+	private boolean isUTF16LE = false;
+
 	// assign current year to date
 	private Calendar yearModifier;
 
@@ -57,6 +60,7 @@ public class MultilineLogExtractor {
 
 	public void setCharset(String charset) {
 		this.charset = charset;
+		isUTF16LE = charset.equalsIgnoreCase("UTF-16LE");
 	}
 
 	public Matcher getBeginMatcher() {
@@ -116,9 +120,8 @@ public class MultilineLogExtractor {
 
 			for (int i = 0; i < len; i++) {
 				if (b[i] == 0xa) {
-					if (charset.equalsIgnoreCase("UTF-16LE")) {
+					if (isUTF16LE)
 						i += 1;
-					}
 					buildAndWriteLog(logBuf, b, next, i - next + 1, lastPosition, temp, dateFromFileName);
 					next = i + 1;
 				}
@@ -283,7 +286,7 @@ public class MultilineLogExtractor {
 
 		return d;
 	}
-	
+
 	public static void main(String[] args) {
 		Charset forName = Charset.forName("UTF-16LE");
 		System.out.println(forName);
