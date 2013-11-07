@@ -123,6 +123,8 @@ public class Table extends LogQueryCommand {
 		LogParserFactory tableParserFactory = null;
 		Map<String, String> parserProperty = null;
 		
+		boolean bugAlertSuppressFlag = false;
+		
 		public TableLogParserBuilder(LogParserRegistry parserRegistry, LogParserFactoryRegistry parserFactoryRegistry,
 				LogTableRegistry tableRegistry, String tableName) {
 			this.parserRegistry = parserRegistry;
@@ -163,6 +165,16 @@ public class Table extends LogQueryCommand {
 			}
 			return parser;
 		}
+
+		@Override
+		public boolean isBugAlertSuppressed() {
+			return bugAlertSuppressFlag;
+		}
+
+		@Override
+		public void suppressBugAlert() {
+			bugAlertSuppressFlag = true;
+		}
 	}
 
 	@Override
@@ -171,12 +183,17 @@ public class Table extends LogQueryCommand {
 			status = Status.Running;
 			
 			ResultSink sink = new ResultSink(this, params.offset, params.limit);
+			boolean isSuppressedBugAlert = false;
 
 			for (String tableName : params.tableNames) {
 				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry, tableName);
+				if (isSuppressedBugAlert)
+					builder.suppressBugAlert();
 
 				storage.search(tableName, params.from, params.to,  
 						builder, new LogTraverseCallbackImpl(this, sink));
+				
+				isSuppressedBugAlert = isSuppressedBugAlert || builder.isBugAlertSuppressed();
 				if (sink.isEof())
 					break;
 			}

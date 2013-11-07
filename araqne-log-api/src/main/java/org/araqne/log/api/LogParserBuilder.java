@@ -18,4 +18,8 @@ package org.araqne.log.api;
 
 public interface LogParserBuilder {
 	LogParser build();
+	
+	boolean isBugAlertSuppressed();
+	
+	void suppressBugAlert();
 }
