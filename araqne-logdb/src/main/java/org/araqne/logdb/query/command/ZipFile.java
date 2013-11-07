@@ -17,12 +17,14 @@ package org.araqne.logdb.query.command;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.ZipEntry;
 
 import org.araqne.log.api.LogParser;
 import org.araqne.logdb.LogMap;
@@ -32,13 +34,15 @@ import org.slf4j.LoggerFactory;
 
 public class ZipFile extends LogQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(TextFile.class.getName());
-	private InputStream is;
+	private String filePath;
+	private String entryPath;
 	private LogParser parser;
 	private int offset;
 	private int limit;
 
-	public ZipFile(InputStream is, LogParser parser, int offset, int limit) {
-		this.is = is;
+	public ZipFile(String filePath, String entryPath, LogParser parser, int offset, int limit) {
+		this.filePath = filePath;
+		this.entryPath = entryPath;
 		this.parser = parser;
 		this.offset = offset;
 		this.limit = limit;
@@ -48,10 +52,20 @@ public class ZipFile extends LogQueryCommand {
 	public void start() {
 		status = Status.Running;
 
+		java.util.zip.ZipFile zipFile = null;
 		BufferedReader br = null;
+		InputStream is = null;
 		try {
-			Charset utf8 = Charset.forName("utf-8");
-			br = new BufferedReader(new InputStreamReader(new BufferedInputStream(is), utf8));
+			zipFile = new java.util.zip.ZipFile(new File(filePath));
+			logger.debug("araqne logdb: zipfile path: {}, zip entry: {}", filePath, entryPath);
+
+			ZipEntry entry = zipFile.getEntry(entryPath);
+			if (entry == null)
+				throw new IllegalStateException("entry [" + entryPath + "] not found in zip file [" + filePath + "]");
+
+			zipFile.getInputStream(entry);
+
+			br = new BufferedReader(new InputStreamReader(new BufferedInputStream(is), "utf-8"));
 
 			int i = 0;
 			int count = 0;
@@ -81,15 +95,21 @@ public class ZipFile extends LogQueryCommand {
 		} catch (Throwable t) {
 			logger.error("araqne logdb: zipfile error", t);
 		} finally {
-			if (br != null) {
-				try {
-					br.close();
-				} catch (IOException e) {
-				}
-			}
+			ensureClose(is);
+			ensureClose(br);
+			ensureClose(zipFile);
 		}
 
 		eof(false);
+	}
+
+	private void ensureClose(Closeable c) {
+		if (c != null) {
+			try {
+				c.close();
+			} catch (IOException e) {
+			}
+		}
 	}
 
 	@Override
@@ -102,4 +122,8 @@ public class ZipFile extends LogQueryCommand {
 		return false;
 	}
 
+	@Override
+	public String toString() {
+		return "zipfile offset=" + offset + " limit=" + limit + " " + filePath + " " + entryPath;
+	}
 }

@@ -16,10 +16,7 @@
 package org.araqne.logdb.query.parser;
 
 import java.io.File;
-import java.io.InputStream;
 import java.util.Map;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
@@ -27,11 +24,8 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ZipFileParser implements LogQueryCommandParser {
-	private final Logger logger = LoggerFactory.getLogger(ZipFileParser.class);
 	private LogParserFactoryRegistry parserFactoryRegistry;
 
 	public ZipFileParser(LogParserFactoryRegistry parserFactoryRegistry) {
@@ -67,14 +61,6 @@ public class ZipFileParser implements LogQueryCommandParser {
 			if (!file.canRead())
 				throw new IllegalStateException("cannot read zipfile [" + file.getAbsolutePath() + "], check read permission");
 
-			ZipFile zipFile = new ZipFile(file);
-			logger.debug("araqne logdb: zipfile path: {}, zip entry: {}", filePath, entryPath);
-
-			ZipEntry entry = zipFile.getEntry(entryPath);
-			if (entry == null)
-				throw new IllegalStateException("entry [" + entryPath + "] not found in zip file [" + filePath + "]");
-
-			InputStream is = zipFile.getInputStream(entry);
 			String parserName = options.get("parser");
 			LogParser parser = null;
 			if (parserName != null) {
@@ -85,7 +71,7 @@ public class ZipFileParser implements LogQueryCommandParser {
 				parser = factory.createParser(options);
 			}
 
-			return new org.araqne.logdb.query.command.ZipFile(is, parser, offset, limit);
+			return new org.araqne.logdb.query.command.ZipFile(filePath, entryPath, parser, offset, limit);
 		} catch (Throwable t) {
 			throw new RuntimeException("cannot create zipfile source", t);
 		}

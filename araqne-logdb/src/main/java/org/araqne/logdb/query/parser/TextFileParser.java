@@ -16,7 +16,6 @@
 package org.araqne.logdb.query.parser;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -26,6 +25,7 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
 import org.araqne.logdb.LogQueryContext;
+import org.araqne.logdb.LogQueryParseException;
 import org.araqne.logdb.query.command.TextFile;
 
 public class TextFileParser implements LogQueryCommandParser {
@@ -57,7 +57,10 @@ public class TextFileParser implements LogQueryCommandParser {
 			if (options.containsKey("limit"))
 				limit = Integer.valueOf(options.get("limit"));
 
-			FileInputStream is = new FileInputStream(new File(filePath));
+			File f = new File(filePath);
+			if (!f.exists() || !f.canRead())
+				throw new LogQueryParseException("invalid-textfile-path", -1);
+
 			String parserName = options.get("parser");
 			LogParser parser = null;
 			if (parserName != null) {
@@ -68,7 +71,7 @@ public class TextFileParser implements LogQueryCommandParser {
 				parser = factory.createParser(options);
 			}
 
-			return new TextFile(is, parser, offset, limit);
+			return new TextFile(filePath, parser, offset, limit);
 		} catch (Throwable t) {
 			throw new RuntimeException("cannot create textfile source", t);
 		}
