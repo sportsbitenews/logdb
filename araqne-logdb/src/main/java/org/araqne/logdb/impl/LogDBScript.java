@@ -163,15 +163,6 @@ public class LogDBScript implements Script {
 		}
 	}
 
-	/**
-	 * print all connected nodes
-	 */
-	public void nodes(String[] args) {
-		context.println("Log DB Nodes");
-		context.println("--------------");
-
-	}
-
 	public void lookupHandlers(String[] args) {
 		context.println("Lookup Handlers");
 		context.println("---------------------");
