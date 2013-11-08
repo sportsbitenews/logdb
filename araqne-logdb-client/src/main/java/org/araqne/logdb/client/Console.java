@@ -88,8 +88,8 @@ public class Console {
 
 				String host = getOpt(opts, "-h", "Error: -h, host is required");
 				String loginName = getOpt(opts, "-u", "Error: -u, login name is required");
-				String password = getOpt(opts, "-p", "Error: -p, port is required");
-				String port = getOpt(opts, "-P", "Error: -P, password is required");
+				String password = getOpt(opts, "-p", "Error: -p, password is required");
+				String port = getOpt(opts, "-P", "Error: -P, port is required");
 				String cols = opts.get("-c");
 
 				String[] headers = null;
