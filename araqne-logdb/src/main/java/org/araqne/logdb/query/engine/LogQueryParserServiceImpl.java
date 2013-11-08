@@ -50,6 +50,7 @@ public class LogQueryParserServiceImpl implements LogQueryParserService {
 				throw new LogQueryParseException("unsupported-command", -1, "command is [" + commandType + "]");
 
 			LogQueryCommand cmd = parser.parse(context, q);
+			cmd.setContext(context);
 			cmd.setName(parser.getCommandName());
 			cmd.setQueryString(q);
 			commands.add(cmd);
