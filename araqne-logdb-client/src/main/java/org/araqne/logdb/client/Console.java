@@ -16,8 +16,12 @@
 package org.araqne.logdb.client;
 
 import java.io.BufferedReader;
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
@@ -29,6 +33,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.PatternLayout;
+
+import au.com.bytecode.opencsv.CSVWriter;
+
 public class Console {
 	private BufferedReader br;
 	private LogDbClient client;
@@ -37,7 +47,154 @@ public class Console {
 	private String password;
 
 	public static void main(String[] args) throws IOException {
+		ConsoleAppender ca = new ConsoleAppender(new PatternLayout());
+		ca.setThreshold(Level.INFO);
+		org.apache.log4j.BasicConfigurator.configure(ca);
+
+		Map<String, String> opts = getOpts(args);
+		if (opts.containsKey("-e")) {
+			oneShotQuery(opts);
+			return;
+		}
+
 		new Console().run();
+	}
+
+	private static void oneShotQuery(Map<String, String> opts) throws IOException {
+		CSVWriter csvWriter = null;
+		try {
+			LogDbClient client = null;
+			try {
+				client = new LogDbClient();
+				String query = null;
+				String queryPath = opts.get("-f");
+				if (queryPath != null) {
+					File f = new File(queryPath);
+					if (!f.exists()) {
+						System.err.println("query file not found: " + f.getAbsolutePath());
+						System.exit(-1);
+					}
+
+					if (!f.canRead()) {
+						System.err.println("check query file permission: " + f.getAbsolutePath());
+						System.exit(-1);
+					}
+
+					query = readQueryFile(f);
+				}
+
+				if (query == null)
+					query = getOpt(opts, "-e", "Error: -e, query string is missing");
+
+				String host = getOpt(opts, "-h", "Error: -h, host is required");
+				String loginName = getOpt(opts, "-u", "Error: -u, login name is required");
+				String password = getOpt(opts, "-p", "Error: -p, port is required");
+				String port = getOpt(opts, "-P", "Error: -P, password is required");
+				String cols = opts.get("-c");
+
+				String[] headers = null;
+				String[] line = null;
+				if (cols != null && !cols.trim().isEmpty()) {
+					headers = cols.split(",");
+					for (int i = 0; i < headers.length; i++)
+						headers[i] = headers[i].trim();
+
+					line = new String[headers.length];
+				}
+
+				client.connect(host, Integer.valueOf(port), loginName, password);
+				String lineEnd = System.getProperty("line.separator");
+				csvWriter = new CSVWriter(new OutputStreamWriter(System.out), CSVWriter.DEFAULT_SEPARATOR,
+						CSVWriter.DEFAULT_QUOTE_CHARACTER, lineEnd);
+
+				LogCursor cursor = client.query(query);
+				while (cursor.hasNext()) {
+					Map<String, Object> m = cursor.next();
+
+					if (line == null)
+						System.out.println(m);
+					else {
+						for (int i = 0; i < line.length; i++) {
+							Object o = m.get(headers[i]);
+							line[i] = o == null ? "" : o.toString();
+						}
+
+						csvWriter.writeNext(line);
+					}
+				}
+			} finally {
+				ensureClose(csvWriter);
+				ensureClose(client);
+			}
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+			System.err.println(e.getMessage());
+			System.exit(-1);
+		}
+	}
+
+	private static String readQueryFile(File f) {
+		BufferedReader br = null;
+		FileInputStream is = null;
+		StringBuilder sb = new StringBuilder();
+		try {
+			is = new FileInputStream(f);
+			br = new BufferedReader(new InputStreamReader(is, "utf-8"));
+
+			while (true) {
+				String line = br.readLine();
+				if (line == null)
+					break;
+
+				if (!line.trim().startsWith("#"))
+					sb.append(line);
+			}
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
+			System.exit(-1);
+		} finally {
+			ensureClose(is);
+		}
+		return sb.toString();
+	}
+
+	private static void ensureClose(Closeable c) {
+		if (c != null) {
+			try {
+				c.close();
+			} catch (IOException e) {
+			}
+		}
+	}
+
+	private static String getOpt(Map<String, String> opts, String key, String msg) {
+		String val = opts.get(key);
+		if (val == null)
+			throw new IllegalArgumentException(msg);
+		return val;
+	}
+
+	private static Map<String, String> getOpts(String[] args) {
+		String name = null;
+		String value = "";
+
+		Map<String, String> opts = new HashMap<String, String>();
+		for (String arg : args) {
+			if (arg.startsWith("-")) {
+				if (name != null) {
+					opts.put(name, value);
+					value = "";
+				}
+
+				name = arg;
+			} else {
+				value = arg;
+			}
+		}
+
+		if (name != null)
+			opts.put(name, value);
+		return opts;
 	}
 
 	public void run() throws IOException {
