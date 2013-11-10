@@ -63,8 +63,7 @@ public class ZipFile extends LogQueryCommand {
 			if (entry == null)
 				throw new IllegalStateException("entry [" + entryPath + "] not found in zip file [" + filePath + "]");
 
-			zipFile.getInputStream(entry);
-
+			is = zipFile.getInputStream(entry);
 			br = new BufferedReader(new InputStreamReader(new BufferedInputStream(is), "utf-8"));
 
 			int i = 0;
@@ -97,7 +96,11 @@ public class ZipFile extends LogQueryCommand {
 		} finally {
 			ensureClose(is);
 			ensureClose(br);
-			ensureClose(zipFile);
+			try {
+				if (zipFile != null)
+					zipFile.close();
+			} catch (IOException e) {
+			}
 		}
 
 		eof(false);
