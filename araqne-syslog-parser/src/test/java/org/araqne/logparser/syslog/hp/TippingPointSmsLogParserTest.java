@@ -68,6 +68,10 @@ public class TippingPointSmsLogParserTest {
 				+ "7112: IP: Fragment Expired\t7112\tip\t220.76.119.239\t0\t211.233.74.133\t0\t1\t3\t3\tInterpark_B\t100794367\t1335076462067\t";
 		TippingPointSmsLogParser parser = new TippingPointSmsLogParser();
 		Map<String, Object> m = parser.parse(line(line));
+		assertEquals("ip", m.get("protocol"));
+		assertEquals("dc7fe1b9-514f-11e1-3f6d-e43760fdb01b", m.get("policy_uuid"));
+		assertEquals("220.76.119.239", m.get("src_ip"));
+		assertEquals("211.233.74.133", m.get("dst_ip"));
 
 	}
 

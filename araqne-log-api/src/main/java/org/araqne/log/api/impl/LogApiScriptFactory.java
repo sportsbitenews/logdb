@@ -33,7 +33,6 @@ import org.araqne.log.api.LoggerRegistry;
 @Component(name = "logapi-script-factory")
 @Provides
 public class LogApiScriptFactory implements ScriptFactory {
-	@SuppressWarnings("unused")
 	@ServiceProperty(name = "alias", value = "logapi")
 	private String alias;
 

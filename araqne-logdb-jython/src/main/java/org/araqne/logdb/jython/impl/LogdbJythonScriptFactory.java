@@ -31,7 +31,6 @@ import org.osgi.framework.BundleContext;
 @Provides
 public class LogdbJythonScriptFactory implements ScriptFactory {
 
-	@SuppressWarnings("unused")
 	@ServiceProperty(name = "alias", value = "logdb-jython")
 	private String alias;
 

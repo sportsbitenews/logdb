@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -81,14 +80,14 @@ public class LogFileHelper implements Closeable {
 
 	public File getCurrentFile(Date date) {
 		Date floored = floored(date, fileDurationHour);
-		
+
 		List<String> dateStrs = new ArrayList<String>();
 		for (SimpleDateFormat s : placeHolderFormats) {
 			dateStrs.add(s.format(floored));
 		}
 		return new File(String.format(filePathFormat, dateStrs.toArray()));
 	}
-	
+
 	private Date floored(Date d, int durationHour) {
 		Calendar cal = Calendar.getInstance();
 		cal.setTime(d);
@@ -99,25 +98,12 @@ public class LogFileHelper implements Closeable {
 		return cal.getTime();
 	}
 
-	public static void main(String[] args) {
-		LogFileHelper logFileHelper = new LogFileHelper("/var/log/some_app/%d{yyyy-MM-dd}/some_prefix-%d{H}.log", 2);
-		System.out.println(logFileHelper.getCurrentFile(new Date()).getAbsolutePath());
-		
-		Calendar cal = Calendar.getInstance();
-		cal.set(2013, 2, 2, 20, 14);
-		Date startTime = cal.getTime();
-		cal.add(Calendar.HOUR, 12);
-		Date current = cal.getTime();
-
-		System.out.println(Arrays.toString(logFileHelper.listFilesFrom(startTime, current, false)));
-	}
-	
 	public static void logicTest(String[] args) {
 		// memo: (?:[^;]+;){3}([^;]+);
 		String format = "/var/log/some_app/%d{yyyy-MM-dd}/some_prefix-%d{H}.log";
 
 		format = Pattern.compile("%(.)").matcher(format).replaceAll("%%$1");
-		
+
 		System.out.println(format);
 
 		Pattern placeHolderPattern = Pattern.compile("%%d\\{([^\\}]*)\\}");
@@ -151,7 +137,7 @@ public class LogFileHelper implements Closeable {
 		// listFilesFrom
 		Date d = cal.getTime();
 		Date current = new Date();
-		
+
 		int cnt = 0;
 		while (d.before(current) && cnt++ < 5) {
 			dateStrs.clear();
@@ -161,8 +147,7 @@ public class LogFileHelper implements Closeable {
 			System.out.println(String.format(formatStr, dateStrs.toArray()));
 			d.setTime(d.getTime() + 1000 * 60 * 60 * 2);
 		}
-		
-		
+
 	}
 
 	public File[] listFilesFrom(Date startTime, Date current, boolean onlyExists) {

@@ -31,7 +31,6 @@ import org.araqne.logdb.SavedResultManager;
 @Component(name = "logdb-script-factory")
 @Provides
 public class LogDBScriptFactory implements ScriptFactory {
-	@SuppressWarnings("unused")
 	@ServiceProperty(name = "alias", value = "logdb")
 	private String alias;
 

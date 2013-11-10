@@ -37,10 +37,14 @@ public class SrxLogParser extends V1LogParser {
 			Scanner s = new Scanner(line);
 			s.useDelimiter(" +");
 
-			String month = s.next();
-			String day = s.next();
-			String time = s.next();
-			String type = s.next();
+			// month
+			s.next();
+			// day
+			s.next();
+			// time
+			s.next();
+			// type
+			s.next();
 			String logtype = s.next();
 			s.next();
 			s.next();

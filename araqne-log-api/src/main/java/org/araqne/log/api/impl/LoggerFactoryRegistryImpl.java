@@ -47,12 +47,10 @@ public class LoggerFactoryRegistryImpl implements LoggerFactoryRegistry, LoggerF
 	private Set<LoggerFactoryRegistryEventListener> callbacks;
 
 	// force loading
-	@SuppressWarnings("unused")
 	@Requires
 	private LoggerRegistry loggerRegistry;
 
 	// force loading
-	@SuppressWarnings("unused")
 	@Requires
 	private LogTransformerRegistry transformerRegistry;
 

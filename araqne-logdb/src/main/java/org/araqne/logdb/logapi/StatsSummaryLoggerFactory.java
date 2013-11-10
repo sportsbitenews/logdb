@@ -31,7 +31,6 @@ import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
-import org.araqne.log.api.SelectorLogger;
 import org.araqne.log.api.StringConfigType;
 
 @Component(name = "stats-summary-logger-factory")
