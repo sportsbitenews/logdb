@@ -29,9 +29,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
@@ -55,6 +57,7 @@ import org.araqne.logstorage.LogStorageEventListener;
 import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogWriterStatus;
+import org.araqne.logstorage.TableWildcardMatcher;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
@@ -95,8 +98,7 @@ public class LogStorageScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "create crypto profile", arguments = {
-			@ScriptArgument(name = "profile name", type = "string", description = "crypto profile name") })
+	@ScriptUsage(description = "create crypto profile", arguments = { @ScriptArgument(name = "profile name", type = "string", description = "crypto profile name") })
 	public void createCryptoProfile(String[] args) throws InterruptedException {
 		LogCryptoProfile p = new LogCryptoProfile();
 		p.setName(args[0]);
@@ -121,8 +123,7 @@ public class LogStorageScript implements Script {
 		context.println("created");
 	}
 
-	@ScriptUsage(description = "create crypto profile", arguments = {
-			@ScriptArgument(name = "profile name", type = "string", description = "crypto profile name") })
+	@ScriptUsage(description = "create crypto profile", arguments = { @ScriptArgument(name = "profile name", type = "string", description = "crypto profile name") })
 	public void removeCryptoProfile(String[] args) {
 		cryptoRegistry.removeProfile(args[0]);
 		context.println("removed");
@@ -229,8 +230,7 @@ public class LogStorageScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "list tables", arguments = {
-			@ScriptArgument(name = "filter", type = "string", description = "table name filter", optional = true) })
+	@ScriptUsage(description = "list tables", arguments = { @ScriptArgument(name = "filter", type = "string", description = "table name filter", optional = true) })
 	public void tables(String[] args) {
 		String filter = null;
 		if (args.length > 0)
@@ -789,14 +789,17 @@ public class LogStorageScript implements Script {
 			@ScriptArgument(name = "to", type = "string", description = "yyyyMMdd") })
 	public void purge(String[] args) throws ParseException {
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
-		String tableName = args[0];
+		String receivedTableName = args[0];
 		Date fromDay = df.parse(args[1]);
 		Date toDay = df.parse(args[2]);
 
 		PurgePrinter printer = new PurgePrinter();
 		try {
 			storage.addEventListener(printer);
-			storage.purge(tableName, fromDay, toDay);
+			Set<String> tableNames = TableWildcardMatcher.apply(new HashSet<String>(tableRegistry.getTableNames()),
+					receivedTableName);
+			for (String tableName : tableNames)
+				storage.purge(tableName, fromDay, toDay);
 		} finally {
 			storage.removeEventListener(printer);
 		}

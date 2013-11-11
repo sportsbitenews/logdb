@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.client;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
@@ -47,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * @author xeraph
  * 
  */
-public class LogDbClient implements TrapListener {
+public class LogDbClient implements TrapListener, Closeable {
 	private Logger logger = LoggerFactory.getLogger(LogDbClient.class);
 	private LogDbTransport transport;
 	private LogDbSession session;

@@ -17,6 +17,8 @@ package org.araqne.logdb.query.command;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.Closeable;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -32,13 +34,13 @@ import org.slf4j.LoggerFactory;
 
 public class TextFile extends LogQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(TextFile.class.getName());
-	private FileInputStream is;
+	private String filePath;
 	private LogParser parser;
 	private int offset;
 	private int limit;
 
-	public TextFile(FileInputStream is, LogParser parser, int offset, int limit) {
-		this.is = is;
+	public TextFile(String filePath, LogParser parser, int offset, int limit) {
+		this.filePath = filePath;
 		this.parser = parser;
 		this.offset = offset;
 		this.limit = limit;
@@ -48,9 +50,11 @@ public class TextFile extends LogQueryCommand {
 	public void start() {
 		status = Status.Running;
 
+		FileInputStream is = null;
 		BufferedReader br = null;
 		try {
 			Charset utf8 = Charset.forName("utf-8");
+			is = new FileInputStream(new File(filePath));
 			br = new BufferedReader(new InputStreamReader(new BufferedInputStream(is), utf8));
 
 			int i = 0;
@@ -81,15 +85,19 @@ public class TextFile extends LogQueryCommand {
 		} catch (Throwable t) {
 			logger.error("araqne logdb: file error", t);
 		} finally {
-			if (br != null) {
-				try {
-					br.close();
-				} catch (IOException e) {
-				}
-			}
+			ensureClose(is);
+			ensureClose(br);
 		}
 
 		eof(false);
+	}
+
+	private void ensureClose(Closeable c) {
+		try {
+			if (c != null)
+				c.close();
+		} catch (IOException e) {
+		}
 	}
 
 	@Override
@@ -102,4 +110,8 @@ public class TextFile extends LogQueryCommand {
 		return false;
 	}
 
+	@Override
+	public String toString() {
+		return "textfile offset=" + offset + " limit=" + limit + " " + filePath;
+	}
 }

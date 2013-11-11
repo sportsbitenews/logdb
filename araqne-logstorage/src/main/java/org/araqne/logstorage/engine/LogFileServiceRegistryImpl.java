@@ -2,6 +2,7 @@ package org.araqne.logstorage.engine;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -53,9 +54,10 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 
 		// load file engine list
 		FileInputStream is = null;
+		BufferedReader br = null;
 		try {
 			is = new FileInputStream(f);
-			BufferedReader br = new BufferedReader(new InputStreamReader(is, "utf-8"));
+			br = new BufferedReader(new InputStreamReader(is, "utf-8"));
 
 			while (true) {
 				String line = br.readLine();
@@ -66,10 +68,18 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 				availableEngines.put(type, new WaitEvent(type));
 			}
 		} finally {
-			if (is != null)
-				is.close();
+			ensureClose(br);
+			ensureClose(is);
 		}
+	}
 
+	private void ensureClose(Closeable c) {
+		if (c != null) {
+			try {
+				c.close();
+			} catch (IOException e) {
+			}
+		}
 	}
 
 	private File getEngineListFile() {

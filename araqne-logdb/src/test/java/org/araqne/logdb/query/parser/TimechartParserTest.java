@@ -50,6 +50,7 @@ public class TimechartParserTest {
 		assertEquals("count", tc.getAggregationFields().get(0).getName());
 		assertEquals(1, tc.getTimeSpan().amount);
 		assertEquals(TimeUnit.Day, tc.getTimeSpan().unit);
+		assertEquals("timechart span=1d count", tc.toString());
 	}
 
 	@Test
@@ -61,6 +62,7 @@ public class TimechartParserTest {
 		assertEquals("count", tc.getAggregationFields().get(0).getName());
 		assertEquals(1, tc.getTimeSpan().amount);
 		assertEquals(TimeUnit.Day, tc.getTimeSpan().unit);
+		assertEquals("timechart span=1d count", tc.toString());
 	}
 
 	@Test
@@ -73,6 +75,7 @@ public class TimechartParserTest {
 		assertEquals(1, tc.getTimeSpan().amount);
 		assertEquals(TimeUnit.Day, tc.getTimeSpan().unit);
 		assertEquals("sip", tc.getKeyField());
+		assertEquals("timechart span=1d count by sip", tc.toString());
 	}
 
 	@Test
@@ -88,6 +91,7 @@ public class TimechartParserTest {
 		LogMap m = new LogMap();
 		m.put("sport", 100);
 		assertEquals(50.0, arg1.eval(m));
+		assertEquals("timechart span=1m sum((sport / 2))", tc.toString());
 	}
 
 	@Test

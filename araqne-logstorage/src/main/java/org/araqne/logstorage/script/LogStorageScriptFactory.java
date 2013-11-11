@@ -31,7 +31,6 @@ import org.araqne.logstorage.LogTableRegistry;
 @Component(name = "logstorage-script-factory")
 @Provides
 public class LogStorageScriptFactory implements ScriptFactory {
-	@SuppressWarnings("unused")
 	@ServiceProperty(name = "alias", value = "logstorage")
 	private String alias;
 

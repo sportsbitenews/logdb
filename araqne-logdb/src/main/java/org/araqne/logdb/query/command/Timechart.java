@@ -46,24 +46,37 @@ public class Timechart extends LogQueryCommand {
 			this.amount = amount;
 			this.unit = unit;
 		}
+
+		@Override
+		public String toString() {
+			return amount + unit.toString();
+		}
 	}
 
 	public static enum TimeUnit {
-		Second(Calendar.SECOND, 1000L), Minute(Calendar.MINUTE, 60 * 1000L), Hour(Calendar.HOUR_OF_DAY, 60 * 60 * 1000L), Day(
-				Calendar.DAY_OF_MONTH, 86400 * 1000L), Week(Calendar.WEEK_OF_YEAR, 7 * 86400 * 1000L), Month(Calendar.MONTH,
-				30 * 86400 * 1000L), Year(Calendar.YEAR, 365 * 86400 * 1000L);
+		Second(Calendar.SECOND, 1000L, "s"), Minute(Calendar.MINUTE, 60 * 1000L, "m"), Hour(Calendar.HOUR_OF_DAY,
+				60 * 60 * 1000L, "h"), Day(Calendar.DAY_OF_MONTH, 86400 * 1000L, "d"), Week(Calendar.WEEK_OF_YEAR,
+				7 * 86400 * 1000L, "w"), Month(Calendar.MONTH, 30 * 86400 * 1000L, "mon"), Year(Calendar.YEAR,
+				365 * 86400 * 1000L, "y");
 
 		private int calendarField;
 		private long millis;
+		private String acronym;
 
 		private static final int[] mon2Spans = new int[] { 1, 3, 5, 7, 9, 11 };
 		private static final int[] mon3Spans = new int[] { 1, 4, 7, 10 };
 		private static final int[] mon4Spans = new int[] { 1, 5, 9 };
 		private static final int[] mon6Spans = new int[] { 1, 7 };
 
-		private TimeUnit(int calendarField, long millis) {
+		private TimeUnit(int calendarField, long millis, String acronym) {
 			this.calendarField = calendarField;
 			this.millis = millis;
+			this.acronym = acronym;
+		}
+
+		@Override
+		public String toString() {
+			return acronym;
 		}
 
 		public static Date getKey(Date date, TimeSpan timeSpan) {
@@ -456,5 +469,19 @@ public class Timechart extends LogQueryCommand {
 				return false;
 			return true;
 		}
+	}
+
+	@Override
+	public String toString() {
+		String s = "";
+		for (AggregationField f : fields) {
+			s += " " + f.toString();
+		}
+
+		String by = "";
+		if (keyField != null)
+			by += " by " + keyField;
+
+		return "timechart span=" + timeSpan + s + by;
 	}
 }

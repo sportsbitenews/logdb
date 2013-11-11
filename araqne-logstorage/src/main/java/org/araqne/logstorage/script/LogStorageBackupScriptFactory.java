@@ -33,7 +33,6 @@ import org.araqne.logstorage.backup.StorageBackupMediaRegistry;
 @Component(name = "logstorage-backup-script-factory")
 @Provides
 public class LogStorageBackupScriptFactory implements ScriptFactory {
-	@SuppressWarnings("unused")
 	@ServiceProperty(name = "alias", value = "logstorage")
 	private String alias;
 

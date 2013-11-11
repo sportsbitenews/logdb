@@ -31,6 +31,7 @@ public class SortParserTest {
 		assertEquals("field1", sort.getFields()[0].getName());
 		assertEquals(true, sort.getFields()[0].isAsc());
 		assertNull(sort.getLimit());
+		assertEquals("sort field1", sort.toString());
 	}
 
 	@Test
@@ -46,6 +47,7 @@ public class SortParserTest {
 		assertEquals("field3", sort.getFields()[2].getName());
 		assertEquals(true, sort.getFields()[2].isAsc());
 		assertNull(sort.getLimit());
+		assertEquals("sort field1, field2, field3", sort.toString());
 	}
 
 	@Test
@@ -61,6 +63,7 @@ public class SortParserTest {
 		assertEquals("field3", sort.getFields()[2].getName());
 		assertEquals(true, sort.getFields()[2].isAsc());
 		assertNull(sort.getLimit());
+		assertEquals("sort -field1, field2, field3", sort.toString());
 	}
 
 	@Test
@@ -72,6 +75,7 @@ public class SortParserTest {
 		assertEquals("field1", sort.getFields()[0].getName());
 		assertEquals(false, sort.getFields()[0].isAsc());
 		assertEquals(10, (int) sort.getLimit());
+		assertEquals("sort limit=10 -field1", sort.toString());
 	}
 
 	@Test
@@ -91,6 +95,7 @@ public class SortParserTest {
 		assertEquals(false, sort.getFields()[2].isAsc());
 
 		assertEquals(20, (int) sort.getLimit());
+		assertEquals("sort limit=20 field1, field2, -field3", sort.toString());
 	}
 
 	@Test

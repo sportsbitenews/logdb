@@ -20,12 +20,9 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
-import org.araqne.log.api.WildcardMatcher;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogQueryCommandParser;
@@ -119,6 +116,7 @@ public class TableParser implements LogQueryCommandParser {
 		params.setParserName(parser);
 
 		Table table = new Table(params);
+		table.setAccountService(accountService);
 		table.setTableRegistry(tableRegistry);
 		table.setStorage(logStorage);
 		table.setParserFactoryRegistry(parserFactoryRegistry);
@@ -140,35 +138,17 @@ public class TableParser implements LogQueryCommandParser {
 				name = fqdn.substring(pos + 1);
 			}
 
-			if (name.contains("*")) {
-				Pattern p = WildcardMatcher.buildPattern(name);
-				addWildMatchTables(context, tableNames, p.matcher(""));
-			} else {
-				if (namespace == null) {
-					// check only local tables
-					if (!tableRegistry.exists(name))
-						throw new LogQueryParseException("table-not-found", -1, "table=" + fqdn);
+			if (namespace == null && !name.contains("*")) {
+				// check only local tables
+				if (!tableRegistry.exists(name))
+					throw new LogQueryParseException("table-not-found", -1, "table=" + fqdn);
 
-					if (!accountService.checkPermission(context.getSession(), name, Permission.READ))
-						throw new LogQueryParseException("no-read-permission", -1, "table=" + fqdn);
-				}
-
-				tableNames.add(fqdn);
+				if (!accountService.checkPermission(context.getSession(), name, Permission.READ))
+					throw new LogQueryParseException("no-read-permission", -1, "table=" + fqdn);
 			}
+
+			tableNames.add(fqdn);
 		}
 		return tableNames;
-	}
-
-	private void addWildMatchTables(LogQueryContext context, List<String> tableNames, Matcher matcher) {
-		for (String tableName : tableRegistry.getTableNames()) {
-			matcher.reset(tableName);
-			if (!matcher.matches())
-				continue;
-
-			if (!accountService.checkPermission(context.getSession(), tableName, Permission.READ))
-				continue;
-
-			tableNames.add(tableName);
-		}
 	}
 }

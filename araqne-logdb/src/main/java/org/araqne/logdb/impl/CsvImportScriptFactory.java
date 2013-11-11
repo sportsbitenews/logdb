@@ -26,7 +26,6 @@ import org.araqne.logstorage.LogStorage;
 @Component(name = "csv-import-script-factory")
 @Provides
 public class CsvImportScriptFactory implements ScriptFactory {
-	@SuppressWarnings("unused")
 	@ServiceProperty(name = "alias", value = "logstorage")
 	private String alias;
 

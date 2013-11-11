@@ -15,12 +15,12 @@
  */
 package org.araqne.logparser.syslog.juniper;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class SrxLogParserTest {
 

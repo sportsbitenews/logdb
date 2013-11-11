@@ -28,6 +28,7 @@ public abstract class LogQueryCommand {
 	private String name;
 	private String queryString;
 	private long pushCount;
+	protected LogQueryContext context;
 	protected LogQuery logQuery;
 	protected LogQueryCommand next;
 	private boolean callbackTimeline;
@@ -59,6 +60,14 @@ public abstract class LogQueryCommand {
 
 	public void setQueryString(String queryString) {
 		this.queryString = queryString;
+	}
+
+	public LogQueryContext getContext() {
+		return context;
+	}
+
+	public void setContext(LogQueryContext context) {
+		this.context = context;
 	}
 
 	public void setLogQuery(LogQuery logQuery) {

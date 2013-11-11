@@ -37,25 +37,11 @@ public class Sort extends LogQueryCommand {
 	private Integer limit;
 	private SortField[] fields;
 	private ParallelMergeSorter sorter;
-	private boolean reverse;
 	private TopSelector<Item> top;
 
-	public Sort(SortField[] fields) {
-		this(null, fields, false);
-	}
-
 	public Sort(Integer limit, SortField[] fields) {
-		this(limit, fields, false);
-	}
-
-	public Sort(SortField[] fields, boolean reverse) {
-		this(null, fields, reverse);
-	}
-
-	public Sort(Integer limit, SortField[] fields, boolean reverse) {
 		this.limit = limit;
 		this.fields = fields;
-		this.reverse = reverse;
 	}
 
 	@Override
@@ -73,10 +59,6 @@ public class Sort extends LogQueryCommand {
 
 	public SortField[] getFields() {
 		return fields;
-	}
-
-	public boolean isReverse() {
-		return reverse;
 	}
 
 	@Override
@@ -169,8 +151,6 @@ public class Sort extends LogQueryCommand {
 
 					if (!field.asc)
 						result *= -1;
-					if (reverse)
-						result *= -1;
 
 					return result;
 				}
@@ -235,5 +215,22 @@ public class Sort extends LogQueryCommand {
 		public String toString() {
 			return "SortField [name=" + name + ", asc=" + asc + "]";
 		}
+	}
+
+	@Override
+	public String toString() {
+		String limitOpt = "";
+		if (limit != null)
+			limitOpt = " limit=" + limit;
+
+		int i = 0;
+		String fieldOpt = "";
+		for (SortField f : fields) {
+			if (i++ != 0)
+				fieldOpt += ",";
+			fieldOpt += " " + (f.isAsc() ? "" : "-") + f.getName();
+		}
+
+		return "sort" + limitOpt + fieldOpt;
 	}
 }

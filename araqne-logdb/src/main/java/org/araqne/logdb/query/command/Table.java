@@ -16,8 +16,10 @@
 package org.araqne.logdb.query.command;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -27,18 +29,22 @@ import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerConfigOption;
+import org.araqne.logdb.AccountService;
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.Permission;
 import org.araqne.logdb.impl.Strings;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogTraverseCallback;
+import org.araqne.logstorage.TableWildcardMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Table extends LogQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Table.class);
+	private AccountService accountService;
 	private LogStorage storage;
 	private LogTableRegistry tableRegistry;
 	private LogParserFactoryRegistry parserFactoryRegistry;
@@ -56,6 +62,14 @@ public class Table extends LogQueryCommand {
 
 	public void setTableNames(List<String> tableNames) {
 		params.tableNames = tableNames;
+	}
+
+	public AccountService getAccountService() {
+		return accountService;
+	}
+
+	public void setAccountService(AccountService accountService) {
+		this.accountService = accountService;
 	}
 
 	public LogStorage getStorage() {
@@ -185,7 +199,7 @@ public class Table extends LogQueryCommand {
 			ResultSink sink = new ResultSink(this, params.offset, params.limit);
 			boolean isSuppressedBugAlert = false;
 
-			for (String tableName : params.tableNames) {
+			for (String tableName : expandTableNames(params.tableNames)) {
 				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry, tableName);
 				if (isSuppressedBugAlert)
 					builder.suppressBugAlert();
@@ -206,6 +220,32 @@ public class Table extends LogQueryCommand {
 		} finally {
 			eof(false);
 		}
+	}
+
+	private List<String> expandTableNames(List<String> tableNames) {
+		List<String> localTableNames = new ArrayList<String>();
+		for (String s : tableNames) {
+			if (s.contains("*"))
+				localTableNames.addAll(matchTables(s));
+			else if (isAccessible(s))
+				localTableNames.add(s);
+		}
+		return localTableNames;
+	}
+
+	private List<String> matchTables(String tableNameExpr) {
+		List<String> filtered = new ArrayList<String>();
+		for (String name : TableWildcardMatcher.apply(new HashSet<String>(tableRegistry.getTableNames()), tableNameExpr)) {
+			if (!isAccessible(name))
+				continue;
+
+			filtered.add(name);
+		}
+		return filtered;
+	}
+
+	private boolean isAccessible(String name) {
+		return accountService.checkPermission(context.getSession(), name, Permission.READ);
 	}
 
 	@Override

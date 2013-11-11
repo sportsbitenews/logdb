@@ -162,29 +162,36 @@ public class CsvLookupRegistryImpl implements CsvLookupRegistry {
 		private Map<String, Map<String, String>> mappings = new HashMap<String, Map<String, String>>();
 
 		public CsvLookupHandler(File f) throws IOException {
-			CSVReader reader = new CSVReader(new FileReader(f));
+			CSVReader reader = null;
 
-			String[] nextLine = reader.readNext();
-			if (nextLine == null)
-				throw new IllegalStateException("header columns not found");
+			try {
+				reader = new CSVReader(new FileReader(f));
 
-			if (nextLine.length < 2)
-				throw new IllegalStateException("not enough columns (should be 2 or more)");
+				String[] nextLine = reader.readNext();
+				if (nextLine == null)
+					throw new IllegalStateException("header columns not found");
 
-			keyFieldName = nextLine[0];
-			valueFieldNames = new ArrayList<String>(nextLine.length - 1);
-			for (int i = 1; i < nextLine.length; i++)
-				valueFieldNames.add(nextLine[i]);
+				if (nextLine.length < 2)
+					throw new IllegalStateException("not enough columns (should be 2 or more)");
 
-			while ((nextLine = reader.readNext()) != null) {
-				Map<String, String> values = new HashMap<String, String>();
-				for (int i = 1; i < nextLine.length; i++) {
-					String valueFieldName = valueFieldNames.get(i - 1);
-					String value = nextLine[i];
-					values.put(valueFieldName, value);
+				keyFieldName = nextLine[0];
+				valueFieldNames = new ArrayList<String>(nextLine.length - 1);
+				for (int i = 1; i < nextLine.length; i++)
+					valueFieldNames.add(nextLine[i]);
+
+				while ((nextLine = reader.readNext()) != null) {
+					Map<String, String> values = new HashMap<String, String>();
+					for (int i = 1; i < nextLine.length; i++) {
+						String valueFieldName = valueFieldNames.get(i - 1);
+						String value = nextLine[i];
+						values.put(valueFieldName, value);
+					}
+
+					mappings.put(nextLine[0], values);
 				}
-
-				mappings.put(nextLine[0], values);
+			} finally {
+				if (reader != null)
+					reader.close();
 			}
 		}
 

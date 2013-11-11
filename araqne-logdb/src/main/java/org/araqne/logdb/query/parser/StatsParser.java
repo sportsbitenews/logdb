@@ -15,8 +15,6 @@
  */
 package org.araqne.logdb.query.parser;
 
-import java.util.AbstractMap;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,20 +33,21 @@ public class StatsParser implements LogQueryCommandParser {
 	public String getCommandName() {
 		return COMMAND;
 	}
-	
+
 	public static class SyntaxParseResult {
 		public SyntaxParseResult(List<String> clauses, List<String> aggTerms) {
 			this.clauses = clauses;
 			this.aggTerms = aggTerms;
 		}
+
 		public List<String> clauses;
 		public List<String> aggTerms;
 	}
-	
+
 	@Override
 	public LogQueryCommand parse(LogQueryContext context, String commandString) {
 		SyntaxParseResult pr = parseSyntax(context, commandString);
-	
+
 		// parse aggregations
 		List<AggregationField> fields = new ArrayList<AggregationField>();
 
@@ -82,7 +81,7 @@ public class StatsParser implements LogQueryCommandParser {
 
 		// parse aggregations
 		List<String> aggTerms = QueryTokenizer.parseByComma(aggsPart);
-		
+
 		return new SyntaxParseResult(clauses, aggTerms);
 	}
 

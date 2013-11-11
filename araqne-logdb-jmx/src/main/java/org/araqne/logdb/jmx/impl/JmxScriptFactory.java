@@ -25,7 +25,6 @@ import org.araqne.api.ScriptFactory;
 @Provides
 public class JmxScriptFactory implements ScriptFactory {
 
-	@SuppressWarnings("unused")
 	@ServiceProperty(name = "alias", value = "jmx")
 	private String alias;
 

@@ -107,12 +107,11 @@ public class QueryTokenizer {
 		boolean escape = false;
 		for (int i = offset; i < s.length(); i++) {
 			char c = s.charAt(i);
-			if (c == '\\')
-				escape = !escape;
+
 			if (c == '"') {
-				if (!escape)
+				if (!escape) {
 					quote = !quote;
-				else
+				} else
 					escape = false;
 			}
 			if (c == '=' && !quote) {
@@ -124,6 +123,8 @@ public class QueryTokenizer {
 
 				return i;
 			}
+
+			escape = (c == '\\' && !escape);
 		}
 
 		return -1;
@@ -277,7 +278,8 @@ public class QueryTokenizer {
 	}
 
 	/**
-	 * find outermost keyword from query (ignore keyword in string or function call)
+	 * find outermost keyword from query (ignore keyword in string or function
+	 * call)
 	 */
 	public static int findKeyword(String haystack, String needle, int offset) {
 		if (offset >= haystack.length())

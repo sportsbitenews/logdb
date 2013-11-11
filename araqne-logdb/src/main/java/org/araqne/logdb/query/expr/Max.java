@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.araqne.logdb.LogMap;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.impl.Strings;
 
 public class Max implements Expression {
 	private ObjectComparator cmp = new ObjectComparator();
@@ -43,5 +44,10 @@ public class Max implements Expression {
 		}
 
 		return max;
+	}
+
+	@Override
+	public String toString() {
+		return "max(" + Strings.join(exprs, ", ") + ")";
 	}
 }
