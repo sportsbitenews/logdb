@@ -18,6 +18,7 @@ package org.araqne.logstorage.engine;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -1282,7 +1283,14 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				reader.traverse(from, to, minId, flushedMaxId, builder, c, doParallel);
 		} catch (InterruptedException e) {
 			throw e;
+		} catch (BufferUnderflowException e) {
+			c.setFailure(e);
+			logger.trace("araqne logstorage: search tablet failed. logfile may be not synced yet", e);
+		} catch (IOException e) {
+			c.setFailure(e);
+			logger.warn("araqne logstorage: search tablet failed. logfile may be not synced yet", e);
 		} catch (Exception e) {
+			c.setFailure(e);
 			logger.error("araqne logstorage: search tablet failed", e);
 		} finally {
 			if (reader != null)

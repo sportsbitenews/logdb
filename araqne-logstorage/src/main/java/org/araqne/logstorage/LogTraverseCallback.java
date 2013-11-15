@@ -20,6 +20,8 @@ import java.util.List;
 
 public abstract class LogTraverseCallback {
 	private final Sink sink;
+	private Throwable failure;
+	
 	abstract public void interrupt();
 	abstract public boolean isInterrupted();
 	
@@ -33,6 +35,18 @@ public abstract class LogTraverseCallback {
 	
 	public void writeLogs(List<Log> logs) {
 		sink.write(filter(logs));
+	}
+	
+	public boolean isFailed() {
+		return failure != null;
+	}
+	
+	public void setFailure(Throwable t) {
+		failure = t;
+	}
+	
+	public Throwable getFailure() {
+		return failure;
 	}
 	
 	abstract protected List<Log> filter(List<Log> logs);
