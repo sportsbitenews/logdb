@@ -1283,6 +1283,12 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				reader.traverse(from, to, minId, flushedMaxId, builder, c, doParallel);
 		} catch (InterruptedException e) {
 			throw e;
+		} catch (IllegalStateException e) {
+			c.setFailure(e);
+			Throwable cause = e.getCause();
+			if(cause instanceof BufferUnderflowException || cause instanceof IOException)
+				c.setFailure(cause);
+			logger.trace("araqne logstorage: search tablet failed. logfile may be not synced yet", e);
 		} catch (BufferUnderflowException e) {
 			c.setFailure(e);
 			logger.trace("araqne logstorage: search tablet failed. logfile may be not synced yet", e);
