@@ -232,15 +232,19 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 	@Override
 	public void deleteLogger(String namespace, String name) {
 		String fullName = namespace + "\\" + name;
-		Logger logger = loggers.remove(fullName);
+		Logger logger = loggers.get(fullName);
 		if (logger == null)
 			throw new IllegalStateException("logger not found: " + fullName);
+		if (logger.isRunning())
+			throw new IllegalStateException("logger is still running: " + fullName);
 
 		// remove listener, remove from logger registry, and delete config
 		LoggerRegistry loggerRegistry = getLoggerRegistry();
 		loggerRegistry.removeLogger(logger);
 		logger.removeEventListener(sync);
 		deleteLoggerConfig(logger);
+
+		loggers.remove(fullName);
 
 		for (LoggerFactoryEventListener callback : callbacks) {
 			try {
