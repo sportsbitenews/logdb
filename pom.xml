@@ -209,6 +209,7 @@
 	<modules>
 		<module>araqne-log-api</module>
 		<module>araqne-logdb</module>
+		<module>araqne-logdb2</module>
 		<module>araqne-logfile-parser</module>
 		<module>araqne-logstorage</module>
 		<module>araqne-snmptrap-parser</module>

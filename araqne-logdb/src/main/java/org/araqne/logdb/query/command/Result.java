@@ -227,7 +227,8 @@ public class Result extends LogQueryCommand {
 			synchronized (writer) {
 				writer.close();
 			}
-		} catch (IOException e) {
+		} catch (Throwable e) {
+			logger.error("araqne logdb: result writer close failed", e);
 		}
 
 		eofDate = new Date();
