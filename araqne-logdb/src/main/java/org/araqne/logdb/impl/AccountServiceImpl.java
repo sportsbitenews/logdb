@@ -432,11 +432,11 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 		if (permission != Permission.READ)
 			throw new UnsupportedOperationException();
 
-		Account account = ensureAccount(session.getLoginName());
-
+		// allow dummy login
 		if (session.isAdmin())
 			return true;
 
+		Account account = ensureAccount(session.getLoginName());
 		return account.getReadableTables().contains(tableName);
 	}
 
