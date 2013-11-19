@@ -23,7 +23,6 @@ public class Join extends LogQueryCommand {
 
 	private final Logger logger = LoggerFactory.getLogger(Join.class);
 	private final JoinType joinType;
-	private Result subQueryResult;
 	private LogResultSet subQueryResultSet;
 	private volatile boolean subQueryEnd = false;
 
@@ -36,6 +35,7 @@ public class Join extends LogQueryCommand {
 	private JoinKeys joinKeys;
 
 	private int joinKeyCount;
+	private LogQuery subQuery;
 	private SortField[] sortFields;
 	private String subQueryString;
 	private List<LogQueryCommand> subQueryCommands;
@@ -43,39 +43,29 @@ public class Join extends LogQueryCommand {
 	private SubQueryRunner subQueryRunner = new SubQueryRunner();
 
 	public Join(JoinType joinType, SortField[] sortFields, String subQueryString, List<LogQueryCommand> subQueryCommands) {
-		try {
-			this.joinType = joinType;
-			this.joinKeyCount = sortFields.length;
-			this.joinKeys = new JoinKeys(new Object[joinKeyCount]);
-			this.sortJoinKeys1 = new Object[sortFields.length];
-			this.sortJoinKeys2 = new Object[sortFields.length];
+		this.joinType = joinType;
+		this.joinKeyCount = sortFields.length;
+		this.joinKeys = new JoinKeys(new Object[joinKeyCount]);
+		this.sortJoinKeys1 = new Object[sortFields.length];
+		this.sortJoinKeys2 = new Object[sortFields.length];
 
-			this.sortFields = sortFields;
-			this.subQueryCommands = subQueryCommands;
-			this.subQueryString = subQueryString;
-			this.subQueryResult = new Result("sub");
+		this.sortFields = sortFields;
+		this.subQueryCommands = subQueryCommands;
+		this.subQueryString = subQueryString;
 
-			Sort sort = new Sort(null, sortFields);
-			sort.init();
-
-			LogQueryCommand lastCmd = subQueryCommands.get(subQueryCommands.size() - 1);
-
-			lastCmd.setNextCommand(sort);
-			sort.setNextCommand(subQueryResult);
-
-			this.subQueryCommands.add(sort);
-			this.subQueryCommands.add(subQueryResult);
-		} catch (IOException e) {
-			throw new IllegalStateException("cannot create join query", e);
-		}
+		Sort sort = new Sort(null, sortFields);
+		LogQueryCommand lastCmd = subQueryCommands.get(subQueryCommands.size() - 1);
+		lastCmd.setNextCommand(sort);
+		this.subQueryCommands.add(sort);
 	}
 
 	@Override
 	public void setLogQuery(LogQuery logQuery) {
-		LogQuery q = new LogQueryImpl(logQuery.getContext(), subQueryString, subQueryCommands);
+		// sub query result command will be created here
+		this.subQuery = new LogQueryImpl(logQuery.getContext(), subQueryString, subQueryCommands);
 
 		for (LogQueryCommand cmd : subQueryCommands)
-			cmd.setLogQuery(q);
+			cmd.setLogQuery(subQuery);
 
 		super.setLogQuery(logQuery);
 	}
@@ -184,19 +174,24 @@ public class Join extends LogQueryCommand {
 
 	@Override
 	public void eof(boolean cancelled) {
+		logger.debug("araqne logdb: transfer query [{}] join eof [{}] to subquery", logQuery.getId(), cancelled);
+
 		subQueryCommands.get(0).eof(cancelled);
 
 		if (subQueryResultSet != null) {
 			try {
+				logger.debug("araqne logdb: closing subquery result set [{}]", logQuery.getId());
+
 				subQueryResultSet.close();
 			} catch (Throwable t) {
 				logger.error("araqne logdb: subquery result set close failed, query " + logQuery.getId(), t);
 			}
 		}
 
-		if (subQueryResult != null) {
+		if (subQuery != null) {
 			try {
-				subQueryResult.purge();
+				logger.debug("araqne logdb: purging subquery result set [{}]", logQuery.getId());
+				subQuery.purge();
 			} catch (Throwable t) {
 				logger.error("araqne logdb: subquery result purge failed, query " + logQuery.getId(), t);
 			}
@@ -210,19 +205,19 @@ public class Join extends LogQueryCommand {
 
 		@Override
 		public void run() {
+			logger.debug("araqne logdb: subquery started, query [{}]", logQuery.getId());
+
 			boolean completed = false;
 			LogQueryCommand cmd = null;
 			try {
-				cmd = subQueryCommands.get(subQueryCommands.size() - 1);
-				for (int i = subQueryCommands.size() - 1; i >= 0; i--)
-					subQueryCommands.get(i).start();
-
-				subQueryCommands.get(0).eof(false);
+				subQuery.run();
 				completed = true;
 
 				try {
-					subQueryResultSet = subQueryResult.getResult();
-					logger.debug("araqne logdb: fetch subquery result of query [{}:{}]", logQuery.getId(), logQuery.getQueryString());
+					subQueryResultSet = subQuery.getResult();
+
+					logger.debug("araqne logdb: fetch subquery result of query [{}:{}]", logQuery.getId(),
+							logQuery.getQueryString());
 
 					if (subQueryResultSet.size() <= HASH_JOIN_THRESHOLD)
 						buildHashJoinTable();
@@ -245,7 +240,7 @@ public class Join extends LogQueryCommand {
 					}
 				}
 
-				logger.debug("araqne logdb: subquery end, query " + logQuery.getId());
+				logger.debug("araqne logdb: subquery end, query [{}]", logQuery.getId());
 			}
 		}
 
