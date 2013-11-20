@@ -1286,9 +1286,13 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		} catch (IllegalStateException e) {
 			c.setFailure(e);
 			Throwable cause = e.getCause();
-			if(cause instanceof BufferUnderflowException || cause instanceof IOException)
+			if (cause instanceof BufferUnderflowException || cause instanceof IOException)
 				c.setFailure(cause);
-			logger.trace("araqne logstorage: search tablet failed. logfile may be not synced yet", e);
+			
+			if (e.getMessage().contains("license is locked"))
+				logger.warn("araqne logstorage: search tablet failed. ", e.getMessage());
+			else
+				logger.trace("araqne logstorage: search tablet failed. logfile may be not synced yet", e);
 		} catch (BufferUnderflowException e) {
 			c.setFailure(e);
 			logger.trace("araqne logstorage: search tablet failed. logfile may be not synced yet", e);
