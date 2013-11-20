@@ -1290,7 +1290,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				c.setFailure(cause);
 			
 			if (e.getMessage().contains("license is locked"))
-				logger.warn("araqne logstorage: search tablet failed. ", e.getMessage());
+				logger.warn("araqne logstorage: search tablet failed. {}", e.getMessage());
 			else
 				logger.trace("araqne logstorage: search tablet failed. logfile may be not synced yet", e);
 		} catch (BufferUnderflowException e) {
