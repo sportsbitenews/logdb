@@ -331,6 +331,28 @@ public class LogQueryPlugin {
 		}
 	}
 
+	@MsgbusMethod
+	public void deleteResults(Request req, Response resp) {
+		org.araqne.logdb.Session dbSession = getDbSession(req);
+		List<String> guids = (List<String>) req.get("guids", true);
+
+		try {
+			for (String guid : guids) {
+				SavedResult sr = savedResultManager.getResult(guid);
+				if (sr == null)
+					throw new MsgbusException("logdb", "saved-result-not-found");
+
+				if (!sr.getOwner().equals(dbSession.getLoginName()))
+					throw new MsgbusException("logdb", "no-permission");
+
+				savedResultManager.deleteResult(guid);
+			}
+		} catch (IOException e) {
+			throw new MsgbusException("logdb", "io-error");
+		}
+
+	}
+
 	private class MsgbusLogQueryCallback implements LogQueryCallback {
 		private String orgDomain;
 		private LogQuery query;
