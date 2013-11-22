@@ -219,5 +219,6 @@
 		<module>araqne-logdb-jython</module>
 		<module>araqne-regex-tester</module>
 		<module>araqne-logdb-jmx</module>
+		<module>araqne-storage</module>
 	</modules>
 </project>
