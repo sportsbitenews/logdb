@@ -41,6 +41,8 @@ public interface Logger {
 
 	Date getLastLogDate();
 
+	Date getLastWriteDate();
+
 	/**
 	 * @since 2.6.0
 	 */

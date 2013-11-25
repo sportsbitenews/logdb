@@ -35,6 +35,7 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
+import org.araqne.log.api.LoggerRegistry;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.EmptyLogQueryCallback;
 import org.araqne.logdb.LogQuery;
@@ -65,6 +66,7 @@ import org.araqne.logdb.query.parser.LimitParser;
 import org.araqne.logdb.query.parser.LoadParser;
 import org.araqne.logdb.query.parser.LogCheckParser;
 import org.araqne.logdb.query.parser.LogdbParser;
+import org.araqne.logdb.query.parser.LoggerParser;
 import org.araqne.logdb.query.parser.LookupParser;
 import org.araqne.logdb.query.parser.OutputCsvParser;
 import org.araqne.logdb.query.parser.OutputJsonParser;
@@ -134,6 +136,9 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 	@Requires
 	private SavedResultManager savedResultManager;
 
+	@Requires
+	private LoggerRegistry loggerRegistry;
+
 	private BundleContext bc;
 	private ConcurrentMap<Integer, LogQuery> queries;
 
@@ -187,6 +192,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 		parsers.add(new ImportParser(tableRegistry, logStorage));
 		parsers.add(new ParseParser(parserRegistry));
 		parsers.add(new LoadParser(savedResultManager));
+		parsers.add(new LoggerParser(loggerRegistry));
 
 		this.queryParsers = parsers;
 	}
