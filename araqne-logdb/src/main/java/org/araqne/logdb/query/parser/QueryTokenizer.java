@@ -22,6 +22,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Stack;
 import java.util.StringTokenizer;
 
 import org.araqne.logdb.LogQueryContext;
@@ -134,20 +135,23 @@ public class QueryTokenizer {
 		List<String> l = new ArrayList<String>();
 		StringBuilder sb = new StringBuilder();
 		char before = 0;
-		boolean b = false;
-		boolean subquery = false;
+		boolean quoted = false;
+		
+		Stack<Integer> sqStack = new Stack<Integer>();
 
-		for (char c : query.toCharArray()) {
-			if (c == '[' && !b)
-				subquery = true;
-			else if (c == ']' && !b)
-				subquery = false;
+		for (int p = 0; p < query.length(); ++p) {
+			char c = query.charAt(p);
+			
+			if (c == '[' && !quoted)
+				sqStack.push(p);
+			else if (c == ']' && !quoted)
+				sqStack.pop();
 
 			if (c == '"' && before != '\\') {
-				b = !b;
+				quoted = !quoted;
 				sb.append(c);
 			} else {
-				if (c == '|' && !b && !subquery) {
+				if (c == '|' && !quoted && sqStack.isEmpty()) {
 					l.add(sb.toString());
 					sb = new StringBuilder();
 				} else
