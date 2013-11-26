@@ -15,4 +15,6 @@ public interface StorageInputStream extends Closeable, DataInput {
 	long length() throws IOException;
 	
 	void seek(long pos) throws IOException;
+	
+	FilePath getPath();
 }

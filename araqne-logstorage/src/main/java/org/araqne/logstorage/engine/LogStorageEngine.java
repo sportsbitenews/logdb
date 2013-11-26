@@ -16,7 +16,6 @@
 package org.araqne.logstorage.engine;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -45,6 +44,9 @@ import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogRecord;
 import org.araqne.logstorage.file.LogRecordCursor;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.FilePathNameFilter;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +84,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 	private LogFileFetcher fetcher;
 
-	private File logDir;
+	private FilePath logDir;
 
 	private ConcurrentHashMap<String, Integer> tableNameCache;
 	private CopyOnWriteArraySet<LogStorageEventListener> listeners;
@@ -97,21 +99,22 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		callbacks = new CopyOnWriteArraySet<LogCallback>();
 		tableNameCache = new ConcurrentHashMap<String, Integer>();
 
-		logDir = new File(System.getProperty("araqne.data.dir"), "araqne-logstorage/log");
-		logDir = new File(getStringParameter(Constants.LogStorageDirectory, logDir.getAbsolutePath()));
+		// FIXME : handle uri type
+		File sysArgLogDir = new File(System.getProperty("araqne.data.dir"), "araqne-logstorage/log");
+		logDir = new LocalFilePath(new File(getStringParameter(Constants.LogStorageDirectory, sysArgLogDir.getAbsolutePath())));
 		logDir.mkdirs();
-		DatapathUtil.setLogDir(logDir);
+		DatapathUtil.setLogDir(((LocalFilePath)logDir).getPath()); // FIXME
 
 		listeners = new CopyOnWriteArraySet<LogStorageEventListener>();
 	}
 
 	@Override
-	public File getDirectory() {
+	public FilePath getDirectory() {
 		return logDir;
 	}
 
 	@Override
-	public void setDirectory(File f) {
+	public void setDirectory(FilePath f) {
 		if (f == null)
 			throw new IllegalArgumentException("storage path should be not null");
 
@@ -120,7 +123,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 		ConfigUtil.set(conf, Constants.LogStorageDirectory, f.getAbsolutePath());
 		logDir = f;
-		DatapathUtil.setLogDir(logDir);
+		DatapathUtil.setLogDir(((LocalFilePath)logDir).getPath()); // FIXME
 	}
 
 	private String getStringParameter(Constants key, String defaultValue) {
@@ -252,12 +255,12 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		}
 
 		// purge existing files
-		File tableDir = getTableDirectory(tableId, basePath);
+		FilePath tableDir = getTableDirectory(tableId, basePath);
 		if (!tableDir.exists())
 			return;
 
 		// delete all .idx, .dat, .key files
-		for (File f : tableDir.listFiles()) {
+		for (FilePath f : tableDir.listFiles()) {
 			String name = f.getName();
 			if (f.isFile() && (name.endsWith(".idx") || name.endsWith(".dat") || name.endsWith(".key"))) {
 				ensureDelete(f);
@@ -296,7 +299,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	}
 
 	@Override
-	public File getTableDirectory(String tableName) {
+	public FilePath getTableDirectory(String tableName) {
 		if (!tableRegistry.exists(tableName))
 			throw new IllegalArgumentException("table not exists: " + tableName);
 
@@ -305,12 +308,12 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		return getTableDirectory(tableId, basePath);
 	}
 
-	private File getTableDirectory(int tableId, String basePath) {
-		File baseDir = logDir;
+	private FilePath getTableDirectory(int tableId, String basePath) {
+		FilePath baseDir = logDir;
 		if (basePath != null)
-			baseDir = new File(basePath);
+			baseDir = new LocalFilePath(new File(basePath));
 
-		return new File(baseDir, Integer.toString(tableId));
+		return baseDir.newFilePath(Integer.toString(tableId));
 	}
 
 	@Override
@@ -319,17 +322,17 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
-		File tableDir = getTableDirectory(tableId, basePath);
-		File[] files = tableDir.listFiles(new FilenameFilter() {
+		FilePath tableDir = getTableDirectory(tableId, basePath);
+		FilePath[] files = tableDir.listFiles(new FilePathNameFilter() {
 			@Override
-			public boolean accept(File dir, String name) {
+			public boolean accept(FilePath dir, String name) {
 				return name.endsWith(".idx");
 			}
 		});
 
 		List<Date> dates = new ArrayList<Date>();
 		if (files != null) {
-			for (File file : files) {
+			for (FilePath file : files) {
 				try {
 					dates.add(dateFormat.parse(file.getName().split("\\.")[0]));
 				} catch (ParseException e) {
@@ -464,7 +467,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	public void purge(String tableName, Date day) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		int tableId = tableRegistry.getTableId(tableName);
-		File dir = getTableDirectory(tableName);
+		FilePath dir = getTableDirectory(tableName);
 
 		// evict online buffer and close
 		OnlineWriter writer = onlineWriters.remove(new OnlineWriterKey(tableName, day, tableId));
@@ -472,8 +475,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			writer.close();
 
 		String fileName = dateFormat.format(day);
-		File idxFile = new File(dir, fileName + ".idx");
-		File datFile = new File(dir, fileName + ".dat");
+		FilePath idxFile = dir.newFilePath(fileName + ".idx");
+		FilePath datFile = dir.newFilePath(fileName + ".dat");
 
 		for (LogStorageEventListener listener : listeners) {
 			try {
@@ -518,7 +521,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		}
 	}
 
-	private boolean ensureDelete(File f) {
+	private boolean ensureDelete(FilePath f) {
 		final int MAX_TIMEOUT = 30000;
 
 		long begin = System.currentTimeMillis();
@@ -609,9 +612,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			buffer = (ArrayList<Log>) onlineWriter.getBuffer();
 
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
-		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
-		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
-		File keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
+		FilePath indexPath = new LocalFilePath(DatapathUtil.getIndexFile(tableId, day, basePath));
+		FilePath dataPath = new LocalFilePath(DatapathUtil.getDataFile(tableId, day, basePath));
+		FilePath keyPath = new LocalFilePath(DatapathUtil.getKeyFile(tableId, day, basePath));
 
 		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
 		if (logFileType == null)
@@ -621,8 +624,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		for (String key : tableRegistry.getTableMetadataKeys(tableName))
 			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 
-		LogFileReader reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableMetadata, tableName,
-				indexPath, dataPath, keyPath));
+		LogFileReader reader = lfsRegistry.newReader(tableName, logFileType, 
+				new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath));
 
 		return new LogCursorImpl(tableName, day, buffer, reader, ascending);
 	}
@@ -715,9 +718,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
-		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
-		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
-		File keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
+		FilePath indexPath = new LocalFilePath(DatapathUtil.getIndexFile(tableId, day, basePath));
+		FilePath dataPath = new LocalFilePath(DatapathUtil.getDataFile(tableId, day, basePath));
+		FilePath keyPath = new LocalFilePath(DatapathUtil.getKeyFile(tableId, day, basePath));
 		LogFileReader reader = null;
 
 		long onlineMinId = -1;
@@ -1234,9 +1237,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
-		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
-		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
-		File keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
+		FilePath indexPath = new LocalFilePath(DatapathUtil.getIndexFile(tableId, day, basePath));
+		FilePath dataPath = new LocalFilePath(DatapathUtil.getDataFile(tableId, day, basePath));
+		FilePath keyPath = new LocalFilePath(DatapathUtil.getKeyFile(tableId, day, basePath));
 		LogFileReader reader = null;
 
 		long onlineMinId = -1;

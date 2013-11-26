@@ -15,7 +15,6 @@
  */
 package org.araqne.logstorage;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
@@ -23,19 +22,20 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.LogParserBuilder;
+import org.araqne.storage.api.FilePath;
 
 public interface LogStorage {
 	/**
 	 * @return the storage directory
 	 */
-	File getDirectory();
+	FilePath getDirectory();
 
 	/**
 	 * @param tableName
 	 *            the table name
 	 * @return the directory path which contains table files
 	 */
-	File getTableDirectory(String tableName);
+	FilePath getTableDirectory(String tableName);
 
 	/**
 	 * set storage directory
@@ -43,7 +43,7 @@ public interface LogStorage {
 	 * @param f
 	 *            the storage directory path
 	 */
-	void setDirectory(File f);
+	void setDirectory(FilePath f);
 
 	LogStorageStatus getStatus();
 

@@ -15,9 +15,9 @@
  */
 package org.araqne.logstorage.file;
 
+import java.io.DataInput;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
@@ -30,6 +30,9 @@ import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
 import org.araqne.logstorage.LogTraverseCallback;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageInputStream;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,24 +40,24 @@ public class LogFileReaderV1 extends LogFileReader {
 	private Logger logger = LoggerFactory.getLogger(LogFileReaderV1.class);
 	private static final int INDEX_ITEM_SIZE = 16;
 
-	private File indexPath;
-	private File dataPath;
-	private BufferedRandomAccessFileReader indexFile;
-	private BufferedRandomAccessFileReader dataFile;
+	private FilePath indexPath;
+	private FilePath dataPath;
+	private BufferedStorageInputStream indexFile;
+	private BufferedStorageInputStream dataFile;
 
 	private List<BlockHeader> blockHeaders = new ArrayList<BlockHeader>();
 	private String tableName;
 
-	public LogFileReaderV1(String tableName, File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
+	public LogFileReaderV1(String tableName, FilePath indexPath, FilePath dataPath) throws IOException, InvalidLogFileHeaderException {
 		this.tableName = tableName;
 		this.indexPath = indexPath;
 		this.dataPath = dataPath;
-		this.indexFile = new BufferedRandomAccessFileReader(indexPath);
-		LogFileHeader indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
+		this.indexFile = new BufferedStorageInputStream(indexPath);
+		LogFileHeader indexFileHeader = LogFileHeader.extractHeader(indexFile);
 		if (indexFileHeader.version() != 1)
 			throw new InvalidLogFileHeaderException("version not match");
 
-		RandomAccessFile f = new RandomAccessFile(indexPath, "r");
+		StorageInputStream f = indexPath.newInputStream();
 		long length = f.length();
 		long pos = indexFileHeader.size();
 		while (pos < length) {
@@ -69,19 +72,19 @@ public class LogFileReaderV1 extends LogFileReader {
 		f.close();
 		logger.trace("araqne logstorage: {} has {} blocks.", indexPath.getName(), blockHeaders.size());
 
-		this.dataFile = new BufferedRandomAccessFileReader(dataPath);
-		LogFileHeader dataFileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
+		this.dataFile = new BufferedStorageInputStream(dataPath);
+		LogFileHeader dataFileHeader = LogFileHeader.extractHeader(dataFile);
 		if (dataFileHeader.version() != 1)
 			throw new InvalidLogFileHeaderException("version not match");
 	}
 
 	@Override
-	public File getIndexPath() {
+	public FilePath getIndexPath() {
 		return indexPath;
 	}
 
 	@Override
-	public File getDataPath() {
+	public FilePath getDataPath() {
 		return dataPath;
 	}
 
@@ -227,10 +230,6 @@ public class LogFileReaderV1 extends LogFileReader {
 		}
 	}
 
-	private long read6Bytes(BufferedRandomAccessFileReader f) throws IOException {
-		return ((long) f.readInt() << 16) | (f.readShort() & 0xFFFF);
-	}
-
 	@Override
 	public LogRecordCursor getCursor() throws IOException {
 		throw new UnsupportedOperationException();
@@ -248,10 +247,21 @@ public class LogFileReaderV1 extends LogFileReader {
 
 	@Override
 	public void close() {
-		indexFile.close();
-		dataFile.close();
+		try {
+			indexFile.close();
+		} catch (IOException e) {
+		}
+		
+		try {
+			dataFile.close();
+		} catch (IOException e) {
+		}
 	}
 
+	private static long read6Bytes(DataInput f) throws IOException {
+		return ((long) f.readInt() << 16) | (f.readShort() & 0xFFFF);
+	}
+	
 	private static class BlockHeader {
 		private static Integer NEXT_ID = 1;
 		private long fp;
@@ -260,7 +270,7 @@ public class LogFileReaderV1 extends LogFileReader {
 		private long blockLength;
 		private int firstId;
 
-		private BlockHeader(RandomAccessFile f) throws IOException {
+		private BlockHeader(StorageInputStream f) throws IOException {
 			this.startTime = read6Bytes(f);
 			this.endTime = read6Bytes(f);
 			this.blockLength = read6Bytes(f);
@@ -268,9 +278,6 @@ public class LogFileReaderV1 extends LogFileReader {
 			NEXT_ID += (int) this.blockLength / INDEX_ITEM_SIZE;
 		}
 
-		private long read6Bytes(RandomAccessFile f) throws IOException {
-			return ((long) f.readInt() << 16) | (f.readShort() & 0xFFFF);
-		}
 	}
 
 	@Override

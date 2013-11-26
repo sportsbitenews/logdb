@@ -19,6 +19,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+// TODO : this class will be deprecated
 public class DatapathUtil {
 	private static File logDir;
 

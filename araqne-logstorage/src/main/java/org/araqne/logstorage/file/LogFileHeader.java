@@ -23,6 +23,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
+import org.araqne.storage.api.StorageInputStream;
+
 public class LogFileHeader {
 	public static final String MAGIC_STRING_DATA = "NCHOVY_BEAST_DAT";
 	public static final String MAGIC_STRING_INDEX = "NCHOVY_BEAST_IDX";
@@ -97,6 +99,7 @@ public class LogFileHeader {
 		return Arrays.copyOfRange(buf.array(), 0, getAlignedHeaderSize());
 	}
 
+	@Deprecated
 	public static LogFileHeader extractHeader(RandomAccessFile f, File path) throws IOException, InvalidLogFileHeaderException {
 		if (f.length() < ALIGNED_HEADER_SIZE_BASE) {
 			throw new InvalidLogFileHeaderException("File size is too small: " + path.getAbsolutePath());
@@ -112,15 +115,31 @@ public class LogFileHeader {
 		return unserialize(hdr);
 	}
 
-	public static LogFileHeader extractHeader(BufferedRandomAccessFileReader f, File path) throws IOException,
+	public static LogFileHeader extractHeader(StorageInputStream f) throws IOException,
 			InvalidLogFileHeaderException {
 		if (f.length() < ALIGNED_HEADER_SIZE_BASE) {
-			throw new InvalidLogFileHeaderException("File size is too small: " + path.getAbsolutePath());
+			throw new InvalidLogFileHeaderException("File size is too small: " + f.getPath().getAbsolutePath());
 		}
 		f.seek(ALIGNED_HEADER_SIZE_POS);
 		short hdrSize = f.readShort();
 		if (hdrSize > 65536) {
-			throw new InvalidLogFileHeaderException("Invalid header size: " + path.getAbsolutePath());
+			throw new InvalidLogFileHeaderException("Invalid header size: " + f.getPath().getAbsolutePath());
+		}
+		f.seek(0);
+		byte[] hdr = new byte[hdrSize];
+		f.readFully(hdr);
+		return unserialize(hdr);
+	}
+
+	public static LogFileHeader extractHeader(BufferedStorageInputStream f) throws IOException,
+			InvalidLogFileHeaderException {
+		if (f.length() < ALIGNED_HEADER_SIZE_BASE) {
+			throw new InvalidLogFileHeaderException("File size is too small: " + f.getPath().getAbsolutePath());
+		}
+		f.seek(ALIGNED_HEADER_SIZE_POS);
+		short hdrSize = f.readShort();
+		if (hdrSize > 65536) {
+			throw new InvalidLogFileHeaderException("Invalid header size: " + f.getPath().getAbsolutePath());
 		}
 		f.seek(0);
 		byte[] hdr = new byte[hdrSize];

@@ -1,10 +1,10 @@
 package org.araqne.logstorage;
 
-import java.io.File;
 import java.util.Map;
 
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileWriter;
+import org.araqne.storage.api.FilePath;
 
 public interface LogFileService {
 	String getType();
@@ -15,7 +15,7 @@ public interface LogFileService {
 	 *            .idx file path
 	 * @return log count
 	 */
-	long count(File f);
+	long count(FilePath f);
 
 	LogFileWriter newWriter(Map<String, Object> options);
 

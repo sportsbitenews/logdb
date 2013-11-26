@@ -15,7 +15,6 @@
  */
 package org.araqne.logstorage.file;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -27,6 +26,8 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logstorage.LogFileRepairer;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.localfile.LocalFilePath;
 
 @Component(name = "logstorage-log-file-service-v1")
 public class LogFileServiceV1 implements LogFileService {
@@ -39,7 +40,7 @@ public class LogFileServiceV1 implements LogFileService {
 	public static class Option extends TreeMap<String, Object> {
 		private static final long serialVersionUID = 1L;
 
-		public Option(File indexPath, File dataPath) {
+		public Option(FilePath indexPath, FilePath dataPath) {
 			this.put(OPT_INDEX_PATH, indexPath);
 			this.put(OPT_DATA_PATH, dataPath);
 		}
@@ -62,7 +63,7 @@ public class LogFileServiceV1 implements LogFileService {
 	}
 
 	@Override
-	public long count(File f) {
+	public long count(FilePath f) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
@@ -70,10 +71,10 @@ public class LogFileServiceV1 implements LogFileService {
 	@Override
 	public LogFileWriter newWriter(Map<String, Object> options) {
 		checkOption(options);
-		File indexPath = (File) options.get(OPT_INDEX_PATH);
-		File dataPath = (File) options.get(OPT_DATA_PATH);
+		LocalFilePath indexPath = (LocalFilePath) options.get(OPT_INDEX_PATH);
+		LocalFilePath dataPath = (LocalFilePath) options.get(OPT_DATA_PATH);
 		try {
-			return new LogFileWriterV1(indexPath, dataPath);
+			return new LogFileWriterV1(indexPath.getPath(), dataPath.getPath());
 		} catch (Throwable t) {
 			throw new IllegalStateException("cannot open writer: data file " + dataPath.getAbsolutePath(), t);
 		}
@@ -89,8 +90,8 @@ public class LogFileServiceV1 implements LogFileService {
 	@Override
 	public LogFileReader newReader(String tableName, Map<String, Object> options) {
 		checkOption(options);
-		File indexPath = (File) options.get(OPT_INDEX_PATH);
-		File dataPath = (File) options.get(OPT_DATA_PATH);
+		FilePath indexPath = (FilePath)options.get(OPT_INDEX_PATH);
+		FilePath dataPath = (FilePath)options.get(OPT_DATA_PATH);
 		try {
 			return new LogFileReaderV1(tableName, indexPath, dataPath);
 		} catch (Throwable t) {

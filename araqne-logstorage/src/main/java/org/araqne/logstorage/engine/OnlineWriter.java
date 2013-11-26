@@ -15,20 +15,21 @@
  */
 package org.araqne.logstorage.engine;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogFileWriter;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,21 +71,17 @@ public class OnlineWriter {
 		this.day = day;
 
 		String basePath = tableMetadata.get("base_path");
-		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
-		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
-		File keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
+		// TODO: path
+		FilePath indexPath = new LocalFilePath(DatapathUtil.getIndexFile(tableId, day, basePath));
+		FilePath dataPath = new LocalFilePath(DatapathUtil.getDataFile(tableId, day, basePath));
+		FilePath keyPath = new LocalFilePath(DatapathUtil.getKeyFile(tableId, day, basePath));
 
-		indexPath.getParentFile().mkdirs();
-		dataPath.getParentFile().mkdirs();
+		indexPath.getParentFilePath().mkdirs();
+		dataPath.getParentFilePath().mkdirs();
 
 		try {
 			// options including table metadata
-			Map<String, Object> writerConfig = new HashMap<String, Object>(tableMetadata);
-			writerConfig.put("tableName", tableName);
-			writerConfig.put("indexPath", indexPath);
-			writerConfig.put("dataPath", dataPath);
-			writerConfig.put("keyPath", keyPath);
-			writer = this.logFileService.newWriter(writerConfig);
+			writer = this.logFileService.newWriter(new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath));
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (Throwable t) {

@@ -30,7 +30,7 @@ public class BufferedLFISTest {
 			byte[] diffsrc = new byte[BUFSIZE * 100];
 			new Random(1).nextBytes(diffsrc);
 
-			BufferedLocalFileInputStream stream = new BufferedLocalFileInputStream(new LocalFilePath(file));
+			BufferedStorageInputStream stream = new BufferedStorageInputStream(new LocalFilePath(file));
 			assertArrayEquals(subarray(diffsrc, 0, 1024), readLFIS(stream, 0, 1024));
 			assertArrayEquals(subarray(diffsrc, 0, 8192 * 4), readLFIS(stream, 0, 8192 * 4));
 			assertArrayEquals(subarray(diffsrc, 8192 * 15, 8192 * 4), readLFIS(stream, 8192 * 15, 8192 * 4));
@@ -45,7 +45,7 @@ public class BufferedLFISTest {
 		return Arrays.copyOfRange(diffsrc, offset, offset + length);
 	}
 
-	private byte[] readLFIS(BufferedLocalFileInputStream stream, int seekpos, int length) throws IOException {
+	private byte[] readLFIS(BufferedStorageInputStream stream, int seekpos, int length) throws IOException {
 		byte[] ret = new byte[length];
 		stream.seek(seekpos);
 		stream.readFully(ret);

@@ -45,6 +45,7 @@ import org.araqne.logstorage.backup.StorageBackupType;
 import org.araqne.logstorage.backup.StorageFile;
 import org.araqne.logstorage.backup.StorageTransferStream;
 import org.araqne.logstorage.backup.StorageTransferRequest;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.json.JSONConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -199,7 +200,10 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 					for (StorageMediaFile mediaFile : files) {
 						String storageFilename = new File(mediaFile.getFileName()).getName();
-						File storageFilePath = new File(storage.getTableDirectory(tableName), storageFilename);
+						// TODO : use storage interface
+						File storageFilePath =
+								((LocalFilePath) storage.getTableDirectory(tableName).newFilePath(storageFilename))
+										.getPath();
 						StorageFile storageFile = new StorageFile(tableName, tableId, storageFilePath);
 						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
 						try {

@@ -1,17 +1,19 @@
 package org.araqne.storage.localfile;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 
+import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
 
 public class LocalFileInputStream implements StorageInputStream {
-	private RandomAccessFile source;
+	private LocalFilePath path;
+	private final RandomAccessFile source;
 	
-	LocalFileInputStream(File f) throws IOException {
-		this.source = new RandomAccessFile(f, "r");
+	LocalFileInputStream(LocalFilePath path) throws IOException {
+		this.path = path;
+		this.source = new RandomAccessFile(path.getFile(), "r");
 	}
 	
 	@Deprecated
@@ -129,6 +131,11 @@ public class LocalFileInputStream implements StorageInputStream {
 	@Override
 	public int read(byte[] b, int off, int len) throws IOException {
 		return source.read(b, off, len);
+	}
+
+	@Override
+	public FilePath getPath() {
+		return path;
 	}
 
 }

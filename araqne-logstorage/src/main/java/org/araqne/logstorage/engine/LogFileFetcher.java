@@ -25,6 +25,7 @@ import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV2;
+import org.araqne.storage.localfile.LocalFilePath;
 
 /**
  * 
@@ -41,6 +42,7 @@ class LogFileFetcher {
 	}
 
 	public LogFileReader fetch(String tableName, Date day) throws IOException {
+		// FIXME : add option for path
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
@@ -60,7 +62,8 @@ class LogFileFetcher {
 		for (String key : tableRegistry.getTableMetadataKeys(tableName))
 			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 
-		LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
+		LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, new LocalFilePath(indexPath),
+				new LocalFilePath(dataPath), new LocalFilePath(keyPath));
 		return lfsRegistry.newReader(tableName, logFileType, options);
 
 	}

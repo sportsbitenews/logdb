@@ -62,6 +62,7 @@ import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
 import org.araqne.logstorage.engine.LogTableSchema;
+import org.araqne.storage.api.FilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -208,16 +209,16 @@ public class LogStorageScript implements Script {
 			}
 
 			long total = 0;
-			File dir = storage.getTableDirectory(tableName);
+			FilePath dir = storage.getTableDirectory(tableName);
 			if (dir.exists()) {
-				for (File f : dir.listFiles())
+				for (FilePath f : dir.listFiles())
 					total += f.length();
 			}
 
 			context.println();
 			context.println("Storage information");
 			context.println("---------------------");
-			context.println("Data path: " + storage.getTableDirectory(tableName));
+			context.println("Data path: " + storage.getTableDirectory(tableName).getAbsolutePath());
 			NumberFormat nf = NumberFormat.getNumberInstance();
 			context.println("Consumption: " + nf.format(total) + " bytes");
 		} else if (args.length == 2) {
@@ -455,6 +456,7 @@ public class LogStorageScript implements Script {
 			@ScriptArgument(name = "limit", type = "int", description = "load limit count", optional = true) })
 	public void importTextFile(String[] args) throws IOException {
 		String tableName = args[0];
+		// TODO: handling uri
 		File file = new File(args[1]);
 		int offset = 0;
 		if (args.length > 2)
