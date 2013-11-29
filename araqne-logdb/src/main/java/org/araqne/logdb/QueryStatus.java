@@ -16,5 +16,5 @@
 package org.araqne.logdb;
 
 public enum QueryStatus {
-	Created, Removed, Started, Stopped, Eof
+	CREATED, REMOVED, STARTED, STOPPED, EOF
 }

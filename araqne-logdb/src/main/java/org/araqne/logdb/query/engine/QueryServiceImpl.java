@@ -248,25 +248,25 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	}
 
 	@Override
-	public Query createQuery(Session session, String query) {
+	public Query createQuery(Session session, String queryString) {
 		if (logger.isDebugEnabled())
-			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]", new Object[] { query, session.getGuid(),
-					session.getLoginName() });
+			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]",
+					new Object[] { queryString, session.getGuid(), session.getLoginName() });
 
 		QueryContext context = new QueryContext(session);
-		List<QueryCommand> commands = queryParserService.parseCommands(context, query);
+		List<QueryCommand> commands = queryParserService.parseCommands(context, queryString);
 		for (QueryPlanner planner : planners)
 			commands = planner.plan(commands);
 
-		Query lq = new QueryImpl(context, query, commands);
+		Query query = new QueryImpl(context, queryString, commands);
 		for (QueryCommand cmd : commands)
-			cmd.setQuery(lq);
+			cmd.setQuery(query);
 
-		queries.put(lq.getId(), lq);
-		lq.getCallbacks().getStatusCallbacks().add(new EofReceiver());
-		invokeCallbacks(lq, QueryStatus.Created);
+		queries.put(query.getId(), query);
+		query.getCallbacks().getStatusCallbacks().add(new EofReceiver());
+		invokeCallbacks(query, QueryStatus.CREATED);
 
-		return lq;
+		return query;
 	}
 
 	@Override
@@ -276,15 +276,15 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	@Override
 	public void startQuery(Session session, int id) {
-		Query lq = getQuery(id);
-		if (lq == null)
+		Query query = getQuery(id);
+		if (query == null)
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
-		if (session != null && !lq.isAccessible(session))
+		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
-		new Thread(lq, "Log Query " + id).start();
-		invokeCallbacks(lq, QueryStatus.Started);
+		new Thread(query, "Query " + id).start();
+		invokeCallbacks(query, QueryStatus.STARTED);
 	}
 
 	@Override
@@ -303,37 +303,37 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			}
 		}
 
-		Query lq = queries.remove(id);
-		if (lq == null) {
+		Query query = queries.remove(id);
+		if (query == null) {
 			logger.debug("araqne logdb: query [{}] not found, remove failed", id);
 			return;
 		}
 
-		if (session != null && !lq.isAccessible(session)) {
-			Session querySession = lq.getContext().getSession();
+		if (session != null && !query.isAccessible(session)) {
+			Session querySession = query.getContext().getSession();
 			logger.warn("araqne logdb: security violation, [{}] access to query of login [{}] session [{}]", new Object[] {
 					session.getLoginName(), querySession.getLoginName(), querySession.getGuid() });
 			return;
 		}
 
 		try {
-			lq.getCallbacks().getTimelineCallbacks().clear();
-			lq.getCallbacks().getStatusCallbacks().clear();
-			lq.getCallbacks().getResultCallbacks().clear();
+			query.getCallbacks().getTimelineCallbacks().clear();
+			query.getCallbacks().getStatusCallbacks().clear();
+			query.getCallbacks().getResultCallbacks().clear();
 
-			if (lq.isStarted() && !lq.isFinished())
-				lq.stop(QueryStopReason.UserRequest);
+			if (query.isStarted() && !query.isFinished())
+				query.stop(QueryStopReason.UserRequest);
 		} catch (Throwable t) {
-			logger.error("araqne logdb: cannot cancel query " + lq, t);
+			logger.error("araqne logdb: cannot cancel query " + query, t);
 		}
 
 		try {
-			lq.purge();
+			query.purge();
 		} catch (Throwable t) {
-			logger.error("araqne logdb: cannot close file buffer list for query " + lq.getId(), t);
+			logger.error("araqne logdb: cannot close file buffer list for query " + query.getId(), t);
 		}
 
-		invokeCallbacks(lq, QueryStatus.Removed);
+		invokeCallbacks(query, QueryStatus.REMOVED);
 	}
 
 	@Override
@@ -388,11 +388,11 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		planners.remove(planner);
 	}
 
-	private void invokeCallbacks(Query lq, QueryStatus status) {
-		logger.debug("araqne logdb: invoking callback to notify query [{}], status [{}]", lq.getId(), status);
+	private void invokeCallbacks(Query query, QueryStatus status) {
+		logger.debug("araqne logdb: invoking callback to notify query [{}], status [{}]", query.getId(), status);
 		for (QueryEventListener callback : callbacks) {
 			try {
-				callback.onQueryStatusChange(lq, status);
+				callback.onQueryStatusChange(query, status);
 			} catch (Exception e) {
 				logger.warn("araqne logdb: query event listener should not throw any exception", e);
 			}
@@ -423,7 +423,12 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	private class EofReceiver implements QueryStatusCallback {
 		@Override
 		public void onChange(Query query) {
-			invokeCallbacks(query, QueryStatus.Eof);
+			if (!query.isFinished())
+				return;
+
+			// prevent duplicated logging
+			query.getCallbacks().getStatusCallbacks().remove(this);
+
 			Date now = new Date();
 
 			HashMap<String, Object> m = new HashMap<String, Object>();
@@ -445,6 +450,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 				m.put("duration", 0);
 
 			storage.write(new Log(QUERY_LOG_TABLE, now, m));
+
+			invokeCallbacks(query, QueryStatus.EOF);
 		}
 	}
 }

@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.BaseLogQueryScript;
+import org.araqne.logdb.BaseQueryScript;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryScriptRegistry;
 import org.araqne.logdb.query.command.Script;
@@ -62,6 +62,6 @@ public class ScriptParserTest {
 		assertEquals("script key2=value2 key1=value1 sample", script.toString());
 	}
 
-	private static class MockQueryScript extends BaseLogQueryScript {
+	private static class MockQueryScript extends BaseQueryScript {
 	}
 }

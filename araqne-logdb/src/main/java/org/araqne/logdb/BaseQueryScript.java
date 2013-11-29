@@ -17,7 +17,7 @@ package org.araqne.logdb;
 
 import java.util.Map;
 
-public class BaseLogQueryScript implements QueryScript {
+public class BaseQueryScript implements QueryScript {
 
 	@Override
 	public void init(Map<String, String> params) {
