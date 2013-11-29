@@ -148,9 +148,7 @@ public abstract class LogFileReader {
 		
 	}
 	
-	protected static List<Log> parse(String tableName, LogParser parser, LogRecord record) throws LogParserBugException {
-		Log log = LogMarshaler.convert(tableName, record);
-
+	public static List<Log> parse(String tableName, LogParser parser, Log log) throws LogParserBugException {
 		if (parser != null) {
 			if (parser != null && parser.getVersion() == 2) {
 				return parseV2(parser, log);
@@ -172,6 +170,10 @@ public abstract class LogFileReader {
 			ret.add(new Log(tableName, log.getDate(), log.getId(), m));
 			return ret;
 		}
+	}
+	
+	protected static List<Log> parse(String tableName, LogParser parser, LogRecord record) throws LogParserBugException {
+		return parse(tableName, parser, LogMarshaler.convert(tableName, record));
 	}
 	
 	public abstract List<Log> find(Date from, Date to, List<Long> ids, LogParserBuilder builder);

@@ -38,20 +38,24 @@ public class LastPositionHelper {
 	}
 
 	public static Map<String, LastPosition> readLastPositions(File f) {
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHH:mm:ss");
-
-		Map<String, LastPosition> lastPositions = new HashMap<String, LastPosition>();
 		List<String> lines = readAllLine(f);
+		return readLastPosition(lines);
+	}
+
+	public static Map<String, LastPosition> readLastPosition(List<String> lines) {
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHH:mm:ss");
+		Map<String, LastPosition> lastPositions = new HashMap<String, LastPosition>();
 		if (lines == null || lines.isEmpty())
 			return lastPositions;
 
 		int startIndex = 0;
-		int endIndex = lines.size() - 2;
+		int endIndex = lines.size() - 1;
 
 		int version = 1;
 		if (lines.get(0).equals("ARAQNE_LAST_POS_VER2")) {
 			version = 2;
-			startIndex = 1;
+			startIndex++;
+			endIndex--;
 		}
 
 		for (; startIndex <= endIndex; startIndex++) {
@@ -71,33 +75,42 @@ public class LastPositionHelper {
 		return lastPositions;
 	}
 
+	public static List<String> parseV2Lines(Map<String, LastPosition> lastPositions) {
+		List<String> lines = new ArrayList<String>();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHH:mm:ss");
+		lines.add("ARAQNE_LAST_POS_VER2");
+		long currentTime = new Date().getTime();
+
+		for (String path : lastPositions.keySet()) {
+			LastPosition inform = lastPositions.get(path);
+			String position = Long.toString(inform.getPosition());
+			String line = path + " " + position;
+			if (inform.getLastSeen() != null) {
+				long limitTime = inform.getLastSeen().getTime() + 3600000L;
+				if (limitTime <= currentTime)
+					continue;
+				line += " " + sdf.format(inform.getLastSeen());
+			} else
+				line += " -";
+			lines.add(line);
+		}
+		lines.add("END_FILE");
+		return lines;
+	}
+
 	public static void updateLastPositionFile(File f, Map<String, LastPosition> lastPositions) {
 		Logger logger = LoggerFactory.getLogger(LastPositionHelper.class);
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
 
 		// write last positions
 		FileOutputStream os = null;
-
 		try {
 			os = new FileOutputStream(f);
-
-			long currentTime = new Date().getTime();
-			os.write("ARAQNE_LAST_POS_VER2\n".getBytes("utf-8"));
-			for (String path : lastPositions.keySet()) {
-				LastPosition inform = lastPositions.get(path);
-				String position = Long.toString(inform.getPosition());
-				String line = path + " " + position;
-				if (inform.getLastSeen() != null) {
-					long limitTime = inform.getLastSeen().getTime() + 3600000L;
-					if (limitTime <= currentTime)
-						continue;
-					line += " " + sdf.format(inform.getLastSeen());
-				} else
-					line += " -";
-				line += "\n";
+			List<String> lines = parseV2Lines(lastPositions);
+			for (String line : lines) {
+				if (!line.equals("END_FILE"))
+					line += "\n";
 				os.write(line.getBytes("utf-8"));
 			}
-			os.write("END_FILE".getBytes("utf-8"));
 		} catch (IOException e) {
 			logger.error("araqne log api: cannot write last position file", e);
 		} finally {
@@ -127,7 +140,7 @@ public class LastPositionHelper {
 						if (line.trim().isEmpty())
 							continue;
 
-						lines.add(line);
+						lines.add(line.trim());
 					}
 				} finally {
 					ensureClose(is);
@@ -145,10 +158,12 @@ public class LastPositionHelper {
 		String path = null;
 		long pos = 0;
 		Date lastSeen = null;
-		int p = line.lastIndexOf(" ", line.length());
+		String posString = null;
 		if (version == 1) {
+			int p = line.lastIndexOf(" ", line.length());
 			path = line.substring(0, p);
-			pos = Long.parseLong(line.substring(p + 1));
+			posString = line.substring(p + 1);
+			pos = posString.trim().isEmpty() ? 0 : Long.parseLong(posString);
 			return new LastPosition(path, pos, null);
 		} else if (version == 2) {
 			int startDate = line.lastIndexOf(" ", line.length());
