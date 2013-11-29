@@ -13,10 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.query.engine;
+package org.araqne.logdb;
 
-public interface QueryTaskListener {
-	void onStart(QueryTaskEvent event);
+public class QueryTaskEvent {
+	private QueryTask task;
+	private boolean handled;
 
-	void onComplete(QueryTaskEvent event);
+	public QueryTaskEvent(QueryTask task) {
+		this.task = task;
+	}
+
+	public QueryTask getTask() {
+		return task;
+	}
+
+	public boolean isHandled() {
+		return handled;
+	}
+
+	public void setHandled(boolean handled) {
+		this.handled = handled;
+	}
 }

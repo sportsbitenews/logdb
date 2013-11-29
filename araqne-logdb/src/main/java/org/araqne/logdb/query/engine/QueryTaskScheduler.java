@@ -22,6 +22,8 @@ import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.QueryTaskEvent;
+import org.araqne.logdb.QueryTaskListener;
 import org.araqne.logdb.QueryCommand.Status;
 import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.QueryStatusCallback;
