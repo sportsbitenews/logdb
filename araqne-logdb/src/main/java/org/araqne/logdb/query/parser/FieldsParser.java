@@ -18,13 +18,13 @@ package org.araqne.logdb.query.parser;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Fields;
 
-public class FieldsParser implements LogQueryCommandParser {
+public class FieldsParser implements QueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -32,7 +32,7 @@ public class FieldsParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
 
 		List<String> fields = new ArrayList<String>();
@@ -45,7 +45,7 @@ public class FieldsParser implements LogQueryCommandParser {
 		}
 
 		if (args.size() == 0)
-			throw new LogQueryParseException("no-field-args", -1);
+			throw new QueryParseException("no-field-args", -1);
 
 		for (String t : args) {
 			String[] csv = t.split(",");

@@ -15,13 +15,13 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Search;
 import org.araqne.logdb.query.expr.Expression;
 
-public class SearchParser implements LogQueryCommandParser {
+public class SearchParser implements QueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -29,7 +29,7 @@ public class SearchParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		String args = commandString.substring("search".length()).trim();
 		String exprToken = args;
 
@@ -41,7 +41,7 @@ public class SearchParser implements LogQueryCommandParser {
 			if (end > 0) {
 				limit = Long.valueOf(args.substring(begin, end));
 				exprToken = args.substring(end + 1);
-			} else { 
+			} else {
 				limit = Long.valueOf(args.substring(begin));
 				exprToken = "";
 			}

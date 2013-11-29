@@ -21,21 +21,22 @@ import java.util.Map;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.Row;
 
-public class QueryLogParser extends LogQueryCommand implements LogParser {
+public class QueryLogParser extends QueryCommand implements LogParser {
 	private String queryString;
-	private LogQueryCommand first;
+	private QueryCommand first;
 	private Map<String, Object> last;
 
-	public QueryLogParser(String queryString, List<LogQueryCommand> commands) {
+	public QueryLogParser(String queryString, List<QueryCommand> commands) {
 		this.queryString = queryString;
 		first = commands.get(0);
 		commands.add(this);
 
 		for (int i = commands.size() - 2; i >= 0; i--)
-			commands.get(i).setNextCommand(commands.get(i + 1));
+			commands.get(i).setOutput(new QueryCommandPipe(commands.get(i + 1)));
 	}
 
 	@Override
@@ -50,14 +51,14 @@ public class QueryLogParser extends LogQueryCommand implements LogParser {
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
-		first.push(new LogMap(params));
+		first.onPush(new Row(params));
 		Map<String, Object> m = last;
 		last = null;
 		return m;
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		last = m.map();
 	}
 

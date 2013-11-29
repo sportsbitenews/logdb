@@ -19,8 +19,8 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,12 +42,12 @@ public class UrlDecode implements Expression {
 		try {
 			Charset.forName(charset);
 		} catch (Exception e) {
-			throw new LogQueryParseException("invalid-charset", -1);
+			throw new QueryParseException("invalid-charset", -1);
 		}
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object value = valueExpr.eval(map);
 		if (value == null)
 			return null;

@@ -2,7 +2,7 @@ package org.araqne.logdb.query.parser;
 
 import java.util.Stack;
 
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.expr.*;
 
 public class EvalOpEmitterFactory implements OpEmitterFactory {
@@ -19,7 +19,7 @@ public class EvalOpEmitterFactory implements OpEmitterFactory {
 
 		// reversed order by stack
 		if (exprStack.size() < 2)
-			throw new LogQueryParseException("broken-expression", -1, "operator is [" + op + "]");
+			throw new QueryParseException("broken-expression", -1, "operator is [" + op + "]");
 
 		Expression rhs = exprStack.pop();
 		Expression lhs = exprStack.pop();
@@ -68,7 +68,7 @@ public class EvalOpEmitterFactory implements OpEmitterFactory {
 			exprStack.add(new Comma(lhs, rhs, true));
 			break;
 		default:
-			throw new LogQueryParseException("unsupported operator", -1, op + " is not supported");
+			throw new QueryParseException("unsupported operator", -1, op + " is not supported");
 		}
 	}
 	

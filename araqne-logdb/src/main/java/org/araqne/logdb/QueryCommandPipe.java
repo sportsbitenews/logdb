@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,15 @@
  */
 package org.araqne.logdb;
 
-public interface LogQueryEventListener {
-	void onQueryStatusChange(LogQuery query, LogQueryStatus status);
+public class QueryCommandPipe implements RowPipe {
+	private QueryCommand dst;
+
+	public QueryCommandPipe(QueryCommand dst) {
+		this.dst = dst;
+	}
+
+	@Override
+	public void onRow(Row row) {
+		dst.onPush(row);
+	}
 }

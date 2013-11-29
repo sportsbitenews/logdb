@@ -15,26 +15,12 @@
  */
 package org.araqne.logdb;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-public interface LogQueryScriptRegistry {
-	Set<String> getWorkspaceNames();
-	
-	void createWorkspace(String name);
+import org.osgi.framework.BundleContext;
 
-	void dropWorkspace(String name);
+public interface QueryScriptInput {
+	BundleContext getBundleContext();
 
-	Set<String> getScriptFactoryNames(String workspace);
-
-	List<LogQueryScriptFactory> getScriptFactories(String workspace);
-	
-	LogQueryScriptFactory getScriptFactory(String workspace, String name);
-
-	LogQueryScript newScript(String workspace, String name, Map<String, String> params);
-
-	void addScriptFactory(String workspace, String name, LogQueryScriptFactory factory);
-
-	void removeScriptFactory(String workspace, String name);
+	Map<String, Object> getData();
 }

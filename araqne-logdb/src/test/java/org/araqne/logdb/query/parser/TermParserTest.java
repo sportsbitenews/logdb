@@ -16,7 +16,7 @@
 package org.araqne.logdb.query.parser;
 
 import org.junit.Test;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Term;
 import org.araqne.logdb.query.command.Term.Operator;
 
@@ -56,7 +56,7 @@ public class TermParserTest {
 		try {
 			TermParser.parseTerm(TERM);
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("string-quote-mismatch", e.getType());
 			assertEquals(16, (int) e.getOffset());
 		}
@@ -69,7 +69,7 @@ public class TermParserTest {
 		try {
 			TermParser.parseTerm(TERM);
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("need-string-token", e.getType());
 			assertEquals(9, (int) e.getOffset());
 		}

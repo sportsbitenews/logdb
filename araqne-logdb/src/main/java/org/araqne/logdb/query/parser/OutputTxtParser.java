@@ -23,10 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.OutputTxt;
 
 /**
@@ -34,7 +34,7 @@ import org.araqne.logdb.query.command.OutputTxt;
  * @author darkluster
  * 
  */
-public class OutputTxtParser implements LogQueryCommandParser {
+public class OutputTxtParser implements QueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -42,9 +42,9 @@ public class OutputTxtParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
-			throw new LogQueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("missing-field", commandString.length());
 
 		boolean overwrite = false;
 		String delimiter = null;
@@ -63,11 +63,11 @@ public class OutputTxtParser implements LogQueryCommandParser {
 
 		int next = r.next;
 		if (next < 0)
-			throw new LogQueryParseException("invalid-field", next);
+			throw new QueryParseException("invalid-field", next);
 		String remainCommandString = commandString.substring(next);
 		QueryTokens tokens = QueryTokenizer.tokenize(remainCommandString);
 		if (tokens.size() < 1)
-			throw new LogQueryParseException("missing-field", tokens.size());
+			throw new QueryParseException("missing-field", tokens.size());
 
 		String filePath = tokens.token(0).token;
 		filePath = ExpressionParser.evalContextReference(context, filePath);
@@ -87,7 +87,7 @@ public class OutputTxtParser implements LogQueryCommandParser {
 		}
 
 		if (fields.size() == 0)
-			throw new LogQueryParseException("missing-field", remainCommandString.length());
+			throw new QueryParseException("missing-field", remainCommandString.length());
 
 		File txtFile = new File(filePath);
 		if (txtFile.exists() && !overwrite)
@@ -98,7 +98,7 @@ public class OutputTxtParser implements LogQueryCommandParser {
 				txtFile.getParentFile().mkdirs();
 			return new OutputTxt(txtFile, filePath, overwrite, delimiter, fields);
 		} catch (IOException e) {
-			throw new LogQueryParseException("io-error", -1, e.getMessage());
+			throw new QueryParseException("io-error", -1, e.getMessage());
 		}
 	}
 }

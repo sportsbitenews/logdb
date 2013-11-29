@@ -4,7 +4,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 public class ToIp implements Expression {
 	private Expression valueExpr;
@@ -14,7 +14,7 @@ public class ToIp implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object v = valueExpr.eval(map);
 		if (v == null)
 			return null;

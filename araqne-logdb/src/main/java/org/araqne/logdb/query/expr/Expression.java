@@ -15,8 +15,8 @@
  */
 package org.araqne.logdb.query.expr;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 public interface Expression {
-	Object eval(LogMap map);
+	Object eval(Row map);
 }

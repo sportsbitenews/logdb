@@ -19,8 +19,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 
 /**
  * @since 1.7.2
@@ -39,7 +39,7 @@ public class DateAdd implements Expression {
 		this.exprs = exprs;
 		c = Calendar.getInstance();
 		if (exprs.size() != 3)
-			throw new LogQueryParseException("invalid-dateadd-args", -1);
+			throw new QueryParseException("invalid-dateadd-args", -1);
 
 		field = exprs.get(0);
 
@@ -57,17 +57,17 @@ public class DateAdd implements Expression {
 		else if (s.equals("sec"))
 			calField = Calendar.SECOND;
 		else
-			throw new LogQueryParseException("invalid-dateadd-calendar-field", -1);
+			throw new QueryParseException("invalid-dateadd-calendar-field", -1);
 
 		Object d = exprs.get(2).eval(null);
 		if (d instanceof Integer)
 			delta = (Integer) d;
 		else
-			throw new LogQueryParseException("invalid-dateadd-delta-type", -1);
+			throw new QueryParseException("invalid-dateadd-delta-type", -1);
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object o = field.eval(map);
 		if (o == null)
 			return null;

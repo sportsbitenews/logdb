@@ -15,13 +15,13 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Rename;
 
-public class RenameParser implements LogQueryCommandParser {
+public class RenameParser implements QueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -29,17 +29,16 @@ public class RenameParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
 		if (tokens.size() < 3)
-			throw new LogQueryParseException("as-token-not-found", commandString.length());
-		
+			throw new QueryParseException("as-token-not-found", commandString.length());
+
 		if (tokens.size() < 4)
-			throw new LogQueryParseException("to-field-not-found", commandString.length());
+			throw new QueryParseException("to-field-not-found", commandString.length());
 
 		if (!tokens.string(2).equalsIgnoreCase("as"))
-			throw new LogQueryParseException("invalid-as-position", -1);
-		
+			throw new QueryParseException("invalid-as-position", -1);
 
 		String from = tokens.firstArg();
 		String to = tokens.lastArg();

@@ -17,7 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.impl.Strings;
 
@@ -30,7 +30,7 @@ public class Max implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object max = null;
 
 		for (Expression expr : exprs) {

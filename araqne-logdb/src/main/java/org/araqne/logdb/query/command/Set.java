@@ -15,8 +15,8 @@
  */
 package org.araqne.logdb.query.command;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.expr.Expression;
 
 /**
@@ -24,7 +24,7 @@ import org.araqne.logdb.query.expr.Expression;
  * @author xeraph
  * 
  */
-public class Set extends LogQueryCommand {
+public class Set extends QueryCommand {
 	private String field;
 	private Expression expr;
 
@@ -42,8 +42,8 @@ public class Set extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
-		write(m);
+	public void onPush(Row m) {
+		pushPipe(m);
 	}
 
 	@Override

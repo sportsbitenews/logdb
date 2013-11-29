@@ -17,8 +17,8 @@ package org.araqne.logdb.query.command;
 
 import java.util.Date;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
 
@@ -27,7 +27,7 @@ import org.araqne.logstorage.LogStorage;
  * @author xeraph
  * 
  */
-public class Import extends LogQueryCommand {
+public class Import extends QueryCommand {
 	private LogStorage storage;
 	private String tableName;
 
@@ -43,7 +43,7 @@ public class Import extends LogQueryCommand {
 	}
 
 	@Override
-	public void start() {
+	public void onStart() {
 		if (create) {
 			try {
 				storage.createTable(tableName, "v3p");
@@ -66,7 +66,7 @@ public class Import extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		Object o = m.get("_time");
 		Date date = null;
 		if (o != null && o instanceof Date)
@@ -75,7 +75,7 @@ public class Import extends LogQueryCommand {
 			date = new Date();
 
 		storage.write(new Log(tableName, date, m.map()));
-		write(m);
+		pushPipe(m);
 	}
 
 	@Override

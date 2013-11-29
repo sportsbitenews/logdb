@@ -19,8 +19,8 @@ import java.util.Calendar;
 import java.util.Date;
 
 import org.junit.Test;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Timechart;
 import org.araqne.logdb.query.command.Timechart.TimeSpan;
@@ -36,7 +36,7 @@ public class TimechartParserTest {
 		try {
 			p.parse(null, "timechart");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("need-aggregation-field", e.getType());
 		}
 	}
@@ -88,7 +88,7 @@ public class TimechartParserTest {
 		assertEquals("sum((sport / 2))", agg.getName());
 
 		Expression arg1 = agg.getFunction().getArguments().get(0);
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("sport", 100);
 		assertEquals(50.0, arg1.eval(m));
 		assertEquals("timechart span=1m sum((sport / 2))", tc.toString());

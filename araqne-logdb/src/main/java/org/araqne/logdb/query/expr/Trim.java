@@ -17,7 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 public class Trim implements Expression {
 	private Expression expr;
@@ -27,7 +27,7 @@ public class Trim implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object v = expr.eval(map);
 		if (v == null)
 			return null;

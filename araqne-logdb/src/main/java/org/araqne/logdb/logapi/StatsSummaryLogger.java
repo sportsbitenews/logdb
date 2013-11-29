@@ -25,8 +25,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.araqne.log.api.*;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryContext;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
@@ -120,7 +120,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 		SyntaxParseResult pr = new StatsParser().parseSyntax(null, queryString);
 
 		// generate aggr fields
-		LogQueryContext context = new LogQueryContext(new EmptySession());
+		QueryContext context = new QueryContext(new EmptySession());
 		clauses = pr.clauses;
 		fields = new ArrayList<AggregationField>();
 		for (String aggTerm : pr.aggTerms) {
@@ -331,7 +331,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 		// XXX: replace LogMap to more proper type
 		AggregationFunction[] fs = buffer.get(key);
 		for (AggregationFunction f : fs) {
-			f.apply(new LogMap(parsed));
+			f.apply(new Row(parsed));
 		}
 	}
 

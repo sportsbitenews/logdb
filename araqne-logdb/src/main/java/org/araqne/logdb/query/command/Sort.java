@@ -22,9 +22,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.TopSelector;
 import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
@@ -32,7 +33,7 @@ import org.araqne.logdb.sort.CloseableIterator;
 import org.araqne.logdb.sort.Item;
 import org.araqne.logdb.sort.ParallelMergeSorter;
 
-public class Sort extends LogQueryCommand {
+public class Sort extends QueryCommand {
 	private static final int TOP_OPTIMIZE_THRESHOLD = 10000;
 	private Integer limit;
 	private SortField[] fields;
@@ -45,8 +46,8 @@ public class Sort extends LogQueryCommand {
 	}
 
 	@Override
-	public void init() {
-		super.init();
+	public void onStart() {
+		super.onStart();
 		if (limit != null && limit <= TOP_OPTIMIZE_THRESHOLD)
 			this.top = new TopSelector<Item>(limit, new DefaultComparator());
 		else
@@ -62,14 +63,14 @@ public class Sort extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		try {
 			if (top != null)
 				top.add(new Item(m.map(), null));
 			else
 				sorter.add(new Item(m.map(), null));
 		} catch (IOException e) {
-			throw new IllegalStateException("sort failed, query " + logQuery, e);
+			throw new IllegalStateException("sort failed, query " + query, e);
 		}
 	}
 
@@ -80,14 +81,14 @@ public class Sort extends LogQueryCommand {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void eof(boolean canceled) {
+	public void onClose(QueryStopReason reason) {
 		this.status = Status.Finalizing;
 
 		if (top != null) {
 			Iterator<Item> it = top.getTopEntries();
 			while (it.hasNext()) {
 				Item item = it.next();
-				write(new LogMap((Map<String, Object>) item.getKey()));
+				pushPipe(new Row((Map<String, Object>) item.getKey()));
 			}
 
 			// support sorter cache GC when query processing is ended
@@ -107,7 +108,7 @@ public class Sort extends LogQueryCommand {
 						break;
 
 					Map<String, Object> value = (Map<String, Object>) ((Item) o).getKey();
-					write(new LogMap(value));
+					pushPipe(new Row(value));
 				}
 
 			} catch (IOException e) {
@@ -124,8 +125,6 @@ public class Sort extends LogQueryCommand {
 			// support sorter cache GC when query processing is ended
 			sorter = null;
 		}
-
-		super.eof(false);
 	}
 
 	private class DefaultComparator implements Comparator<Item> {

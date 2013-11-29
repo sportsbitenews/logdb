@@ -19,24 +19,27 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-public interface LogQuery extends Runnable {
+public interface Query extends Runnable {
 	boolean isAccessible(Session session);
 
-	LogQueryContext getContext();
+	QueryContext getContext();
 
 	int getId();
 
 	String getQueryString();
 
-	boolean isEof();
+	boolean isStarted();
 
-	boolean isEnd();
+	boolean isFinished();
 
 	boolean isCancelled();
 
-	void cancel();
+	void preRun();
+
+	void postRun();
+
+	void stop(QueryStopReason reason);
 
 	void purge();
 
@@ -45,7 +48,8 @@ public interface LogQuery extends Runnable {
 	/**
 	 * elapsed time between start and eof
 	 * 
-	 * @return the elapsed time in milliseconds, or return null if query is not started yet
+	 * @return the elapsed time in milliseconds, or return null if query is not
+	 *         started yet
 	 */
 	Long getElapsedTime();
 
@@ -55,29 +59,17 @@ public interface LogQuery extends Runnable {
 	 */
 	Long getResultCount() throws IOException;
 
-	LogResultSet getResult() throws IOException;
+	QueryResult getResult();
+
+	QueryResultSet getResultSet() throws IOException;
 
 	List<Map<String, Object>> getResultAsList() throws IOException;
 
 	List<Map<String, Object>> getResultAsList(long offset, int limit) throws IOException;
 
-	List<LogQueryCommand> getCommands();
+	List<QueryCommand> getCommands();
 
-	Set<LogQueryCallback> getLogQueryCallback();
-
-	void registerQueryCallback(LogQueryCallback callback);
-
-	void unregisterQueryCallback(LogQueryCallback callback);
-
-	void clearQueryCallbacks();
-
-	Set<LogTimelineCallback> getTimelineCallbacks();
-
-	void registerTimelineCallback(LogTimelineCallback callback);
-
-	void unregisterTimelineCallback(LogTimelineCallback callback);
-
-	void clearTimelineCallbacks();
+	QueryCallbacks getCallbacks();
 
 	/**
 	 * If run mode is background, query will not be removed at logout
@@ -91,5 +83,5 @@ public interface LogQuery extends Runnable {
 	 * 
 	 * @since 0.17.0
 	 */
-	void setRunMode(RunMode mode, LogQueryContext context);
+	void setRunMode(RunMode mode, QueryContext context);
 }

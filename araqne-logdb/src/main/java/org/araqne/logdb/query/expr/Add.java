@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.NumberUtil;
 
 public class Add extends BinaryExpression {
@@ -24,7 +24,7 @@ public class Add extends BinaryExpression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		return NumberUtil.add(lhs.eval(map), rhs.eval(map));
 	}
 

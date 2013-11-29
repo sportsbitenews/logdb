@@ -31,9 +31,9 @@ import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.StringConfigType;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryParserService;
-import org.araqne.logdb.LogQueryService;
+import org.araqne.logdb.QueryService;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryParserService;
 
 /**
  * Generate log using logdb query language
@@ -51,10 +51,10 @@ public class QueryTransformLoggerFactory extends AbstractLoggerFactory {
 
 	// force to wait dynamic query parser instance loading
 	@Requires
-	private LogQueryService queryService;
+	private QueryService queryService;
 
 	@Requires
-	private LogQueryParserService queryParser;
+	private QueryParserService queryParser;
 
 	@Override
 	public String getName() {
@@ -108,7 +108,7 @@ public class QueryTransformLoggerFactory extends AbstractLoggerFactory {
 	protected Logger createLogger(LoggerSpecification spec) {
 		String queryString = spec.getConfig().get("querystring");
 
-		List<LogQueryCommand> commands = queryParser.parseCommands(null, queryString);
+		List<QueryCommand> commands = queryParser.parseCommands(null, queryString);
 		return new QueryTransformLogger(spec, this, loggerRegistry, commands);
 	}
 

@@ -19,8 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.expr.Expression;
 
 public class ExpressionParser {
@@ -35,7 +35,7 @@ public class ExpressionParser {
 	/**
 	 * @since 1.7.5
 	 */
-	public static String evalContextReference(LogQueryContext context, String s) {
+	public static String evalContextReference(QueryContext context, String s) {
 		if (ExpressionParser.isContextReference(s)) {
 			Expression contextReference = ExpressionParser.parse(context, s);
 			Object o = contextReference.eval(null);
@@ -52,7 +52,7 @@ public class ExpressionParser {
 		return parse(null, s, r);
 	}
 
-	public static Expression parse(LogQueryContext context, String s, ParsingRule r) {
+	public static Expression parse(QueryContext context, String s, ParsingRule r) {
 		if (s == null)
 			throw new IllegalArgumentException("expression string should not be null");
 
@@ -76,12 +76,12 @@ public class ExpressionParser {
 				FuncTerm f = (FuncTerm) term;
 				ff.emit(context, exprStack, f);
 			} else {
-				throw new LogQueryParseException("unexpected-term", -1, term.toString());
+				throw new QueryParseException("unexpected-term", -1, term.toString());
 			}
 		}
 
 		if (exprStack.size() > 1) {
-			throw new LogQueryParseException("remain-terms", -1);
+			throw new QueryParseException("remain-terms", -1);
 		}
 		return exprStack.pop();
 	}
@@ -97,7 +97,7 @@ public class ExpressionParser {
 	/**
 	 * @since 1.7.3
 	 */
-	public static Expression parse(LogQueryContext context, String s) {
+	public static Expression parse(QueryContext context, String s) {
 		return parse(context, s, evalRule);
 	}
 
@@ -137,7 +137,7 @@ public class ExpressionParser {
 					}
 
 					if (!foundMatchParens)
-						throw new LogQueryParseException("parens-mismatch", -1);
+						throw new QueryParseException("parens-mismatch", -1);
 
 					// postprocess for closed parenthesis
 
@@ -302,7 +302,7 @@ public class ExpressionParser {
 				int p = findClosingQuote(s, r.next + 1);
 				// int p = s.indexOf('"', r.next + 1);
 				if (p < 0) {
-					throw new LogQueryParseException("quote-mismatch", r.next + 1);
+					throw new QueryParseException("quote-mismatch", r.next + 1);
 					// String quoted = unveilEscape(s.substring(r.next));
 					// return new ParseResult(quoted, s.length());
 				} else {
@@ -343,7 +343,7 @@ public class ExpressionParser {
 				else if (c == 't')
 					sb.append('\t');
 				else
-					throw new LogQueryParseException("invalid-escape-sequence", -1, "char=" + c);
+					throw new QueryParseException("invalid-escape-sequence", -1, "char=" + c);
 				escape = false;
 			} else {
 				if (c == '\\')
@@ -364,7 +364,7 @@ public class ExpressionParser {
 				if (c == '\\' || c == '"' || c == 'n' || c == 't')
 					escape = false;
 				else
-					throw new LogQueryParseException("invalid-escape-sequence", offset);
+					throw new QueryParseException("invalid-escape-sequence", offset);
 			} else {
 				if (c == '\\')
 					escape = true;

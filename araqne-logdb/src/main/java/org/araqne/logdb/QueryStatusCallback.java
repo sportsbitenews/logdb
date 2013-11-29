@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,6 @@
  */
 package org.araqne.logdb;
 
-public interface LogQueryCommandParser {
-	String getCommandName();
-
-	LogQueryCommand parse(LogQueryContext context, String commandString);
+public interface QueryStatusCallback {
+	void onChange(Query query);
 }

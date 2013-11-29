@@ -15,20 +15,20 @@
  */
 package org.araqne.logdb.query.command;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 
-public class Signature extends LogQueryCommand {
+public class Signature extends QueryCommand {
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		String line = (String) m.get("line");
 		if (line == null)
 			return;
 
 		String sig = makeSignature(line);
 		m.put("signature", sig);
-		write(m);
+		pushPipe(m);
 	}
 
 	@Override
@@ -55,5 +55,5 @@ public class Signature extends LogQueryCommand {
 	public String toString() {
 		return "signature";
 	}
-	
+
 }

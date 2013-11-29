@@ -25,9 +25,10 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * @author darkluster
  * 
  */
-public class OutputTxt extends LogQueryCommand {
+public class OutputTxt extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(OutputTxt.class.getName());
 	private FileOutputStream fos;
 	private List<String> fields;
@@ -64,7 +65,7 @@ public class OutputTxt extends LogQueryCommand {
 			this.delimiter = delimiter;
 		} catch (Throwable t) {
 			close();
-			throw new LogQueryParseException("io-error", -1);
+			throw new QueryParseException("io-error", -1);
 		}
 	}
 
@@ -81,7 +82,7 @@ public class OutputTxt extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		try {
 			for (int index = 0; index < fields.size(); index++) {
 				String field = fields.get(index);
@@ -97,9 +98,10 @@ public class OutputTxt extends LogQueryCommand {
 		} catch (Throwable t) {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot write log to txt file", t);
-			eof(true);
+
+			getQuery().stop(QueryStopReason.CommandFailure);
 		}
-		write(m);
+		pushPipe(m);
 	}
 
 	@Override
@@ -108,29 +110,14 @@ public class OutputTxt extends LogQueryCommand {
 	}
 
 	@Override
-	public void eof(boolean cancelled) {
+	public void onClose(QueryStopReason reason) {
 		close();
-		super.eof(cancelled);
 	}
 
 	private void close() {
-		try {
-			if (this.osw != null)
-				osw.close();
-		} catch (IOException e) {
-		}
-
-		try {
-			if (bos != null)
-				bos.close();
-		} catch (IOException e) {
-		}
-
-		try {
-			if (fos != null)
-				fos.close();
-		} catch (IOException e) {
-		}
+		IoHelper.close(osw);
+		IoHelper.close(bos);
+		IoHelper.close(fos);
 	}
 
 	@Override

@@ -1,7 +1,7 @@
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.query.command.Import;
 import org.araqne.logstorage.LogStorage;
@@ -21,7 +21,7 @@ public class ImportParserTest {
 		when(session.isAdmin()).thenReturn(true);
 		when(tableRegistry.exists("sample")).thenReturn(true);
 
-		LogQueryContext context = new LogQueryContext(session);
+		QueryContext context = new QueryContext(session);
 		ImportParser p = new ImportParser(tableRegistry, storage);
 		Import imp = (Import) p.parse(context, "import sample");
 		assertEquals("sample", imp.getTableName());
@@ -39,14 +39,14 @@ public class ImportParserTest {
 		when(session.isAdmin()).thenReturn(true);
 		when(tableRegistry.exists("sample")).thenReturn(false);
 
-		LogQueryContext context = new LogQueryContext(session);
+		QueryContext context = new QueryContext(session);
 		ImportParser p = new ImportParser(tableRegistry, storage);
 		Import imp = (Import) p.parse(context, "import create=true sample");
 		assertEquals("sample", imp.getTableName());
 		assertTrue(imp.isCreate());
 	}
 
-	@Test(expected = LogQueryParseException.class)
+	@Test(expected = QueryParseException.class)
 	public void parseNoPermission() {
 		LogTableRegistry tableRegistry = mock(LogTableRegistry.class);
 		LogStorage storage = mock(LogStorage.class);
@@ -54,7 +54,7 @@ public class ImportParserTest {
 		when(session.isAdmin()).thenReturn(false);
 		when(tableRegistry.exists("sample")).thenReturn(true);
 
-		LogQueryContext context = new LogQueryContext(session);
+		QueryContext context = new QueryContext(session);
 		ImportParser p = new ImportParser(tableRegistry, storage);
 		p.parse(context, "import create=true sample");
 	}

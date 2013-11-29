@@ -17,7 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.UUID;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 /**
  * @since 1.7.5
@@ -27,7 +27,7 @@ import org.araqne.logdb.LogMap;
 public class Guid implements Expression {
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		return UUID.randomUUID().toString();
 	}
 

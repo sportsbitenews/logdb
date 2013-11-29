@@ -20,8 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
 import org.araqne.logdb.query.aggregator.Average;
@@ -59,7 +59,7 @@ public class AggregationParser {
 		t.put("range", Range.class);
 	}
 	
-	public static AggregationField parse(LogQueryContext context, String s, Map<String, Class<? extends AggregationFunction>> funcTable) {
+	public static AggregationField parse(QueryContext context, String s, Map<String, Class<? extends AggregationFunction>> funcTable) {
 		// find 'as' keyword
 		String funcPart = s.trim();
 		String alias = null;
@@ -79,11 +79,11 @@ public class AggregationParser {
 		return field;
 	}
 
-	public static AggregationField parse(LogQueryContext context, String s) {
+	public static AggregationField parse(QueryContext context, String s) {
 		return parse(context, s, t);
 	}
 
-	private static AggregationFunction parseFunc(LogQueryContext context, Map<String, Class<? extends AggregationFunction>> funcTable, String s) {
+	private static AggregationFunction parseFunc(QueryContext context, Map<String, Class<? extends AggregationFunction>> funcTable, String s) {
 		int p = s.indexOf('(');
 		String funcName = s;
 		String argsToken = "";
@@ -105,12 +105,12 @@ public class AggregationParser {
 		// find function
 		Class<?> c = funcTable.get(funcName);
 		if (c == null)
-			throw new LogQueryParseException("invalid-aggregation-function", -1, "function name token is [" + funcName + "]");
+			throw new QueryParseException("invalid-aggregation-function", -1, "function name token is [" + funcName + "]");
 
 		try {
 			return (AggregationFunction) c.getConstructors()[0].newInstance(exprs);
 		} catch (Throwable e) {
-			throw new LogQueryParseException("cannot-create-aggregation-function", -1, e.getMessage());
+			throw new QueryParseException("cannot-create-aggregation-function", -1, e.getMessage());
 		}
 	}
 }

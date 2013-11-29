@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class LogTimelineCallback {
+public abstract class QueryTimelineCallback {
 	private long callbackInterval = 2000;
 	private Map<Long, Integer> timeline = new HashMap<Long, Integer>();
 	private long lastCallbackTime;

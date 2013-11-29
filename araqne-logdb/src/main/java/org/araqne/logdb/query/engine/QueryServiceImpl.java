@@ -37,19 +37,20 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.logdb.AccountService;
-import org.araqne.logdb.EmptyLogQueryCallback;
-import org.araqne.logdb.LogQuery;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryEventListener;
-import org.araqne.logdb.LogQueryParserService;
-import org.araqne.logdb.LogQueryPlanner;
-import org.araqne.logdb.LogQueryScriptRegistry;
-import org.araqne.logdb.LogQueryService;
-import org.araqne.logdb.LogQueryStatus;
+import org.araqne.logdb.QueryScriptRegistry;
+import org.araqne.logdb.QueryService;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.MetadataService;
+import org.araqne.logdb.Query;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryEventListener;
+import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.QueryPlanner;
+import org.araqne.logdb.QueryStatus;
+import org.araqne.logdb.QueryStatusCallback;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
@@ -94,11 +95,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component(name = "logdb-query")
-@Provides(specifications = { LogQueryService.class })
-public class LogQueryServiceImpl implements LogQueryService, SessionEventListener {
+@Provides(specifications = { QueryService.class })
+public class QueryServiceImpl implements QueryService, SessionEventListener {
 	private static final String QUERY_LOG_TABLE = "araqne_query_logs";
 
-	private final Logger logger = LoggerFactory.getLogger(LogQueryServiceImpl.class);
+	private final Logger logger = LoggerFactory.getLogger(QueryServiceImpl.class);
 
 	@Requires
 	private AccountService accountService;
@@ -113,7 +114,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 	private LookupHandlerRegistry lookupRegistry;
 
 	@Requires
-	private LogQueryScriptRegistry scriptRegistry;
+	private QueryScriptRegistry scriptRegistry;
 
 	@Requires
 	private LogParserFactoryRegistry parserFactoryRegistry;
@@ -122,7 +123,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 	private LogParserRegistry parserRegistry;
 
 	@Requires
-	private LogQueryParserService queryParserService;
+	private QueryParserService queryParserService;
 
 	@Requires
 	private LogStorage storage;
@@ -140,19 +141,19 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 	private LoggerRegistry loggerRegistry;
 
 	private BundleContext bc;
-	private ConcurrentMap<Integer, LogQuery> queries;
+	private ConcurrentMap<Integer, Query> queries;
 
-	private CopyOnWriteArraySet<LogQueryEventListener> callbacks;
+	private CopyOnWriteArraySet<QueryEventListener> callbacks;
 
-	private List<LogQueryCommandParser> queryParsers;
+	private List<QueryCommandParser> queryParsers;
 
-	private List<LogQueryPlanner> planners;
+	private List<QueryPlanner> planners;
 
-	public LogQueryServiceImpl(BundleContext bc) {
+	public QueryServiceImpl(BundleContext bc) {
 		this.bc = bc;
-		this.queries = new ConcurrentHashMap<Integer, LogQuery>();
-		this.callbacks = new CopyOnWriteArraySet<LogQueryEventListener>();
-		this.planners = new CopyOnWriteArrayList<LogQueryPlanner>();
+		this.queries = new ConcurrentHashMap<Integer, Query>();
+		this.callbacks = new CopyOnWriteArraySet<QueryEventListener>();
+		this.planners = new CopyOnWriteArrayList<QueryPlanner>();
 
 		// ensure directory
 		File dir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query");
@@ -163,13 +164,13 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 
 	private void prepareQueryParsers() {
 		@SuppressWarnings("unchecked")
-		List<Class<? extends LogQueryCommandParser>> parserClazzes = Arrays.asList(DropParser.class, SearchParser.class,
+		List<Class<? extends QueryCommandParser>> parserClazzes = Arrays.asList(DropParser.class, SearchParser.class,
 				StatsParser.class, FieldsParser.class, SortParser.class, TimechartParser.class, RenameParser.class,
 				EvalParser.class, RexParser.class, JsonParser.class, SignatureParser.class, LimitParser.class, SetParser.class,
 				EvalcParser.class, BoxPlotParser.class, ParseKvParser.class);
 
-		List<LogQueryCommandParser> parsers = new ArrayList<LogQueryCommandParser>();
-		for (Class<? extends LogQueryCommandParser> clazz : parserClazzes) {
+		List<QueryCommandParser> parsers = new ArrayList<QueryCommandParser>();
+		for (Class<? extends QueryCommandParser> clazz : parserClazzes) {
 			try {
 				parsers.add(clazz.newInstance());
 			} catch (Exception e) {
@@ -199,7 +200,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 
 	@Validate
 	public void start() {
-		for (LogQueryCommandParser p : queryParsers)
+		for (QueryCommandParser p : queryParsers)
 			queryParserService.addCommandParser(p);
 
 		accountService.addListener(this);
@@ -241,29 +242,29 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 		}
 
 		if (queryParserService != null) {
-			for (LogQueryCommandParser p : queryParsers)
+			for (QueryCommandParser p : queryParsers)
 				queryParserService.removeCommandParser(p);
 		}
 	}
 
 	@Override
-	public LogQuery createQuery(Session session, String query) {
+	public Query createQuery(Session session, String query) {
 		if (logger.isDebugEnabled())
 			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]", new Object[] { query, session.getGuid(),
 					session.getLoginName() });
 
-		LogQueryContext context = new LogQueryContext(session);
-		List<LogQueryCommand> commands = queryParserService.parseCommands(context, query);
-		for (LogQueryPlanner planner : planners)
+		QueryContext context = new QueryContext(session);
+		List<QueryCommand> commands = queryParserService.parseCommands(context, query);
+		for (QueryPlanner planner : planners)
 			commands = planner.plan(commands);
 
-		LogQuery lq = new LogQueryImpl(context, query, commands);
-		for (LogQueryCommand cmd : commands)
-			cmd.setLogQuery(lq);
+		Query lq = new QueryImpl(context, query, commands);
+		for (QueryCommand cmd : commands)
+			cmd.setQuery(lq);
 
 		queries.put(lq.getId(), lq);
-		lq.registerQueryCallback(new EofReceiver(lq));
-		invokeCallbacks(lq, LogQueryStatus.Created);
+		lq.getCallbacks().getStatusCallbacks().add(new EofReceiver());
+		invokeCallbacks(lq, QueryStatus.Created);
 
 		return lq;
 	}
@@ -275,7 +276,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 
 	@Override
 	public void startQuery(Session session, int id) {
-		LogQuery lq = getQuery(id);
+		Query lq = getQuery(id);
 		if (lq == null)
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
@@ -283,7 +284,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
 		new Thread(lq, "Log Query " + id).start();
-		invokeCallbacks(lq, LogQueryStatus.Started);
+		invokeCallbacks(lq, QueryStatus.Started);
 	}
 
 	@Override
@@ -302,7 +303,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 			}
 		}
 
-		LogQuery lq = queries.remove(id);
+		Query lq = queries.remove(id);
 		if (lq == null) {
 			logger.debug("araqne logdb: query [{}] not found, remove failed", id);
 			return;
@@ -316,11 +317,12 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 		}
 
 		try {
-			lq.clearTimelineCallbacks();
-			lq.clearQueryCallbacks();
+			lq.getCallbacks().getTimelineCallbacks().clear();
+			lq.getCallbacks().getStatusCallbacks().clear();
+			lq.getCallbacks().getResultCallbacks().clear();
 
-			if (!lq.isEnd())
-				lq.cancel();
+			if (lq.isStarted() && !lq.isFinished())
+				lq.stop(QueryStopReason.UserRequest);
 		} catch (Throwable t) {
 			logger.error("araqne logdb: cannot cancel query " + lq, t);
 		}
@@ -331,18 +333,18 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 			logger.error("araqne logdb: cannot close file buffer list for query " + lq.getId(), t);
 		}
 
-		invokeCallbacks(lq, LogQueryStatus.Removed);
+		invokeCallbacks(lq, QueryStatus.Removed);
 	}
 
 	@Override
-	public Collection<LogQuery> getQueries() {
+	public Collection<Query> getQueries() {
 		return queries.values();
 	}
 
 	@Override
-	public Collection<LogQuery> getQueries(Session session) {
-		List<LogQuery> l = new ArrayList<LogQuery>();
-		for (LogQuery q : queries.values())
+	public Collection<Query> getQueries(Session session) {
+		List<Query> l = new ArrayList<Query>();
+		for (Query q : queries.values())
 			if (q.isAccessible(session))
 				l.add(q);
 
@@ -350,13 +352,13 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 	}
 
 	@Override
-	public LogQuery getQuery(int id) {
+	public Query getQuery(int id) {
 		return queries.get(id);
 	}
 
 	@Override
-	public LogQuery getQuery(Session session, int id) {
-		LogQuery q = queries.get(id);
+	public Query getQuery(Session session, int id) {
+		Query q = queries.get(id);
 		if (q == null)
 			return null;
 
@@ -367,28 +369,28 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 	}
 
 	@Override
-	public void addListener(LogQueryEventListener listener) {
+	public void addListener(QueryEventListener listener) {
 		callbacks.add(listener);
 	}
 
 	@Override
-	public void removeListener(LogQueryEventListener listener) {
+	public void removeListener(QueryEventListener listener) {
 		callbacks.remove(listener);
 	}
 
 	@Override
-	public void addPlanner(LogQueryPlanner planner) {
+	public void addPlanner(QueryPlanner planner) {
 		planners.add(planner);
 	}
 
 	@Override
-	public void removePlanner(LogQueryPlanner planner) {
+	public void removePlanner(QueryPlanner planner) {
 		planners.remove(planner);
 	}
 
-	private void invokeCallbacks(LogQuery lq, LogQueryStatus status) {
+	private void invokeCallbacks(Query lq, QueryStatus status) {
 		logger.debug("araqne logdb: invoking callback to notify query [{}], status [{}]", lq.getId(), status);
-		for (LogQueryEventListener callback : callbacks) {
+		for (QueryEventListener callback : callbacks) {
 			try {
 				callback.onQueryStatusChange(lq, status);
 			} catch (Exception e) {
@@ -409,7 +411,7 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 	 */
 	@Override
 	public void onLogout(Session session) {
-		for (LogQuery q : queries.values()) {
+		for (Query q : queries.values()) {
 			if (q.getRunMode() == RunMode.FOREGROUND && q.getContext().getSession().equals(session)) {
 				logger.trace("araqne logdb: removing foreground query [{}:{}] by session [{}] logout", new Object[] { q.getId(),
 						q.getQueryString(), session.getLoginName() });
@@ -418,16 +420,10 @@ public class LogQueryServiceImpl implements LogQueryService, SessionEventListene
 		}
 	}
 
-	private class EofReceiver extends EmptyLogQueryCallback {
-		private LogQuery query;
-
-		public EofReceiver(LogQuery query) {
-			this.query = query;
-		}
-
+	private class EofReceiver implements QueryStatusCallback {
 		@Override
-		public void onEof(boolean canceled) {
-			invokeCallbacks(query, LogQueryStatus.Eof);
+		public void onChange(Query query) {
+			invokeCallbacks(query, QueryStatus.Eof);
 			Date now = new Date();
 
 			HashMap<String, Object> m = new HashMap<String, Object>();

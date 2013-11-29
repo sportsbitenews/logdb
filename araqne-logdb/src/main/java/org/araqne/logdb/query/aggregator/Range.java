@@ -17,7 +17,7 @@ package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.NumberUtil;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -42,7 +42,7 @@ public class Range implements AggregationFunction {
 	}
 
 	@Override
-	public void apply(LogMap map) {
+	public void apply(Row map) {
 		Object obj = exprs.get(0).eval(map);
 		if (obj == null || !(obj instanceof Number))
 			return;

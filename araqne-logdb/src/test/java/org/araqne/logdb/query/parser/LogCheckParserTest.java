@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 
-import org.araqne.logdb.LogQueryContext;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.query.command.LogCheck;
 import org.araqne.logstorage.LogTableRegistry;
@@ -94,10 +94,10 @@ public class LogCheckParserTest {
 		return c;
 	}
 
-	private LogQueryContext getContext() {
+	private QueryContext getContext() {
 		Session session = mock(Session.class);
 		when(session.isAdmin()).thenReturn(true);
-		LogQueryContext ctx = new LogQueryContext(session);
+		QueryContext ctx = new QueryContext(session);
 		return ctx;
 	}
 

@@ -24,8 +24,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.RowPipe;
 import org.araqne.logstorage.Crypto;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
@@ -36,9 +38,10 @@ import org.araqne.logstorage.file.LogFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LogCheck extends LogQueryCommand {
+public class LogCheck extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(LogCheck.class);
 
+	private IntegrityCheckTask mainTask = new IntegrityCheckTask();
 	private Set<String> tableNames;
 	private Date from;
 	private Date to;
@@ -61,6 +64,11 @@ public class LogCheck extends LogQueryCommand {
 		this.fileServiceRegistry = fileSerivceRegistry;
 	}
 
+	@Override
+	public QueryTask getMainTask() {
+		return mainTask;
+	}
+
 	public Set<String> getTableNames() {
 		return tableNames;
 	}
@@ -74,27 +82,7 @@ public class LogCheck extends LogQueryCommand {
 	}
 
 	@Override
-	public void start() {
-		try {
-			status = Status.Running;
-			for (String tableName : tableNames) {
-				if (getStatus() == Status.End)
-					break;
-
-				try {
-					checkTable(tableName);
-				} catch (UnsupportedOperationException e) {
-					// ignore unsupported reader
-				}
-			}
-		} catch (Throwable t) {
-			logger.error("araqne logdb: table error", t);
-		}
-		eof(false);
-	}
-
-	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 	}
 
 	@Override
@@ -169,7 +157,7 @@ public class LogCheck extends LogQueryCommand {
 					m.put("block_id", data.get("block_id"));
 					m.put("signature", signature);
 					m.put("hash", hash);
-					write(new LogMap(m));
+					pushPipe(new Row(m));
 				}
 			} catch (IOException e) {
 				logger.error("araqne logdb: cannot read block metadata", e);
@@ -206,4 +194,30 @@ public class LogCheck extends LogQueryCommand {
 
 		return "logcheck" + fromOption + toOption + tables;
 	}
+
+	private class IntegrityCheckTask extends QueryTask {
+		@Override
+		public void run() {
+			try {
+				for (String tableName : tableNames) {
+					if (getStatus() == TaskStatus.CANCELED)
+						break;
+
+					try {
+						checkTable(tableName);
+					} catch (UnsupportedOperationException e) {
+						// ignore unsupported reader
+					}
+				}
+			} catch (Throwable t) {
+				logger.error("araqne logdb: table error", t);
+			}
+		}
+
+		@Override
+		public RowPipe getOutput() {
+			return output;
+		}
+	}
+
 }

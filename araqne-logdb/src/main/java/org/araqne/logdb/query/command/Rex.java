@@ -18,10 +18,10 @@ package org.araqne.logdb.query.command;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 
-public class Rex extends LogQueryCommand {
+public class Rex extends QueryCommand {
 
 	private String field;
 	private Pattern p;
@@ -52,10 +52,10 @@ public class Rex extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		Object o = m.get(field);
 		if (o == null) {
-			write(m);
+			pushPipe(m);
 			return;
 		}
 
@@ -66,7 +66,7 @@ public class Rex extends LogQueryCommand {
 			for (int i = 0; i < matcher.groupCount(); i++)
 				m.put(names[i], matcher.group(i + 1));
 
-		write(m);
+		pushPipe(m);
 	}
 
 	@Override

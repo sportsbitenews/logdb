@@ -17,17 +17,17 @@ package org.araqne.logdb.query.command;
 
 import java.util.Map;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryContext;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Evalc extends LogQueryCommand {
+public class Evalc extends QueryCommand {
 	private final Map<String, Object> constants;
 	private final String constantName;
 	private final Expression expr;
 
-	public Evalc(LogQueryContext context, String constantName, Expression expr) {
+	public Evalc(QueryContext context, String constantName, Expression expr) {
 		this.constants = context.getConstants();
 		this.constantName = constantName;
 		this.expr = expr;
@@ -42,9 +42,9 @@ public class Evalc extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		constants.put(constantName, expr.eval(m));
-		write(m);
+		pushPipe(m);
 	}
 
 	@Override

@@ -18,14 +18,14 @@ package org.araqne.logdb.query.parser;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Stats;
 
-public class StatsParser implements LogQueryCommandParser {
+public class StatsParser implements QueryCommandParser {
 	private static final String COMMAND = "stats";
 	private static final String BY = " by ";
 
@@ -45,7 +45,7 @@ public class StatsParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		SyntaxParseResult pr = parseSyntax(context, commandString);
 
 		// parse aggregations
@@ -59,7 +59,7 @@ public class StatsParser implements LogQueryCommandParser {
 		return new Stats(fields, pr.clauses);
 	}
 
-	public SyntaxParseResult parseSyntax(LogQueryContext context, String commandString) {
+	public SyntaxParseResult parseSyntax(QueryContext context, String commandString) {
 		// stats <aggregation function holder> by <stats-fields>
 
 		List<String> clauses = new ArrayList<String>();
@@ -72,7 +72,7 @@ public class StatsParser implements LogQueryCommandParser {
 			String clausePart = commandString.substring(byPos + BY.length());
 
 			if (clausePart.trim().endsWith(","))
-				throw new LogQueryParseException("missing-clause", commandString.length());
+				throw new QueryParseException("missing-clause", commandString.length());
 
 			// trim
 			for (String clause : clausePart.split(","))

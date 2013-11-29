@@ -27,24 +27,24 @@ import org.araqne.logdb.Account;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.CsvLookupRegistry;
 import org.araqne.logdb.ExternalAuthService;
-import org.araqne.logdb.LogQuery;
-import org.araqne.logdb.LogQueryScriptFactory;
-import org.araqne.logdb.LogQueryScriptRegistry;
-import org.araqne.logdb.LogQueryService;
+import org.araqne.logdb.QueryScriptFactory;
+import org.araqne.logdb.QueryScriptRegistry;
+import org.araqne.logdb.QueryService;
 import org.araqne.logdb.LookupHandlerRegistry;
+import org.araqne.logdb.Query;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 
 public class LogDBScript implements Script {
-	private LogQueryService qs;
-	private LogQueryScriptRegistry scriptRegistry;
+	private QueryService qs;
+	private QueryScriptRegistry scriptRegistry;
 	private CsvLookupRegistry csvRegistry;
 	private ScriptContext context;
 	private LookupHandlerRegistry lookup;
 	private AccountService accountService;
 	private SavedResultManager savedResultManager;
 
-	public LogDBScript(LogQueryService qs, LogQueryScriptRegistry scriptRegistry, LookupHandlerRegistry lookup,
+	public LogDBScript(QueryService qs, QueryScriptRegistry scriptRegistry, LookupHandlerRegistry lookup,
 			CsvLookupRegistry csvRegistry, AccountService accountService, SavedResultManager savedResultManager) {
 		this.qs = qs;
 		this.scriptRegistry = scriptRegistry;
@@ -157,7 +157,7 @@ public class LogDBScript implements Script {
 		for (String workspace : scriptRegistry.getWorkspaceNames()) {
 			context.println("Workspace: " + workspace);
 			for (String name : scriptRegistry.getScriptFactoryNames(workspace)) {
-				LogQueryScriptFactory factory = scriptRegistry.getScriptFactory(workspace, name);
+				QueryScriptFactory factory = scriptRegistry.getScriptFactory(workspace, name);
 				context.println("  " + name + " - " + factory);
 			}
 		}
@@ -186,7 +186,7 @@ public class LogDBScript implements Script {
 	@ScriptUsage(description = "print specific query status", arguments = { @ScriptArgument(name = "query id", type = "int", description = "query id") })
 	public void queryStatus(String[] args) {
 		Integer id = Integer.valueOf(args[0]);
-		LogQuery q = qs.getQuery(id);
+		Query q = qs.getQuery(id);
 		if (q == null) {
 			context.println("query " + id + " not found");
 			return;
@@ -217,7 +217,7 @@ public class LogDBScript implements Script {
 	 * @since 0.16.2
 	 */
 	public void removeAllQueries(String[] args) {
-		for (LogQuery q : qs.getQueries()) {
+		for (Query q : qs.getQueries()) {
 			qs.removeQuery(q.getId());
 			context.println("removed query " + q.getId());
 		}

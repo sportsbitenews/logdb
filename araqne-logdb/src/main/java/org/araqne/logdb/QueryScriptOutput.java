@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Future Systems
+ * Copyright 2012 Future Systems
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,8 @@
  */
 package org.araqne.logdb;
 
-public interface LogQueryCallback {
-	int offset();
+import java.util.Map;
 
-	int limit();
-
-	void onQueryStatusChange();
-
-	void onPageLoaded();
-
-	void onEof(boolean canceled);
+public interface QueryScriptOutput {
+	void write(Map<String, Object> data);
 }

@@ -15,34 +15,23 @@
  */
 package org.araqne.logdb;
 
-public class LogQueryParseException extends RuntimeException {
-	private static final long serialVersionUID = 1L;
+import java.util.HashMap;
+import java.util.Map;
 
-	private String type;
-	private Integer offset;
-	private String note;
+public class QueryContext {
+	private Session session;
+	private Map<String, Object> constants = new HashMap<String, Object>();
 
-	public LogQueryParseException(String type, int offset) {
-		this(type, offset, null);
+	public QueryContext(Session session) {
+		this.session = session;
 	}
 	
-	public LogQueryParseException(String type, int offset, String note) {
-		this.type = type;
-		this.offset = offset;
-		this.note = note;
+	public Session getSession() {
+		return session;
 	}
 
-	public String getType() {
-		return type;
-	}
-
-	public Integer getOffset() {
-		return offset;
-	}
-
-	@Override
-	public String getMessage() {
-		return "type=" + type + ", offset=" + offset + ", note=" + note;
+	public Map<String, Object> getConstants() {
+		return constants;
 	}
 
 }

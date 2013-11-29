@@ -22,10 +22,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.OutputJson;
 
 /**
@@ -33,7 +33,7 @@ import org.araqne.logdb.query.command.OutputJson;
  * @author darkluster
  * 
  */
-public class OutputJsonParser implements LogQueryCommandParser {
+public class OutputJsonParser implements QueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -42,9 +42,9 @@ public class OutputJsonParser implements LogQueryCommandParser {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
-			throw new LogQueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("missing-field", commandString.length());
 
 		boolean overwrite = false;
 		ParseResult r = QueryTokenizer
@@ -55,7 +55,7 @@ public class OutputJsonParser implements LogQueryCommandParser {
 
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
 		if (tokens.size() < 1)
-			throw new LogQueryParseException("missing-field", tokens.size());
+			throw new QueryParseException("missing-field", tokens.size());
 
 		String filePath = tokens.string(0);
 		filePath = ExpressionParser.evalContextReference(context, filePath);

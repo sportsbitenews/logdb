@@ -17,8 +17,8 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 
 public class ToLong implements Expression {
 	private Expression valueExpr;
@@ -33,11 +33,11 @@ public class ToLong implements Expression {
 			this.radix = (Integer) exprs.get(1).eval(null);
 
 		if (radix != 10)
-			throw new LogQueryParseException("invalid-argument", -1, "radix should be 10");
+			throw new QueryParseException("invalid-argument", -1, "radix should be 10");
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		try {
 			Object v = valueExpr.eval(map);
 			if (v == null)

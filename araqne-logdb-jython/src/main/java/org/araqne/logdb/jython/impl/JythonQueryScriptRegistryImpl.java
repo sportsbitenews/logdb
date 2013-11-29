@@ -36,7 +36,7 @@ import org.araqne.confdb.Predicate;
 import org.araqne.confdb.Predicates;
 import org.araqne.jython.JythonService;
 import org.araqne.logdb.LogQueryScript;
-import org.araqne.logdb.LogQueryScriptFactory;
+import org.araqne.logdb.QueryScriptFactory;
 import org.araqne.logdb.LogQueryScriptRegistry;
 import org.araqne.logdb.jython.JythonQueryScriptRegistry;
 import org.python.core.PyObject;
@@ -229,7 +229,7 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 		return Predicates.field(pred);
 	}
 
-	private static class LogScriptFactoryImpl implements LogQueryScriptFactory {
+	private static class LogScriptFactoryImpl implements QueryScriptFactory {
 
 		private PyObject factory;
 

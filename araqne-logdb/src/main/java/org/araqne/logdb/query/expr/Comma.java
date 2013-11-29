@@ -18,7 +18,7 @@ package org.araqne.logdb.query.expr;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 public class Comma implements Expression {
 	private List<Expression> data = null;
@@ -56,7 +56,7 @@ public class Comma implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		List<Object> ret = new ArrayList<Object>();
 		for (Expression e:data) {
 			ret.add(e.eval(map));

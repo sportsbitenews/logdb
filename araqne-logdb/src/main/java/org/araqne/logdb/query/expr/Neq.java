@@ -17,7 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
 
 public class Neq extends BinaryExpression {
@@ -34,7 +34,7 @@ public class Neq extends BinaryExpression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object l = lhs.eval(map);
 		if (l == null)
 			return false;

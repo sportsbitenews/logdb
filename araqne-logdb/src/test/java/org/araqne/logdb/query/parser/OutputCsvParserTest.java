@@ -18,9 +18,11 @@ package org.araqne.logdb.query.parser;
 import java.io.File;
 
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.query.command.OutputCsv;
 
 public class OutputCsvParserTest {
@@ -40,7 +42,7 @@ public class OutputCsvParserTest {
 		} finally {
 			// to close csv file handle
 			if (csv != null)
-				csv.eof(false);
+				csv.onClose(QueryStopReason.End);
 			new File("logexport.csv").delete();
 		}
 	}
@@ -61,10 +63,10 @@ public class OutputCsvParserTest {
 		} finally {
 			// to close csv file handle
 			if (csv != null)
-				csv.eof(false);
+				csv.onClose(QueryStopReason.End);
 			new File("logexport.csv").delete();
 		}
-		
+
 		assertEquals("outputcsv overwrite=true logexport.csv sip, dip", csv.toString());
 	}
 
@@ -75,7 +77,7 @@ public class OutputCsvParserTest {
 			OutputCsvParser p = new OutputCsvParser();
 			p.parse(null, "outputcsv logexport.csv ");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("missing-field", e.getType());
 			assertEquals(24, (int) e.getOffset());
 		} finally {
@@ -90,7 +92,7 @@ public class OutputCsvParserTest {
 			OutputCsvParser p = new OutputCsvParser();
 			p.parse(null, "outputcsv logexport.csv sip,");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("missing-field", e.getType());
 			assertEquals(28, (int) e.getOffset());
 		} finally {

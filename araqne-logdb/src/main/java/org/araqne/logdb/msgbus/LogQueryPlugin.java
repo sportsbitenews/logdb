@@ -32,16 +32,18 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
-import org.araqne.logdb.LogQuery;
-import org.araqne.logdb.LogQueryCallback;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryService;
-import org.araqne.logdb.LogResultSet;
-import org.araqne.logdb.LogTimelineCallback;
+import org.araqne.logdb.QueryService;
+import org.araqne.logdb.Query;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryResultCallback;
+import org.araqne.logdb.QueryResultSet;
+import org.araqne.logdb.QueryStatusCallback;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.QueryTimelineCallback;
 import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResult;
 import org.araqne.logdb.SavedResultManager;
-import org.araqne.logdb.impl.LogQueryHelper;
+import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
@@ -61,7 +63,7 @@ public class LogQueryPlugin {
 	private final Logger logger = LoggerFactory.getLogger(LogQueryPlugin.class.getName());
 
 	@Requires
-	private LogQueryService service;
+	private QueryService service;
 
 	@Requires
 	private LogTableRegistry tableRegistry;
@@ -106,7 +108,7 @@ public class LogQueryPlugin {
 	@MsgbusMethod
 	public void queries(Request req, Response resp) {
 		org.araqne.logdb.Session dbSession = getDbSession(req);
-		List<Object> result = LogQueryHelper.getQueries(dbSession, service);
+		List<Object> result = QueryHelper.getQueries(dbSession, service);
 		resp.put("queries", result);
 	}
 
@@ -114,7 +116,7 @@ public class LogQueryPlugin {
 	public void createQuery(Request req, Response resp) {
 		try {
 			org.araqne.logdb.Session dbSession = getDbSession(req);
-			LogQuery query = service.createQuery(dbSession, req.getString("query"));
+			Query query = service.createQuery(dbSession, req.getString("query"));
 			resp.put("id", query.getId());
 		} catch (Exception e) {
 			logger.error("araqne logdb: cannot create query", e);
@@ -145,7 +147,7 @@ public class LogQueryPlugin {
 		int limit = req.getInteger("limit");
 		Integer timelineLimit = req.getInteger("timeline_limit");
 
-		LogQuery query = service.getQuery(id);
+		Query query = service.getQuery(id);
 
 		// validation check
 		if (query == null) {
@@ -154,17 +156,20 @@ public class LogQueryPlugin {
 			throw new MsgbusException("logdb", "query not found", params);
 		}
 
-		if (!query.isEnd())
+		if (query.isStarted())
 			throw new MsgbusException("logdb", "already running");
 
 		// set query and timeline callback
-		LogQueryCallback qc = new MsgbusLogQueryCallback(orgDomain, query, offset, limit);
-		query.registerQueryCallback(qc);
+		QueryResultCallback qc = new MsgbusLogQueryCallback(orgDomain, offset, limit);
+		query.getCallbacks().getResultCallbacks().add(qc);
+
+		QueryStatusCallback qs = new MsgbusStatusCallback(orgDomain);
+		query.getCallbacks().getStatusCallbacks().add(qs);
 
 		if (timelineLimit != null) {
 			int size = timelineLimit.intValue();
-			LogTimelineCallback tc = new MsgbusTimelineCallback(orgDomain, query, size);
-			query.registerTimelineCallback(tc);
+			QueryTimelineCallback tc = new MsgbusTimelineCallback(orgDomain, query, size);
+			query.getCallbacks().getTimelineCallbacks().add(tc);
 		}
 
 		// start query
@@ -174,9 +179,9 @@ public class LogQueryPlugin {
 	@MsgbusMethod
 	public void stopQuery(Request req, Response resp) {
 		int id = req.getInteger("id", true);
-		LogQuery query = service.getQuery(id);
+		Query query = service.getQuery(id);
 		if (query != null)
-			query.cancel();
+			query.stop(QueryStopReason.UserRequest);
 		else {
 			Map<String, Object> params = new HashMap<String, Object>();
 			params.put("query_id", id);
@@ -191,7 +196,7 @@ public class LogQueryPlugin {
 		int limit = req.getInteger("limit", true);
 		Boolean binaryEncode = req.getBoolean("binary_encode");
 
-		Map<String, Object> m = LogQueryHelper.getResultData(service, id, offset, limit);
+		Map<String, Object> m = QueryHelper.getResultData(service, id, offset, limit);
 		if (m == null)
 			return;
 
@@ -236,7 +241,7 @@ public class LogQueryPlugin {
 		int id = req.getInteger("id", true);
 		boolean background = req.getBoolean("background", true);
 
-		LogQuery query = service.getQuery(id);
+		Query query = service.getQuery(id);
 		if (query == null)
 			throw new MsgbusException("logdb", "query-not-found");
 
@@ -245,7 +250,7 @@ public class LogQueryPlugin {
 		if (!query.isAccessible(dbSession))
 			throw new MsgbusException("logdb", "no-permission");
 
-		query.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, new LogQueryContext(dbSession));
+		query.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, new QueryContext(dbSession));
 	}
 
 	/**
@@ -256,11 +261,11 @@ public class LogQueryPlugin {
 		int id = req.getInteger("id", true);
 		org.araqne.logdb.Session dbSession = getDbSession(req);
 
-		LogQuery query = service.getQuery(dbSession, id);
+		Query query = service.getQuery(dbSession, id);
 		if (query == null)
 			throw new MsgbusException("logdb", "query-not-found");
 
-		resp.putAll(LogQueryHelper.getQuery(query));
+		resp.putAll(QueryHelper.getQuery(query));
 	}
 
 	@MsgbusMethod
@@ -278,13 +283,13 @@ public class LogQueryPlugin {
 	public void saveResult(Request req, Response resp) {
 		String title = req.getString("title", true);
 		int queryId = req.getInteger("query_id", true);
-		LogQuery query = service.getQuery(queryId);
+		Query query = service.getQuery(queryId);
 		if (query == null)
 			throw new MsgbusException("logdb", "query-not-found");
 
-		LogResultSet rs = null;
+		QueryResultSet rs = null;
 		try {
-			rs = query.getResult();
+			rs = query.getResultSet();
 			long total = rs.getIndexPath().length() + rs.getDataPath().length();
 
 			org.araqne.logdb.Session dbSession = getDbSession(req);
@@ -331,6 +336,7 @@ public class LogQueryPlugin {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void deleteResults(Request req, Response resp) {
 		org.araqne.logdb.Session dbSession = getDbSession(req);
@@ -350,18 +356,60 @@ public class LogQueryPlugin {
 		} catch (IOException e) {
 			throw new MsgbusException("logdb", "io-error");
 		}
-
 	}
 
-	private class MsgbusLogQueryCallback implements LogQueryCallback {
+	private class MsgbusStatusCallback implements QueryStatusCallback {
 		private String orgDomain;
-		private LogQuery query;
+
+		private MsgbusStatusCallback(String orgDomain) {
+			this.orgDomain = orgDomain;
+		}
+
+		@Override
+		public void onChange(Query query) {
+			if (query.isFinished()) {
+				try {
+					Map<String, Object> m = new HashMap<String, Object>();
+					m.put("id", query.getId());
+					m.put("type", "eof");
+					m.put("total_count", query.getResultCount());
+					pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
+					pushApi.push(orgDomain, "logstorage-query-" + query.getId(), m); // deprecated
+
+					query.getCallbacks().getStatusCallbacks().remove(this);
+				} catch (IOException e) {
+					logger.error("araqne logdb: msgbus push fail", e);
+				}
+			} else {
+				try {
+					String status = null;
+					if (!query.isStarted())
+						status = "Waiting";
+					else
+						status = query.isFinished() ? "End" : "Running";
+
+					Map<String, Object> m = new HashMap<String, Object>();
+					m.put("id", query.getId());
+					m.put("type", "status_change");
+					m.put("status", status);
+					m.put("count", query.getResultCount());
+					pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
+					pushApi.push(orgDomain, "logstorage-query-" + query.getId(), m); // deprecated
+				} catch (IOException e) {
+					logger.error("araqne logdb: msgbus push fail", e);
+				}
+			}
+		}
+	}
+
+	private class MsgbusLogQueryCallback implements QueryResultCallback {
 		private int offset;
 		private int limit;
+		private String orgDomain;
+		private boolean pageLoaded;
 
-		private MsgbusLogQueryCallback(String orgDomain, LogQuery query, int offset, int limit) {
+		private MsgbusLogQueryCallback(String orgDomain, int offset, int limit) {
 			this.orgDomain = orgDomain;
-			this.query = query;
 			this.offset = offset;
 			this.limit = limit;
 		}
@@ -377,66 +425,35 @@ public class LogQueryPlugin {
 		}
 
 		@Override
-		public void onQueryStatusChange() {
+		public void onPageLoaded(Query query) {
 			try {
-				String status = null;
-				if (query.getLastStarted() == null)
-					status = "Waiting";
-				else
-					status = query.isEnd() ? "End" : "Running";
+				if (pageLoaded)
+					return;
 
-				Map<String, Object> m = new HashMap<String, Object>();
-				m.put("id", query.getId());
-				m.put("type", "status_change");
-				m.put("status", status);
-				m.put("count", query.getResultCount());
-				pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
-				pushApi.push(orgDomain, "logstorage-query-" + query.getId(), m); // deprecated
-			} catch (IOException e) {
-				logger.error("araqne logdb: msgbus push fail", e);
-			}
-		}
-
-		@Override
-		public void onPageLoaded() {
-			try {
-				Map<String, Object> m = LogQueryHelper.getResultData(service, query.getId(), offset, limit);
+				Map<String, Object> m = QueryHelper.getResultData(service, query.getId(), offset, limit);
 				m.put("id", query.getId());
 				m.put("type", "page_loaded");
 				pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
 				pushApi.push(orgDomain, "logstorage-query-" + query.getId(), m); // deprecated
-			} catch (IOException e) {
-				logger.error("araqne logdb: msgbus push fail", e);
-			}
-		}
 
-		@Override
-		public void onEof(boolean canceled) {
-			try {
-				Map<String, Object> m = new HashMap<String, Object>();
-				m.put("id", query.getId());
-				m.put("type", "eof");
-				m.put("total_count", query.getResultCount());
-				pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
-				pushApi.push(orgDomain, "logstorage-query-" + query.getId(), m); // deprecated
-				query.unregisterQueryCallback(this);
+				pageLoaded = true;
 			} catch (IOException e) {
 				logger.error("araqne logdb: msgbus push fail", e);
 			}
 		}
 	}
 
-	private class MsgbusTimelineCallback extends LogTimelineCallback {
+	private class MsgbusTimelineCallback extends QueryTimelineCallback {
 		private Logger logger = LoggerFactory.getLogger(MsgbusTimelineCallback.class);
 		private String orgDomain;
-		private LogQuery query;
+		private Query query;
 		private int size;
 
-		private MsgbusTimelineCallback(String orgDomain, LogQuery query) {
+		private MsgbusTimelineCallback(String orgDomain, Query query) {
 			this(orgDomain, query, 10);
 		}
 
-		private MsgbusTimelineCallback(String orgDomain, LogQuery query, int size) {
+		private MsgbusTimelineCallback(String orgDomain, Query query, int size) {
 			this.orgDomain = orgDomain;
 			this.query = query;
 			this.size = size;

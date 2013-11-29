@@ -17,22 +17,29 @@ package org.araqne.logdb.query.command;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.RowPipe;
 
-public class Json extends LogQueryCommand {
-
-	private List<LogMap> logs;
+public class Json extends QueryCommand {
+	private JsonScanTask mainTask = new JsonScanTask();
+	private List<Row> logs;
 
 	// original json string for toString convenience
 	private String json;
 
-	public Json(List<LogMap> logs, String json) {
+	public Json(List<Row> logs, String json) {
 		this.logs = logs;
 		this.json = json;
 	}
 
-	public List<LogMap> getLogs() {
+	@Override
+	public QueryTask getMainTask() {
+		return mainTask;
+	}
+
+	public List<Row> getLogs() {
 		return logs;
 	}
 
@@ -41,24 +48,20 @@ public class Json extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
-	}
-
-	@Override
-	public void start() {
-		status = Status.Running;
-		for (LogMap log : logs)
-			write(log);
-		eof(false);
-	}
-
-	@Override
-	public boolean isReducer() {
-		return false;
-	}
-
-	@Override
 	public String toString() {
 		return "json " + json;
+	}
+
+	private class JsonScanTask extends QueryTask {
+		@Override
+		public void run() {
+			for (Row log : logs)
+				pushPipe(log);
+		}
+
+		@Override
+		public RowPipe getOutput() {
+			return output;
+		}
 	}
 }

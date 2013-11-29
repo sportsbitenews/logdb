@@ -15,28 +15,20 @@
  */
 package org.araqne.logdb;
 
-public abstract class EmptyLogQueryCallback implements LogQueryCallback {
+import java.io.File;
+import java.util.Iterator;
+import java.util.Map;
 
-	@Override
-	public int offset() {
-		return 0;
-	}
+public interface QueryResultSet extends Iterator<Map<String, Object>> {
+	File getIndexPath();
 
-	@Override
-	public int limit() {
-		return 0;
-	}
+	File getDataPath();
 
-	@Override
-	public void onQueryStatusChange() {
-	}
+	long size();
 
-	@Override
-	public void onPageLoaded() {
-	}
+	void skip(long n);
 
-	@Override
-	public void onEof(boolean canceled) {
-	}
+	void reset();
 
+	void close();
 }

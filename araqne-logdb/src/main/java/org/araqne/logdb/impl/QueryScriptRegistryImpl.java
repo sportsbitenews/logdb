@@ -26,19 +26,19 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.logdb.LogQueryScript;
-import org.araqne.logdb.LogQueryScriptFactory;
-import org.araqne.logdb.LogQueryScriptRegistry;
+import org.araqne.logdb.QueryScript;
+import org.araqne.logdb.QueryScriptFactory;
+import org.araqne.logdb.QueryScriptRegistry;
 
 @Component(name = "logdb-query-script-registry")
 @Provides
-public class LogQueryScriptRegistryImpl implements LogQueryScriptRegistry {
+public class QueryScriptRegistryImpl implements QueryScriptRegistry {
 
-	private ConcurrentMap<String, ConcurrentMap<String, LogQueryScriptFactory>> workspaceToScripts;
+	private ConcurrentMap<String, ConcurrentMap<String, QueryScriptFactory>> workspaceToScripts;
 
 	@Validate
 	public void start() {
-		workspaceToScripts = new ConcurrentHashMap<String, ConcurrentMap<String, LogQueryScriptFactory>>();
+		workspaceToScripts = new ConcurrentHashMap<String, ConcurrentMap<String, QueryScriptFactory>>();
 	}
 
 	@Override
@@ -48,7 +48,7 @@ public class LogQueryScriptRegistryImpl implements LogQueryScriptRegistry {
 
 	@Override
 	public void createWorkspace(String name) {
-		workspaceToScripts.putIfAbsent(name, new ConcurrentHashMap<String, LogQueryScriptFactory>());
+		workspaceToScripts.putIfAbsent(name, new ConcurrentHashMap<String, QueryScriptFactory>());
 	}
 
 	@Override
@@ -58,7 +58,7 @@ public class LogQueryScriptRegistryImpl implements LogQueryScriptRegistry {
 
 	@Override
 	public Set<String> getScriptFactoryNames(String workspace) {
-		ConcurrentMap<String, LogQueryScriptFactory> scripts = workspaceToScripts.get(workspace);
+		ConcurrentMap<String, QueryScriptFactory> scripts = workspaceToScripts.get(workspace);
 		if (scripts == null)
 			return null;
 
@@ -66,17 +66,17 @@ public class LogQueryScriptRegistryImpl implements LogQueryScriptRegistry {
 	}
 
 	@Override
-	public List<LogQueryScriptFactory> getScriptFactories(String workspace) {
-		ConcurrentMap<String, LogQueryScriptFactory> scripts = workspaceToScripts.get(workspace);
+	public List<QueryScriptFactory> getScriptFactories(String workspace) {
+		ConcurrentMap<String, QueryScriptFactory> scripts = workspaceToScripts.get(workspace);
 		if (scripts == null)
 			return null;
 
-		return new ArrayList<LogQueryScriptFactory>(scripts.values());
+		return new ArrayList<QueryScriptFactory>(scripts.values());
 	}
 
 	@Override
-	public LogQueryScriptFactory getScriptFactory(String workspace, String name) {
-		ConcurrentMap<String, LogQueryScriptFactory> scripts = workspaceToScripts.get(workspace);
+	public QueryScriptFactory getScriptFactory(String workspace, String name) {
+		ConcurrentMap<String, QueryScriptFactory> scripts = workspaceToScripts.get(workspace);
 		if (scripts == null)
 			return null;
 
@@ -84,12 +84,12 @@ public class LogQueryScriptRegistryImpl implements LogQueryScriptRegistry {
 	}
 
 	@Override
-	public LogQueryScript newScript(String workspace, String name, Map<String, String> params) {
-		ConcurrentMap<String, LogQueryScriptFactory> scripts = workspaceToScripts.get(workspace);
+	public QueryScript newScript(String workspace, String name, Map<String, String> params) {
+		ConcurrentMap<String, QueryScriptFactory> scripts = workspaceToScripts.get(workspace);
 		if (scripts == null)
 			throw new IllegalStateException("script not found: " + name);
 
-		LogQueryScriptFactory factory = scripts.get(name);
+		QueryScriptFactory factory = scripts.get(name);
 		if (factory == null)
 			throw new IllegalStateException("script not found: " + name);
 
@@ -97,20 +97,20 @@ public class LogQueryScriptRegistryImpl implements LogQueryScriptRegistry {
 	}
 
 	@Override
-	public void addScriptFactory(String workspace, String name, LogQueryScriptFactory factory) {
-		ConcurrentMap<String, LogQueryScriptFactory> scripts = new ConcurrentHashMap<String, LogQueryScriptFactory>();
-		ConcurrentMap<String, LogQueryScriptFactory> oldScripts = workspaceToScripts.putIfAbsent(workspace, scripts);
+	public void addScriptFactory(String workspace, String name, QueryScriptFactory factory) {
+		ConcurrentMap<String, QueryScriptFactory> scripts = new ConcurrentHashMap<String, QueryScriptFactory>();
+		ConcurrentMap<String, QueryScriptFactory> oldScripts = workspaceToScripts.putIfAbsent(workspace, scripts);
 		if (oldScripts != null)
 			scripts = oldScripts;
 
-		LogQueryScriptFactory old = scripts.putIfAbsent(name, factory);
+		QueryScriptFactory old = scripts.putIfAbsent(name, factory);
 		if (old != null)
 			throw new IllegalStateException("log script already exists: " + name);
 	}
 
 	@Override
 	public void removeScriptFactory(String workspace, String name) {
-		ConcurrentMap<String, LogQueryScriptFactory> scripts = workspaceToScripts.get(workspace);
+		ConcurrentMap<String, QueryScriptFactory> scripts = workspaceToScripts.get(workspace);
 		if (scripts == null)
 			return;
 

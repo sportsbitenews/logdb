@@ -15,14 +15,14 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Eval;
 import org.araqne.logdb.query.expr.Expression;
 
-public class EvalParser implements LogQueryCommandParser {
+public class EvalParser implements QueryCommandParser {
 
 	private static final String COMMAND = "eval";
 
@@ -32,20 +32,20 @@ public class EvalParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		// find assignment symbol
 		int p = QueryTokenizer.findKeyword(commandString, "=");
 		if (p < 0)
-			throw new LogQueryParseException("assign-token-not-found", commandString.length());
+			throw new QueryParseException("assign-token-not-found", commandString.length());
 
 		String field = commandString.substring(COMMAND.length(), p).trim();
 		String exprToken = commandString.substring(p + 1).trim();
 
 		if (field.isEmpty())
-			throw new LogQueryParseException("field-name-not-found", commandString.length());
+			throw new QueryParseException("field-name-not-found", commandString.length());
 
 		if (exprToken.isEmpty())
-			throw new LogQueryParseException("expression-not-found", commandString.length());
+			throw new QueryParseException("expression-not-found", commandString.length());
 
 		Expression expr = ExpressionParser.parse(context, exprToken);
 		return new Eval(field, expr);

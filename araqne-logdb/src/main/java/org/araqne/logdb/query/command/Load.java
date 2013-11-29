@@ -3,8 +3,10 @@ package org.araqne.logdb.query.command;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.RowPipe;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogCursor;
 
@@ -14,8 +16,8 @@ import org.araqne.logstorage.LogCursor;
  * @author xeraph
  * 
  */
-public class Load extends LogQueryCommand {
-
+public class Load extends QueryCommand {
+	private LoadTask mainTask = new LoadTask();
 	private LogCursor cursor;
 	private String guid;
 
@@ -25,33 +27,12 @@ public class Load extends LogQueryCommand {
 	}
 
 	@Override
-	public void start() {
-		boolean cancelled = false;
-		try {
-			status = Status.Running;
-
-			while (cursor.hasNext()) {
-				Status status = getStatus();
-				if (status == Status.End)
-					break;
-
-				Log log = cursor.next();
-				Map<String, Object> m = new HashMap<String, Object>();
-				m.putAll(log.getData());
-				m.put("_time", log.getDate());
-				m.put("_id", log.getId());
-				write(new LogMap(m));
-			}
-		} catch (Throwable t) {
-			cancelled = true;
-		} finally {
-			cursor.close();
-			eof(cancelled);
-		}
+	public QueryTask getMainTask() {
+		return mainTask;
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 	}
 
 	@Override
@@ -64,4 +45,32 @@ public class Load extends LogQueryCommand {
 		return "load " + guid;
 	}
 
+	private class LoadTask extends QueryTask {
+		@Override
+		public void run() {
+			try {
+				status = Status.Running;
+
+				while (cursor.hasNext()) {
+					TaskStatus status = getStatus();
+					if (status == TaskStatus.CANCELED)
+						break;
+
+					Log log = cursor.next();
+					Map<String, Object> m = new HashMap<String, Object>();
+					m.putAll(log.getData());
+					m.put("_time", log.getDate());
+					m.put("_id", log.getId());
+					pushPipe(new Row(m));
+				}
+			} finally {
+				cursor.close();
+			}
+		}
+
+		@Override
+		public RowPipe getOutput() {
+			return output;
+		}
+	}
 }

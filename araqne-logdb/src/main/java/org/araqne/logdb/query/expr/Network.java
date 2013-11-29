@@ -18,8 +18,8 @@ package org.araqne.logdb.query.expr;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.impl.InetAddresses;
 
 /**
@@ -36,7 +36,7 @@ public class Network implements Expression {
 		this.valueExpr = exprs.get(0);
 		this.maskNumber = Integer.parseInt(exprs.get(1).eval(null).toString());
 		if (maskNumber < 0 || maskNumber > 128)
-			throw new LogQueryParseException("invalid-mask", -1);
+			throw new QueryParseException("invalid-mask", -1);
 		initializeMask(maskNumber);
 	}
 
@@ -49,7 +49,7 @@ public class Network implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object value = valueExpr.eval(map);
 		if (value == null)
 			return null;

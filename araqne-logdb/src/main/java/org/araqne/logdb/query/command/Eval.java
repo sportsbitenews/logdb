@@ -15,11 +15,11 @@
  */
 package org.araqne.logdb.query.command;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Eval extends LogQueryCommand {
+public class Eval extends QueryCommand {
 	private String field;
 	private Expression expr;
 
@@ -37,9 +37,9 @@ public class Eval extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		m.put(field, expr.eval(m));
-		write(m);
+		pushPipe(m);
 	}
 
 	@Override

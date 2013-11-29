@@ -15,18 +15,23 @@
  */
 package org.araqne.logdb.query.parser;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import org.junit.Test;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.Search;
 import org.araqne.logdb.query.expr.Expression;
+import org.junit.Test;
 
 public class SearchParserTest {
 	@Test
@@ -35,11 +40,11 @@ public class SearchParserTest {
 		Search search = (Search) p.parse(null, "search sip == \"10.1.*\" ");
 		Expression expr = search.getExpression();
 
-		LogMap map = new LogMap();
+		Row map = new Row();
 		map.put("sip", "10.1.2.2");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "10.2.2.2");
 		assertFalse((Boolean) expr.eval(map));
 
@@ -55,19 +60,19 @@ public class SearchParserTest {
 				"search sip == \"74.86.*\"  \tor     sip  ==   \"211.*\"      or\tsip == \"110.221.*\"");
 		Expression expr = search.getExpression();
 
-		LogMap map = new LogMap();
+		Row map = new Row();
 		map.put("sip", "74.86.1.2");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "211.123.1.1");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "110.221.3.4");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "10.2.2.2");
 		assertFalse((Boolean) expr.eval(map));
 
@@ -80,22 +85,22 @@ public class SearchParserTest {
 		Search search = (Search) p.parse(null, "search in(sip, \"192.168.0.1\", \"211.123.1.1\", \"10.2.2.2\")");
 		Expression expr = search.getExpression();
 
-		LogMap map = new LogMap();
+		Row map = new Row();
 		map.put("sip", "74.86.1.2");
 		assertFalse((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "211.123.1.1");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "192.168.0.1");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "10.2.2.2");
 		assertTrue((Boolean) expr.eval(map));
-		
+
 		assertEquals("search in(sip, \"192.168.0.1\", \"211.123.1.1\", \"10.2.2.2\")", search.toString());
 	}
 
@@ -105,31 +110,31 @@ public class SearchParserTest {
 		Search search = (Search) p.parse(null, "search in(sip, \"192.*.1\", \"*123*\", \"10*\", \"*255\")");
 		Expression expr = search.getExpression();
 
-		LogMap map = new LogMap();
+		Row map = new Row();
 		map.put("sip", "74.86.1.2");
 		assertFalse((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "211.123.1.1");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "192.168.0.1");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "10.2.2.2");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "44.2.2.255");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "127.10.2.1");
 		assertFalse((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "127.255.2.1");
 		assertFalse((Boolean) expr.eval(map));
 	}
@@ -141,31 +146,31 @@ public class SearchParserTest {
 				"search in(sip, \"127.255.2.1\", \"192.*.1\", \"*123*\", \"127.10.2.1\", \"10*\", \"*255\")");
 		Expression expr = search.getExpression();
 
-		LogMap map = new LogMap();
+		Row map = new Row();
 		map.put("sip", "74.86.1.2");
 		assertFalse((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "211.123.1.1");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "192.168.0.1");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "10.2.2.2");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "44.2.2.255");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "127.10.2.1");
 		assertTrue((Boolean) expr.eval(map));
 
-		map = new LogMap();
+		map = new Row();
 		map.put("sip", "127.255.2.2");
 		assertFalse((Boolean) expr.eval(map));
 	}
@@ -176,7 +181,7 @@ public class SearchParserTest {
 		Search search = (Search) p.parse(null, "search limit=10 port > 1024");
 		Expression expr = search.getExpression();
 
-		LogMap map = new LogMap();
+		Row map = new Row();
 		map.put("port", 1024);
 		assertFalse((Boolean) expr.eval(map));
 
@@ -202,7 +207,7 @@ public class SearchParserTest {
 			SearchParser p = new SearchParser();
 			p.parse(null, query);
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("quote-mismatch", e.getType());
 		}
 	}
@@ -213,12 +218,12 @@ public class SearchParserTest {
 		SearchParser p = new SearchParser();
 		Search search = (Search) p.parse(null, query);
 		Output output = new Output();
-		search.setNextCommand(output);
+		search.setOutput(new QueryCommandPipe(output));
 
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("category", "E002");
 		m.put("method", "<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>");
-		search.push(m);
+		search.onPush(m);
 		assertEquals(m, output.m);
 
 	}
@@ -229,12 +234,12 @@ public class SearchParserTest {
 		SearchParser p = new SearchParser();
 		Search search = (Search) p.parse(null, query);
 		Output output = new Output();
-		search.setNextCommand(output);
+		search.setOutput(new QueryCommandPipe(output));
 
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("d_port", "21");
 		m.put("method", "<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>");
-		search.push(m);
+		search.onPush(m);
 		assertEquals(m, output.m);
 	}
 
@@ -276,22 +281,22 @@ public class SearchParserTest {
 		SearchParser p = new SearchParser();
 		Search search = (Search) p.parse(null, query);
 		Output output = new Output();
-		search.setNextCommand(output);
+		search.setOutput(new QueryCommandPipe(output));
 
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("value", value);
-		search.push(m);
+		search.onPush(m);
 
 		if (output.m == null)
 			return null;
 		return output.m.get("value");
 	}
 
-	private class Output extends LogQueryCommand {
-		private LogMap m;
+	private class Output extends QueryCommand {
+		private Row m;
 
 		@Override
-		public void push(LogMap m) {
+		public void onPush(Row m) {
 			this.m = m;
 		}
 

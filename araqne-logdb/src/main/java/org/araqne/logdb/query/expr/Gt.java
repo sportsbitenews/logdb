@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
 
 public class Gt extends BinaryExpression {
@@ -26,7 +26,7 @@ public class Gt extends BinaryExpression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		return cmp.compare(lhs.eval(map), rhs.eval(map)) > 0;
 	}
 

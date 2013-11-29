@@ -19,10 +19,10 @@ import java.util.Arrays;
 import java.util.Map;
 
 import org.araqne.log.api.LogParserRegistry;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Parse;
 
 /**
@@ -30,7 +30,7 @@ import org.araqne.logdb.query.command.Parse;
  * @author xeraph
  * 
  */
-public class ParseParser implements LogQueryCommandParser {
+public class ParseParser implements QueryCommandParser {
 
 	private LogParserRegistry registry;
 
@@ -45,7 +45,7 @@ public class ParseParser implements LogQueryCommandParser {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overlay"));
 		Map<String, String> options = (Map<String, String>) r.value;
 		String s = options.get("overlay");
@@ -55,15 +55,15 @@ public class ParseParser implements LogQueryCommandParser {
 
 		String parserName = commandString.substring(r.next).trim();
 		if (parserName.isEmpty())
-			throw new LogQueryParseException("missing-parser-name", -1);
+			throw new QueryParseException("missing-parser-name", -1);
 
 		if (registry.getProfile(parserName) == null)
-			throw new LogQueryParseException("parser-not-found", -1);
+			throw new QueryParseException("parser-not-found", -1);
 
 		try {
 			return new Parse(parserName, registry.newParser(parserName), overlay);
 		} catch (Throwable t) {
-			throw new LogQueryParseException("parser-init-failure", -1);
+			throw new QueryParseException("parser-init-failure", -1);
 		}
 	}
 }

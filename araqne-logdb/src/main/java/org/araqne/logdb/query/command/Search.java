@@ -15,11 +15,12 @@
  */
 package org.araqne.logdb.query.command;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Search extends LogQueryCommand {
+public class Search extends QueryCommand {
 	private long count;
 	private Long limit;
 	private Expression expr;
@@ -38,12 +39,12 @@ public class Search extends LogQueryCommand {
 	}
 
 	@Override
-	public void init() {
-		super.init();
+	public void onStart() {
+		super.onStart();
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		boolean ret;
 
 		if (expr != null) {
@@ -57,10 +58,10 @@ public class Search extends LogQueryCommand {
 				return;
 		}
 
-		write(m);
+		pushPipe(m);
 
 		if (limit != null && ++count >= limit)
-			eof(false);
+			getQuery().stop(QueryStopReason.PartialFetch);
 	}
 
 	@Override

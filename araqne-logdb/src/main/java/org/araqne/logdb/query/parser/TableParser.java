@@ -24,18 +24,18 @@ import java.util.Map;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.logdb.AccountService;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Permission;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Table;
 import org.araqne.logdb.query.command.Table.TableParams;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
 
-public class TableParser implements LogQueryCommandParser {
+public class TableParser implements QueryCommandParser {
 	private AccountService accountService;
 	private LogStorage logStorage;
 	private LogTableRegistry tableRegistry;
@@ -58,9 +58,9 @@ public class TableParser implements LogQueryCommandParser {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		if (logStorage.getStatus() != LogStorageStatus.Open)
-			throw new LogQueryParseException("archive-not-opened", -1);
+			throw new QueryParseException("archive-not-opened", -1);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
 				Arrays.asList("from", "to", "offset", "limit", "duration", "parser"));
@@ -96,13 +96,13 @@ public class TableParser implements LogQueryCommandParser {
 			offset = Integer.parseInt(options.get("offset"));
 
 		if (offset < 0)
-			throw new LogQueryParseException("negative-offset", -1);
+			throw new QueryParseException("negative-offset", -1);
 
 		if (options.containsKey("limit"))
 			limit = Integer.parseInt(options.get("limit"));
 
 		if (limit < 0)
-			throw new LogQueryParseException("negative-limit", -1);
+			throw new QueryParseException("negative-limit", -1);
 
 		if (options.containsKey("parser"))
 			parser = options.get("parser");
@@ -124,7 +124,7 @@ public class TableParser implements LogQueryCommandParser {
 		return table;
 	}
 
-	private List<String> parseTableNames(LogQueryContext context, String tableTokens) {
+	private List<String> parseTableNames(QueryContext context, String tableTokens) {
 		List<String> tableNames = new ArrayList<String>();
 		for (String tableNameToken : tableTokens.split(",")) {
 			String fqdn = tableNameToken.trim();
@@ -141,10 +141,10 @@ public class TableParser implements LogQueryCommandParser {
 			if (namespace == null && !name.contains("*")) {
 				// check only local tables
 				if (!tableRegistry.exists(name))
-					throw new LogQueryParseException("table-not-found", -1, "table=" + fqdn);
+					throw new QueryParseException("table-not-found", -1, "table=" + fqdn);
 
 				if (!accountService.checkPermission(context.getSession(), name, Permission.READ))
-					throw new LogQueryParseException("no-read-permission", -1, "table=" + fqdn);
+					throw new QueryParseException("no-read-permission", -1, "table=" + fqdn);
 			}
 
 			tableNames.add(fqdn);

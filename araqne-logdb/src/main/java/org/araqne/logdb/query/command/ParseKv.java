@@ -18,12 +18,12 @@ package org.araqne.logdb.query.command;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ParseKv extends LogQueryCommand {
+public class ParseKv extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(ParseKv.class);
 	private final String field;
 	private final boolean overlay;
@@ -54,11 +54,11 @@ public class ParseKv extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		Object target = m.get(field);
 		if (target == null) {
 			if (overlay)
-				write(m);
+				pushPipe(m);
 			return;
 		}
 
@@ -113,14 +113,14 @@ public class ParseKv extends LogQueryCommand {
 
 			if (overlay) {
 				m.map().putAll(kv);
-				write(m);
+				pushPipe(m);
 			} else {
-				write(new LogMap(kv));
+				pushPipe(new Row(kv));
 			}
 		} catch (Throwable t) {
 			// parsing fail handling
 			if (overlay)
-				write(m);
+				pushPipe(m);
 
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: [" + toString() + "] failed, log data [{}]", m.map());

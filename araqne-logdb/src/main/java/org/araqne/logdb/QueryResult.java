@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,17 @@
  */
 package org.araqne.logdb;
 
-import java.util.Map;
+import java.io.IOException;
+import java.util.Date;
 
-public interface LogQueryScriptFactory {
-	LogQueryScript create(Map<String, String> params);
-	
-	String getDescription();
+public interface QueryResult extends RowPipe {
+	Date getEofDate();
+
+	long getCount();
+
+	void syncWriter() throws IOException;
+
+	void closeWriter();
+
+	void purge();
 }

@@ -17,16 +17,16 @@ package org.araqne.logdb;
 
 import java.util.Collection;
 
-public interface LogQueryService {
-	Collection<LogQuery> getQueries();
+public interface QueryService {
+	Collection<Query> getQueries();
 
-	Collection<LogQuery> getQueries(Session session);
+	Collection<Query> getQueries(Session session);
 
-	LogQuery getQuery(int id);
+	Query getQuery(int id);
 
-	LogQuery getQuery(Session session, int id);
+	Query getQuery(Session session, int id);
 
-	LogQuery createQuery(Session session, String query);
+	Query createQuery(Session session, String query);
 
 	void startQuery(int id);
 
@@ -36,11 +36,11 @@ public interface LogQueryService {
 
 	void removeQuery(Session session, int id);
 
-	void addListener(LogQueryEventListener listener);
+	void addListener(QueryEventListener listener);
 
-	void removeListener(LogQueryEventListener listener);
+	void removeListener(QueryEventListener listener);
 
-	void addPlanner(LogQueryPlanner planner);
+	void addPlanner(QueryPlanner planner);
 
-	void removePlanner(LogQueryPlanner planner);
+	void removePlanner(QueryPlanner planner);
 }

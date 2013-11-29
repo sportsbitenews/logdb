@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Future Systems
+ * Copyright 2011 Future Systems
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,20 +15,6 @@
  */
 package org.araqne.logdb;
 
-import java.io.File;
-import java.util.Iterator;
-import java.util.Map;
-
-public interface LogResultSet extends Iterator<Map<String, Object>> {
-	File getIndexPath();
-
-	File getDataPath();
-
-	long size();
-
-	void skip(long n);
-
-	void reset();
-
-	void close();
+public interface QueryEventListener {
+	void onQueryStatusChange(Query query, QueryStatus status);
 }

@@ -23,16 +23,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.Strings;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.sort.CloseableIterator;
 import org.araqne.logdb.sort.Item;
 import org.araqne.logdb.sort.ParallelMergeSorter;
 
-public class BoxPlot extends LogQueryCommand {
+public class BoxPlot extends QueryCommand {
 	private final int clauseCount;
 
 	private ParallelMergeSorter sorter;
@@ -60,7 +61,7 @@ public class BoxPlot extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		Object value = expr.eval(m);
 		if (value == null)
 			return;
@@ -95,7 +96,7 @@ public class BoxPlot extends LogQueryCommand {
 	}
 
 	@Override
-	public void eof(boolean cancelled) {
+	public void onClose(QueryStopReason reason) {
 		long rank = 0;
 		long iqr1Index = 0;
 		long iqr2Index = 0;
@@ -163,8 +164,6 @@ public class BoxPlot extends LogQueryCommand {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-		super.eof(cancelled);
 	}
 
 	private void writeSummary(GroupKey groupKey, Object min, Object iqr1, Object iqr2, Object iqr3, Object max) {
@@ -179,7 +178,7 @@ public class BoxPlot extends LogQueryCommand {
 		summary.put("iqr3", iqr3);
 		summary.put("max", max);
 
-		write(new LogMap(summary));
+		pushPipe(new Row(summary));
 	}
 
 	@Override

@@ -20,16 +20,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Timechart;
 import org.araqne.logdb.query.command.Timechart.TimeSpan;
 import org.araqne.logdb.query.command.Timechart.TimeUnit;
 
-public class TimechartParser implements LogQueryCommandParser {
+public class TimechartParser implements QueryCommandParser {
 	private static final String COMMAND = "timechart";
 	private static final String BY = " by ";
 
@@ -39,7 +39,7 @@ public class TimechartParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		// timechart <options> <aggregation functions> by <clause>
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, COMMAND.length(), Arrays.asList("span"));
 
@@ -69,7 +69,7 @@ public class TimechartParser implements LogQueryCommandParser {
 		}
 
 		if (fields.size() == 0)
-			throw new LogQueryParseException("need-aggregation-field", COMMAND.length());
+			throw new QueryParseException("need-aggregation-field", COMMAND.length());
 
 		// parse timespan option
 		TimeSpan timeSpan = null;
@@ -113,9 +113,9 @@ public class TimechartParser implements LogQueryCommandParser {
 		amount = Integer.parseInt(value.substring(0, i));
 
 		if (unit == TimeUnit.Month && (amount != 1 && amount != 2 && amount != 3 && amount != 4 && amount != 6))
-			throw new LogQueryParseException("invalid-timespan", -1, "month should be 1, 2, 3, 4, or 6");
+			throw new QueryParseException("invalid-timespan", -1, "month should be 1, 2, 3, 4, or 6");
 		if (unit == TimeUnit.Year && amount != 1)
-			throw new LogQueryParseException("invalid-timespan", -1, "year should be 1");
+			throw new QueryParseException("invalid-timespan", -1, "year should be 1");
 		return new TimeSpan(amount, unit);
 	}
 }

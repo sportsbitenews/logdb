@@ -18,8 +18,8 @@ package org.araqne.logdb.query.expr;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 
 public class ToDate implements Expression {
 
@@ -33,12 +33,12 @@ public class ToDate implements Expression {
 			this.format = (String) exprs.get(1).eval(null);
 			this.dateFormat = new SimpleDateFormat(format);
 		} catch (IllegalArgumentException e) {
-			throw new LogQueryParseException("invalid-argument", -1, "invalid date format pattern");
+			throw new QueryParseException("invalid-argument", -1, "invalid date format pattern");
 		}
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object value = valueExpr.eval(map);
 		if (value == null)
 			return null;

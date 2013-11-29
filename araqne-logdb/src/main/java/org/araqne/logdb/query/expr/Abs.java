@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 public class Abs implements Expression {
 	private Expression expr;
@@ -25,7 +25,7 @@ public class Abs implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object o = expr.eval(map);
 		if (o == null)
 			return null;

@@ -17,7 +17,7 @@ package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.expr.Expression;
 
 public interface AggregationFunction {
@@ -25,7 +25,7 @@ public interface AggregationFunction {
 
 	List<Expression> getArguments();
 
-	void apply(LogMap map);
+	void apply(Row map);
 
 	Object eval();
 

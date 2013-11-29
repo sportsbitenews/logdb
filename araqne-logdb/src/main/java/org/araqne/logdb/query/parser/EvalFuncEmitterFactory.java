@@ -4,15 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.expr.*;
 import org.araqne.logdb.query.parser.ExpressionParser.FuncTerm;
 
 public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 
 	@Override
-	public void emit(LogQueryContext context, Stack<Expression> exprStack, FuncTerm f) {
+	public void emit(QueryContext context, Stack<Expression> exprStack, FuncTerm f) {
 		String name = f.getName();
 		List<Expression> args = getArgsFromStack(f, exprStack);
 
@@ -91,7 +91,7 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 		} else if (name.equals("long2ip")) {
 			exprStack.add(new Long2Ip(args));
 		} else {
-			throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
+			throw new QueryParseException("unsupported-function", -1, "function name is " + name);
 		}
 	}
 

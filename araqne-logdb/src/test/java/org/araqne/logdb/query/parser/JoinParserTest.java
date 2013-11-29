@@ -8,11 +8,11 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryParserService;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.query.command.Join;
-import org.araqne.logdb.query.command.Table;
 import org.araqne.logdb.query.command.Join.JoinType;
+import org.araqne.logdb.query.command.Table;
 import org.araqne.logdb.query.command.Table.TableParams;
 import org.junit.Test;
 
@@ -21,7 +21,7 @@ public class JoinParserTest {
 	public void testParse() {
 		System.setProperty("araqne.data.dir", ".");
 		String joinCommand = "join ip [ table users ]";
-		LogQueryParserService p = prepareMockQueryParser();
+		QueryParserService p = prepareMockQueryParser();
 
 		Join join = (Join) new JoinParser(p).parse(null, joinCommand);
 		assertEquals(JoinType.Inner, join.getType());
@@ -34,7 +34,7 @@ public class JoinParserTest {
 
 	@Test
 	public void testLeftJoinType() {
-		LogQueryParserService p = prepareMockQueryParser();
+		QueryParserService p = prepareMockQueryParser();
 		Join join = (Join) new JoinParser(p).parse(null, "join type=left ip [ table users ]");
 
 		assertEquals(JoinType.Left, join.getType());
@@ -45,14 +45,14 @@ public class JoinParserTest {
 		assertTrue(join.getSubQuery().get(0) instanceof Table);
 	}
 
-	private LogQueryParserService prepareMockQueryParser() {
-		LogQueryParserService p = mock(LogQueryParserService.class);
+	private QueryParserService prepareMockQueryParser() {
+		QueryParserService p = mock(QueryParserService.class);
 
 		TableParams params = new TableParams();
 		params.setTableNames(Arrays.asList("users"));
-		LogQueryCommand table = new Table(params);
+		QueryCommand table = new Table(params);
 
-		ArrayList<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
+		ArrayList<QueryCommand> commands = new ArrayList<QueryCommand>();
 		commands.add(table);
 		when(p.parseCommands(null, "table users")).thenReturn(commands);
 		return p;

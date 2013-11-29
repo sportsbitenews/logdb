@@ -17,20 +17,20 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 
 public class Long2Ip implements Expression {
 	private Expression valueExpr;
 
 	public Long2Ip(List<Expression> exprs) {
 		if (exprs.size() != 1)
-			throw new LogQueryParseException("invalid-long2ip-args", -1);
+			throw new QueryParseException("invalid-long2ip-args", -1);
 		this.valueExpr = exprs.get(0);
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object value = valueExpr.eval(map);
 		if (value == null)
 			return null;

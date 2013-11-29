@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 /**
  * @since 1.7.8
@@ -26,7 +26,7 @@ public class Seq implements Expression {
 	private long index = 1;
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		return index++;
 	}
 

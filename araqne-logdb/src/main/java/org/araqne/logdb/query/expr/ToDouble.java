@@ -2,7 +2,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 public class ToDouble implements Expression {
 	private Expression valueExpr;
@@ -12,7 +12,7 @@ public class ToDouble implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		try {
 			Object v = valueExpr.eval(map);
 			if (v == null)

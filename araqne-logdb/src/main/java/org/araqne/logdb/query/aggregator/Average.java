@@ -17,7 +17,7 @@ package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.NumberUtil;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -41,7 +41,7 @@ public class Average implements AggregationFunction {
 	}
 
 	@Override
-	public void apply(LogMap map) {
+	public void apply(Row map) {
 		Expression expr = exprs.get(0);
 		Object obj = expr.eval(map);
 		if (obj == null || !(obj instanceof Number))

@@ -15,10 +15,10 @@
  */
 package org.araqne.logdb.query.command;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 
-public class Rename extends LogQueryCommand {
+public class Rename extends QueryCommand {
 	private String from;
 	private String to;
 
@@ -36,12 +36,12 @@ public class Rename extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		if (m.containsKey(from)) {
 			m.put(to, m.get(from));
 			m.remove(from);
 		}
-		write(m);
+		pushPipe(m);
 	}
 
 	@Override

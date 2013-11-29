@@ -22,13 +22,13 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.impl.Strings;
 
 public class In implements Expression {
 	private static abstract class FieldMatcher {
-		public abstract boolean match(LogMap log, Object o);
+		public abstract boolean match(Row log, Object o);
 	}
 
 	static class StringMatcher extends FieldMatcher {
@@ -66,7 +66,7 @@ public class In implements Expression {
 			}
 		}
 
-		public boolean match(LogMap log, Object o) {
+		public boolean match(Row log, Object o) {
 			if (o instanceof CharSequence) {
 				String token = o.toString();
 				switch (matchMethod) {
@@ -109,7 +109,7 @@ public class In implements Expression {
 			this.term = term;
 		}
 
-		public boolean match(LogMap log, Object o) {
+		public boolean match(Row log, Object o) {
 			Object eval = term.eval(log);
 			if (eval == null)
 				return false;
@@ -126,7 +126,7 @@ public class In implements Expression {
 
 	public In(List<Expression> exprs) {
 		if (exprs.size() < 2)
-			throw new LogQueryParseException("insufficient-arguments", -1);
+			throw new QueryParseException("insufficient-arguments", -1);
 
 		this.exprs = exprs;
 		this.field = exprs.get(0);
@@ -135,7 +135,7 @@ public class In implements Expression {
 		this.exactTerms = new HashSet<String>();
 
 		for (Expression expr : this.values) {
-			Object eval = expr.eval(new LogMap());
+			Object eval = expr.eval(new Row());
 			if (eval instanceof String) {
 				String needle = (String) eval;
 				if (needle.indexOf('*') == -1)
@@ -148,7 +148,7 @@ public class In implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object o = field.eval(map);
 		if (o == null)
 			return false;

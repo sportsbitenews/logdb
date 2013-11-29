@@ -22,13 +22,13 @@ import java.util.Map;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.TextFile;
 
-public class TextFileParser implements LogQueryCommandParser {
+public class TextFileParser implements QueryCommandParser {
 
 	private LogParserFactoryRegistry parserFactoryRegistry;
 
@@ -42,7 +42,7 @@ public class TextFileParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>());
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -59,7 +59,7 @@ public class TextFileParser implements LogQueryCommandParser {
 
 			File f = new File(filePath);
 			if (!f.exists() || !f.canRead())
-				throw new LogQueryParseException("invalid-textfile-path", -1);
+				throw new QueryParseException("invalid-textfile-path", -1);
 
 			String parserName = options.get("parser");
 			LogParser parser = null;

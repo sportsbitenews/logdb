@@ -5,7 +5,8 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.query.command.OutputJson;
 import org.junit.Test;
 
@@ -27,11 +28,11 @@ public class OutputJsonParserTest {
 			assertEquals("logexport.json", f.getName());
 			assertEquals("sip", json.getFields().get(0));
 			assertEquals("dip", json.getFields().get(1));
-			
+
 			assertEquals("outputjson logexport.json sip, dip", json.toString());
 		} finally {
 			if (json != null)
-				json.eof(false);
+				json.onClose(QueryStopReason.End);
 			new File("logexport.json").delete();
 		}
 	}
@@ -43,7 +44,7 @@ public class OutputJsonParserTest {
 			OutputJsonParser p = new OutputJsonParser();
 			p.parse(null, "outputjson");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("missing-field", e.getType());
 		} finally {
 			new File("logexport.json").delete();
@@ -57,7 +58,7 @@ public class OutputJsonParserTest {
 			OutputJsonParser p = new OutputJsonParser();
 			p.parse(null, "outputjson logexport.json sip,");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("missing-field", e.getType());
 			assertEquals(30, (int) e.getOffset());
 		} finally {

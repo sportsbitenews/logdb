@@ -17,22 +17,23 @@ package org.araqne.logdb.query.command;
 
 import java.util.Map;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryScript;
-import org.araqne.logdb.LogQueryScriptInput;
-import org.araqne.logdb.LogQueryScriptOutput;
+import org.araqne.logdb.QueryScript;
+import org.araqne.logdb.QueryScriptInput;
+import org.araqne.logdb.QueryScriptOutput;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 import org.osgi.framework.BundleContext;
 
-public class Script extends LogQueryCommand {
+public class Script extends QueryCommand {
 	private BundleContext bc;
 	private String scriptName;
 	private Map<String, String> params;
-	private LogQueryScript script;
+	private QueryScript script;
 	private DefaultScriptInput input;
 	private DefaultScriptOutput output;
 
-	public Script(BundleContext bc, String scriptName, Map<String, String> params, LogQueryScript script) {
+	public Script(BundleContext bc, String scriptName, Map<String, String> params, QueryScript script) {
 		this.bc = bc;
 		this.scriptName = scriptName;
 		this.params = params;
@@ -49,12 +50,12 @@ public class Script extends LogQueryCommand {
 		return params;
 	}
 
-	public LogQueryScript getQueryScript() {
+	public QueryScript getQueryScript() {
 		return script;
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		input.data = m.map();
 		script.handle(input, output);
 	}
@@ -65,17 +66,15 @@ public class Script extends LogQueryCommand {
 	}
 
 	@Override
-	public void eof(boolean canceled) {
-		this.status = Status.Finalizing;
+	public void onClose(QueryStopReason reason) {
 		script.eof(output);
-		super.eof(canceled);
 	}
 
-	private void out(LogMap data) {
-		write(data);
+	private void out(Row data) {
+		pushPipe(data);
 	}
 
-	private class DefaultScriptInput implements LogQueryScriptInput {
+	private class DefaultScriptInput implements QueryScriptInput {
 		private Map<String, Object> data;
 
 		@Override
@@ -103,10 +102,10 @@ public class Script extends LogQueryCommand {
 		return "script" + opts + " " + scriptName;
 	}
 
-	private class DefaultScriptOutput implements LogQueryScriptOutput {
+	private class DefaultScriptOutput implements QueryScriptOutput {
 		@Override
 		public void write(Map<String, Object> data) {
-			out(new LogMap(data));
+			out(new Row(data));
 		}
 	}
 }

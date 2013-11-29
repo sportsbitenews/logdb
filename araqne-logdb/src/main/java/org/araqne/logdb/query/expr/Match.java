@@ -18,7 +18,7 @@ package org.araqne.logdb.query.expr;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 public class Match implements Expression {
 
@@ -33,7 +33,7 @@ public class Match implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object v = valueExpr.eval(map);
 		if (v == null)
 			return false;
