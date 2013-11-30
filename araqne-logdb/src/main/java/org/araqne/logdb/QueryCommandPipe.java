@@ -26,4 +26,9 @@ public class QueryCommandPipe implements RowPipe {
 	public void onRow(Row row) {
 		dst.onPush(row);
 	}
+
+	@Override
+	public void onRowBatch(RowBatch rowBatch) {
+		dst.onPush(rowBatch);
+	}
 }

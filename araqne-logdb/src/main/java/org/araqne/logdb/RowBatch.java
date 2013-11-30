@@ -15,8 +15,9 @@
  */
 package org.araqne.logdb;
 
-public interface RowPipe {
-	void onRow(Row row);
-
-	void onRowBatch(RowBatch rowBatch);
+public class RowBatch {
+	public boolean selectedInUse;
+	public int[] selected;
+	public int size;
+	public Row[] rows;
 }

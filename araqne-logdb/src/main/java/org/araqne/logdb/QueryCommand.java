@@ -102,6 +102,19 @@ public abstract class QueryCommand {
 		pushPipe(row);
 	}
 
+	// default adapter for old per-row processing
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[rowBatch.selected[i]];
+				onPush(row);
+			}
+		} else {
+			for (Row row : rowBatch.rows)
+				onPush(row);
+		}
+	}
+
 	protected final void pushPipe(Row row) {
 		outputCount++;
 		if (output != null) {
@@ -114,6 +127,32 @@ public abstract class QueryCommand {
 			}
 
 			output.onRow(row);
+		}
+	}
+
+	protected final void pushPipe(RowBatch rowBatch) {
+		outputCount += rowBatch.size;
+		if (output != null) {
+			if (invokeTimelineCallback && query != null) {
+				for (QueryTimelineCallback callback : query.getCallbacks().getTimelineCallbacks()) {
+					if (rowBatch.selectedInUse) {
+						for (int i = 0; i < rowBatch.size; i++) {
+							Row row = rowBatch.rows[rowBatch.selected[i]];
+							Object date = row.get("_time");
+							if (date instanceof Date)
+								callback.put((Date) date);
+						}
+					} else {
+						for (Row row : rowBatch.rows) {
+							Object date = row.get("_time");
+							if (date instanceof Date)
+								callback.put((Date) date);
+						}
+					}
+				}
+			}
+
+			output.onRowBatch(rowBatch);
 		}
 	}
 

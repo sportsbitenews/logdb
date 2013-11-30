@@ -29,6 +29,7 @@ import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.QueryResult;
 import org.araqne.logdb.QueryResultCallback;
 import org.araqne.logdb.QueryStatusCallback;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.file.LogFileReaderV2;
 import org.araqne.logstorage.file.LogFileWriterV2;
@@ -82,10 +83,10 @@ public class QueryResultV2 implements QueryResult {
 	}
 
 	@Override
-	public void onRow(Row m) {
+	public void onRow(Row row) {
 		try {
 			synchronized (writer) {
-				writer.write(new Log("$Result$", new Date(), count + 1, m.map()));
+				writer.write(new Log("$Result$", new Date(), count + 1, row.map()));
 			}
 		} catch (IOException e) {
 			// cancel query when disk is full
@@ -96,6 +97,30 @@ public class QueryResultV2 implements QueryResult {
 			throw new IllegalStateException(e);
 		}
 		count++;
+	}
+
+	@Override
+	public void onRowBatch(RowBatch rowBatch) {
+		try {
+			synchronized (writer) {
+				if (rowBatch.selectedInUse) {
+					for (int i = 0; i < rowBatch.size; i++) {
+						Row row = rowBatch.rows[rowBatch.selected[i]];
+						writer.write(new Log("$Result$", new Date(), ++count, row.map()));
+					}
+				} else {
+					for (Row row : rowBatch.rows)
+						writer.write(new Log("$Result$", new Date(), ++count, row.map()));
+				}
+			}
+		} catch (IOException e) {
+			// cancel query when disk is full
+			File dir = indexPath.getParentFile();
+			if (dir != null && dir.getFreeSpace() == 0)
+				query.stop(QueryStopReason.LowDisk);
+
+			throw new IllegalStateException(e);
+		}
 	}
 
 	public QueryResultSet getResult() throws IOException {

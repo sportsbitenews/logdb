@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 
 public class Json extends DriverQueryCommand {
 	private List<Row> logs;
@@ -33,8 +34,10 @@ public class Json extends DriverQueryCommand {
 
 	@Override
 	public void run() {
-		for (Row log : logs)
-			pushPipe(log);
+		RowBatch rowBatch = new RowBatch();
+		rowBatch.size = logs.size();
+		rowBatch.rows = logs.toArray(new Row[0]);
+		pushPipe(rowBatch);
 	}
 
 	public List<Row> getLogs() {
