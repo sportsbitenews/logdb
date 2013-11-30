@@ -150,6 +150,6 @@ public class LogCountMetadataProvider implements MetadataProvider {
 		m.put("_time", day);
 		m.put("table", tableName);
 		m.put("count", count);
-		callback.onLog(new Row(m));
+		callback.onPush(new Row(m));
 	}
 }

@@ -129,7 +129,7 @@ public class LogDiskMetadataProvider implements MetadataProvider {
 		m.put("_time", day);
 		m.put("table", tableName);
 		m.put("disk_usage", diskUsage);
-		callback.onLog(new Row(m));
+		callback.onPush(new Row(m));
 	}
 
 }

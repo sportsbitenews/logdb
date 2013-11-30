@@ -18,5 +18,5 @@ package org.araqne.logdb;
 public interface MetadataCallback {
 	boolean isCancelled();
 
-	void onLog(Row row);
+	void onPush(Row row);
 }

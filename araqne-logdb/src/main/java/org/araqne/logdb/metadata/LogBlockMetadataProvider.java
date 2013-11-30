@@ -110,7 +110,7 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 				m.put("compressed_size", data.get("compressed_size"));
 				m.put("iv", data.get("iv"));
 				m.put("signature", data.get("signature"));
-				callback.onLog(new Row(m));
+				callback.onPush(new Row(m));
 			}
 		} catch (IOException e) {
 			logger.error("araqne logdb: cannot read block metadata", e);

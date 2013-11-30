@@ -59,7 +59,7 @@ public class Logdb extends DriverQueryCommand {
 		}
 
 		@Override
-		public void onLog(Row log) {
+		public void onPush(Row log) {
 			pushPipe(log);
 		}
 	}

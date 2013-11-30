@@ -83,7 +83,7 @@ public class TableMetadataProvider implements MetadataProvider {
 	private void writeTableInfo(String tableName, MetadataCallback callback) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("table", tableName);
-		callback.onLog(new Row(m));
+		callback.onPush(new Row(m));
 	}
 
 }
