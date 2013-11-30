@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.query.expr;
+package org.araqne.logdb;
 
-import org.araqne.logdb.Row;
+public abstract class DriverQueryCommand extends QueryCommand {
 
-public interface Expression {
-	Object eval(Row row);
+	protected QueryTask task = new ScanTask();
+
+	@Override
+	public QueryTask getMainTask() {
+		return task;
+	}
+
+	@Override
+	public boolean isDriver() {
+		return true;
+	}
+
+	public abstract void run();
+
+	private class ScanTask extends QueryTask {
+
+		@Override
+		public void run() {
+			DriverQueryCommand.this.run();
+		}
+
+		@Override
+		public RowPipe getOutput() {
+			return output;
+		}
+	}
 }

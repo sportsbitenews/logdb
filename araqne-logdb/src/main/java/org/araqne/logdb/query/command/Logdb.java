@@ -15,17 +15,14 @@
  */
 package org.araqne.logdb.query.command;
 
+import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataService;
-import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryStopReason;
-import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.RowPipe;
 
-public class Logdb extends QueryCommand {
-	private MetaQueryTask mainTask = new MetaQueryTask();
+public class Logdb extends DriverQueryCommand {
 	private QueryContext context;
 	private String objectType;
 	private String args;
@@ -42,17 +39,9 @@ public class Logdb extends QueryCommand {
 	}
 
 	@Override
-	public QueryTask getMainTask() {
-		return mainTask;
-	}
-
-	@Override
-	public void onPush(Row m) {
-	}
-
-	@Override
-	public boolean isReducer() {
-		return false;
+	public void run() {
+		metadataService.query(context, objectType, args, metadataWriter);
+		completed = true;
 	}
 
 	@Override
@@ -81,18 +70,5 @@ public class Logdb extends QueryCommand {
 		if (!arguments.isEmpty())
 			arguments = " " + arguments;
 		return "logdb " + objectType + arguments;
-	}
-
-	private class MetaQueryTask extends QueryTask {
-		@Override
-		public void run() {
-			metadataService.query(context, objectType, args, metadataWriter);
-			completed = true;
-		}
-
-		@Override
-		public RowPipe getOutput() {
-			return output;
-		}
 	}
 }

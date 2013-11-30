@@ -30,12 +30,10 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.Permission;
-import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
-import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.RowPipe;
 import org.araqne.logdb.impl.Strings;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
@@ -45,7 +43,7 @@ import org.araqne.logstorage.TableWildcardMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Table extends QueryCommand {
+public class Table extends DriverQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Table.class);
 	private AccountService accountService;
 	private LogStorage storage;
@@ -54,22 +52,37 @@ public class Table extends QueryCommand {
 	private LogParserRegistry parserRegistry;
 
 	private TableParams params = new TableParams();
-	private TableScanTask mainTask;
 	private volatile boolean stopped;
 
 	public Table(TableParams params) {
 		this.params = params;
-		this.mainTask = new TableScanTask();
 	}
 
 	@Override
-	public boolean isDriver() {
-		return true;
-	}
+	public void run() {
+		try {
+			ResultSink sink = new ResultSink(Table.this, params.offset, params.limit);
+			boolean isSuppressedBugAlert = false;
 
-	@Override
-	public QueryTask getMainTask() {
-		return mainTask;
+			for (String tableName : expandTableNames(params.tableNames)) {
+				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
+						tableName);
+				if (isSuppressedBugAlert)
+					builder.suppressBugAlert();
+
+				storage.search(tableName, params.from, params.to, builder, new LogTraverseCallbackImpl(sink));
+
+				isSuppressedBugAlert = isSuppressedBugAlert || builder.isBugAlertSuppressed();
+				if (sink.isEof())
+					break;
+			}
+		} catch (InterruptedException e) {
+			logger.trace("araqne logdb: query interrupted");
+		} catch (Exception e) {
+			logger.error("araqne logdb: table exception", e);
+		} catch (Error e) {
+			logger.error("araqne logdb: table error", e);
+		}
 	}
 
 	public List<String> getTableNames() {
@@ -148,7 +161,8 @@ public class Table extends QueryCommand {
 	public void onClose(QueryStopReason reason) {
 		if (logger.isDebugEnabled())
 			logger.debug("araqne logdb: stopping table scan, query [{}] reason [{}]", getQuery().getId(), reason);
-		mainTask.stop();
+
+		stopped = true;
 	}
 
 	private class TableLogParserBuilder implements LogParserBuilder {
@@ -362,46 +376,5 @@ public class Table extends QueryCommand {
 			s += " limit=" + params.getLimit();
 
 		return s + " " + Strings.join(params.getTableNames(), ", ");
-	}
-
-	private class TableScanTask extends QueryTask {
-
-		@Override
-		public void run() {
-			try {
-				status = Status.Running;
-
-				ResultSink sink = new ResultSink(Table.this, params.offset, params.limit);
-				boolean isSuppressedBugAlert = false;
-
-				for (String tableName : expandTableNames(params.tableNames)) {
-					LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
-							tableName);
-					if (isSuppressedBugAlert)
-						builder.suppressBugAlert();
-
-					storage.search(tableName, params.from, params.to, builder, new LogTraverseCallbackImpl(sink));
-
-					isSuppressedBugAlert = isSuppressedBugAlert || builder.isBugAlertSuppressed();
-					if (sink.isEof())
-						break;
-				}
-			} catch (InterruptedException e) {
-				logger.trace("araqne logdb: query interrupted");
-			} catch (Exception e) {
-				logger.error("araqne logdb: table exception", e);
-			} catch (Error e) {
-				logger.error("araqne logdb: table error", e);
-			}
-		}
-
-		@Override
-		public RowPipe getOutput() {
-			return output;
-		}
-
-		public void stop() {
-			stopped = true;
-		}
 	}
 }

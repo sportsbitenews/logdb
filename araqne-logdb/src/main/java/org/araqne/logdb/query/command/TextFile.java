@@ -25,16 +25,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
-import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.RowPipe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TextFile extends QueryCommand {
+public class TextFile extends DriverQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(TextFile.class.getName());
-	private TextScanTask mainTask = new TextScanTask();
 	private String filePath;
 	private LogParser parser;
 	private int offset;
@@ -48,64 +45,51 @@ public class TextFile extends QueryCommand {
 	}
 
 	@Override
-	public QueryTask getMainTask() {
-		return mainTask;
+	public void run() {
+		status = Status.Running;
+
+		FileInputStream is = null;
+		BufferedReader br = null;
+		try {
+			Charset utf8 = Charset.forName("utf-8");
+			is = new FileInputStream(new File(filePath));
+			br = new BufferedReader(new InputStreamReader(new BufferedInputStream(is), utf8));
+
+			int i = 0;
+			int count = 0;
+			while (true) {
+				if (limit > 0 && count >= limit)
+					break;
+
+				String line = br.readLine();
+				if (line == null)
+					break;
+
+				Map<String, Object> m = new HashMap<String, Object>();
+				Map<String, Object> parsed = null;
+				m.put("line", line);
+				if (parser != null) {
+					parsed = parser.parse(m);
+					if (parsed == null)
+						continue;
+				}
+
+				if (i >= offset) {
+					pushPipe(new Row(parsed != null ? parsed : m));
+					count++;
+				}
+				i++;
+			}
+		} catch (Throwable t) {
+			logger.error("araqne logdb: file error", t);
+		} finally {
+			IoHelper.close(br);
+			IoHelper.close(is);
+		}
 	}
 
 	@Override
 	public String toString() {
 		return "textfile offset=" + offset + " limit=" + limit + " " + filePath;
-	}
-
-	private class TextScanTask extends QueryTask {
-
-		@Override
-		public void run() {
-			status = Status.Running;
-
-			FileInputStream is = null;
-			BufferedReader br = null;
-			try {
-				Charset utf8 = Charset.forName("utf-8");
-				is = new FileInputStream(new File(filePath));
-				br = new BufferedReader(new InputStreamReader(new BufferedInputStream(is), utf8));
-
-				int i = 0;
-				int count = 0;
-				while (true) {
-					if (limit > 0 && count >= limit)
-						break;
-
-					String line = br.readLine();
-					if (line == null)
-						break;
-
-					Map<String, Object> m = new HashMap<String, Object>();
-					Map<String, Object> parsed = null;
-					m.put("line", line);
-					if (parser != null) {
-						parsed = parser.parse(m);
-						if (parsed == null)
-							continue;
-					}
-
-					if (i >= offset) {
-						pushPipe(new Row(parsed != null ? parsed : m));
-						count++;
-					}
-					i++;
-				}
-			} catch (Throwable t) {
-				logger.error("araqne logdb: file error", t);
-			} finally {
-				IoHelper.close(br);
-				IoHelper.close(is);
-			}
-		}
-
-		@Override
-		public RowPipe getOutput() {
-			return output;
-		}
 	}
 }

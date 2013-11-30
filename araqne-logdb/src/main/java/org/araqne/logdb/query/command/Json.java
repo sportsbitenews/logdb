@@ -17,13 +17,10 @@ package org.araqne.logdb.query.command;
 
 import java.util.List;
 
-import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.RowPipe;
 
-public class Json extends QueryCommand {
-	private JsonScanTask mainTask = new JsonScanTask();
+public class Json extends DriverQueryCommand {
 	private List<Row> logs;
 
 	// original json string for toString convenience
@@ -35,8 +32,9 @@ public class Json extends QueryCommand {
 	}
 
 	@Override
-	public QueryTask getMainTask() {
-		return mainTask;
+	public void run() {
+		for (Row log : logs)
+			pushPipe(log);
 	}
 
 	public List<Row> getLogs() {
@@ -50,18 +48,5 @@ public class Json extends QueryCommand {
 	@Override
 	public String toString() {
 		return "json " + json;
-	}
-
-	private class JsonScanTask extends QueryTask {
-		@Override
-		public void run() {
-			for (Row log : logs)
-				pushPipe(log);
-		}
-
-		@Override
-		public RowPipe getOutput() {
-			return output;
-		}
 	}
 }
