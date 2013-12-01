@@ -43,6 +43,9 @@ public class LogFileWriterV1 extends LogFileWriter {
 	private static final int DEFAULT_MAX_LOG_BUFFERING = 10000;
 
 	private final int maxLogBuffering;
+
+	private File indexPath;
+	private File dataPath;
 	private RandomAccessFile indexFile;
 	private RandomAccessFile dataFile;
 	private long count;
@@ -62,13 +65,14 @@ public class LogFileWriterV1 extends LogFileWriter {
 		this(indexPath, dataPath, DEFAULT_MAX_LOG_BUFFERING);
 	}
 
-	public LogFileWriterV1(File indexPath, File dataPath, int maxLogBuffering) throws IOException,
-			InvalidLogFileHeaderException {
+	public LogFileWriterV1(File indexPath, File dataPath, int maxLogBuffering) throws IOException, InvalidLogFileHeaderException {
 		this.bufferedLogs = new ArrayList<Log>(maxLogBuffering * 2);
 		this.maxLogBuffering = maxLogBuffering;
 
 		boolean indexExists = indexPath.exists();
 		boolean dataExists = dataPath.exists();
+		this.indexPath = indexPath;
+		this.dataPath = dataPath;
 		this.indexFile = new RandomAccessFile(indexPath, "rw");
 		this.dataFile = new RandomAccessFile(dataPath, "rw");
 
@@ -126,6 +130,12 @@ public class LogFileWriterV1 extends LogFileWriter {
 		dataFile.seek(dataFile.length());
 	}
 
+	@Override
+	public boolean isLowDisk() {
+		File dir = indexPath.getParentFile();
+		return dir != null && dir.getFreeSpace() == 0;
+	}
+
 	private long read6Byte(RandomAccessFile f) throws IOException {
 		return ((long) f.readInt() << 16) | (f.readShort() & 0xFFFF);
 	}
@@ -147,7 +157,7 @@ public class LogFileWriterV1 extends LogFileWriter {
 
 	@Override
 	public void write(Log log) throws IOException {
-		LogRecord data = convert(log); 
+		LogRecord data = convert(log);
 		// check validity
 		long newKey = data.getId();
 		if (newKey <= lastKey)
@@ -183,7 +193,7 @@ public class LogFileWriterV1 extends LogFileWriter {
 	public List<Log> getBuffer() {
 		return bufferedLogs;
 	}
-	
+
 	@Override
 	public List<List<Log>> getBuffers() {
 		return null;
@@ -201,7 +211,7 @@ public class LogFileWriterV1 extends LogFileWriter {
 		while (it.hasNext()) {
 			rawWrite(convert(it.next()));
 		}
-		
+
 		return true;
 	}
 
@@ -325,5 +335,17 @@ public class LogFileWriterV1 extends LogFileWriter {
 	@Override
 	public boolean isClosed() {
 		return dataFile == null;
+	}
+
+	/**
+	 * @since 2.5.0
+	 */
+	@Override
+	public void purge() {
+		boolean result = indexPath.delete();
+		logger.debug("araqne logstorage: delete [{}] file => {}", indexPath, result);
+
+		result = dataPath.delete();
+		logger.debug("araqne logstorage: delete [{}] file => {}", dataPath, result);
 	}
 }

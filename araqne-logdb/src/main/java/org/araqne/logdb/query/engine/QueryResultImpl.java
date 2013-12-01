@@ -17,35 +17,34 @@ package org.araqne.logdb.query.engine;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.araqne.codec.EncodingRule;
-import org.araqne.logdb.QueryStopReason;
-import org.araqne.logdb.Row;
-import org.araqne.logdb.Query;
-import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.QueryResult;
 import org.araqne.logdb.QueryResultCallback;
+import org.araqne.logdb.QueryResultConfig;
+import org.araqne.logdb.QueryResultSet;
+import org.araqne.logdb.QueryResultStorage;
 import org.araqne.logdb.QueryStatusCallback;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logstorage.Log;
-import org.araqne.logstorage.file.LogFileReaderV2;
-import org.araqne.logstorage.file.LogFileWriterV2;
+import org.araqne.logstorage.file.LogFileReader;
+import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.file.LogRecord;
 import org.araqne.logstorage.file.LogRecordCursor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryResultV2 implements QueryResult {
-	private final Logger logger = LoggerFactory.getLogger(QueryResultV2.class);
-	private static File BASE_DIR = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query/");
-	private LogFileWriterV2 writer;
-	private File indexPath;
-	private File dataPath;
+public class QueryResultImpl implements QueryResult {
+	private final Logger logger = LoggerFactory.getLogger(QueryResultImpl.class);
+	private LogFileWriter writer;
 	private long count;
-	private Query query;
+
 	/**
 	 * index and data file is deleted by user request
 	 */
@@ -54,22 +53,14 @@ public class QueryResultV2 implements QueryResult {
 	private volatile boolean writerClosed;
 	private volatile Date eofDate;
 
-	public QueryResultV2(Query query) throws IOException {
-		this("", query);
-	}
+	private QueryResultConfig config;
+	private QueryResultStorage resultStorage;
+	private Set<QueryResultCallback> resultCallbacks = new CopyOnWriteArraySet<QueryResultCallback>();
 
-	public QueryResultV2(String tag, Query query) throws IOException {
-		this.query = query;
-
-		BASE_DIR.mkdirs();
-
-		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
-		if (tag == null || tag.isEmpty())
-			tag = query.getId() + "-" + df.format(new Date());
-
-		indexPath = new File(BASE_DIR, "result-" + tag + ".idx");
-		dataPath = new File(BASE_DIR, "result-" + tag + ".dat");
-		writer = new LogFileWriterV2(indexPath, dataPath, 1024 * 1024, 1);
+	public QueryResultImpl(QueryResultConfig config, QueryResultStorage resultStorage) throws IOException {
+		this.config = config;
+		this.resultStorage = resultStorage;
+		writer = resultStorage.createWriter(config);
 	}
 
 	@Override
@@ -90,13 +81,22 @@ public class QueryResultV2 implements QueryResult {
 			}
 		} catch (IOException e) {
 			// cancel query when disk is full
-			File dir = indexPath.getParentFile();
-			if (dir != null && dir.getFreeSpace() == 0)
-				query.stop(QueryStopReason.LowDisk);
+			if (writer.isLowDisk())
+				invokeStopCallbacks(QueryStopReason.LowDisk);
 
 			throw new IllegalStateException(e);
 		}
 		count++;
+	}
+
+	private void invokeStopCallbacks(QueryStopReason reason) {
+		for (QueryResultCallback c : resultCallbacks) {
+			try {
+				c.onStop(reason);
+			} catch (Throwable t) {
+				logger.error("araqne logdb: cannot handle QueryResult.onStop()", t);
+			}
+		}
 	}
 
 	@Override
@@ -115,27 +115,25 @@ public class QueryResultV2 implements QueryResult {
 			}
 		} catch (IOException e) {
 			// cancel query when disk is full
-			File dir = indexPath.getParentFile();
-			if (dir != null && dir.getFreeSpace() == 0)
-				query.stop(QueryStopReason.LowDisk);
+			if (writer.isLowDisk())
+				invokeStopCallbacks(QueryStopReason.LowDisk);
 
 			throw new IllegalStateException(e);
 		}
 	}
 
-	public QueryResultSet getResult() throws IOException {
+	@Override
+	public QueryResultSet getResultSet() throws IOException {
 		if (purged) {
-			String msg = "query result file is already purged, index=" + indexPath.getAbsolutePath() + ", data="
-					+ dataPath.getAbsolutePath();
+			String msg = "query [" + config.getQuery().getId() + "] result file is already purged";
 			throw new IOException(msg);
 		}
 
 		syncWriter();
 
-		// TODO : check tableName
-		LogFileReaderV2 reader = null;
+		LogFileReader reader = null;
 		try {
-			reader = new LogFileReaderV2(null, indexPath, dataPath);
+			reader = resultStorage.createReader(config);
 			return new LogResultSetImpl(reader, count);
 		} catch (Throwable t) {
 			if (reader != null)
@@ -168,30 +166,36 @@ public class QueryResultV2 implements QueryResult {
 
 		eofDate = new Date();
 
-		for (QueryResultCallback callback : query.getCallbacks().getResultCallbacks())
-			callback.onPageLoaded(query);
+		for (QueryResultCallback callback : resultCallbacks)
+			callback.onPageLoaded(config.getQuery());
 
-		for (QueryStatusCallback callback : query.getCallbacks().getStatusCallbacks())
-			callback.onChange(query);
+		for (QueryStatusCallback callback : config.getQuery().getCallbacks().getStatusCallbacks())
+			callback.onChange(config.getQuery());
 	}
 
 	@Override
 	public void purge() {
+		if (purged)
+			return;
+
 		purged = true;
+		resultCallbacks.clear();
 
 		// delete files
-		boolean result = indexPath.delete();
-		logger.debug("araqne logdb: delete result .idx file [{}] => {}", indexPath, result);
-		result = dataPath.delete();
-		logger.debug("araqne logdb: delete result .dat file [{}] => {}", dataPath, result);
+		writer.purge();
+	}
+
+	@Override
+	public Set<QueryResultCallback> getResultCallbacks() {
+		return resultCallbacks;
 	}
 
 	private static class LogResultSetImpl implements QueryResultSet {
-		private LogFileReaderV2 reader;
+		private LogFileReader reader;
 		private LogRecordCursor cursor;
 		private long count;
 
-		public LogResultSetImpl(LogFileReaderV2 reader, long count) throws IOException {
+		public LogResultSetImpl(LogFileReader reader, long count) throws IOException {
 			this.reader = reader;
 			this.cursor = reader.getCursor(true);
 			this.count = count;

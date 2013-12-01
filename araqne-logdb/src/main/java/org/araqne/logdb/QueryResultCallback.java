@@ -21,4 +21,6 @@ public interface QueryResultCallback {
 	int limit();
 
 	void onPageLoaded(Query query);
+
+	void onStop(QueryStopReason reason);
 }

@@ -10,6 +10,7 @@ import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.QueryResultFactory;
 import org.araqne.logdb.query.command.Join;
 import org.araqne.logdb.query.command.Join.JoinType;
 import org.araqne.logdb.query.command.Sort;
@@ -18,11 +19,13 @@ import org.araqne.logdb.query.engine.QueryImpl;
 
 public class JoinParser implements QueryCommandParser {
 
-	private QueryParserService queryParserService;
+	private QueryParserService parserService;
+	private QueryResultFactory resultFactory;
 	private List<QueryCommand> subCommands;
 
-	public JoinParser(QueryParserService queryParserService) {
-		this.queryParserService = queryParserService;
+	public JoinParser(QueryParserService parserService, QueryResultFactory resultFactory) {
+		this.parserService = parserService;
+		this.resultFactory = resultFactory;
 	}
 
 	@Override
@@ -40,7 +43,7 @@ public class JoinParser implements QueryCommandParser {
 		String fieldToken = commandString.substring(cmdLen, b);
 		String subQueryString = commandString.substring(b + 1, e).trim();
 
-		subCommands = queryParserService.parseCommands(context, subQueryString);
+		subCommands = parserService.parseCommands(context, subQueryString);
 		for (QueryCommand command : subCommands)
 			command.onStart();
 
@@ -71,7 +74,7 @@ public class JoinParser implements QueryCommandParser {
 		lastCmd.setOutput(new QueryCommandPipe(sort));
 		subCommands.add(sort);
 
-		Query subQuery = new QueryImpl(context, subQueryString, subCommands);
+		Query subQuery = new QueryImpl(context, subQueryString, subCommands, resultFactory);
 		return new Join(joinType, sortFieldArray, subQuery);
 	}
 }

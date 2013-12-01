@@ -28,7 +28,9 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommand.Status;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryResult;
+import org.araqne.logdb.QueryResultConfig;
 import org.araqne.logdb.QueryResultSet;
+import org.araqne.logdb.QueryResultFactory;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.RunMode;
 import org.araqne.logdb.Session;
@@ -44,7 +46,7 @@ public class QueryImpl implements Query {
 	private String queryString;
 	private List<QueryCommand> commands;
 	private Date lastStarted;
-	private QueryResultV2 result;
+	private QueryResult result;
 
 	private QueryStopReason stopReason;
 	private RunMode runMode = RunMode.FOREGROUND;
@@ -53,7 +55,7 @@ public class QueryImpl implements Query {
 	// task scheduler which consider dependency
 	private QueryTaskScheduler scheduler;
 
-	public QueryImpl(QueryContext context, String queryString, List<QueryCommand> commands) {
+	public QueryImpl(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory) {
 		this.context = context;
 		this.queryString = queryString;
 		this.commands = commands;
@@ -62,8 +64,14 @@ public class QueryImpl implements Query {
 		for (QueryCommand cmd : commands)
 			cmd.setQuery(this);
 
+		openResult(resultFactory);
+	}
+
+	private void openResult(QueryResultFactory resultFactory) {
 		try {
-			result = new QueryResultV2(this);
+			QueryResultConfig config = new QueryResultConfig();
+			config.setQuery(this);
+			result = resultFactory.createResult(config);
 		} catch (IOException e) {
 			result.closeWriter();
 			result.purge();
@@ -153,7 +161,6 @@ public class QueryImpl implements Query {
 	public void purge() {
 		// prevent deleted result file access caused by result check of query
 		// callback or timeline callbacks
-		callbacks.getResultCallbacks().clear();
 		callbacks.getStatusCallbacks().clear();
 		callbacks.getTimelineCallbacks().clear();
 
@@ -213,7 +220,7 @@ public class QueryImpl implements Query {
 
 	@Override
 	public QueryResultSet getResultSet() throws IOException {
-		return result.getResult();
+		return result.getResultSet();
 	}
 
 	@Override

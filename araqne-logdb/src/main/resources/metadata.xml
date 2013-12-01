@@ -22,4 +22,5 @@
 	<instance component="query-log-transformer-factory" />
 	<instance component="stats-summary-logger-factory" />
 	<instance component="logdb-query-status-notifier" />
+	<instance component="logdb-query-result-factory" />
 </ipojo>

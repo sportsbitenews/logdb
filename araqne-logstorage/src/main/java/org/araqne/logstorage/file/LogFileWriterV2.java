@@ -76,8 +76,6 @@ public class LogFileWriterV2 extends LogFileWriter {
 	// TODO: block size modification does not work
 	private LogFileWriterV2(File indexPath, File dataPath, int blockSize) throws IOException, InvalidLogFileHeaderException {
 		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL);
-		this.indexPath = indexPath;
-		this.dataPath = dataPath;
 	}
 
 	public LogFileWriterV2(File indexPath, File dataPath, int blockSize, int level) throws IOException,
@@ -89,6 +87,8 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 			boolean indexExists = indexPath.exists();
 			boolean dataExists = dataPath.exists();
+			this.indexPath = indexPath;
+			this.dataPath = dataPath;
 			this.indexFile = new RandomAccessFile(indexPath, "rw");
 			this.dataFile = new RandomAccessFile(dataPath, "rw");
 
@@ -160,6 +160,12 @@ public class LogFileWriterV2 extends LogFileWriter {
 			ensureClose(dataFile);
 			throw new IllegalStateException(t);
 		}
+	}
+
+	@Override
+	public boolean isLowDisk() {
+		File dir = indexPath.getParentFile();
+		return dir != null && dir.getFreeSpace() == 0;
 	}
 
 	@Override
@@ -385,5 +391,17 @@ public class LogFileWriterV2 extends LogFileWriter {
 	@Override
 	public boolean isClosed() {
 		return dataFile == null;
+	}
+
+	/**
+	 * @since 2.5.0
+	 */
+	@Override
+	public void purge() {
+		boolean result = indexPath.delete();
+		logger.debug("araqne logstorage: delete [{}] file => {}", indexPath, result);
+
+		result = dataPath.delete();
+		logger.debug("araqne logstorage: delete [{}] file => {}", dataPath, result);
 	}
 }

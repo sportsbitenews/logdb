@@ -17,6 +17,7 @@ package org.araqne.logdb;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.Set;
 
 public interface QueryResult extends RowPipe {
 	Date getEofDate();
@@ -28,4 +29,8 @@ public interface QueryResult extends RowPipe {
 	void closeWriter();
 
 	void purge();
+
+	QueryResultSet getResultSet() throws IOException;
+
+	Set<QueryResultCallback> getResultCallbacks();
 }

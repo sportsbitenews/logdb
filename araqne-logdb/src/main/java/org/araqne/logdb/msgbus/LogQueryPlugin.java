@@ -161,7 +161,7 @@ public class LogQueryPlugin {
 
 		// set query and timeline callback
 		QueryResultCallback qc = new MsgbusLogQueryCallback(orgDomain, offset, limit);
-		query.getCallbacks().getResultCallbacks().add(qc);
+		query.getResult().getResultCallbacks().add(qc);
 
 		QueryStatusCallback qs = new MsgbusStatusCallback(orgDomain);
 		query.getCallbacks().getStatusCallbacks().add(qs);
@@ -440,6 +440,10 @@ public class LogQueryPlugin {
 			} catch (IOException e) {
 				logger.error("araqne logdb: msgbus push fail", e);
 			}
+		}
+
+		@Override
+		public void onStop(QueryStopReason reason) {
 		}
 	}
 

@@ -10,10 +10,12 @@ import java.util.Arrays;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.QueryResultFactory;
 import org.araqne.logdb.query.command.Join;
 import org.araqne.logdb.query.command.Join.JoinType;
 import org.araqne.logdb.query.command.Table;
 import org.araqne.logdb.query.command.Table.TableParams;
+import org.araqne.logdb.query.engine.QueryResultFactoryImpl;
 import org.junit.Test;
 
 public class JoinParserTest {
@@ -22,8 +24,9 @@ public class JoinParserTest {
 		System.setProperty("araqne.data.dir", ".");
 		String joinCommand = "join ip [ table users ]";
 		QueryParserService p = prepareMockQueryParser();
+		QueryResultFactory resultFactory = new QueryResultFactoryImpl();
 
-		Join join = (Join) new JoinParser(p).parse(null, joinCommand);
+		Join join = (Join) new JoinParser(p, resultFactory).parse(null, joinCommand);
 		assertEquals(JoinType.Inner, join.getType());
 		assertEquals(1, join.getSortFields().length);
 		assertEquals("ip", join.getSortFields()[0].getName());
@@ -35,7 +38,8 @@ public class JoinParserTest {
 	@Test
 	public void testLeftJoinType() {
 		QueryParserService p = prepareMockQueryParser();
-		Join join = (Join) new JoinParser(p).parse(null, "join type=left ip [ table users ]");
+		QueryResultFactory resultFactory = new QueryResultFactoryImpl();
+		Join join = (Join) new JoinParser(p, resultFactory).parse(null, "join type=left ip [ table users ]");
 
 		assertEquals(JoinType.Left, join.getType());
 		assertEquals(1, join.getSortFields().length);

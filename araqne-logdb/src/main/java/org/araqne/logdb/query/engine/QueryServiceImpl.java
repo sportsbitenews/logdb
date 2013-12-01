@@ -37,6 +37,7 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.QueryResultFactory;
 import org.araqne.logdb.QueryScriptRegistry;
 import org.araqne.logdb.QueryService;
 import org.araqne.logdb.LookupHandlerRegistry;
@@ -140,6 +141,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	@Requires
 	private LoggerRegistry loggerRegistry;
 
+	@Requires
+	private QueryResultFactory resultFactory;
+
 	private BundleContext bc;
 	private ConcurrentMap<Integer, Query> queries;
 
@@ -189,7 +193,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new OutputTxtParser());
 		parsers.add(new LogdbParser(metadataService));
 		parsers.add(new LogCheckParser(tableRegistry, logStorage, fileServiceRegistry));
-		parsers.add(new JoinParser(queryParserService));
+		parsers.add(new JoinParser(queryParserService, resultFactory));
 		parsers.add(new ImportParser(tableRegistry, logStorage));
 		parsers.add(new ParseParser(parserRegistry));
 		parsers.add(new LoadParser(savedResultManager));
@@ -258,7 +262,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		for (QueryPlanner planner : planners)
 			commands = planner.plan(commands);
 
-		Query query = new QueryImpl(context, queryString, commands);
+		Query query = new QueryImpl(context, queryString, commands, resultFactory);
 		for (QueryCommand cmd : commands)
 			cmd.setQuery(query);
 
@@ -319,7 +323,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		try {
 			query.getCallbacks().getTimelineCallbacks().clear();
 			query.getCallbacks().getStatusCallbacks().clear();
-			query.getCallbacks().getResultCallbacks().clear();
+			query.getResult().getResultCallbacks().clear();
 
 			if (query.isStarted() && !query.isFinished())
 				query.stop(QueryStopReason.UserRequest);

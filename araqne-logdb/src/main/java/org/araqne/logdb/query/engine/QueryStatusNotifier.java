@@ -84,7 +84,7 @@ public class QueryStatusNotifier {
 				c.onChange(q);
 			}
 
-			for (QueryResultCallback c : q.getCallbacks().getResultCallbacks()) {
+			for (QueryResultCallback c : q.getResult().getResultCallbacks()) {
 				if (c.offset() + c.limit() <= count)
 					c.onPageLoaded(q);
 			}
