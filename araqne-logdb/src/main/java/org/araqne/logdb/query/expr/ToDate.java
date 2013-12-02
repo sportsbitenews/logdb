@@ -31,10 +31,6 @@ public class ToDate implements Expression {
 	public ToDate(List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		
-		// if there is no format, first argument is in unixtime
-		if (exprs.size() == 1)
-			return;
-		
 		try {
 			this.format = (String) exprs.get(1).eval(null);
 			this.dateFormat = new SimpleDateFormat(format);
@@ -54,10 +50,7 @@ public class ToDate implements Expression {
 			if (s.isEmpty())
 				return null;
 			
-			if (dateFormat != null)
-				return dateFormat.parse(s);
-			else
-				return new Date(Long.valueOf(s) * 1000);
+			return dateFormat.parse(s);
 		} catch (Throwable t) {
 			return null;
 		}

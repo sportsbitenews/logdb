@@ -38,6 +38,8 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new ToDouble(args));
 		} else if (name.equals("date")) {
 			exprStack.add(new ToDate(args));
+		} else if (name.equals("epoch")) {
+			exprStack.add(new Epoch(args));
 		} else if (name.equals("string")) {
 			exprStack.add(new ToString(args));
 		} else if (name.equals("left")) {
