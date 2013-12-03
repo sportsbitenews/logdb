@@ -42,7 +42,6 @@ public abstract class QueryTask implements Runnable {
 	private CopyOnWriteArraySet<QueryTask> dependencies = new CopyOnWriteArraySet<QueryTask>();
 	private CopyOnWriteArraySet<QueryTaskListener> listeners = new CopyOnWriteArraySet<QueryTaskListener>();
 
-	public abstract RowPipe getOutput();
 
 	public TaskStatus getStatus() {
 		return status;

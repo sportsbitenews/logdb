@@ -287,8 +287,25 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
+		setJoinDependencies(query.getCommands());
+
 		new Thread(query, "Query " + id).start();
 		invokeCallbacks(query, QueryStatus.STARTED);
+	}
+
+	private void setJoinDependencies(List<QueryCommand> commands) {
+		List<QueryCommand> joinCmds = new ArrayList<QueryCommand>();
+
+		for (QueryCommand cmd : commands)
+			if (cmd.getName().equals("join"))
+				joinCmds.add(cmd);
+
+		for (QueryCommand cmd : commands) {
+			if (cmd.isDriver() && !cmd.getName().equals("join") && cmd.getMainTask() != null) {
+				for (QueryCommand join : joinCmds)
+					cmd.getMainTask().addDependency(join.getMainTask());
+			}
+		}
 	}
 
 	@Override

@@ -20,14 +20,13 @@ import java.util.List;
 
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommand.Status;
+import org.araqne.logdb.QueryStatusCallback;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.QueryTaskEvent;
 import org.araqne.logdb.QueryTaskListener;
-import org.araqne.logdb.QueryCommand.Status;
-import org.araqne.logdb.QueryTask.TaskStatus;
-import org.araqne.logdb.QueryStatusCallback;
-import org.araqne.logdb.RowPipe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,7 +108,7 @@ public class QueryTaskScheduler implements Runnable {
 			task.setStatus(TaskStatus.RUNNING);
 			new QueryTaskRunner(this, task).start();
 		} else {
-			if (logger.isDebugEnabled())
+			if (logger.isDebugEnabled() && task.getStatus() == TaskStatus.INIT)
 				logger.debug("araqne logdb: task [{}] is not runnable", task);
 		}
 
@@ -153,11 +152,5 @@ public class QueryTaskScheduler implements Runnable {
 				logger.debug("araqne logdb: query task [{}] completed", event.getTask());
 			startReadyTasks();
 		}
-
-		@Override
-		public RowPipe getOutput() {
-			return null;
-		}
 	}
-
 }

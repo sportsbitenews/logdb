@@ -37,10 +37,5 @@ public abstract class DriverQueryCommand extends QueryCommand {
 		public void run() {
 			DriverQueryCommand.this.run();
 		}
-
-		@Override
-		public RowPipe getOutput() {
-			return output;
-		}
 	}
 }

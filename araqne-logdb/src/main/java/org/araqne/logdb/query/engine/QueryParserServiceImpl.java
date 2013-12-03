@@ -73,25 +73,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 		if (!setReducer)
 			commands.get(commands.size() - 1).setInvokeTimelineCallback(true);
 
-		// set join dependency
-		setJoinDependencies(commands);
-
 		return commands;
-	}
-
-	private void setJoinDependencies(List<QueryCommand> commands) {
-		List<QueryCommand> joinCmds = new ArrayList<QueryCommand>();
-
-		for (QueryCommand cmd : commands)
-			if (cmd.getName().equals("join"))
-				joinCmds.add(cmd);
-
-		for (QueryCommand cmd : commands) {
-			if (cmd.isDriver() && !cmd.getName().equals("join") && cmd.getMainTask() != null) {
-				for (QueryCommand join : joinCmds)
-					cmd.getMainTask().addDependency(join.getMainTask());
-			}
-		}
 	}
 
 	@Override

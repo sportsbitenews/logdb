@@ -7,13 +7,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.QueryStopReason;
-import org.araqne.logdb.QueryTask;
-import org.araqne.logdb.Row;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryResultSet;
-import org.araqne.logdb.RowPipe;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.Sort.SortField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -219,11 +218,6 @@ public class Join extends QueryCommand {
 			} finally {
 				rs.close();
 			}
-		}
-
-		@Override
-		public RowPipe getOutput() {
-			return null;
 		}
 	}
 

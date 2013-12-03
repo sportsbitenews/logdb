@@ -27,7 +27,6 @@ import java.util.Set;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.RowPipe;
 import org.araqne.logstorage.Crypto;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
@@ -213,11 +212,5 @@ public class LogCheck extends QueryCommand {
 				logger.error("araqne logdb: table error", t);
 			}
 		}
-
-		@Override
-		public RowPipe getOutput() {
-			return output;
-		}
 	}
-
 }
