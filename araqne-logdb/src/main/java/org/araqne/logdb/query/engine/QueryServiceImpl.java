@@ -37,6 +37,7 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.DefaultQuery;
 import org.araqne.logdb.QueryResultFactory;
 import org.araqne.logdb.QueryScriptRegistry;
 import org.araqne.logdb.QueryService;
@@ -260,9 +261,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		QueryContext context = new QueryContext(session);
 		List<QueryCommand> commands = queryParserService.parseCommands(context, queryString);
 		for (QueryPlanner planner : planners)
-			commands = planner.plan(commands);
+			commands = planner.plan(context, commands);
 
-		Query query = new QueryImpl(context, queryString, commands, resultFactory);
+		Query query = new DefaultQuery(context, queryString, commands, resultFactory);
 		for (QueryCommand cmd : commands)
 			cmd.setQuery(query);
 

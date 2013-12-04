@@ -8,6 +8,7 @@ import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.DefaultQuery;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryCommandPipe;
 import org.araqne.logdb.QueryResultFactory;
@@ -15,7 +16,6 @@ import org.araqne.logdb.query.command.Join;
 import org.araqne.logdb.query.command.Join.JoinType;
 import org.araqne.logdb.query.command.Sort;
 import org.araqne.logdb.query.command.Sort.SortField;
-import org.araqne.logdb.query.engine.QueryImpl;
 
 public class JoinParser implements QueryCommandParser {
 
@@ -68,13 +68,14 @@ public class JoinParser implements QueryCommandParser {
 		// add sort command to end
 		SortField[] sortFieldArray = sortFields.toArray(new SortField[0]);
 		Sort sort = new Sort(null, sortFieldArray);
+		sort.setName("sort");
 		sort.onStart();
 
 		QueryCommand lastCmd = subCommands.get(subCommands.size() - 1);
 		lastCmd.setOutput(new QueryCommandPipe(sort));
 		subCommands.add(sort);
 
-		Query subQuery = new QueryImpl(context, subQueryString, subCommands, resultFactory);
+		Query subQuery = new DefaultQuery(context, subQueryString, subCommands, resultFactory);
 		return new Join(joinType, sortFieldArray, subQuery);
 	}
 }

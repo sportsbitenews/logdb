@@ -23,5 +23,5 @@ public interface QueryPlanner {
 	 * 
 	 * @return the new query execution pipeline
 	 */
-	List<QueryCommand> plan(List<QueryCommand> commands);
+	List<QueryCommand> plan(QueryContext context, List<QueryCommand> commands);
 }

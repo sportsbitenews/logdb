@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.query.engine;
+package org.araqne.logdb;
 
 import java.io.IOException;
 import java.util.Date;
@@ -22,23 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.araqne.logdb.Query;
-import org.araqne.logdb.QueryCallbacks;
-import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommand.Status;
-import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryResult;
-import org.araqne.logdb.QueryResultConfig;
-import org.araqne.logdb.QueryResultSet;
-import org.araqne.logdb.QueryResultFactory;
-import org.araqne.logdb.QueryStopReason;
-import org.araqne.logdb.RunMode;
-import org.araqne.logdb.Session;
+import org.araqne.logdb.query.engine.QueryTaskScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryImpl implements Query {
-	private Logger logger = LoggerFactory.getLogger(QueryImpl.class);
+public class DefaultQuery implements Query {
+	private Logger logger = LoggerFactory.getLogger(DefaultQuery.class);
 	private static AtomicInteger nextId = new AtomicInteger(1);
 
 	private final int id = nextId.getAndIncrement();
@@ -55,7 +45,7 @@ public class QueryImpl implements Query {
 	// task scheduler which consider dependency
 	private QueryTaskScheduler scheduler;
 
-	public QueryImpl(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory) {
+	public DefaultQuery(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory) {
 		this.context = context;
 		this.queryString = queryString;
 		this.commands = commands;
@@ -64,7 +54,8 @@ public class QueryImpl implements Query {
 		for (QueryCommand cmd : commands)
 			cmd.setQuery(this);
 
-		openResult(resultFactory);
+		if (resultFactory != null)
+			openResult(resultFactory);
 	}
 
 	private void openResult(QueryResultFactory resultFactory) {
@@ -80,6 +71,14 @@ public class QueryImpl implements Query {
 	}
 
 	public void preRun() {
+		// connect all pipe
+		QueryCommand last = null;
+		for (QueryCommand cmd : commands) {
+			if (last != null)
+				last.setOutput(new QueryCommandPipe(cmd));
+			last = cmd;
+		}
+
 		commands.get(commands.size() - 1).setOutput(result);
 		logger.trace("araqne logdb: run query => {}", queryString);
 		for (QueryCommand command : commands)
@@ -190,7 +189,8 @@ public class QueryImpl implements Query {
 		}
 
 		try {
-			result.closeWriter();
+			if (result != null)
+				result.closeWriter();
 		} catch (Throwable t) {
 			logger.error("araqne logdb: cannot close query result", t);
 		}

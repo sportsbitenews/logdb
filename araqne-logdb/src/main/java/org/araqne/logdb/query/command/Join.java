@@ -160,13 +160,13 @@ public class Join extends QueryCommand {
 		return sortFields;
 	}
 
-	public List<QueryCommand> getSubQuery() {
-		return subQuery.getCommands();
+	public Query getSubQuery() {
+		return subQuery;
 	}
 
 	// bulid hash table or sort
 	private class SubQueryTask extends QueryTask {
-		private static final int HASH_JOIN_THRESHOLD = 50000;
+		private static final int HASH_JOIN_THRESHOLD = 100000;
 
 		@Override
 		public void run() {
@@ -221,8 +221,8 @@ public class Join extends QueryCommand {
 		}
 	}
 
-	private static class JoinKeys {
-		private Object[] keys;
+	public static class JoinKeys {
+		public Object[] keys;
 
 		public JoinKeys(Object[] keys) {
 			this.keys = keys;

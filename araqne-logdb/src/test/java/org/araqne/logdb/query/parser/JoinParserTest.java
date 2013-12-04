@@ -32,7 +32,7 @@ public class JoinParserTest {
 		assertEquals("ip", join.getSortFields()[0].getName());
 		assertTrue(join.getSortFields()[0].isAsc());
 
-		assertTrue(join.getSubQuery().get(0) instanceof Table);
+		assertTrue(join.getSubQuery().getCommands().get(0) instanceof Table);
 	}
 
 	@Test
@@ -46,7 +46,7 @@ public class JoinParserTest {
 		assertEquals("ip", join.getSortFields()[0].getName());
 		assertTrue(join.getSortFields()[0].isAsc());
 
-		assertTrue(join.getSubQuery().get(0) instanceof Table);
+		assertTrue(join.getSubQuery().getCommands().get(0) instanceof Table);
 	}
 
 	private QueryParserService prepareMockQueryParser() {
