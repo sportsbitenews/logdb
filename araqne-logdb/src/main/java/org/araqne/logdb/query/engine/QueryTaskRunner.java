@@ -52,6 +52,7 @@ public class QueryTaskRunner extends Thread {
 			QueryTaskEvent completeEvent = new QueryTaskEvent(task);
 			triggerCompleteEvent(task, completeEvent);
 		} catch (Throwable t) {
+			logger.error("araqne logdb: query task [" + task + "] failed", t);
 			task.setStatus(TaskStatus.CANCELED);
 			task.setFailure(t);
 			scheduler.stop(QueryStopReason.CommandFailure);

@@ -370,7 +370,8 @@ public class Table extends DriverQueryCommand {
 		if (params.getTo() != null)
 			s += " to=" + df.format(params.getTo());
 
-		s += " offset=" + params.getOffset();
+		if (params.getOffset() > 0)
+			s += " offset=" + params.getOffset();
 
 		if (params.getLimit() > 0)
 			s += " limit=" + params.getLimit();

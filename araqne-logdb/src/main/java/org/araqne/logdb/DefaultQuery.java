@@ -176,7 +176,7 @@ public class DefaultQuery implements Query {
 
 		// send eof and close result writer
 		for (QueryCommand cmd : commands) {
-			if (cmd.getStatus() == Status.End)
+			if (cmd.getStatus() == Status.Finalizing || cmd.getStatus() == Status.End)
 				continue;
 
 			cmd.setStatus(Status.Finalizing);
@@ -220,6 +220,8 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public QueryResultSet getResultSet() throws IOException {
+		if (result == null)
+			return null;
 		return result.getResultSet();
 	}
 
