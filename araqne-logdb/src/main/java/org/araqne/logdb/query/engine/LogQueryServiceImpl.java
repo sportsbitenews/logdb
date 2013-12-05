@@ -54,6 +54,7 @@ import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
+import org.araqne.logdb.query.LogQueryImpl;
 import org.araqne.logdb.query.parser.BoxPlotParser;
 import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;

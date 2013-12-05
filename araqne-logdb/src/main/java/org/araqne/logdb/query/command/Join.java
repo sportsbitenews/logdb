@@ -11,8 +11,8 @@ import org.araqne.logdb.LogMap;
 import org.araqne.logdb.LogQuery;
 import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LogResultSet;
+import org.araqne.logdb.query.LogQueryImpl;
 import org.araqne.logdb.query.command.Sort.SortField;
-import org.araqne.logdb.query.engine.LogQueryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
