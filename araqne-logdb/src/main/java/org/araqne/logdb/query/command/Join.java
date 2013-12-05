@@ -41,6 +41,7 @@ public class Join extends LogQueryCommand {
 	private List<LogQueryCommand> subQueryCommands;
 
 	private SubQueryRunner subQueryRunner = new SubQueryRunner();
+	private Object subQueryMonitor = new Object();
 
 	public Join(JoinType joinType, SortField[] sortFields, String subQueryString, List<LogQueryCommand> subQueryCommands) {
 		this.joinType = joinType;
@@ -90,13 +91,11 @@ public class Join extends LogQueryCommand {
 
 	@Override
 	public void push(LogMap m) {
-		LogQueryCommand cmd = subQueryCommands.get(subQueryCommands.size() - 1);
-
 		// wait until subquery end
-		synchronized (cmd) {
+		synchronized (subQueryMonitor) {
 			while (!subQueryEnd) {
 				try {
-					cmd.wait(1000);
+					subQueryMonitor.wait(1000);
 				} catch (InterruptedException e) {
 				}
 			}
@@ -208,7 +207,6 @@ public class Join extends LogQueryCommand {
 			logger.debug("araqne logdb: subquery started, query [{}]", logQuery.getId());
 
 			boolean completed = false;
-			LogQueryCommand cmd = null;
 			try {
 				subQuery.run();
 				completed = true;
@@ -234,10 +232,8 @@ public class Join extends LogQueryCommand {
 			} finally {
 				subQueryEnd = true;
 
-				if (cmd != null) {
-					synchronized (cmd) {
-						cmd.notifyAll();
-					}
+				synchronized (subQueryMonitor) {
+					subQueryMonitor.notifyAll();
 				}
 
 				logger.debug("araqne logdb: subquery end, query [{}]", logQuery.getId());
