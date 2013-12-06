@@ -125,7 +125,11 @@ public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 			}
 
 			AtomicLong lastPosition = new AtomicLong(offset);
-			is = new FileInputStream(new File(path));
+			File file = new File(path);
+			if (file.length() <= offset)
+				return;
+
+			is = new FileInputStream(file);
 			is.skip(offset);
 
 			extractor.extract(is, lastPosition, dateFromFileName);
