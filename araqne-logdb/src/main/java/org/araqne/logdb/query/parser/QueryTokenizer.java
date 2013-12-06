@@ -106,6 +106,7 @@ public class QueryTokenizer {
 	private static int findNextSeparator(String s, int offset) {
 		boolean quote = false;
 		boolean escape = false;
+		Stack<Integer> sqbrs = new Stack<Integer>();
 		for (int i = offset; i < s.length(); i++) {
 			char c = s.charAt(i);
 
@@ -115,7 +116,21 @@ public class QueryTokenizer {
 				} else
 					escape = false;
 			}
-			if (c == '=' && !quote) {
+			if (c == '[' && !quote) {
+				if (!escape) {
+					sqbrs.push(i);
+				} else {
+					escape = false;
+				}
+			}
+			if (c == ']' && !quote) {
+				if (!escape) {
+					sqbrs.pop();
+				} else {
+					escape = false;
+				}
+			}
+			if (c == '=' && !quote && sqbrs.isEmpty()) {
 				if (i + 1 < s.length() && s.charAt(i + 1) == '=') {
 					// skip == token
 					i++;
