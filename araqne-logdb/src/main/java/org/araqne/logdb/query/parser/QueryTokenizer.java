@@ -151,12 +151,12 @@ public class QueryTokenizer {
 		StringBuilder sb = new StringBuilder();
 		char before = 0;
 		boolean quoted = false;
-		
+
 		Stack<Integer> sqStack = new Stack<Integer>();
 
 		for (int p = 0; p < query.length(); ++p) {
 			char c = query.charAt(p);
-			
+
 			if (c == '[' && !quoted)
 				sqStack.push(p);
 			else if (c == ']' && !quoted)
@@ -167,7 +167,10 @@ public class QueryTokenizer {
 				sb.append(c);
 			} else {
 				if (c == '|' && !quoted && sqStack.isEmpty()) {
-					l.add(sb.toString());
+					String cmd = sb.toString();
+					if (cmd.trim().isEmpty())
+						throw new LogQueryParseException("empty-command", -1);
+					l.add(cmd);
 					sb = new StringBuilder();
 				} else
 					sb.append(c);
@@ -175,8 +178,12 @@ public class QueryTokenizer {
 			before = c;
 		}
 
-		if (sb.length() > 0)
-			l.add(sb.toString());
+		if (sb.length() > 0) {
+			String cmd = sb.toString();
+			if (cmd.trim().isEmpty())
+				throw new LogQueryParseException("empty-command", -1);
+			l.add(cmd);
+		}
 
 		return l;
 	}
