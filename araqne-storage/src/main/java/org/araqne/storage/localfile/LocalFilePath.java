@@ -137,4 +137,19 @@ public class LocalFilePath implements FilePath {
 		return path.getTotalSpace();
 	}
 
+	@Override
+	public int compareTo(FilePath o) {
+		if (o instanceof LocalFilePath) {
+			LocalFilePath rhs = (LocalFilePath) o;
+			return path.compareTo(rhs.path);
+		}
+		
+		return getProtocol().compareTo(o.getProtocol());
+	}
+
+	@Override
+	public String getProtocol() {
+		return "file";
+	}
+
 }

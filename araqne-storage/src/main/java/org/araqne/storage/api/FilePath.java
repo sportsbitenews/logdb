@@ -2,7 +2,9 @@ package org.araqne.storage.api;
 
 import java.io.IOException;
 
-public interface FilePath {
+public interface FilePath extends Comparable<FilePath> {
+	String getProtocol();
+	
 	String getAbsolutePath();
 	
 	String getName();
