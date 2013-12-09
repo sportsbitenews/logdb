@@ -39,6 +39,8 @@ import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
+import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.*;
 import org.araqne.logstorage.file.LogFileReader;
@@ -1249,6 +1251,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				List<Log> buffer = onlineWriter.getBuffer();
 
 				if (buffer != null && !buffer.isEmpty()) {
+					LogParser parser = null;
+					if (builder != null)
+						parser = builder.build();
+					
 					logger.trace("araqne logstorage: {} logs in writer buffer.", buffer.size());
 					List<Log> logs = new ArrayList<Log>(buffer.size());
 					ListIterator<Log> li = buffer.listIterator(buffer.size());
@@ -1257,7 +1263,14 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 						Log logData = li.previous();
 						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
 								&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
-							logs.add(logData);
+							List<Log> result = null;
+							try {
+								result = LogFileReader.parse(tableName, parser, logData);
+							} catch (LogParserBugException e) {
+								result = Arrays.asList(new Log[] {new Log(e.tableName, e.date, e.id, e.logMap)});
+								c.setFailure(e);
+							}
+							logs.addAll(result);
 						}
 					}
 					c.writeLogs(logs);

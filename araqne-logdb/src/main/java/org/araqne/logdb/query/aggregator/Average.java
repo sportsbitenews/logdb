@@ -106,7 +106,11 @@ public class Average implements AggregationFunction {
 	public void merge(AggregationFunction func) {
 		// d should not be null here (do not allow null merge set)
 		Average other = (Average) func;
-		this.d += other.d;
+		if (this.d != null) {
+			this.d += other.d;
+		} else {
+			this.d = other.d;
+		}
 		this.count += other.count;
 	}
 
