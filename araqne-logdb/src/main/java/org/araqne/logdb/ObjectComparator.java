@@ -17,6 +17,7 @@ package org.araqne.logdb;
 
 import java.net.Inet4Address;
 import java.util.Comparator;
+import java.util.Date;
 
 import org.araqne.logdb.query.command.NumberUtil;
 
@@ -105,11 +106,15 @@ public class ObjectComparator implements Comparator<Object> {
 					else if (o2 instanceof Float)
 						rhs = (Float) o2;
 
-					double d = lhs - rhs;
-					if (d == 0)
-						return 0;
-					return lhs < rhs ? -1 : 1;
+					return Double.compare(lhs, rhs);
 				}
+			} else if (o1 instanceof Date && o2 instanceof Date) {
+				long lhs = ((Date) o1).getTime();
+				long rhs = ((Date) o2).getTime();
+				long d = lhs - rhs;
+				if (d == 0)
+					return 0;
+				return lhs < rhs ? -1 : 1;
 			}
 		}
 
