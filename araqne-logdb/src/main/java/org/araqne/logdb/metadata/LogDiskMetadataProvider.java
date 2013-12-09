@@ -37,6 +37,7 @@ import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.storage.api.FilePath;
 
 @Component(name = "logdb-logdisk-metadata")
 public class LogDiskMetadataProvider implements MetadataProvider {
@@ -83,25 +84,24 @@ public class LogDiskMetadataProvider implements MetadataProvider {
 	}
 
 	private void writeLogDiskUsages(String tableName, Date from, Date to, MetadataCallback callback) {
-		File dir = storage.getTableDirectory(tableName);
+		FilePath dir = storage.getTableDirectory(tableName);
 
-		File[] files = dir.listFiles();
+		FilePath[] files = dir.listFiles();
 		if (files == null)
 			return;
 
-		List<String> paths = new ArrayList<String>();
-		for (File f : files)
+		List<FilePath> paths = new ArrayList<FilePath>();
+		for (FilePath f : files)
 			if (f.getName().endsWith(".idx") || f.getName().endsWith(".dat"))
-				paths.add(f.getAbsolutePath());
+				paths.add(f);
 
 		Collections.sort(paths);
 
 		Date lastDay = null;
 		long diskUsage = 0;
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-		for (String path : paths) {
-			File f = new File(path);
-			Date day = df.parse(f.getName().substring(0, f.getName().length() - 4), new ParsePosition(0));
+		for (FilePath path : paths) {
+			Date day = df.parse(path.getName().substring(0, path.getName().length() - 4), new ParsePosition(0));
 			if (day == null)
 				continue;
 
@@ -116,7 +116,7 @@ public class LogDiskMetadataProvider implements MetadataProvider {
 				diskUsage = 0;
 			}
 
-			diskUsage += f.length();
+			diskUsage += path.length();
 			lastDay = day;
 		}
 

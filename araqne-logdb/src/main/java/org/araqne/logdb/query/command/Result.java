@@ -35,6 +35,8 @@ import org.araqne.logstorage.file.LogFileReaderV2;
 import org.araqne.logstorage.file.LogFileWriterV2;
 import org.araqne.logstorage.file.LogRecord;
 import org.araqne.logstorage.file.LogRecordCursor;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,8 +44,8 @@ public class Result extends LogQueryCommand {
 	private static File BASE_DIR = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query/");
 	private final Logger logger = LoggerFactory.getLogger(Result.class);
 	private LogFileWriterV2 writer;
-	private File indexPath;
-	private File dataPath;
+	private LocalFilePath indexPath;
+	private LocalFilePath dataPath;
 	private long count;
 
 	private Set<LogQueryCallback> callbacks;
@@ -67,9 +69,10 @@ public class Result extends LogQueryCommand {
 		callbacks = new CopyOnWriteArraySet<LogQueryCallback>();
 		callbackQueue = new PriorityQueue<Result.LogQueryCallbackInfo>(11, new CallbackInfoComparator());
 
+		// query results are stored in local filesystem.
 		BASE_DIR.mkdirs();
-		indexPath = File.createTempFile("result-" + tag, ".idx", BASE_DIR);
-		dataPath = File.createTempFile("result-" + tag, ".dat", BASE_DIR);
+		indexPath = new LocalFilePath(File.createTempFile("result-" + tag, ".idx", BASE_DIR));
+		dataPath = new LocalFilePath(File.createTempFile("result-" + tag, ".dat", BASE_DIR));
 		writer = new LogFileWriterV2(indexPath, dataPath, 1024 * 1024, 1);
 	}
 
@@ -141,8 +144,8 @@ public class Result extends LogQueryCommand {
 			}
 		} catch (IOException e) {
 			// cancel query when disk is full
-			File dir = indexPath.getParentFile();
-			if (dir != null && dir.getFreeSpace() == 0)
+			FilePath dir = indexPath.getParentFilePath();
+			if (dir != null && dir.getUsableSpace() == 0)
 				eof(true);
 
 			throw new IllegalStateException(e);
@@ -264,12 +267,14 @@ public class Result extends LogQueryCommand {
 
 		@Override
 		public File getIndexPath() {
-			return reader.getIndexPath();
+			// resultSet is stored in local filesystem
+			return ((LocalFilePath)reader.getIndexPath()).getPath();
 		}
 
 		@Override
 		public File getDataPath() {
-			return reader.getDataPath();
+			// resultSet is stored in local filesystem
+			return ((LocalFilePath)reader.getDataPath()).getPath();
 		}
 
 		@Override

@@ -23,6 +23,8 @@ import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogBlock;
 import org.araqne.logstorage.file.LogBlockCursor;
 import org.araqne.logstorage.file.LogFileReader;
+import org.araqne.logstorage.file.LogFileServiceV2;
+import org.araqne.storage.api.FilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,25 +77,20 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 		Date day = df.parse(tokens[2], new ParsePosition(0));
 
-		File dir = storage.getTableDirectory(tableName);
+		FilePath dir = storage.getTableDirectory(tableName);
 
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		String dateText = dateFormat.format(day);
 
-		File indexPath = new File(dir, dateText + ".idx");
-		File dataPath = new File(dir, dateText + ".dat");
-		File keyPath = new File(dir, dateText + ".key");
-
-		Map<String, Object> options = new HashMap<String, Object>(tableMetadata);
-		options.put("tableName", tableName);
-		options.put("indexPath", indexPath);
-		options.put("dataPath", dataPath);
-		options.put("keyPath", keyPath);
+		FilePath indexPath = dir.newFilePath(dateText + ".idx");
+		FilePath dataPath = dir.newFilePath(dateText + ".dat");
+		FilePath keyPath = dir.newFilePath(dateText + ".key");
 
 		LogFileReader reader = null;
 		LogBlockCursor cursor = null;
 		try {
-			reader = logFileServiceRegistry.newReader(tableName, type, options);
+			reader = logFileServiceRegistry.newReader(tableName, type, 
+					new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath));
 			cursor = reader.getBlockCursor();
 
 			while (cursor.hasNext()) {

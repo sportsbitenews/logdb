@@ -40,6 +40,7 @@ import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogWriterStatus;
+import org.araqne.storage.api.FilePath;
 
 @Component(name = "logdb-logcount-metadata")
 public class LogCountMetadataProvider implements MetadataProvider {
@@ -103,13 +104,13 @@ public class LogCountMetadataProvider implements MetadataProvider {
 		if (fileType == null)
 			fileType = "v2";
 
-		File dir = storage.getTableDirectory(tableName);
+		FilePath dir = storage.getTableDirectory(tableName);
 		countFiles(tableName, fileType, dir, from, to, memoryBuffers, callback);
 	}
 
-	private void countFiles(String tableName, String type, File dir, Date from, Date to, List<LogWriterStatus> memoryBuffers,
+	private void countFiles(String tableName, String type, FilePath dir, Date from, Date to, List<LogWriterStatus> memoryBuffers,
 			MetadataCallback callback) {
-		File[] files = dir.listFiles();
+		FilePath[] files = dir.listFiles();
 		if (files == null)
 			return;
 
@@ -117,19 +118,18 @@ public class LogCountMetadataProvider implements MetadataProvider {
 		if (fileService == null)
 			return;
 
-		ArrayList<String> paths = new ArrayList<String>();
-		for (File f : files)
+		ArrayList<FilePath> paths = new ArrayList<FilePath>();
+		for (FilePath f : files)
 			if (f.isFile())
-				paths.add(f.getAbsolutePath());
+				paths.add(f);
 
 		Collections.sort(paths);
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-		for (String path : paths) {
-			File f = new File(path);
-			if (f.getName().endsWith(".idx")) {
-				long count = fileService.count(f);
-				Date day = df.parse(f.getName().substring(0, f.getName().length() - 4), new ParsePosition(0));
+		for (FilePath path : paths) {
+			if (path.getName().endsWith(".idx")) {
+				long count = fileService.count(path);
+				Date day = df.parse(path.getName().substring(0, path.getName().length() - 4), new ParsePosition(0));
 				if (day == null)
 					continue;
 

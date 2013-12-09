@@ -15,7 +15,6 @@
  */
 package org.araqne.logdb.query.command;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -33,6 +32,8 @@ import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogBlock;
 import org.araqne.logstorage.file.LogBlockCursor;
 import org.araqne.logstorage.file.LogFileReader;
+import org.araqne.logstorage.file.LogFileServiceV2;
+import org.araqne.storage.api.FilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +106,7 @@ public class LogCheck extends LogQueryCommand {
 	private void checkTable(String tableName) {
 		String type = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
 
-		File dir = storage.getTableDirectory(tableName);
+		FilePath dir = storage.getTableDirectory(tableName);
 
 		Map<String, String> tableMetadata = new HashMap<String, String>();
 		for (String key : tableRegistry.getTableMetadataKeys(tableName))
@@ -124,22 +125,17 @@ public class LogCheck extends LogQueryCommand {
 			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 			String dateText = dateFormat.format(day);
 
-			File indexPath = new File(dir, dateText + ".idx");
-			File dataPath = new File(dir, dateText + ".dat");
-			File keyPath = new File(dir, dateText + ".key");
+			FilePath indexPath = dir.newFilePath(dateText + ".idx");
+			FilePath dataPath = dir.newFilePath(dateText + ".dat");
+			FilePath keyPath = dir.newFilePath(dateText + ".key");
 			if (!keyPath.exists())
 				continue;
-
-			Map<String, Object> options = new HashMap<String, Object>(tableMetadata);
-			options.put("tableName", tableName);
-			options.put("indexPath", indexPath);
-			options.put("dataPath", dataPath);
-			options.put("keyPath", keyPath);
 
 			LogFileReader reader = null;
 			LogBlockCursor cursor = null;
 			try {
-				reader = fileServiceRegistry.newReader(tableName, type, options);
+				reader = fileServiceRegistry.newReader(tableName, type, 
+						new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath));
 				cursor = reader.getBlockCursor();
 
 				while (cursor.hasNext() && getStatus() != Status.End) {
