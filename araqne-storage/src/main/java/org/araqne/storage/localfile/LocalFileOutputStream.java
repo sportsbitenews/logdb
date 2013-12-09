@@ -6,7 +6,7 @@ import java.io.RandomAccessFile;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageOutputStream;
 
-public class LocalFileOutputStream implements StorageOutputStream {
+public class LocalFileOutputStream extends StorageOutputStream {
 	private LocalFilePath path;
 	private final RandomAccessFile target;
 	

@@ -1,11 +1,6 @@
 package org.araqne.storage.api;
 
-import java.io.Closeable;
-import java.io.DataOutput;
-import java.io.IOException;
+import java.io.OutputStream;
 
-public interface StorageOutputStream extends Closeable, DataOutput {
-	FilePath getPath();
-	
-	void sync() throws IOException;
+public abstract class StorageOutputStream extends OutputStream implements StorageOutput {
 }

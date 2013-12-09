@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
 
-public class LocalFileInputStream implements StorageInputStream {
+public class LocalFileInputStream extends StorageInputStream {
 	private LocalFilePath path;
 	private final RandomAccessFile source;
 	
@@ -136,6 +136,11 @@ public class LocalFileInputStream implements StorageInputStream {
 	@Override
 	public FilePath getPath() {
 		return path;
+	}
+
+	@Override
+	public int read() throws IOException {
+		return source.read();
 	}
 
 }
