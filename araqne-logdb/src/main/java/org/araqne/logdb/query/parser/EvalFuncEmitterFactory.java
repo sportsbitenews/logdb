@@ -38,6 +38,8 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new ToDouble(args));
 		} else if (name.equals("date")) {
 			exprStack.add(new ToDate(args));
+		} else if (name.equals("epoch")) {
+			exprStack.add(new Epoch(args));
 		} else if (name.equals("string")) {
 			exprStack.add(new ToString(args));
 		} else if (name.equals("left")) {
@@ -90,6 +92,12 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new Ip2Long(args));
 		} else if (name.equals("long2ip")) {
 			exprStack.add(new Long2Ip(args));
+		} else if (name.equals("round")) {
+			exprStack.add(new Round(args));
+		} else if (name.equals("floor")) {
+			exprStack.add(new Floor(args));
+		} else if (name.equals("ceil")) {
+			exprStack.add(new Ceil(args));
 		} else {
 			throw new LogQueryParseException("unsupported-function", -1, "function name is " + name);
 		}

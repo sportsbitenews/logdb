@@ -26,7 +26,7 @@ public abstract class LogTraverseCallback {
 	abstract public boolean isInterrupted();
 	
 	public boolean isEof() {
-		return sink.isEof();
+		return sink.isEof() || isInterrupted();
 	}
 	
 	public LogTraverseCallback(Sink sink) {

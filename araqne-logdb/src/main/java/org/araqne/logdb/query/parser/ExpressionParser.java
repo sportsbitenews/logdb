@@ -238,7 +238,7 @@ public class ExpressionParser {
 			String token = (String) r.value;
 			if (token.isEmpty())
 				continue;
-
+			
 			// read function call (including nested one)
 			if (token.equals("(") && lastToken != null && !isOperator(lastToken, rule)) {
 				// remove last term and add function term instead
@@ -310,6 +310,15 @@ public class ExpressionParser {
 					return new ParseResult(quoted, p + 1);
 				}
 			}
+			if (r.value.equals("[")) {
+				int p = findClosingSquareBracket(s, r.next + 1);
+				if (p == r.next + 1 - 1)
+					throw new LogQueryParseException("sqbracket-mismatch", r.next + 1);
+				else {
+					String subquery = s.substring(r.next, p + 1);
+					return new ParseResult(subquery, p + 1);
+				}
+			}
 
 			// check whitespace
 			String token = (String) r.value;
@@ -324,6 +333,25 @@ public class ExpressionParser {
 			String token = s.substring(begin, r.next).trim();
 			return new ParseResult(token, r.next);
 		}
+	}
+
+	private static int findClosingSquareBracket(String s, int start) {
+		Stack<Integer> t = new Stack<Integer>();
+		for (int p = start; p < s.length(); ++p) {
+			char c = s.charAt(p);
+			if (c == '[') {
+				t.push(p);
+				continue;
+			}
+			if (c == ']') {
+				if (t.isEmpty())
+					return p;
+				else
+					t.pop();
+			}
+		}
+		
+		return start - 1;
 	}
 
 	private static String unveilEscape(String s) {
@@ -393,6 +421,9 @@ public class ExpressionParser {
 		min(r, "\"", s.indexOf('"', begin), end);
 		min(r, "(", s.indexOf('(', begin), end);
 		min(r, ")", s.indexOf(')', begin), end);
+		min(r, "[", s.indexOf('[', begin), end);
+		min(r, "]", s.indexOf(']', begin), end);
+
 		for (OpTerm op : rule.getOpTerm().delimiters()) {
 			min(r, op.getSymbol(), s.indexOf(op.getSymbol(), begin), end);
 		}

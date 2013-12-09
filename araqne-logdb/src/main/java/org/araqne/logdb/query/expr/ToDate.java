@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.expr;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import org.araqne.logdb.LogMap;
@@ -29,6 +30,7 @@ public class ToDate implements Expression {
 
 	public ToDate(List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
+		
 		try {
 			this.format = (String) exprs.get(1).eval(null);
 			this.dateFormat = new SimpleDateFormat(format);
@@ -47,6 +49,7 @@ public class ToDate implements Expression {
 			String s = value.toString();
 			if (s.isEmpty())
 				return null;
+			
 			return dateFormat.parse(s);
 		} catch (Throwable t) {
 			return null;

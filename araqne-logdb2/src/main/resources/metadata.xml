@@ -1,0 +1,26 @@
+<ipojo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="org.apache.felix.ipojo http://felix.apache.org/ipojo/schemas/CURRENT/core.xsd"
+	xmlns="org.apache.felix.ipojo">
+	<instance component="logdb-script-factory" />
+	<instance component="logdb-logquery-msgbus" />
+	<instance component="logdb-query" />
+	<!-- instance component="v2-query-service" / -->
+	<instance component="logdb-lookup-registry" />
+	<instance component="logdb-csv-lookup-registry" />
+	<instance component="logdb-query-parser-service" />
+	<instance component="logdb-query-script-registry" />
+	<instance component="logdb-account" />
+	<instance component="logdb-management-msgbus" />
+	<instance component="logdb-metadata-service" />
+	<instance component="logdb-logdisk-metadata" />
+	<instance component="logdb-logcount-metadata" />
+	<instance component="logdb-table-metadata" />
+	<instance component="logdb-logblock-metadata" />
+	<instance component="csv-import-script-factory" />
+	<instance component="query-log-parser-factory" />
+	<instance component="saved-result-manager" />
+	<instance component="query-transform-logger-factory" />
+	<instance component="query-log-transformer-factory" />
+	<instance component="stats-summary-logger-factory" />
+	<instance component="query-status-notifier" />
+</ipojo>
