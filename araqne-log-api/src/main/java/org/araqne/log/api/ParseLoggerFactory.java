@@ -26,18 +26,24 @@ public class ParseLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "parse";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "파서";
+		return "Parser";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		return "parse";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "지정된 파서를 이용하여 원본 로그를 파싱합니다.";
+		return "Parse log using parser";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption sourceLogger = new StringConfigType("source_logger", t("Source Logger", "Source Logger"), t("", ""), true);
-		LoggerConfigOption parserName = new StringConfigType("parser_name", t("Parser Name", "Parser Name"), t("", ""), true);
+		LoggerConfigOption sourceLogger = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름"), t(
+				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름"), true);
+		LoggerConfigOption parserName = new StringConfigType("parser_name", t("Parser Name", "파서 이름"), t("Parser name", "파서 이름"),
+				true);
 		return Arrays.asList(sourceLogger, parserName);
 	}
 
