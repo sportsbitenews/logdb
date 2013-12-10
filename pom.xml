@@ -34,7 +34,6 @@
 			<url>scp://staging.araqne.org:2222/home/service/araqne/</url>
 		</repository>
 	</distributionManagement>
-
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -224,5 +223,6 @@
 		<module>araqne-logdb-jython</module>
 		<module>araqne-regex-tester</module>
 		<module>araqne-logdb-jmx</module>
+		<module>araqne-logstorage-exporter</module>
 	</modules>
 </project>
