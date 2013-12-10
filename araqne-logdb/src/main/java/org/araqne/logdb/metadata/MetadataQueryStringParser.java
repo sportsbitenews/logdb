@@ -14,6 +14,7 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Privilege;
+import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.araqne.logstorage.LogTableRegistry;
 
 public class MetadataQueryStringParser {
@@ -26,6 +27,18 @@ public class MetadataQueryStringParser {
 		Date to = null;
 
 		Map<String, Object> optionTokens = parseOptions(token);
+
+		String duration = (String) optionTokens.get("duration");
+		if (duration != null) {
+			int i;
+			for (i = 0; i < duration.length(); i++) {
+				char c = duration.charAt(i);
+				if (!('0' <= c && c <= '9'))
+					break;
+			}
+			int value = Integer.parseInt(duration.substring(0, i));
+			from = QueryTokenizer.getDuration(value, duration.substring(i));
+		}
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 		String fromToken = (String) optionTokens.get("from");
@@ -92,6 +105,7 @@ public class MetadataQueryStringParser {
 
 	private static Map<String, Object> parseOptions(String token) {
 		Set<String> keys = new HashSet<String>();
+		keys.add("duration");
 		keys.add("from");
 		keys.add("to");
 		keys.add("diskonly");

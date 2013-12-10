@@ -13,7 +13,6 @@ import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.DefaultQuery;
 import org.araqne.logdb.query.command.Sort.SortField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
