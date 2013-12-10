@@ -17,14 +17,14 @@ package org.araqne.logdb.query.parser;
 
 import java.util.List;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.LookupHandlerRegistry;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Lookup;
 
-public class LookupParser implements LogQueryCommandParser {
+public class LookupParser implements QueryCommandParser {
 	private LookupHandlerRegistry registry;
 
 	public LookupParser(LookupHandlerRegistry registry) {
@@ -37,7 +37,7 @@ public class LookupParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
 
 		// find OUTPUT token
@@ -50,7 +50,7 @@ public class LookupParser implements LogQueryCommandParser {
 		}
 
 		if (outputOffset == -1)
-			throw new LogQueryParseException("output-token-not-found", commandString.length());
+			throw new QueryParseException("output-token-not-found", commandString.length());
 
 		List<String> inputTokens = tokens.substrings(2, outputOffset);
 		List<String> outputTokens = tokens.substrings(outputOffset + 1);
@@ -74,10 +74,10 @@ public class LookupParser implements LogQueryCommandParser {
 		}
 
 		if (tokens.size() != 3)
-			throw new LogQueryParseException("invalid-lookup-field", -1);
+			throw new QueryParseException("invalid-lookup-field", -1);
 
 		if (!tokens.get(1).equalsIgnoreCase("as"))
-			throw new LogQueryParseException("as-token-not-found", -1);
+			throw new QueryParseException("as-token-not-found", -1);
 
 		field.first = tokens.get(0);
 		field.second = tokens.get(2);

@@ -12,8 +12,8 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryContext;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
@@ -61,11 +61,11 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 	}
 
 	@Override
-	public void verify(LogQueryContext context, String queryString) {
+	public void verify(QueryContext context, String queryString) {
 	}
 
 	@Override
-	public void query(LogQueryContext context, String queryString, MetadataCallback callback) {
+	public void query(QueryContext context, String queryString, MetadataCallback callback) {
 		String[] tokens = queryString.split(" ");
 		String tableName = tokens[1];
 		String type = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
@@ -107,7 +107,7 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 				m.put("compressed_size", data.get("compressed_size"));
 				m.put("iv", data.get("iv"));
 				m.put("signature", data.get("signature"));
-				callback.onLog(new LogMap(m));
+				callback.onPush(new Row(m));
 			}
 		} catch (IOException e) {
 			logger.error("araqne logdb: cannot read block metadata", e);

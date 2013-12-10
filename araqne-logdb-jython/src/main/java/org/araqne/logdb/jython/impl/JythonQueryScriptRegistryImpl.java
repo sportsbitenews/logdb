@@ -35,9 +35,9 @@ import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicate;
 import org.araqne.confdb.Predicates;
 import org.araqne.jython.JythonService;
-import org.araqne.logdb.LogQueryScript;
-import org.araqne.logdb.LogQueryScriptFactory;
-import org.araqne.logdb.LogQueryScriptRegistry;
+import org.araqne.logdb.QueryScript;
+import org.araqne.logdb.QueryScriptFactory;
+import org.araqne.logdb.QueryScriptRegistry;
 import org.araqne.logdb.jython.JythonQueryScriptRegistry;
 import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
@@ -56,7 +56,7 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 	private JythonService jython;
 
 	@Requires
-	private LogQueryScriptRegistry logScriptRegistry;
+	private QueryScriptRegistry logScriptRegistry;
 
 	private ConcurrentMap<String, ConcurrentMap<String, PyObject>> workspaceScripts;
 
@@ -146,7 +146,7 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 	}
 
 	@Override
-	public LogQueryScript newLogScript(String workspace, String name, Map<String, Object> params) {
+	public QueryScript newLogScript(String workspace, String name, Map<String, Object> params) {
 		ConcurrentMap<String, PyObject> scripts = workspaceScripts.get(workspace);
 		if (scripts == null)
 			return null;
@@ -156,7 +156,7 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 			return null;
 
 		PyObject instance = factory.__call__();
-		return (LogQueryScript) instance.__tojava__(LogQueryScript.class);
+		return (QueryScript) instance.__tojava__(QueryScript.class);
 	}
 
 	@Override
@@ -229,7 +229,7 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 		return Predicates.field(pred);
 	}
 
-	private static class LogScriptFactoryImpl implements LogQueryScriptFactory {
+	private static class LogScriptFactoryImpl implements QueryScriptFactory {
 
 		private PyObject factory;
 
@@ -238,9 +238,9 @@ public class JythonQueryScriptRegistryImpl implements JythonQueryScriptRegistry 
 		}
 
 		@Override
-		public LogQueryScript create(Map<String, String> params) {
+		public QueryScript create(Map<String, String> params) {
 			PyObject instance = factory.__call__();
-			return (LogQueryScript) instance.__tojava__(LogQueryScript.class);
+			return (QueryScript) instance.__tojava__(QueryScript.class);
 		}
 
 		@Override

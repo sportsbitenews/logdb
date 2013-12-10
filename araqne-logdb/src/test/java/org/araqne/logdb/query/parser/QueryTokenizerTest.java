@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.junit.Test;
 
 public class QueryTokenizerTest {
@@ -112,7 +112,7 @@ public class QueryTokenizerTest {
 		try {
 			QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"));
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("option-space-not-allowed", e.getType());
 		}
 	}
@@ -134,7 +134,7 @@ public class QueryTokenizerTest {
 		try {
 			QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("parser"));
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("invalid-option", e.getType());
 		}
 	}

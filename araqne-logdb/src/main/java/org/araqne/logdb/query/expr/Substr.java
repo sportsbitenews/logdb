@@ -17,8 +17,8 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 
 public class Substr implements Expression {
 	private Expression valueExpr;
@@ -31,11 +31,11 @@ public class Substr implements Expression {
 		this.end = Integer.parseInt(exprs.get(2).eval(null).toString());
 
 		if (begin < 0 || end < 0 || begin > end)
-			throw new LogQueryParseException("invalid-substr-range", -1);
+			throw new QueryParseException("invalid-substr-range", -1);
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object value = valueExpr.eval(map);
 		if (value == null)
 			return null;

@@ -23,13 +23,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.OutputCsv;
 
-public class OutputCsvParser implements LogQueryCommandParser {
+public class OutputCsvParser implements QueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -38,9 +38,9 @@ public class OutputCsvParser implements LogQueryCommandParser {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
-			throw new LogQueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("missing-field", commandString.length());
 
 		boolean overwrite = false;
 		ParseResult r = QueryTokenizer
@@ -63,7 +63,7 @@ public class OutputCsvParser implements LogQueryCommandParser {
 		}
 
 		if (fields.size() == 0)
-			throw new LogQueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("missing-field", commandString.length());
 
 		File csvFile = new File(csvPath);
 		if (csvFile.exists() && !overwrite)
@@ -74,7 +74,7 @@ public class OutputCsvParser implements LogQueryCommandParser {
 				csvFile.getParentFile().mkdirs();
 			return new OutputCsv(originalCsvPath, csvFile, overwrite, fields);
 		} catch (IOException e) {
-			throw new LogQueryParseException("io-error", -1, e.getMessage());
+			throw new QueryParseException("io-error", -1, e.getMessage());
 		}
 
 	}

@@ -3,8 +3,9 @@ package org.araqne.logdb.query.command;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.QueryTask.TaskStatus;
+import org.araqne.logdb.Row;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogCursor;
 
@@ -14,8 +15,7 @@ import org.araqne.logstorage.LogCursor;
  * @author xeraph
  * 
  */
-public class Load extends LogQueryCommand {
-
+public class Load extends DriverQueryCommand {
 	private LogCursor cursor;
 	private String guid;
 
@@ -25,14 +25,11 @@ public class Load extends LogQueryCommand {
 	}
 
 	@Override
-	public void start() {
-		boolean cancelled = false;
+	public void run() {
 		try {
-			status = Status.Running;
-
 			while (cursor.hasNext()) {
-				Status status = getStatus();
-				if (status == Status.End)
+				TaskStatus status = task.getStatus();
+				if (status == TaskStatus.CANCELED)
 					break;
 
 				Log log = cursor.next();
@@ -40,28 +37,15 @@ public class Load extends LogQueryCommand {
 				m.putAll(log.getData());
 				m.put("_time", log.getDate());
 				m.put("_id", log.getId());
-				write(new LogMap(m));
+				pushPipe(new Row(m));
 			}
-		} catch (Throwable t) {
-			cancelled = true;
 		} finally {
 			cursor.close();
-			eof(cancelled);
 		}
-	}
-
-	@Override
-	public void push(LogMap m) {
-	}
-
-	@Override
-	public boolean isReducer() {
-		return false;
 	}
 
 	@Override
 	public String toString() {
 		return "load " + guid;
 	}
-
 }

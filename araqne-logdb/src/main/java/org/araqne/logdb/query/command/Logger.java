@@ -4,26 +4,21 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.LoggerRegistry;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.slf4j.LoggerFactory;
 
-public class Logger extends LogQueryCommand {
+public class Logger extends DriverQueryCommand {
 	private final org.slf4j.Logger logger = LoggerFactory.getLogger(Logger.class);
+
 	private LoggerRegistry loggerRegistry;
 
 	public Logger(LoggerRegistry loggerRegistry) {
 		this.loggerRegistry = loggerRegistry;
 	}
 
-	@Override
-	public void push(LogMap m) {
-	}
-
-	@Override
-	public void start() {
-		status = Status.Running;
+	public void run() {
 		try {
 			for (org.araqne.log.api.Logger logger : loggerRegistry.getLoggers()) {
 				Map<String, Object> m = new HashMap<String, Object>();
@@ -39,13 +34,11 @@ public class Logger extends LogQueryCommand {
 				m.put("last_run_at", logger.getLastRunDate());
 				m.put("last_log_at", logger.getLastLogDate());
 				m.put("last_write_at", logger.getLastWriteDate());
-				write(new LogMap(m));
+				pushPipe(new Row(m));
 			}
 		} catch (Throwable t) {
 			logger.error("araqne logdb: failed to load logger status");
-			throw new LogQueryParseException("logger-load-fail", -1);
-		} finally {
-			eof(false);
+			throw new QueryParseException("logger-load-fail", -1);
 		}
 	}
 }

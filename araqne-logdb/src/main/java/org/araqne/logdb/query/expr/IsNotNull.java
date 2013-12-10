@@ -17,7 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 public class IsNotNull implements Expression {
 
@@ -28,7 +28,7 @@ public class IsNotNull implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		return expr.eval(map) != null;
 	}
 

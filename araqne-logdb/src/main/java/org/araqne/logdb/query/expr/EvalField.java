@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 public class EvalField implements Expression {
 	private String fieldName;
@@ -25,7 +25,7 @@ public class EvalField implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		return map.get(fieldName);
 	}
 

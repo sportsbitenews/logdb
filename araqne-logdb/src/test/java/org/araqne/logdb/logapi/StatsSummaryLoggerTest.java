@@ -2,7 +2,9 @@ package org.araqne.logdb.logapi;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,9 +22,16 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.araqne.log.api.*;
-import org.araqne.logdb.logapi.StatsSummaryLogger;
-import org.araqne.logdb.logapi.StatsSummaryLoggerFactory;
+import org.araqne.log.api.AbstractLogger;
+import org.araqne.log.api.AbstractLoggerFactory;
+import org.araqne.log.api.Log;
+import org.araqne.log.api.LogParserRegistry;
+import org.araqne.log.api.LogPipe;
+import org.araqne.log.api.Logger;
+import org.araqne.log.api.LoggerFactory;
+import org.araqne.log.api.LoggerRegistry;
+import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.SimpleLog;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -74,8 +83,8 @@ public class StatsSummaryLoggerTest {
 			slog.trace("source - runOnce called");
 
 			try {
-				List<String> lines = readAllLines(new File(this.getClass().getResource("/SummaryLoggerTest-Sample1.txt").toURI()),
-						Charset.forName("utf-8"));
+				List<String> lines = readAllLines(
+						new File(this.getClass().getResource("/SummaryLoggerTest-Sample1.txt").toURI()), Charset.forName("utf-8"));
 				for (String line : lines) {
 					Map<String, Object> data = parseLine(line);
 					write(new SimpleLog((Date) data.get("date"), this.getName(), data));
@@ -151,9 +160,8 @@ public class StatsSummaryLoggerTest {
 			}
 		}).when(sink).onLog(any(Logger.class), any(Log.class));
 
-		SampleLogger sourceLogger = new SampleLogger(
-				new LoggerSpecification("local", "source", "", 0, null, 0, new HashMap<String, String>()),
-				new SampleLoggerFactory(), 1);
+		SampleLogger sourceLogger = new SampleLogger(new LoggerSpecification("local", "source", "", 0, null, 0,
+				new HashMap<String, String>()), new SampleLoggerFactory(), 1);
 
 		when(loggerRegistry.getLogger("local\\source")).thenReturn(sourceLogger);
 
@@ -228,4 +236,3 @@ public class StatsSummaryLoggerTest {
 		}
 	}
 }
-

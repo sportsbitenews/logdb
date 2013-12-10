@@ -19,8 +19,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 
 /**
  * @since 1.7.2
@@ -44,7 +44,7 @@ public class DateDiff implements Expression {
 		this.exprs = exprs;
 
 		if (exprs.size() != 3)
-			throw new LogQueryParseException("invalid-datediff-args", -1);
+			throw new QueryParseException("invalid-datediff-args", -1);
 
 		start = exprs.get(0);
 		end = exprs.get(1);
@@ -63,11 +63,11 @@ public class DateDiff implements Expression {
 		else if (s.equals("sec"))
 			calField = Calendar.SECOND;
 		else
-			throw new LogQueryParseException("invalid-datediff-unit", -1);
+			throw new QueryParseException("invalid-datediff-unit", -1);
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object o1 = start.eval(map);
 		if (o1 == null)
 			return null;

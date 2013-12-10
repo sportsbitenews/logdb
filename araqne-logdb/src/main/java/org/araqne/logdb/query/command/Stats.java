@@ -23,9 +23,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
 import org.araqne.logdb.sort.CloseableIterator;
@@ -34,7 +35,7 @@ import org.araqne.logdb.sort.ParallelMergeSorter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Stats extends LogQueryCommand {
+public class Stats extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
 	private int inputCount;
 	private List<AggregationField> fields;
@@ -72,15 +73,15 @@ public class Stats extends LogQueryCommand {
 	}
 
 	@Override
-	public void init() {
-		super.init();
+	public void onStart() {
+		super.onStart();
 
 		for (AggregationFunction f : funcs)
 			f.clean();
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		List<Object> keys = EMPTY_KEY;
 		if (clauseCount > 0) {
 			keys = new ArrayList<Object>(clauses.size());
@@ -114,12 +115,16 @@ public class Stats extends LogQueryCommand {
 				flush();
 
 		} catch (IOException e) {
-			throw new IllegalStateException("sort failed, query " + logQuery, e);
+			throw new IllegalStateException("sort failed, query " + query, e);
 		}
 	}
 
 	private void flush() throws IOException {
-		logger.debug("araqne logdb: flushing stats buffer, [{}] keys", buffer.keySet().size());
+		if (buffer == null)
+			return;
+
+		if (logger.isDebugEnabled())
+			logger.debug("araqne logdb: flushing stats buffer, [{}] keys", buffer.keySet().size());
 
 		for (List<Object> keys : buffer.keySet()) {
 			AggregationFunction[] fs = buffer.get(keys);
@@ -140,7 +145,7 @@ public class Stats extends LogQueryCommand {
 	}
 
 	@Override
-	public void eof(boolean canceled) {
+	public void onClose(QueryStopReason reason) {
 		this.status = Status.Finalizing;
 
 		logger.debug("araqne logdb: stats sort input count [{}]", inputCount);
@@ -210,7 +215,7 @@ public class Stats extends LogQueryCommand {
 
 			logger.debug("araqne logdb: sorted stats input [{}]", count);
 		} catch (IOException e) {
-			throw new IllegalStateException("sort failed, query " + logQuery, e);
+			throw new IllegalStateException("sort failed, query " + query, e);
 		} finally {
 			if (it != null) {
 				try {
@@ -222,8 +227,6 @@ public class Stats extends LogQueryCommand {
 
 			// support sorter cache GC when query processing is ended
 			sorter = null;
-
-			super.eof(canceled);
 		}
 	}
 
@@ -236,7 +239,7 @@ public class Stats extends LogQueryCommand {
 		for (int i = 0; i < funcs.length; i++)
 			m.put(fields.get(i).getName(), fs[i].eval());
 
-		write(new LogMap(m));
+		pushPipe(new Row(m));
 	}
 
 	private static class ItemComparer implements Comparator<Item> {

@@ -24,11 +24,12 @@ import java.util.Map;
 
 import org.araqne.api.ScriptContext;
 import org.araqne.logdb.AccountService;
-import org.araqne.logdb.LogQuery;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryService;
-import org.araqne.logdb.LogResultSet;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryService;
+import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.Permission;
+import org.araqne.logdb.Query;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResult;
 import org.araqne.logdb.SavedResultManager;
@@ -39,12 +40,13 @@ import org.slf4j.LoggerFactory;
 public class Console {
 	private final Logger logger = LoggerFactory.getLogger(Console.class);
 	private ScriptContext context;
-	private LogQueryService queryService;
+	private QueryService queryService;
 	private AccountService accountService;
 	private SavedResultManager savedResultManager;
 	private Session session;
 
-	public Console(ScriptContext context, AccountService accountService, LogQueryService queryService, SavedResultManager savedResultManager) {
+	public Console(ScriptContext context, AccountService accountService, QueryService queryService,
+			SavedResultManager savedResultManager) {
 		this.context = context;
 		this.accountService = accountService;
 		this.queryService = queryService;
@@ -304,7 +306,7 @@ public class Console {
 		queryString = sb.toString();
 
 		long begin = System.currentTimeMillis();
-		LogQuery lq = queryService.createQuery(session, queryString);
+		Query lq = queryService.createQuery(session, queryString);
 		queryService.startQuery(session, lq.getId());
 
 		do {
@@ -312,12 +314,12 @@ public class Console {
 				Thread.sleep(50);
 			} catch (InterruptedException e) {
 			}
-		} while (!lq.isEof());
+		} while (!lq.isFinished());
 
 		long count = 0;
-		LogResultSet rs = null;
+		QueryResultSet rs = null;
 		try {
-			rs = lq.getResult();
+			rs = lq.getResultSet();
 			while (rs.hasNext()) {
 				printMap(rs.next());
 				count++;
@@ -332,12 +334,12 @@ public class Console {
 	}
 
 	private void createQuery(String queryString) {
-		LogQuery q = queryService.createQuery(session, queryString);
+		Query q = queryService.createQuery(session, queryString);
 		context.println("created query " + q.getId());
 	}
 
 	private void startQuery(int id) {
-		LogQuery q = queryService.getQuery(session, id);
+		Query q = queryService.getQuery(session, id);
 		if (q == null) {
 			context.println("query not found");
 			return;
@@ -386,9 +388,9 @@ public class Console {
 	}
 
 	private void stopQuery(int id) {
-		LogQuery q = queryService.getQuery(session, id);
+		Query q = queryService.getQuery(session, id);
 		if (q != null) {
-			q.cancel();
+			q.stop(QueryStopReason.UserRequest);
 			context.println("stopped");
 		} else {
 			context.println("query not found: " + id);
@@ -401,20 +403,20 @@ public class Console {
 	}
 
 	private void fetch(int id, long offset, long limit) throws IOException {
-		LogQuery q = queryService.getQuery(session, id);
+		Query q = queryService.getQuery(session, id);
 		if (q == null) {
 			context.println("query not found");
 			return;
 		}
 
-		LogResultSet result = q.getResult();
+		QueryResultSet result = q.getResultSet();
 		result.skip(offset);
 		for (long i = 0; result.hasNext() && i < limit; i++)
 			printMap(result.next());
 	}
 
 	private void removeAllQueries() {
-		for (LogQuery q : queryService.getQueries(session)) {
+		for (Query q : queryService.getQueries(session)) {
 			int id = q.getId();
 			queryService.removeQuery(session, id);
 			context.println("removed query " + id);
@@ -451,23 +453,23 @@ public class Console {
 	private void setRunMode(boolean background, String queryId) {
 		int id = Integer.valueOf(queryId);
 
-		LogQuery q = queryService.getQuery(id);
-		q.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, new LogQueryContext(session));
+		Query q = queryService.getQuery(id);
+		q.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, new QueryContext(session));
 		context.println(background ? "run as a background task" : "run in the foreground");
 	}
 
 	private void save(String queryId, String title) {
 		int id = Integer.valueOf(queryId);
 
-		LogQuery q = queryService.getQuery(id);
+		Query q = queryService.getQuery(id);
 		if (q == null) {
 			context.println("query not found");
 			return;
 		}
 
-		LogResultSet rs = null;
+		QueryResultSet rs = null;
 		try {
-			rs = q.getResult();
+			rs = q.getResultSet();
 			long total = rs.getIndexPath().length() + rs.getDataPath().length();
 
 			SavedResult sr = new SavedResult();

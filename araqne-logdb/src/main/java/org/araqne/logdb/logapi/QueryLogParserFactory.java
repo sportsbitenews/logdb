@@ -29,8 +29,8 @@ import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.StringConfigType;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryParserService;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryParserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,7 @@ public class QueryLogParserFactory implements LogParserFactory {
 	private final Logger logger = LoggerFactory.getLogger(QueryLogParserFactory.class);
 
 	@Requires
-	private LogQueryParserService queryParser;
+	private QueryParserService queryParser;
 
 	@Override
 	public String getName() {
@@ -88,7 +88,7 @@ public class QueryLogParserFactory implements LogParserFactory {
 		String query = configs.get("query");
 
 		try {
-			List<LogQueryCommand> commands = queryParser.parseCommands(null, query);
+			List<QueryCommand> commands = queryParser.parseCommands(null, query);
 			return new QueryLogParser(query, commands);
 		} catch (Throwable t) {
 			logger.debug("araqne logdb: cannot parse query string for parser - query [" + query + "]", t);

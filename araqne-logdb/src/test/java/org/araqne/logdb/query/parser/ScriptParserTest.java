@@ -15,9 +15,9 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.BaseLogQueryScript;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryScriptRegistry;
+import org.araqne.logdb.BaseQueryScript;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryScriptRegistry;
 import org.araqne.logdb.query.command.Script;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
@@ -30,11 +30,11 @@ public class ScriptParserTest {
 		MockQueryScript mockScript = new MockQueryScript();
 
 		BundleContext bc = null;
-		LogQueryScriptRegistry scriptRegistry = mock(LogQueryScriptRegistry.class);
+		QueryScriptRegistry scriptRegistry = mock(QueryScriptRegistry.class);
 		when(scriptRegistry.newScript("localhost", "sample", null)).thenReturn(mockScript);
 
 		ScriptParser parser = new ScriptParser(bc, scriptRegistry);
-		LogQueryContext context = new LogQueryContext(null);
+		QueryContext context = new QueryContext(null);
 
 		Script script = (Script) parser.parse(context, "script sample");
 		assertEquals(mockScript, script.getQueryScript());
@@ -47,11 +47,11 @@ public class ScriptParserTest {
 		MockQueryScript mockScript = new MockQueryScript();
 
 		BundleContext bc = null;
-		LogQueryScriptRegistry scriptRegistry = mock(LogQueryScriptRegistry.class);
+		QueryScriptRegistry scriptRegistry = mock(QueryScriptRegistry.class);
 		when(scriptRegistry.newScript("localhost", "sample", null)).thenReturn(mockScript);
 
 		ScriptParser parser = new ScriptParser(bc, scriptRegistry);
-		LogQueryContext context = new LogQueryContext(null);
+		QueryContext context = new QueryContext(null);
 
 		Script script = (Script) parser.parse(context, "script key1=value1 key2=value2 sample");
 		assertEquals(mockScript, script.getQueryScript());
@@ -62,6 +62,6 @@ public class ScriptParserTest {
 		assertEquals("script key2=value2 key1=value1 sample", script.toString());
 	}
 
-	private static class MockQueryScript extends BaseLogQueryScript {
+	private static class MockQueryScript extends BaseQueryScript {
 	}
 }

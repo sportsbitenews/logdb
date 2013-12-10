@@ -18,19 +18,19 @@ package org.araqne.logdb.query.parser;
 import java.util.ArrayList;
 import java.util.Map;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryScript;
-import org.araqne.logdb.LogQueryScriptRegistry;
+import org.araqne.logdb.QueryScript;
+import org.araqne.logdb.QueryScriptRegistry;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Script;
 import org.osgi.framework.BundleContext;
 
-public class ScriptParser implements LogQueryCommandParser {
+public class ScriptParser implements QueryCommandParser {
 	private BundleContext bc;
-	private LogQueryScriptRegistry scriptRegistry;
+	private QueryScriptRegistry scriptRegistry;
 
-	public ScriptParser(BundleContext bc, LogQueryScriptRegistry scriptRegistry) {
+	public ScriptParser(BundleContext bc, QueryScriptRegistry scriptRegistry) {
 		this.bc = bc;
 		this.scriptRegistry = scriptRegistry;
 	}
@@ -42,11 +42,11 @@ public class ScriptParser implements LogQueryCommandParser {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>());
 		String name = commandString.substring(r.next);
 
-		LogQueryScript script = scriptRegistry.newScript("localhost", name, null);
+		QueryScript script = scriptRegistry.newScript("localhost", name, null);
 		if (script == null)
 			throw new IllegalArgumentException("log script not found: " + name);
 

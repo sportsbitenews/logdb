@@ -15,15 +15,16 @@
  */
 package org.araqne.logdb.query.command;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 
 /**
  * @since 1.7.2
  * @author xeraph
  * 
  */
-public class Limit extends LogQueryCommand {
+public class Limit extends QueryCommand {
 
 	private final long offset;
 	private final long limit;
@@ -45,17 +46,17 @@ public class Limit extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		if (skip < offset) {
 			skip++;
 			return;
 		}
 
 		if (count < limit) {
-			write(m);
+			pushPipe(m);
 			count++;
 		} else {
-			eof(false);
+			getQuery().stop(QueryStopReason.PartialFetch);
 		}
 	}
 

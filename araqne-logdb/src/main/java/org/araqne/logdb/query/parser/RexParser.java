@@ -22,13 +22,13 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Rex;
 
-public class RexParser implements LogQueryCommandParser {
+public class RexParser implements QueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -36,7 +36,7 @@ public class RexParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 
 		// extract field names and remove placeholder
 		List<String> names = new ArrayList<String>();
@@ -47,16 +47,16 @@ public class RexParser implements LogQueryCommandParser {
 
 		String field = options.get("field");
 		if (field == null)
-			throw new LogQueryParseException("field-not-found", commandString.length());
+			throw new QueryParseException("field-not-found", commandString.length());
 
 		Pattern placeholder = Pattern.compile("\\(\\?<(.*?)>(.*?)\\)");
 		String regexToken = commandString.substring(r.next);
 		if (!QueryTokenizer.isQuoted(regexToken.trim()))
-			throw new LogQueryParseException("invalid-regex", commandString.length());
+			throw new QueryParseException("invalid-regex", commandString.length());
 
 		// for later toString convenience
 		String originalRegexToken = regexToken;
-		
+
 		regexToken = QueryTokenizer.removeQuotes(regexToken);
 		regexToken = toNonCapturingGroup(regexToken);
 

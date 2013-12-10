@@ -17,11 +17,11 @@ package org.araqne.logdb.query.command;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.Strings;
 
-public class Fields extends LogQueryCommand {
+public class Fields extends QueryCommand {
 	private List<String> fields;
 	private boolean selector;
 
@@ -35,9 +35,9 @@ public class Fields extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		if (selector) {
-			LogMap newMap = new LogMap();
+			Row newMap = new Row();
 			for (String field : fields) {
 				Object data = m.get(field);
 				newMap.put(field, data);
@@ -47,7 +47,7 @@ public class Fields extends LogQueryCommand {
 			for (String field : fields)
 				m.remove(field);
 		}
-		write(m);
+		pushPipe(m);
 	}
 
 	@Override

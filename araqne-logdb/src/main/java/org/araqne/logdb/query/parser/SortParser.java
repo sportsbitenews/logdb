@@ -19,14 +19,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Sort;
 import org.araqne.logdb.query.command.Sort.SortField;
 
-public class SortParser implements LogQueryCommandParser {
+public class SortParser implements QueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -35,7 +35,7 @@ public class SortParser implements LogQueryCommandParser {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "sort".length(), Arrays.asList("limit"));
 		Map<String, String> options = (Map<String, String>) r.value;
 
@@ -46,9 +46,9 @@ public class SortParser implements LogQueryCommandParser {
 		try {
 			List<SortField> fields = SortField.parseSortFields(commandString, r);
 			return new Sort(count, fields.toArray(new SortField[0]));
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			if (e.getType().equals("need-string-token"))
-				throw new LogQueryParseException("need-column", r.next);
+				throw new QueryParseException("need-column", r.next);
 			throw e;
 		}
 	}

@@ -18,7 +18,7 @@ package org.araqne.logdb.query.parser;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Stats;
 
@@ -75,7 +75,7 @@ public class StatsParserTest {
 		try {
 			p.parse(null, "stats sum(rcvd) as rcvd, sum(sent) as sent by sip,");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("missing-clause", e.getType());
 			assertEquals(50, (int) e.getOffset());
 		}

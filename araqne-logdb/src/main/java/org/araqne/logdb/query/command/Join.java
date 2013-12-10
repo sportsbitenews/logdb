@@ -7,24 +7,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQuery;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogResultSet;
-import org.araqne.logdb.query.LogQueryImpl;
+import org.araqne.logdb.Query;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryResultSet;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.Sort.SortField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Join extends LogQueryCommand {
+public class Join extends QueryCommand {
 	public enum JoinType {
 		Inner, Left
 	}
 
 	private final Logger logger = LoggerFactory.getLogger(Join.class);
 	private final JoinType joinType;
-	private LogResultSet subQueryResultSet;
-	private volatile boolean subQueryEnd = false;
+	private QueryResultSet subQueryResultSet;
 
 	// for later sort-merge join
 	private Object[] sortJoinKeys1;
@@ -35,79 +35,59 @@ public class Join extends LogQueryCommand {
 	private JoinKeys joinKeys;
 
 	private int joinKeyCount;
-	private LogQuery subQuery;
 	private SortField[] sortFields;
-	private String subQueryString;
-	private List<LogQueryCommand> subQueryCommands;
 
-	private SubQueryRunner subQueryRunner = new SubQueryRunner();
-	private Object subQueryMonitor = new Object();
+	private Query subQuery;
 
-	public Join(JoinType joinType, SortField[] sortFields, String subQueryString, List<LogQueryCommand> subQueryCommands) {
+	// tasks
+	private SubQueryTask subQueryTask = new SubQueryTask();
+
+	public Join(JoinType joinType, SortField[] sortFields, Query subQuery) {
 		this.joinType = joinType;
 		this.joinKeyCount = sortFields.length;
 		this.joinKeys = new JoinKeys(new Object[joinKeyCount]);
 		this.sortJoinKeys1 = new Object[sortFields.length];
 		this.sortJoinKeys2 = new Object[sortFields.length];
-
 		this.sortFields = sortFields;
-		this.subQueryCommands = subQueryCommands;
-		this.subQueryString = subQueryString;
+		this.subQuery = subQuery;
 
-		Sort sort = new Sort(null, sortFields);
-		LogQueryCommand lastCmd = subQueryCommands.get(subQueryCommands.size() - 1);
-		lastCmd.setNextCommand(sort);
-		this.subQueryCommands.add(sort);
-	}
+		logger.debug("araqne logdb: join subquery created [{}:{}]", subQuery.getId(), subQuery.getQueryString());
 
-	@Override
-	public void setLogQuery(LogQuery logQuery) {
-		// sub query result command will be created here
-		this.subQuery = new LogQueryImpl(logQuery.getContext(), subQueryString, subQueryCommands);
-
-		for (LogQueryCommand cmd : subQueryCommands)
-			cmd.setLogQuery(subQuery);
-
-		super.setLogQuery(logQuery);
-	}
-
-	public JoinType getType() {
-		return joinType;
-	}
-
-	public SortField[] getSortFields() {
-		return sortFields;
-	}
-
-	public List<LogQueryCommand> getSubQuery() {
-		return subQueryCommands;
-	}
-
-	@Override
-	public void start() {
-		Thread t = new Thread(subQueryRunner);
-		t.start();
-	}
-
-	@Override
-	public void push(LogMap m) {
-		// wait until subquery end
-		synchronized (subQueryMonitor) {
-			while (!subQueryEnd) {
-				try {
-					subQueryMonitor.wait(1000);
-				} catch (InterruptedException e) {
-				}
+		for (QueryCommand cmd : subQuery.getCommands()) {
+			if (cmd.getMainTask() != null) {
+				subQueryTask.addDependency(cmd.getMainTask());
+				subQueryTask.addSubTask(cmd.getMainTask());
 			}
 		}
+	}
 
-		if (subQueryResultSet == null) {
-			eof(true);
-			return;
+	@Override
+	public void onStart() {
+		subQuery.preRun();
+	}
+
+	@Override
+	public void onClose(QueryStopReason reason) {
+		try {
+			subQuery.stop(reason);
+		} catch (Throwable t) {
+			logger.error("araqne logdb: cannot stop subquery [" + subQuery.getQueryString() + "]", t);
 		}
 
-		subQueryResultSet.reset();
+		try {
+			if (subQueryResultSet != null) {
+				subQueryResultSet.close();
+				subQueryResultSet = null;
+			}
+		} catch (Throwable t) {
+			logger.error("araqne logdb: cannot close result set of subquery [" + subQuery.getQueryString() + "]", t);
+		} finally {
+			subQuery.purge();
+		}
+	}
 
+	@Override
+	public void onPush(Row m) {
 		if (hashJoinMap != null) {
 			int i = 0;
 			for (SortField f : sortFields) {
@@ -120,7 +100,7 @@ public class Join extends LogQueryCommand {
 			List<Object> l = hashJoinMap.get(joinKeys);
 			if (l == null) {
 				if (joinType == JoinType.Left)
-					write(m);
+					pushPipe(m);
 				return;
 			}
 
@@ -129,11 +109,12 @@ public class Join extends LogQueryCommand {
 				Map<String, Object> sm = (Map<String, Object>) o;
 				Map<String, Object> joinMap = new HashMap<String, Object>(m.map());
 				joinMap.putAll(sm);
-				write(new LogMap(joinMap));
+				pushPipe(new Row(joinMap));
 			}
 			return;
 		}
 
+		subQueryResultSet.reset();
 		int i = 0;
 		for (SortField f : sortFields) {
 			Object joinValue = m.get(f.getName());
@@ -157,118 +138,91 @@ public class Join extends LogQueryCommand {
 			if (Arrays.equals(sortJoinKeys1, sortJoinKeys2)) {
 				Map<String, Object> joinMap = new HashMap<String, Object>(m.map());
 				joinMap.putAll(sm);
-				write(new LogMap(joinMap));
+				pushPipe(new Row(joinMap));
 				found = true;
 			}
 		}
 
 		if (joinType == JoinType.Left && !found)
-			write(m);
+			pushPipe(m);
 	}
 
 	@Override
-	public boolean isReducer() {
-		return false;
+	public QueryTask getMainTask() {
+		return subQueryTask;
 	}
 
-	@Override
-	public void eof(boolean cancelled) {
-		logger.debug("araqne logdb: transfer query [{}] join eof [{}] to subquery", logQuery.getId(), cancelled);
-
-		subQueryCommands.get(0).eof(cancelled);
-
-		if (subQueryResultSet != null) {
-			try {
-				logger.debug("araqne logdb: closing subquery result set [{}]", logQuery.getId());
-
-				subQueryResultSet.close();
-			} catch (Throwable t) {
-				logger.error("araqne logdb: subquery result set close failed, query " + logQuery.getId(), t);
-			}
-		}
-
-		if (subQuery != null) {
-			try {
-				logger.debug("araqne logdb: purging subquery result set [{}]", logQuery.getId());
-				subQuery.purge();
-			} catch (Throwable t) {
-				logger.error("araqne logdb: subquery result purge failed, query " + logQuery.getId(), t);
-			}
-		}
-
-		super.eof(cancelled);
+	public JoinType getType() {
+		return joinType;
 	}
 
-	private class SubQueryRunner implements Runnable {
-		private static final int HASH_JOIN_THRESHOLD = 50000;
+	public SortField[] getSortFields() {
+		return sortFields;
+	}
+
+	public Query getSubQuery() {
+		return subQuery;
+	}
+
+	// bulid hash table or sort
+	private class SubQueryTask extends QueryTask {
+		private static final int HASH_JOIN_THRESHOLD = 100000;
 
 		@Override
 		public void run() {
-			logger.debug("araqne logdb: subquery started, query [{}]", logQuery.getId());
+			logger.debug("araqne logdb: join subquery end, main query [{}] sub query [{}]", query.getId(), subQuery.getId());
 
-			boolean completed = false;
 			try {
-				subQuery.run();
-				completed = true;
+				subQuery.postRun();
 
-				try {
-					subQueryResultSet = subQuery.getResult();
+				QueryResultSet rs = subQuery.getResultSet();
 
-					logger.debug("araqne logdb: fetch subquery result of query [{}:{}]", logQuery.getId(),
-							logQuery.getQueryString());
+				logger.debug("araqne logdb: join fetch subquery result of query [{}:{}]", query.getId(), query.getQueryString());
 
-					if (subQueryResultSet.size() <= HASH_JOIN_THRESHOLD)
-						buildHashJoinTable();
+				if (rs.size() <= HASH_JOIN_THRESHOLD)
+					buildHashJoinTable(rs);
+				else
+					subQueryResultSet = rs;
 
-				} catch (IOException e) {
-					logger.error("araqne logdb: cannot get subquery result of query " + logQuery.getId(), e);
-				}
-
-			} catch (Throwable t) {
-				if (!completed)
-					subQueryCommands.get(0).eof(true);
-
-				logger.error("araqne logdb: subquery failed, query " + logQuery.getId(), t);
-			} finally {
-				subQueryEnd = true;
-
-				synchronized (subQueryMonitor) {
-					subQueryMonitor.notifyAll();
-				}
-
-				logger.debug("araqne logdb: subquery end, query [{}]", logQuery.getId());
+			} catch (IOException e) {
+				logger.error("araqne logdb: cannot get subquery result of query " + query.getId(), e);
 			}
+
 		}
 
-		private void buildHashJoinTable() {
-			hashJoinMap = new HashMap<JoinKeys, List<Object>>(50000);
+		private void buildHashJoinTable(QueryResultSet rs) {
+			try {
+				hashJoinMap = new HashMap<JoinKeys, List<Object>>(HASH_JOIN_THRESHOLD);
 
-			while (subQueryResultSet.hasNext()) {
-				Map<String, Object> sm = subQueryResultSet.next();
+				while (rs.hasNext()) {
+					Map<String, Object> sm = rs.next();
 
-				Object[] keys = new Object[joinKeyCount];
-				for (int i = 0; i < joinKeyCount; i++) {
-					Object joinValue = sm.get(sortFields[i].getName());
-					if (joinValue instanceof Integer || joinValue instanceof Short) {
-						joinValue = ((Number) joinValue).longValue();
+					Object[] keys = new Object[joinKeyCount];
+					for (int i = 0; i < joinKeyCount; i++) {
+						Object joinValue = sm.get(sortFields[i].getName());
+						if (joinValue instanceof Integer || joinValue instanceof Short) {
+							joinValue = ((Number) joinValue).longValue();
+						}
+						keys[i] = joinValue;
 					}
-					keys[i] = joinValue;
-				}
 
-				JoinKeys joinKeys = new JoinKeys(keys);
-				List<Object> l = hashJoinMap.get(joinKeys);
-				if (l == null) {
-					l = new ArrayList<Object>(2);
-					hashJoinMap.put(joinKeys, l);
-				}
+					JoinKeys joinKeys = new JoinKeys(keys);
+					List<Object> l = hashJoinMap.get(joinKeys);
+					if (l == null) {
+						l = new ArrayList<Object>(2);
+						hashJoinMap.put(joinKeys, l);
+					}
 
-				l.add(sm);
+					l.add(sm);
+				}
+			} finally {
+				rs.close();
 			}
 		}
 	}
 
-	private static class JoinKeys {
-		private Object[] keys;
+	public static class JoinKeys {
+		public Object[] keys;
 
 		public JoinKeys(Object[] keys) {
 			this.keys = keys;

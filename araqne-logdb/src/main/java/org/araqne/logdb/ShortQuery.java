@@ -28,8 +28,8 @@ public class ShortQuery {
 	private ShortQuery() {
 	}
 
-	public static List<Map<String, Object>> query(Session session, LogQueryService queryService, String query) throws IOException {
-		LogQuery q = null;
+	public static List<Map<String, Object>> query(Session session, QueryService queryService, String query) throws IOException {
+		Query q = null;
 
 		try {
 			q = queryService.createQuery(session, query);
@@ -40,7 +40,7 @@ public class ShortQuery {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {
 				}
-			} while (!q.isEnd());
+			} while (!q.isFinished());
 
 			return q.getResultAsList();
 		} finally {

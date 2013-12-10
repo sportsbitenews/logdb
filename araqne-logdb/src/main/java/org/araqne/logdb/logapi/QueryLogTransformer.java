@@ -22,27 +22,28 @@ import org.araqne.log.api.Log;
 import org.araqne.log.api.LogTransformer;
 import org.araqne.log.api.LogTransformerFactory;
 import org.araqne.log.api.SimpleLog;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.Row;
 
 /**
  * @since 1.7.8
  * @author xeraph
  * 
  */
-public class QueryLogTransformer extends LogQueryCommand implements LogTransformer {
+public class QueryLogTransformer extends QueryCommand implements LogTransformer {
 	private final LogTransformerFactory factory;
-	private LogQueryCommand first;
+	private QueryCommand first;
 	private Map<String, Object> last;
 
-	public QueryLogTransformer(LogTransformerFactory factory, List<LogQueryCommand> commands) {
+	public QueryLogTransformer(LogTransformerFactory factory, List<QueryCommand> commands) {
 		this.factory = factory;
 
 		first = commands.get(0);
 		commands.add(this);
 
 		for (int i = commands.size() - 2; i >= 0; i--)
-			commands.get(i).setNextCommand(commands.get(i + 1));
+			commands.get(i).setOutput(new QueryCommandPipe(commands.get(i + 1)));
 	}
 
 	@Override
@@ -52,14 +53,14 @@ public class QueryLogTransformer extends LogQueryCommand implements LogTransform
 
 	@Override
 	public Log transform(Log log) {
-		first.push(new LogMap(log.getParams()));
+		first.onPush(new Row(log.getParams()));
 		Map<String, Object> m = last;
 		last = null;
 		return new SimpleLog(log.getDate(), log.getLoggerName(), m);
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		last = m.map();
 	}
 }

@@ -30,9 +30,10 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.logdb.AccountService;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.Permission;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.Strings;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
@@ -42,7 +43,7 @@ import org.araqne.logstorage.TableWildcardMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Table extends LogQueryCommand {
+public class Table extends DriverQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Table.class);
 	private AccountService accountService;
 	private LogStorage storage;
@@ -51,9 +52,37 @@ public class Table extends LogQueryCommand {
 	private LogParserRegistry parserRegistry;
 
 	private TableParams params = new TableParams();
+	private volatile boolean stopped;
 
 	public Table(TableParams params) {
 		this.params = params;
+	}
+
+	@Override
+	public void run() {
+		try {
+			ResultSink sink = new ResultSink(Table.this, params.offset, params.limit);
+			boolean isSuppressedBugAlert = false;
+
+			for (String tableName : expandTableNames(params.tableNames)) {
+				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
+						tableName);
+				if (isSuppressedBugAlert)
+					builder.suppressBugAlert();
+
+				storage.search(tableName, params.from, params.to, builder, new LogTraverseCallbackImpl(sink));
+
+				isSuppressedBugAlert = isSuppressedBugAlert || builder.isBugAlertSuppressed();
+				if (sink.isEof())
+					break;
+			}
+		} catch (InterruptedException e) {
+			logger.trace("araqne logdb: query interrupted");
+		} catch (Exception e) {
+			logger.error("araqne logdb: table exception", e);
+		} catch (Error e) {
+			logger.error("araqne logdb: table error", e);
+		}
 	}
 
 	public List<String> getTableNames() {
@@ -128,17 +157,25 @@ public class Table extends LogQueryCommand {
 		return params.to;
 	}
 
+	@Override
+	public void onClose(QueryStopReason reason) {
+		if (logger.isDebugEnabled())
+			logger.debug("araqne logdb: stopping table scan, query [{}] reason [{}]", getQuery().getId(), reason);
+
+		stopped = true;
+	}
+
 	private class TableLogParserBuilder implements LogParserBuilder {
 		LogParserRegistry parserRegistry;
-		
+
 		String tableParserName = null;
 		String tableParserFactoryName = null;
-		
+
 		LogParserFactory tableParserFactory = null;
 		Map<String, String> parserProperty = null;
-		
+
 		boolean bugAlertSuppressFlag = false;
-		
+
 		public TableLogParserBuilder(LogParserRegistry parserRegistry, LogParserFactoryRegistry parserFactoryRegistry,
 				LogTableRegistry tableRegistry, String tableName) {
 			this.parserRegistry = parserRegistry;
@@ -160,7 +197,7 @@ public class Table extends LogQueryCommand {
 				}
 			}
 		}
-		
+
 		@Override
 		public LogParser build() {
 			LogParser parser = null;
@@ -173,7 +210,7 @@ public class Table extends LogQueryCommand {
 						logger.debug("logpresso index: parser profile not found [{}]", tableParserName);
 				}
 			}
-			
+
 			if (parser == null && tableParserFactory != null) {
 				parser = tableParserFactory.createParser(parserProperty);
 			}
@@ -188,37 +225,6 @@ public class Table extends LogQueryCommand {
 		@Override
 		public void suppressBugAlert() {
 			bugAlertSuppressFlag = true;
-		}
-	}
-
-	@Override
-	public void start() {
-		try {
-			status = Status.Running;
-			
-			ResultSink sink = new ResultSink(this, params.offset, params.limit);
-			boolean isSuppressedBugAlert = false;
-
-			for (String tableName : expandTableNames(params.tableNames)) {
-				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry, tableName);
-				if (isSuppressedBugAlert)
-					builder.suppressBugAlert();
-
-				storage.search(tableName, params.from, params.to,  
-						builder, new LogTraverseCallbackImpl(this, sink));
-				
-				isSuppressedBugAlert = isSuppressedBugAlert || builder.isBugAlertSuppressed();
-				if (sink.isEof())
-					break;
-			}
-		} catch (InterruptedException e) {
-			logger.trace("araqne logdb: query interrupted");
-		} catch (Exception e) {
-			logger.error("araqne logdb: table exception", e);
-		} catch (Error e) {
-			logger.error("araqne logdb: table error", e);
-		} finally {
-			eof(false);
 		}
 	}
 
@@ -245,11 +251,11 @@ public class Table extends LogQueryCommand {
 	}
 
 	private boolean isAccessible(String name) {
-		return accountService.checkPermission(context.getSession(), name, Permission.READ);
+		return accountService.checkPermission(query.getContext().getSession(), name, Permission.READ);
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -257,7 +263,7 @@ public class Table extends LogQueryCommand {
 	public boolean isReducer() {
 		return false;
 	}
-	
+
 	private static class ResultSink extends LogTraverseCallback.Sink {
 		private final Table self;
 
@@ -269,33 +275,30 @@ public class Table extends LogQueryCommand {
 		@Override
 		protected void processLogs(List<Log> logs) {
 			for (Log log : logs) {
-				self.write(new LogMap(log.getData()));
+				self.pushPipe(new Row(log.getData()));
 			}
 		}
-		
+
 	}
-	
-	private static class LogTraverseCallbackImpl extends LogTraverseCallback {
-		private final Table self;
-		LogTraverseCallbackImpl(Table self, Sink sink) {
+
+	private class LogTraverseCallbackImpl extends LogTraverseCallback {
+		LogTraverseCallbackImpl(Sink sink) {
 			super(sink);
-			this.self = self;
 		}
-		
+
 		@Override
 		public void interrupt() {
-			self.eof(true);
 		}
 
 		@Override
 		public boolean isInterrupted() {
-			return self.status.equals(Status.End);
+			return stopped;
 		}
 
 		@Override
 		protected List<Log> filter(List<Log> logs) {
 			return logs;
-		}		
+		}
 	}
 
 	public static class TableParams {
@@ -367,7 +370,8 @@ public class Table extends LogQueryCommand {
 		if (params.getTo() != null)
 			s += " to=" + df.format(params.getTo());
 
-		s += " offset=" + params.getOffset();
+		if (params.getOffset() > 0)
+			s += " offset=" + params.getOffset();
 
 		if (params.getLimit() > 0)
 			s += " limit=" + params.getLimit();

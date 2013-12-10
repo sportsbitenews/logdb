@@ -12,7 +12,7 @@ public class LocalFileOutputStream extends StorageOutputStream {
 	
 	public LocalFileOutputStream(LocalFilePath path, boolean append) throws IOException {
 		this.path = path;
-		this.target = new RandomAccessFile(path.getFile(), "w");
+		this.target = new RandomAccessFile(path.getFile(), "rw");
 		if (append) {
 			target.seek(target.length());
 		}

@@ -18,7 +18,7 @@ package org.araqne.logdb.query.parser;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Rename;
 
 public class RenameParserTest {
@@ -38,7 +38,7 @@ public class RenameParserTest {
 		try {
 			p.parse(null, "rename sent");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("as-token-not-found", e.getType());
 			assertEquals(11, (int) e.getOffset());
 		}
@@ -50,7 +50,7 @@ public class RenameParserTest {
 		try {
 			p.parse(null, "rename sent as ");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("to-field-not-found", e.getType());
 			assertEquals(15, (int) e.getOffset());
 		}

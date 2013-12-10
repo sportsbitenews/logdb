@@ -18,7 +18,7 @@ package org.araqne.logdb.query.parser;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Fields;
 
 public class FieldsParserTest {
@@ -65,7 +65,7 @@ public class FieldsParserTest {
 			FieldsParser p = new FieldsParser();
 			p.parse(null, "fields - ");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("no-field-args", e.getType());
 		}
 	}

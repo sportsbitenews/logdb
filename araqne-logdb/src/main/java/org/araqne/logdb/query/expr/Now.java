@@ -18,7 +18,7 @@ package org.araqne.logdb.query.expr;
 import java.util.Date;
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 /**
  * @since 1.7.2
@@ -31,7 +31,7 @@ public class Now implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		return new Date();
 	}
 

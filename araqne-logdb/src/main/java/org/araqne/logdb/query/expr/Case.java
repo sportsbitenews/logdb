@@ -17,7 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
+import org.araqne.logdb.Row;
 
 public class Case implements Expression {
 	private List<Expression> exprs;
@@ -32,7 +32,7 @@ public class Case implements Expression {
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		for (int i = 0; i < exprs.size();) {
 			Expression cond = exprs.get(i++);
 			Expression value = exprs.get(i++);

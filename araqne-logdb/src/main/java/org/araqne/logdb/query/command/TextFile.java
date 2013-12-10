@@ -17,22 +17,20 @@ package org.araqne.logdb.query.command;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TextFile extends LogQueryCommand {
+public class TextFile extends DriverQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(TextFile.class.getName());
 	private String filePath;
 	private LogParser parser;
@@ -47,7 +45,7 @@ public class TextFile extends LogQueryCommand {
 	}
 
 	@Override
-	public void start() {
+	public void run() {
 		status = Status.Running;
 
 		FileInputStream is = null;
@@ -77,7 +75,7 @@ public class TextFile extends LogQueryCommand {
 				}
 
 				if (i >= offset) {
-					write(new LogMap(parsed != null ? parsed : m));
+					pushPipe(new Row(parsed != null ? parsed : m));
 					count++;
 				}
 				i++;
@@ -85,29 +83,9 @@ public class TextFile extends LogQueryCommand {
 		} catch (Throwable t) {
 			logger.error("araqne logdb: file error", t);
 		} finally {
-			ensureClose(is);
-			ensureClose(br);
+			IoHelper.close(br);
+			IoHelper.close(is);
 		}
-
-		eof(false);
-	}
-
-	private void ensureClose(Closeable c) {
-		try {
-			if (c != null)
-				c.close();
-		} catch (IOException e) {
-		}
-	}
-
-	@Override
-	public void push(LogMap m) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public boolean isReducer() {
-		return false;
 	}
 
 	@Override

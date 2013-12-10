@@ -26,8 +26,8 @@ import org.junit.Test;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.logdb.AccountService;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.query.command.Table;
 import org.araqne.logstorage.LogStorage;
@@ -72,7 +72,7 @@ public class TableParserTest {
 		try {
 			parse(query);
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("negative-offset", e.getType());
 		}
 
@@ -85,7 +85,7 @@ public class TableParserTest {
 		try {
 			parse(query);
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("negative-limit", e.getType());
 		}
 	}
@@ -162,7 +162,7 @@ public class TableParserTest {
 		when(mockAccount.checkPermission(null, "xtm", Permission.READ)).thenReturn(true);
 
 		TableParser parser = new TableParser(mockAccount, mockStorage, mockTableRegistry, mockParserFactoryRegistry, mockParserRegistry);
-		Table table = (Table) parser.parse(new LogQueryContext(null), query);
+		Table table = (Table) parser.parse(new QueryContext(null), query);
 		return table;
 	}
 }

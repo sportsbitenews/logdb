@@ -23,6 +23,16 @@ import java.util.List;
 import org.araqne.logstorage.Log;
 
 public abstract class LogFileWriter {
+	/**
+	 * @since 2.5.0
+	 */
+	public abstract boolean isLowDisk();
+
+	/**
+	 * @since 2.5.0
+	 */
+	public abstract void purge();
+
 	public abstract long getLastKey();
 
 	public abstract Date getLastDate();
@@ -36,7 +46,7 @@ public abstract class LogFileWriter {
 	public abstract void write(Collection<Log> data) throws IOException;
 
 	public abstract List<Log> getBuffer();
-	
+
 	public boolean flush() throws IOException {
 		return flush(false);
 	}

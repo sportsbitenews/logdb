@@ -30,8 +30,8 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logdb.AccountService;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryContext;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
@@ -76,12 +76,12 @@ public class LogCountMetadataProvider implements MetadataProvider {
 	}
 
 	@Override
-	public void verify(LogQueryContext context, String queryString) {
+	public void verify(QueryContext context, String queryString) {
 		MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, queryString);
 	}
 
 	@Override
-	public void query(LogQueryContext context, String queryString, MetadataCallback callback) {
+	public void query(QueryContext context, String queryString, MetadataCallback callback) {
 		TableScanOption opt = MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, queryString);
 		List<LogWriterStatus> memoryBuffers = new ArrayList<LogWriterStatus>();
 		if (!opt.isDiskOnly())
@@ -150,6 +150,6 @@ public class LogCountMetadataProvider implements MetadataProvider {
 		m.put("_time", day);
 		m.put("table", tableName);
 		m.put("count", count);
-		callback.onLog(new LogMap(m));
+		callback.onPush(new Row(m));
 	}
 }

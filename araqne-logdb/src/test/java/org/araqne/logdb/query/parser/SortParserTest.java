@@ -16,7 +16,7 @@
 package org.araqne.logdb.query.parser;
 
 import org.junit.Test;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Sort;
 
 import static org.junit.Assert.*;
@@ -105,7 +105,7 @@ public class SortParserTest {
 		try {
 			new SortParser().parse(null, command);
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("need-column", e.getType());
 			assertEquals(13, (int) e.getOffset());
 		}
@@ -118,7 +118,7 @@ public class SortParserTest {
 		try {
 			new SortParser().parse(null, command);
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("need-column", e.getType());
 			assertEquals(5, (int) e.getOffset());
 		}

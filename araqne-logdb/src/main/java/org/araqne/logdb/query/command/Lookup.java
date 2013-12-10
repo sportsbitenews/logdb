@@ -15,12 +15,12 @@
  */
 package org.araqne.logdb.query.command;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.LookupHandler;
 import org.araqne.logdb.LookupHandlerRegistry;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 
-public class Lookup extends LogQueryCommand {
+public class Lookup extends QueryCommand {
 	private LookupHandlerRegistry registry;
 	private String handlerName;
 	private String lookupInputField;
@@ -65,12 +65,12 @@ public class Lookup extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		Object value = m.get(sourceField);
 		LookupHandler handler = registry.getLookupHandler(handlerName);
 		if (handler != null)
 			m.put(targetField, handler.lookup(lookupInputField, lookupOutputField, value));
-		write(m);
+		pushPipe(m);
 	}
 
 	@Override

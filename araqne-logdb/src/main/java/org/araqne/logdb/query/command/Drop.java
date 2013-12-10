@@ -15,12 +15,12 @@
  */
 package org.araqne.logdb.query.command;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 
-public class Drop extends LogQueryCommand {
+public class Drop extends QueryCommand {
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 	}
 
 	@Override

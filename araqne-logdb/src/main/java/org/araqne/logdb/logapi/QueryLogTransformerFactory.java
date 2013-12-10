@@ -28,9 +28,9 @@ import org.araqne.log.api.AbstractLogTransformerFactory;
 import org.araqne.log.api.LogTransformer;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.StringConfigType;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryParserService;
-import org.araqne.logdb.LogQueryService;
+import org.araqne.logdb.QueryService;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryParserService;
 
 /**
  * @since 1.7.8
@@ -42,10 +42,10 @@ import org.araqne.logdb.LogQueryService;
 public class QueryLogTransformerFactory extends AbstractLogTransformerFactory {
 	// force to wait dynamic query parser instance loading
 	@Requires
-	private LogQueryService queryService;
+	private QueryService queryService;
 
 	@Requires
-	private LogQueryParserService queryParser;
+	private QueryParserService queryParser;
 
 	@Override
 	public String getName() {
@@ -96,7 +96,7 @@ public class QueryLogTransformerFactory extends AbstractLogTransformerFactory {
 	public LogTransformer newTransformer(Map<String, String> config) {
 		String queryString = config.get("querystring");
 
-		List<LogQueryCommand> commands = queryParser.parseCommands(null, queryString);
+		List<QueryCommand> commands = queryParser.parseCommands(null, queryString);
 		return new QueryLogTransformer(this, commands);
 	}
 

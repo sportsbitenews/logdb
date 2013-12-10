@@ -15,15 +15,17 @@
  */
 package org.araqne.logdb.query.parser;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.util.HashMap;
 import java.util.Map;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.ParseKv;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class ParseKvParserTest {
 	@Test
@@ -31,7 +33,7 @@ public class ParseKvParserTest {
 		ParseKvParser parser = new ParseKvParser();
 		ParseKv kv = (ParseKv) parser.parse(null, "parsekv");
 		DummyOutput out = new DummyOutput();
-		kv.setNextCommand(out);
+		kv.setOutput(new QueryCommandPipe(out));
 
 		assertEquals("line", kv.getField());
 		assertFalse(kv.isOverlay());
@@ -43,8 +45,8 @@ public class ParseKvParserTest {
 		String line = "a=1 b=2 c=3";
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("line", line);
-		kv.push(new LogMap(m));
-		LogMap o = out.output;
+		kv.onPush(new Row(m));
+		Row o = out.output;
 
 		assertEquals(3, o.map().size());
 		assertEquals("1", o.get("a"));
@@ -52,11 +54,11 @@ public class ParseKvParserTest {
 		assertEquals("3", o.get("c"));
 	}
 
-	private class DummyOutput extends LogQueryCommand {
-		private LogMap output;
+	private class DummyOutput extends QueryCommand {
+		private Row output;
 
 		@Override
-		public void push(LogMap m) {
+		public void onPush(Row m) {
 			output = m;
 		}
 	}

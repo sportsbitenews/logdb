@@ -3,7 +3,7 @@ package org.araqne.logdb.query.parser;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Eval;
 
 public class EvalParserTest {
@@ -21,7 +21,7 @@ public class EvalParserTest {
 		try {
 			p.parse(null, "eval ");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("assign-token-not-found", e.getType());
 		}
 	}
@@ -32,7 +32,7 @@ public class EvalParserTest {
 		try {
 			p.parse(null, "eval =");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("field-name-not-found", e.getType());
 		}
 	}
@@ -43,7 +43,7 @@ public class EvalParserTest {
 		try {
 			p.parse(null, "eval n=");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("expression-not-found", e.getType());
 		}
 	}

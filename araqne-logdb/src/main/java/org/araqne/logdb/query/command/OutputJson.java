@@ -18,16 +18,16 @@ package org.araqne.logdb.query.command;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.Strings;
 import org.json.JSONConverter;
 import org.slf4j.Logger;
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * @author darkluster
  * 
  */
-public class OutputJson extends LogQueryCommand {
+public class OutputJson extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(OutputJson.class.getName());
 	private FileOutputStream fos;
 	private OutputStreamWriter osw;
@@ -66,7 +66,7 @@ public class OutputJson extends LogQueryCommand {
 			this.hasFields = !fields.isEmpty();
 		} catch (Throwable t) {
 			close();
-			throw new LogQueryParseException("io-error", -1);
+			throw new QueryParseException("io-error", -1);
 		}
 	}
 
@@ -79,7 +79,7 @@ public class OutputJson extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		try {
 			HashMap<String, Object> json = new HashMap<String, Object>();
 
@@ -93,9 +93,10 @@ public class OutputJson extends LogQueryCommand {
 		} catch (Throwable t) {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot write log to json file", t);
-			eof(true);
+
+			getQuery().stop(QueryStopReason.CommandFailure);
 		}
-		write(m);
+		pushPipe(m);
 	}
 
 	@Override
@@ -104,32 +105,14 @@ public class OutputJson extends LogQueryCommand {
 	}
 
 	@Override
-	public void eof(boolean cancelled) {
-		this.status = Status.Finalizing;
-
+	public void onClose(QueryStopReason reason) {
 		close();
-
-		super.eof(cancelled);
 	}
 
 	private void close() {
-		try {
-			if (this.osw != null)
-				osw.close();
-		} catch (IOException e) {
-		}
-
-		try {
-			if (bos != null)
-				bos.close();
-		} catch (IOException e) {
-		}
-
-		try {
-			if (fos != null)
-				fos.close();
-		} catch (IOException e) {
-		}
+		IoHelper.close(osw);
+		IoHelper.close(bos);
+		IoHelper.close(fos);
 	}
 
 	@Override

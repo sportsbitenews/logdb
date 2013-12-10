@@ -17,8 +17,8 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 
 public class Left implements Expression {
 	private Expression valueExpr;
@@ -28,11 +28,11 @@ public class Left implements Expression {
 		this.valueExpr = exprs.get(0);
 		this.length = Integer.parseInt(exprs.get(1).eval(null).toString());
 		if (length < 0)
-			throw new LogQueryParseException("left-func-negative-length", -1);
+			throw new QueryParseException("left-func-negative-length", -1);
 	}
 
 	@Override
-	public Object eval(LogMap map) {
+	public Object eval(Row map) {
 		Object value = valueExpr.eval(map);
 		if (value == null)
 			return null;

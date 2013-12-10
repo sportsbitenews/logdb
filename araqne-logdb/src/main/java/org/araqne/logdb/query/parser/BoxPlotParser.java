@@ -18,14 +18,14 @@ package org.araqne.logdb.query.parser;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.BoxPlot;
 import org.araqne.logdb.query.expr.Expression;
 
-public class BoxPlotParser implements LogQueryCommandParser {
+public class BoxPlotParser implements QueryCommandParser {
 	private final String COMMAND = "boxplot";
 	private static final String BY = " by ";
 
@@ -35,7 +35,7 @@ public class BoxPlotParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		String exprToken = commandString.substring(COMMAND.length());
 		List<String> clauses = new ArrayList<String>();
 
@@ -46,7 +46,7 @@ public class BoxPlotParser implements LogQueryCommandParser {
 			String clausePart = commandString.substring(byPos + BY.length());
 
 			if (clausePart.trim().endsWith(","))
-				throw new LogQueryParseException("missing-clause", commandString.length());
+				throw new QueryParseException("missing-clause", commandString.length());
 
 			// trim
 			for (String clause : clausePart.split(","))
@@ -54,7 +54,7 @@ public class BoxPlotParser implements LogQueryCommandParser {
 		}
 
 		if (exprToken.trim().isEmpty())
-			throw new LogQueryParseException("missing-expr", -1);
+			throw new QueryParseException("missing-expr", -1);
 
 		Expression expr = ExpressionParser.parse(context, exprToken);
 		return new BoxPlot(expr, clauses);

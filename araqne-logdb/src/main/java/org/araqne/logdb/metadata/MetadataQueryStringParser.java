@@ -11,15 +11,15 @@ import java.util.Map;
 import java.util.Set;
 
 import org.araqne.logdb.AccountService;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Privilege;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.araqne.logstorage.LogTableRegistry;
 
 public class MetadataQueryStringParser {
 
-	public static TableScanOption getTableNames(LogQueryContext context, LogTableRegistry tableRegistry,
+	public static TableScanOption getTableNames(QueryContext context, LogTableRegistry tableRegistry,
 			AccountService accountService, String token) {
 		token = token.trim();
 
@@ -45,18 +45,18 @@ public class MetadataQueryStringParser {
 		if (fromToken != null) {
 			from = df.parse(fromToken, new ParsePosition(0));
 			if (from == null)
-				throw new LogQueryParseException("invalid-from", -1);
+				throw new QueryParseException("invalid-from", -1);
 		}
 
 		String toToken = (String) optionTokens.get("to");
 		if (toToken != null) {
 			to = df.parse(toToken, new ParsePosition(0));
 			if (to == null)
-				throw new LogQueryParseException("invalid-to", -1);
+				throw new QueryParseException("invalid-to", -1);
 		}
 
 		if (to != null && from != null && to.before(from))
-			throw new LogQueryParseException("invalid-date-range", -1);
+			throw new QueryParseException("invalid-date-range", -1);
 
 		int next = (Integer) optionTokens.get("next");
 		token = token.substring(next).trim();
@@ -119,7 +119,7 @@ public class MetadataQueryStringParser {
 
 			String key = pairs.substring(0, p);
 			if (!keys.contains(key))
-				throw new LogQueryParseException("invalid-logdb-option", -1);
+				throw new QueryParseException("invalid-logdb-option", -1);
 
 			String value = pairs.substring(p + 1);
 			m.put(key, value);

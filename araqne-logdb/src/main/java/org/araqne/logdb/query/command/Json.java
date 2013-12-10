@@ -17,44 +17,35 @@ package org.araqne.logdb.query.command;
 
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 
-public class Json extends LogQueryCommand {
-
-	private List<LogMap> logs;
+public class Json extends DriverQueryCommand {
+	private List<Row> logs;
 
 	// original json string for toString convenience
 	private String json;
 
-	public Json(List<LogMap> logs, String json) {
+	public Json(List<Row> logs, String json) {
 		this.logs = logs;
 		this.json = json;
 	}
 
-	public List<LogMap> getLogs() {
+	@Override
+	public void run() {
+		RowBatch rowBatch = new RowBatch();
+		rowBatch.size = logs.size();
+		rowBatch.rows = logs.toArray(new Row[0]);
+		pushPipe(rowBatch);
+	}
+
+	public List<Row> getLogs() {
 		return logs;
 	}
 
 	public String getJson() {
 		return json;
-	}
-
-	@Override
-	public void push(LogMap m) {
-	}
-
-	@Override
-	public void start() {
-		status = Status.Running;
-		for (LogMap log : logs)
-			write(log);
-		eof(false);
-	}
-
-	@Override
-	public boolean isReducer() {
-		return false;
 	}
 
 	@Override

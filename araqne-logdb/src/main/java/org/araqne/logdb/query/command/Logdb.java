@@ -15,21 +15,22 @@
  */
 package org.araqne.logdb.query.command;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryContext;
+import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataService;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 
-public class Logdb extends LogQueryCommand {
-	private LogQueryContext context;
+public class Logdb extends DriverQueryCommand {
+	private QueryContext context;
 	private String objectType;
 	private String args;
 	private MetadataService metadataService;
 	private MetadataCallbackWriter metadataWriter;
 	private boolean completed;
 
-	public Logdb(LogQueryContext context, String objectType, String args, MetadataService metadataService) {
+	public Logdb(QueryContext context, String objectType, String args, MetadataService metadataService) {
 		this.context = context;
 		this.objectType = objectType;
 		this.args = args;
@@ -38,30 +39,13 @@ public class Logdb extends LogQueryCommand {
 	}
 
 	@Override
-	public void start() {
-		status = Status.Running;
-
-		try {
-			metadataService.query(context, objectType, args, metadataWriter);
-			completed = true;
-		} finally {
-			eof(false);
-		}
+	public void run() {
+		metadataService.query(context, objectType, args, metadataWriter);
+		completed = true;
 	}
 
 	@Override
-	public void push(LogMap m) {
-	}
-
-	@Override
-	public boolean isReducer() {
-		return false;
-	}
-
-	@Override
-	public void eof(boolean canceled) {
-		super.eof(canceled);
-
+	public void onClose(QueryStopReason reason) {
 		if (!completed)
 			metadataWriter.cancelled = true;
 	}
@@ -75,8 +59,8 @@ public class Logdb extends LogQueryCommand {
 		}
 
 		@Override
-		public void onLog(LogMap log) {
-			write(log);
+		public void onPush(Row log) {
+			pushPipe(log);
 		}
 	}
 

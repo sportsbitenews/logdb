@@ -21,11 +21,11 @@ import java.util.Map;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 
-public class ZipFileParser implements LogQueryCommandParser {
+public class ZipFileParser implements QueryCommandParser {
 	private LogParserFactoryRegistry parserFactoryRegistry;
 
 	public ZipFileParser(LogParserFactoryRegistry parserFactoryRegistry) {
@@ -38,7 +38,7 @@ public class ZipFileParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		try {
 			QueryTokens tokens = QueryTokenizer.tokenize(commandString);
 			Map<String, String> options = tokens.options();

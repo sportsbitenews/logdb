@@ -15,10 +15,10 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.LogQueryCommand;
-import org.araqne.logdb.LogQueryCommandParser;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandParser;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Limit;
 
 /**
@@ -26,7 +26,7 @@ import org.araqne.logdb.query.command.Limit;
  * @author xeraph
  * 
  */
-public class LimitParser implements LogQueryCommandParser {
+public class LimitParser implements QueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -34,11 +34,11 @@ public class LimitParser implements LogQueryCommandParser {
 	}
 
 	@Override
-	public LogQueryCommand parse(LogQueryContext context, String commandString) {
+	public QueryCommand parse(QueryContext context, String commandString) {
 		commandString = commandString.substring(getCommandName().length()).trim();
 		String[] tokens = commandString.split(" ");
 		if (tokens.length <= 0 || tokens.length > 2 || tokens[0].isEmpty())
-			throw new LogQueryParseException("invalid-limit-args", -1);
+			throw new QueryParseException("invalid-limit-args", -1);
 
 		try {
 			if (tokens.length == 1) {
@@ -50,7 +50,7 @@ public class LimitParser implements LogQueryCommandParser {
 				return new Limit(offset, limit);
 			}
 		} catch (NumberFormatException e) {
-			throw new LogQueryParseException("invalid-limit-arg-type", -1);
+			throw new QueryParseException("invalid-limit-arg-type", -1);
 		}
 	}
 }

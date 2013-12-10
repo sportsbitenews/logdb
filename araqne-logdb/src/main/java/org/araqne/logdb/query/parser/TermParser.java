@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Term;
 import org.araqne.logdb.query.command.Term.Operator;
 
@@ -56,7 +56,7 @@ public class TermParser {
 
 		Operator operator = Operator.find(op);
 		if (operator == null)
-			throw new LogQueryParseException("invalid-operator", checkpoint);
+			throw new QueryParseException("invalid-operator", checkpoint);
 
 		term.setOperator(operator);
 

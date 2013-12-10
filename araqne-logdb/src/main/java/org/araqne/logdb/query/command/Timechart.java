@@ -23,9 +23,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
 import org.araqne.logdb.query.aggregator.PerTime;
@@ -35,7 +36,7 @@ import org.araqne.logdb.sort.ParallelMergeSorter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Timechart extends LogQueryCommand {
+public class Timechart extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Timechart.class);
 
 	public static class TimeSpan {
@@ -168,13 +169,13 @@ public class Timechart extends LogQueryCommand {
 	}
 
 	@Override
-	public void init() {
-		super.init();
+	public void onStart() {
+		super.onStart();
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
 		this.buffer = new HashMap<TimechartKey, AggregationFunction[]>();
 		this.spanMillis = getSpanMillis();
 
-		logger.debug("araqne logdb: span millis [{}] for query [{}]", spanMillis, logQuery);
+		logger.debug("araqne logdb: span millis [{}] for query [{}]", spanMillis, query);
 	}
 
 	private long getSpanMillis() {
@@ -186,7 +187,7 @@ public class Timechart extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		Date time = (Date) m.get("_time");
 		if (time == null)
 			return;
@@ -227,7 +228,7 @@ public class Timechart extends LogQueryCommand {
 			if (buffer.size() > 50000)
 				flush();
 		} catch (IOException e) {
-			throw new IllegalStateException("timechart sort failed, query " + logQuery, e);
+			throw new IllegalStateException("timechart sort failed, query " + query, e);
 		}
 	}
 
@@ -250,8 +251,7 @@ public class Timechart extends LogQueryCommand {
 		buffer.clear();
 	}
 
-	@Override
-	public void eof(boolean canceled) {
+	public void onClose(QueryStopReason reason) {
 		this.status = Status.Finalizing;
 
 		CloseableIterator it = null;
@@ -267,22 +267,14 @@ public class Timechart extends LogQueryCommand {
 
 			mergeAndWrite(it);
 		} catch (IOException e) {
-			throw new IllegalStateException("timechart sort failed, query " + logQuery, e);
+			throw new IllegalStateException("timechart sort failed, query " + query, e);
 		} finally {
-			if (it != null) {
-				try {
-					// close and delete final sorted run file
-					it.close();
-				} catch (IOException e) {
-				}
-			}
-			super.eof(canceled);
+			// close and delete final sorted run file
+			IoHelper.close(it);
 		}
 
 		// support sorter cache GC when query processing is ended
 		sorter = null;
-
-		super.eof(canceled);
 	}
 
 	private void mergeAndWrite(CloseableIterator it) {
@@ -326,7 +318,7 @@ public class Timechart extends LogQueryCommand {
 
 				// write to next pipeline
 				output.put("_time", lastTime);
-				write(new LogMap(output));
+				pushPipe(new Row(output));
 				output = new HashMap<String, Object>();
 
 				// change merge set
@@ -355,7 +347,7 @@ public class Timechart extends LogQueryCommand {
 		if (lastTime != null) {
 			output.put("_time", lastTime);
 			setOutputAndReset(output, fs, lastKeyFieldValue);
-			write(new LogMap(output));
+			pushPipe(new Row(output));
 		}
 	}
 

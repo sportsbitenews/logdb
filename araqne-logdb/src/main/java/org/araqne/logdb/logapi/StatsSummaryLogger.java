@@ -22,11 +22,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
-import org.araqne.log.api.*;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryContext;
+import org.araqne.log.api.AbstractLogger;
+import org.araqne.log.api.Log;
+import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserRegistry;
+import org.araqne.log.api.LogPipe;
+import org.araqne.log.api.Logger;
+import org.araqne.log.api.LoggerFactory;
+import org.araqne.log.api.LoggerRegistry;
+import org.araqne.log.api.LoggerRegistryEventListener;
+import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.SimpleLog;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
@@ -120,11 +129,14 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 		SyntaxParseResult pr = new StatsParser().parseSyntax(null, queryString);
 
 		// generate aggr fields
-		LogQueryContext context = new LogQueryContext(new EmptySession());
+		QueryContext context = new QueryContext(new EmptySession());
 		clauses = pr.clauses;
 		fields = new ArrayList<AggregationField>();
 		for (String aggTerm : pr.aggTerms) {
-			AggregationField field = AggregationParser.parse(context, aggTerm/* , funcTable */);
+			AggregationField field = AggregationParser.parse(context, aggTerm/*
+																			 * ,
+																			 * funcTable
+																			 */);
 			fields.add(field);
 		}
 
@@ -152,7 +164,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 			logger.addLogPipe(this);
 		} else
 			slog.debug("araqne log api: source logger [{}] not found", loggerName);
-		
+
 		try {
 			if (parserName != null)
 				parser = parserRegistry.newParser(parserName);
@@ -203,14 +215,14 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 		ArrayList<Log> logs = new ArrayList<Log>(10000);
 		while (true) {
 			logList.drainTo(logs, 10000);
-			
-			for (Log log: logs) {
-				processLog(log);	
+
+			for (Log log : logs) {
+				processLog(log);
 			}
-			
+
 			if (logs.size() != 10000)
 				break;
-			
+
 			logs.clear();
 		}
 	}
@@ -331,7 +343,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 		// XXX: replace LogMap to more proper type
 		AggregationFunction[] fs = buffer.get(key);
 		for (AggregationFunction f : fs) {
-			f.apply(new LogMap(parsed));
+			f.apply(new Row(parsed));
 		}
 	}
 

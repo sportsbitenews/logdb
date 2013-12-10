@@ -22,13 +22,14 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.List;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.Strings;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
-public class OutputCsv extends LogQueryCommand {
+public class OutputCsv extends QueryCommand {
 	private Charset utf8;
 	private List<String> fields;
 
@@ -65,7 +66,7 @@ public class OutputCsv extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		int i = 0;
 		for (String field : fields) {
 			Object o = m.get(field);
@@ -74,7 +75,7 @@ public class OutputCsv extends LogQueryCommand {
 		}
 
 		writer.writeNext(csvLine);
-		write(m);
+		pushPipe(m);
 	}
 
 	@Override
@@ -83,19 +84,14 @@ public class OutputCsv extends LogQueryCommand {
 	}
 
 	@Override
-	public void eof(boolean canceled) {
-
+	public void onClose(QueryStopReason reason) {
 		this.status = Status.Finalizing;
 		try {
 			writer.flush();
 		} catch (IOException e1) {
 		}
 
-		try {
-			os.close();
-		} catch (IOException e) {
-		}
-		super.eof(canceled);
+		IoHelper.close(os);
 	}
 
 	@Override

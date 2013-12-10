@@ -17,7 +17,6 @@ package org.araqne.logdb.query.command;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,12 +26,12 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 
 import org.araqne.log.api.LogParser;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZipFile extends LogQueryCommand {
+public class ZipFile extends DriverQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(TextFile.class.getName());
 	private String filePath;
 	private String entryPath;
@@ -49,7 +48,7 @@ public class ZipFile extends LogQueryCommand {
 	}
 
 	@Override
-	public void start() {
+	public void run() {
 		status = Status.Running;
 
 		java.util.zip.ZipFile zipFile = null;
@@ -86,7 +85,7 @@ public class ZipFile extends LogQueryCommand {
 				}
 
 				if (i >= offset) {
-					write(new LogMap(parsed != null ? parsed : m));
+					pushPipe(new Row(parsed != null ? parsed : m));
 					count++;
 				}
 				i++;
@@ -94,35 +93,14 @@ public class ZipFile extends LogQueryCommand {
 		} catch (Throwable t) {
 			logger.error("araqne logdb: zipfile error", t);
 		} finally {
-			ensureClose(is);
-			ensureClose(br);
+			IoHelper.close(br);
+			IoHelper.close(is);
 			try {
 				if (zipFile != null)
 					zipFile.close();
 			} catch (IOException e) {
 			}
 		}
-
-		eof(false);
-	}
-
-	private void ensureClose(Closeable c) {
-		if (c != null) {
-			try {
-				c.close();
-			} catch (IOException e) {
-			}
-		}
-	}
-
-	@Override
-	public void push(LogMap m) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public boolean isReducer() {
-		return false;
 	}
 
 	@Override

@@ -24,8 +24,8 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logdb.AccountService;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryContext;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
@@ -61,11 +61,11 @@ public class TableMetadataProvider implements MetadataProvider {
 	}
 
 	@Override
-	public void verify(LogQueryContext context, String queryString) {
+	public void verify(QueryContext context, String queryString) {
 	}
 
 	@Override
-	public void query(LogQueryContext context, String queryString, MetadataCallback callback) {
+	public void query(QueryContext context, String queryString, MetadataCallback callback) {
 		if (context.getSession().isAdmin()) {
 			for (String tableName : tableRegistry.getTableNames()) {
 				writeTableInfo(tableName, callback);
@@ -83,7 +83,7 @@ public class TableMetadataProvider implements MetadataProvider {
 	private void writeTableInfo(String tableName, MetadataCallback callback) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("table", tableName);
-		callback.onLog(new LogMap(m));
+		callback.onPush(new Row(m));
 	}
 
 }

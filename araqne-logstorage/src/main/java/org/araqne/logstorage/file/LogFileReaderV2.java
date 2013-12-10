@@ -236,8 +236,8 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback, boolean doParallel)
-			throws IOException, InterruptedException {
+	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback,
+			boolean doParallel) throws IOException, InterruptedException {
 		for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
 			IndexBlockHeader index = indexBlockHeaders.get(i);
 
@@ -264,8 +264,7 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	private long readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long minId, long maxId, long offset,
-			long limit,
-			LogMatchCallback callback) throws IOException, InterruptedException {
+			long limit, LogMatchCallback callback) throws IOException, InterruptedException {
 		List<Integer> offsets = new ArrayList<Integer>();
 		long matched = 0;
 
@@ -622,15 +621,15 @@ public class LogFileReaderV2 extends LogFileReader {
 				continue;
 			List<Log> result = null;
 			try {
-				result = parse(tableName, parser, record);				
+				result = parse(tableName, parser, record);
 			} catch (LogParserBugException e) {
 				result = new ArrayList<Log>(1);
-				result.add(new Log(e.tableName, e.date, e.id, e.logMap)); 
+				result.add(new Log(e.tableName, e.date, e.id, e.logMap));
 				if (!suppressBugAlert) {
-					logger.error("araqne logstorage: PARSER BUG! original log => table " +
-							e.tableName + ", id " + e.id + ", data " + e.logMap, e.cause);
+					logger.error("araqne logstorage: PARSER BUG! original log => table " + e.tableName + ", id " + e.id
+							+ ", data " + e.logMap, e.cause);
 					suppressBugAlert = true;
-				}				
+				}
 			} finally {
 				if (result != null) {
 					for (Log log : result) {
@@ -652,11 +651,11 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
-			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException {
+	public void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback callback,
+			boolean doParallel) throws IOException, InterruptedException {
 		LogParser parser = null;
 		if (builder != null)
-			parser = builder.build();	
+			parser = builder.build();
 
 		for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
 			IndexBlockHeader index = indexBlockHeaders.get(i);
@@ -673,8 +672,8 @@ public class LogFileReaderV2 extends LogFileReader {
 			}
 		}
 	}
-	
-	private boolean readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long minId, long maxId, 
+
+	private boolean readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long minId, long maxId,
 			LogParser parser, LogTraverseCallback callback) throws IOException, InterruptedException {
 		List<Integer> offsets = new ArrayList<Integer>();
 		boolean suppressBugAlert = false;
@@ -702,23 +701,23 @@ public class LogFileReaderV2 extends LogFileReader {
 
 			List<Log> result = null;
 			try {
-				result = parse(tableName, parser, record);				
+				result = parse(tableName, parser, record);
 			} catch (LogParserBugException e) {
 				result = new ArrayList<Log>(1);
-				result.add(new Log(e.tableName, e.date, e.id, e.logMap)); 
+				result.add(new Log(e.tableName, e.date, e.id, e.logMap));
 				if (!suppressBugAlert) {
-					logger.error("araqne logstorage: PARSER BUG! original log => table " +
-							e.tableName + ", id " + e.id + ", data " + e.logMap, e.cause);
+					logger.error("araqne logstorage: PARSER BUG! original log => table " + e.tableName + ", id " + e.id
+							+ ", data " + e.logMap, e.cause);
 					suppressBugAlert = true;
-				}				
+				}
 			} finally {
 				if (result == null)
 					continue;
-				
+
 				logs.addAll(result);
 			}
 		}
-		
+
 		callback.writeLogs(logs);
 
 		return !callback.isEof();

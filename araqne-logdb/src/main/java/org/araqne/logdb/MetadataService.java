@@ -16,9 +16,9 @@
 package org.araqne.logdb;
 
 public interface MetadataService {
-	void verify(LogQueryContext context, String type, String queryString);
+	void verify(QueryContext context, String type, String queryString);
 
-	void query(LogQueryContext context, String type, String queryString, MetadataCallback callback);
+	void query(QueryContext context, String type, String queryString, MetadataCallback callback);
 
 	void addProvider(MetadataProvider provider);
 

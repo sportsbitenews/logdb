@@ -21,8 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.Rex;
 import org.junit.Test;
 
@@ -34,26 +35,26 @@ public class RexParserTest {
 
 		DummyOutput out = new DummyOutput();
 		Rex rex = new Rex("raw", "", p, names);
-		rex.setNextCommand(out);
+		rex.setOutput(new QueryCommandPipe(out));
 
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("raw", "From: Susan To: Bob");
 
-		rex.push(m);
+		rex.onPush(m);
 
 		assertEquals(1, out.list.size());
-		LogMap m2 = out.list.get(0);
+		Row m2 = out.list.get(0);
 
 		assertEquals("From: Susan To: Bob", (String) m2.get("raw"));
 		assertEquals("Susan", (String) m2.get("from"));
 		assertEquals("Bob", (String) m2.get("to"));
 	}
 
-	private static class DummyOutput extends LogQueryCommand {
-		private List<LogMap> list = new ArrayList<LogMap>();
+	private static class DummyOutput extends QueryCommand {
+		private List<Row> list = new ArrayList<Row>();
 
 		@Override
-		public void push(LogMap m) {
+		public void onPush(Row m) {
 			list.add(m);
 		}
 
@@ -86,16 +87,16 @@ public class RexParserTest {
 	@Test
 	public void testRexCommandParse2() {
 		String s = "Close[00:00:20. SF. FIN] NAT[313]  R[16]";
-		LogMap map = new LogMap();
+		Row map = new Row();
 		map.put("note", s);
 
 		RexParser parser = new RexParser();
 		Rex rex = (Rex) parser.parse(null, "rex field=note \"N(A|B)T\\[(?<nat>.*?)\\]  R\\[(?<r>.*?)\\]\"");
 		DummyOutput out = new DummyOutput();
-		rex.setNextCommand(out);
+		rex.setOutput(new QueryCommandPipe(out));
 
-		rex.push(map);
-		LogMap map2 = out.list.get(0);
+		rex.onPush(map);
+		Row map2 = out.list.get(0);
 
 		assertEquals("313", map2.get("nat"));
 		assertEquals("16", map2.get("r"));
@@ -130,12 +131,12 @@ public class RexParserTest {
 		assertEquals("cpu_usage=\\\"(.*)\\\" mem_usage=\\\"(.*)\\\"", rex.getPattern().toString());
 
 		DummyOutput out = new DummyOutput();
-		rex.setNextCommand(out);
-		LogMap map = new LogMap();
+		rex.setOutput(new QueryCommandPipe(out));
+		Row map = new Row();
 		map.put("line", "sample cpu_usage=\"3 %\" mem_usage=\"60 %\"");
 
-		rex.push(map);
-		LogMap map2 = out.list.get(0);
+		rex.onPush(map);
+		Row map2 = out.list.get(0);
 
 		assertEquals("3 %", map2.get("cpu_usage"));
 		assertEquals("60 %", map2.get("mem_usage"));

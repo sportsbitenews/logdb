@@ -5,7 +5,8 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.query.command.OutputTxt;
 import org.junit.Test;
 
@@ -33,7 +34,7 @@ public class OutputTxtParserTest {
 			assertEquals("outputjson logexport.txt sip, dip", txt.toString());
 		} finally {
 			if (txt != null)
-				txt.eof(false);
+				txt.onClose(QueryStopReason.End);
 			new File("logexport.txt").delete();
 		}
 	}
@@ -50,7 +51,7 @@ public class OutputTxtParserTest {
 			assertEquals("outputjson delimiter=| logexport.txt sip, dip", txt.toString());
 		} finally {
 			if (txt != null)
-				txt.eof(false);
+				txt.onClose(QueryStopReason.End);
 			new File("logexport.txt").delete();
 		}
 	}
@@ -64,7 +65,7 @@ public class OutputTxtParserTest {
 			txt = (OutputTxt) p.parse(null, "outputtxt logexport.txt delimiter=\"|\" sip, dip ");
 
 			assertEquals("|", txt.getDelimiter());
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("invalid-option", e.getType());
 			assertEquals(-1, (int) e.getOffset());
 		} finally {
@@ -79,7 +80,7 @@ public class OutputTxtParserTest {
 			OutputTxtParser p = new OutputTxtParser();
 			p.parse(null, "outputtxt logexport.txt ");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("missing-field", e.getType());
 			assertEquals(14, (int) e.getOffset());
 		} finally {
@@ -94,7 +95,7 @@ public class OutputTxtParserTest {
 			OutputTxtParser p = new OutputTxtParser();
 			p.parse(null, "outputtxt logexport.txt sip,");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("missing-field", e.getType());
 			assertEquals(28, (int) e.getOffset());
 		} finally {
@@ -109,7 +110,7 @@ public class OutputTxtParserTest {
 			OutputTxtParser p = new OutputTxtParser();
 			p.parse(null, "outputtxt");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("missing-field", e.getType());
 			assertEquals(0, (int) e.getOffset());
 		} finally {

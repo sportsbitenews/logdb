@@ -31,8 +31,9 @@ import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerRegistryEventListener;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.SimpleLog;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryCommand;
 
 /**
  * @since 1.7.8
@@ -50,7 +51,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 	private String loggerName;
 
 	private QueryResult queryResult = new QueryResult();
-	private LogQueryCommand first;
+	private QueryCommand first;
 	private Log currentLog;
 
 	private volatile boolean stopRunner = false;
@@ -58,7 +59,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 	private ArrayBlockingQueue<Log> queue = new ArrayBlockingQueue<Log>(100000);
 
 	public QueryTransformLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry,
-			List<LogQueryCommand> commands) {
+			List<QueryCommand> commands) {
 		super(spec, factory);
 		this.loggerRegistry = loggerRegistry;
 
@@ -69,7 +70,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 		commands.add(queryResult);
 
 		for (int i = commands.size() - 2; i >= 0; i--)
-			commands.get(i).setNextCommand(commands.get(i + 1));
+			commands.get(i).setOutput(new QueryCommandPipe(commands.get(i + 1)));
 	}
 
 	@Override
@@ -150,9 +151,9 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 		}
 	}
 
-	private class QueryResult extends LogQueryCommand {
+	private class QueryResult extends QueryCommand {
 		@Override
-		public void push(LogMap m) {
+		public void onPush(Row m) {
 			Date date = currentLog.getDate();
 			SimpleLog log = new SimpleLog(date, loggerName, m.map());
 			QueryTransformLogger.this.write(log);
@@ -178,7 +179,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 
 						for (Log l : buffer) {
 							currentLog = log;
-							first.push(new LogMap(l.getParams()));
+							first.onPush(new Row(l.getParams()));
 						}
 
 					} catch (Throwable t) {

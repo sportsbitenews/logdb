@@ -22,9 +22,9 @@ import java.util.Calendar;
 import java.util.Date;
 
 import org.junit.Test;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.StringConstant;
 
@@ -45,7 +45,7 @@ public class ExpressionParserTest {
 
 	@Test
 	public void testFuncMultiArgs() {
-		LogMap log = new LogMap();
+		Row log = new Row();
 		log.put("test", 1);
 
 		Expression expr = ExpressionParser.parse(null, "100 + min(3, 7, 2, 5, test) * 2");
@@ -112,14 +112,14 @@ public class ExpressionParserTest {
 		try {
 			ExpressionParser.parse(null, "3+4*2/");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("broken-expression", e.getType());
 		}
 
 		try {
 			ExpressionParser.parse(null, "3 4*2");
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("remain-terms", e.getType());
 		}
 	}
@@ -188,11 +188,11 @@ public class ExpressionParserTest {
 	public void testIf() {
 		Expression exp = ExpressionParser.parse(null, "if(field >= 10, 10, field)");
 
-		LogMap m1 = new LogMap();
+		Row m1 = new Row();
 		m1.put("field", 15);
 		assertEquals(10, exp.eval(m1));
 
-		LogMap m2 = new LogMap();
+		Row m2 = new Row();
 		m2.put("field", 3);
 		assertEquals(3, exp.eval(m2));
 	}
@@ -201,11 +201,11 @@ public class ExpressionParserTest {
 	public void testCase() {
 		Expression exp = ExpressionParser.parse(null, "case(field >= 10, 10, field < 10, field)");
 
-		LogMap m1 = new LogMap();
+		Row m1 = new Row();
 		m1.put("field", 15);
 		assertEquals(10, exp.eval(m1));
 
-		LogMap m2 = new LogMap();
+		Row m2 = new Row();
 		m2.put("field", 3);
 		assertEquals(3, exp.eval(m2));
 	}
@@ -227,7 +227,7 @@ public class ExpressionParserTest {
 		c.set(Calendar.SECOND, 33);
 		c.set(Calendar.MILLISECOND, 0);
 
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("date", "2013-02-06 11:26:33");
 
 		Expression exp = ExpressionParser.parse(null, "date(date, \"yyyy-MM-dd HH:mm:ss\")");
@@ -239,7 +239,7 @@ public class ExpressionParserTest {
 	public void testSubstr() {
 		String s = "abcdefg";
 
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("line", s);
 
 		Expression exp = ExpressionParser.parse(null, "substr(line,0,7)");
@@ -258,7 +258,7 @@ public class ExpressionParserTest {
 	@Test
 	public void testMatch() {
 		String s = "210.119.122.32";
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("line", s);
 
 		Expression exp = ExpressionParser.parse(null, "match(line, \"210.*\")");
@@ -286,16 +286,16 @@ public class ExpressionParserTest {
 	@Test
 	public void testBooleanConstants() {
 		Expression exp1 = ExpressionParser.parse(null, "field == true");
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("field", true);
 		assertTrue((Boolean) exp1.eval(m));
 
-		m = new LogMap();
+		m = new Row();
 		m.put("field", false);
 		assertFalse((Boolean) exp1.eval(m));
 
 		Expression exp2 = ExpressionParser.parse(null, "field == false");
-		m = new LogMap();
+		m = new Row();
 		m.put("field", false);
 		assertTrue((Boolean) exp2.eval(m));
 	}
@@ -304,7 +304,7 @@ public class ExpressionParserTest {
 	public void testInIntegers() {
 		Expression expr = ExpressionParser.parse(null, "in(field, 1, 2, 3)");
 
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("field", 1);
 		assertTrue((Boolean) expr.eval(m));
 
@@ -325,7 +325,7 @@ public class ExpressionParserTest {
 	public void testInStrings() {
 		Expression expr = ExpressionParser.parse(null, "in(field, \"a\", \"b\", \"c\")");
 
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("field", "a");
 		assertTrue((Boolean) expr.eval(m));
 
@@ -343,7 +343,7 @@ public class ExpressionParserTest {
 	public void testInStringWildcards() {
 		Expression expr = ExpressionParser.parse(null, "in(field, \"*74.86.*\")");
 
-		LogMap m = new LogMap();
+		Row m = new Row();
 		m.put("field", "ip = 74.86.1.2");
 		assertTrue((Boolean) expr.eval(m));
 
@@ -355,14 +355,14 @@ public class ExpressionParserTest {
 	public void testBracket() {
 		{
 			Expression expr = ExpressionParser.parse(null, "a == \"*[GameStart REP]*\"");
-			LogMap m = new LogMap();
+			Row m = new Row();
 			m.put("a",
 					"22:27:05.235(tid=4436)[Q=0:1:0:0]I[10.1.119.86-997014784-8439] [0 ms][GameStart REP]=126:200:3111 0073875:61.111.10.21:59930:2:1:0:101:qa161새롱 1:2:2718376:3:2000015:0");
 			assertTrue((Boolean) expr.eval(m));
 		}
 		{
 			Expression expr = ExpressionParser.parse(null, "a == \"*[GameStart REP]*\"");
-			LogMap m = new LogMap();
+			Row m = new Row();
 			m.put("a",
 					"22:27:05.235(tid=4436)[Q=0:1:0:0]I[10.1.119.86-997014784-8439] [0 ms][GameStrt REP]=126:200:3111 0073875:61.111.10.21:59930:2:1:0:101:qa161새롱 1:2:2718376:3:2000015:0");
 			assertFalse((Boolean) expr.eval(m));
@@ -383,14 +383,14 @@ public class ExpressionParserTest {
 			String invalid = "\"hello\\tworld\\i\"";
 			ExpressionParser.parse(null, invalid);
 			fail();
-		} catch (LogQueryParseException e) {
+		} catch (QueryParseException e) {
 			assertEquals("invalid-escape-sequence", e.getType());
 		}
 	}
 
 	@Test
 	public void testFuncNoArg() {
-		LogQueryContext context = new LogQueryContext(null);
+		QueryContext context = new QueryContext(null);
 		Expression expr = ExpressionParser.parse(context, "string(now(), \"yyyyMMdd\")");
 		assertEquals(expr.eval(null), new SimpleDateFormat("yyyyMMdd").format(new Date()));
 

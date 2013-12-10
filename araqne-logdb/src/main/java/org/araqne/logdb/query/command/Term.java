@@ -19,8 +19,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.ObjectComparator;
 
 public class Term {
@@ -35,7 +35,7 @@ public class Term {
 				if (o.toString().equalsIgnoreCase(str))
 					return o;
 			}
-			throw new LogQueryParseException("unsupported-operator", -1, str);
+			throw new QueryParseException("unsupported-operator", -1, str);
 		}
 
 		private Operator(String str) {
@@ -56,7 +56,7 @@ public class Term {
 	private boolean isRhString = false;
 	private Pattern p;
 
-	public boolean eval(LogMap m) {
+	public boolean eval(Row m) {
 		Object l = isLhString ? lh : m.get(lh.toString());
 		Object r = isRhString ? rh : m.get(rh.toString());
 

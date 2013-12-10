@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Stack;
 import java.util.StringTokenizer;
 
-import org.araqne.logdb.LogQueryContext;
-import org.araqne.logdb.LogQueryParseException;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 
 public class QueryTokenizer {
 	private QueryTokenizer() {
@@ -40,7 +40,7 @@ public class QueryTokenizer {
 	/**
 	 * @since 1.7.5
 	 */
-	public static ParseResult parseOptions(LogQueryContext context, String s, int offset, List<String> validKeys) {
+	public static ParseResult parseOptions(QueryContext context, String s, int offset, List<String> validKeys) {
 		HashMap<String, Object> options = new HashMap<String, Object>();
 		int next = offset;
 		while (true) {
@@ -54,9 +54,9 @@ public class QueryTokenizer {
 
 			if (validKeys.size() > 0 && !validKeys.contains(key)) {
 				if (validKeys.contains(key.trim()))
-					throw new LogQueryParseException("option-space-not-allowed", next);
+					throw new QueryParseException("option-space-not-allowed", next);
 
-				throw new LogQueryParseException("invalid-option", -1, key);
+				throw new QueryParseException("invalid-option", -1, key);
 			}
 
 			if (s.charAt(p + 1) == '"') {
@@ -74,7 +74,7 @@ public class QueryTokenizer {
 				}
 
 				if (closingQuote == -1)
-					throw new LogQueryParseException("string-quote-mismatch", s.length());
+					throw new QueryParseException("string-quote-mismatch", s.length());
 
 				String quotedValue = s.substring(p + 2, closingQuote);
 				quotedValue = ExpressionParser.evalContextReference(context, quotedValue);
@@ -169,7 +169,7 @@ public class QueryTokenizer {
 				if (c == '|' && !quoted && sqStack.isEmpty()) {
 					String cmd = sb.toString();
 					if (cmd.trim().isEmpty())
-						throw new LogQueryParseException("empty-command", -1);
+						throw new QueryParseException("empty-command", -1);
 					l.add(cmd);
 					sb = new StringBuilder();
 				} else
@@ -181,7 +181,7 @@ public class QueryTokenizer {
 		if (sb.length() > 0) {
 			String cmd = sb.toString();
 			if (cmd.trim().isEmpty())
-				throw new LogQueryParseException("empty-command", -1);
+				throw new QueryParseException("empty-command", -1);
 			l.add(cmd);
 		}
 
@@ -242,7 +242,7 @@ public class QueryTokenizer {
 		int begin = i;
 
 		if (text.length() <= begin)
-			throw new LogQueryParseException("need-string-token", begin);
+			throw new QueryParseException("need-string-token", begin);
 
 		i = nextString(sb, text, i, delim);
 
@@ -294,7 +294,7 @@ public class QueryTokenizer {
 		}
 
 		if (quote)
-			throw new LogQueryParseException("string-quote-mismatch", i);
+			throw new QueryParseException("string-quote-mismatch", i);
 
 		return i;
 	}

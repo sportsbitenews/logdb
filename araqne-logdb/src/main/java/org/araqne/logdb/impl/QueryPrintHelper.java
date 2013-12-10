@@ -23,8 +23,8 @@ import java.util.Comparator;
 import java.util.Date;
 
 import org.araqne.api.ScriptContext;
-import org.araqne.logdb.LogQuery;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.Query;
+import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.RunMode;
 
 /**
@@ -32,7 +32,7 @@ import org.araqne.logdb.RunMode;
  * @author xeraph
  */
 public class QueryPrintHelper {
-	public static void printQueries(ScriptContext context, Collection<LogQuery> qs, String queryFilter) {
+	public static void printQueries(ScriptContext context, Collection<Query> qs, String queryFilter) {
 		String header = "Log Queries";
 		if (queryFilter != null)
 			header += " (filter by \"" + queryFilter + "\")";
@@ -44,16 +44,16 @@ public class QueryPrintHelper {
 
 		context.println("");
 
-		ArrayList<LogQuery> queries = new ArrayList<LogQuery>(qs);
-		Collections.sort(queries, new Comparator<LogQuery>() {
+		ArrayList<Query> queries = new ArrayList<Query>(qs);
+		Collections.sort(queries, new Comparator<Query>() {
 			@Override
-			public int compare(LogQuery o1, LogQuery o2) {
+			public int compare(Query o1, Query o2) {
 				return o1.getId() - o2.getId();
 			}
 		});
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-		for (LogQuery q : queries) {
+		for (Query q : queries) {
 			if (queryFilter != null && !q.getQueryString().contains(queryFilter))
 				continue;
 
@@ -75,11 +75,12 @@ public class QueryPrintHelper {
 
 			String runMode = q.getRunMode() == RunMode.BACKGROUND ? " (bg)" : "";
 			String lastStatus = q.getCommands().get(q.getCommands().size() - 1).getStatus().toString();
-			context.println(String.format("[%d:%s:%s%s%s] %s => %d", q.getId(), lastStatus, loginName, when, runMode, queryString, count));
+			context.println(String.format("[%d:%s:%s%s%s] %s => %d", q.getId(), lastStatus, loginName, when, runMode,
+					queryString, count));
 		}
 	}
 
-	public static String getQueryStatus(LogQuery query) {
+	public static String getQueryStatus(Query query) {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 		String when = " \t/ not started yet";
 		if (query.getLastStarted() != null) {
@@ -91,9 +92,9 @@ public class QueryPrintHelper {
 		String status = String.format("[%d:%s] %s%s\n", query.getId(), loginName, query.getQueryString(), when);
 
 		if (query.getCommands() != null) {
-			for (LogQueryCommand cmd : query.getCommands()) {
+			for (QueryCommand cmd : query.getCommands()) {
 				status += String.format("    [%s] %s \t/ passed %d data to next query\n", cmd.getStatus(), cmd.getQueryString(),
-						cmd.getPushCount());
+						cmd.getOutputCount());
 			}
 		} else {
 			status += "    null\n";

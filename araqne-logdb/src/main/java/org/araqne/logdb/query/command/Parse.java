@@ -22,8 +22,8 @@ import java.util.Map;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
-import org.araqne.logdb.LogMap;
-import org.araqne.logdb.LogQueryCommand;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * @author xeraph
  * 
  */
-public class Parse extends LogQueryCommand {
+public class Parse extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Parse.class);
 	private final int parserVersion;
 	private final LogParserInput input = new LogParserInput();
@@ -48,7 +48,7 @@ public class Parse extends LogQueryCommand {
 	}
 
 	@Override
-	public void push(LogMap m) {
+	public void onPush(Row m) {
 		try {
 			if (parserVersion == 2) {
 				Object table = m.get("_table");
@@ -79,9 +79,9 @@ public class Parse extends LogQueryCommand {
 						if (overlay) {
 							Map<String, Object> source = new HashMap<String, Object>(m.map());
 							source.putAll(row);
-							write(new LogMap(source));
+							pushPipe(new Row(source));
 						} else {
-							write(new LogMap(row));
+							pushPipe(new Row(row));
 						}
 					}
 				}
@@ -98,9 +98,9 @@ public class Parse extends LogQueryCommand {
 					if (overlay) {
 						Map<String, Object> source = new HashMap<String, Object>(m.map());
 						source.putAll(row);
-						write(new LogMap(source));
+						pushPipe(new Row(source));
 					} else {
-						write(new LogMap(row));
+						pushPipe(new Row(row));
 					}
 				}
 			}
