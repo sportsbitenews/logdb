@@ -29,9 +29,9 @@ import org.araqne.api.Script;
 import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
 import org.araqne.api.ScriptUsage;
-import org.araqne.logdb.LogQueryScript;
-import org.araqne.logdb.LogQueryScriptInput;
-import org.araqne.logdb.LogQueryScriptOutput;
+import org.araqne.logdb.QueryScript;
+import org.araqne.logdb.QueryScriptInput;
+import org.araqne.logdb.QueryScriptOutput;
 import org.araqne.logdb.jython.JythonLoggerScriptRegistry;
 import org.araqne.logdb.jython.JythonParserScriptRegistry;
 import org.araqne.logdb.jython.JythonQueryScriptRegistry;
@@ -147,7 +147,7 @@ public class LogdbJythonScript implements Script {
 			@ScriptArgument(name = "script name", type = "string", description = "script name"),
 			@ScriptArgument(name = "line", type = "string", description = "test data") })
 	public void runQueryScript(String[] args) {
-		LogQueryScript s = queryScriptRegistry.newLogScript(args[0], args[1], null);
+		QueryScript s = queryScriptRegistry.newLogScript(args[0], args[1], null);
 		if (s == null) {
 			context.println("script not found");
 			return;
@@ -156,7 +156,7 @@ public class LogdbJythonScript implements Script {
 		s.handle(new ConsoleInput(args[2]), new ConsoleOutput());
 	}
 
-	private class ConsoleInput implements LogQueryScriptInput {
+	private class ConsoleInput implements QueryScriptInput {
 		private Map<String, Object> data;
 
 		public ConsoleInput(String line) {
@@ -175,7 +175,7 @@ public class LogdbJythonScript implements Script {
 		}
 	}
 
-	private class ConsoleOutput implements LogQueryScriptOutput {
+	private class ConsoleOutput implements QueryScriptOutput {
 		@Override
 		public void write(Map<String, Object> data) {
 			context.println(Primitive.stringify(data));

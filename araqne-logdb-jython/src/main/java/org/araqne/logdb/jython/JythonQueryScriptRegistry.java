@@ -18,7 +18,7 @@ package org.araqne.logdb.jython;
 import java.util.Map;
 import java.util.Set;
 
-import org.araqne.logdb.LogQueryScript;
+import org.araqne.logdb.QueryScript;
 
 public interface JythonQueryScriptRegistry {
 	Set<String> getWorkspaceNames();
@@ -29,7 +29,7 @@ public interface JythonQueryScriptRegistry {
 
 	String getScriptCode(String workspace, String name);
 
-	LogQueryScript newLogScript(String workspace, String name, Map<String, Object> params);
+	QueryScript newLogScript(String workspace, String name, Map<String, Object> params);
 
 	void loadScript(String workspace, String name, String script);
 
