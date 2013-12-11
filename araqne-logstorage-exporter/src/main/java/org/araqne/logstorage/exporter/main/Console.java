@@ -2,6 +2,7 @@ package org.araqne.logstorage.exporter.main;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,8 +18,7 @@ import org.araqne.logstorage.exporter.api.LogDatFileReader;
 import org.araqne.logstorage.exporter.api.LogWriter;
 import org.araqne.logstorage.exporter.impl.FileWildcardMatcher;
 import org.araqne.logstorage.exporter.impl.LogCsvWriter;
-import org.araqne.logstorage.exporter.impl.LogDatFileReaderV2;
-import org.araqne.logstorage.exporter.impl.LogDatFileReaderV3;
+import org.araqne.logstorage.exporter.impl.LogDatFileReaderImpl;
 import org.araqne.logstorage.exporter.impl.LogJsonWriter;
 import org.araqne.logstorage.exporter.impl.LogTxtWriter;
 
@@ -30,24 +30,26 @@ public class Console {
 		org.apache.log4j.BasicConfigurator.configure(ca);
 
 		ExportOption option = getOptions(args);
-
-		Set<File> matchedFiles = findMatchedFiles(new File(option.getFilePath()));
+		Set<File> matchedFiles = new HashSet<File>();
+		for (String filePath : option.getFilePaths()) {
+			matchedFiles.addAll(findMatchedFiles(new File(filePath)));
+		}
 
 		for (File f : matchedFiles) {
-			System.out.println("=======" + f.getAbsolutePath() + "=======\n");
+			System.out.println("=======" + f.getAbsolutePath() + "=======");
 			LogWriter writer = null;
 			LogDatFileReader reader = null;
-			if (option.getVersion() == 2)
-				reader = new LogDatFileReaderV2(f);
-			else
-				reader = new LogDatFileReaderV3(f, option.getPfxFile(), option.getPassword());
-
+			long writeCount = 0;
+			File outputFile = getOutputFile(option, f.getName());
+			if (outputFile.exists()) {
+				System.out.println("output file already exists, path: " + outputFile.getAbsolutePath());
+				continue;
+			}
 			try {
-				File outputFile = getOutputFile(option, f.getName());
+				reader = new LogDatFileReaderImpl(f, option.getPfxFile(), option.getPassword());
 				writer = newWriter(outputFile, option);
 
 				long base = System.currentTimeMillis();
-				long writeCount = 0;
 				boolean isEnd = false;
 				while (!isEnd && reader.hasNext()) {
 					long now = System.currentTimeMillis();
@@ -65,21 +67,23 @@ public class Console {
 					if (!option.isUseStandardOutput() && now - base > 1000) {
 						System.out.println("input: " + f.getName() +
 								", output: " + outputFile.getName() + ", " + writeCount
-								+ "logs written");
+								+ " logs written");
 						base = now;
 					}
 				}
-				if (!option.isUseStandardOutput())
-					System.out.println("output file: " +
-							outputFile.getAbsolutePath() + " write complete. total: " + writeCount);
-			} catch (IOException e) {
-				System.out.println("cannot create output writer");
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.out.println(e.getMessage());
 			} finally {
 				if (reader != null)
 					reader.close();
 				if (writer != null)
 					writer.close();
 			}
+			System.out.println("output count: " + formatNumber(writeCount));
+			if (!option.isUseStandardOutput())
+				System.out.println("output file path: " + outputFile.getAbsolutePath());
 			System.out.println("=================end================\n");
 		}
 	}
@@ -92,9 +96,6 @@ public class Console {
 
 		Map<String, String> opts = getOpts(args);
 		ExportOption option = new ExportOption();
-
-		if (opts.containsKey("-v"))
-			option.setVersion(Integer.valueOf(opts.get("-v")));
 
 		if (opts.containsKey("-F"))
 			option.setOutputType(opts.get("-F"));
@@ -141,7 +142,13 @@ public class Console {
 			option.setOutputDir(outputDir);
 		} else
 			option.setOutputDir(new File(System.getProperty("user.dir")));
-		option.setFilePath(args[args.length - 1]);
+		Set<String> fileNames = new HashSet<String>();
+		for (int index = opts.keySet().size(); index < args.length; index++) {
+			String fileName = args[index];
+			if (fileName.endsWith("dat"))
+				fileNames.add(fileName);
+		}
+		option.setFilePaths(fileNames);
 
 		return option;
 	}
@@ -206,5 +213,10 @@ public class Console {
 			}
 		}
 		return opts;
+	}
+
+	private static String formatNumber(long writeCount) {
+		DecimalFormat formatter = new DecimalFormat("###,###");
+		return formatter.format(writeCount);
 	}
 }

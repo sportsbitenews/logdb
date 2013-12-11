@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
@@ -21,6 +23,7 @@ public class LogTxtWriter implements LogWriter {
 	private OutputStreamWriter osw;
 	private String lineSeparator;
 	private boolean useStandardOutput;
+	private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 
 	public LogTxtWriter(File f, ExportOption option) {
 		this.fields = option.getColumns();
@@ -28,13 +31,14 @@ public class LogTxtWriter implements LogWriter {
 
 		try {
 			useStandardOutput = option.isUseStandardOutput();
-			if (useStandardOutput)
-				return;
-
-			if (option.isUseCompress())
-				os = new GZIPOutputStream(new FileOutputStream(f));
-			else
-				os = new FileOutputStream(f);
+			if (useStandardOutput) {
+				os = new StandardOutputStream(System.out);
+			} else {
+				if (option.isUseCompress())
+					os = new GZIPOutputStream(new FileOutputStream(f));
+				else
+					os = new FileOutputStream(f);
+			}
 
 			bos = new BufferedOutputStream(os);
 			osw = new OutputStreamWriter(bos, Charset.forName("utf-8"));
@@ -45,23 +49,24 @@ public class LogTxtWriter implements LogWriter {
 
 	@Override
 	public void write(Map<String, Object> log) {
-		if (!useStandardOutput && osw == null)
+		if (osw == null)
 			throw new IllegalStateException("does not set output file");
 
-		String line = "";
+		StringBuilder sb = new StringBuilder(1024);
 		for (int index = 0; index < fields.size(); index++) {
 			String field = fields.get(index);
-			line += log.get(field) == null ? "" : log.get(field);
+
+			Object o = log.get(field);
+			if (o != null && o instanceof Date) {
+				o = df.format(o);
+			}
+			sb.append(o == null ? "" : o.toString());
 			if (index != fields.size() - 1)
-				line += ",";
-		}
-		if (useStandardOutput) {
-			System.out.println(line);
-			return;
+				sb.append(",");
 		}
 
 		try {
-			osw.write(line);
+			osw.write(sb.toString());
 			osw.write(lineSeparator);
 		} catch (IOException e) {
 			throw new IllegalStateException("cannot wirte log", e);
@@ -91,5 +96,4 @@ public class LogTxtWriter implements LogWriter {
 			} catch (IOException e) {
 			}
 	}
-
 }

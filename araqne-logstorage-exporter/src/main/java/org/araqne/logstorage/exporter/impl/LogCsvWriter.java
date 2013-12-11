@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
@@ -21,6 +23,8 @@ public class LogCsvWriter implements LogWriter {
 	private List<String> fields;
 	private String[] csvLine;
 	private boolean useStandardOutput;
+	private OutputStreamWriter osw;
+	private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 
 	public LogCsvWriter(File f, ExportOption option) {
 		this.fields = option.getColumns();
@@ -28,14 +32,17 @@ public class LogCsvWriter implements LogWriter {
 
 		try {
 			useStandardOutput = option.isUseStandardOutput();
-			if (useStandardOutput)
-				return;
+			if (useStandardOutput) {
+				os = new StandardOutputStream(System.out);
+			} else {
+				if (option.isUseCompress())
+					os = new GZIPOutputStream(new FileOutputStream(f));
+				else
+					os = new FileOutputStream(f);
+			}
 
-			if (option.isUseCompress())
-				os = new GZIPOutputStream(new FileOutputStream(f));
-			else
-				os = new FileOutputStream(f);
-			this.writer = new CSVWriter(new OutputStreamWriter(os, Charset.forName("utf-8")));
+			osw = new OutputStreamWriter(os, Charset.forName("utf-8"));
+			this.writer = new CSVWriter(osw);
 			writer.writeNext(fields.toArray(new String[0]));
 		} catch (Exception e) {
 			throw new IllegalStateException("cannot set output file", e);
@@ -44,19 +51,19 @@ public class LogCsvWriter implements LogWriter {
 
 	@Override
 	public void write(Map<String, Object> m) {
-		if (!useStandardOutput && writer == null)
+		if (writer == null)
 			throw new IllegalStateException("does not set output file");
 
 		int i = 0;
 		for (String field : fields) {
 			Object o = m.get(field);
+			if (o != null && o instanceof Date) {
+				o = df.format(o);
+			}
 			String s = o == null ? "" : o.toString();
 			csvLine[i++] = s;
 		}
-		if (useStandardOutput)
-			System.out.println(csvLine);
-		else
-			writer.writeNext(csvLine);
+		writer.writeNext(csvLine);
 	}
 
 	@Override

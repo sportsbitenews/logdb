@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +25,7 @@ public class LogJsonWriter implements LogWriter {
 	private OutputStreamWriter osw;
 	private String lineSeparator;
 	private boolean useStandardOutput;
+	private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 
 	public LogJsonWriter(File f, ExportOption option) {
 		this.fields = option.getColumns();
@@ -30,16 +33,17 @@ public class LogJsonWriter implements LogWriter {
 
 		try {
 			useStandardOutput = option.isUseStandardOutput();
-			if (useStandardOutput)
-				return;
+			if (useStandardOutput) {
+				os = new StandardOutputStream(System.out);
+			} else {
+				if (option.isUseCompress())
+					os = new GZIPOutputStream(new FileOutputStream(f));
+				else
+					os = new FileOutputStream(f);
+			}
 
-			if (option.isUseCompress())
-				os = new GZIPOutputStream(new FileOutputStream(f));
-			else
-				os = new FileOutputStream(f);
 			bos = new BufferedOutputStream(os);
 			osw = new OutputStreamWriter(bos, Charset.forName("utf-8"));
-
 		} catch (Exception e) {
 			throw new IllegalStateException("cannot set output file", e);
 		}
@@ -47,20 +51,20 @@ public class LogJsonWriter implements LogWriter {
 
 	@Override
 	public void write(Map<String, Object> log) {
-		if (!useStandardOutput && osw == null)
+		if (osw == null)
 			throw new IllegalStateException("does not set output file");
 
 		HashMap<String, Object> json = new HashMap<String, Object>();
 		for (String field : fields) {
-			json.put(field, log.get(field));
+			Object value = log.get(field);
+			if (value != null && value instanceof Date) {
+				value = df.format(value);
+			}
+			json.put(field, value);
 		}
 
 		try {
 			String jsonize = JSONConverter.jsonize(json);
-			if (useStandardOutput) {
-				System.out.println();
-				return;
-			}
 			osw.write(jsonize);
 			osw.write(lineSeparator);
 		} catch (Exception e) {
