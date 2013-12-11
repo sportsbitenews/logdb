@@ -3,9 +3,10 @@ package org.araqne.logstorage.exporter;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 public class ExportOption {
-	private String filePath;
+	private Set<String> filePaths;
 	private String outputType = "txt";
 	private List<String> columns = Arrays.asList("line");;
 	private File pfxFile;
@@ -16,20 +17,20 @@ public class ExportOption {
 	private File outputDir = new File(System.getProperty("user.dir"));
 	private int version = 3;
 
+	public Set<String> getFilePaths() {
+		return filePaths;
+	}
+
+	public void setFilePaths(Set<String> filePaths) {
+		this.filePaths = filePaths;
+	}
+
 	public int getVersion() {
 		return version;
 	}
 
 	public void setVersion(int version) {
 		this.version = version;
-	}
-
-	public String getFilePath() {
-		return filePath;
-	}
-
-	public void setFilePath(String filePath) {
-		this.filePath = filePath;
 	}
 
 	public String getOutputType() {
