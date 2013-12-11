@@ -19,6 +19,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -145,6 +146,16 @@ public class TableParserTest {
 		// assume that parse() do not consume more than 1sec
 		assertTrue((duration - 86400000) <= 1);
 	}
+	
+	@Test
+	public void testMeta() {
+		String query = "table duration=1d meta(\"logparser==trusguard\"), iis";
+		Table table = parse(query);
+
+		System.out.println(table.getTableNames());
+		assertTrue(table.getTableNames().contains("xtm"));
+		assertTrue(table.getTableNames().contains("iis"));
+	}
 
 	private Table parse(String query) {
 		AccountService mockAccount = mock(AccountService.class);
@@ -156,7 +167,9 @@ public class TableParserTest {
 		when(mockStorage.getStatus()).thenReturn(LogStorageStatus.Open);
 		when(mockTableRegistry.exists("iis")).thenReturn(true);
 		when(mockTableRegistry.exists("xtm")).thenReturn(true);
+		when(mockTableRegistry.getTableNames()).thenReturn(Arrays.asList("iis", "xtm"));
 		when(mockTableRegistry.getTableMetadata("iis", "logparser")).thenReturn(null);
+		when(mockTableRegistry.getTableMetadata("xtm", "logparser")).thenReturn("trusguard");
 		when(mockParserFactoryRegistry.get(null)).thenReturn(null);
 		when(mockAccount.checkPermission(null, "iis", Permission.READ)).thenReturn(true);
 		when(mockAccount.checkPermission(null, "xtm", Permission.READ)).thenReturn(true);
