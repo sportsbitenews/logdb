@@ -446,7 +446,19 @@ public class TableParser implements LogQueryCommandParser {
 		if (pos >= 0) {
 			namespace = fqdn.substring(0, pos);
 			name = fqdn.substring(pos + 1);
+			// XXX
+			if (name.startsWith("`") && name.endsWith("`")) {
+				name = name.substring(1, name.length() - 1);
+				fqdn = namespace + ":" + name;
+			}
+		} else {
+			// XXX
+			if (name.startsWith("`") && name.endsWith("`")) {
+				name = name.substring(1, name.length() - 1);
+				fqdn = name; 
+			}
 		}
+		
 
 		if (namespace == null && !name.contains("*")) {
 			// check only local tables
