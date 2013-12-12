@@ -33,6 +33,7 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.Strings;
 import org.araqne.logstorage.Log;
@@ -292,6 +293,11 @@ public class Table extends DriverQueryCommand {
 
 		@Override
 		public boolean isInterrupted() {
+			if (task.getStatus() == QueryTask.TaskStatus.CANCELED) {
+				logger.debug("araqne logdb: table scan task canceled, [{}]", Table.this.toString());
+				return true;
+			}
+
 			return stopped;
 		}
 

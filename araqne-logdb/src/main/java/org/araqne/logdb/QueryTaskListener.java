@@ -16,7 +16,18 @@
 package org.araqne.logdb;
 
 public interface QueryTaskListener {
+	/**
+	 * invoked before query task start running
+	 */
 	void onStart(QueryTaskEvent event);
 
+	/**
+	 * invoked only if task is completed successfully
+	 */
 	void onComplete(QueryTaskEvent event);
+
+	/**
+	 * invoked when task run is ended (like finally keyword)
+	 */
+	void onCleanUp(QueryTaskEvent event);
 }

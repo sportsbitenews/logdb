@@ -51,6 +51,10 @@ public class QueryTaskScheduler implements Runnable {
 		this.pipeline = pipeline;
 	}
 
+	public Query getQuery() {
+		return query;
+	}
+
 	public boolean isStarted() {
 		return started;
 	}
@@ -82,13 +86,13 @@ public class QueryTaskScheduler implements Runnable {
 				stopRecursively(cmd.getMainTask());
 		}
 
-		query.stop(reason);
+		stopRecursively(tracer);
 	}
 
 	private synchronized void startReadyTasks() {
 		// later task runner can be completed before tracer.run(), and can cause
 		// duplicated query finish callback
-		boolean finished = tracer.isRunnable();
+		boolean finished = tracer.isRunnable() || tracer.getStatus() == TaskStatus.CANCELED;
 
 		for (QueryCommand cmd : pipeline) {
 			QueryTask mainTask = cmd.getMainTask();
@@ -117,8 +121,10 @@ public class QueryTaskScheduler implements Runnable {
 	}
 
 	private void stopRecursively(QueryTask task) {
-		if (task.getStatus() != TaskStatus.COMPLETED)
+		if (task.getStatus() != TaskStatus.COMPLETED) {
 			task.setStatus(TaskStatus.CANCELED);
+			logger.debug("araqne logdb: canceled query task [{}]", task);
+		}
 
 		for (QueryTask subTask : task.getSubTasks())
 			stopRecursively(subTask);
@@ -150,6 +156,10 @@ public class QueryTaskScheduler implements Runnable {
 
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: query task [{}] completed", event.getTask());
+		}
+
+		@Override
+		public void onCleanUp(QueryTaskEvent event) {
 			startReadyTasks();
 		}
 	}

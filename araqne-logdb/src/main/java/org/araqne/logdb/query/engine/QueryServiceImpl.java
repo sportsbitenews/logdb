@@ -221,7 +221,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 		for (File f : resultFiles) {
 			String name = f.getName();
-			if (name.startsWith("result-") && (name.endsWith(".idx") || name.endsWith(".dat")))
+			if (name.startsWith("result") && (name.endsWith(".idx") || name.endsWith(".dat")))
 				f.delete();
 		}
 
