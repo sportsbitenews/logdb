@@ -15,19 +15,20 @@
  */
 package org.araqne.logdb.query.parser;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.util.Calendar;
 import java.util.Date;
 
-import org.junit.Test;
-import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.TimeSpan;
+import org.araqne.logdb.TimeUnit;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Timechart;
-import org.araqne.logdb.query.command.Timechart.TimeSpan;
-import org.araqne.logdb.query.command.Timechart.TimeUnit;
 import org.araqne.logdb.query.expr.Expression;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 public class TimechartParserTest {
 	@Test

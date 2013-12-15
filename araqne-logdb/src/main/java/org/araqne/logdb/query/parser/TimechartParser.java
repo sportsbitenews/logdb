@@ -24,10 +24,10 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.TimeSpan;
+import org.araqne.logdb.TimeUnit;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Timechart;
-import org.araqne.logdb.query.command.Timechart.TimeSpan;
-import org.araqne.logdb.query.command.Timechart.TimeUnit;
 
 public class TimechartParser implements QueryCommandParser {
 	private static final String COMMAND = "timechart";
@@ -74,7 +74,7 @@ public class TimechartParser implements QueryCommandParser {
 		// parse timespan option
 		TimeSpan timeSpan = null;
 		if (options.containsKey("span"))
-			timeSpan = parseTimeSpan(options.get("span"));
+			timeSpan = TimeSpan.parse(options.get("span"));
 
 		if (timeSpan == null)
 			timeSpan = new TimeSpan(1, TimeUnit.Day);
@@ -84,38 +84,5 @@ public class TimechartParser implements QueryCommandParser {
 			clause = clauses.get(0);
 
 		return new Timechart(fields, clause, timeSpan);
-	}
-
-	private static TimeSpan parseTimeSpan(String value) {
-		TimeUnit unit = null;
-		Integer amount = null;
-		int i;
-		for (i = 0; i < value.length(); i++) {
-			char c = value.charAt(i);
-			if (!('0' <= c && c <= '9'))
-				break;
-		}
-		String f = value.substring(i);
-		if (f.equalsIgnoreCase("s"))
-			unit = TimeUnit.Second;
-		else if (f.equalsIgnoreCase("m"))
-			unit = TimeUnit.Minute;
-		else if (f.equalsIgnoreCase("h"))
-			unit = TimeUnit.Hour;
-		else if (f.equalsIgnoreCase("d"))
-			unit = TimeUnit.Day;
-		else if (f.equalsIgnoreCase("w"))
-			unit = TimeUnit.Week;
-		else if (f.equalsIgnoreCase("mon"))
-			unit = TimeUnit.Month;
-		else if (f.equalsIgnoreCase("y"))
-			unit = TimeUnit.Year;
-		amount = Integer.parseInt(value.substring(0, i));
-
-		if (unit == TimeUnit.Month && (amount != 1 && amount != 2 && amount != 3 && amount != 4 && amount != 6))
-			throw new QueryParseException("invalid-timespan", -1, "month should be 1, 2, 3, 4, or 6");
-		if (unit == TimeUnit.Year && amount != 1)
-			throw new QueryParseException("invalid-timespan", -1, "year should be 1");
-		return new TimeSpan(amount, unit);
 	}
 }
