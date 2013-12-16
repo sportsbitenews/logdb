@@ -17,6 +17,7 @@ package org.araqne.logdb.query.engine;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.araqne.logdb.QueryCancelException;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.QueryTaskEvent;
@@ -49,14 +50,18 @@ public class QueryTaskRunner extends Thread {
 			task.run();
 			task.setStatus(TaskStatus.COMPLETED);
 
-			QueryTaskEvent completeEvent = new QueryTaskEvent(task);
-			triggerCompleteEvent(task, completeEvent);
+			triggerCompleteEvent(task, new QueryTaskEvent(task));
+		} catch (QueryCancelException e) {
+			logger.error("araqne logdb: query task [" + task + "] canceled");
+			task.setStatus(TaskStatus.CANCELED);
+			task.setFailure(e);
 		} catch (Throwable t) {
 			logger.error("araqne logdb: query task [" + task + "] failed", t);
 			task.setStatus(TaskStatus.CANCELED);
 			task.setFailure(t);
-			scheduler.stop(QueryStopReason.CommandFailure);
+			scheduler.getQuery().stop(QueryStopReason.CommandFailure);
 		} finally {
+			triggerCleanUpEvent(task, new QueryTaskEvent(task));
 			task.onCleanUp();
 		}
 	}
@@ -67,7 +72,8 @@ public class QueryTaskRunner extends Thread {
 
 		// bubble
 		if (task.getParentTask() != null)
-			triggerStartEvent(task.getParentTask(), event);
+			if (!event.isHandled())
+				triggerStartEvent(task.getParentTask(), event);
 	}
 
 	private void triggerCompleteEvent(QueryTask task, QueryTaskEvent event) {
@@ -80,4 +86,13 @@ public class QueryTaskRunner extends Thread {
 				triggerCompleteEvent(task.getParentTask(), event);
 	}
 
+	private void triggerCleanUpEvent(QueryTask task, QueryTaskEvent event) {
+		for (QueryTaskListener listener : task.getListeners())
+			listener.onCleanUp(event);
+
+		// bubble
+		if (task.getParentTask() != null)
+			if (!event.isHandled())
+				triggerCleanUpEvent(task.getParentTask(), event);
+	}
 }

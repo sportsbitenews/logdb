@@ -174,6 +174,9 @@ public class DefaultQuery implements Query {
 
 		stopReason = reason;
 
+		// stop tasks
+		scheduler.stop(reason);
+
 		// send eof and close result writer
 		for (QueryCommand cmd : commands) {
 			if (cmd.getStatus() == Status.Finalizing || cmd.getStatus() == Status.End)

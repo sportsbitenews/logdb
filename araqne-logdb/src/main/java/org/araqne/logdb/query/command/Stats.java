@@ -22,6 +22,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryCommand;
@@ -48,14 +50,14 @@ public class Stats extends QueryCommand {
 
 	private ParallelMergeSorter sorter;
 
-	private Map<List<Object>, AggregationFunction[]> buffer;
+	private ConcurrentMap<List<Object>, AggregationFunction[]> buffer;
 
 	public Stats(List<AggregationField> fields, List<String> clause) {
 		this.EMPTY_KEY = new ArrayList<Object>(0);
 		this.clauses = clause;
 		this.clauseCount = clauses.size();
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
-		this.buffer = new HashMap<List<Object>, AggregationFunction[]>();
+		this.buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
 		this.fields = fields;
 		this.funcs = new AggregationFunction[fields.size()];
 
@@ -120,9 +122,6 @@ public class Stats extends QueryCommand {
 	}
 
 	private void flush() throws IOException {
-		if (buffer == null)
-			return;
-
 		if (logger.isDebugEnabled())
 			logger.debug("araqne logdb: flushing stats buffer, [{}] keys", buffer.keySet().size());
 
@@ -155,7 +154,7 @@ public class Stats extends QueryCommand {
 			flush();
 
 			// reclaim buffer (GC support)
-			buffer = null;
+			buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
 
 			// sort
 			it = sorter.sort();
