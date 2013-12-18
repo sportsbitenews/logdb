@@ -14,5 +14,18 @@ public interface StorageInput  extends Closeable, DataInput {
 	
 	long getPos() throws IOException;
 	
+	/**
+	 * read data to buffer best effort. This method is not thread-safe.
+	 * @param buf
+	 * @throws IOException
+	 */
+	void readBestEffort(ByteBuffer buf) throws IOException;
+	
+	/**
+	 * read data to buffer fully. This method is not thread-safe.
+	 * @param buf
+	 * @param startPos
+	 * @throws IOException
+	 */
 	void readFully(ByteBuffer buf, long startPos) throws IOException;
 }

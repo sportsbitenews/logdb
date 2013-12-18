@@ -22,6 +22,7 @@ public class LocalFileInputStream extends StorageInputStream {
 		this.source = r;
 	}
 
+	@Deprecated
 	@Override
 	public void readFully(ByteBuffer buf, long startPos) throws IOException {
 		synchronized (source) {
@@ -147,6 +148,16 @@ public class LocalFileInputStream extends StorageInputStream {
 	@Override
 	public long getPos() throws IOException {
 		return source.getFilePointer();
+	}
+
+	@Override
+	public void readBestEffort(ByteBuffer buf) throws IOException {
+		FileChannel channel = source.getChannel();
+		while (buf.remaining() > 0) {
+			int readBytes = channel.read(buf);
+			if (readBytes < 0)
+				break;
+		}
 	}
 
 }
