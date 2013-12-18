@@ -103,4 +103,9 @@ public class LocalFileOutputStream extends StorageOutputStream {
 		target.getFD().sync();
 	}
 
+	@Override
+	public long getPos() throws IOException {
+		return target.getFilePointer();
+	}
+
 }

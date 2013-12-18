@@ -3,6 +3,7 @@ package org.araqne.storage.localfile;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
@@ -141,6 +142,11 @@ public class LocalFileInputStream extends StorageInputStream {
 	@Override
 	public int read() throws IOException {
 		return source.read();
+	}
+
+	@Override
+	public long getPos() throws IOException {
+		return source.getFilePointer();
 	}
 
 }

@@ -8,4 +8,6 @@ public interface StorageOutput extends Closeable, DataOutput{
 	FilePath getPath();
 	
 	void sync() throws IOException;
+	
+	long getPos() throws IOException;
 }

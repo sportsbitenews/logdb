@@ -12,6 +12,7 @@ public interface StorageInput  extends Closeable, DataInput {
 	
 	void seek(long pos) throws IOException;
 	
-	void readFully(ByteBuffer buf, long startPos) throws IOException;
+	long getPos() throws IOException;
 	
+	void readFully(ByteBuffer buf, long startPos) throws IOException;
 }
