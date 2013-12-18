@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.araqne.log.api.*;
 import org.araqne.logdb.LogMap;
@@ -127,7 +126,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 			AggregationField field = AggregationParser.parse(context, aggTerm/* , funcTable */);
 			fields.add(field);
 		}
-
+		
 		keyExtractor = new StatsSummaryKeyExtractor(aggrInterval, pr.clauses);
 
 		funcs = new AggregationFunction[fields.size()];
@@ -316,7 +315,11 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 			parsed = parser.parse(log.getParams());
 		}
 
-		StatsSummaryKey key = keyExtractor.extract(log);
+		StatsSummaryKey key = keyExtractor.extract(log, parsed);
+		
+		if (slog.isDebugEnabled()) {
+			slog.debug("log: {}, key: {}", log.toString(), key.toString());
+		}
 
 		if (!buffer.containsKey(key)) {
 			if (buffer.size() == maxItemSize)
