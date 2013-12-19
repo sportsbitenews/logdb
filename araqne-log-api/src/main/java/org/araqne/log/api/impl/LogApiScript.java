@@ -46,23 +46,18 @@ public class LogApiScript implements Script {
 	private LoggerFactoryRegistry loggerFactoryRegistry;
 	private LoggerRegistry loggerRegistry;
 	private LogParserFactoryRegistry parserFactoryRegistry;
-	private LogNormalizerFactoryRegistry normalizerFactoryRegistry;
 	private LogTransformerFactoryRegistry transformerFactoryRegistry;
 	private LogParserRegistry parserRegistry;
-	private LogNormalizerRegistry normalizerRegistry;
 	private LogTransformerRegistry transformerRegistry;
 
 	public LogApiScript(LoggerFactoryRegistry loggerFactoryRegistry, LoggerRegistry loggerRegistry,
-			LogParserFactoryRegistry parserFactoryRegistry, LogNormalizerFactoryRegistry normalizerFactoryRegistry,
-			LogTransformerFactoryRegistry transformerFactoryRegistry, LogParserRegistry parserRegistry,
-			LogNormalizerRegistry normalizerRegistry, LogTransformerRegistry transformerRegistry) {
+			LogParserFactoryRegistry parserFactoryRegistry, LogTransformerFactoryRegistry transformerFactoryRegistry,
+			LogParserRegistry parserRegistry, LogTransformerRegistry transformerRegistry) {
 		this.loggerFactoryRegistry = loggerFactoryRegistry;
 		this.loggerRegistry = loggerRegistry;
 		this.parserFactoryRegistry = parserFactoryRegistry;
-		this.normalizerFactoryRegistry = normalizerFactoryRegistry;
 		this.transformerFactoryRegistry = transformerFactoryRegistry;
 		this.parserRegistry = parserRegistry;
-		this.normalizerRegistry = normalizerRegistry;
 		this.transformerRegistry = transformerRegistry;
 	}
 
@@ -74,8 +69,7 @@ public class LogApiScript implements Script {
 	/**
 	 * @since 2.6.0
 	 */
-	@ScriptUsage(description = "print last log of loggers", arguments = {
-			@ScriptArgument(name = "name filter", type = "string", description = "name filter", optional = true) })
+	@ScriptUsage(description = "print last log of loggers", arguments = { @ScriptArgument(name = "name filter", type = "string", description = "name filter", optional = true) })
 	public void lastLogs(String[] args) {
 		String filter = null;
 		if (args.length > 0)
@@ -136,17 +130,7 @@ public class LogApiScript implements Script {
 		context.println("removed");
 	}
 
-	public void normalizers(String[] args) {
-		context.println("Log Normalizer Profiles");
-		context.println("-------------------------");
-		for (LogNormalizerProfile profile : normalizerRegistry.getProfiles()) {
-			context.println(profile);
-		}
-	}
-
-	@ScriptUsage(description = "print transformer profiles", arguments = {
-			@ScriptArgument(name = "name", type = "string", description = "filter by name", optional = true)
-	})
+	@ScriptUsage(description = "print transformer profiles", arguments = { @ScriptArgument(name = "name", type = "string", description = "filter by name", optional = true) })
 	public void transformers(String[] args) {
 		String filter = null;
 		String filtered = "";
@@ -196,62 +180,6 @@ public class LogApiScript implements Script {
 	@ScriptUsage(description = "remove transformer profile", arguments = { @ScriptArgument(name = "profile name", type = "string", description = "profile name") })
 	public void removeTransformer(String[] args) {
 		transformerRegistry.removeProfile(args[0]);
-		context.println("removed");
-	}
-
-	public void normalize(String[] args) {
-		try {
-			context.print("Normalizer Name? ");
-			String normalizerName = context.readLine();
-			LogNormalizerFactory factory = normalizerFactoryRegistry.get(normalizerName);
-			if (factory == null) {
-				context.println("normalizer not found");
-				return;
-			}
-
-			LogNormalizer normalizer = factory.createNormalizer(new HashMap<String, String>());
-
-			Map<String, Object> params = getParams();
-			Map<String, Object> m = normalizer.normalize(params);
-			context.println("---------------------");
-			for (String key : m.keySet()) {
-				context.println(key + ": " + m.get(key));
-			}
-		} catch (InterruptedException e) {
-			context.println("");
-			context.println("interrupted");
-		}
-	}
-
-	@ScriptUsage(description = "create normalizer profile", arguments = {
-			@ScriptArgument(name = "profile name", type = "string", description = "profile name"),
-			@ScriptArgument(name = "factory name", type = "string", description = "normalizer factory name") })
-	public void createNormalizer(String[] args) throws InterruptedException {
-		String name = args[0];
-		String factoryName = args[1];
-
-		LogNormalizerProfile profile = new LogNormalizerProfile();
-		profile.setName(name);
-		profile.setFactoryName(factoryName);
-
-		LogNormalizerFactory factory = normalizerFactoryRegistry.get(factoryName);
-		if (factory == null) {
-			context.println("normalizer factory not found");
-			return;
-		}
-
-		Map<String, String> configs = profile.getConfigs();
-		for (LoggerConfigOption option : factory.getConfigOptions()) {
-			setOption(configs, option);
-		}
-
-		normalizerRegistry.createProfile(profile);
-
-		context.println("created");
-	}
-
-	public void removeNormalizer(String[] args) {
-		normalizerRegistry.removeProfile(args[0]);
 		context.println("removed");
 	}
 
@@ -313,8 +241,8 @@ public class LogApiScript implements Script {
 							"description"), Arrays.asList("l!factory name", "l!display name", "l!description"))));
 		} else {
 			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerFactoryListItem>(filteredList, Arrays.asList("fullName", "displayName"), Arrays
-							.asList("l!factory name", "l!display name"))));
+					new CollectionASCIITableAware<LoggerFactoryListItem>(filteredList, Arrays.asList("fullName", "displayName"),
+							Arrays.asList("l!factory name", "l!display name"))));
 		}
 	}
 
@@ -486,8 +414,7 @@ public class LogApiScript implements Script {
 		context.println();
 	}
 
-	@ScriptUsage(description = "print log parser factories", arguments = {
-			@ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
+	@ScriptUsage(description = "print log parser factories", arguments = { @ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
 	public void parserFactories(String[] args) {
 		String filter = null;
 		String filtered = "";
@@ -506,28 +433,7 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "print log normalizer factories", arguments = {
-			@ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
-	public void normalizerFactories(String[] args) {
-		String filter = null;
-		String filtered = "";
-		if (args.length > 0) {
-			filter = args[0];
-			filtered = " (filtered)";
-		}
-
-		context.println("Log Normalizers" + filtered);
-		context.println("---------------------");
-
-		for (String name : normalizerFactoryRegistry.getNames()) {
-			if (filter != null && !name.contains(filter))
-				continue;
-			context.println(name);
-		}
-	}
-
-	@ScriptUsage(description = "print log transformer factories", arguments = {
-			@ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
+	@ScriptUsage(description = "print log transformer factories", arguments = { @ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
 	public void transformerFactories(String[] args) {
 		String filter = null;
 		String filtered = "";
@@ -609,10 +515,9 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "start loggers at once, passive logger will ignore interval",
-			arguments = {
-					@ScriptArgument(name = "logger names", type = "string", description = "logger name wildcard expression"),
-					@ScriptArgument(name = "interval", type = "int", description = "run interval in milliseconds, 5000 by default", optional = true) })
+	@ScriptUsage(description = "start loggers at once, passive logger will ignore interval", arguments = {
+			@ScriptArgument(name = "logger names", type = "string", description = "logger name wildcard expression"),
+			@ScriptArgument(name = "interval", type = "int", description = "run interval in milliseconds, 5000 by default", optional = true) })
 	public void startLoggers(String[] args) {
 		if (!args[0].contains("*")) {
 			context.println("logger name expression should contains one or more wildcard");
@@ -699,10 +604,9 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "stop loggers at once",
-			arguments = {
-					@ScriptArgument(name = "logger", type = "string", description = "a logger name or many logger names separated by space"),
-					@ScriptArgument(name = "max wait time", type = "int", description = "stop wait time in milliseconds, 5000 by default", optional = true) })
+	@ScriptUsage(description = "stop loggers at once", arguments = {
+			@ScriptArgument(name = "logger", type = "string", description = "a logger name or many logger names separated by space"),
+			@ScriptArgument(name = "max wait time", type = "int", description = "stop wait time in milliseconds, 5000 by default", optional = true) })
 	public void stopLoggers(String[] args) {
 		if (!args[0].contains("*")) {
 			context.println("logger name expression should contains one or more wildcard");
@@ -815,8 +719,7 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "remove logger", arguments = {
-			@ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname", autocompletion = LoggerAutoCompleter.class) })
+	@ScriptUsage(description = "remove logger", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname", autocompletion = LoggerAutoCompleter.class) })
 	public void removeLogger(String[] args) {
 		try {
 			String fullName = args[0];
@@ -854,22 +757,5 @@ public class LogApiScript implements Script {
 		if (value.isEmpty() && type.isRequired()) {
 			setOption(config, type);
 		}
-	}
-
-	private Map<String, Object> getParams() throws InterruptedException {
-		Map<String, Object> params = new HashMap<String, Object>();
-
-		while (true) {
-			context.print("Key (press enter to end): ");
-			String key = context.readLine();
-			if (key == null || key.isEmpty())
-				break;
-
-			context.print("Value: ");
-			String value = context.readLine();
-
-			params.put(key, value);
-		}
-		return params;
 	}
 }

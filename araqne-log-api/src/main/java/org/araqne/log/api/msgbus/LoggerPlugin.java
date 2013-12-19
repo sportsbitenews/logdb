@@ -23,7 +23,6 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
-import org.araqne.log.api.LogNormalizerFactoryRegistry;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.Logger;
@@ -45,9 +44,6 @@ public class LoggerPlugin {
 
 	@Requires
 	private LoggerFactoryRegistry loggerFactoryRegistry;
-
-	@Requires
-	private LogNormalizerFactoryRegistry normalizerRegistry;
 
 	@Requires
 	private LogParserFactoryRegistry parserFactoryRegistry;
@@ -92,11 +88,6 @@ public class LoggerPlugin {
 			resp.put("logger", Marshaler.marshal(logger));
 		else
 			resp.put("logger", null);
-	}
-
-	@MsgbusMethod
-	public void getNormalizers(Request req, Response resp) {
-		resp.put("normalizers", normalizerRegistry.getNames());
 	}
 
 	@MsgbusMethod

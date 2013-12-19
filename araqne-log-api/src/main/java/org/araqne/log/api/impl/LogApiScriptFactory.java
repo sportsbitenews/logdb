@@ -21,8 +21,6 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.ServiceProperty;
 import org.araqne.api.Script;
 import org.araqne.api.ScriptFactory;
-import org.araqne.log.api.LogNormalizerFactoryRegistry;
-import org.araqne.log.api.LogNormalizerRegistry;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LogTransformerFactoryRegistry;
@@ -46,23 +44,17 @@ public class LogApiScriptFactory implements ScriptFactory {
 	private LogParserFactoryRegistry parserFactoryRegistry;
 
 	@Requires
-	private LogNormalizerFactoryRegistry normalizerFactoryRegistry;
-
-	@Requires
 	private LogTransformerFactoryRegistry transformerFactoryRegistry;
 
 	@Requires
 	private LogParserRegistry parserRegistry;
 
 	@Requires
-	private LogNormalizerRegistry normalizerRegistry;
-
-	@Requires
 	private LogTransformerRegistry transformerRegistry;
 
 	@Override
 	public Script createScript() {
-		return new LogApiScript(loggerFactoryRegistry, loggerRegistry, parserFactoryRegistry, normalizerFactoryRegistry,
-				transformerFactoryRegistry, parserRegistry, normalizerRegistry, transformerRegistry);
+		return new LogApiScript(loggerFactoryRegistry, loggerRegistry, parserFactoryRegistry, transformerFactoryRegistry,
+				parserRegistry, transformerRegistry);
 	}
 }
