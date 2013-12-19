@@ -7,8 +7,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StatsSummaryKeyExtractor {
+	private Logger slf4j = LoggerFactory.getLogger(StatsSummaryKeyExtractor.class);
+	
 	List<String> clauses;
 	Calendar cal;
 	private int minInterval;
@@ -38,12 +42,11 @@ public class StatsSummaryKeyExtractor {
 		this.cal = Calendar.getInstance();
 	}
 	
-	public StatsSummaryKey extract(Log log) {
-		Map<String, Object> data = log.getParams();
+	public StatsSummaryKey extract(Log log, Map<String, Object> parsed) {
 		Object[] keys = new Object[clauses.size()];
 		int cnt = 0;
 		for (String c: clauses)
-			keys[cnt++] = data.get(c);
+			keys[cnt++] = parsed.get(c);
 		
 		return new StatsSummaryKey(floorDate(cal, log.getDate(), intervalDivisor, intervalTimeUnit), keys);
 	}
