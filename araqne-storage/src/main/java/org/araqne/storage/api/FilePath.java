@@ -7,6 +7,8 @@ public interface FilePath extends Comparable<FilePath> {
 	
 	String getAbsolutePath();
 	
+	String getCanonicalPath() throws IOException;
+	
 	String getName();
 	
 	boolean exists();
@@ -15,9 +17,15 @@ public interface FilePath extends Comparable<FilePath> {
 	
 	boolean delete();
 	
+	boolean renameTo(FilePath dest);
+	
 	boolean isDirectory();
 	
 	boolean isFile();
+	
+	boolean canRead();
+	
+	boolean canWrite();
 	
 	long length();
 	
@@ -30,6 +38,8 @@ public interface FilePath extends Comparable<FilePath> {
 	StorageOutputStream newOutputStream(boolean append) throws IOException;
 	
 	FilePath newFilePath(String child);
+	
+	FilePath createTempFilePath(String prefix, String suffix) throws IOException;
 	
 	FilePath getParentFilePath();
 	

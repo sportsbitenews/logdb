@@ -243,10 +243,6 @@ public class BufferedStorageInputStream implements DataInput, Closeable {
 		return storageInputStream.length();
 	}
 
-	private void invalidateBuffer() {
-		isInvalidated = true;
-	}
-
 	private void syncBuffer() throws IOException {
 		syncBuffer((int) buf.capacity());
 	}

@@ -16,6 +16,13 @@ public class LocalFilePath implements FilePath {
 	public LocalFilePath(File path) {
 		this.path = path;
 	}
+	
+	public LocalFilePath(String pathStr) {
+		if (pathStr.startsWith("file://"))
+			pathStr = pathStr.substring(7);
+		
+		this.path = new File(pathStr);
+	}
 
 	@Override
 	public StorageInputStream newInputStream() throws IOException {
@@ -150,6 +157,34 @@ public class LocalFilePath implements FilePath {
 	@Override
 	public String getProtocol() {
 		return "file";
+	}
+
+	@Override
+	public String getCanonicalPath() throws IOException {
+		return path.getCanonicalPath();
+	}
+
+	@Override
+	public boolean renameTo(FilePath dest) {
+		if (!(dest instanceof LocalFilePath))
+			return false;
+		
+		return path.renameTo(((LocalFilePath)dest).path);
+	}
+
+	@Override
+	public boolean canRead() {
+		return path.canRead();
+	}
+
+	@Override
+	public boolean canWrite() {
+		return path.canWrite();
+	}
+
+	@Override
+	public FilePath createTempFilePath(String prefix, String suffix) throws IOException {
+		return new LocalFilePath(File.createTempFile(prefix, suffix, path));
 	}
 
 }
