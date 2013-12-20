@@ -213,7 +213,7 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 		Map<FilePath, List<String>> partitionTables = new HashMap<FilePath, List<String>>();
 
 		for (String tableName : tableRegistry.getTableNames()) {
-			FilePath dir = storage.getTableDirectory(tableName).getParentFilePath();
+			FilePath dir = storage.getTableDirectory(tableName).getAbsoluteFilePath().getParentFilePath();
 
 			List<String> tables = partitionTables.get(dir);
 			if (tables == null) {

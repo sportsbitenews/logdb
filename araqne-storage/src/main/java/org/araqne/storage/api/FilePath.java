@@ -43,6 +43,8 @@ public interface FilePath extends Comparable<FilePath> {
 	
 	FilePath getParentFilePath();
 	
+	FilePath getAbsoluteFilePath();
+	
 	long getUsableSpace();
 	
 	long getTotalSpace();

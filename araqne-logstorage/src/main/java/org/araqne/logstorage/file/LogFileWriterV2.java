@@ -182,7 +182,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 	@Override
 	public boolean isLowDisk() {
-		FilePath dir = indexPath.getParentFilePath();
+		FilePath dir = indexPath.getAbsoluteFilePath().getParentFilePath();
 		return dir != null && dir.getUsableSpace() == 0;
 	}
 

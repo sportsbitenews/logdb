@@ -115,6 +115,7 @@ public class LocalFilePath implements FilePath {
 	@Override
 	public FilePath getParentFilePath() {
 		File parentFile = path.getParentFile();
+
 		if (parentFile == null)
 			return null;
 		
@@ -185,6 +186,11 @@ public class LocalFilePath implements FilePath {
 	@Override
 	public FilePath createTempFilePath(String prefix, String suffix) throws IOException {
 		return new LocalFilePath(File.createTempFile(prefix, suffix, path));
+	}
+
+	@Override
+	public FilePath getAbsoluteFilePath() {
+		return new LocalFilePath(path.getAbsoluteFile());
 	}
 
 }

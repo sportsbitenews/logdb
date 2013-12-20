@@ -311,6 +311,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	}
 
 	private FilePath getTableDirectory(int tableId, String basePath) {
+		// TODO: use storage manager to expand uri
 		FilePath baseDir = logDir;
 		if (basePath != null)
 			baseDir = new LocalFilePath(new File(basePath));
