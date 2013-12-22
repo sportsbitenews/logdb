@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 NCHOVY
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,12 @@
  */
 package org.araqne.log.api;
 
-public interface LogPipe {
-	void onLog(Logger logger, Log log);
+public abstract class AbstractLogPipe implements LogPipe {
 
-	void onLogBatch(Logger logger, Log[] logs);
+	@Override
+	public void onLogBatch(Logger logger, Log[] logs) {
+		for (Log log : logs)
+			if (log != null)
+				onLog(logger, log);
+	}
 }

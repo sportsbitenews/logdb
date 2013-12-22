@@ -22,25 +22,25 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.araqne.log.api.AbstractLogPipe;
 import org.araqne.log.api.AbstractLogger;
 import org.araqne.log.api.Log;
-import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerRegistryEventListener;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.SimpleLog;
+import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandPipe;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryCommand;
 
 /**
  * @since 1.7.8
  * @author xeraph
  * 
  */
-public class QueryTransformLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
+public class QueryTransformLogger extends AbstractLogger implements LoggerRegistryEventListener {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(QueryTransformLogger.class.getName());
 
 	private LoggerRegistry loggerRegistry;
@@ -56,7 +56,9 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 
 	private volatile boolean stopRunner = false;
 	private QueryRunner runner;
-	private ArrayBlockingQueue<Log> queue = new ArrayBlockingQueue<Log>(100000);
+	private ArrayBlockingQueue<Log[]> queue = new ArrayBlockingQueue<Log[]>(100000);
+
+	private Receiver receiver = new Receiver();
 
 	public QueryTransformLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry,
 			List<QueryCommand> commands) {
@@ -85,7 +87,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 
 		if (logger != null) {
 			slog.debug("araqne logdb: connect pipe to source logger [{}]", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		} else
 			slog.debug("araqne logdb: source logger [{}] not found", loggerName);
 	}
@@ -105,7 +107,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 				Logger logger = loggerRegistry.getLogger(loggerName);
 				if (logger != null) {
 					slog.debug("araqne logdb: disconnect pipe from source logger [{}]", loggerName);
-					logger.removeLogPipe(this);
+					logger.removeLogPipe(receiver);
 				}
 
 				loggerRegistry.removeListener(this);
@@ -129,7 +131,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 	public void loggerAdded(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne logdb: source logger [{}] loaded", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		}
 	}
 
@@ -137,17 +139,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 	public void loggerRemoved(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne logdb: source logger [{}] unloaded", loggerName);
-			logger.removeLogPipe(this);
-		}
-	}
-
-	@Override
-	public void onLog(Logger logger, Log log) {
-		try {
-			if (isRunning())
-				queue.put(log);
-		} catch (Throwable t) {
-			slog.error("araqne logdb: cannot evaluate query, log [" + log.getParams() + "], logger " + getFullName(), t);
+			logger.removeLogPipe(receiver);
 		}
 	}
 
@@ -166,25 +158,29 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 		public void run() {
 			try {
 				slog.info("araqne logdb: begin query runner, logger [{}]", getFullName());
-				ArrayList<Log> buffer = new ArrayList<Log>(10002);
+				ArrayList<Log[]> buffer = new ArrayList<Log[]>(10002);
 				while (!stopRunner) {
-					Log log = null;
+					Log[] logs = null;
 					try {
-						log = queue.poll(1, TimeUnit.SECONDS);
-						if (log == null)
+						logs = queue.poll(1, TimeUnit.SECONDS);
+						if (logs == null)
 							continue;
 
-						buffer.add(log);
+						buffer.add(logs);
 						queue.drainTo(buffer, 10000);
 
-						for (Log l : buffer) {
-							currentLog = log;
-							first.onPush(new Row(l.getParams()));
-						}
+						for (Log[] l : buffer) {
+							for (Log log : l) {
+								if (log == null)
+									continue;
 
+								currentLog = log;
+								first.onPush(new Row(log.getParams()));
+							}
+						}
 					} catch (Throwable t) {
-						if (log != null)
-							slog.error("araqne logdb: cannot evaluate query, log [" + log.getParams() + "], logger "
+						if (logs != null)
+							slog.error("araqne logdb: cannot evaluate query, log [" + currentLog.getParams() + "], logger "
 									+ getFullName(), t);
 					} finally {
 						buffer.clear();
@@ -195,6 +191,29 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 			} finally {
 				stopRunner = false;
 				runner = null;
+			}
+		}
+	}
+
+	private class Receiver extends AbstractLogPipe {
+
+		@Override
+		public void onLog(Logger logger, Log log) {
+			try {
+				if (isRunning())
+					queue.put(new Log[] { log });
+			} catch (Throwable t) {
+				slog.error("araqne logdb: cannot evaluate query, log [" + log.getParams() + "], logger " + getFullName(), t);
+			}
+		}
+
+		@Override
+		public void onLogBatch(Logger logger, Log[] logs) {
+			try {
+				if (isRunning())
+					queue.put(logs);
+			} catch (Throwable t) {
+				slog.error("araqne logdb: cannot evaluate query, log [" + logs.length + "], logger " + getFullName(), t);
 			}
 		}
 	}

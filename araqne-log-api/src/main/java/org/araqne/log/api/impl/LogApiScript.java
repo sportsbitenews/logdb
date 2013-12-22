@@ -475,11 +475,12 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	private class ConsoleLogPipe implements LogPipe {
+	private class ConsoleLogPipe extends AbstractLogPipe {
 		@Override
 		public void onLog(Logger logger, Log log) {
 			context.println(logger.getFullName() + ": " + log.toString());
 		}
+
 	}
 
 	@ScriptUsage(description = "start the logger", arguments = {

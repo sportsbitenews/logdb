@@ -8,7 +8,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 
-public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
+public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegistryEventListener {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(TimeRollingLogWriter.class);
 	private final String filePath;
 	private final String rotateInterval;
@@ -32,6 +32,8 @@ public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegist
 	private boolean noRollingMode;
 
 	private String currentFilePath;
+
+	private Receiver receiver = new Receiver();
 
 	public TimeRollingLogWriter(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
 		super(spec, factory);
@@ -76,7 +78,7 @@ public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegist
 
 		if (logger != null) {
 			slog.debug("araqne log api: connect pipe to source logger [{}]", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		} else
 			slog.debug("araqne log api: source logger [{}] not found", loggerName);
 	}
@@ -90,7 +92,7 @@ public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegist
 				Logger logger = loggerRegistry.getLogger(loggerName);
 				if (logger != null) {
 					slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
-					logger.removeLogPipe(this);
+					logger.removeLogPipe(receiver);
 				}
 
 				loggerRegistry.removeListener(this);
@@ -102,8 +104,8 @@ public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegist
 
 	private void ensureOpen(File f) {
 		if (f.getParentFile().mkdirs())
-			slog.info("araqne log api: created parent directory [{}] by time rolling log file logger",
-					f.getParentFile().getAbsolutePath());
+			slog.info("araqne log api: created parent directory [{}] by time rolling log file logger", f.getParentFile()
+					.getAbsolutePath());
 
 		try {
 			fos = new FileOutputStream(f, true);
@@ -147,7 +149,7 @@ public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegist
 	public void loggerAdded(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] loaded", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		}
 	}
 
@@ -155,38 +157,7 @@ public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegist
 	public void loggerRemoved(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] unloaded", loggerName);
-			logger.removeLogPipe(this);
-		}
-	}
-
-	@Override
-	public void onLog(Logger logger, Log log) {
-		Map<String, Object> params = log.getParams();
-		write(new SimpleLog(log.getDate(), getFullName(), params));
-
-		String targetPath = filePath;
-		if (dateFormat != null) {
-			targetPath = filePath + "." + dateFormat.format(log.getDate());
-		}
-
-		try {
-			String line = buildLine(log);
-			byte[] b = line.getBytes(charsetName);
-			if (!currentFilePath.equals(targetPath)) {
-				if (!noRollingMode && !rollFile(targetPath)) {
-					noRollingMode = true;
-					slog.error("araqne log api: other process hold log file more than 10min, turn logger [{}] to non-rolling mode",
-							logger.getFullName());
-				}
-			}
-
-			bos.write(b);
-			if (addCR)
-				bos.write('\r');
-
-			bos.write('\n');
-		} catch (Throwable t) {
-			slog.debug("araqne log api: cannot write rolling log file, logger [" + logger.getFullName() + "]", t);
+			logger.removeLogPipe(receiver);
 		}
 	}
 
@@ -224,5 +195,39 @@ public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegist
 		ensureOpen(new File(newPath));
 
 		return true;
+	}
+
+	private class Receiver extends AbstractLogPipe {
+		@Override
+		public void onLog(Logger logger, Log log) {
+			Map<String, Object> params = log.getParams();
+			write(new SimpleLog(log.getDate(), getFullName(), params));
+
+			String targetPath = filePath;
+			if (dateFormat != null) {
+				targetPath = filePath + "." + dateFormat.format(log.getDate());
+			}
+
+			try {
+				String line = buildLine(log);
+				byte[] b = line.getBytes(charsetName);
+				if (!currentFilePath.equals(targetPath)) {
+					if (!noRollingMode && !rollFile(targetPath)) {
+						noRollingMode = true;
+						slog.error(
+								"araqne log api: other process hold log file more than 10min, turn logger [{}] to non-rolling mode",
+								logger.getFullName());
+					}
+				}
+
+				bos.write(b);
+				if (addCR)
+					bos.write('\r');
+
+				bos.write('\n');
+			} catch (Throwable t) {
+				slog.debug("araqne log api: cannot write rolling log file, logger [" + logger.getFullName() + "]", t);
+			}
+		}
 	}
 }

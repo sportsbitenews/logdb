@@ -29,11 +29,12 @@ import java.util.regex.Pattern;
 
 import org.araqne.log.api.impl.FileUtils;
 
-public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
+public class DirectoryWatchLogger extends AbstractLogger {
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DirectoryWatchLogger.class.getName());
 	protected File dataDir;
 	protected String basePath;
 	protected Pattern fileNamePattern;
+	private Receiver receiver = new Receiver();
 
 	private MultilineLogExtractor extractor;
 
@@ -47,7 +48,7 @@ public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 		String fileNameRegex = getConfig().get("filename_pattern");
 		fileNamePattern = Pattern.compile(fileNameRegex);
 
-		extractor = new MultilineLogExtractor(this, this);
+		extractor = new MultilineLogExtractor(this, receiver);
 
 		// optional
 		String dateExtractRegex = getConfig().get("date_pattern");
@@ -79,11 +80,6 @@ public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 			charset = "utf-8";
 
 		extractor.setCharset(charset);
-	}
-
-	@Override
-	public void onLog(Logger logger, Log log) {
-		write(log);
 	}
 
 	@Override
@@ -121,7 +117,7 @@ public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 			if (lastPositions.containsKey(path)) {
 				LastPosition inform = lastPositions.get(path);
 				offset = inform.getPosition();
-				logger.trace("logpresso igloo: target file [{}] skip offset [{}]", path, offset);
+				logger.trace("araqne log api: target file [{}] skip offset [{}]", path, offset);
 			}
 
 			AtomicLong lastPosition = new AtomicLong(offset);
@@ -161,4 +157,17 @@ public class DirectoryWatchLogger extends AbstractLogger implements LogPipe {
 		return new File(dataDir, "dirwatch-" + getName() + ".lastlog");
 	}
 
+	private class Receiver extends AbstractLogPipe {
+
+		@Override
+		public void onLog(Logger logger, Log log) {
+			write(log);
+		}
+
+		@Override
+		public void onLogBatch(Logger logger, Log[] logs) {
+			writeBatch(logs);
+		}
+
+	}
 }

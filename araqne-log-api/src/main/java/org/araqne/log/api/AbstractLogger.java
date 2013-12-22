@@ -433,6 +433,65 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		}
 	}
 
+	protected void writeBatch(Log[] logs) {
+		// call method to support overriding (ex. base remote logger)
+		if (!isRunning())
+			return;
+
+		int addCount = 0;
+		int dropCount = 0;
+
+		for (int i = 0; i < logs.length; i++) {
+			Log log = logs[i];
+			if (log == null)
+				continue;
+
+			// update last log date
+			lastLogDate = log.getDate();
+			lastLog = log;
+			addCount++;
+
+			// transform
+			if (transformer != null)
+				log = transformer.transform(log);
+
+			logs[i] = log;
+
+			// transform may return null to filter log
+			if (log == null) {
+				dropCount++;
+				continue;
+			}
+		}
+
+		if (addCount > dropCount)
+			lastWriteDate = new Date();
+
+		logCounter.addAndGet(addCount);
+		dropCounter.addAndGet(dropCount);
+
+		// notify all
+		for (LogPipe pipe : pipes) {
+			try {
+				pipe.onLogBatch(this, logs);
+			} catch (LoggerStopException e) {
+				this.log.warn("araqne-log-api: stopping logger [" + getFullName() + "] by exception", e);
+				if (isPassive())
+					stop(false);
+				else {
+					doStop = true;
+					status = LoggerStatus.Stopping;
+					invokeStopCallback();
+				}
+			} catch (Exception e) {
+				if (e.getMessage() != null && e.getMessage().startsWith("invalid time"))
+					this.log.warn("araqne-log-api: log pipe should not throw exception" + e.getMessage());
+				else
+					this.log.warn("araqne-log-api: log pipe should not throw exception", e);
+			}
+		}
+	}
+
 	protected void write(Log log) {
 		// call method to support overriding (ex. base remote logger)
 		if (!isRunning())

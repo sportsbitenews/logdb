@@ -1,10 +1,11 @@
 package org.araqne.log.api;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class ParseLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
+public class ParseLogger extends AbstractLogger implements LoggerRegistryEventListener {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(ParseLogger.class.getName());
 	private LoggerRegistry loggerRegistry;
 	private LogParserRegistry parserRegistry;
@@ -16,9 +17,12 @@ public class ParseLogger extends AbstractLogger implements LoggerRegistryEventLi
 
 	private volatile boolean stopRunner = false;
 	private ParseRunner runner;
-	private ArrayBlockingQueue<Log> queue = new ArrayBlockingQueue<Log>(100000);
 
-	public ParseLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry, LogParserRegistry parserRegistry) {
+	private Receiver receiver = new Receiver();
+	private ArrayBlockingQueue<Log[]> queue = new ArrayBlockingQueue<Log[]>(100000);
+
+	public ParseLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry,
+			LogParserRegistry parserRegistry) {
 		super(spec, factory);
 		this.loggerRegistry = loggerRegistry;
 		this.parserRegistry = parserRegistry;
@@ -39,7 +43,7 @@ public class ParseLogger extends AbstractLogger implements LoggerRegistryEventLi
 
 		if (logger != null) {
 			slog.debug("araqne log api: connect pipe to source logger [{}]", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		} else
 			slog.debug("araqne log api: source logger [{}] not found", loggerName);
 	}
@@ -59,7 +63,7 @@ public class ParseLogger extends AbstractLogger implements LoggerRegistryEventLi
 				Logger logger = loggerRegistry.getLogger(loggerName);
 				if (logger != null) {
 					slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
-					logger.removeLogPipe(this);
+					logger.removeLogPipe(receiver);
 				}
 
 				loggerRegistry.removeListener(this);
@@ -83,7 +87,7 @@ public class ParseLogger extends AbstractLogger implements LoggerRegistryEventLi
 	public void loggerAdded(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] loaded", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		}
 	}
 
@@ -91,38 +95,63 @@ public class ParseLogger extends AbstractLogger implements LoggerRegistryEventLi
 	public void loggerRemoved(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] unloaded", loggerName);
-			logger.removeLogPipe(this);
+			logger.removeLogPipe(receiver);
 		}
 	}
 
-	@Override
-	public void onLog(Logger logger, Log log) {
-		try {
-			if (isRunning())
-				queue.put(log);
-		} catch (Throwable t) {
-			slog.error("araqne log api: cannot parse log [" + log.getParams() + "]", t);
+	private class Receiver extends AbstractLogPipe {
+
+		@Override
+		public void onLog(Logger logger, Log log) {
+			try {
+				if (isRunning())
+					queue.put(new Log[] { log });
+			} catch (Throwable t) {
+				slog.error("araqne log api: cannot parse log [" + log.getParams() + "]", t);
+			}
+		}
+
+		@Override
+		public void onLogBatch(Logger logger, Log[] logs) {
+			try {
+				if (isRunning())
+					queue.put(logs);
+			} catch (Throwable t) {
+				slog.error("araqne log api: cannot parse log [" + logs + "]", t);
+			}
 		}
 	}
 
 	private class ParseRunner extends Thread {
-
 		@Override
 		public void run() {
 			try {
+				Log log = null;
 				slog.info("araqne log api: begin parser runner, logger [{}]", getFullName());
 				while (!stopRunner) {
-					Log log = null;
+					Log[] logs = null;
 					try {
-						log = queue.poll(1, TimeUnit.SECONDS);
-						if (log == null)
+						logs = queue.poll(1, TimeUnit.SECONDS);
+						if (logs == null)
 							continue;
 
-						Map<String, Object> row = parser.parse(log.getParams());
-						if (row != null)
-							write(new SimpleLog(log.getDate(), getFullName(), row));
+						Log[] copy = Arrays.copyOf(logs, logs.length);
+
+						for (int i = 0; i < logs.length; i++) {
+							log = logs[i];
+							if (log == null)
+								continue;
+
+							Map<String, Object> row = parser.parse(log.getParams());
+							if (row == null)
+								continue;
+
+							copy[i] = new SimpleLog(log.getDate(), getFullName(), row);
+						}
+
+						writeBatch(copy);
 					} catch (Throwable t) {
-						if (log != null)
+						if (logs != null && log != null)
 							slog.error("araqne log api: cannot parse log [" + log.getParams() + "]", t);
 					}
 				}

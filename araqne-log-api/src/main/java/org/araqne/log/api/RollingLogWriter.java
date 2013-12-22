@@ -21,7 +21,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
-public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
+public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEventListener {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(RollingLogWriter.class);
 	private final File file;
 	private final long maxFileSize;
@@ -39,6 +39,8 @@ public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEv
 	private FileOutputStream fos;
 	private long totalBytes;
 	private boolean noRollingMode;
+
+	private Receiver receiver = new Receiver();
 
 	public RollingLogWriter(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
 		super(spec, factory);
@@ -74,7 +76,7 @@ public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEv
 
 		if (logger != null) {
 			slog.debug("araqne log api: connect pipe to source logger [{}]", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		} else
 			slog.debug("araqne log api: source logger [{}] not found", loggerName);
 	}
@@ -88,7 +90,7 @@ public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEv
 				Logger logger = loggerRegistry.getLogger(loggerName);
 				if (logger != null) {
 					slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
-					logger.removeLogPipe(this);
+					logger.removeLogPipe(receiver);
 				}
 
 				loggerRegistry.removeListener(this);
@@ -100,8 +102,8 @@ public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEv
 
 	private void ensureOpen() {
 		if (file.getParentFile().mkdirs())
-			slog.info("araqne log api: created parent directory [{}] by rolling log file transformer",
-					file.getParentFile().getAbsolutePath());
+			slog.info("araqne log api: created parent directory [{}] by rolling log file transformer", file.getParentFile()
+					.getAbsolutePath());
 
 		if (file.exists())
 			totalBytes = file.length();
@@ -147,7 +149,7 @@ public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEv
 	public void loggerAdded(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] loaded", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		}
 	}
 
@@ -155,36 +157,7 @@ public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEv
 	public void loggerRemoved(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] unloaded", loggerName);
-			logger.removeLogPipe(this);
-		}
-	}
-
-	@Override
-	public void onLog(Logger logger, Log log) {
-		Map<String, Object> params = log.getParams();
-		String line = (String) params.get("line");
-		if (line == null)
-			return;
-
-		write(new SimpleLog(log.getDate(), getFullName(), params));
-
-		try {
-			byte[] b = line.getBytes(charsetName);
-			if (maxFileSize < totalBytes + b.length) {
-				if (!noRollingMode && !rollFile()) {
-					noRollingMode = true;
-					slog.error("araqne log api: other process hold log file more than 10min, turn logger [{}] to non-rolling mode",
-							logger.getFullName());
-				}
-				totalBytes = b.length;
-			} else {
-				totalBytes += b.length;
-			}
-
-			bos.write(b);
-			bos.write('\n');
-		} catch (Throwable t) {
-			slog.debug("araqne log api: cannot write rolling log file, logger [" + logger.getFullName() + "]", t);
+			logger.removeLogPipe(receiver);
 		}
 	}
 
@@ -200,8 +173,8 @@ public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEv
 				while (!fromPath.delete()) {
 					try {
 						if (tryCount++ > 6000) {
-							slog.debug("araqne log api: failed to delete [{}] at logger [{}]",
-									fromPath.getAbsolutePath(), getFullName());
+							slog.debug("araqne log api: failed to delete [{}] at logger [{}]", fromPath.getAbsolutePath(),
+									getFullName());
 
 							return false;
 						}
@@ -215,8 +188,8 @@ public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEv
 
 			File toPath = new File(file.getAbsolutePath() + "." + (num + 1));
 
-			slog.debug("araqne log api: try to rename [{}] to [{}] at logger [{}]",
-					new Object[] { fromPath.getAbsolutePath(), toPath.getAbsolutePath(), getFullName() });
+			slog.debug("araqne log api: try to rename [{}] to [{}] at logger [{}]", new Object[] { fromPath.getAbsolutePath(),
+					toPath.getAbsolutePath(), getFullName() });
 
 			int tryCount = 0;
 			while (!fromPath.renameTo(toPath)) {
@@ -258,5 +231,37 @@ public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEv
 		ensureOpen();
 
 		return true;
+	}
+
+	private class Receiver extends AbstractLogPipe {
+		@Override
+		public void onLog(Logger logger, Log log) {
+			Map<String, Object> params = log.getParams();
+			String line = (String) params.get("line");
+			if (line == null)
+				return;
+
+			write(new SimpleLog(log.getDate(), getFullName(), params));
+
+			try {
+				byte[] b = line.getBytes(charsetName);
+				if (maxFileSize < totalBytes + b.length) {
+					if (!noRollingMode && !rollFile()) {
+						noRollingMode = true;
+						slog.error(
+								"araqne log api: other process hold log file more than 10min, turn logger [{}] to non-rolling mode",
+								logger.getFullName());
+					}
+					totalBytes = b.length;
+				} else {
+					totalBytes += b.length;
+				}
+
+				bos.write(b);
+				bos.write('\n');
+			} catch (Throwable t) {
+				slog.debug("araqne log api: cannot write rolling log file, logger [" + logger.getFullName() + "]", t);
+			}
+		}
 	}
 }

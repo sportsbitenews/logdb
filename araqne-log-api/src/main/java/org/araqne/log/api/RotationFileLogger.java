@@ -26,12 +26,13 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
-public class RotationFileLogger extends AbstractLogger implements LogPipe {
+public class RotationFileLogger extends AbstractLogger {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(RotationFileLogger.class);
 	private final File dataDir;
 
 	private String charset;
 
+	private Receiver receiver = new Receiver();
 	private MultilineLogExtractor extractor;
 
 	public RotationFileLogger(LoggerSpecification spec, LoggerFactory factory) {
@@ -40,7 +41,7 @@ public class RotationFileLogger extends AbstractLogger implements LogPipe {
 		this.dataDir = new File(System.getProperty("araqne.data.dir"), "araqne-log-api");
 		this.dataDir.mkdirs();
 
-		extractor = new MultilineLogExtractor(this, this);
+		extractor = new MultilineLogExtractor(this, receiver);
 
 		// optional
 		String datePatternRegex = getConfig().get("date_pattern");
@@ -74,11 +75,6 @@ public class RotationFileLogger extends AbstractLogger implements LogPipe {
 
 		extractor.setCharset(charset);
 
-	}
-
-	@Override
-	public void onLog(Logger logger, Log log) {
-		write(log);
 	}
 
 	@Override
@@ -220,5 +216,19 @@ public class RotationFileLogger extends AbstractLogger implements LogPipe {
 			this.lastPosition = lastPosition;
 			this.lastLength = lastLength;
 		}
+	}
+
+	private class Receiver extends AbstractLogPipe {
+
+		@Override
+		public void onLog(Logger logger, Log log) {
+			write(log);
+		}
+
+		@Override
+		public void onLogBatch(Logger logger, Log[] logs) {
+			writeBatch(logs);
+		}
+
 	}
 }

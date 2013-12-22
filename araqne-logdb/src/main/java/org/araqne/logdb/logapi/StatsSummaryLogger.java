@@ -23,11 +23,11 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.araqne.log.api.AbstractLogPipe;
 import org.araqne.log.api.AbstractLogger;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserRegistry;
-import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerRegistry;
@@ -43,7 +43,8 @@ import org.araqne.logdb.query.parser.AggregationParser;
 import org.araqne.logdb.query.parser.StatsParser;
 import org.araqne.logdb.query.parser.StatsParser.SyntaxParseResult;
 
-public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
+public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistryEventListener {
+
 	public class EmptySession implements Session {
 		@Override
 		public String getGuid() {
@@ -94,7 +95,9 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	private LogParserRegistry parserRegistry;
 	private String parserName;
 	private LogParser parser;
-	private ArrayBlockingQueue<Log> logList;
+	private ArrayBlockingQueue<Log[]> logList;
+
+	private Receiver receiver = new Receiver();
 
 	public StatsSummaryLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry,
 			LogParserRegistry parserRegistry) {
@@ -139,7 +142,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 																			 */);
 			fields.add(field);
 		}
-		
+
 		keyExtractor = new StatsSummaryKeyExtractor(aggrInterval, pr.clauses);
 
 		funcs = new AggregationFunction[fields.size()];
@@ -151,7 +154,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 			f.clean();
 		}
 
-		logList = new ArrayBlockingQueue<Log>(250000);
+		logList = new ArrayBlockingQueue<Log[]>(250000);
 	}
 
 	@Override
@@ -161,7 +164,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 
 		if (logger != null) {
 			slog.debug("araqne log api: connect pipe to source logger [{}]", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		} else
 			slog.debug("araqne log api: source logger [{}] not found", loggerName);
 
@@ -184,7 +187,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 				Logger logger = loggerRegistry.getLogger(loggerName);
 				if (logger != null) {
 					slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
-					logger.removeLogPipe(this);
+					logger.removeLogPipe(receiver);
 				}
 
 				loggerRegistry.removeListener(this);
@@ -212,11 +215,11 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	}
 
 	private void processLogs() {
-		ArrayList<Log> logs = new ArrayList<Log>(10000);
+		ArrayList<Log[]> logs = new ArrayList<Log[]>(10000);
 		while (true) {
 			logList.drainTo(logs, 10000);
 
-			for (Log log : logs) {
+			for (Log[] log : logs) {
 				processLog(log);
 			}
 
@@ -268,7 +271,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	public void loggerAdded(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] loaded", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		}
 	}
 
@@ -276,7 +279,7 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	public void loggerRemoved(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] unloaded", loggerName);
-			logger.removeLogPipe(this);
+			logger.removeLogPipe(receiver);
 		}
 	}
 
@@ -288,70 +291,109 @@ public class StatsSummaryLogger extends AbstractLogger implements LoggerRegistry
 	private boolean forceFlush = false;
 	private boolean warnSuppressed;
 
-	@Override
-	public void onLog(Logger logger, Log log) {
-		try {
-			inputCount++;
+	private void processLog(Log[] logs) {
+		for (Log log : logs) {
+			if (log == null)
+				continue;
 
-			if (!isRunning() && !warnSuppressed) {
-				slog.warn("logs are being dropped because logger is not running: {}", this.getName());
-				warnSuppressed = true;
+			// parse log
+			Map<String, Object> parsed = log.getParams();
+			if (parser != null) {
+				// XXX: distinguish v1 v2
+				log.getParams().put("_time", log.getDate());
+				parsed = parser.parse(log.getParams());
 			}
 
-			if (isRunning() && warnSuppressed) {
-				warnSuppressed = false;
+			StatsSummaryKey key = keyExtractor.extract(log, parsed);
+
+			if (slog.isDebugEnabled()) {
+				slog.debug("log: {}, key: {}", log.toString(), key.toString());
 			}
 
-			boolean offer = logList.offer(log, 30, TimeUnit.SECONDS);
-			if (!offer) {
-				if (!isRunning()) {
-					slog.warn("log is dropped because logger is stopped: {}", this.getName());
-				} else {
-					// second chance
-					logList.offer(log, 30, TimeUnit.SECONDS);
-					slog.error("log is dropped because logger is congested: {}", this.getName());
+			if (!buffer.containsKey(key)) {
+				if (buffer.size() == maxItemSize)
+					flush();
+
+				AggregationFunction[] fs = new AggregationFunction[funcs.length];
+				for (int i = 0; i < fs.length; ++i) {
+					fs[i] = funcs[i].clone();
 				}
+				buffer.put(key, fs);
 			}
-
-		} catch (Throwable t) {
-			throw new IllegalStateException("logger-name: " + logger.getName() + ", log: " + log.toString(), t);
-		}
-
-	}
-
-	private void processLog(Log log) {
-		// parse log
-		Map<String, Object> parsed = log.getParams();
-		if (parser != null) {
-			// XXX: distinguish v1 v2
-			log.getParams().put("_time", log.getDate());
-			parsed = parser.parse(log.getParams());
-		}
-
-		StatsSummaryKey key = keyExtractor.extract(log, parsed);
-		
-		if (slog.isDebugEnabled()) {
-			slog.debug("log: {}, key: {}", log.toString(), key.toString());
-		}
-
-		if (!buffer.containsKey(key)) {
-			if (buffer.size() == maxItemSize)
-				flush();
-
-			AggregationFunction[] fs = new AggregationFunction[funcs.length];
-			for (int i = 0; i < fs.length; ++i) {
-				fs[i] = funcs[i].clone();
+			// XXX: replace LogMap to more proper type
+			AggregationFunction[] fs = buffer.get(key);
+			for (AggregationFunction f : fs) {
+				f.apply(new Row(parsed));
 			}
-			buffer.put(key, fs);
-		}
-		// XXX: replace LogMap to more proper type
-		AggregationFunction[] fs = buffer.get(key);
-		for (AggregationFunction f : fs) {
-			f.apply(new Row(parsed));
 		}
 	}
 
 	public void setForceFlush() {
 		forceFlush = true;
+	}
+
+	private class Receiver extends AbstractLogPipe {
+
+		@Override
+		public void onLog(Logger logger, Log log) {
+			try {
+				inputCount++;
+
+				if (!isRunning() && !warnSuppressed) {
+					slog.warn("logs are being dropped because logger is not running: {}", getName());
+					warnSuppressed = true;
+				}
+
+				if (isRunning() && warnSuppressed) {
+					warnSuppressed = false;
+				}
+
+				boolean offer = logList.offer(new Log[] { log }, 30, TimeUnit.SECONDS);
+				if (!offer) {
+					if (!isRunning()) {
+						slog.warn("log is dropped because logger is stopped: {}", getName());
+					} else {
+						// second chance
+						logList.offer(new Log[] { log }, 30, TimeUnit.SECONDS);
+						slog.error("log is dropped because logger is congested: {}", getName());
+					}
+				}
+
+			} catch (Throwable t) {
+				throw new IllegalStateException("logger-name: " + logger.getName() + ", log: " + log.toString(), t);
+			}
+		}
+
+		@Override
+		public void onLogBatch(Logger logger, Log[] logs) {
+			try {
+				for (Log log : logs)
+					if (log != null)
+						inputCount++;
+
+				if (!isRunning() && !warnSuppressed) {
+					slog.warn("logs are being dropped because logger is not running: {}", getName());
+					warnSuppressed = true;
+				}
+
+				if (isRunning() && warnSuppressed) {
+					warnSuppressed = false;
+				}
+
+				boolean offer = logList.offer(logs, 30, TimeUnit.SECONDS);
+				if (!offer) {
+					if (!isRunning()) {
+						slog.warn("log is dropped because logger is stopped: {}", getName());
+					} else {
+						// second chance
+						logList.offer(logs, 30, TimeUnit.SECONDS);
+						slog.error("log is dropped because logger is congested: {}", getName());
+					}
+				}
+
+			} catch (Throwable t) {
+				throw new IllegalStateException("logger-name: " + logger.getName() + ", log count: " + logs.length, t);
+			}
+		}
 	}
 }

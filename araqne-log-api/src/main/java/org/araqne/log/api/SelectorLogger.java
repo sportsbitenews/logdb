@@ -15,9 +15,10 @@
  */
 package org.araqne.log.api;
 
+import java.util.Arrays;
 import java.util.Map;
 
-public class SelectorLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
+public class SelectorLogger extends AbstractLogger implements LoggerRegistryEventListener {
 	private static final String OPT_SOURCE_LOGGER = "source_logger";
 	private static final String OPT_PATTERN = "pattern";
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SelectorLogger.class.getName());
@@ -29,6 +30,8 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	private String loggerName;
 
 	private String pattern;
+
+	private Receiver receiver = new Receiver();
 
 	public SelectorLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
 		super(spec, factory);
@@ -45,7 +48,7 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 
 		if (logger != null) {
 			slog.debug("araqne log api: connect pipe to source logger [{}]", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		} else
 			slog.debug("araqne log api: source logger [{}] not found", loggerName);
 	}
@@ -57,7 +60,7 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 				Logger logger = loggerRegistry.getLogger(loggerName);
 				if (logger != null) {
 					slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
-					logger.removeLogPipe(this);
+					logger.removeLogPipe(receiver);
 				}
 
 				loggerRegistry.removeListener(this);
@@ -81,7 +84,7 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	public void loggerAdded(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] loaded", loggerName);
-			logger.addLogPipe(this);
+			logger.addLogPipe(receiver);
 		}
 	}
 
@@ -89,18 +92,37 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	public void loggerRemoved(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] unloaded", loggerName);
-			logger.removeLogPipe(this);
+			logger.removeLogPipe(receiver);
 		}
 	}
 
-	@Override
-	public void onLog(Logger logger, Log log) {
-		String line = (String) log.getParams().get("line");
-		if (line == null)
-			return;
+	private class Receiver extends AbstractLogPipe {
+		@Override
+		public void onLog(Logger logger, Log log) {
+			String line = (String) log.getParams().get("line");
+			if (line == null)
+				return;
 
-		if (line.startsWith(pattern)) {
-			write(new SimpleLog(log.getDate(), getFullName(), log.getParams()));
+			if (line.startsWith(pattern)) {
+				write(new SimpleLog(log.getDate(), getFullName(), log.getParams()));
+			}
 		}
+
+		@Override
+		public void onLogBatch(Logger logger, Log[] logs) {
+			Log[] copy = Arrays.copyOf(logs, logs.length);
+			for (int i = 0; i < logs.length; i++) {
+				Log log = logs[i];
+				if (log == null)
+					continue;
+
+				String line = (String) log.getParams().get("line");
+				if (line != null && line.startsWith(pattern))
+					copy[i] = new SimpleLog(log.getDate(), getFullName(), log.getParams());
+			}
+
+			writeBatch(copy);
+		}
+
 	}
 }
