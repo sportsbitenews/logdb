@@ -46,6 +46,12 @@ public class QueryResultImpl implements QueryResult {
 	private long count;
 
 	/**
+	 * do NOT directly lock on log file writer. input should be serialized at
+	 * caller side. inner block-able caller run policy can cause deadlock.
+	 */
+	private Object writerLock = new Object();
+
+	/**
 	 * index and data file is deleted by user request
 	 */
 	private volatile boolean purged;
@@ -76,14 +82,15 @@ public class QueryResultImpl implements QueryResult {
 	@Override
 	public void onRow(Row row) {
 		try {
-			synchronized (writer) {
+			synchronized (writerLock) {
 				writer.write(new Log("$Result$", new Date(), count + 1, row.map()));
 			}
 		} catch (IOException e) {
 			// cancel query when disk is full
-			if (writer.isLowDisk())
-				invokeStopCallbacks(QueryStopReason.LowDisk);
-
+			synchronized (writerLock) {
+				if (writer.isLowDisk())
+					invokeStopCallbacks(QueryStopReason.LowDisk);
+			}
 			throw new IllegalStateException(e);
 		}
 		count++;
@@ -102,7 +109,7 @@ public class QueryResultImpl implements QueryResult {
 	@Override
 	public void onRowBatch(RowBatch rowBatch) {
 		try {
-			synchronized (writer) {
+			synchronized (writerLock) {
 				if (rowBatch.selectedInUse) {
 					for (int i = 0; i < rowBatch.size; i++) {
 						Row row = rowBatch.rows[rowBatch.selected[i]];
@@ -115,9 +122,10 @@ public class QueryResultImpl implements QueryResult {
 			}
 		} catch (IOException e) {
 			// cancel query when disk is full
-			if (writer.isLowDisk())
-				invokeStopCallbacks(QueryStopReason.LowDisk);
-
+			synchronized (writerLock) {
+				if (writer.isLowDisk())
+					invokeStopCallbacks(QueryStopReason.LowDisk);
+			}
 			throw new IllegalStateException(e);
 		}
 	}
@@ -144,7 +152,7 @@ public class QueryResultImpl implements QueryResult {
 
 	@Override
 	public void syncWriter() throws IOException {
-		synchronized (writer) {
+		synchronized (writerLock) {
 			writer.flush();
 			writer.sync();
 		}
@@ -158,7 +166,7 @@ public class QueryResultImpl implements QueryResult {
 		writerClosed = true;
 
 		try {
-			synchronized (writer) {
+			synchronized (writerLock) {
 				writer.close();
 			}
 		} catch (IOException e) {
@@ -182,7 +190,9 @@ public class QueryResultImpl implements QueryResult {
 		resultCallbacks.clear();
 
 		// delete files
-		writer.purge();
+		synchronized (writerLock) {
+			writer.purge();
+		}
 	}
 
 	@Override

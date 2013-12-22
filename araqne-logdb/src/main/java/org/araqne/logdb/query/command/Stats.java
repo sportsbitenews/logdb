@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 public class Stats extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
+	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
 	private int inputCount;
 	private List<AggregationField> fields;
 	private List<String> clauses;
@@ -170,7 +171,8 @@ public class Stats extends QueryCommand {
 				// first record or need to change merge set?
 				if (lastKeys == null || !Arrays.equals(lastKeys, (Object[]) item.getKey())) {
 					if (logger.isDebugEnabled() && lastKeys != null)
-						logger.debug("araqne logdb: stats key compare [{}] != [{}]", lastKeys[0], ((Object[]) item.getKey())[0]);
+						compareLogger.debug("araqne logdb: stats key compare [{}] != [{}]", lastKeys[0],
+								((Object[]) item.getKey())[0]);
 
 					// finalize last record (only if changing set)
 					if (fs != null) {
