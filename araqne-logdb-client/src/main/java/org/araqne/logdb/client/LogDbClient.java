@@ -1012,16 +1012,18 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	public void startQuery(int id) throws IOException {
-		startQuery(id, 10, 10);
+		startQuery(id, 10, null);
 	}
 
-	public void startQuery(int id, int pageSize, int timelineSize) throws IOException {
+	public void startQuery(int id, int pageSize, Integer timelineSize) throws IOException {
 		verifyQueryId(id);
 
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("id", id);
 		params.put("offset", 0);
 		params.put("limit", pageSize);
+
+		// timeline may degrade little performance
 		params.put("timeline_limit", timelineSize);
 
 		session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.startQuery", params);
