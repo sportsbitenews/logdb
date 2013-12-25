@@ -45,6 +45,29 @@ public abstract class QueryTimelineCallback {
 
 	public abstract int getSize();
 
+	public void put(List<Date> dates) {
+		if (dates == null)
+			return;
+
+		for (Date d : dates) {
+			long time = d.getTime();
+			time = time - time % 86400;
+			Long t = Long.valueOf(time);
+
+			Integer val = timeline.get(t);
+			if (val != null) {
+				timeline.put(t, val + 1);
+			} else
+				timeline.put(t, 1);
+		}
+
+		long now = System.currentTimeMillis();
+		if (now > lastCallbackTime + callbackInterval) {
+			callback();
+			lastCallbackTime = now;
+		}
+	}
+
 	public void put(Date date) {
 		if (date == null)
 			return;

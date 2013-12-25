@@ -225,17 +225,18 @@ public class DefaultQuery implements Query {
 	public QueryResultSet getResultSet() throws IOException {
 		if (result == null)
 			return null;
-		return result.getResultSet();
-	}
 
-	@Override
-	public Long getResultCount() throws IOException {
 		try {
 			result.syncWriter();
 		} catch (Throwable t) {
 			logger.debug("araqne logdb: result disk sync failed", t);
 		}
 
+		return result.getResultSet();
+	}
+
+	@Override
+	public Long getResultCount() throws IOException {
 		return result.getCount();
 	}
 

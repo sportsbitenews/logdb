@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb;
 
+import java.util.ArrayList;
 import java.util.Date;
 
 public abstract class QueryCommand {
@@ -120,8 +121,8 @@ public abstract class QueryCommand {
 		if (output != null) {
 			if (invokeTimelineCallback && query != null) {
 				for (QueryTimelineCallback callback : query.getCallbacks().getTimelineCallbacks()) {
-					Object date = row.get("_time");
-					if (date instanceof Date)
+					Date date = row.getDate();
+					if (date != null)
 						callback.put((Date) date);
 				}
 			}
@@ -136,18 +137,24 @@ public abstract class QueryCommand {
 			if (invokeTimelineCallback && query != null) {
 				for (QueryTimelineCallback callback : query.getCallbacks().getTimelineCallbacks()) {
 					if (rowBatch.selectedInUse) {
+						ArrayList<Date> dates = new ArrayList<Date>(rowBatch.size);
 						for (int i = 0; i < rowBatch.size; i++) {
 							Row row = rowBatch.rows[rowBatch.selected[i]];
-							Object date = row.get("_time");
-							if (date instanceof Date)
-								callback.put((Date) date);
+							Date date = row.getDate();
+							if (date != null)
+								dates.add(date);
 						}
+
+						callback.put(dates);
 					} else {
+						ArrayList<Date> dates = new ArrayList<Date>(rowBatch.size);
 						for (Row row : rowBatch.rows) {
-							Object date = row.get("_time");
-							if (date instanceof Date)
-								callback.put((Date) date);
+							Date date = row.getDate();
+							if (date != null)
+								dates.add(date);
 						}
+
+						callback.put(dates);
 					}
 				}
 			}
