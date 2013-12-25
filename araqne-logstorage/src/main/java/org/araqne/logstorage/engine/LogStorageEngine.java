@@ -213,7 +213,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		onlineWriters.clear();
 
 		lfsRegistry.removeListener(this);
-		
+
 		status = LogStorageStatus.Closed;
 	}
 
@@ -623,8 +623,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		for (String key : tableRegistry.getTableMetadataKeys(tableName))
 			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 
-		LogFileReader reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableMetadata, tableName,
-				indexPath, dataPath, keyPath));
+		LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
+		options.put("day", day);
+		LogFileReader reader = lfsRegistry.newReader(tableName, logFileType, options);
 
 		return new LogCursorImpl(tableName, day, buffer, reader, ascending);
 	}
@@ -684,7 +685,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			if (limit != 0 && needed <= 0)
 				break;
 
-			found += searchTablet(tableName, day, from, to, -1, -1, offset, needed, new TraverseCallback(from, to, callback), true);
+			found += searchTablet(tableName, day, from, to, -1, -1, offset, needed, new TraverseCallback(from, to, callback),
+					true);
 
 			if (offset > 0) {
 				if (found > offset) {
@@ -763,8 +765,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			for (String key : tableRegistry.getTableMetadataKeys(tableName))
 				tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 
-			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableMetadata, tableName, indexPath,
-					dataPath, keyPath));
+			LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
+			options.put("day", day);
+			reader = lfsRegistry.newReader(tableName, logFileType, options);
 
 			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
 			if (minId < 0 || flushedMaxId < 0 || flushedMaxId >= minId)
@@ -1231,8 +1234,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		return !c.isEof();
 	}
 
-	private boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c, boolean doParallel)
-			throws InterruptedException {
+	private boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId,
+			LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException {
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 
@@ -1254,11 +1257,11 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 					LogParser parser = null;
 					if (builder != null)
 						parser = builder.build();
-					
+
 					logger.trace("araqne logstorage: {} logs in writer buffer.", buffer.size());
 					List<Log> logs = new ArrayList<Log>(buffer.size());
 					ListIterator<Log> li = buffer.listIterator(buffer.size());
-					
+
 					while (li.hasPrevious()) {
 						Log logData = li.previous();
 						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
@@ -1267,14 +1270,14 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 							try {
 								result = LogFileReader.parse(tableName, parser, logData);
 							} catch (LogParserBugException e) {
-								result = Arrays.asList(new Log[] {new Log(e.tableName, e.date, e.id, e.logMap)});
+								result = Arrays.asList(new Log[] { new Log(e.tableName, e.date, e.id, e.logMap) });
 								c.setFailure(e);
 							}
 							logs.addAll(result);
 						}
 					}
 					c.writeLogs(logs);
-					
+
 					if (c.isEof())
 						return false;
 				}
@@ -1288,8 +1291,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			for (String key : tableRegistry.getTableMetadataKeys(tableName))
 				tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 
-			reader = lfsRegistry.newReader(tableName, logFileType, new LogFileServiceV2.Option(tableMetadata, tableName, indexPath,
-					dataPath, keyPath));
+			LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
+			options.put("day", day);
+			reader = lfsRegistry.newReader(tableName, logFileType, options);
 
 			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
 			if (minId < 0 || flushedMaxId < 0 || flushedMaxId >= minId)
@@ -1301,7 +1305,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			Throwable cause = e.getCause();
 			if (cause instanceof BufferUnderflowException || cause instanceof IOException)
 				c.setFailure(cause);
-			
+
 			if (e.getMessage().contains("license is locked"))
 				logger.warn("araqne logstorage: search tablet failed. {}", e.getMessage());
 			else
@@ -1324,14 +1328,14 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	}
 
 	@Override
-	public boolean searchTablet(String tableName, Date day, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c,
-			boolean doParallel) throws InterruptedException {
+	public boolean searchTablet(String tableName, Date day, long minId, long maxId, LogParserBuilder builder,
+			LogTraverseCallback c, boolean doParallel) throws InterruptedException {
 		return searchTablet(tableName, day, null, null, minId, maxId, builder, c, doParallel);
 	}
 
 	@Override
-	public boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder, LogTraverseCallback c,
-			boolean doParallel) throws InterruptedException {
+	public boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder,
+			LogTraverseCallback c, boolean doParallel) throws InterruptedException {
 		return searchTablet(tableName, day, from, to, minId, -1, builder, c, doParallel);
 	}
 }

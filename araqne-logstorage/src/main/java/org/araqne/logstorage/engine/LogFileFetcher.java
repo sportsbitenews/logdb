@@ -61,6 +61,7 @@ class LogFileFetcher {
 			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 
 		LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
+		options.put("day", day);
 		return lfsRegistry.newReader(tableName, logFileType, options);
 
 	}

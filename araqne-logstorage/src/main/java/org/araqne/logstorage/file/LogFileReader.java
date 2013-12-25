@@ -38,8 +38,8 @@ import org.araqne.logstorage.WrongTimeTypeException;
 
 public abstract class LogFileReader {
 	@Deprecated
-	public static LogFileReader getLogFileReader(String tableName, File indexPath, File dataPath) throws InvalidLogFileHeaderException,
-			IOException {
+	public static LogFileReader getLogFileReader(String tableName, File indexPath, File dataPath)
+			throws InvalidLogFileHeaderException, IOException {
 		LogFileReader reader = null;
 		RandomAccessFile indexHeaderReader = null;
 		RandomAccessFile dataHeaderReader = null;
@@ -68,15 +68,13 @@ public abstract class LogFileReader {
 
 		return reader;
 	}
-	
+
 	private static Log parseV1(LogParser parser, Log log) throws LogParserBugException {
 		Map<String, Object> m = null;
 		Object time = log.getDate();
 		try {
-			// can be unmodifiableMap when it comes from memory
-			// buffer.
-			Map<String, Object> m2 = new HashMap<String, Object>();
-			m2.putAll(log.getData());
+			// can be unmodifiableMap when it comes from memory buffer.
+			Map<String, Object> m2 = new HashMap<String, Object>(log.getData());
 			m2.put("_time", log.getDate());
 			Map<String, Object> parsed = parser.parse(m2);
 			if (parsed == null)
@@ -94,22 +92,21 @@ public abstract class LogFileReader {
 			}
 
 			m = parsed;
-			return new Log(log.getTableName(), (Date)time, log.getId(), m);
+			return new Log(log.getTableName(), (Date) time, log.getId(), m);
 		} catch (WrongTimeTypeException e) {
 			throw e;
 		} catch (Throwable t) {
 			// can be unmodifiableMap when it comes from memory
 			// buffer.
-			m = new HashMap<String, Object>();
-			m.putAll(log.getData());
+			m = new HashMap<String, Object>(log.getData());
 			m.put("_table", log.getTableName());
 			m.put("_id", log.getId());
 			m.put("_time", log.getDate());
 
-			throw new LogParserBugException(t, log.getTableName(), log.getId(), (Date)time, m);
+			throw new LogParserBugException(t, log.getTableName(), log.getId(), (Date) time, m);
 		}
 	}
-	
+
 	private static List<Log> parseV2(LogParser parser, Log log) throws LogParserBugException {
 		LogParserInput input = new LogParserInput();
 		input.setDate(log.getDate());
@@ -130,24 +127,25 @@ public abstract class LogFileReader {
 					else if (!(time instanceof Date)) {
 						throw new WrongTimeTypeException(time);
 					}
-					
-					ret.add(new Log(log.getTableName(), log.getDate(), log.getId(), row));
+
+					ret.add(new Log(log.getTableName(), log.getDate(), log.getDay(), log.getId(), row));
 				}
 
 			}
 			return ret;
 		} catch (Throwable t) {
-			// NOTE: log can be unmodifiableMap when it comes from memory buffer.
+			// NOTE: log can be unmodifiableMap when it comes from memory
+			// buffer.
 			HashMap<String, Object> row = new HashMap<String, Object>(log.getData());
 			row.put("_table", log.getTableName());
 			row.put("_id", log.getId());
 			row.put("_time", log.getDate());
-			
+
 			throw new LogParserBugException(t, log.getTableName(), log.getId(), log.getDate(), row);
 		}
-		
+
 	}
-	
+
 	public static List<Log> parse(String tableName, LogParser parser, Log log) throws LogParserBugException {
 		if (parser != null) {
 			if (parser != null && parser.getVersion() == 2) {
@@ -160,26 +158,22 @@ public abstract class LogFileReader {
 		} else {
 			// can be unmodifiableMap when it comes from memory
 			// buffer.
-			Map<String, Object> m = new HashMap<String, Object>();
-			m.putAll(log.getData());
-			m.put("_table", log.getTableName());
+			Map<String, Object> m = new HashMap<String, Object>(log.getData());
+			m.put("_table", tableName);
 			m.put("_id", log.getId());
 			m.put("_time", log.getDate());
-			
+
 			List<Log> ret = new ArrayList<Log>(1);
-			ret.add(new Log(tableName, log.getDate(), log.getId(), m));
+			ret.add(new Log(tableName, log.getDate(), log.getDay(), log.getId(), m));
 			return ret;
 		}
 	}
-	
-	protected static List<Log> parse(String tableName, LogParser parser, LogRecord record) throws LogParserBugException {
-		return parse(tableName, parser, LogMarshaler.convert(tableName, record));
-	}
-	
+
 	public abstract List<Log> find(Date from, Date to, List<Long> ids, LogParserBuilder builder);
 
 	@Deprecated
 	public abstract LogRecord find(long id) throws IOException;
+
 	@Deprecated
 	public abstract List<LogRecord> find(List<Long> ids) throws IOException;
 
@@ -194,19 +188,14 @@ public abstract class LogFileReader {
 			InterruptedException;
 
 	public abstract void traverse(Date from, Date to, long minId, long offset, long limit, LogMatchCallback callback)
-			throws IOException,
-			InterruptedException;
+			throws IOException, InterruptedException;
 
 	// maxId is inclusive
 	public abstract void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback,
-			boolean doParallel)
-			throws IOException,
-			InterruptedException;
+			boolean doParallel) throws IOException, InterruptedException;
 
-	public abstract void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback callback,
-			boolean doParallel)
-			throws IOException,
-			InterruptedException;
+	public abstract void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
+			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException;
 
 	public abstract LogRecordCursor getCursor() throws IOException;
 
