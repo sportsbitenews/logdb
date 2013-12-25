@@ -62,6 +62,8 @@ public class DateDiff implements Expression {
 			calField = Calendar.MINUTE;
 		else if (s.equals("sec"))
 			calField = Calendar.SECOND;
+		else if (s.equals("msec"))
+			calField = Calendar.MILLISECOND;
 		else
 			throw new QueryParseException("invalid-datediff-unit", -1);
 	}
@@ -94,6 +96,8 @@ public class DateDiff implements Expression {
 				return interval / MIN_DIV;
 			case Calendar.SECOND:
 				return interval / SEC_DIV;
+			case Calendar.MILLISECOND:
+				return interval;
 			}
 		}
 
