@@ -193,4 +193,9 @@ public class LocalFilePath implements FilePath {
 		return new LocalFilePath(path.getAbsoluteFile());
 	}
 
+	@Override
+	public char getSeperatorChar() {
+		return File.separatorChar;
+	}
+
 }

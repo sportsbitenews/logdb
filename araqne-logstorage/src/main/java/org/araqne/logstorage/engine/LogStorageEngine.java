@@ -15,7 +15,6 @@
  */
 package org.araqne.logstorage.engine;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -102,8 +101,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		tableNameCache = new ConcurrentHashMap<String, Integer>();
 
 		// FIXME : handle uri type
-		File sysArgLogDir = new File(System.getProperty("araqne.data.dir"), "araqne-logstorage/log");
-		logDir = new LocalFilePath(new File(getStringParameter(Constants.LogStorageDirectory, sysArgLogDir.getAbsolutePath())));
+		FilePath sysArgLogDir = new LocalFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
+		logDir = new LocalFilePath(getStringParameter(Constants.LogStorageDirectory, sysArgLogDir.getAbsolutePath()));
 		logDir.mkdirs();
 		DatapathUtil.setLogDir(((LocalFilePath)logDir).getPath()); // FIXME
 
@@ -314,7 +313,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		// TODO: use storage manager to expand uri
 		FilePath baseDir = logDir;
 		if (basePath != null)
-			baseDir = new LocalFilePath(new File(basePath));
+			baseDir = new LocalFilePath(basePath);
 
 		return baseDir.newFilePath(Integer.toString(tableId));
 	}

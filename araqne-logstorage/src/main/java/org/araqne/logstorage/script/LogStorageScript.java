@@ -63,6 +63,7 @@ import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
 import org.araqne.logstorage.engine.LogTableSchema;
 import org.araqne.storage.api.FilePath;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -457,7 +458,7 @@ public class LogStorageScript implements Script {
 	public void importTextFile(String[] args) throws IOException {
 		String tableName = args[0];
 		// TODO: handling uri
-		File file = new File(args[1]);
+		FilePath file = new LocalFilePath(args[1]);
 		int offset = 0;
 		if (args.length > 2)
 			offset = Integer.valueOf(args[2]);
@@ -468,7 +469,7 @@ public class LogStorageScript implements Script {
 
 		InputStream is = null;
 		try {
-			is = new FileInputStream(file);
+			is = file.newInputStream();
 			if (file.getName().endsWith(".gz")) {
 				is = new GZIPInputStream(is);
 			}

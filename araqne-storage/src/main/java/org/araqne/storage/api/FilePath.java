@@ -27,6 +27,8 @@ public interface FilePath extends Comparable<FilePath> {
 	
 	boolean canWrite();
 	
+	char getSeperatorChar();
+	
 	long length();
 	
 	FilePath[] listFiles();
