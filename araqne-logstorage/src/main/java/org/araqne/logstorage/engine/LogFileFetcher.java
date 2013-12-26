@@ -64,6 +64,7 @@ class LogFileFetcher {
 
 		LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, new LocalFilePath(indexPath),
 				new LocalFilePath(dataPath), new LocalFilePath(keyPath));
+		options.put("day", day);
 		return lfsRegistry.newReader(tableName, logFileType, options);
 
 	}

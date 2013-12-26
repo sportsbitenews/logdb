@@ -15,10 +15,12 @@
  */
 package org.araqne.log.api;
 
-/**
- * @since 2.6.0
- * @author xeraph
- *
- */
-public abstract class AbstractLogNormalizer implements LogNormalizer {
+public abstract class AbstractLogPipe implements LogPipe {
+
+	@Override
+	public void onLogBatch(Logger logger, Log[] logs) {
+		for (Log log : logs)
+			if (log != null)
+				onLog(logger, log);
+	}
 }

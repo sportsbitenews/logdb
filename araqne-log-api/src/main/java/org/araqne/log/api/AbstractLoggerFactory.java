@@ -96,7 +96,8 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			logger.removeEventListener(sync);
 
 			// stop and unregister
-			logger.stop(5000);
+			if (logger.isRunning())
+				logger.stop(5000);
 			if (loggerRegistry != null)
 				loggerRegistry.removeLogger(logger);
 		}

@@ -51,6 +51,14 @@ public class Log implements Comparable<Log> {
 		this.data = data;
 	}
 
+	public Log(String tableName, Date date, Date day, long id, Map<String, Object> data) {
+		this.tableName = tableName;
+		this.date = date;
+		this.day = day == null ? DateUtil.getDay(date) : day;
+		this.id = id;
+		this.data = data;
+	}
+
 	@Deprecated
 	public Log(String tableName, Date date, long id, Map<String, Object> data, Set<String> indexTokens) {
 		this(tableName, date, id, data);

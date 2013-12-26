@@ -23,6 +23,10 @@ public class LogRecord implements Comparable<LogRecord> {
 	private long id;
 	private ByteBuffer data;
 
+	// day cache for date to prevent millions of DateUtil.getDay()
+	// calculate using date when day is null (= not cached)
+	private Date day;
+
 	public LogRecord(Date date, ByteBuffer data) {
 		this(date, 0, data);
 	}
@@ -47,6 +51,14 @@ public class LogRecord implements Comparable<LogRecord> {
 
 	public ByteBuffer getData() {
 		return data;
+	}
+
+	public Date getDay() {
+		return day;
+	}
+
+	public void setDay(Date day) {
+		this.day = day;
 	}
 
 	@Override

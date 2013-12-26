@@ -242,9 +242,12 @@ public class ParallelMergeSorter {
 		}
 
 		// wait partition merge
-		try {
-			mergeLatch.await();
-		} catch (InterruptedException e) {
+		while (mergeLatch.getCount() > 0) {
+			try {
+				mergeLatch.await();
+			} catch (InterruptedException e) {
+				logger.debug("araqne logdb: merge latch interrupted at count [{}]", mergeLatch.getCount());
+			}
 		}
 
 		// final merge

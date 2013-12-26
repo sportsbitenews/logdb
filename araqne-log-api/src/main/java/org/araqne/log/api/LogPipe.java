@@ -17,4 +17,6 @@ package org.araqne.log.api;
 
 public interface LogPipe {
 	void onLog(Logger logger, Log log);
+
+	void onLogBatch(Logger logger, Log[] logs);
 }

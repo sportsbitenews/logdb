@@ -162,9 +162,8 @@ public class LogFileReaderV1 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback, boolean doParallel)
-			throws IOException,
-			InterruptedException {
+	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback,
+			boolean doParallel) throws IOException, InterruptedException {
 		int matched = 0;
 
 		int block = blockHeaders.size() - 1;
@@ -323,14 +322,14 @@ public class LogFileReaderV1 extends LogFileReader {
 
 			List<Log> result = null;
 			try {
-				result = parse(tableName, parser, record);
+				result = parse(tableName, parser, LogMarshaler.convert(tableName, record));
 			} catch (LogParserBugException e) {
 				result = new ArrayList<Log>(1);
 				result.add(new Log(e.tableName, e.date, e.id, e.logMap));
-				
+
 				if (!suppressBugAlert) {
-					logger.error("araqne logstorage: PARSER BUG! original log => table " +
-							e.tableName + ", id " + e.id + ", data " + e.logMap, e.cause);
+					logger.error("araqne logstorage: PARSER BUG! original log => table " + e.tableName + ", id " + e.id
+							+ ", data " + e.logMap, e.cause);
 					suppressBugAlert = true;
 				}
 			} finally {
@@ -354,8 +353,8 @@ public class LogFileReaderV1 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
-			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException {
+	public void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback callback,
+			boolean doParallel) throws IOException, InterruptedException {
 		boolean suppressBugAlert = false;
 
 		int block = blockHeaders.size() - 1;
@@ -374,10 +373,10 @@ public class LogFileReaderV1 extends LogFileReader {
 			header = blockHeaders.get(block);
 			blockLogNum = header.blockLength / INDEX_ITEM_SIZE;
 		}
-		
+
 		LogParser parser = null;
 		if (builder != null)
-			parser = builder.build();	
+			parser = builder.build();
 
 		while (true) {
 			if (--blockLogNum < 0) {
@@ -426,22 +425,22 @@ public class LogFileReaderV1 extends LogFileReader {
 
 			List<Log> result = null;
 			try {
-				result = parse(tableName, parser, record);				
+				result = parse(tableName, parser, LogMarshaler.convert(tableName, record));
 			} catch (LogParserBugException e) {
 				result = new ArrayList<Log>(1);
-				result.add(new Log(e.tableName, e.date, e.id, e.logMap)); 
+				result.add(new Log(e.tableName, e.date, e.id, e.logMap));
 				if (!suppressBugAlert) {
-					logger.error("araqne logstorage: PARSER BUG! original log => table " +
-							e.tableName + ", id " + e.id + ", data " + e.logMap, e.cause);
+					logger.error("araqne logstorage: PARSER BUG! original log => table " + e.tableName + ", id " + e.id
+							+ ", data " + e.logMap, e.cause);
 					suppressBugAlert = true;
-				}				
+				}
 			} finally {
 				if (result == null)
 					continue;
 
 				callback.writeLogs(result);
 				if (callback.isEof())
-					return;				
+					return;
 			}
 		}
 	}

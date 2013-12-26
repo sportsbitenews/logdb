@@ -29,6 +29,7 @@ import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
 import org.araqne.logdb.sort.CloseableIterator;
@@ -39,10 +40,12 @@ import org.slf4j.LoggerFactory;
 
 public class Stats extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
+	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
 	private int inputCount;
 	private List<AggregationField> fields;
 	private List<String> clauses;
 	private final int clauseCount;
+	private final boolean useClause;
 	private final List<Object> EMPTY_KEY;
 
 	// clone template
@@ -56,6 +59,7 @@ public class Stats extends QueryCommand {
 		this.EMPTY_KEY = new ArrayList<Object>(0);
 		this.clauses = clause;
 		this.clauseCount = clauses.size();
+		this.useClause = clauseCount > 0;
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
 		this.buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
 		this.fields = fields;
@@ -80,6 +84,78 @@ public class Stats extends QueryCommand {
 
 		for (AggregationFunction f : funcs)
 			f.clean();
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		List<Object> keys = EMPTY_KEY;
+
+		if (rowBatch.selectedInUse) {
+			for (int index = 0; index < rowBatch.size; index++) {
+				Row m = rowBatch.rows[rowBatch.selected[index]];
+				if (useClause) {
+					keys = new ArrayList<Object>(clauses.size());
+
+					for (String clause : clauses) {
+						Object keyValue = m.get(clause);
+						if (keyValue == null)
+							return;
+
+						keys.add(keyValue);
+					}
+				}
+
+				inputCount++;
+
+				AggregationFunction[] fs = buffer.get(keys);
+				if (fs == null) {
+					fs = new AggregationFunction[funcs.length];
+					for (int i = 0; i < fs.length; i++)
+						fs[i] = funcs[i].clone();
+
+					buffer.put(keys, fs);
+				}
+
+				for (AggregationFunction f : fs)
+					f.apply(m);
+			}
+		} else {
+			for (Row m : rowBatch.rows) {
+				if (useClause) {
+					keys = new ArrayList<Object>(clauses.size());
+
+					for (String clause : clauses) {
+						Object keyValue = m.get(clause);
+						if (keyValue == null)
+							return;
+
+						keys.add(keyValue);
+					}
+				}
+
+				inputCount++;
+
+				AggregationFunction[] fs = buffer.get(keys);
+				if (fs == null) {
+					fs = new AggregationFunction[funcs.length];
+					for (int i = 0; i < fs.length; i++)
+						fs[i] = funcs[i].clone();
+
+					buffer.put(keys, fs);
+				}
+
+				for (AggregationFunction f : fs)
+					f.apply(m);
+			}
+		}
+
+		try {
+			// flush
+			if (buffer.size() > 50000)
+				flush();
+		} catch (IOException e) {
+			throw new IllegalStateException("stats failed, query " + query, e);
+		}
 	}
 
 	@Override
@@ -113,11 +189,11 @@ public class Stats extends QueryCommand {
 				f.apply(m);
 
 			// flush
-			if (buffer.keySet().size() > 50000)
+			if (buffer.size() > 50000)
 				flush();
 
 		} catch (IOException e) {
-			throw new IllegalStateException("sort failed, query " + query, e);
+			throw new IllegalStateException("stats failed, query " + query, e);
 		}
 	}
 
@@ -170,7 +246,8 @@ public class Stats extends QueryCommand {
 				// first record or need to change merge set?
 				if (lastKeys == null || !Arrays.equals(lastKeys, (Object[]) item.getKey())) {
 					if (logger.isDebugEnabled() && lastKeys != null)
-						logger.debug("araqne logdb: stats key compare [{}] != [{}]", lastKeys[0], ((Object[]) item.getKey())[0]);
+						compareLogger.debug("araqne logdb: stats key compare [{}] != [{}]", lastKeys[0],
+								((Object[]) item.getKey())[0]);
 
 					// finalize last record (only if changing set)
 					if (fs != null) {

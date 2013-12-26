@@ -621,7 +621,7 @@ public class LogFileReaderV2 extends LogFileReader {
 				continue;
 			List<Log> result = null;
 			try {
-				result = parse(tableName, parser, record);
+				result = parse(tableName, parser, LogMarshaler.convert(tableName, record));
 			} catch (LogParserBugException e) {
 				result = new ArrayList<Log>(1);
 				result.add(new Log(e.tableName, e.date, e.id, e.logMap));
@@ -701,7 +701,7 @@ public class LogFileReaderV2 extends LogFileReader {
 
 			List<Log> result = null;
 			try {
-				result = parse(tableName, parser, record);
+				result = parse(tableName, parser, LogMarshaler.convert(tableName, record));
 			} catch (LogParserBugException e) {
 				result = new ArrayList<Log>(1);
 				result.add(new Log(e.tableName, e.date, e.id, e.logMap));

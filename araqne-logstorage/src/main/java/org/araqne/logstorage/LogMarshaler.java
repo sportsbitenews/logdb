@@ -15,7 +15,6 @@
  */
 package org.araqne.logstorage;
 
-import java.nio.ByteBuffer;
 import java.util.Map;
 
 import org.araqne.codec.EncodingRule;
@@ -30,10 +29,7 @@ public class LogMarshaler {
 	}
 
 	public static Log convert(String tableName, LogRecord logdata) {
-		ByteBuffer bb = ByteBuffer.wrap(logdata.getData().array());
-		bb.position(logdata.getData().position());
-		bb.limit(logdata.getData().limit());
-		Map<String, Object> m = EncodingRule.decodeMap(bb);
-		return new Log(tableName, logdata.getDate(), logdata.getId(), m);
+		Map<String, Object> m = EncodingRule.decodeMap(logdata.getData().duplicate(), null);
+		return new Log(tableName, logdata.getDate(), logdata.getDay(), logdata.getId(), m);
 	}
 }

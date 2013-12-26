@@ -217,4 +217,15 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 			pipe.onLog(logger, log);
 		}
 	}
+
+	@Override
+	public void onLogBatch(Logger logger, Log[] logs) {
+		Set<LogPipe> pipes = pipeMap.get(logger.getFactoryName());
+		if (pipes == null)
+			return;
+
+		for (LogPipe pipe : pipes) {
+			pipe.onLogBatch(logger, logs);
+		}
+	}
 }

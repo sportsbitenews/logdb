@@ -22,9 +22,11 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
@@ -106,7 +108,7 @@ public class MultilineLogExtractor {
 
 		// last chunk of page which does not contains new line
 		ByteArrayOutputStream temp = new ByteArrayOutputStream();
-		byte[] b = new byte[128 * 1024];
+		byte[] b = new byte[512 * 1024];
 
 		while (true) {
 			LoggerStatus status = logger.getStatus();
@@ -118,22 +120,27 @@ public class MultilineLogExtractor {
 			if (len < 0)
 				break;
 
+			ArrayList<Log> output = new ArrayList<Log>(4000);
+
 			for (int i = 0; i < len; i++) {
 				if (b[i] == 0xa) {
 					if (isUTF16LE)
 						i += 1;
-					buildAndWriteLog(logBuf, b, next, i - next + 1, lastPosition, temp, dateFromFileName);
+					buildLogOutput(logBuf, b, next, i - next + 1, lastPosition, temp, dateFromFileName, output);
 					next = i + 1;
 				}
 			}
+
+			if (output.size() > 0)
+				pipe.onLogBatch(logger, output.toArray(new Log[0]));
 
 			// temp should be matched later (line regex test)
 			temp.write(b, next, len - next);
 		}
 	}
 
-	private void buildAndWriteLog(ByteArrayOutputStream logBuf, byte[] b, int offset, int length, AtomicLong lastPosition,
-			ByteArrayOutputStream temp, String dateFromFileName) {
+	private void buildLogOutput(ByteArrayOutputStream logBuf, byte[] b, int offset, int length, AtomicLong lastPosition,
+			ByteArrayOutputStream temp, String dateFromFileName, List<Log> output) {
 		String log = null;
 		try {
 			log = buildLog(logBuf, b, offset, length, lastPosition, temp);
@@ -142,8 +149,13 @@ public class MultilineLogExtractor {
 
 		if (log != null) {
 			log = log.trim();
-			if (log.length() > 0)
-				writeLog(log, dateFromFileName);
+			if (log.length() > 0) {
+				Date d = parseDate(log, dateFromFileName);
+				Map<String, Object> m = new HashMap<String, Object>();
+				m.put("line", log);
+
+				output.add(new SimpleLog(d, logger.getFullName(), m));
+			}
 		}
 	}
 
@@ -161,8 +173,8 @@ public class MultilineLogExtractor {
 	 * @return new (multiline) log
 	 * @throws UnsupportedEncodingException
 	 */
-	private String buildLog(ByteArrayOutputStream buf, byte[] b, int offset, int len, AtomicLong lastPosition, ByteArrayOutputStream temp)
-			throws UnsupportedEncodingException {
+	private String buildLog(ByteArrayOutputStream buf, byte[] b, int offset, int len, AtomicLong lastPosition,
+			ByteArrayOutputStream temp) throws UnsupportedEncodingException {
 
 		String line = null;
 		if (temp.size() > 0) {
@@ -242,13 +254,6 @@ public class MultilineLogExtractor {
 		}
 
 		return null;
-	}
-
-	private void writeLog(String mline, String dateFromFileName) {
-		Date d = parseDate(mline, dateFromFileName);
-		Map<String, Object> log = new HashMap<String, Object>();
-		log.put("line", mline);
-		pipe.onLog(logger, new SimpleLog(d, logger.getFullName(), log));
 	}
 
 	protected Date parseDate(String line, String dateFromFileName) {

@@ -41,6 +41,7 @@ public class QueryStatusNotifier {
 
 	@Validate
 	public void start() {
+		doStop = false;
 		monitor = new Monitor();
 		monitor.start();
 	}
@@ -52,9 +53,14 @@ public class QueryStatusNotifier {
 	}
 
 	private class Monitor extends Thread {
+		public Monitor() {
+			super("Query Status Notifier");
+		}
+
 		@Override
 		public void run() {
 			try {
+				logger.info("araqne logdb: query status notifier started");
 				while (!doStop) {
 					try {
 						for (Query q : queryService.getQueries())
@@ -85,8 +91,10 @@ public class QueryStatusNotifier {
 			}
 
 			for (QueryResultCallback c : q.getResult().getResultCallbacks()) {
-				if (c.offset() + c.limit() <= count)
+				if (c.offset() + c.limit() <= count) {
 					c.onPageLoaded(q);
+					logger.debug("araqne logdb: sent page loaded callback for query [{}], count [{}]", q.getId(), count);
+				}
 			}
 		}
 	}

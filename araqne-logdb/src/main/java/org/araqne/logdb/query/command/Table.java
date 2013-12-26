@@ -35,6 +35,7 @@ import org.araqne.logdb.Permission;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.impl.Strings;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
@@ -275,9 +276,15 @@ public class Table extends DriverQueryCommand {
 
 		@Override
 		protected void processLogs(List<Log> logs) {
-			for (Log log : logs) {
-				self.pushPipe(new Row(log.getData()));
-			}
+			RowBatch batch = new RowBatch();
+			batch.size = logs.size();
+			batch.rows = new Row[batch.size];
+
+			int i = 0;
+			for (Log log : logs)
+				batch.rows[i++] = new Row(log.getData());
+
+			self.pushPipe(batch);
 		}
 
 	}
