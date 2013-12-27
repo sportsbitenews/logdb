@@ -102,6 +102,9 @@ public class LocalFilePath implements FilePath {
 	@Override
 	public FilePath[] listFiles(FilePathNameFilter filter) {
 		File[] files = path.listFiles();
+		if (files == null)
+			return null;
+		
 		List<FilePath> ret = new ArrayList<FilePath>();
 		for (File f : files) {
 			FilePath curr = new LocalFilePath(f);
@@ -109,7 +112,7 @@ public class LocalFilePath implements FilePath {
 				ret.add(curr);
 		}
 		                              
-		return (FilePath[]) ret.toArray();
+		return (FilePath[]) (ret.toArray(new FilePath[0]));
 	}
 
 	@Override
