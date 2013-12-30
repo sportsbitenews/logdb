@@ -25,13 +25,26 @@ import org.araqne.log.api.Logger;
 
 @CollectionName("logger")
 public class LoggerConfig {
+	/**
+	 * schema version for migration
+	 */
+	private int version = 1;
+
 	private String factoryNamespace;
 	private String factoryName;
 	private String namespace;
 	private String fullname;
 	private String name;
 	private String description;
+
+	/**
+	 * ignore since version 2 (migrated to state file)
+	 */
 	private boolean isRunning;
+
+	/**
+	 * ignore since version 2 (migrated to state file)
+	 */
 	private boolean isPending;
 
 	/**
@@ -39,11 +52,20 @@ public class LoggerConfig {
 	 */
 	private boolean manualStart;
 
+	/**
+	 * ignore since version 2 (migrated to state file)
+	 */
 	private int interval;
 
+	/**
+	 * ignore since version 2 (migrated to state file)
+	 */
 	@FieldOption(skip = true)
 	private long count;
 
+	/**
+	 * ignore since version 2 (migrated to state file)
+	 */
 	@FieldOption(skip = true)
 	private Date lastLogDate;
 
@@ -65,6 +87,14 @@ public class LoggerConfig {
 		this.interval = logger.getInterval();
 		this.count = logger.getLogCount();
 		this.lastLogDate = logger.getLastLogDate();
+	}
+
+	public int getVersion() {
+		return version;
+	}
+
+	public void setVersion(int version) {
+		this.version = version;
 	}
 
 	public String getFactoryNamespace() {
@@ -115,18 +145,22 @@ public class LoggerConfig {
 		this.description = description;
 	}
 
+	@Deprecated
 	public boolean isRunning() {
 		return isRunning;
 	}
 
+	@Deprecated
 	public void setRunning(boolean isRunning) {
 		this.isRunning = isRunning;
 	}
 
+	@Deprecated
 	public boolean isPending() {
 		return isPending;
 	}
 
+	@Deprecated
 	public void setPending(boolean isPending) {
 		this.isPending = isPending;
 	}
@@ -139,18 +173,22 @@ public class LoggerConfig {
 		this.manualStart = manualStart;
 	}
 
+	@Deprecated
 	public int getInterval() {
 		return interval;
 	}
 
+	@Deprecated
 	public void setInterval(int interval) {
 		this.interval = interval;
 	}
 
+	@Deprecated
 	public long getCount() {
 		return count;
 	}
 
+	@Deprecated
 	public void setCount(long count) {
 		this.count = count;
 	}

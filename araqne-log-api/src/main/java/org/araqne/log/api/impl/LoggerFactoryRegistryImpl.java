@@ -27,6 +27,7 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.log.api.LastStateService;
 import org.araqne.log.api.LogTransformerRegistry;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerFactory;
@@ -40,6 +41,13 @@ import org.osgi.framework.BundleContext;
 @Provides(specifications = { LoggerFactoryRegistry.class })
 public class LoggerFactoryRegistryImpl implements LoggerFactoryRegistry, LoggerFactoryRegistryEventListener {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(LoggerFactoryRegistryImpl.class.getName());
+
+	/**
+	 * force dependency, last state service should be alive until any logger or
+	 * factory is available.
+	 */
+	@Requires
+	private LastStateService lastStateService;
 
 	private ConcurrentMap<String, LoggerFactory> loggerFactories;
 	private BundleContext bc;

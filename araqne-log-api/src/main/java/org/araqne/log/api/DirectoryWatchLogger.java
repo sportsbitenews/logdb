@@ -80,18 +80,27 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			charset = "utf-8";
 
 		extractor.setCharset(charset);
+
+		// try migration at boot
+		File oldLastFile = getLastLogFile();
+		if (oldLastFile.exists()) {
+			Map<String, LastPosition> lastPositions = LastPositionHelper.readLastPositions(oldLastFile);
+			setState(LastPositionHelper.serialize(lastPositions));
+			oldLastFile.renameTo(new File(oldLastFile.getAbsolutePath() + ".migrated"));
+		}
+
 	}
 
 	@Override
 	protected void runOnce() {
 		List<String> logFiles = FileUtils.matchFiles(basePath, fileNamePattern);
-		Map<String, LastPosition> lastPositions = LastPositionHelper.readLastPositions(getLastLogFile());
+		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getState());
 
 		for (String path : logFiles) {
 			processFile(lastPositions, path);
 		}
 
-		LastPositionHelper.updateLastPositionFile(getLastLogFile(), lastPositions);
+		setState(LastPositionHelper.serialize(lastPositions));
 	}
 
 	protected void processFile(Map<String, LastPosition> lastPositions, String path) {

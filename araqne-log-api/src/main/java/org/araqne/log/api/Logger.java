@@ -95,7 +95,25 @@ public interface Logger {
 
 	void updateConfig(Map<String, String> config);
 
+	/**
+	 * config parameters (specified by factory)
+	 */
 	Map<String, String> getConfig();
+
+	/**
+	 * state is backed up by persistent storage
+	 */
+	Map<String, Object> getState();
+
+	/**
+	 * replace current persistent state
+	 */
+	void setState(Map<String, Object> state);
+
+	/**
+	 * reset log/drop count, last date, and all properties
+	 */
+	void resetState();
 
 	LogTransformer getTransformer();
 

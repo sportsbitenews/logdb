@@ -12,10 +12,10 @@ public class LastPosition {
 		this.path = path;
 	}
 
-	public LastPosition(String path, long position, Date checkDate) {
+	public LastPosition(String path, long position, Date lastSeen) {
 		this.path = path;
 		this.position = position;
-		this.lastSeen = checkDate;
+		this.lastSeen = lastSeen;
 	}
 
 	public int getVersion() {

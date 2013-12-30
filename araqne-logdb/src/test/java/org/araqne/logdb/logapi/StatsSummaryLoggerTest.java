@@ -160,8 +160,8 @@ public class StatsSummaryLoggerTest {
 			}
 		}).when(sink).onLog(any(Logger.class), any(Log.class));
 
-		SampleLogger sourceLogger = new SampleLogger(new LoggerSpecification("local", "source", "", 0, null, 0,
-				new HashMap<String, String>()), new SampleLoggerFactory(), 1);
+		SampleLogger sourceLogger = new SampleLogger(
+				new LoggerSpecification("local", "source", "", new HashMap<String, String>()), new SampleLoggerFactory(), 1);
 
 		when(loggerRegistry.getLogger("local\\source")).thenReturn(sourceLogger);
 
@@ -173,7 +173,7 @@ public class StatsSummaryLoggerTest {
 		config.put(StatsSummaryLoggerFactory.OPT_MIN_INTERVAL, "600");
 		config.put(StatsSummaryLoggerFactory.OPT_FLUSH_INTERVAL, "1");
 		config.put(StatsSummaryLoggerFactory.OPT_MEMORY_ITEMSIZE, "50000");
-		LoggerSpecification spec = new LoggerSpecification("local", "test", "", 0, null, 0, config);
+		LoggerSpecification spec = new LoggerSpecification("local", "test", "", config);
 
 		StatsSummaryLogger logger = new StatsSummaryLogger(spec, factory, loggerRegistry, parserRegistry);
 

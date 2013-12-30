@@ -57,6 +57,11 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 	}
 
 	@Override
+	public LastStateService getLastStateService() {
+		return (LastStateService) getRequiredService(LastStateService.class);
+	}
+
+	@Override
 	public void onStart(BundleContext bc) {
 		if (started)
 			throw new IllegalStateException("logger factory [" + fullName + "] is already started");
@@ -113,22 +118,48 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			return;
 		}
 
+		// try migration
+		if (config.getVersion() == 1)
+			migrateToVer2(config);
+
+		LastStateService lss = getLastStateService();
+		LastState state = lss.getState(config.getFullname());
+
 		try {
 			LoggerSpecification spec = new LoggerSpecification(config.getNamespace(), config.getName(), config.getDescription(),
-					config.getCount(), config.getLastLogDate(), config.getInterval(), config.getConfigs());
+					config.getConfigs());
 
 			Logger newLogger = handleNewLogger(spec, true);
-			if (config.isPending())
+			if (state.isPending())
 				newLogger.setPending(true);
 
 			slog.info("araqne log api: logger [{}] is loaded", config.getFullname());
-			if (!config.isManualStart() && config.isRunning() && !newLogger.isPending()) {
-				newLogger.start(config.getInterval());
-				slog.info("araqne log api: logger [{}] started with interval {}ms", config.getFullname(), config.getInterval());
+			if (!config.isManualStart() && state.isRunning() && !newLogger.isPending()) {
+				newLogger.start(state.getInterval());
+				slog.info("araqne log api: logger [{}] started with interval {}ms", config.getFullname(), state.getInterval());
 			}
 		} catch (Exception e) {
 			slog.error(String.format("araqne log api: cannot load logger %s", config.getFullname()), e);
 		}
+	}
+
+	@SuppressWarnings("deprecation")
+	private void migrateToVer2(LoggerConfig config) {
+		config.setVersion(2);
+
+		LastState state = new LastState();
+		state.setLoggerName(config.getFullname());
+		state.setInterval(config.getInterval());
+		state.setRunning(config.isRunning());
+		state.setPending(config.isPending());
+		state.setLogCount(config.getCount());
+		state.setDropCount(0);
+		state.setLastLogDate(null);
+
+		LastStateService lss = getLastStateService();
+		lss.setState(state);
+
+		slog.info("araqne log api: migrated logger [{}] state to v2", config.getFullname());
 	}
 
 	private LogTransformerRegistry getTransformerRegistry() {
@@ -285,6 +316,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 
 	private void saveLoggerConfig(Logger logger, Map<String, String> config) {
 		LoggerConfig model = new LoggerConfig(logger);
+		model.setVersion(2);
 		model.setConfigs(config);
 
 		ConfigDatabase db = getConfigDatabase();
@@ -311,42 +343,30 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 	private class DbSync implements LoggerEventListener {
 		@Override
 		public void onStart(Logger logger) {
-			ConfigDatabase db = getConfigDatabase();
-			Config c = db.findOne(LoggerConfig.class, Predicates.field("fullname", logger.getFullName()));
-			if (c == null) {
-				slog.warn("araqne log api: config not exists for logger {}", logger.getFullName());
-				return;
-			}
-
-			LoggerConfig model = c.getDocument(LoggerConfig.class);
-			model.setRunning(true);
-			model.setPending(logger.isPending());
-			model.setInterval(logger.getInterval());
-			db.update(c, model);
-
-			slog.trace("araqne log api: running status saved: {}", logger.getFullName());
+			logger.setState(logger.getState());
 		}
 
 		@Override
 		public void onStop(Logger logger) {
-			ConfigDatabase db = getConfigDatabase();
-			Config c = db.findOne(LoggerConfig.class, Predicates.field("fullname", logger.getFullName()));
-			if (c == null) {
-				slog.warn("araqne log api: config not exists for logger {}", logger.getFullName());
-				return;
-			}
+			LastState s = new LastState();
+			s.setLoggerName(getFullName());
+			s.setLogCount(logger.getLogCount());
+			s.setDropCount(logger.getDropCount());
+			s.setLastLogDate(logger.getLastLogDate());
+			s.setPending(logger.isPending());
+			s.setProperties(logger.getState());
 
-			LoggerConfig model = c.getDocument(LoggerConfig.class);
 			// do not save status caused by bundle stopping
 			LoggerRegistry loggerRegistry = getLoggerRegistry();
 			if (loggerRegistry != null && loggerRegistry.isOpen()) {
 				slog.trace("araqne log api: [{}] stopped state saved", logger.getFullName());
-				model.setRunning(false);
+				s.setRunning(false);
+			} else {
+				s.setRunning(logger.isRunning());
 			}
-			model.setPending(logger.isPending());
-			model.setCount(logger.getLogCount());
-			model.setLastLogDate(logger.getLastLogDate());
-			db.update(c, model);
+
+			LastStateService lss = getLastStateService();
+			lss.setState(s);
 		}
 
 		@Override
