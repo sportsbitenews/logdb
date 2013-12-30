@@ -19,11 +19,13 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.zip.GZIPOutputStream;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
@@ -40,7 +42,7 @@ import org.slf4j.LoggerFactory;
  */
 public class OutputTxt extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(OutputTxt.class.getName());
-	private FileOutputStream fos;
+	private OutputStream os;
 	private List<String> fields;
 	private BufferedOutputStream bos;
 	private OutputStreamWriter osw;
@@ -51,14 +53,18 @@ public class OutputTxt extends QueryCommand {
 	private String filePath;
 	private boolean overwrite;
 
-	public OutputTxt(File f, String filePath, boolean overwrite, String delimiter, List<String> fields) throws IOException {
+	public OutputTxt(File f, String filePath, boolean overwrite, String delimiter, List<String> fields, boolean useCompression)
+			throws IOException {
 		try {
 			this.f = f;
 			this.filePath = filePath;
 			this.overwrite = overwrite;
 			this.fields = fields;
-			this.fos = new FileOutputStream(f);
-			this.bos = new BufferedOutputStream(fos);
+			if (useCompression)
+				this.os = new GZIPOutputStream(new FileOutputStream(f));
+			else
+				this.os = new FileOutputStream(f);
+			this.bos = new BufferedOutputStream(os);
 			this.osw = new OutputStreamWriter(bos, Charset.forName("utf-8"));
 			this.sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 			this.lineSeparator = System.getProperty("line.separator");
@@ -112,12 +118,14 @@ public class OutputTxt extends QueryCommand {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		close();
+		if (reason == QueryStopReason.CommandFailure)
+			f.delete();
 	}
 
 	private void close() {
 		IoHelper.close(osw);
 		IoHelper.close(bos);
-		IoHelper.close(fos);
+		IoHelper.close(os);
 	}
 
 	@Override
