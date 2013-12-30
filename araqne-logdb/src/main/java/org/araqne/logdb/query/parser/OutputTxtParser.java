@@ -47,9 +47,10 @@ public class OutputTxtParser implements QueryCommandParser {
 			throw new QueryParseException("missing-field", commandString.length());
 
 		boolean overwrite = false;
+		boolean useCompression = false;
 		String delimiter = null;
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(),
-				Arrays.asList("delimiter", "overwrite"));
+				Arrays.asList("delimiter", "overwrite", "gz"));
 
 		@SuppressWarnings("unchecked")
 		Map<String, Object> options = (Map<String, Object>) r.value;
@@ -60,6 +61,8 @@ public class OutputTxtParser implements QueryCommandParser {
 
 		if (options.get("overwrite") != null)
 			overwrite = Boolean.parseBoolean(options.get("overwrite").toString());
+		if (options.get("gz") != null)
+			useCompression = Boolean.parseBoolean(options.get("gz").toString());
 
 		int next = r.next;
 		if (next < 0)
@@ -96,7 +99,7 @@ public class OutputTxtParser implements QueryCommandParser {
 		try {
 			if (txtFile.getParentFile() != null)
 				txtFile.getParentFile().mkdirs();
-			return new OutputTxt(txtFile, filePath, overwrite, delimiter, fields);
+			return new OutputTxt(txtFile, filePath, overwrite, delimiter, fields, useCompression);
 		} catch (IOException e) {
 			throw new QueryParseException("io-error", -1, e.getMessage());
 		}

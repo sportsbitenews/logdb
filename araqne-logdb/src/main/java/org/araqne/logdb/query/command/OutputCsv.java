@@ -92,6 +92,8 @@ public class OutputCsv extends QueryCommand {
 		}
 
 		IoHelper.close(os);
+		if (reason == QueryStopReason.CommandFailure)
+			f.delete();
 	}
 
 	@Override
