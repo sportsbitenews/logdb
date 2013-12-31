@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Future Systems
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,40 @@
 package org.araqne.logdb.sort;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
 
-class CacheRunIterator implements CloseableIterator {
-	private Iterator<Item> it;
+public class MultiRunIterator implements CloseableIterator {
+	private List<CloseableIterator> runs = new ArrayList<CloseableIterator>();
+	private int runIndex;
+	private CloseableIterator current;
 
-	public CacheRunIterator(Iterator<Item> it) {
-		this.it = it;
+	public MultiRunIterator(List<CloseableIterator> runs) {
+		this.runs = runs;
+		this.current = runs.get(0);
 	}
 
 	@Override
 	public boolean hasNext() {
-		return it.hasNext();
+		while (true) {
+			boolean b = current.hasNext();
+			if (b)
+				return true;
+
+			if (++runIndex >= runs.size())
+				return false;
+
+			current = runs.get(runIndex);
+		}
 	}
 
 	@Override
 	public Item next() {
-		return it.next();
+		if (!hasNext())
+			throw new NoSuchElementException();
+
+		return current.next();
 	}
 
 	@Override
@@ -42,5 +59,11 @@ class CacheRunIterator implements CloseableIterator {
 
 	@Override
 	public void close() throws IOException {
+		for (CloseableIterator it : runs) {
+			try {
+				it.close();
+			} catch (Throwable t) {
+			}
+		}
 	}
 }
