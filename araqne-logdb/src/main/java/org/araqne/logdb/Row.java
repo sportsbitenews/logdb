@@ -22,7 +22,7 @@ import java.util.Map;
 public class Row {
 	// _time cache
 	private Date d;
-	private Map<String, Object> map;
+	private final Map<String, Object> map;
 
 	public Row() {
 		this(new HashMap<String, Object>());

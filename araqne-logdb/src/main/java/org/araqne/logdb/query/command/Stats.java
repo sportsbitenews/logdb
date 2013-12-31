@@ -42,8 +42,8 @@ public class Stats extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
 	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
 	private int inputCount;
-	private List<AggregationField> fields;
-	private List<String> clauses;
+	private final List<AggregationField> fields;
+	private final List<String> clauses;
 	private final int clauseCount;
 	private final boolean useClause;
 	private final List<Object> EMPTY_KEY;
@@ -90,14 +90,16 @@ public class Stats extends QueryCommand {
 	public void onPush(RowBatch rowBatch) {
 		List<Object> keys = EMPTY_KEY;
 
+		if (useClause)
+			keys = new ArrayList<Object>(clauseCount);
+
 		if (rowBatch.selectedInUse) {
 			for (int index = 0; index < rowBatch.size; index++) {
-				Row m = rowBatch.rows[rowBatch.selected[index]];
+				keys.clear();
+				Row row = rowBatch.rows[rowBatch.selected[index]];
 				if (useClause) {
-					keys = new ArrayList<Object>(clauses.size());
-
 					for (String clause : clauses) {
-						Object keyValue = m.get(clause);
+						Object keyValue = row.get(clause);
 						if (keyValue == null)
 							return;
 
@@ -113,17 +115,16 @@ public class Stats extends QueryCommand {
 					for (int i = 0; i < fs.length; i++)
 						fs[i] = funcs[i].clone();
 
-					buffer.put(keys, fs);
+					buffer.put(new ArrayList<Object>(keys), fs);
 				}
 
 				for (AggregationFunction f : fs)
-					f.apply(m);
+					f.apply(row);
 			}
 		} else {
 			for (Row m : rowBatch.rows) {
 				if (useClause) {
-					keys = new ArrayList<Object>(clauses.size());
-
+					keys.clear();
 					for (String clause : clauses) {
 						Object keyValue = m.get(clause);
 						if (keyValue == null)
@@ -141,7 +142,7 @@ public class Stats extends QueryCommand {
 					for (int i = 0; i < fs.length; i++)
 						fs[i] = funcs[i].clone();
 
-					buffer.put(keys, fs);
+					buffer.put(new ArrayList<Object>(keys), fs);
 				}
 
 				for (AggregationFunction f : fs)
@@ -162,7 +163,7 @@ public class Stats extends QueryCommand {
 	public void onPush(Row m) {
 		List<Object> keys = EMPTY_KEY;
 		if (clauseCount > 0) {
-			keys = new ArrayList<Object>(clauses.size());
+			keys = new ArrayList<Object>(clauseCount);
 
 			for (String clause : clauses) {
 				Object keyValue = m.get(clause);
