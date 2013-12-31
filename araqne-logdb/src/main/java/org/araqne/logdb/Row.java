@@ -46,8 +46,8 @@ public class Row {
 		map.put(key, value);
 	}
 
-	public void remove(String key) {
-		map.remove(key);
+	public Object remove(String key) {
+		return map.remove(key);
 	}
 
 	public boolean containsKey(String key) {

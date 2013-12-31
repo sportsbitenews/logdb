@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.araqne.log.api.AbstractLogger;
 import org.araqne.log.api.AbstractLoggerFactory;
+import org.araqne.log.api.LastStateService;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LogPipe;
@@ -32,6 +33,7 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.SimpleLog;
+import org.araqne.log.api.impl.LastStateServiceImpl;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -135,6 +137,11 @@ public class StatsSummaryLoggerTest {
 		}
 
 		@Override
+		public LastStateService getLastStateService() {
+			return new LastStateServiceImpl();
+		}
+
+		@Override
 		protected Logger createLogger(LoggerSpecification spec) {
 			return new SampleLogger(spec, this, 1);
 		}
@@ -144,6 +151,8 @@ public class StatsSummaryLoggerTest {
 	@Test
 	public void test() {
 		LoggerFactory factory = mock(LoggerFactory.class);
+		when(factory.getLastStateService()).thenReturn(new LastStateServiceImpl());
+
 		LoggerRegistry loggerRegistry = mock(LoggerRegistry.class);
 		LogParserRegistry parserRegistry = mock(LogParserRegistry.class);
 
