@@ -264,7 +264,7 @@ public class SearchParserTest {
 		InetAddress ip2 = InetAddress.getByName("1.2.3.5");
 		InetAddress ip3 = InetAddress.getByName("1.2.3.6");
 
-		assertTrue(cmp.compare(ip1, null) < 0);
+		assertTrue(cmp.compare(ip1, null) > 0);
 		assertTrue(cmp.compare(ip1, ip1) == 0);
 		assertTrue(cmp.compare(ip1, ip2) < 0);
 		assertTrue(cmp.compare(ip2, ip1) > 0);

@@ -28,9 +28,9 @@ public class ObjectComparator implements Comparator<Object> {
 		if (o1 == null && o2 == null)
 			return 0;
 		else if (o1 == null && o2 != null)
-			return 1;
-		else if (o1 != null && o2 == null)
 			return -1;
+		else if (o1 != null && o2 == null)
+			return 1;
 
 		if (o1.equals(o2))
 			return 0;
@@ -111,10 +111,7 @@ public class ObjectComparator implements Comparator<Object> {
 			} else if (o1 instanceof Date && o2 instanceof Date) {
 				long lhs = ((Date) o1).getTime();
 				long rhs = ((Date) o2).getTime();
-				long d = lhs - rhs;
-				if (d == 0)
-					return 0;
-				return lhs < rhs ? -1 : 1;
+				return (int) (lhs - rhs);
 			}
 		}
 
