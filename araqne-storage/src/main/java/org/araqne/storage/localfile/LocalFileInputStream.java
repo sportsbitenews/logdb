@@ -22,19 +22,6 @@ public class LocalFileInputStream extends StorageInputStream {
 		this.source = r;
 	}
 
-	@Deprecated
-	@Override
-	public void readFully(ByteBuffer buf, long startPos) throws IOException {
-		synchronized (source) {
-			source.seek(startPos);
-			int r = source.getChannel().read(buf);
-			if (r != buf.capacity())
-				throw new IOException("data underflow");
-			buf.limit(r);
-			buf.position(0);
-		}
-	}
-
 	@Override
 	public void close() throws IOException {
 		source.close();
@@ -151,13 +138,16 @@ public class LocalFileInputStream extends StorageInputStream {
 	}
 
 	@Override
-	public void readBestEffort(ByteBuffer buf) throws IOException {
+	public int readBestEffort(ByteBuffer buf) throws IOException {
 		FileChannel channel = source.getChannel();
+		int total = 0;
 		while (buf.remaining() > 0) {
 			int readBytes = channel.read(buf);
 			if (readBytes < 0)
 				break;
+			total += readBytes;
 		}
+		return total;
 	}
 
 }
