@@ -38,8 +38,9 @@ public class Rename extends QueryCommand {
 
 	@Override
 	public void onPush(Row row) {
-		Object v = row.remove(from);
-		row.put(to, v);
+		if (row.containsKey(from))
+			row.put(to, row.remove(from));
+
 		pushPipe(row);
 	}
 
@@ -49,13 +50,13 @@ public class Rename extends QueryCommand {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				Object v = row.remove(from);
-				row.put(to, v);
+				if (row.containsKey(from))
+					row.put(to, row.remove(from));
 			}
 		} else {
 			for (Row row : rowBatch.rows) {
-				Object v = row.remove(from);
-				row.put(to, v);
+				if (row.containsKey(from))
+					row.put(to, row.remove(from));
 			}
 		}
 
