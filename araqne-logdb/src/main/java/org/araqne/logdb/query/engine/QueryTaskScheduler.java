@@ -24,6 +24,7 @@ import org.araqne.logdb.QueryCommand.Status;
 import org.araqne.logdb.QueryStatusCallback;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.QueryTimelineCallback;
 import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.QueryTaskEvent;
 import org.araqne.logdb.QueryTaskListener;
@@ -140,9 +141,22 @@ public class QueryTaskScheduler implements Runnable {
 			query.postRun();
 			finished = true;
 
+			// send final timeline callback
+			for (QueryTimelineCallback c : query.getCallbacks().getTimelineCallbacks()) {
+				try {
+					c.notifyTimeline();
+				} catch (Throwable t) {
+					logger.warn("araqne logdb: timeline callback should not throw any exception", t);
+				}
+			}
+
 			// notify finish immediately
 			for (QueryStatusCallback c : query.getCallbacks().getStatusCallbacks()) {
-				c.onChange(query);
+				try {
+					c.onChange(query);
+				} catch (Throwable t) {
+					logger.warn("araqne logdb: change callback should not throw any exception", t);
+				}
 			}
 		}
 

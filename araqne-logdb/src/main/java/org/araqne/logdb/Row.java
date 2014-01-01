@@ -29,6 +29,10 @@ public class Row {
 	}
 
 	public Row(Map<String, Object> map) {
+		Object time = map.get("_time");
+		if (time != null && time instanceof Date)
+			d = (Date) time;
+
 		this.map = map;
 	}
 

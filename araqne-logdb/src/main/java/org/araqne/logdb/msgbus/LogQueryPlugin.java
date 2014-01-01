@@ -469,7 +469,7 @@ public class LogQueryPlugin {
 		}
 
 		@Override
-		protected void callback(Date beginTime, SpanValue spanValue, int[] values, boolean isEnd) {
+		protected void onPush(Date beginTime, SpanValue spanValue, int[] values, boolean isEnd) {
 			try {
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("id", query.getId());
