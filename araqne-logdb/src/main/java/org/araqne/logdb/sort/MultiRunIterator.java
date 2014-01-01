@@ -21,21 +21,31 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 public class MultiRunIterator implements CloseableIterator {
-	private List<CloseableIterator> runs = new ArrayList<CloseableIterator>();
+	private List<RunInput> runs = new ArrayList<RunInput>();
 	private int runIndex;
-	private CloseableIterator current;
+	private RunInput current;
+	private Item prefetch;
 
-	public MultiRunIterator(List<CloseableIterator> runs) {
+	public MultiRunIterator(List<RunInput> runs) {
 		this.runs = runs;
 		this.current = runs.get(0);
 	}
 
 	@Override
 	public boolean hasNext() {
+		if (prefetch != null)
+			return true;
+
 		while (true) {
 			boolean b = current.hasNext();
-			if (b)
+			if (b) {
+				try {
+					prefetch = current.next();
+				} catch (IOException e) {
+					return false;
+				}
 				return true;
+			}
 
 			if (++runIndex >= runs.size())
 				return false;
@@ -49,7 +59,9 @@ public class MultiRunIterator implements CloseableIterator {
 		if (!hasNext())
 			throw new NoSuchElementException();
 
-		return current.next();
+		Item next = prefetch;
+		prefetch = null;
+		return next;
 	}
 
 	@Override
@@ -59,9 +71,9 @@ public class MultiRunIterator implements CloseableIterator {
 
 	@Override
 	public void close() throws IOException {
-		for (CloseableIterator it : runs) {
+		for (RunInput it : runs) {
 			try {
-				it.close();
+				it.purge();
 			} catch (Throwable t) {
 			}
 		}

@@ -345,13 +345,9 @@ public class ParallelMergeSorter {
 		if (finalRuns.size() == 0)
 			return new CacheRunIterator(new ArrayList<Item>().iterator());
 
-		List<CloseableIterator> iters = new ArrayList<CloseableIterator>();
-		for (Run run : finalRuns) {
-			if (run.cached != null)
-				iters.add(new CacheRunIterator(run.cached.iterator()));
-			else
-				iters.add(new FileRunIterator(run.dataFile));
-		}
+		List<RunInput> iters = new ArrayList<RunInput>();
+		for (Run run : finalRuns)
+			iters.add(new RunInput(run, cacheCount));
 
 		return new MultiRunIterator(iters);
 	}

@@ -246,7 +246,7 @@ public class Stats extends QueryCommand {
 
 				// first record or need to change merge set?
 				if (lastKeys == null || !Arrays.equals(lastKeys, (Object[]) item.getKey())) {
-					if (logger.isDebugEnabled() && lastKeys != null)
+					if (compareLogger.isDebugEnabled() && lastKeys != null)
 						compareLogger.debug("araqne logdb: stats key compare [{}] != [{}]", lastKeys[0],
 								((Object[]) item.getKey())[0]);
 

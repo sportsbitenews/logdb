@@ -483,10 +483,12 @@ public class LogQueryPlugin {
 				m.put("count", query.getResultCount());
 				pushApi.push(orgDomain, "logstorage-query-timeline-" + query.getId(), m); // deprecated
 
-				Object[] trace = new Object[] { query.getId(), spanValue.getFieldName(), spanValue.getAmount(), beginTime,
-						Arrays.toString(values), query.getResultCount() };
-				logger.trace("araqne logdb: timeline callback => "
-						+ "{id={}, span_field={}, span_amount={}, begin={}, values={}, count={}}", trace);
+				if (logger.isTraceEnabled()) {
+					Object[] trace = new Object[] { query.getId(), spanValue.getFieldName(), spanValue.getAmount(), beginTime,
+							Arrays.toString(values), query.getResultCount() };
+					logger.trace("araqne logdb: timeline callback => "
+							+ "{id={}, span_field={}, span_amount={}, begin={}, values={}, count={}}", trace);
+				}
 			} catch (IOException e) {
 				logger.error("araqne logdb: msgbus push fail", e);
 			}
