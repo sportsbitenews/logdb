@@ -80,6 +80,11 @@ public class QueryResultImpl implements QueryResult {
 	}
 
 	@Override
+	public boolean isThreadSafe() {
+		return true;
+	}
+
+	@Override
 	public void onRow(Row row) {
 		try {
 			synchronized (writerLock) {

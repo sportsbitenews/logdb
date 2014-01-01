@@ -17,8 +17,10 @@ package org.araqne.logdb.query.command;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 
-public class Signature extends QueryCommand {
+public class Signature extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(Row m) {
@@ -32,12 +34,35 @@ public class Signature extends QueryCommand {
 	}
 
 	@Override
-	public boolean isReducer() {
-		return false;
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+
+				String line = (String) row.get("line");
+				if (line == null)
+					continue;
+
+				String sig = makeSignature(line);
+				row.put("signature", sig);
+			}
+		} else {
+			for (Row row : rowBatch.rows) {
+				String line = (String) row.get("line");
+				if (line == null)
+					continue;
+
+				String sig = makeSignature(line);
+				row.put("signature", sig);
+			}
+		}
+
+		pushPipe(rowBatch);
 	}
 
 	private static String makeSignature(String line) {
-		StringBuilder sb = new StringBuilder(line.length());
+		StringBuilder sb = new StringBuilder(line.length() >> 2);
 		boolean inQuote = false;
 		for (int i = 0; i < line.length(); ++i) {
 			char c = line.charAt(i);

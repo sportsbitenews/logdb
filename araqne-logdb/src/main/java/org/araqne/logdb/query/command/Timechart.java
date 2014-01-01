@@ -25,9 +25,9 @@ import java.util.Map;
 
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.TimeUnit;
 import org.araqne.logdb.query.aggregator.AggregationField;
@@ -104,17 +104,17 @@ public class Timechart extends QueryCommand {
 	}
 
 	@Override
-	public void onPush(Row m) {
-		Date time = (Date) m.get("_time");
+	public void onPush(Row row) {
+		Date time = (Date) row.get("_time");
 		if (time == null)
 			return;
 
 		Date timeSlot = TimeUnit.getKey(time, timeSpan);
 		String keyFieldValue = null;
 		if (keyField != null) {
-			if (m.get(keyField) == null)
+			if (row.get(keyField) == null)
 				return;
-			keyFieldValue = m.get(keyField).toString();
+			keyFieldValue = row.get(keyField).toString();
 		}
 
 		// bucket is identified by truncated time and key field value. each
@@ -138,7 +138,97 @@ public class Timechart extends QueryCommand {
 
 		// aggregate for each functions
 		for (AggregationFunction f : fs)
-			f.apply(m);
+			f.apply(row);
+
+		// flush if flood
+		try {
+			if (buffer.size() > 50000)
+				flush();
+		} catch (IOException e) {
+			throw new IllegalStateException("timechart sort failed, query " + query, e);
+		}
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int r = 0; r < rowBatch.size; r++) {
+				int p = rowBatch.selected[r];
+				Row row = rowBatch.rows[p];
+
+				Date time = (Date) row.get("_time");
+				if (time == null)
+					return;
+
+				Date timeSlot = TimeUnit.getKey(time, timeSpan);
+				String keyFieldValue = null;
+				if (keyField != null) {
+					if (row.get(keyField) == null)
+						return;
+					keyFieldValue = row.get(keyField).toString();
+				}
+
+				// bucket is identified by truncated time and key field value.
+				// each bucket has function array.
+				TimechartKey key = new TimechartKey(timeSlot, keyFieldValue);
+
+				// find or create flush waiting bucket
+				AggregationFunction[] fs = buffer.get(key);
+				if (fs == null) {
+					fs = new AggregationFunction[funcs.length];
+					for (int i = 0; i < fs.length; i++) {
+						fs[i] = funcs[i].clone();
+
+						// set span milliseconds for average evaluation per span
+						if (fs[i] instanceof PerTime)
+							((PerTime) fs[i]).setAmount(spanMillis);
+					}
+
+					buffer.put(key, fs);
+				}
+
+				// aggregate for each functions
+				for (AggregationFunction f : fs)
+					f.apply(row);
+			}
+		} else {
+			for (Row row : rowBatch.rows) {
+				Date time = (Date) row.get("_time");
+				if (time == null)
+					return;
+
+				Date timeSlot = TimeUnit.getKey(time, timeSpan);
+				String keyFieldValue = null;
+				if (keyField != null) {
+					if (row.get(keyField) == null)
+						return;
+					keyFieldValue = row.get(keyField).toString();
+				}
+
+				// bucket is identified by truncated time and key field value.
+				// each bucket has function array.
+				TimechartKey key = new TimechartKey(timeSlot, keyFieldValue);
+
+				// find or create flush waiting bucket
+				AggregationFunction[] fs = buffer.get(key);
+				if (fs == null) {
+					fs = new AggregationFunction[funcs.length];
+					for (int i = 0; i < fs.length; i++) {
+						fs[i] = funcs[i].clone();
+
+						// set span milliseconds for average evaluation per span
+						if (fs[i] instanceof PerTime)
+							((PerTime) fs[i]).setAmount(spanMillis);
+					}
+
+					buffer.put(key, fs);
+				}
+
+				// aggregate for each functions
+				for (AggregationFunction f : fs)
+					f.apply(row);
+			}
+		}
 
 		// flush if flood
 		try {

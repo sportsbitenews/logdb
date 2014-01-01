@@ -19,6 +19,7 @@ import java.io.File;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +28,7 @@ import org.slf4j.LoggerFactory;
  * @author darkluster
  * 
  */
-public class Mv extends QueryCommand {
+public class Mv extends QueryCommand implements ThreadSafe {
 	private final Logger logger = LoggerFactory.getLogger(Mv.class.getName());
 	private String from;
 	private String to;

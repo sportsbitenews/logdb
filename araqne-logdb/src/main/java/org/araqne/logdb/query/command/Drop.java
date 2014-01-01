@@ -18,8 +18,9 @@ package org.araqne.logdb.query.command;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 
-public class Drop extends QueryCommand {
+public class Drop extends QueryCommand implements ThreadSafe {
 	@Override
 	public void onPush(Row m) {
 	}

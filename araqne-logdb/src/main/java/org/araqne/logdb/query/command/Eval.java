@@ -18,9 +18,10 @@ package org.araqne.logdb.query.command;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Eval extends QueryCommand {
+public class Eval extends QueryCommand implements ThreadSafe {
 	private String field;
 	private Expression expr;
 

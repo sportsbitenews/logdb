@@ -19,11 +19,12 @@ import java.util.List;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.ThreadSafe;
 import org.araqne.logdb.impl.Strings;
 
-public class Fields extends QueryCommand {
-	private List<String> fields;
-	private boolean selector;
+public class Fields extends QueryCommand implements ThreadSafe {
+	private final List<String> fields;
+	private final boolean selector;
 
 	public Fields(List<String> fields) {
 		this(fields, true);
@@ -48,11 +49,6 @@ public class Fields extends QueryCommand {
 				m.remove(field);
 		}
 		pushPipe(m);
-	}
-
-	@Override
-	public boolean isReducer() {
-		return false;
 	}
 
 	public List<String> getFields() {

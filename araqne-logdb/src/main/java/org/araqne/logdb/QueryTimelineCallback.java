@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class QueryTimelineCallback {
+	private static final int MOD_MINUTE = 60000;
 	private long callbackInterval = 2000;
 	private Map<Long, Integer> timeline = new HashMap<Long, Integer>();
 	private long lastCallbackTime;
@@ -45,7 +46,7 @@ public abstract class QueryTimelineCallback {
 
 	public abstract int getSize();
 
-	public void put(List<Date> dates) {
+	public synchronized void put(List<Date> dates) {
 		if (dates == null)
 			return;
 
@@ -55,7 +56,7 @@ public abstract class QueryTimelineCallback {
 
 		for (Date d : dates) {
 			long time = d.getTime();
-			time = time - time % 60000;
+			time = time - time % MOD_MINUTE;
 
 			if (cacheTimeLong != null) {
 				if (cacheTime == time) {
@@ -95,12 +96,12 @@ public abstract class QueryTimelineCallback {
 		}
 	}
 
-	public void put(Date date) {
+	public synchronized void put(Date date) {
 		if (date == null)
 			return;
 
 		long time = date.getTime();
-		time = time - time % 86400;
+		time = time - time % MOD_MINUTE;
 		if (timeline.containsKey(time))
 			timeline.put(time, timeline.get(time) + 1);
 		else
@@ -112,7 +113,7 @@ public abstract class QueryTimelineCallback {
 		}
 	}
 
-	public void notifyTimeline() {
+	public synchronized void notifyTimeline() {
 		int size = getSize();
 		int[] values = new int[size];
 		Long beginTime = null;

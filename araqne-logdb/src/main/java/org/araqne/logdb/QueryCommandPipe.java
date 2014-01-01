@@ -17,9 +17,16 @@ package org.araqne.logdb;
 
 public class QueryCommandPipe implements RowPipe {
 	private QueryCommand dst;
+	private final boolean threadSafe;
 
 	public QueryCommandPipe(QueryCommand dst) {
 		this.dst = dst;
+		this.threadSafe = dst != null && dst instanceof ThreadSafe;
+	}
+
+	@Override
+	public boolean isThreadSafe() {
+		return threadSafe;
 	}
 
 	@Override

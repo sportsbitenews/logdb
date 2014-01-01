@@ -17,6 +17,7 @@ package org.araqne.logdb.query.command;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.query.expr.Expression;
 
 /**
@@ -42,8 +43,13 @@ public class Set extends QueryCommand {
 	}
 
 	@Override
-	public void onPush(Row m) {
-		pushPipe(m);
+	public void onPush(Row row) {
+		pushPipe(row);
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		pushPipe(rowBatch);
 	}
 
 	@Override
