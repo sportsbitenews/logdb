@@ -140,18 +140,22 @@ public class Sort extends QueryCommand {
 				Object v1 = m1.get(field.name);
 				Object v2 = m2.get(field.name);
 
-				if (v1 == null && v2 == null)
+				boolean lhsNull = v1 == null;
+				boolean rhsNull = v2 == null;
+
+				if (lhsNull && rhsNull)
 					continue;
-				else if (v1 == null && v2 != null)
-					return 1;
+				else if (lhsNull)
+					return field.asc ? -1 : 1;
+				else if (rhsNull)
+					return field.asc ? 1 : -1;
 
-				if (!v1.equals(v2)) {
-					int result = cmp.compare(v1, v2);
-
+				int diff = cmp.compare(v1, v2);
+				if (diff != 0) {
 					if (!field.asc)
-						result *= -1;
+						diff *= -1;
 
-					return result;
+					return diff;
 				}
 			}
 
