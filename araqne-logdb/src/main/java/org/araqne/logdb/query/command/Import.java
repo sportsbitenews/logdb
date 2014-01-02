@@ -66,16 +66,16 @@ public class Import extends QueryCommand {
 	}
 
 	@Override
-	public void onPush(Row m) {
-		Object o = m.get("_time");
+	public void onPush(Row row) {
+		Object o = row.get("_time");
 		Date date = null;
 		if (o != null && o instanceof Date)
 			date = (Date) o;
 		else
 			date = new Date();
 
-		storage.write(new Log(tableName, date, m.map()));
-		pushPipe(m);
+		storage.write(new Log(tableName, date, row.map()));
+		pushPipe(row);
 	}
 
 	@Override

@@ -24,7 +24,7 @@ import org.araqne.logdb.query.expr.Expression;
 public class Search extends QueryCommand {
 	private long count;
 	private final Long limit;
-	private Expression expr;
+	private final Expression expr;
 
 	public Search(Long limit, Expression expr) {
 		this.limit = limit;
@@ -37,11 +37,6 @@ public class Search extends QueryCommand {
 
 	public Expression getExpression() {
 		return expr;
-	}
-
-	@Override
-	public void onStart() {
-		super.onStart();
 	}
 
 	@Override
@@ -150,11 +145,6 @@ public class Search extends QueryCommand {
 
 		if (limit != null && ++count >= limit)
 			getQuery().stop(QueryStopReason.PartialFetch);
-	}
-
-	@Override
-	public boolean isReducer() {
-		return false;
 	}
 
 	@Override

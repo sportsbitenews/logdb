@@ -53,11 +53,6 @@ public class Set extends QueryCommand {
 	}
 
 	@Override
-	public boolean isReducer() {
-		return false;
-	}
-
-	@Override
 	public String toString() {
 		return "set " + field + "=" + expr;
 	}

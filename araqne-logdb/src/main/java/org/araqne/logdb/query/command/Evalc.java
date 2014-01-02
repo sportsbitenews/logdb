@@ -20,9 +20,11 @@ import java.util.Map;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Evalc extends QueryCommand {
+public class Evalc extends QueryCommand implements ThreadSafe {
 	private final Map<String, Object> constants;
 	private final String constantName;
 	private final Expression expr;
@@ -45,6 +47,25 @@ public class Evalc extends QueryCommand {
 	public void onPush(Row m) {
 		constants.put(constantName, expr.eval(m));
 		pushPipe(m);
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		// expr may evaluate query context variable
+		// do not optimize such as 'put only last value'
+
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+				constants.put(constantName, expr.eval(row));
+			}
+		} else {
+			for (Row row : rowBatch.rows)
+				constants.put(constantName, expr.eval(row));
+		}
+
+		pushPipe(rowBatch);
 	}
 
 	@Override
