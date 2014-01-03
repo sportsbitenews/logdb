@@ -51,9 +51,8 @@ public class JoinParserTest {
 
 	private QueryParserService prepareMockQueryParser() {
 		QueryParserService p = mock(QueryParserService.class);
-
 		TableParams params = new TableParams();
-		params.setTableNames(Arrays.asList("users"));
+		params.setTableSpecs(Arrays.<TableSpec>asList(new WildcardTableSpec("users")));
 		QueryCommand table = new Table(params);
 
 		ArrayList<QueryCommand> commands = new ArrayList<QueryCommand>();

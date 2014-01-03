@@ -9,27 +9,25 @@ import org.araqne.log.api.WildcardMatcher;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.query.command.StorageObjectName;
 import org.araqne.logdb.query.expr.Comma;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.parser.ExpressionParser.FuncTerm;
 import org.araqne.logdb.query.parser.ExpressionParser.TokenTerm;
-import org.araqne.logdb.query.parser.TableParser.TableNameMatcher;
 import org.araqne.logstorage.LogTableRegistry;
 
-public class MetadataMatcher implements Expression {
+public class MetadataMatcher<T extends StorageObjectSpec> {
 	public static final String IDFACTORY_KEY = "identifier_factory";
-	private LogTableRegistry tableRegistry;
-	private List<TableNameMatcher> matchers;
+	private List<T> specs;
 	private TableMatcher matcherExpr;
 
 	public static interface IdentifierFactory {
 		Object create(String concreteString);
 	}
 
-	public MetadataMatcher(String predicate, LogTableRegistry tableRegistry, List<TableNameMatcher> matchers) {
-		this.tableRegistry = tableRegistry;
-		this.matchers = matchers;
-
+	public MetadataMatcher(String predicate, List<T> specs) {
+		this.specs = specs;
+		
 		OpEmitterFactory of = new OpEmitter();
 		FuncEmitterFactory ff = new FuncEmitter();
 		TermEmitterFactory tf = new TermEmitter();
@@ -38,20 +36,19 @@ public class MetadataMatcher implements Expression {
 
 		matcherExpr = ((TableMatcher)pred.eval(new Row()));
 	}
-
-	@Override
-	public Object eval(Row map) {
-		IdentifierFactory fac = (IdentifierFactory) map.get(IDFACTORY_KEY);
-		ArrayList<Object> result = new ArrayList<Object>();
-		for (String tn : tableRegistry.getTableNames()) {
-			for (TableNameMatcher q : matchers) {
-				if (q.matches(tn)) {
-					if (matcherExpr.match(tableRegistry, tn)) {
-						result.add(fac.create(q.toString(tn)));
-					}
+	
+	public List<StorageObjectName> match(LogTableRegistry tableRegistry) {
+		ArrayList<StorageObjectName> result = new ArrayList<StorageObjectName>();
+		
+		for (T spec: specs) {
+			List<StorageObjectName> match = spec.match(tableRegistry);
+			for (StorageObjectName n: match) {
+				if (matcherExpr.match(tableRegistry, n)) {
+					result.add(n);
 				}
 			}
 		}
+		
 		return result;
 	}
 
@@ -158,7 +155,7 @@ public class MetadataMatcher implements Expression {
 	}
 
 	private static interface TableMatcher {
-		boolean match(LogTableRegistry tr, String tableName);
+		boolean match(LogTableRegistry tr, StorageObjectName tableName);
 	}
 
 	private static abstract class BinaryExpression implements Expression {
@@ -189,8 +186,8 @@ public class MetadataMatcher implements Expression {
 		}
 
 		@Override
-		public boolean match(LogTableRegistry tr, String tableName) {
-			String rv = tr.getTableMetadata(tableName, key);
+		public boolean match(LogTableRegistry tr, StorageObjectName o) {
+			String rv = tr.getTableMetadata(o.getTable(), key);
 			if (pattern != null) {
 				if (rv == null)
 					return false;
@@ -239,14 +236,14 @@ public class MetadataMatcher implements Expression {
 		}
 
 		@Override
-		public boolean match(LogTableRegistry tr, String tableName) {
+		public boolean match(LogTableRegistry tr, StorageObjectName o) {
 			switch (type) {
 			case And:
-				return lhs.match(tr, tableName) && rhs.match(tr, tableName);
+				return lhs.match(tr, o) && rhs.match(tr, o);
 			case Or:
-				return lhs.match(tr, tableName) || rhs.match(tr, tableName);
+				return lhs.match(tr, o) || rhs.match(tr, o);
 			case Not:
-				return !lhs.match(tr, tableName);
+				return !lhs.match(tr, o);
 			default:
 				throw new IllegalStateException(type.toString());
 			}
