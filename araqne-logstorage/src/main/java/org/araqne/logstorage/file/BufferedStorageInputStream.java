@@ -70,7 +70,12 @@ public class BufferedStorageInputStream implements DataInput, Closeable {
 				} else if (len > buf.remaining()) {
 					bufStartPos += buf.position();
 					buf.position(0);
+
+					if (bufStartPos >= storageInputStream.length())
+						return -1;
+
 					syncBuffer();
+					len = Math.min(len, buf.remaining());
 					buf.get(bytes, off, len);
 					return len;
 				} else {
