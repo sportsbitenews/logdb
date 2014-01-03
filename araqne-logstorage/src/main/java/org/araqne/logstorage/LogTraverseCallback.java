@@ -33,6 +33,10 @@ public abstract class LogTraverseCallback {
 		this.sink = sink;
 	}
 	
+	public boolean isOrdered() {
+		return sink.isOrdered();
+	}
+	
 	public void writeLogs(List<Log> logs) {
 		sink.write(filter(logs));
 	}
@@ -55,17 +59,27 @@ public abstract class LogTraverseCallback {
 		private final long offset;
 		private final long limit;
 		private long curr;
+		private final boolean ordered;
 		private boolean eof;
 		
 		public Sink(long offset, long limit) {
+			this(offset, limit, true);
+		}
+		
+		public Sink(long offset, long limit, boolean order) {
 			this.offset = offset;
 			this.limit = limit;
 			this.curr = 0;
 			this.eof = false;
+			this.ordered = order;
 		}
 		
 		public boolean isEof() {
 			return eof;
+		}
+		
+		public boolean isOrdered() {
+			return ordered;
 		}
 		
 		// returns whether result is end or not
