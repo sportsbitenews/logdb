@@ -561,13 +561,22 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		}
 	}
 
+	/**
+	 * Use getConfigss() instead
+	 */
+	@Deprecated
 	@Override
 	public Map<String, String> getConfig() {
 		return config;
 	}
 
 	@Override
-	public Map<String, Object> getState() {
+	public Map<String, String> getConfigs() {
+		return config;
+	}
+
+	@Override
+	public Map<String, Object> getStates() {
 		LastStateService lastStateService = factory.getLastStateService();
 		if (lastStateService == null)
 			return null;
@@ -580,7 +589,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public void setState(Map<String, Object> state) {
+	public void setStates(Map<String, Object> state) {
 		LastStateService lastStateService = factory.getLastStateService();
 		if (lastStateService == null)
 			throw new IllegalStateException("last status service not found");
@@ -600,11 +609,11 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public void resetState() {
+	public void resetStates() {
 		logCounter.set(0);
 		dropCounter.set(0);
 		lastLogDate = null;
-		setState(new HashMap<String, Object>());
+		setStates(new HashMap<String, Object>());
 	}
 
 	@Override

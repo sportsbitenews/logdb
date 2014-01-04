@@ -784,7 +784,7 @@ public class LogApiScript implements Script {
 			return;
 		}
 
-		logger.resetState();
+		logger.resetStates();
 		context.println("reset completed");
 	}
 }

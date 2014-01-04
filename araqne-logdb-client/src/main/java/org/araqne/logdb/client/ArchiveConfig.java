@@ -21,6 +21,23 @@ public class ArchiveConfig {
 	private String loggerName;
 	private String tableName;
 	private String host;
+
+	/**
+	 * monitor primary logger and replicate primary logger status.
+	 * node-name\namespace\name format.
+	 * 
+	 * @since 0.8.6
+	 */
+	private String primaryLogger;
+
+	/**
+	 * check backup logger status when system has been recovered.
+	 * node-name\namespace\name format.
+	 * 
+	 * @since 0.8.6
+	 */
+	private String backupLogger;
+
 	private Map<String, String> metadata;
 	private boolean enabled;
 
@@ -48,6 +65,22 @@ public class ArchiveConfig {
 		this.host = host;
 	}
 
+	public String getPrimaryLogger() {
+		return primaryLogger;
+	}
+
+	public void setPrimaryLogger(String primaryLogger) {
+		this.primaryLogger = primaryLogger;
+	}
+
+	public String getBackupLogger() {
+		return backupLogger;
+	}
+
+	public void setBackupLogger(String backupLogger) {
+		this.backupLogger = backupLogger;
+	}
+
 	public Map<String, String> getMetadata() {
 		return metadata;
 	}
@@ -66,7 +99,7 @@ public class ArchiveConfig {
 
 	@Override
 	public String toString() {
-		return "logger=" + loggerName + ", table=" + tableName + ", enabled=" + enabled + ", host=" + host + ", metadata="
-				+ metadata;
+		return "logger=" + loggerName + ", table=" + tableName + ", enabled=" + enabled + ", host=" + host + ", primary logger="
+				+ primaryLogger + ", backup logger=" + backupLogger + ", metadata=" + metadata;
 	}
 }

@@ -310,7 +310,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		lastStartDate = new Date();
 		status = LoggerStatus.Running;
 
-		setState(getState());
+		setStates(getStates());
 
 		for (LoggerEventListener callback : listeners) {
 			try {
@@ -328,7 +328,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		s.setDropCount(getDropCount());
 		s.setLastLogDate(getLastLogDate());
 		s.setPending(isPending());
-		s.setProperties(getState());
+		s.setProperties(getStates());
 		s.setRunning(isRunning());
 
 		getFactory().getLastStateService().setState(s);

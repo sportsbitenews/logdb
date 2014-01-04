@@ -343,7 +343,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 	private class DbSync implements LoggerEventListener {
 		@Override
 		public void onStart(Logger logger) {
-			logger.setState(logger.getState());
+			logger.setStates(logger.getStates());
 		}
 
 		@Override
@@ -354,7 +354,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			s.setDropCount(logger.getDropCount());
 			s.setLastLogDate(logger.getLastLogDate());
 			s.setPending(logger.isPending());
-			s.setProperties(logger.getState());
+			s.setProperties(logger.getStates());
 
 			// do not save status caused by bundle stopping
 			LoggerRegistry loggerRegistry = getLoggerRegistry();

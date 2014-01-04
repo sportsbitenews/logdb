@@ -85,7 +85,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		File oldLastFile = getLastLogFile();
 		if (oldLastFile.exists()) {
 			Map<String, LastPosition> lastPositions = LastPositionHelper.readLastPositions(oldLastFile);
-			setState(LastPositionHelper.serialize(lastPositions));
+			setStates(LastPositionHelper.serialize(lastPositions));
 			oldLastFile.renameTo(new File(oldLastFile.getAbsolutePath() + ".migrated"));
 		}
 
@@ -94,13 +94,13 @@ public class DirectoryWatchLogger extends AbstractLogger {
 	@Override
 	protected void runOnce() {
 		List<String> logFiles = FileUtils.matchFiles(basePath, fileNamePattern);
-		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getState());
+		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
 
 		for (String path : logFiles) {
 			processFile(lastPositions, path);
 		}
 
-		setState(LastPositionHelper.serialize(lastPositions));
+		setStates(LastPositionHelper.serialize(lastPositions));
 	}
 
 	protected void processFile(Map<String, LastPosition> lastPositions, String path) {

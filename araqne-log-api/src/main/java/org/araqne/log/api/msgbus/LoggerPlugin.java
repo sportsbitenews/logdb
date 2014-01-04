@@ -17,9 +17,11 @@ package org.araqne.log.api.msgbus;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
@@ -75,19 +77,44 @@ public class LoggerPlugin {
 		resp.put("factories", l);
 	}
 
+	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void getLoggers(Request req, Response resp) {
-		resp.put("loggers", Marshaler.marshal(loggerRegistry.getLoggers()));
+		Set<String> loggerNames = null;
+
+		if (req.get("logger_names") != null)
+			loggerNames = new HashSet<String>((List<String>) req.get("logger_names"));
+
+		List<Object> ret = new ArrayList<Object>();
+
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			if (loggerNames != null && !loggerNames.contains(logger.getFullName()))
+				continue;
+
+			ret.add(Marshaler.marshal(logger));
+		}
+
+		resp.put("loggers", ret);
 	}
 
 	@MsgbusMethod
 	public void getLogger(Request req, Response resp) {
 		// logger fullname
-		Logger logger = loggerRegistry.getLogger(req.getString("logger"));
+		String loggerName = req.getString("logger_name");
+		boolean includeConfigs = getBool(req, "include_configs");
+		boolean includeStates = getBool(req, "include_states");
+
+		Logger logger = loggerRegistry.getLogger(loggerName);
 		if (logger != null)
-			resp.put("logger", Marshaler.marshal(logger));
+			resp.put("logger", Marshaler.marshal(logger, includeConfigs, includeStates));
 		else
 			resp.put("logger", null);
+	}
+
+	private boolean getBool(Request req, String key) {
+		if (req.getBoolean(key) == null)
+			return false;
+		return req.getBoolean(key);
 	}
 
 	@MsgbusMethod
