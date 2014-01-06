@@ -138,6 +138,12 @@ public class LocalFileInputStream extends StorageInputStream {
 	}
 
 	@Override
+	public synchronized int available() throws IOException {
+		long remain = length() - getPos();
+		return (remain > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) remain;
+	}
+
+	@Override
 	public int readBestEffort(ByteBuffer buf) throws IOException {
 		FileChannel channel = source.getChannel();
 		int total = 0;
