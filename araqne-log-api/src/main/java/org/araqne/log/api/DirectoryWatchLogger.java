@@ -43,39 +43,39 @@ public class DirectoryWatchLogger extends AbstractLogger {
 
 		dataDir = new File(System.getProperty("araqne.data.dir"), "araqne-log-api");
 		dataDir.mkdirs();
-		basePath = getConfig().get("base_path");
+		basePath = getConfigs().get("base_path");
 
-		String fileNameRegex = getConfig().get("filename_pattern");
+		String fileNameRegex = getConfigs().get("filename_pattern");
 		fileNamePattern = Pattern.compile(fileNameRegex);
 
 		extractor = new MultilineLogExtractor(this, receiver);
 
 		// optional
-		String dateExtractRegex = getConfig().get("date_pattern");
+		String dateExtractRegex = getConfigs().get("date_pattern");
 		if (dateExtractRegex != null)
 			extractor.setDateMatcher(Pattern.compile(dateExtractRegex).matcher(""));
 
 		// optional
-		String dateLocale = getConfig().get("date_locale");
+		String dateLocale = getConfigs().get("date_locale");
 		if (dateLocale == null)
 			dateLocale = "en";
 
 		// optional
-		String dateFormatString = getConfig().get("date_format");
+		String dateFormatString = getConfigs().get("date_format");
 		if (dateFormatString != null)
 			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)));
 
 		// optional
-		String newlogRegex = getConfig().get("newlog_designator");
+		String newlogRegex = getConfigs().get("newlog_designator");
 		if (newlogRegex != null)
 			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
 
-		String newlogEndRegex = getConfig().get("newlog_end_designator");
+		String newlogEndRegex = getConfigs().get("newlog_end_designator");
 		if (newlogEndRegex != null)
 			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
 
 		// optional
-		String charset = getConfig().get("charset");
+		String charset = getConfigs().get("charset");
 		if (charset == null)
 			charset = "utf-8";
 

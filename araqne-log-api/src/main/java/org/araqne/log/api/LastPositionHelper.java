@@ -63,6 +63,7 @@ public class LastPositionHelper {
 	}
 
 	public static Map<String, Object> serialize(Map<String, LastPosition> positions) {
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 		Map<String, Object> state = new HashMap<String, Object>();
 
 		for (String key : positions.keySet()) {
@@ -70,7 +71,7 @@ public class LastPositionHelper {
 			Map<String, Object> m = new HashMap<String, Object>();
 			m.put("path", p.getPath());
 			m.put("position", p.getPosition());
-			m.put("last_seen", p.getLastSeen());
+			m.put("last_seen", p.getLastSeen() == null ? null : df.format(p.getLastSeen()));
 			state.put(key, m);
 		}
 

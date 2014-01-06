@@ -45,14 +45,16 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 	private final Timer timer;
 
 	public WebSocketSession(String host, int port) throws IOException {
+		URI uri = null;
 		try {
-			this.websocket = new WebSocket(new URI("http://" + host + ":" + port + "/websocket"));
+			uri = new URI("http://" + host + ":" + port + "/websocket");
+			this.websocket = new WebSocket(uri);
 			websocket.addListener(this);
 		} catch (URISyntaxException e) {
 			throw new IllegalArgumentException("invalid host: " + host);
 		}
 
-		this.timer = new Timer();
+		this.timer = new Timer("WebSocket [" + uri + "] Ping Timer");
 		timer.scheduleAtFixedRate(new PingTask(), new Date(), 2000);
 	}
 
