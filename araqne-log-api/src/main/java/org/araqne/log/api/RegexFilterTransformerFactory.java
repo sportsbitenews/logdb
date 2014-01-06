@@ -57,6 +57,8 @@ public class RegexFilterTransformerFactory implements LogTransformerFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "정규표현식을 이용하여 일치하는 로그만 저장합니다.";
 		return "pass or drop logs by regex match result";
 	}
 
