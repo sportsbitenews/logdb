@@ -71,6 +71,7 @@ public class Marshaler {
 		m.put("last_run", dateFormatting(logger.getLastRunDate()));
 		m.put("last_log", dateFormatting(logger.getLastLogDate()));
 		m.put("log_count", logger.getLogCount());
+		m.put("drop_count", logger.getDropCount());
 
 		if (includeConfigs)
 			m.put("configs", logger.getConfigs());

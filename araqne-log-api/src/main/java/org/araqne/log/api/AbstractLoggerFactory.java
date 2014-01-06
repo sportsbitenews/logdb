@@ -349,7 +349,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		@Override
 		public void onStop(Logger logger) {
 			LastState s = new LastState();
-			s.setLoggerName(getFullName());
+			s.setLoggerName(logger.getFullName());
 			s.setLogCount(logger.getLogCount());
 			s.setDropCount(logger.getDropCount());
 			s.setLastLogDate(logger.getLastLogDate());

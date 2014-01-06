@@ -579,11 +579,11 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	public Map<String, Object> getStates() {
 		LastStateService lastStateService = factory.getLastStateService();
 		if (lastStateService == null)
-			return null;
+			return new HashMap<String, Object>();
 
 		LastState s = lastStateService.getState(getFullName());
 		if (s == null)
-			return null;
+			return new HashMap<String, Object>();
 
 		return s.getProperties();
 	}
