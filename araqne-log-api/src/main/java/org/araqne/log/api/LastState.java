@@ -30,6 +30,11 @@ public class LastState {
 	private long dropCount;
 	private Date lastLogDate;
 
+	/***
+	 * check newer state between HA nodes
+	 */
+	private long updateCount;
+
 	@MapTypeHint({ String.class, Object.class })
 	private Map<String, Object> properties = new HashMap<String, Object>();
 
@@ -87,6 +92,14 @@ public class LastState {
 
 	public void setLastLogDate(Date lastLogDate) {
 		this.lastLogDate = lastLogDate;
+	}
+
+	public long getUpdateCount() {
+		return updateCount;
+	}
+
+	public void setUpdateCount(long updateCount) {
+		this.updateCount = updateCount;
 	}
 
 	public Map<String, Object> getProperties() {
