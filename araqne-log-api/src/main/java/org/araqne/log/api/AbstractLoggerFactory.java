@@ -130,6 +130,10 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 					config.getConfigs());
 
 			Logger newLogger = handleNewLogger(spec, true);
+
+			if (state == null)
+				return;
+
 			if (state.isPending())
 				newLogger.setPending(true);
 
