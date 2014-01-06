@@ -237,6 +237,8 @@ public class LogDbClient implements TrapListener, Closeable {
 		c.setLoggerName((String) m.get("logger"));
 		c.setTableName((String) m.get("table"));
 		c.setHost((String) m.get("host"));
+		c.setPrimaryLogger((String) m.get("primary_logger"));
+		c.setBackupLogger((String) m.get("backup_logger"));
 		c.setEnabled((Boolean) m.get("enabled"));
 		c.setMetadata((Map<String, String>) m.get("metadata"));
 		return c;
@@ -791,32 +793,74 @@ public class LogDbClient implements TrapListener, Closeable {
 		session.rpc("org.logpresso.core.msgbus.TransformerPlugin.removeTransformer", params);
 	}
 
-	@SuppressWarnings("unchecked")
 	public List<LoggerInfo> listLoggers() throws IOException {
-		Message resp = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getLoggers");
+		return listLoggers(null);
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<LoggerInfo> listLoggers(List<String> loggerNames) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("logger_names", loggerNames);
+
+		Message resp = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getLoggers", params);
 		List<Object> l = (List<Object>) resp.get("loggers");
 
 		List<LoggerInfo> loggers = new ArrayList<LoggerInfo>();
 		for (Object o : l) {
 			Map<String, Object> m = (Map<String, Object>) o;
-
-			LoggerInfo lo = new LoggerInfo();
-			lo.setNamespace((String) m.get("namespace"));
-			lo.setName((String) m.get("name"));
-			lo.setFactoryName((String) m.get("factory_full_name"));
-			lo.setDescription((String) m.get("description"));
-			lo.setPassive((Boolean) m.get("is_passive"));
-			lo.setInterval((Integer) m.get("interval"));
-			lo.setStatus((String) m.get("status"));
-			lo.setLastStartAt(parseDate((String) m.get("last_start")));
-			lo.setLastRunAt(parseDate((String) m.get("last_run")));
-			lo.setLastLogAt(parseDate((String) m.get("last_log")));
-			lo.setLogCount(Long.valueOf(m.get("log_count").toString()));
-
+			LoggerInfo lo = decodeLoggerInfo(m);
 			loggers.add(lo);
 		}
 
 		return loggers;
+	}
+
+	/**
+	 * Retrieve specific logger information with config using RPC call. States
+	 * will not returned because logger states' size can be very large.
+	 * 
+	 * @since 0.8.6
+	 */
+	public LoggerInfo getLogger(String loggerName) throws IOException {
+		return getLogger(loggerName, false);
+	}
+
+	/**
+	 * @since 0.8.6
+	 */
+	@SuppressWarnings("unchecked")
+	public LoggerInfo getLogger(String loggerName, boolean includeStates) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("logger_name", loggerName);
+		params.put("include_configs", true);
+		params.put("include_states", includeStates);
+
+		Message resp = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getLogger", params);
+		Map<String, Object> m = (Map<String, Object>) resp.get("logger");
+		if (m == null)
+			return null;
+
+		return decodeLoggerInfo(m);
+	}
+
+	@SuppressWarnings("unchecked")
+	private LoggerInfo decodeLoggerInfo(Map<String, Object> m) {
+		LoggerInfo lo = new LoggerInfo();
+		lo.setNamespace((String) m.get("namespace"));
+		lo.setName((String) m.get("name"));
+		lo.setFactoryName((String) m.get("factory_full_name"));
+		lo.setDescription((String) m.get("description"));
+		lo.setPassive((Boolean) m.get("is_passive"));
+		lo.setInterval((Integer) m.get("interval"));
+		lo.setStatus((String) m.get("status"));
+		lo.setLastStartAt(parseDate((String) m.get("last_start")));
+		lo.setLastRunAt(parseDate((String) m.get("last_run")));
+		lo.setLastLogAt(parseDate((String) m.get("last_log")));
+		lo.setLogCount(Long.valueOf(m.get("log_count").toString()));
+
+		lo.setConfigs((Map<String, String>) m.get("configs"));
+		lo.setStates((Map<String, Object>) m.get("states"));
+		return lo;
 	}
 
 	private Date parseDate(String s) {

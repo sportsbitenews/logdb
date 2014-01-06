@@ -16,6 +16,8 @@
 package org.araqne.logdb;
 
 public interface RowPipe {
+	boolean isThreadSafe();
+
 	void onRow(Row row);
 
 	void onRowBatch(RowBatch rowBatch);

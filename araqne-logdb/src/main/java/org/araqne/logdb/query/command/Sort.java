@@ -26,6 +26,7 @@ import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.impl.TopSelector;
 import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
@@ -72,6 +73,34 @@ public class Sort extends QueryCommand {
 		} catch (IOException e) {
 			throw new IllegalStateException("sort failed, query " + query, e);
 		}
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		try {
+			if (rowBatch.selectedInUse) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					int p = rowBatch.selected[i];
+					Row row = rowBatch.rows[p];
+
+					if (top != null)
+						top.add(new Item(row.map(), null));
+					else
+						sorter.add(new Item(row.map(), null));
+				}
+			} else {
+				for (Row row : rowBatch.rows) {
+					if (top != null)
+						top.add(new Item(row.map(), null));
+					else
+						sorter.add(new Item(row.map(), null));
+				}
+			}
+		} catch (IOException e) {
+			throw new IllegalStateException("sort failed, query " + query, e);
+		}
+
+		pushPipe(rowBatch);
 	}
 
 	@Override
@@ -140,18 +169,22 @@ public class Sort extends QueryCommand {
 				Object v1 = m1.get(field.name);
 				Object v2 = m2.get(field.name);
 
-				if (v1 == null && v2 == null)
+				boolean lhsNull = v1 == null;
+				boolean rhsNull = v2 == null;
+
+				if (lhsNull && rhsNull)
 					continue;
-				else if (v1 == null && v2 != null)
-					return 1;
+				else if (lhsNull)
+					return field.asc ? -1 : 1;
+				else if (rhsNull)
+					return field.asc ? 1 : -1;
 
-				if (!v1.equals(v2)) {
-					int result = cmp.compare(v1, v2);
-
+				int diff = cmp.compare(v1, v2);
+				if (diff != 0) {
 					if (!field.asc)
-						result *= -1;
+						diff *= -1;
 
-					return result;
+					return diff;
 				}
 			}
 

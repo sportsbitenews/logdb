@@ -39,13 +39,13 @@ import org.slf4j.LoggerFactory;
 
 public class ParallelMergeSorter {
 	private static final int DEFAULT_CACHE_SIZE = 10000;
-	private static final int DEFAULT_RUN_LENGTH = 20000;
+	private static final int DEFAULT_RUN_LENGTH = 50000;
 	private final Logger logger = LoggerFactory.getLogger(ParallelMergeSorter.class);
 	private Queue<Run> runs = new LinkedBlockingDeque<Run>();
 	private Queue<PartitionMergeTask> merges = new LinkedBlockingQueue<PartitionMergeTask>();
 	private LinkedList<Item> buffer;
 	private Comparator<Item> comparator;
-	private int runLength = 20000;
+	private int runLength;
 	private AtomicInteger runIndexer;
 	private volatile int flushTaskCount;
 	private AtomicInteger cacheCount;
@@ -115,53 +115,51 @@ public class ParallelMergeSorter {
 	}
 
 	public CloseableIterator sort() throws IOException {
-		// flush rest objects
-		flushRun();
-		buffer = null;
-		logger.trace("flush finished.");
+		try {
+			// flush rest objects
+			flushRun();
+			buffer = null;
+			logger.trace("flush finished.");
 
-		// wait flush done
-		while (true) {
-			synchronized (flushDoneSignal) {
-				if (flushTaskCount == 0)
-					break;
+			// wait flush done
+			while (true) {
+				synchronized (flushDoneSignal) {
+					if (flushTaskCount == 0)
+						break;
 
-				try {
-					flushDoneSignal.wait();
-				} catch (InterruptedException e) {
+					try {
+						flushDoneSignal.wait();
+					} catch (InterruptedException e) {
+					}
+					logger.debug("araqne logdb: remaining runs {}, task count: {}", runs.size(), flushTaskCount);
 				}
-				logger.debug("araqne logdb: remaining runs {}, task count: {}", runs.size(), flushTaskCount);
 			}
+
+			// partition
+			logger.trace("araqne logdb: start partitioning");
+			long begin = new Date().getTime();
+			Partitioner partitioner = new Partitioner(comparator);
+			List<SortedRun> sortedRuns = new LinkedList<SortedRun>();
+			for (Run run : runs)
+				sortedRuns.add(new SortedRunImpl(run));
+
+			runs.clear();
+
+			int partitionCount = getProperPartitionCount();
+			List<Partition> partitions = partitioner.partition(partitionCount, sortedRuns);
+			for (SortedRun r : sortedRuns)
+				((SortedRunImpl) r).close();
+
+			long elapsed = new Date().getTime() - begin;
+			logger.trace("araqne logdb: [{}] partitioning completed in {}ms", partitionCount, elapsed);
+
+			// n-way merge
+			CloseableIterator it = mergeAll(partitions);
+			logger.trace("merge ended");
+			return it;
+		} finally {
+			executor.shutdown();
 		}
-
-		// partition
-		logger.trace("araqne logdb: start partitioning");
-		long begin = new Date().getTime();
-		Partitioner partitioner = new Partitioner(comparator);
-		List<SortedRun> sortedRuns = new LinkedList<SortedRun>();
-		for (Run run : runs)
-			sortedRuns.add(new SortedRunImpl(run));
-
-		runs.clear();
-
-		int partitionCount = getProperPartitionCount();
-		List<Partition> partitions = partitioner.partition(partitionCount, sortedRuns);
-		for (SortedRun r : sortedRuns)
-			((SortedRunImpl) r).close();
-
-		long elapsed = new Date().getTime() - begin;
-		logger.trace("araqne logdb: [{}] partitioning completed in {}ms", partitionCount, elapsed);
-
-		// n-way merge
-		Run run = mergeAll(partitions);
-		executor.shutdown();
-
-		logger.trace("merge ended");
-
-		if (run.cached != null)
-			return new CacheRunIterator(run.cached.iterator());
-		else
-			return new FileRunIterator(run.dataFile);
 	}
 
 	private static int getProperPartitionCount() {
@@ -207,7 +205,7 @@ public class ParallelMergeSorter {
 		}
 	}
 
-	private Run mergeAll(List<Partition> partitions) throws IOException {
+	private CloseableIterator mergeAll(List<Partition> partitions) throws IOException {
 		// enqueue partition merge
 		int id = 0;
 
@@ -342,48 +340,16 @@ public class ParallelMergeSorter {
 
 	}
 
-	private void writeRestObjects(RunInput in, RunOutput out) throws IOException {
-		int count = 0;
-		while (in.hasNext()) {
-			out.write(in.next());
-			count++;
-		}
-		logger.debug("araqne logdb: final output writing from run #{}, count={}", in.getId(), count);
-	}
+	private CloseableIterator concat(List<Run> finalRuns) throws IOException {
+		// empty iterator for no item scenario
+		if (finalRuns.size() == 0)
+			return new CacheRunIterator(new ArrayList<Item>().iterator());
 
-	private Run concat(List<Run> finalRuns) throws IOException {
-		logger.debug("araqne logdb: concat begins");
-		RunOutput out = null;
-		List<RunInput> inputs = new LinkedList<RunInput>();
-		try {
-			int total = 0;
-			for (Run r : finalRuns) {
-				total += r.length;
-				inputs.add(new RunInput(r, cacheCount));
-				logger.debug("araqne logdb: concat run #{}", r.id);
-			}
+		List<RunInput> iters = new ArrayList<RunInput>();
+		for (Run run : finalRuns)
+			iters.add(new RunInput(run, cacheCount));
 
-			int id = runIndexer.incrementAndGet();
-			out = new RunOutput(id, total, cacheCount, true);
-
-			for (RunInput in : inputs) {
-				writeRestObjects(in, out);
-				if (out.dataBos != null)
-					out.dataBos.flush();
-			}
-
-		} catch (Exception e) {
-			logger.error("araqne logdb: failed to concat " + finalRuns, e);
-		} finally {
-			for (RunInput input : inputs) {
-				input.purge();
-			}
-
-			if (out != null)
-				return out.finish();
-		}
-
-		return null;
+		return new MultiRunIterator(iters);
 	}
 
 	private Run merge(List<Run> runs) throws IOException {

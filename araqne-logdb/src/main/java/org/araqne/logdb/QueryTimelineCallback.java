@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class QueryTimelineCallback {
+	private static final int MOD_MINUTE = 60000;
 	private long callbackInterval = 2000;
 	private Map<Long, Integer> timeline = new HashMap<Long, Integer>();
 	private long lastCallbackTime;
@@ -45,55 +46,74 @@ public abstract class QueryTimelineCallback {
 
 	public abstract int getSize();
 
-	public void put(List<Date> dates) {
+	public synchronized void put(List<Date> dates) {
 		if (dates == null)
 			return;
 
+		Long cacheTimeLong = null;
+		long cacheTime = 0;
+		int cacheCount = 0;
+
 		for (Date d : dates) {
 			long time = d.getTime();
-			time = time - time % 86400;
-			Long t = Long.valueOf(time);
+			time = time - time % MOD_MINUTE;
 
-			Integer val = timeline.get(t);
+			if (cacheTimeLong != null) {
+				if (cacheTime == time) {
+					cacheCount++;
+				} else {
+					Integer val = timeline.get(cacheTimeLong);
+					if (val != null) {
+						timeline.put(cacheTimeLong, val + cacheCount);
+					} else
+						timeline.put(cacheTimeLong, cacheCount);
+
+					// reset cache
+					cacheTimeLong = Long.valueOf(time);
+					cacheTime = time;
+					cacheCount = 1;
+				}
+			} else {
+				cacheTimeLong = Long.valueOf(time);
+				cacheTime = time;
+				cacheCount = 1;
+			}
+		}
+
+		// add remaining
+		if (cacheTimeLong != null) {
+			Integer val = timeline.get(cacheTimeLong);
 			if (val != null) {
-				timeline.put(t, val + 1);
+				timeline.put(cacheTimeLong, val + cacheCount);
 			} else
-				timeline.put(t, 1);
+				timeline.put(cacheTimeLong, cacheCount);
 		}
 
 		long now = System.currentTimeMillis();
 		if (now > lastCallbackTime + callbackInterval) {
-			callback();
+			notifyTimeline();
 			lastCallbackTime = now;
 		}
 	}
 
-	public void put(Date date) {
+	public synchronized void put(Date date) {
 		if (date == null)
 			return;
 
 		long time = date.getTime();
-		time = time - time % 86400;
+		time = time - time % MOD_MINUTE;
 		if (timeline.containsKey(time))
 			timeline.put(time, timeline.get(time) + 1);
 		else
 			timeline.put(time, 1);
 
 		if (System.currentTimeMillis() > lastCallbackTime + callbackInterval) {
-			callback();
+			notifyTimeline();
 			lastCallbackTime = System.currentTimeMillis();
 		}
 	}
 
-	public void callback() {
-		buildCallbackData(false);
-	}
-
-	public void eof(boolean cancelled) {
-		buildCallbackData(true);
-	}
-
-	private void buildCallbackData(boolean isEnd) {
+	public synchronized void notifyTimeline() {
 		int size = getSize();
 		int[] values = new int[size];
 		Long beginTime = null;
@@ -136,10 +156,11 @@ public abstract class QueryTimelineCallback {
 			break;
 		}
 
-		callback(new Date(beginTime), spans[spansIndex], values, isEnd);
+		onPush(new Date(beginTime), spans[spansIndex], values, false);
 	}
 
-	protected abstract void callback(Date beginTime, SpanValue spanValue, int[] values, boolean isEnd);
+	// TODO: remove isEnd parameter from UI and here
+	protected abstract void onPush(Date beginTime, SpanValue spanValue, int[] values, boolean isEnd);
 
 	public class SpanValue {
 		private int field;

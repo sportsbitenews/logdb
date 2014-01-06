@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.araqne.log.api.AbstractLogger;
 import org.araqne.log.api.AbstractLoggerFactory;
+import org.araqne.log.api.LastStateService;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LogPipe;
@@ -32,6 +33,7 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.SimpleLog;
+import org.araqne.log.api.impl.LastStateServiceImpl;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -135,6 +137,11 @@ public class StatsSummaryLoggerTest {
 		}
 
 		@Override
+		public LastStateService getLastStateService() {
+			return new LastStateServiceImpl();
+		}
+
+		@Override
 		protected Logger createLogger(LoggerSpecification spec) {
 			return new SampleLogger(spec, this, 1);
 		}
@@ -144,6 +151,8 @@ public class StatsSummaryLoggerTest {
 	@Test
 	public void test() {
 		LoggerFactory factory = mock(LoggerFactory.class);
+		when(factory.getLastStateService()).thenReturn(new LastStateServiceImpl());
+
 		LoggerRegistry loggerRegistry = mock(LoggerRegistry.class);
 		LogParserRegistry parserRegistry = mock(LogParserRegistry.class);
 
@@ -160,8 +169,8 @@ public class StatsSummaryLoggerTest {
 			}
 		}).when(sink).onLog(any(Logger.class), any(Log.class));
 
-		SampleLogger sourceLogger = new SampleLogger(new LoggerSpecification("local", "source", "", 0, null, 0,
-				new HashMap<String, String>()), new SampleLoggerFactory(), 1);
+		SampleLogger sourceLogger = new SampleLogger(
+				new LoggerSpecification("local", "source", "", new HashMap<String, String>()), new SampleLoggerFactory(), 1);
 
 		when(loggerRegistry.getLogger("local\\source")).thenReturn(sourceLogger);
 
@@ -173,7 +182,7 @@ public class StatsSummaryLoggerTest {
 		config.put(StatsSummaryLoggerFactory.OPT_MIN_INTERVAL, "600");
 		config.put(StatsSummaryLoggerFactory.OPT_FLUSH_INTERVAL, "1");
 		config.put(StatsSummaryLoggerFactory.OPT_MEMORY_ITEMSIZE, "50000");
-		LoggerSpecification spec = new LoggerSpecification("local", "test", "", 0, null, 0, config);
+		LoggerSpecification spec = new LoggerSpecification("local", "test", "", config);
 
 		StatsSummaryLogger logger = new StatsSummaryLogger(spec, factory, loggerRegistry, parserRegistry);
 

@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
+import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -35,6 +36,45 @@ import org.slf4j.LoggerFactory;
 
 public class LastPositionHelper {
 	private LastPositionHelper() {
+	}
+
+	public static Map<String, LastPosition> deserialize(Map<String, Object> state) {
+		Map<String, LastPosition> positions = new HashMap<String, LastPosition>();
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+		for (String key : state.keySet()) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> m = (Map<String, Object>) state.get(key);
+
+			String path = (String) m.get("path");
+
+			// position type can be integer or long, so requires normalization
+			long position = Long.valueOf(m.get("position").toString());
+
+			String s = (String) m.get("last_seen");
+			Date lastSeen = null;
+			if (s != null)
+				lastSeen = df.parse(s, new ParsePosition(0));
+
+			LastPosition p = new LastPosition(path, position, lastSeen);
+			positions.put(key, p);
+		}
+
+		return positions;
+	}
+
+	public static Map<String, Object> serialize(Map<String, LastPosition> positions) {
+		Map<String, Object> state = new HashMap<String, Object>();
+
+		for (String key : positions.keySet()) {
+			LastPosition p = positions.get(key);
+			Map<String, Object> m = new HashMap<String, Object>();
+			m.put("path", p.getPath());
+			m.put("position", p.getPosition());
+			m.put("last_seen", p.getLastSeen());
+			state.put(key, m);
+		}
+
+		return state;
 	}
 
 	public static Map<String, LastPosition> readLastPositions(File f) {

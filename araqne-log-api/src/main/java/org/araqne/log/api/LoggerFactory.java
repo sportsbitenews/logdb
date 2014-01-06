@@ -22,14 +22,18 @@ import org.osgi.framework.BundleContext;
 
 public interface LoggerFactory {
 	/**
-	 * logger factory registry calls onStart() when logger factory component is registered to OSGi service registry
+	 * logger factory registry calls onStart() when logger factory component is
+	 * registered to OSGi service registry
 	 */
 	void onStart(BundleContext bc);
 
 	/**
-	 * logger factory registry calls onStop() when logger factory component is unregistering from OSGi service registry
+	 * logger factory registry calls onStop() when logger factory component is
+	 * unregistering from OSGi service registry
 	 */
 	void onStop();
+
+	LastStateService getLastStateService();
 
 	String getFullName();
 
@@ -56,6 +60,6 @@ public interface LoggerFactory {
 	void addListener(LoggerFactoryEventListener callback);
 
 	void removeListener(LoggerFactoryEventListener callback);
-	
+
 	boolean isAvailable();
 }

@@ -42,8 +42,8 @@ public class Stats extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
 	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
 	private int inputCount;
-	private List<AggregationField> fields;
-	private List<String> clauses;
+	private final List<AggregationField> fields;
+	private final List<String> clauses;
 	private final int clauseCount;
 	private final boolean useClause;
 	private final List<Object> EMPTY_KEY;
@@ -90,14 +90,16 @@ public class Stats extends QueryCommand {
 	public void onPush(RowBatch rowBatch) {
 		List<Object> keys = EMPTY_KEY;
 
+		if (useClause)
+			keys = new ArrayList<Object>(clauseCount);
+
 		if (rowBatch.selectedInUse) {
 			for (int index = 0; index < rowBatch.size; index++) {
-				Row m = rowBatch.rows[rowBatch.selected[index]];
+				keys.clear();
+				Row row = rowBatch.rows[rowBatch.selected[index]];
 				if (useClause) {
-					keys = new ArrayList<Object>(clauses.size());
-
 					for (String clause : clauses) {
-						Object keyValue = m.get(clause);
+						Object keyValue = row.get(clause);
 						if (keyValue == null)
 							return;
 
@@ -113,17 +115,16 @@ public class Stats extends QueryCommand {
 					for (int i = 0; i < fs.length; i++)
 						fs[i] = funcs[i].clone();
 
-					buffer.put(keys, fs);
+					buffer.put(new ArrayList<Object>(keys), fs);
 				}
 
 				for (AggregationFunction f : fs)
-					f.apply(m);
+					f.apply(row);
 			}
 		} else {
 			for (Row m : rowBatch.rows) {
 				if (useClause) {
-					keys = new ArrayList<Object>(clauses.size());
-
+					keys.clear();
 					for (String clause : clauses) {
 						Object keyValue = m.get(clause);
 						if (keyValue == null)
@@ -141,7 +142,7 @@ public class Stats extends QueryCommand {
 					for (int i = 0; i < fs.length; i++)
 						fs[i] = funcs[i].clone();
 
-					buffer.put(keys, fs);
+					buffer.put(new ArrayList<Object>(keys), fs);
 				}
 
 				for (AggregationFunction f : fs)
@@ -162,7 +163,7 @@ public class Stats extends QueryCommand {
 	public void onPush(Row m) {
 		List<Object> keys = EMPTY_KEY;
 		if (clauseCount > 0) {
-			keys = new ArrayList<Object>(clauses.size());
+			keys = new ArrayList<Object>(clauseCount);
 
 			for (String clause : clauses) {
 				Object keyValue = m.get(clause);
@@ -245,7 +246,7 @@ public class Stats extends QueryCommand {
 
 				// first record or need to change merge set?
 				if (lastKeys == null || !Arrays.equals(lastKeys, (Object[]) item.getKey())) {
-					if (logger.isDebugEnabled() && lastKeys != null)
+					if (compareLogger.isDebugEnabled() && lastKeys != null)
 						compareLogger.debug("araqne logdb: stats key compare [{}] != [{}]", lastKeys[0],
 								((Object[]) item.getKey())[0]);
 
@@ -323,17 +324,8 @@ public class Stats extends QueryCommand {
 
 		@Override
 		public int compare(Item o1, Item o2) {
-			boolean o1null = o1 == null;
-			boolean o2null = o2 == null;
-			if (o1null && o2null)
-				return 0;
-			if (o1null)
-				return 1;
-			if (o2null)
-				return -1;
 			return cmp.compare(o1.getKey(), o2.getKey());
 		}
-
 	}
 
 	@Override

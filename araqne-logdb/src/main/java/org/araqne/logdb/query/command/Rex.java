@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 
 public class Rex extends QueryCommand {
 
@@ -67,6 +68,42 @@ public class Rex extends QueryCommand {
 				m.put(names[i], matcher.group(i + 1));
 
 		pushPipe(m);
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+
+				Object o = row.get(field);
+				if (o == null)
+					continue;
+
+				String s = o.toString();
+
+				matcher.reset(s);
+				if (matcher.find())
+					for (int g = 0; g < matcher.groupCount(); g++)
+						row.put(names[g], matcher.group(g + 1));
+			}
+		} else {
+			for (Row row : rowBatch.rows) {
+				Object o = row.get(field);
+				if (o == null)
+					continue;
+
+				String s = o.toString();
+
+				matcher.reset(s);
+				if (matcher.find())
+					for (int g = 0; g < matcher.groupCount(); g++)
+						row.put(names[g], matcher.group(g + 1));
+			}
+		}
+
+		pushPipe(rowBatch);
 	}
 
 	@Override

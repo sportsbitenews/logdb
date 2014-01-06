@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,29 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.query.command;
+package org.araqne.log.api;
 
-import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.Row;
-import org.araqne.logdb.RowBatch;
-import org.araqne.logdb.ThreadSafe;
-
-public class Drop extends QueryCommand implements ThreadSafe {
-	@Override
-	public void onPush(Row m) {
-	}
-
-	@Override
-	public void onPush(RowBatch rowBatch) {
-	}
-
-	@Override
-	public boolean isReducer() {
-		return true;
-	}
-
-	@Override
-	public String toString() {
-		return "drop";
-	}
+public interface LastStateListener {
+	void onChange(LastState oldStatus, LastState newStatus);
 }

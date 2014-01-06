@@ -50,6 +50,7 @@ public class LoggerInfo {
 	private long logCount;
 
 	private Map<String, String> configs = new HashMap<String, String>();
+	private Map<String, Object> states = new HashMap<String, Object>();
 
 	public String getFactoryName() {
 		return factoryName;
@@ -93,6 +94,14 @@ public class LoggerInfo {
 
 	public void setConfigs(Map<String, String> configs) {
 		this.configs = configs;
+	}
+
+	public Map<String, Object> getStates() {
+		return states;
+	}
+
+	public void setStates(Map<String, Object> states) {
+		this.states = states;
 	}
 
 	public boolean isPassive() {
@@ -163,7 +172,14 @@ public class LoggerInfo {
 		else
 			status += " (interval=" + interval + "ms)";
 
-		return String.format("name=%s, factory=%s, status=%s, log count=%d, last start=%s, last run=%s, last log=%s",
+		String details = "";
+		if (configs != null && configs.size() > 0)
+			details += ", configs=" + configs;
+
+		if (states != null && states.size() > 0)
+			details += ", states=" + states;
+
+		return String.format("name=%s, factory=%s, status=%s, log count=%d, last start=%s, last run=%s, last log=%s" + details,
 				getFullName(), factoryName, status, getLogCount(), start, run, log);
 	}
 }

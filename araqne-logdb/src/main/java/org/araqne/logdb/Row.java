@@ -22,13 +22,17 @@ import java.util.Map;
 public class Row {
 	// _time cache
 	private Date d;
-	private Map<String, Object> map;
+	private final Map<String, Object> map;
 
 	public Row() {
 		this(new HashMap<String, Object>());
 	}
 
 	public Row(Map<String, Object> map) {
+		Object time = map.get("_time");
+		if (time != null && time instanceof Date)
+			d = (Date) time;
+
 		this.map = map;
 	}
 
@@ -46,8 +50,8 @@ public class Row {
 		map.put(key, value);
 	}
 
-	public void remove(String key) {
-		map.remove(key);
+	public Object remove(String key) {
+		return map.remove(key);
 	}
 
 	public boolean containsKey(String key) {

@@ -17,8 +17,10 @@ package org.araqne.logdb.query.command;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 
-public class Rename extends QueryCommand {
+public class Rename extends QueryCommand implements ThreadSafe {
 	private String from;
 	private String to;
 
@@ -36,22 +38,34 @@ public class Rename extends QueryCommand {
 	}
 
 	@Override
-	public void onPush(Row m) {
-		if (m.containsKey(from)) {
-			m.put(to, m.get(from));
-			m.remove(from);
-		}
-		pushPipe(m);
+	public void onPush(Row row) {
+		if (row.containsKey(from))
+			row.put(to, row.remove(from));
+
+		pushPipe(row);
 	}
 
 	@Override
-	public boolean isReducer() {
-		return false;
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+				if (row.containsKey(from))
+					row.put(to, row.remove(from));
+			}
+		} else {
+			for (Row row : rowBatch.rows) {
+				if (row.containsKey(from))
+					row.put(to, row.remove(from));
+			}
+		}
+
+		pushPipe(rowBatch);
 	}
 
 	@Override
 	public String toString() {
 		return "rename " + from + " as " + to;
 	}
-
 }

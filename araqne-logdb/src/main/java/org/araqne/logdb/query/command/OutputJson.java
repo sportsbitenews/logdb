@@ -107,6 +107,8 @@ public class OutputJson extends QueryCommand {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		close();
+		if (reason == QueryStopReason.CommandFailure)
+			f.delete();
 	}
 
 	private void close() {

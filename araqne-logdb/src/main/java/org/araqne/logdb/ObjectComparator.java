@@ -25,12 +25,15 @@ public class ObjectComparator implements Comparator<Object> {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public int compare(Object o1, Object o2) {
-		if (o1 == null && o2 == null)
+		boolean lhsNull = o1 == null;
+		boolean rhsNull = o2 == null;
+
+		if (lhsNull && rhsNull)
 			return 0;
-		else if (o1 == null && o2 != null)
-			return 1;
-		else if (o1 != null && o2 == null)
+		else if (lhsNull)
 			return -1;
+		else if (rhsNull)
+			return 1;
 
 		if (o1.equals(o2))
 			return 0;
@@ -111,10 +114,7 @@ public class ObjectComparator implements Comparator<Object> {
 			} else if (o1 instanceof Date && o2 instanceof Date) {
 				long lhs = ((Date) o1).getTime();
 				long rhs = ((Date) o2).getTime();
-				long d = lhs - rhs;
-				if (d == 0)
-					return 0;
-				return lhs < rhs ? -1 : 1;
+				return (int) (lhs - rhs);
 			}
 		}
 

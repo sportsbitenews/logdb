@@ -118,6 +118,7 @@ public abstract class QueryCommand {
 
 	protected final void pushPipe(Row row) {
 		outputCount++;
+
 		if (output != null) {
 			if (invokeTimelineCallback && query != null) {
 				for (QueryTimelineCallback callback : query.getCallbacks().getTimelineCallbacks()) {
@@ -127,7 +128,13 @@ public abstract class QueryCommand {
 				}
 			}
 
-			output.onRow(row);
+			if (output.isThreadSafe()) {
+				output.onRow(row);
+			} else {
+				synchronized (output) {
+					output.onRow(row);
+				}
+			}
 		}
 	}
 
@@ -159,7 +166,13 @@ public abstract class QueryCommand {
 				}
 			}
 
-			output.onRowBatch(rowBatch);
+			if (output.isThreadSafe()) {
+				output.onRowBatch(rowBatch);
+			} else {
+				synchronized (output) {
+					output.onRowBatch(rowBatch);
+				}
+			}
 		}
 	}
 

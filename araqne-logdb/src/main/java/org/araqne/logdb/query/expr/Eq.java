@@ -17,8 +17,8 @@ package org.araqne.logdb.query.expr;
 
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.expr.In.StringMatcher;
 
 public class Eq extends BinaryExpression {
@@ -35,15 +35,15 @@ public class Eq extends BinaryExpression {
 	}
 
 	@Override
-	public Object eval(Row map) {
-		Object l = lhs.eval(map);
+	public Object eval(Row row) {
+		Object l = lhs.eval(row);
 		if (l == null)
 			return false;
 
 		if (matcher != null) {
-			return matcher.match(map, l.toString());
+			return matcher.match(row, l.toString());
 		} else {
-			Object r = rhs.eval(map);
+			Object r = rhs.eval(row);
 			if (r == null)
 				return false;
 
@@ -55,7 +55,7 @@ public class Eq extends BinaryExpression {
 	public String toString() {
 		return "(" + lhs + " == " + rhs + ")";
 	}
-	
+
 	public static Pattern tryBuildPattern2(String s) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("^");

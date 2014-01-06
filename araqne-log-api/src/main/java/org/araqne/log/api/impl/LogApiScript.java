@@ -34,7 +34,23 @@ import org.araqne.api.ScriptContext;
 import org.araqne.api.ScriptOptionParser;
 import org.araqne.api.ScriptOptionParser.ScriptOption;
 import org.araqne.api.ScriptUsage;
-import org.araqne.log.api.*;
+import org.araqne.log.api.AbstractLogPipe;
+import org.araqne.log.api.Log;
+import org.araqne.log.api.LogParserFactory;
+import org.araqne.log.api.LogParserFactoryRegistry;
+import org.araqne.log.api.LogParserProfile;
+import org.araqne.log.api.LogParserRegistry;
+import org.araqne.log.api.LogTransformerFactory;
+import org.araqne.log.api.LogTransformerFactoryRegistry;
+import org.araqne.log.api.LogTransformerProfile;
+import org.araqne.log.api.LogTransformerRegistry;
+import org.araqne.log.api.Logger;
+import org.araqne.log.api.LoggerConfigOption;
+import org.araqne.log.api.LoggerFactory;
+import org.araqne.log.api.LoggerFactoryRegistry;
+import org.araqne.log.api.LoggerRegistry;
+import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.WildcardMatcher;
 
 import com.bethecoder.ascii_table.ASCIITable;
 import com.bethecoder.ascii_table.impl.CollectionASCIITableAware;
@@ -758,5 +774,17 @@ public class LogApiScript implements Script {
 		if (value.isEmpty() && type.isRequired()) {
 			setOption(config, type);
 		}
+	}
+
+	@ScriptUsage(description = "reset logger state", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format") })
+	public void resetState(String[] args) {
+		Logger logger = loggerRegistry.getLogger(args[0]);
+		if (logger == null) {
+			context.println("logger not found");
+			return;
+		}
+
+		logger.resetStates();
+		context.println("reset completed");
 	}
 }

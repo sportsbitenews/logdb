@@ -38,7 +38,6 @@ class CacheRunIterator implements CloseableIterator {
 	@Override
 	public void remove() {
 		throw new UnsupportedOperationException();
-
 	}
 
 	@Override

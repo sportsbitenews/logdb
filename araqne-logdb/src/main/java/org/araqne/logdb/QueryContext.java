@@ -15,17 +15,17 @@
  */
 package org.araqne.logdb;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class QueryContext {
 	private Session session;
-	private Map<String, Object> constants = new HashMap<String, Object>();
+	private Map<String, Object> constants = new ConcurrentHashMap<String, Object>();
 
 	public QueryContext(Session session) {
 		this.session = session;
 	}
-	
+
 	public Session getSession() {
 		return session;
 	}
@@ -33,5 +33,4 @@ public class QueryContext {
 	public Map<String, Object> getConstants() {
 		return constants;
 	}
-
 }

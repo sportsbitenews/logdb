@@ -63,7 +63,7 @@ public class Table extends DriverQueryCommand {
 	@Override
 	public void run() {
 		try {
-			ResultSink sink = new ResultSink(Table.this, params.offset, params.limit);
+			ResultSink sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
 			boolean isSuppressedBugAlert = false;
 
 			for (String tableName : expandTableNames(params.tableNames)) {
@@ -269,8 +269,8 @@ public class Table extends DriverQueryCommand {
 	private static class ResultSink extends LogTraverseCallback.Sink {
 		private final Table self;
 
-		public ResultSink(Table self, long offset, long limit) {
-			super(offset, limit);
+		public ResultSink(Table self, long offset, long limit, boolean ordered) {
+			super(offset, limit, ordered);
 			this.self = self;
 		}
 
@@ -318,6 +318,7 @@ public class Table extends DriverQueryCommand {
 		private List<String> tableNames;
 		private long offset;
 		private long limit;
+		private boolean ordered = true;
 		private Date from;
 		private Date to;
 		private String parserName;
@@ -368,6 +369,14 @@ public class Table extends DriverQueryCommand {
 
 		public void setParserName(String parserName) {
 			this.parserName = parserName;
+		}
+
+		public boolean isOrdered() {
+			return ordered;
+		}
+
+		public void setOrdered(boolean ordered) {
+			this.ordered = ordered;
 		}
 
 	}

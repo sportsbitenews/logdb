@@ -17,9 +17,11 @@ package org.araqne.logdb.query.command;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Eval extends QueryCommand {
+public class Eval extends QueryCommand implements ThreadSafe {
 	private String field;
 	private Expression expr;
 
@@ -40,6 +42,22 @@ public class Eval extends QueryCommand {
 	public void onPush(Row m) {
 		m.put(field, expr.eval(m));
 		pushPipe(m);
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+				row.put(field, expr.eval(row));
+			}
+		} else {
+			for (Row row : rowBatch.rows)
+				row.put(field, expr.eval(row));
+		}
+
+		pushPipe(rowBatch);
 	}
 
 	@Override

@@ -17,6 +17,7 @@ package org.araqne.log.api;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -71,19 +72,32 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		this.description = spec.getDescription();
 		this.config = spec.getConfig();
 
+		// load state
+		LastStateService lss = factory.getLastStateService();
+		LastState state = lss.getState(fullName);
+		long lastLogCount = 0;
+		long lastDropCount = 0;
+		int interval = 0;
+
+		if (state != null) {
+			lastLogCount = state.getLogCount();
+			lastDropCount = state.getDropCount();
+			lastLogDate = state.getLastLogDate();
+		}
+
 		// logger factory info
 		this.factoryNamespace = factory.getNamespace();
 		this.factoryName = factory.getName();
 		this.factoryFullName = factoryNamespace + "\\" + factoryName;
 
-		this.logCounter = new AtomicLong(spec.getLogCount());
-		this.dropCounter = new AtomicLong(0);
+		this.logCounter = new AtomicLong(lastLogCount);
+		this.dropCounter = new AtomicLong(lastDropCount);
 		this.lastLogDate = lastLogDate;
 		this.pipes = new CopyOnWriteArraySet<LogPipe>();
 
 		this.eventListeners = Collections.newSetFromMap(new ConcurrentHashMap<LoggerEventListener, Boolean>());
 
-		this.interval = spec.getInterval();
+		this.interval = interval;
 		this.factory = factory;
 	}
 
@@ -547,9 +561,59 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		}
 	}
 
+	/**
+	 * Use getConfigss() instead
+	 */
+	@Deprecated
 	@Override
 	public Map<String, String> getConfig() {
 		return config;
+	}
+
+	@Override
+	public Map<String, String> getConfigs() {
+		return config;
+	}
+
+	@Override
+	public Map<String, Object> getStates() {
+		LastStateService lastStateService = factory.getLastStateService();
+		if (lastStateService == null)
+			return new HashMap<String, Object>();
+
+		LastState s = lastStateService.getState(getFullName());
+		if (s == null)
+			return new HashMap<String, Object>();
+
+		return s.getProperties();
+	}
+
+	@Override
+	public void setStates(Map<String, Object> state) {
+		LastStateService lastStateService = factory.getLastStateService();
+		if (lastStateService == null)
+			throw new IllegalStateException("last status service not found");
+
+		LastState s = new LastState();
+		s.setLoggerName(getFullName());
+		s.setInterval(interval);
+		s.setLogCount(logCounter.get());
+		s.setDropCount(dropCounter.get());
+		s.setLastLogDate(lastLogDate);
+		s.setPending(pending);
+		s.setRunning(status == LoggerStatus.Running);
+		s.setProperties(state);
+
+		lastStateService.setState(s);
+		log.trace("araqne log api: running state saved: {}", getFullName());
+	}
+
+	@Override
+	public void resetStates() {
+		logCounter.set(0);
+		dropCounter.set(0);
+		lastLogDate = null;
+		setStates(new HashMap<String, Object>());
 	}
 
 	@Override

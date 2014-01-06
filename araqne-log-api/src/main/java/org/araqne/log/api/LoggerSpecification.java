@@ -15,7 +15,6 @@
  */
 package org.araqne.log.api;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,10 +22,6 @@ public class LoggerSpecification {
 	private String namespace;
 	private String name;
 	private String description;
-	private long logCount;
-	private boolean isPassive;
-	private Date lastLogDate;
-	private int interval;
 
 	/**
 	 * @since 2.4.0
@@ -38,21 +33,11 @@ public class LoggerSpecification {
 	public LoggerSpecification() {
 	}
 
-	public LoggerSpecification(String namespace, String name, String description, long logCount, Date lastLogDate,
-			int interval, Map<String, String> config) {
-		this(namespace, name, description, logCount, lastLogDate, interval, config, false);
-	}
-
-	public LoggerSpecification(String namespace, String name, String description, long logCount, Date lastLogDate,
-			int interval, Map<String, String> config, boolean isPassive) {
+	public LoggerSpecification(String namespace, String name, String description, Map<String, String> config) {
 		this.namespace = namespace;
 		this.name = name;
 		this.description = description;
-		this.logCount = logCount;
-		this.lastLogDate = lastLogDate;
-		this.interval = interval;
 		this.config = config;
-		this.isPassive = isPassive;
 	}
 
 	public String getNamespace() {
@@ -77,38 +62,6 @@ public class LoggerSpecification {
 
 	public void setDescription(String description) {
 		this.description = description;
-	}
-
-	public long getLogCount() {
-		return logCount;
-	}
-
-	public void setLogCount(long logCount) {
-		this.logCount = logCount;
-	}
-
-	public boolean isPassive() {
-		return isPassive;
-	}
-
-	public void setPassive(boolean isPassive) {
-		this.isPassive = isPassive;
-	}
-
-	public Date getLastLogDate() {
-		return lastLogDate;
-	}
-
-	public void setLastLogDate(Date lastLogDate) {
-		this.lastLogDate = lastLogDate;
-	}
-
-	public int getInterval() {
-		return interval;
-	}
-
-	public void setInterval(int interval) {
-		this.interval = interval;
 	}
 
 	/**

@@ -95,7 +95,31 @@ public interface Logger {
 
 	void updateConfig(Map<String, String> config);
 
+	/**
+	 * Use getConfigs() instead
+	 */
+	@Deprecated
 	Map<String, String> getConfig();
+
+	/**
+	 * config parameters (specified by factory)
+	 */
+	Map<String, String> getConfigs();
+
+	/**
+	 * state is backed up by persistent storage
+	 */
+	Map<String, Object> getStates();
+
+	/**
+	 * replace current persistent state
+	 */
+	void setStates(Map<String, Object> state);
+
+	/**
+	 * reset log/drop count, last date, and all properties
+	 */
+	void resetStates();
 
 	LogTransformer getTransformer();
 

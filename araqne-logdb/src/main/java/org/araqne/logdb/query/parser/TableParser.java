@@ -72,7 +72,7 @@ public class TableParser implements QueryCommandParser {
 			throw new QueryParseException("archive-not-opened", -1);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("from", "to", "offset", "limit", "duration", "parser"));
+				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order"));
 		Map<String, String> options = (Map<String, String>) r.value;
 		String tableTokens = commandString.substring(r.next);
 		List<String> tableNames = parseTableNames(context, tableTokens);
@@ -82,6 +82,7 @@ public class TableParser implements QueryCommandParser {
 		long offset = 0;
 		long limit = 0;
 		String parser = null;
+		boolean ordered = true;
 
 		if (options.containsKey("duration")) {
 			String duration = options.get("duration");
@@ -115,6 +116,9 @@ public class TableParser implements QueryCommandParser {
 
 		if (options.containsKey("parser"))
 			parser = options.get("parser");
+		
+		if (options.containsKey("order"))
+			ordered = !options.get("order").equals("f");
 
 		TableParams params = new TableParams();
 		params.setTableNames(tableNames);
@@ -123,6 +127,7 @@ public class TableParser implements QueryCommandParser {
 		params.setFrom(from);
 		params.setTo(to);
 		params.setParserName(parser);
+		params.setOrdered(ordered);
 
 		Table table = new Table(params);
 		table.setAccountService(accountService);

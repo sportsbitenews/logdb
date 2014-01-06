@@ -29,31 +29,42 @@ import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryCommandPipe;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.query.parser.QueryTokenizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component(name = "logdb-query-parser-service")
 @Provides
 public class QueryParserServiceImpl implements QueryParserService {
-
+	private final Logger slog = LoggerFactory.getLogger(QueryParserServiceImpl.class);
 	private ConcurrentMap<String, QueryCommandParser> commandParsers = new ConcurrentHashMap<String, QueryCommandParser>();
 
 	@Override
 	public List<QueryCommand> parseCommands(QueryContext context, String queryString) {
 		List<QueryCommand> commands = new ArrayList<QueryCommand>();
 
-		for (String q : QueryTokenizer.parseCommands(queryString)) {
-			q = q.trim();
+		try {
+			for (String q : QueryTokenizer.parseCommands(queryString)) {
+				q = q.trim();
 
-			StringTokenizer tok = new StringTokenizer(q, " \t");
-			String commandType = tok.nextToken();
-			QueryCommandParser parser = commandParsers.get(commandType);
-			if (parser == null)
-				throw new QueryParseException("unsupported-command", -1, "command is [" + commandType + "]");
+				StringTokenizer tok = new StringTokenizer(q, " \t");
+				String commandType = tok.nextToken();
+				QueryCommandParser parser = commandParsers.get(commandType);
+				if (parser == null)
+					throw new QueryParseException("unsupported-command", -1, "command is [" + commandType + "]");
 
-			QueryCommand cmd = parser.parse(context, q);
-			cmd.setName(parser.getCommandName());
-			cmd.setQueryString(q);
-			commands.add(cmd);
+				QueryCommand cmd = parser.parse(context, q);
+				cmd.setName(parser.getCommandName());
+				cmd.setQueryString(q);
+				commands.add(cmd);
+			}
+		} catch (QueryParseException t) {
+			closePrematureCommands(commands);
+			throw t;
+		} catch (Throwable t) {
+			closePrematureCommands(commands);
+			throw new QueryParseException("parse failure", -1, t.toString());
 		}
 
 		if (commands.isEmpty())
@@ -74,6 +85,17 @@ public class QueryParserServiceImpl implements QueryParserService {
 			commands.get(commands.size() - 1).setInvokeTimelineCallback(true);
 
 		return commands;
+	}
+
+	private void closePrematureCommands(List<QueryCommand> commands) {
+		for (QueryCommand cmd : commands) {
+			try {
+				slog.debug("araqne logdb: parse failed, closing command [{}]", cmd.getQueryString());
+				cmd.onClose(QueryStopReason.CommandFailure);
+			} catch (Throwable t2) {
+				slog.error("araqne logdb: cannot close command", t2);
+			}
+		}
 	}
 
 	@Override

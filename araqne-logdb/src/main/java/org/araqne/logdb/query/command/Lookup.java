@@ -19,6 +19,7 @@ import org.araqne.logdb.LookupHandler;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 
 public class Lookup extends QueryCommand {
 	private LookupHandlerRegistry registry;
@@ -62,6 +63,32 @@ public class Lookup extends QueryCommand {
 
 	public void setLogQueryService(LookupHandlerRegistry registry) {
 		this.registry = registry;
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		LookupHandler handler = registry.getLookupHandler(handlerName);
+
+		if (handler == null) {
+			// bypass without lookup
+			pushPipe(rowBatch);
+			return;
+		}
+
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[rowBatch.selected[i]];
+				Object value = row.get(sourceField);
+				row.put(targetField, handler.lookup(lookupInputField, lookupOutputField, value));
+			}
+		} else {
+			for (Row row : rowBatch.rows) {
+				Object value = row.get(sourceField);
+				row.put(targetField, handler.lookup(lookupInputField, lookupOutputField, value));
+			}
+		}
+
+		pushPipe(rowBatch);
 	}
 
 	@Override

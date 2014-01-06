@@ -51,6 +51,10 @@ public class Marshaler {
 	}
 
 	public static Map<String, Object> marshal(Logger logger) {
+		return marshal(logger, false, false);
+	}
+
+	public static Map<String, Object> marshal(Logger logger, boolean includeConfigs, boolean includeStates) {
 		if (logger == null)
 			return null;
 
@@ -67,6 +71,14 @@ public class Marshaler {
 		m.put("last_run", dateFormatting(logger.getLastRunDate()));
 		m.put("last_log", dateFormatting(logger.getLastLogDate()));
 		m.put("log_count", logger.getLogCount());
+		m.put("drop_count", logger.getDropCount());
+
+		if (includeConfigs)
+			m.put("configs", logger.getConfigs());
+
+		if (includeStates)
+			m.put("states", logger.getStates());
+
 		return m;
 	}
 

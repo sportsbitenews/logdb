@@ -21,12 +21,15 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.api.DateFormat;
+import org.araqne.log.api.LastState;
+import org.araqne.log.api.LastStateService;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.LogTransformer;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerEventListener;
 import org.araqne.log.api.LoggerFactory;
+import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStatus;
 
@@ -307,6 +310,8 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		lastStartDate = new Date();
 		status = LoggerStatus.Running;
 
+		setStates(getStates());
+
 		for (LoggerEventListener callback : listeners) {
 			try {
 				callback.onStart(this);
@@ -317,6 +322,17 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	}
 
 	private void invokeStopCallback() {
+		LastState s = new LastState();
+		s.setLoggerName(getFullName());
+		s.setLogCount(getLogCount());
+		s.setDropCount(getDropCount());
+		s.setLastLogDate(getLastLogDate());
+		s.setPending(isPending());
+		s.setProperties(getStates());
+		s.setRunning(isRunning());
+
+		getFactory().getLastStateService().setState(s);
+
 		for (LoggerEventListener callback : listeners) {
 			try {
 				callback.onStop(this);
