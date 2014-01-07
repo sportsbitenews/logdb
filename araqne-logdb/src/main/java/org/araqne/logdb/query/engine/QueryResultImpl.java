@@ -220,12 +220,12 @@ public class QueryResultImpl implements QueryResult {
 
 		@Override
 		public File getIndexPath() {
-			return ((LocalFilePath)reader.getIndexPath()).getPath();
+			return ((LocalFilePath)reader.getIndexPath()).getFile();
 		}
 
 		@Override
 		public File getDataPath() {
-			return ((LocalFilePath)reader.getDataPath()).getPath();
+			return ((LocalFilePath)reader.getDataPath()).getFile();
 		}
 
 		@Override

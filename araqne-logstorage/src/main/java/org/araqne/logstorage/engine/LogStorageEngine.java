@@ -104,7 +104,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		FilePath sysArgLogDir = new LocalFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
 		logDir = new LocalFilePath(getStringParameter(Constants.LogStorageDirectory, sysArgLogDir.getAbsolutePath()));
 		logDir.mkdirs();
-		DatapathUtil.setLogDir(((LocalFilePath)logDir).getPath()); // FIXME
+		DatapathUtil.setLogDir(((LocalFilePath)logDir).getFile()); // FIXME
 
 		listeners = new CopyOnWriteArraySet<LogStorageEventListener>();
 	}
@@ -124,7 +124,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 		ConfigUtil.set(conf, Constants.LogStorageDirectory, f.getAbsolutePath());
 		logDir = f;
-		DatapathUtil.setLogDir(((LocalFilePath)logDir).getPath()); // FIXME
+		DatapathUtil.setLogDir(((LocalFilePath)logDir).getFile()); // FIXME
 	}
 
 	private String getStringParameter(Constants key, String defaultValue) {

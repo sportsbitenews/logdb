@@ -203,7 +203,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 						// TODO : use storage interface
 						File storageFilePath =
 								((LocalFilePath) storage.getTableDirectory(tableName).newFilePath(storageFilename))
-										.getPath();
+										.getFile();
 						StorageFile storageFile = new StorageFile(tableName, tableId, storageFilePath);
 						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
 						try {

@@ -34,10 +34,6 @@ public class LocalFilePath implements FilePath {
 		return new LocalFileOutputStream(this, append);
 	}
 	
-	File getFile() {
-		return path;
-	}
-
 	@Override
 	public String getAbsolutePath() {
 		return path.getAbsolutePath();
@@ -48,8 +44,7 @@ public class LocalFilePath implements FilePath {
 		return path.getName();
 	}
 	
-	@Deprecated
-	public File getPath() {
+	public File getFile() {
 		return path;
 	}
 
@@ -136,6 +131,11 @@ public class LocalFilePath implements FilePath {
 	@Override
 	public int hashCode() {
 		return ("file://" + path.getAbsolutePath()).hashCode();
+	}
+
+	@Override
+	public long getFreeSpace() {
+		return path.getFreeSpace();
 	}
 
 	@Override

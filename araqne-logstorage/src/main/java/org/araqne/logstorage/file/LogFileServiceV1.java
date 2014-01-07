@@ -74,7 +74,7 @@ public class LogFileServiceV1 implements LogFileService {
 		LocalFilePath indexPath = (LocalFilePath) options.get(OPT_INDEX_PATH);
 		LocalFilePath dataPath = (LocalFilePath) options.get(OPT_DATA_PATH);
 		try {
-			return new LogFileWriterV1(indexPath.getPath(), dataPath.getPath());
+			return new LogFileWriterV1(indexPath.getFile(), dataPath.getFile());
 		} catch (Throwable t) {
 			throw new IllegalStateException("cannot open writer: data file " + dataPath.getAbsolutePath(), t);
 		}

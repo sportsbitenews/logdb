@@ -5,35 +5,35 @@ import java.io.IOException;
 public interface FilePath extends Comparable<FilePath> {
 	String getProtocol();
 	
-	String getAbsolutePath();
+	String getAbsolutePath() throws SecurityException;
 	
-	String getCanonicalPath() throws IOException;
+	String getCanonicalPath() throws IOException, SecurityException;
 	
 	String getName();
 	
-	boolean exists();
+	boolean exists() throws SecurityException;
 	
-	boolean mkdirs();
+	boolean mkdirs() throws SecurityException;
 	
-	boolean delete();
+	boolean delete() throws SecurityException;
 	
-	boolean renameTo(FilePath dest);
+	boolean renameTo(FilePath dest) throws SecurityException;
 	
-	boolean isDirectory();
+	boolean isDirectory() throws SecurityException;
 	
-	boolean isFile();
+	boolean isFile() throws SecurityException;
 	
-	boolean canRead();
+	boolean canRead() throws SecurityException;
 	
-	boolean canWrite();
+	boolean canWrite() throws SecurityException;
 	
 	char getSeperatorChar();
 	
-	long length();
+	long length() throws SecurityException;
 	
-	FilePath[] listFiles();
+	FilePath[] listFiles() throws SecurityException;
 	
-	FilePath[] listFiles(FilePathNameFilter filter);
+	FilePath[] listFiles(FilePathNameFilter filter) throws SecurityException;
 
 	StorageInputStream newInputStream() throws IOException;
 	
@@ -41,13 +41,15 @@ public interface FilePath extends Comparable<FilePath> {
 	
 	FilePath newFilePath(String child);
 	
-	FilePath createTempFilePath(String prefix, String suffix) throws IOException;
+	FilePath createTempFilePath(String prefix, String suffix) throws IOException, IllegalArgumentException, SecurityException;
 	
-	FilePath getParentFilePath();
+	FilePath getParentFilePath() throws SecurityException;
 	
-	FilePath getAbsoluteFilePath();
+	FilePath getAbsoluteFilePath() throws SecurityException;
 	
-	long getUsableSpace();
+	long getFreeSpace() throws SecurityException;
 	
-	long getTotalSpace();
+	long getUsableSpace() throws SecurityException;
+	
+	long getTotalSpace() throws SecurityException;
 }
