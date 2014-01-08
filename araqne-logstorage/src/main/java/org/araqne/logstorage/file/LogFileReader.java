@@ -170,29 +170,6 @@ public abstract class LogFileReader {
 
 	public abstract List<Log> find(Date from, Date to, List<Long> ids, LogParserBuilder builder);
 
-	@Deprecated
-	public abstract LogRecord find(long id) throws IOException;
-
-	@Deprecated
-	public abstract List<LogRecord> find(List<Long> ids) throws IOException;
-
-	public abstract void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException;
-
-	public abstract void traverse(long offset, long limit, LogMatchCallback callback) throws IOException, InterruptedException;
-
-	public abstract void traverse(Date from, Date to, long limit, LogMatchCallback callback) throws IOException,
-			InterruptedException;
-
-	public abstract void traverse(Date from, Date to, long offset, long limit, LogMatchCallback callback) throws IOException,
-			InterruptedException;
-
-	public abstract void traverse(Date from, Date to, long minId, long offset, long limit, LogMatchCallback callback)
-			throws IOException, InterruptedException;
-
-	// maxId is inclusive
-	public abstract void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback,
-			boolean doParallel) throws IOException, InterruptedException;
-
 	public abstract void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
 			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException;
 

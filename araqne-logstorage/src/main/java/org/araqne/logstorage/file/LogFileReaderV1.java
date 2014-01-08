@@ -16,7 +16,6 @@
 package org.araqne.logstorage.file;
 
 import java.io.DataInput;
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -28,11 +27,9 @@ import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
-import org.araqne.logstorage.LogMatchCallback;
 import org.araqne.logstorage.LogTraverseCallback;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
-import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,147 +83,6 @@ public class LogFileReaderV1 extends LogFileReader {
 	@Override
 	public FilePath getDataPath() {
 		return dataPath;
-	}
-
-	@Override
-	public LogRecord find(long id) throws IOException {
-		Long pos = null;
-		for (BlockHeader header : blockHeaders) {
-			if (id < header.firstId + header.blockLength / INDEX_ITEM_SIZE) {
-				// fp + header size + offset + (id + date) index
-				long indexPos = header.fp + 18 + (id - header.firstId) * INDEX_ITEM_SIZE + 10;
-				indexFile.seek(indexPos);
-				pos = read6Bytes(indexFile);
-				break;
-			}
-		}
-		if (pos == null)
-			return null;
-
-		// read data length
-		dataFile.seek(pos);
-		int key = dataFile.readInt();
-		Date date = new Date(dataFile.readLong());
-		int dataLen = dataFile.readInt();
-
-		// read block
-		byte[] block = new byte[dataLen];
-		dataFile.readFully(block);
-
-		ByteBuffer bb = ByteBuffer.wrap(block);
-		return new LogRecord(date, key, bb);
-	}
-
-	@Override
-	public List<LogRecord> find(List<Long> ids) {
-		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
-
-		for (long id : ids) {
-			LogRecord result = null;
-			try {
-				result = find(id);
-			} catch (IOException e) {
-			}
-			if (result != null)
-				ret.add(result);
-		}
-
-		return ret;
-	}
-
-	@Override
-	public void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException {
-		traverse(0, limit, callback);
-	}
-
-	@Override
-	public void traverse(long offset, long limit, LogMatchCallback callback) throws IOException, InterruptedException {
-		traverse(null, null, offset, limit, callback);
-	}
-
-	@Override
-	public void traverse(Date from, Date to, long limit, LogMatchCallback callback) throws IOException, InterruptedException {
-		traverse(from, to, 0, limit, callback);
-	}
-
-	@Override
-	public void traverse(Date from, Date to, long offset, long limit, LogMatchCallback callback) throws IOException,
-			InterruptedException {
-		traverse(from, to, -1, offset, limit, callback);
-	}
-
-	@Override
-	public void traverse(Date from, Date to, long minId, long offset, long limit, LogMatchCallback callback) throws IOException,
-			InterruptedException {
-		traverse(from, to, minId, -1, offset, limit, callback, false);
-	}
-
-	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback,
-			boolean doParallel) throws IOException, InterruptedException {
-		int matched = 0;
-
-		int block = blockHeaders.size() - 1;
-		BlockHeader header = blockHeaders.get(block);
-		long blockLogNum = header.blockLength / INDEX_ITEM_SIZE;
-
-		if (header.endTime == 0)
-			blockLogNum = (indexFile.length() - (header.fp + 18)) / INDEX_ITEM_SIZE;
-
-		// block validate
-		// TODO : block skipping by id
-		while ((from != null && header.endTime != 0L && header.endTime < from.getTime())
-				|| (to != null && header.startTime > to.getTime())) {
-			if (--block < 0)
-				return;
-			header = blockHeaders.get(block);
-			blockLogNum = header.blockLength / INDEX_ITEM_SIZE;
-		}
-
-		while (true) {
-			if (--blockLogNum < 0) {
-				do {
-					if (--block < 0)
-						return;
-					header = blockHeaders.get(block);
-					blockLogNum = header.blockLength / INDEX_ITEM_SIZE - 1;
-				} while ((from != null && header.endTime < from.getTime()) || (to != null && header.startTime > to.getTime()));
-			}
-
-			// begin of item (ignore id)
-			indexFile.seek(header.fp + 18 + INDEX_ITEM_SIZE * blockLogNum + 4);
-
-			// read index
-			Date indexDate = new Date(read6Bytes(indexFile));
-
-			if (from != null && indexDate.before(from))
-				continue;
-			if (to != null && indexDate.after(to))
-				continue;
-
-			// read data file fp
-			long pos = read6Bytes(indexFile);
-
-			// read data
-			dataFile.seek(pos);
-			int dataId = dataFile.readInt();
-			Date dataDate = new Date(dataFile.readLong());
-			int dataLen = dataFile.readInt();
-			byte[] data = new byte[dataLen];
-			dataFile.readFully(data);
-
-			if (offset > matched) {
-				matched++;
-				continue;
-			}
-
-			ByteBuffer bb = ByteBuffer.wrap(data, 0, dataLen);
-			LogRecord record = new LogRecord(dataDate, dataId, bb);
-			if (callback.match(record) && callback.onLog(LogMarshaler.convert(tableName, record))) {
-				if (++matched == offset + limit)
-					return;
-			}
-		}
 	}
 
 	@Override

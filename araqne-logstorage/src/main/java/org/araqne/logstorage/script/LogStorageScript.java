@@ -31,6 +31,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -51,12 +52,13 @@ import org.araqne.logstorage.LogCryptoProfileRegistry;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogRetentionPolicy;
-import org.araqne.logstorage.LogSearchCallback;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageEventListener;
 import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.LogTraverseCallback;
 import org.araqne.logstorage.LogWriterStatus;
+import org.araqne.logstorage.SimpleLogTraverseCallback;
 import org.araqne.logstorage.TableWildcardMatcher;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.logstorage.engine.ConfigUtil;
@@ -345,21 +347,16 @@ public class LogStorageScript implements Script {
 		int limit = Integer.valueOf(args[4]);
 
 		try {
-			storage.search(tableName, from, to, offset, limit, new LogSearchCallback() {
-				@Override
-				public void onLog(Log log) {
-					context.println(log.toString());
-				}
+			LogTraverseCallback.Sink contextSink = new LogTraverseCallback.Sink(offset, limit) {
 
 				@Override
-				public boolean isInterrupted() {
-					return false;
+				protected void processLogs(List<Log> logs) {
+					for (Log log : logs)
+						context.println(log.toString());
 				}
-
-				@Override
-				public void interrupt() {
-				}
-			});
+				
+			};
+			storage.search(tableName, from, to, null, new SimpleLogTraverseCallback(contextSink));
 		} catch (InterruptedException e) {
 			context.println("interrupted");
 		}
@@ -380,38 +377,28 @@ public class LogStorageScript implements Script {
 
 			long begin = new Date().getTime();
 
-			LogSearchCallback callback = new PrintCallback();
-			storage.search(tableName, from, to, limit, callback);
+			LogTraverseCallback.Sink printSink = new LogTraverseCallback.Sink(0, limit) {
+				
+				@Override
+				protected void processLogs(List<Log> logs) {
+					for (Log log : logs) {
+						Map<String, Object> m = log.getData();
+						context.print(log.getId() + ": ");
+						for (String key : m.keySet()) {
+							context.print(key + "=" + m.get(key) + ", ");
+						}
+						context.println("");
+					}
+				}
+			};
+			
+			storage.search(tableName, from, to, null, new SimpleLogTraverseCallback(printSink));
 
 			long end = new Date().getTime();
 
 			context.println("elapsed: " + (end - begin) + "ms");
 		} catch (Exception e) {
 			context.println(e.getMessage());
-		}
-	}
-
-	private class PrintCallback implements LogSearchCallback {
-		@Override
-		public void interrupt() {
-		}
-
-		@Override
-		public boolean isInterrupted() {
-			return false;
-		}
-
-		@Override
-		public void onLog(Log log) {
-			if (log == null)
-				return;
-
-			Map<String, Object> m = log.getData();
-			context.print(log.getId() + ": ");
-			for (String key : m.keySet()) {
-				context.print(key + "=" + m.get(key) + ", ");
-			}
-			context.println("");
 		}
 	}
 
@@ -572,9 +559,9 @@ public class LogStorageScript implements Script {
 			Date from = dateFormat.parse(args[1]);
 			Date to = dateFormat.parse(args[2]);
 
-			LogCounter counter = new LogCounter();
+			CounterSink counter = new CounterSink(Integer.MAX_VALUE);
 			Date timestamp = new Date();
-			storage.search(tableName, from, to, Integer.MAX_VALUE, counter);
+			storage.search(tableName, from, to, null, new SimpleLogTraverseCallback(counter));
 			long elapsed = new Date().getTime() - timestamp.getTime();
 
 			context.println("total count: " + counter.getCount() + ", elapsed: " + elapsed + "ms");
@@ -584,31 +571,28 @@ public class LogStorageScript implements Script {
 			context.println("interrupted");
 		}
 	}
+	
+	private class CounterSink extends LogTraverseCallback.Sink {
+		private int count;
 
-	public void flush(String[] args) {
-		storage.flush();
-	}
-
-	private static class LogCounter implements LogSearchCallback {
-		private int count = 0;
-
-		@Override
-		public void onLog(Log log) {
-			count++;
+		public CounterSink(long limit) {
+			super(0, limit);
+			count = 0;
 		}
 
 		public int getCount() {
 			return count;
 		}
-
+		
 		@Override
-		public boolean isInterrupted() {
-			return false;
+		protected void processLogs(List<Log> logs) {
+			count += logs.size();
 		}
+		
+	}
 
-		@Override
-		public void interrupt() {
-		}
+	public void flush(String[] args) {
+		storage.flush();
 	}
 
 	@ScriptUsage(description = "print all online writer statuses")
@@ -733,7 +717,13 @@ public class LogStorageScript implements Script {
 
 		begin = System.currentTimeMillis();
 		try {
-			storage.search(tableName, new Date(0), new Date(), count, new BenchmarkCallback());
+			LogTraverseCallback.Sink benchSink = new LogTraverseCallback.Sink(0, count) {
+				@Override
+				protected void processLogs(List<Log> logs) {
+				}
+			};
+			
+			storage.search(tableName, new Date(0), new Date(), null, new SimpleLogTraverseCallback(benchSink));
 		} catch (InterruptedException e) {
 		}
 		end = System.currentTimeMillis();
@@ -745,24 +735,6 @@ public class LogStorageScript implements Script {
 		context.println(String.format("%s(read): %d log/%d ms (%s)", name, count, time, timeStr));
 
 		storage.dropTable(tableName);
-	}
-
-	private class BenchmarkCallback implements LogSearchCallback {
-		private boolean interrupt = false;
-
-		@Override
-		public void onLog(Log log) {
-		}
-
-		@Override
-		public void interrupt() {
-			interrupt = true;
-		}
-
-		@Override
-		public boolean isInterrupted() {
-			return interrupt;
-		}
 	}
 
 	/**

@@ -91,20 +91,7 @@ public interface LogStorage {
 
 	CachedRandomSeeker openCachedRandomSeeker();
 
-	Log getLog(LogKey logKey);
-
-	Log getLog(String tableName, Date date, int id);
-
 	LogCursor openCursor(String tableName, Date day, boolean ascending) throws IOException;
-
-	long search(Date from, Date to, long limit, LogSearchCallback callback) throws InterruptedException;
-
-	long search(Date from, Date to, long offset, long limit, LogSearchCallback callback) throws InterruptedException;
-
-	long search(String tableName, Date from, Date to, long limit, LogSearchCallback callback) throws InterruptedException;
-
-	long search(String tableName, Date from, Date to, long offset, long limit, LogSearchCallback callback)
-			throws InterruptedException;
 
 	void addLogListener(LogCallback callback);
 
@@ -121,15 +108,6 @@ public interface LogStorage {
 	 * @since 1.18.0
 	 */
 	void removeEventListener(LogStorageEventListener listener);
-
-	/**
-	 * 
-	 * @since 2.0.3
-	 */
-	@Deprecated
-	long searchTablet(String tableName, Date day, long minId, long maxId, LogMatchCallback c, boolean doParallel) throws InterruptedException;
-	@Deprecated
-	long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogMatchCallback c, boolean doParallel) throws InterruptedException;
 
 	/**
 	 * 
