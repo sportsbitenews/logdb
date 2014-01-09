@@ -49,6 +49,7 @@ public class LoggerInfo {
 	private Date lastLogAt;
 	private long logCount;
 	private long dropCount;
+	private long updateCount;
 
 	private Map<String, String> configs = new HashMap<String, String>();
 	private Map<String, Object> states = new HashMap<String, Object>();
@@ -167,6 +168,14 @@ public class LoggerInfo {
 
 	public void setDropCount(long dropCount) {
 		this.dropCount = dropCount;
+	}
+
+	public long getUpdateCount() {
+		return updateCount;
+	}
+
+	public void setUpdateCount(long updateCount) {
+		this.updateCount = updateCount;
 	}
 
 	@Override

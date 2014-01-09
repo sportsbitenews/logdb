@@ -55,6 +55,11 @@ public interface Logger {
 
 	long getLogCount();
 
+	/**
+	 * state update count
+	 */
+	long getUpdateCount();
+
 	boolean isRunning();
 
 	boolean isPending();

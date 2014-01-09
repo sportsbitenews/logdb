@@ -177,6 +177,15 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	@Override
+	public long getUpdateCount() {
+		LastStateService lss = factory.getLastStateService();
+		LastState state = lss.getState(getFullName());
+		if (state == null)
+			return 0;
+		return state.getUpdateCount();
+	}
+
+	@Override
 	public boolean isRunning() {
 		return !stopped;
 	}

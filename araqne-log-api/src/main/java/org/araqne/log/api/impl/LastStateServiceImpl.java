@@ -165,6 +165,7 @@ public class LastStateServiceImpl implements LastStateService {
 		clone.setPending(old.isPending());
 		clone.setRunning(old.isRunning());
 		clone.setLastLogDate(old.getLastLogDate());
+		clone.setUpdateCount(old.getUpdateCount());
 		clone.setProperties((Map<String, Object>) deepCopy(old.getProperties()));
 		return clone;
 	}
@@ -207,7 +208,10 @@ public class LastStateServiceImpl implements LastStateService {
 			return;
 		}
 
-		// update
+		// update count can be assigned from caller
+		if (old != null && state.getUpdateCount() == old.getUpdateCount())
+			state.setUpdateCount(old.getUpdateCount() + 1);
+
 		states.put(state.getLoggerName(), state);
 
 		// queue disk sync

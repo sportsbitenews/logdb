@@ -862,6 +862,10 @@ public class LogDbClient implements TrapListener, Closeable {
 		if (dropCount != null)
 			lo.setDropCount(Long.valueOf(dropCount.toString()));
 
+		Object updateCount = m.get("update_count");
+		if (updateCount != null)
+			lo.setUpdateCount(Long.valueOf(updateCount.toString()));
+
 		lo.setConfigs((Map<String, String>) m.get("configs"));
 		lo.setStates((Map<String, Object>) m.get("states"));
 		return lo;
