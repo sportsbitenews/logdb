@@ -188,13 +188,15 @@ public class Table extends DriverQueryCommand {
 
 				if (tableParserFactoryName != null) {
 					this.tableParserFactory = parserFactoryRegistry.get(tableParserFactoryName);
-					parserProperty = new HashMap<String, String>();
-					for (LoggerConfigOption configOption : tableParserFactory.getConfigOptions()) {
-						String optionName = configOption.getName();
-						String optionValue = tableRegistry.getTableMetadata(tableName, optionName);
-						if (configOption.isRequired() && optionValue == null)
-							throw new IllegalArgumentException("require table metadata " + optionName);
-						parserProperty.put(optionName, optionValue);
+					if (tableParserFactory != null) {
+						parserProperty = new HashMap<String, String>();
+						for (LoggerConfigOption configOption : tableParserFactory.getConfigOptions()) {
+							String optionName = configOption.getName();
+							String optionValue = tableRegistry.getTableMetadata(tableName, optionName);
+							if (configOption.isRequired() && optionValue == null)
+								throw new IllegalArgumentException("require table metadata " + optionName);
+							parserProperty.put(optionName, optionValue);
+						}
 					}
 				}
 			}
