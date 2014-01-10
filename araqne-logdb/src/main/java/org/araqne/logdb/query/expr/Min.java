@@ -19,7 +19,7 @@ import java.util.List;
 
 import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
-import org.araqne.logdb.impl.Strings;
+import org.araqne.logdb.Strings;
 
 public class Min implements Expression {
 	private ObjectComparator cmp = new ObjectComparator();

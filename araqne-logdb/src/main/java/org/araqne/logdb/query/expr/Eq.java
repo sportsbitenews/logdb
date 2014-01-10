@@ -15,15 +15,13 @@
  */
 package org.araqne.logdb.query.expr;
 
-import java.util.regex.Pattern;
-
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.expr.In.StringMatcher;
 
 public class Eq extends BinaryExpression {
 	private ObjectComparator cmp = new ObjectComparator();
-	StringMatcher matcher;
+	private StringMatcher matcher;
 
 	public Eq(Expression lhs, Expression rhs) {
 		super(lhs, rhs);
@@ -54,59 +52,5 @@ public class Eq extends BinaryExpression {
 	@Override
 	public String toString() {
 		return "(" + lhs + " == " + rhs + ")";
-	}
-
-	public static Pattern tryBuildPattern2(String s) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("^");
-		for (int i = 0; i < s.length(); i++) {
-			char c = s.charAt(i);
-			if (c == '(' || c == ')' || c == '[' || c == ']' || c == '$' || c == '^' || c == '.' || c == '{' || c == '}'
-					|| c == '|' || c == '\\' || c == '*') {
-				sb.append('\\');
-				sb.append(c);
-			} else {
-				sb.append(c);
-			}
-		}
-		sb.append("$");
-		String quoted = sb.toString();
-		String expanded = quoted.replaceAll("(?<!\\\\\\\\)\\\\\\*", ".*");
-		boolean wildcard = !expanded.equals(quoted);
-		expanded = expanded.replaceAll("\\\\\\\\\\\\\\*", "\\\\*");
-
-		if (wildcard)
-			return Pattern.compile(expanded, Pattern.CASE_INSENSITIVE);
-		return null;
-	}
-
-	public static Pattern tryBuildPattern(String s) {
-		boolean wildcard = false;
-		boolean escape = false;
-
-		StringBuilder sb = new StringBuilder();
-		sb.append("^");
-		for (int i = 0; i < s.length(); i++) {
-			char c = s.charAt(i);
-			if (c == '\\') {
-				if (escape)
-					sb.append('\\');
-
-				escape = !escape;
-				continue;
-			}
-
-			if (c == '*' && !escape) {
-				wildcard = true;
-				sb.append(".*");
-			} else {
-				sb.append(c);
-			}
-		}
-		sb.append("$");
-
-		if (wildcard)
-			return Pattern.compile(sb.toString(), Pattern.CASE_INSENSITIVE);
-		return null;
 	}
 }

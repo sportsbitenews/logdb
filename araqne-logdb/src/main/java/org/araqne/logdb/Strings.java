@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.impl;
+package org.araqne.logdb;
 
 import java.util.Collection;
+import java.util.regex.Pattern;
 
 public class Strings {
 	private Strings() {
@@ -30,5 +31,29 @@ public class Strings {
 			sb.append(s);
 		}
 		return sb.toString();
+	}
+
+	public static Pattern tryBuildPattern(String s) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("^");
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			if (c == '(' || c == ')' || c == '[' || c == ']' || c == '$' || c == '^' || c == '.' || c == '{' || c == '}'
+					|| c == '|' || c == '\\' || c == '*') {
+				sb.append('\\');
+				sb.append(c);
+			} else {
+				sb.append(c);
+			}
+		}
+		sb.append("$");
+		String quoted = sb.toString();
+		String expanded = quoted.replaceAll("(?<!\\\\\\\\)\\\\\\*", ".*");
+		boolean wildcard = !expanded.equals(quoted);
+		expanded = expanded.replaceAll("\\\\\\\\\\\\\\*", "\\\\*");
+
+		if (wildcard)
+			return Pattern.compile(expanded, Pattern.CASE_INSENSITIVE);
+		return null;
 	}
 }

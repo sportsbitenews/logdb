@@ -13,8 +13,8 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.Strings;
 import org.araqne.logdb.query.command.LogCheck;
-import org.araqne.logdb.query.expr.Eq;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
@@ -87,7 +87,7 @@ public class LogCheckParser implements QueryCommandParser {
 
 		for (String token : tableTokens) {
 			token = token.trim();
-			Pattern p = Eq.tryBuildPattern2(token);
+			Pattern p = Strings.tryBuildPattern(token);
 
 			for (String table : tableRegistry.getTableNames()) {
 				if (p == null && table.equals(token))
