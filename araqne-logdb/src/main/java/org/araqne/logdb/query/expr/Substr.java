@@ -23,14 +23,16 @@ import org.araqne.logdb.QueryParseException;
 public class Substr implements Expression {
 	private Expression valueExpr;
 	private int begin;
-	private int end;
+	private int end = -1;
 
 	public Substr(List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		this.begin = Integer.parseInt(exprs.get(1).eval(null).toString());
-		this.end = Integer.parseInt(exprs.get(2).eval(null).toString());
 
-		if (begin < 0 || end < 0 || begin > end)
+		if (exprs.size() > 2)
+			this.end = Integer.parseInt(exprs.get(2).eval(null).toString());
+
+		if (begin < 0 || (end >= 0 && begin > end))
 			throw new QueryParseException("invalid-substr-range", -1);
 	}
 
@@ -44,7 +46,7 @@ public class Substr implements Expression {
 		if (s.length() <= begin)
 			return null;
 
-		if (s.length() < end)
+		if (end == -1 || s.length() < end)
 			return s.substring(begin);
 
 		return s.substring(begin, end);
@@ -52,6 +54,8 @@ public class Substr implements Expression {
 
 	@Override
 	public String toString() {
+		if (end == -1)
+			return "substr(" + valueExpr + ", " + begin + ")";
 		return "substr(" + valueExpr + ", " + begin + ", " + end + ")";
 	}
 
