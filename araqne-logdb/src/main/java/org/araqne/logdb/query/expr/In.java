@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 
 import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.impl.Strings;
+import org.araqne.logdb.Strings;
 
 public class In implements Expression {
 	private static abstract class FieldMatcher {
@@ -57,7 +57,7 @@ public class In implements Expression {
 				matchMethod = StringMatchMethod.CONTAINS;
 				operand = term.substring(1, last);
 			} else {
-				pattern = Eq.tryBuildPattern2(term);
+				pattern = Strings.tryBuildPattern(term);
 				if (pattern != null) {
 					matchMethod = StringMatchMethod.PATTERN;
 					matcher = pattern.matcher("");

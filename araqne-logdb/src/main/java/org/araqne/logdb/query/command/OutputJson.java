@@ -28,7 +28,7 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.impl.Strings;
+import org.araqne.logdb.Strings;
 import org.json.JSONConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -25,7 +25,7 @@ import java.util.List;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.impl.Strings;
+import org.araqne.logdb.Strings;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
