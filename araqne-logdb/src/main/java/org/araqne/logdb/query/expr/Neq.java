@@ -15,37 +15,37 @@
  */
 package org.araqne.logdb.query.expr;
 
-import java.util.regex.Pattern;
-
 import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.query.expr.In.StringMatcher;
 
 public class Neq extends BinaryExpression {
 	private ObjectComparator cmp = new ObjectComparator();
-	private Pattern p;
+	private StringMatcher matcher;
+	
 
 	public Neq(Expression lhs, Expression rhs) {
 		super(lhs, rhs);
 
 		if (rhs instanceof StringConstant) {
 			String needle = (String) rhs.eval(null);
-			p = Eq.tryBuildPattern(needle);
+			matcher = new StringMatcher(needle);
 		}
 	}
 
 	@Override
-	public Object eval(Row map) {
-		Object l = lhs.eval(map);
+	public Object eval(Row row) {
+		Object l = lhs.eval(row);
 		if (l == null)
 			return false;
 
-		if (p != null) {
-			return !p.matcher(l.toString()).find();
+		if (matcher != null) {
+			return !matcher.match(row, l.toString());
 		} else {
-			Object r = rhs.eval(map);
+			Object r = rhs.eval(row);
 			if (r == null)
 				return false;
-			
+
 			return cmp.compare(l, r) != 0;
 		}
 	}
