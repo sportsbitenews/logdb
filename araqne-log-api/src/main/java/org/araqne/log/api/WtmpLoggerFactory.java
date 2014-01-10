@@ -36,7 +36,7 @@ public class WtmpLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "wtmp";
+		return "WTMP";
 	}
 
 	@Override
