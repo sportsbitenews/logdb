@@ -43,6 +43,7 @@ import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogRecordCursor;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.FilePathNameFilter;
+import org.araqne.storage.api.StorageManager;
 import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +70,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 	@Requires
 	private LogFileServiceRegistry lfsRegistry;
+	
+	@Requires
+	private StorageManager storageManager;
 
 	// online writers
 	private ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters;
@@ -96,11 +100,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		callbacks = new CopyOnWriteArraySet<LogCallback>();
 		tableNameCache = new ConcurrentHashMap<String, Integer>();
 
-		// FIXME : handle uri type
-		FilePath sysArgLogDir = new LocalFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
-		logDir = new LocalFilePath(getStringParameter(Constants.LogStorageDirectory, sysArgLogDir.getAbsolutePath()));
+		FilePath sysArgLogDir = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
+		logDir = storageManager.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, sysArgLogDir.getAbsolutePath()));
 		logDir.mkdirs();
-		DatapathUtil.setLogDir(((LocalFilePath)logDir).getFile()); // FIXME
+		DatapathUtil.setLogDir(((LocalFilePath)logDir).getFile()); // FIXME : use storage path profile
 
 		listeners = new CopyOnWriteArraySet<LogStorageEventListener>();
 	}
@@ -120,7 +123,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 		ConfigUtil.set(conf, Constants.LogStorageDirectory, f.getAbsolutePath());
 		logDir = f;
-		DatapathUtil.setLogDir(((LocalFilePath)logDir).getFile()); // FIXME
+		DatapathUtil.setLogDir(((LocalFilePath)logDir).getFile()); // FIXME : use storage path profile
 	}
 
 	private String getStringParameter(Constants key, String defaultValue) {
@@ -306,10 +309,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	}
 
 	private FilePath getTableDirectory(int tableId, String basePath) {
-		// TODO: use storage manager to expand uri
 		FilePath baseDir = logDir;
 		if (basePath != null)
-			baseDir = new LocalFilePath(basePath);
+			baseDir = storageManager.resolveFilePath(basePath);
 
 		return baseDir.newFilePath(Integer.toString(tableId));
 	}

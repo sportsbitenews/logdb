@@ -19,7 +19,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-// TODO : this class will be deprecated
+// TODO : this class will be deprecated. use table specified configuration
 public class DatapathUtil {
 	private static File logDir;
 

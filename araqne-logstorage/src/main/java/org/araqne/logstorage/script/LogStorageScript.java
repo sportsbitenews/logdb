@@ -65,7 +65,7 @@ import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
 import org.araqne.logstorage.engine.LogTableSchema;
 import org.araqne.storage.api.FilePath;
-import org.araqne.storage.localfile.LocalFilePath;
+import org.araqne.storage.api.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,15 +78,17 @@ public class LogStorageScript implements Script {
 	private ConfigService conf;
 	private LogFileServiceRegistry lfsRegistry;
 	private LogCryptoProfileRegistry cryptoRegistry;
+	private StorageManager storageManager;
 
 	public LogStorageScript(LogTableRegistry tableRegistry, LogStorage archive, LogStorageMonitor monitor, ConfigService conf,
-			LogFileServiceRegistry lfsRegistry, LogCryptoProfileRegistry cryptoRegistry) {
+			LogFileServiceRegistry lfsRegistry, LogCryptoProfileRegistry cryptoRegistry, StorageManager storageManager) {
 		this.tableRegistry = tableRegistry;
 		this.storage = archive;
 		this.monitor = monitor;
 		this.conf = conf;
 		this.lfsRegistry = lfsRegistry;
 		this.cryptoRegistry = cryptoRegistry;
+		this.storageManager = storageManager;
 	}
 
 	@Override
@@ -444,8 +446,7 @@ public class LogStorageScript implements Script {
 			@ScriptArgument(name = "limit", type = "int", description = "load limit count", optional = true) })
 	public void importTextFile(String[] args) throws IOException {
 		String tableName = args[0];
-		// TODO: handling uri
-		FilePath file = new LocalFilePath(args[1]);
+		FilePath file = storageManager.resolveFilePath(args[1]);
 		int offset = 0;
 		if (args.length > 2)
 			offset = Integer.valueOf(args[2]);

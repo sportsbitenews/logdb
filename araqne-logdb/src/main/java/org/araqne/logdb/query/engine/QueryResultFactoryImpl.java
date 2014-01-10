@@ -1,12 +1,13 @@
 package org.araqne.logdb.query.engine;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.apache.felix.ipojo.annotations.Requires;
+import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryResult;
 import org.araqne.logdb.QueryResultConfig;
@@ -17,19 +18,29 @@ import org.araqne.logstorage.file.LogFileReaderV2;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.file.LogFileWriterV2;
 import org.araqne.storage.api.FilePath;
-import org.araqne.storage.localfile.LocalFilePath;
+import org.araqne.storage.api.StorageManager;
 
 @Component(name = "logdb-query-result-factory")
 @Provides
 public class QueryResultFactoryImpl implements QueryResultFactory {
-	// assume query result is stored in local storage
-	private static FilePath BASE_DIR = new LocalFilePath(new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query/"));
-
-	private QueryResultStorageV2 embedded = new QueryResultStorageV2();
-
+	@Requires
+	private StorageManager storageManager;
+	
 	private CopyOnWriteArrayList<QueryResultStorage> storages = new CopyOnWriteArrayList<QueryResultStorage>();
 
 	public QueryResultFactoryImpl() {
+	}
+	
+	// for test
+	public QueryResultFactoryImpl(StorageManager storageManager) {
+		this.storageManager = storageManager;
+	}
+	
+	@Validate
+	public void start() {
+		FilePath BASE_DIR = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logdb/query/");
+
+		QueryResultStorageV2 embedded = new QueryResultStorageV2(BASE_DIR);
 		storages.add(embedded);
 	}
 
@@ -53,6 +64,11 @@ public class QueryResultFactoryImpl implements QueryResultFactory {
 	}
 
 	private static class QueryResultStorageV2 implements QueryResultStorage {
+		private final FilePath BASE_DIR;
+		
+		public QueryResultStorageV2(FilePath BASE_DIR) {
+			this.BASE_DIR = BASE_DIR;
+		}
 
 		@Override
 		public LogFileWriter createWriter(QueryResultConfig config) throws IOException {

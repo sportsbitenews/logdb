@@ -16,15 +16,37 @@ import org.araqne.logdb.query.command.Join.JoinType;
 import org.araqne.logdb.query.command.Table;
 import org.araqne.logdb.query.command.Table.TableParams;
 import org.araqne.logdb.query.engine.QueryResultFactoryImpl;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageManager;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.junit.Test;
 
 public class JoinParserTest {
+	public static class LocalStorageManager implements StorageManager {
+
+		@Override
+		public FilePath resolveFilePath(String path) {
+			return new LocalFilePath(path);
+		}
+
+		@Override
+		public void start() {
+		}
+
+		@Override
+		public void stop() {
+		}
+		
+	}
+	
 	@Test
 	public void testParse() {
 		System.setProperty("araqne.data.dir", ".");
 		String joinCommand = "join ip [ table users ]";
 		QueryParserService p = prepareMockQueryParser();
-		QueryResultFactory resultFactory = new QueryResultFactoryImpl();
+		StorageManager storageManager = new LocalStorageManager();
+		QueryResultFactory resultFactory = new QueryResultFactoryImpl(storageManager);
+		resultFactory.start();
 
 		Join join = (Join) new JoinParser(p, resultFactory).parse(null, joinCommand);
 		assertEquals(JoinType.Inner, join.getType());
@@ -38,7 +60,9 @@ public class JoinParserTest {
 	@Test
 	public void testLeftJoinType() {
 		QueryParserService p = prepareMockQueryParser();
-		QueryResultFactory resultFactory = new QueryResultFactoryImpl();
+		StorageManager storageManager = new LocalStorageManager();
+		QueryResultFactory resultFactory = new QueryResultFactoryImpl(storageManager);
+		resultFactory.start();
 		Join join = (Join) new JoinParser(p, resultFactory).parse(null, "join type=left ip [ table users ]");
 
 		assertEquals(JoinType.Left, join.getType());
