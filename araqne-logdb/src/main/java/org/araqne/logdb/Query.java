@@ -43,6 +43,11 @@ public interface Query extends Runnable {
 
 	void purge();
 
+	long getStartTime();
+
+	long getFinishTime();
+
+	@Deprecated
 	Date getLastStarted();
 
 	/**
@@ -51,6 +56,7 @@ public interface Query extends Runnable {
 	 * @return the elapsed time in milliseconds, or return null if query is not
 	 *         started yet
 	 */
+	@Deprecated
 	Long getElapsedTime();
 
 	/**

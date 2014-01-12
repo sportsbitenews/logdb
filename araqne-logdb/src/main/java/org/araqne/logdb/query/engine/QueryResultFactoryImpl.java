@@ -3,7 +3,6 @@ package org.araqne.logdb.query.engine;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.felix.ipojo.annotations.Component;
