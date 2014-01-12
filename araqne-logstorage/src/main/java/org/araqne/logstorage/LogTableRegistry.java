@@ -16,8 +16,11 @@
 package org.araqne.logstorage;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.araqne.log.api.FieldDefinition;
 
 public interface LogTableRegistry {
 	public static final String LogFileTypeKey = "_filetype";
@@ -35,7 +38,20 @@ public interface LogTableRegistry {
 	void renameTable(String currentName, String newName);
 
 	void dropTable(String tableName);
-	
+
+	List<FieldDefinition> getTableFields(String tableName);
+
+	/**
+	 * update table field definitions
+	 * 
+	 * @param tableName
+	 *            existing table name
+	 * @param fields
+	 *            field definitions or null
+	 * @since 2.5.1
+	 */
+	void setTableFields(String tableName, List<FieldDefinition> fields);
+
 	Set<String> getTableMetadataKeys(String tableName);
 
 	String getTableMetadata(String tableName, String key);
@@ -43,9 +59,6 @@ public interface LogTableRegistry {
 	void setTableMetadata(String tableName, String key, String value);
 
 	void unsetTableMetadata(String tableName, String key);
-
-	@Deprecated
-	TableMetadata getTableMetadata(int tableId);
 
 	void addListener(LogTableEventListener listener);
 

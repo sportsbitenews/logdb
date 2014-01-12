@@ -15,7 +15,9 @@
  */
 package org.araqne.log.api;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DelimiterParser extends V1LogParser {
@@ -23,6 +25,7 @@ public class DelimiterParser extends V1LogParser {
 	private final String[] columnHeaders;
 	private final String targetField;
 	private final boolean includeTargetField;
+	private final List<FieldDefinition> fieldDefs;
 
 	public DelimiterParser(String delimiter, String[] columnHeaders) {
 		this(delimiter, columnHeaders, "line", false);
@@ -37,6 +40,10 @@ public class DelimiterParser extends V1LogParser {
 		this.columnHeaders = columnHeaders;
 		this.targetField = targetField;
 		this.includeTargetField = includeTargetField;
+
+		this.fieldDefs = new ArrayList<FieldDefinition>();
+		for (String c : columnHeaders)
+			fieldDefs.add(new FieldDefinition(c, "string"));
 	}
 
 	@Override
@@ -76,5 +83,13 @@ public class DelimiterParser extends V1LogParser {
 		}
 
 		return m;
+	}
+
+	/**
+	 * @since 2.9.1
+	 */
+	@Override
+	public List<FieldDefinition> getFieldDefinitions() {
+		return fieldDefs;
 	}
 }

@@ -31,6 +31,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -45,6 +46,7 @@ import org.araqne.api.ScriptContext;
 import org.araqne.api.ScriptUsage;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.logstorage.LogCryptoProfileRegistry;
@@ -214,6 +216,21 @@ public class LogStorageScript implements Script {
 					total += f.length();
 			}
 
+			List<FieldDefinition> fields = tableRegistry.getTableFields(tableName);
+			if (fields != null) {
+				context.println("");
+				context.println("Table Schema");
+				context.println("---------------");
+				for (FieldDefinition field : fields) {
+					String line = null;
+					if (field.getLength() > 0)
+						line = field.getName() + "\t" + field.getType() + "(" + field.getLength() + ")";
+					line = field.getName() + "\t" + field.getType();
+
+					context.println(line);
+				}
+			}
+
 			context.println();
 			context.println("Storage information");
 			context.println("---------------------");
@@ -326,6 +343,40 @@ public class LogStorageScript implements Script {
 		} catch (Exception e) {
 			context.println(e.getMessage());
 		}
+	}
+
+	@ScriptUsage(description = "set table fields", arguments = { @ScriptArgument(name = "table name", type = "string", description = "table name") })
+	public void setFields(String[] args) {
+		String tableName = args[0];
+
+		try {
+			List<FieldDefinition> fields = new ArrayList<FieldDefinition>();
+			context.println("Use 'name type(length)' format. Length can be omitted.");
+			context.println("Allowed types: string, short, int, long, float, double, date, and bool");
+			context.println("Enter empty line to finish.");
+
+			while (true) {
+				context.print("field definition? ");
+				String line = context.readLine();
+				if (line.isEmpty())
+					break;
+
+				FieldDefinition field = FieldDefinition.parse(line);
+				fields.add(field);
+			}
+
+			tableRegistry.setTableFields(tableName, fields);
+			context.println("schema changed");
+		} catch (Throwable t) {
+			context.println("cannot update schema: " + t.getMessage());
+			logger.error("araqne logstorage: cannot update table fields", t);
+		}
+	}
+
+	@ScriptUsage(description = "unset table fields", arguments = { @ScriptArgument(name = "table name", type = "string", description = "table name") })
+	public void unsetFields(String[] args) {
+		tableRegistry.setTableFields(args[0], null);
+		context.println("schema changed");
 	}
 
 	@ScriptUsage(description = "get logs", arguments = {

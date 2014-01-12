@@ -18,6 +18,7 @@ package org.araqne.logdb.logapi;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
@@ -63,8 +64,8 @@ public class QueryLogParser extends QueryCommand implements LogParser {
 	}
 
 	@Override
-	public boolean isReducer() {
-		return false;
+	public List<FieldDefinition> getFieldDefinitions() {
+		return null;
 	}
 
 	@Override

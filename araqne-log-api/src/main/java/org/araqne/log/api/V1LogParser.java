@@ -15,6 +15,8 @@
  */
 package org.araqne.log.api;
 
+import java.util.List;
+
 /**
  * @since 2.6.0
  * @author xeraph
@@ -30,5 +32,15 @@ public abstract class V1LogParser implements LogParser {
 	@Override
 	public LogParserOutput parse(LogParserInput input) {
 		throw new UnsupportedOperationException();
+	}
+
+	/**
+	 * return null for unknown schema
+	 * 
+	 * @since 2.9.1
+	 */
+	@Override
+	public List<FieldDefinition> getFieldDefinitions() {
+		return null;
 	}
 }

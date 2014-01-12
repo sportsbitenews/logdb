@@ -17,7 +17,7 @@ package org.araqne.logstorage.engine;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,6 +35,7 @@ import org.araqne.confdb.ConfigIterator;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.ConfigTransaction;
 import org.araqne.confdb.Predicates;
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableEventListener;
 import org.araqne.logstorage.LogTableNotFoundException;
@@ -95,8 +96,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 					ConfigIterator it = before.findAll();
 					while (it.hasNext())
 						col.add(xact, it.next().getDocument());
-					xact.commit("araqne-logstorage",
-							"migration from collection org.araqne.logstorage.engine.LogTableSchema");
+					xact.commit("araqne-logstorage", "migration from collection org.araqne.logstorage.engine.LogTableSchema");
 					db.dropCollection("org.araqne.logstorage.engine.LogTableSchema");
 				} catch (Throwable e) {
 					xact.rollback();
@@ -128,10 +128,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 	@Override
 	public int getTableId(String tableName) {
-		LogTableSchema table = tableSchemas.get(tableName);
-		if (table == null)
-			throw new LogTableNotFoundException(tableName);
-
+		LogTableSchema table = getTableSchema(tableName);
 		return table.getId();
 	}
 
@@ -150,7 +147,8 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 			boolean installed = false;
 			for (String t : installedTypes) {
 				if (t.equals(type)) {
-					installed = true;;
+					installed = true;
+					;
 				}
 			}
 			if (!installed)
@@ -203,9 +201,8 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 	@Override
 	public void dropTable(String tableName) {
-		LogTableSchema old = tableSchemas.get(tableName);
-		if (old == null)
-			throw new IllegalStateException("table not found: " + tableName);
+		// check if table exists
+		getTableSchema(tableName);
 
 		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
 		Config c = db.findOne(LogTableSchema.class, Predicates.field("name", tableName));
@@ -227,46 +224,43 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 			tableNames.remove(t.getId());
 	}
 
-	@Deprecated
 	@Override
-	public org.araqne.logstorage.TableMetadata getTableMetadata(int tableId) {
-		String tableName = tableNames.get(tableId);
-		if (tableName == null)
+	public List<FieldDefinition> getTableFields(String tableName) {
+		LogTableSchema schema = getTableSchema(tableName);
+		if (schema.getFieldDefinitions() == null)
 			return null;
+		return new ArrayList<FieldDefinition>(schema.getFieldDefinitions());
+	}
 
-		LogTableSchema t = tableSchemas.get(tableName);
-		Map<String, String> m = new HashMap<String, String>();
-		for (String key : t.getMetadata().keySet()) {
-			Object value = t.getMetadata().get(key);
-			m.put(key, value == null ? null : value.toString());
+	@Override
+	public void setTableFields(String tableName, List<FieldDefinition> fields) {
+		LogTableSchema schema = getTableSchema(tableName);
+		schema.setFieldDefinitions(fields);
+
+		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
+		Config c = db.findOne(LogTableSchema.class, Predicates.field("name", tableName));
+		if (c != null) {
+			db.update(c, schema);
+		} else {
+			throw new LogTableNotFoundException(tableName);
 		}
-		return new org.araqne.logstorage.TableMetadata(tableId, tableName, m);
 	}
 
 	@Override
 	public Set<String> getTableMetadataKeys(String tableName) {
-		LogTableSchema t = tableSchemas.get(tableName);
-		if (t == null)
-			throw new IllegalArgumentException("table not exists: " + tableName);
-
+		LogTableSchema t = getTableSchema(tableName);
 		return t.getMetadata().keySet();
 	}
 
 	@Override
 	public String getTableMetadata(String tableName, String key) {
-		LogTableSchema t = tableSchemas.get(tableName);
-		if (t == null)
-			throw new IllegalArgumentException("table not exists: " + tableName);
-
+		LogTableSchema t = getTableSchema(tableName);
 		return (String) t.getMetadata().get(key);
 	}
 
 	@Override
 	public void setTableMetadata(String tableName, String key, String value) {
-		LogTableSchema t = tableSchemas.get(tableName);
-		if (t == null)
-			throw new IllegalArgumentException("table not exists: " + tableName);
-
+		LogTableSchema t = getTableSchema(tableName);
 		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
 		Config c = db.findOne(LogTableSchema.class, Predicates.field("name", tableName));
 		t.getMetadata().put(key, value);
@@ -275,14 +269,18 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 	@Override
 	public void unsetTableMetadata(String tableName, String key) {
-		LogTableSchema t = tableSchemas.get(tableName);
-		if (t == null)
-			throw new IllegalArgumentException("table not exists: " + tableName);
-
+		LogTableSchema t = getTableSchema(tableName);
 		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
 		Config c = db.findOne(LogTableSchema.class, Predicates.field("name", tableName));
 		t.getMetadata().remove(key);
 		db.update(c, t, false, "araqne-logstorage", "unset table [" + tableName + "] metadata " + key);
+	}
+
+	private LogTableSchema getTableSchema(String tableName) {
+		LogTableSchema t = tableSchemas.get(tableName);
+		if (t == null)
+			throw new LogTableNotFoundException(tableName);
+		return t;
 	}
 
 	@Override
