@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.EncodingRule;
 import org.araqne.logdb.client.http.WebSocketTransport;
 import org.araqne.logdb.client.http.impl.TrapListener;
@@ -475,10 +476,13 @@ public class LogDbClient implements TrapListener, Closeable {
 	public List<TableInfo> listTables() throws IOException {
 		Message resp = session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.listTables");
 		List<TableInfo> tables = new ArrayList<TableInfo>();
-		Map<String, Object> m = (Map<String, Object>) resp.getParameters().get("tables");
-		for (String tableName : m.keySet()) {
-			Map<String, Object> params = (Map<String, Object>) m.get(tableName);
-			TableInfo tableInfo = getTableInfo(tableName, params);
+		Map<String, Object> metadataMap = (Map<String, Object>) resp.getParameters().get("tables");
+		Map<String, Object> fieldsMap = (Map<String, Object>) resp.getParameters().get("fields");
+
+		for (String tableName : metadataMap.keySet()) {
+			Map<String, Object> params = (Map<String, Object>) metadataMap.get(tableName);
+			List<Object> fields = (List<Object>) fieldsMap.get(tableName);
+			TableInfo tableInfo = getTableInfo(tableName, params, fields);
 			tables.add(tableInfo);
 		}
 
@@ -491,14 +495,32 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("table", tableName);
 		Message resp = session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.getTableInfo", params);
 
-		return getTableInfo(tableName, (Map<String, Object>) resp.get("table"));
+		return getTableInfo(tableName, (Map<String, Object>) resp.get("table"), (List<Object>) resp.get("fields"));
 	}
 
-	private TableInfo getTableInfo(String tableName, Map<String, Object> params) {
+	private TableInfo getTableInfo(String tableName, Map<String, Object> params, List<Object> fields) {
 		Map<String, String> metadata = new HashMap<String, String>();
 		for (Entry<String, Object> pair : params.entrySet())
 			metadata.put(pair.getKey(), pair.getValue() == null ? null : pair.getValue().toString());
-		return new TableInfo(tableName, metadata);
+
+		List<FieldInfo> fieldDefs = null;
+		if (fields != null) {
+			fieldDefs = new ArrayList<FieldInfo>();
+
+			for (Object o : fields) {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> m = (Map<String, Object>) o;
+				FieldInfo f = new FieldInfo();
+				f.setType((String) m.get("type"));
+				f.setName((String) m.get("name"));
+				f.setLength((Integer) m.get("length"));
+				fieldDefs.add(f);
+			}
+		}
+
+		TableInfo t = new TableInfo(tableName, metadata);
+		t.getSchema().setFieldDefinitions(fieldDefs);
+		return t;
 	}
 
 	public void setTableMetadata(String tableName, Map<String, String> config) throws IOException {
@@ -646,8 +668,16 @@ public class LogDbClient implements TrapListener, Closeable {
 		return specs;
 	}
 
-	@SuppressWarnings("unchecked")
+	/**
+	 * @deprecated Use listParsers() instead
+	 */
+	@Deprecated
 	public List<ParserInfo> getParsers() throws IOException {
+		return listParsers();
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<ParserInfo> listParsers() throws IOException {
 		Message resp = session.rpc("org.logpresso.core.msgbus.ParserPlugin.getParsers");
 		List<Object> l = (List<Object>) resp.get("parsers");
 
@@ -675,6 +705,16 @@ public class LogDbClient implements TrapListener, Closeable {
 		p.setName((String) m.get("name"));
 		p.setFactoryName((String) m.get("factory_name"));
 		p.setConfigs((Map<String, String>) m.get("configs"));
+
+		// since 0.9.0 and logpresso-core 0.8.0
+		if (m.get("fields") != null) {
+			List<FieldInfo> l = new ArrayList<FieldInfo>();
+			for (Object o : (List<Object>) m.get("fields"))
+				l.add(PrimitiveConverter.parse(FieldInfo.class, o));
+
+			p.setFieldDefinitions(l);
+		}
+
 		return p;
 	}
 
@@ -746,8 +786,16 @@ public class LogDbClient implements TrapListener, Closeable {
 		return f;
 	}
 
-	@SuppressWarnings("unchecked")
+	/**
+	 * @deprecated Use listTransformers() instead.
+	 */
+	@Deprecated
 	public List<TransformerInfo> getTransformers() throws IOException {
+		return listTransformers();
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<TransformerInfo> listTransformers() throws IOException {
 		Message resp = session.rpc("org.logpresso.core.msgbus.TransformerPlugin.getTransformers");
 		List<Object> l = (List<Object>) resp.get("transformers");
 

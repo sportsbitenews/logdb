@@ -54,7 +54,7 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 			throw new IllegalArgumentException("invalid host: " + host);
 		}
 
-		this.timer = new Timer("WebSocket [" + uri + "] Ping Timer");
+		this.timer = new Timer("WebSocket [" + uri + "] Ping Timer", true);
 		timer.scheduleAtFixedRate(new PingTask(), new Date(), 2000);
 	}
 
