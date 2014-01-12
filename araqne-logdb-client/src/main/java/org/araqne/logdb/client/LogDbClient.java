@@ -181,6 +181,15 @@ public class LogDbClient implements TrapListener, Closeable {
 
 		query.setElapsed(toLong(q.get("elapsed")));
 
+		Long startTime = toLong(q.get("start_time"));
+		Long finishTime = toLong(q.get("finish_time"));
+
+		if (startTime != null && startTime != 0)
+			query.setStartTime(new Date(startTime));
+
+		if (finishTime != null && finishTime != 0)
+			query.setFinishTime(new Date(finishTime));
+
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 		if (q.get("last_started") != null)
 			query.setLastStarted(df.parse((String) q.get("last_started"), new ParsePosition(0)));

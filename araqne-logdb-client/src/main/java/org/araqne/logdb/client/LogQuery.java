@@ -28,7 +28,13 @@ public class LogQuery {
 	private String status;
 	private long loadedCount;
 	private boolean background;
-	private Date lastStarted;
+
+	// @since 0.9.0
+	private Date startTime;
+
+	// @since 0.9.0
+	private Date finishTime;
+
 	private Long elapsed;
 	private List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 	private CopyOnWriteArrayList<WaitingCondition> waitingConditions;
@@ -76,9 +82,7 @@ public class LogQuery {
 			waitingConditions.add(cond);
 			synchronized (cond.signal) {
 				try {
-					while (!status.equals("Ended") &&
-							!status.equals("Cancelled") &&
-							(count == null || loadedCount < count))
+					while (!status.equals("Ended") && !status.equals("Cancelled") && (count == null || loadedCount < count))
 						cond.signal.wait(100);
 				} catch (InterruptedException e) {
 				}
@@ -119,12 +123,30 @@ public class LogQuery {
 		this.background = background;
 	}
 
-	public Date getLastStarted() {
-		return lastStarted;
+	public Date getStartTime() {
+		return startTime;
 	}
 
+	public void setStartTime(Date startTime) {
+		this.startTime = startTime;
+	}
+
+	public Date getFinishTime() {
+		return finishTime;
+	}
+
+	public void setFinishTime(Date finishTime) {
+		this.finishTime = finishTime;
+	}
+
+	@Deprecated
+	public Date getLastStarted() {
+		return startTime;
+	}
+
+	@Deprecated
 	public void setLastStarted(Date lastStarted) {
-		this.lastStarted = lastStarted;
+		this.startTime = lastStarted;
 	}
 
 	public Long getElapsed() {
