@@ -36,6 +36,23 @@ public class LocalFileInputStream extends StorageInputStream {
 	public void readFully(byte[] b, int off, int len) throws IOException {
 		source.readFully(b, off, len);
 	}
+	
+	@Override
+	public long skip(long n) throws IOException {
+        if (n <= 0) {
+            return 0;
+        }
+        
+        long curr = getPos();
+        long len = length();
+        long dest = curr + n;
+        if (dest > len) {
+        	dest = len;
+        }
+        seek(dest);
+
+        return dest - curr;
+	}
 
 	@Override
 	public int skipBytes(int n) throws IOException {
