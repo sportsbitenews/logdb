@@ -102,7 +102,7 @@ public class LoggerFactoryRegistryImpl implements LoggerFactoryRegistry, LoggerF
 			return;
 		}
 
-		slog.info("araqne log api: logger factory [{}] added", loggerFactory.getFullName());
+		slog.debug("araqne log api: logger factory [{}] added", loggerFactory.getFullName());
 
 		// trigger callbacks
 		for (LoggerFactoryRegistryEventListener callback : callbacks) {
@@ -123,7 +123,7 @@ public class LoggerFactoryRegistryImpl implements LoggerFactoryRegistry, LoggerF
 		// remove
 		loggerFactories.remove(loggerFactory.getFullName());
 
-		slog.info("araqne log api: logger factory [{}] removed", loggerFactory.getFullName());
+		slog.debug("araqne log api: logger factory [{}] removed", loggerFactory.getFullName());
 
 		// trigger callbacks
 		for (LoggerFactoryRegistryEventListener callback : callbacks) {
