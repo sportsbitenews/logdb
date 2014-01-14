@@ -22,7 +22,6 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.zip.Deflater;
@@ -247,7 +246,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 	}
 
 	@Override
-	public void write(Collection<Log> data) throws IOException {
+	public void write(List<Log> data) throws IOException {
 		for (Log log : data) {
 			try {
 				rawWrite(convert(log));

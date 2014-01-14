@@ -19,7 +19,6 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -137,7 +136,7 @@ public class OnlineWriter {
 		}
 	}
 
-	public void write(Collection<Log> logs) throws IOException {
+	public void write(List<Log> logs) throws IOException {
 		if (writer == null)
 			throw new IllegalStateException("file closed");
 

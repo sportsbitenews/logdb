@@ -15,6 +15,16 @@
  */
 package org.araqne.logstorage;
 
+import java.util.List;
+
 public interface LogCallback {
-	void onLog(Log log);
+	/**
+	 * invoked when logs are inserted to table
+	 * 
+	 * @param tableName
+	 *            input table name
+	 * @param logBatch
+	 *            all logs' table name should be same
+	 */
+	void onLogBatch(String tableName, List<Log> logBatch);
 }

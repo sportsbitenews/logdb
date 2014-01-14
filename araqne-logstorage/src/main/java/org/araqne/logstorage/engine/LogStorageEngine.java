@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -373,9 +374,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			throw new IllegalStateException("cannot write log: " + tableName + ", " + log.getDate());
 
 		// invoke log callbacks
+		List<Log> one = Arrays.asList(log);
 		for (LogCallback callback : callbacks) {
 			try {
-				callback.onLog(log);
+				callback.onLogBatch(log.getTableName(), one);
 			} catch (Exception e) {
 				logger.warn("araqne logstorage: log callback should not throw any exception", e);
 			}
@@ -383,9 +385,58 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	}
 
 	@Override
-	public void write(Collection<Log> logs) {
-		for (Log log : logs)
-			write(log);
+	public void write(List<Log> logs) {
+		// inlined verify() for fast-path performance
+		if (status != LogStorageStatus.Open)
+			throw new IllegalStateException("archive not opened");
+
+		HashMap<OnlineWriterKey, List<Log>> keyLogs = new HashMap<OnlineWriterKey, List<Log>>();
+
+		for (Log log : logs) {
+			Integer tableId = tableNameCache.get(log.getTableName());
+			if (tableId == null)
+				throw new LogTableNotFoundException(log.getTableName());
+
+			OnlineWriterKey writerKey = new OnlineWriterKey(log.getTableName(), log.getDay(), tableId);
+			List<Log> l = keyLogs.get(writerKey);
+			if (l == null) {
+				l = new ArrayList<Log>();
+				keyLogs.put(writerKey, l);
+			}
+
+			l.add(log);
+		}
+
+		// write data
+		for (Entry<OnlineWriterKey, List<Log>> e : keyLogs.entrySet()) {
+			OnlineWriterKey writerKey = e.getKey();
+			String tableName = writerKey.getTableName();
+			List<Log> l = e.getValue();
+
+			for (int i = 0; i < 2; i++) {
+				try {
+					OnlineWriter writer = getOnlineWriter(writerKey.getTableName(), writerKey.getDay());
+					writer.write(l);
+					break;
+				} catch (IOException ex) {
+					if (ex.getMessage().contains("closed")) {
+						logger.info("araqne logstorage: closed online writer, trying one more time");
+						continue;
+					}
+
+					throw new IllegalStateException("cannot write [" + l.size() + "] logs to table [" + tableName + "]");
+				}
+			}
+
+			// invoke log callbacks
+			for (LogCallback callback : callbacks) {
+				try {
+					callback.onLogBatch(writerKey.getTableName(), l);
+				} catch (Exception ex) {
+					logger.warn("araqne logstorage: log callback should not throw any exception", ex);
+				}
+			}
+		}
 	}
 
 	private LogRecord convert(Log log) {
@@ -406,8 +457,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		try {
 			search(tableName, from, to, offset, limit, new LogSearchCallback() {
 				@Override
-				public void onLog(Log log) {
-					logs.add(log);
+				public void onLogBatch(String tableName, List<Log> logBatch) {
+					logs.addAll(logBatch);
 				}
 
 				@Override
@@ -810,8 +861,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			try {
 				matched++;
 
-				logger.debug("araqne logdb: traverse log [{}]", log);
-				callback.onLog(log);
+				if (logger.isDebugEnabled())
+					logger.debug("araqne logdb: traverse log [{}]", log);
+
+				callback.onLogBatch(log.getTableName(), Arrays.asList(log));
 
 				return true;
 			} catch (Exception e) {

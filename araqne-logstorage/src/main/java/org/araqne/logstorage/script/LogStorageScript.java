@@ -395,9 +395,11 @@ public class LogStorageScript implements Script {
 
 		try {
 			storage.search(tableName, from, to, offset, limit, new LogSearchCallback() {
+
 				@Override
-				public void onLog(Log log) {
-					context.println(log.toString());
+				public void onLogBatch(String tableName, List<Log> logBatch) {
+					for (Log log : logBatch)
+						context.println(log.toString());
 				}
 
 				@Override
@@ -451,16 +453,15 @@ public class LogStorageScript implements Script {
 		}
 
 		@Override
-		public void onLog(Log log) {
-			if (log == null)
-				return;
-
-			Map<String, Object> m = log.getData();
-			context.print(log.getId() + ": ");
-			for (String key : m.keySet()) {
-				context.print(key + "=" + m.get(key) + ", ");
+		public void onLogBatch(String tableName, List<Log> logBatch) {
+			for (Log log : logBatch) {
+				Map<String, Object> m = log.getData();
+				context.print(log.getId() + ": ");
+				for (String key : m.keySet()) {
+					context.print(key + "=" + m.get(key) + ", ");
+				}
+				context.println("");
 			}
-			context.println("");
 		}
 	}
 
@@ -576,6 +577,8 @@ public class LogStorageScript implements Script {
 		BufferedReader br = new BufferedReader(new InputStreamReader(fis), 16384 * 1024); // 16MB
 		String line = null;
 
+		ArrayList<Log> buf = new ArrayList<Log>(1000);
+
 		int i = 0;
 		while (true) {
 			line = br.readLine();
@@ -592,17 +595,26 @@ public class LogStorageScript implements Script {
 			m.put("line", line);
 
 			Log log = new Log(tableName, new Date(), m);
-			try {
-				storage.write(log);
-			} catch (IllegalArgumentException e) {
-				context.println("skip " + line + ", " + e.getMessage());
-			}
+			buf.add(log);
 
 			count++;
 
-			if (count % 10000 == 0)
+			if (count % 1000 == 0) {
+				try {
+					storage.write(buf);
+					buf = new ArrayList<Log>(1000);
+				} catch (IllegalArgumentException e) {
+					context.println("skip " + line + ", " + e.getMessage());
+				}
+			}
+
+			if (count % 10000 == 0) {
 				context.println("loaded " + count);
+			}
 		}
+
+		if (buf.size() > 0)
+			storage.write(buf);
 
 		long milliseconds = new Date().getTime() - begin.getTime();
 		long speed = count * 1000 / milliseconds;
@@ -641,8 +653,8 @@ public class LogStorageScript implements Script {
 		private int count = 0;
 
 		@Override
-		public void onLog(Log log) {
-			count++;
+		public void onLogBatch(String tableName, List<Log> logBatch) {
+			count += logBatch.size();
 		}
 
 		public int getCount() {
@@ -799,7 +811,7 @@ public class LogStorageScript implements Script {
 		private boolean interrupt = false;
 
 		@Override
-		public void onLog(Log log) {
+		public void onLogBatch(String tableName, List<Log> logBatch) {
 		}
 
 		@Override

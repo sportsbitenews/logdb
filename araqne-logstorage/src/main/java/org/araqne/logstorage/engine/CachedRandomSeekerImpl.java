@@ -30,7 +30,6 @@ import org.araqne.codec.FastEncodingRule;
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.CachedRandomSeeker;
 import org.araqne.logstorage.Log;
-import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogRecord;
@@ -226,12 +225,12 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 
 	@Override
 	public Log getLog(String tableName, Date day, long id, LogParserBuilder builder) {
-		List<Log> result = getLogs(tableName, day, null, null, Arrays.asList(new Long[] {id}), builder);
+		List<Log> result = getLogs(tableName, day, null, null, Arrays.asList(new Long[] { id }), builder);
 		if (result == null || result.isEmpty())
 			return null;
 		return result.get(0);
 	}
-	
+
 	@Override
 	public List<Log> getLogs(String tableName, Date day, Date from, Date to, List<Long> ids, LogParserBuilder builder) {
 		if (closed)
