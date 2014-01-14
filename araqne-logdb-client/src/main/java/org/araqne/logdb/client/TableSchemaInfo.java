@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Eediom Inc.
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,34 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.log.api;
+package org.araqne.logdb.client;
 
 import java.util.List;
 
 /**
- * @since 2.6.0
+ * @since 0.9.0
  * @author xeraph
  * 
  */
-public abstract class V1LogParser implements LogParser {
+public class TableSchemaInfo {
+	private List<FieldInfo> fieldDefinitions;
 
-	@Override
-	public int getVersion() {
-		return 1;
+	public TableSchemaInfo() {
 	}
 
-	@Override
-	public LogParserOutput parse(LogParserInput input) {
-		throw new UnsupportedOperationException();
+	public List<FieldInfo> getFieldDefinitions() {
+		return fieldDefinitions;
 	}
 
-	/**
-	 * return null for unknown schema
-	 * 
-	 * @since 2.9.1
-	 */
-	@Override
-	public List<FieldDefinition> getFieldDefinitions() {
-		return null;
+	public void setFieldDefinitions(List<FieldInfo> fieldDefinitions) {
+		this.fieldDefinitions = fieldDefinitions;
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Eediom Inc.
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,21 +15,24 @@
  */
 package org.araqne.logdb.client;
 
-import java.util.HashMap;
-import java.util.Map;
-
-public class TableInfo {
+public class FieldInfo {
 	private String name;
+	private String type;
 
-	private TableSchemaInfo schema = new TableSchemaInfo();
-	private Map<String, String> metadata = new HashMap<String, String>();
+	// 0 for unknown
+	private int length;
 
-	public TableInfo() {
+	public FieldInfo() {
 	}
 
-	public TableInfo(String name, Map<String, String> metadata) {
+	public FieldInfo(String name, String type) {
+		this(name, type, 0);
+	}
+
+	public FieldInfo(String name, String type, int length) {
 		this.name = name;
-		this.metadata = metadata;
+		this.type = type;
+		this.length = length;
 	}
 
 	public String getName() {
@@ -40,24 +43,26 @@ public class TableInfo {
 		this.name = name;
 	}
 
-	public TableSchemaInfo getSchema() {
-		return schema;
+	public String getType() {
+		return type;
 	}
 
-	public void setSchema(TableSchemaInfo schema) {
-		this.schema = schema;
+	public void setType(String type) {
+		this.type = type;
 	}
 
-	public Map<String, String> getMetadata() {
-		return metadata;
+	public int getLength() {
+		return length;
 	}
 
-	public void setMetadata(Map<String, String> metadata) {
-		this.metadata = metadata;
+	public void setLength(int length) {
+		this.length = length;
 	}
 
 	@Override
 	public String toString() {
-		return "name=" + name + ", metadata=" + metadata;
+		if (length > 0)
+			return name + " " + type + "(" + length + ")";
+		return name + " " + type;
 	}
 }

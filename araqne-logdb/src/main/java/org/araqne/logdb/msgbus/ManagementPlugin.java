@@ -28,6 +28,7 @@ import java.util.Map;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.api.PrimitiveConverter;
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
@@ -233,21 +234,31 @@ public class ManagementPlugin {
 		org.araqne.logdb.Session session = ensureDbSession(req);
 
 		Map<String, Object> tables = new HashMap<String, Object>();
+		Map<String, Object> fields = new HashMap<String, Object>();
 
 		if (session.isAdmin()) {
 			for (String tableName : tableRegistry.getTableNames()) {
 				tables.put(tableName, getTableMetadata(tableName));
+				List<FieldDefinition> defs = tableRegistry.getTableFields(tableName);
+				if (defs != null)
+					fields.put(tableName, PrimitiveConverter.serialize(defs));
 			}
 		} else {
 			List<Privilege> privileges = accountService.getPrivileges(session, session.getLoginName());
 			for (Privilege p : privileges) {
 				if (p.getPermissions().size() > 0 && tableRegistry.exists(p.getTableName())) {
 					tables.put(p.getTableName(), getTableMetadata(p.getTableName()));
+					List<FieldDefinition> defs = tableRegistry.getTableFields(p.getTableName());
+					if (defs != null)
+						fields.put(p.getTableName(), PrimitiveConverter.serialize(defs));
 				}
 			}
 		}
 
 		resp.put("tables", tables);
+
+		// @since 2.0.2
+		resp.put("fields", fields);
 	}
 
 	@MsgbusMethod
@@ -255,8 +266,11 @@ public class ManagementPlugin {
 		String tableName = req.getString("table", true);
 		checkTableAccess(req, tableName, Permission.READ);
 
-		resp.put("table", getTableMetadata(tableName));
+		List<FieldDefinition> defs = tableRegistry.getTableFields(tableName);
+		if (defs != null)
+			resp.put("fields", PrimitiveConverter.serialize(defs));
 
+		resp.put("table", getTableMetadata(tableName));
 	}
 
 	private Map<String, Object> getTableMetadata(String tableName) {

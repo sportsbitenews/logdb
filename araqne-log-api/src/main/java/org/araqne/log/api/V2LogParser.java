@@ -15,6 +15,7 @@
  */
 package org.araqne.log.api;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,5 +33,15 @@ public abstract class V2LogParser implements LogParser {
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
 		throw new UnsupportedOperationException();
+	}
+
+	/**
+	 * return null for unknown schema
+	 * 
+	 * @since 2.9.1
+	 */
+	@Override
+	public List<FieldDefinition> getFieldDefinitions() {
+		return null;
 	}
 }

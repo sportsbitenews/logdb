@@ -15,6 +15,7 @@
  */
 package org.araqne.log.api;
 
+import java.util.List;
 import java.util.Map;
 
 public interface LogParser {
@@ -23,4 +24,12 @@ public interface LogParser {
 	Map<String, Object> parse(Map<String, Object> params);
 
 	LogParserOutput parse(LogParserInput input);
+
+	/**
+	 * field definitions can be changed by parser configuration
+	 * 
+	 * @return null for unknown schema
+	 * @since 2.9.1
+	 */
+	List<FieldDefinition> getFieldDefinitions();
 }

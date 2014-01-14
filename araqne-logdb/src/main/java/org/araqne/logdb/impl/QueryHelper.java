@@ -17,6 +17,7 @@ package org.araqne.logdb.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -42,13 +43,15 @@ public class QueryHelper {
 		return result;
 	}
 
-	public static Map<String, Object> getQuery(Query lq) {
-		Long msec = lq.getElapsedTime();
+	public static Map<String, Object> getQuery(Query q) {
+		Long msec = null;
+		if (q.isStarted())
+			msec = System.currentTimeMillis() - q.getStartTime();
 
 		List<Object> commands = new ArrayList<Object>();
 
-		if (lq.getCommands() != null) {
-			for (QueryCommand cmd : lq.getCommands()) {
+		if (q.getCommands() != null) {
+			for (QueryCommand cmd : q.getCommands()) {
 				Map<String, Object> c = new HashMap<String, Object>();
 				c.put("command", cmd.getQueryString());
 				c.put("status", cmd.getStatus());
@@ -58,14 +61,16 @@ public class QueryHelper {
 		}
 
 		Map<String, Object> m = new HashMap<String, Object>();
-		m.put("id", lq.getId());
-		m.put("query_string", lq.getQueryString());
-		m.put("is_end", lq.isFinished());
-		m.put("is_eof", lq.isFinished());
-		m.put("is_cancelled", lq.isCancelled());
-		m.put("last_started", lq.getLastStarted());
+		m.put("id", q.getId());
+		m.put("query_string", q.getQueryString());
+		m.put("is_end", q.isFinished());
+		m.put("is_eof", q.isFinished());
+		m.put("is_cancelled", q.isCancelled());
+		m.put("start_time", q.getStartTime());
+		m.put("finish_time", q.getFinishTime());
+		m.put("last_started", new Date(q.getStartTime()));
 		m.put("elapsed", msec);
-		m.put("background", lq.getRunMode() == RunMode.BACKGROUND);
+		m.put("background", q.getRunMode() == RunMode.BACKGROUND);
 		m.put("commands", commands);
 
 		return m;

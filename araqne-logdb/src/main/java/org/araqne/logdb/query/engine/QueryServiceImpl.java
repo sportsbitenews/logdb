@@ -464,13 +464,13 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			} catch (IOException e) {
 				m.put("rows", 0);
 			}
-			m.put("start_at", query.getLastStarted());
+			m.put("start_at", new Date(query.getStartTime()));
 			m.put("eof_at", now);
 			m.put("login_name", query.getContext().getSession().getLoginName());
 			m.put("cancelled", query.isCancelled());
 
-			if (query.getLastStarted() != null)
-				m.put("duration", (now.getTime() - query.getLastStarted().getTime()) / 1000);
+			if (query.isStarted())
+				m.put("duration", (query.getFinishTime() - query.getStartTime()) / 1000.0);
 			else
 				m.put("duration", 0);
 

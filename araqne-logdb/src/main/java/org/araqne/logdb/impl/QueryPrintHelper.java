@@ -58,8 +58,8 @@ public class QueryPrintHelper {
 				continue;
 
 			String when = "";
-			if (q.getLastStarted() != null)
-				when = " at " + df.format(q.getLastStarted());
+			if (q.isStarted())
+				when = " at " + df.format(new Date(q.getStartTime()));
 			String loginName = q.getContext().getSession().getLoginName();
 			Long count = null;
 			try {
@@ -83,9 +83,9 @@ public class QueryPrintHelper {
 	public static String getQueryStatus(Query query) {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 		String when = " \t/ not started yet";
-		if (query.getLastStarted() != null) {
-			long sec = new Date().getTime() - query.getLastStarted().getTime();
-			when = String.format(" \t/ %s, %d seconds ago", sdf.format(query.getLastStarted()), sec / 1000);
+		if (query.isStarted()) {
+			long sec = System.currentTimeMillis() - query.getStartTime();
+			when = String.format(" \t/ %s, %d seconds ago", sdf.format(new Date(query.getStartTime())), sec / 1000);
 		}
 
 		String loginName = query.getContext().getSession().getLoginName();

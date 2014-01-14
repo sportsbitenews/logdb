@@ -16,11 +16,11 @@
 package org.araqne.logdb.query.expr;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
-import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 
 public class ToDate implements Expression {
 
@@ -30,10 +30,13 @@ public class ToDate implements Expression {
 
 	public ToDate(List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
-		
+		Locale locale = Locale.ENGLISH;
+		if (exprs.size() > 2)
+			locale = new Locale(exprs.get(2).toString());
+
 		try {
 			this.format = (String) exprs.get(1).eval(null);
-			this.dateFormat = new SimpleDateFormat(format);
+			this.dateFormat = new SimpleDateFormat(format, locale);
 		} catch (IllegalArgumentException e) {
 			throw new QueryParseException("invalid-argument", -1, "invalid date format pattern");
 		}
@@ -49,7 +52,7 @@ public class ToDate implements Expression {
 			String s = value.toString();
 			if (s.isEmpty())
 				return null;
-			
+
 			return dateFormat.parse(s);
 		} catch (Throwable t) {
 			return null;

@@ -152,8 +152,18 @@ public class DefaultQuery implements Query {
 	}
 
 	@Override
+	public long getStartTime() {
+		return scheduler.getStartTime();
+	}
+
+	@Override
 	public boolean isFinished() {
 		return scheduler.isFinished();
+	}
+
+	@Override
+	public long getFinishTime() {
+		return scheduler.getFinishTime();
 	}
 
 	@Override

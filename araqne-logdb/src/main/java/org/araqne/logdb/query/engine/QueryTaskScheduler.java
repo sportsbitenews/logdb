@@ -39,6 +39,9 @@ public class QueryTaskScheduler implements Runnable {
 	// regardless of canceled or not, just finished
 	private boolean finished;
 
+	private long startTime;
+	private long finishTime;
+
 	private Query query;
 
 	// logical query command pipe
@@ -60,13 +63,22 @@ public class QueryTaskScheduler implements Runnable {
 		return started;
 	}
 
+	public long getStartTime() {
+		return startTime;
+	}
+
 	public boolean isFinished() {
 		return finished;
+	}
+
+	public long getFinishTime() {
+		return finishTime;
 	}
 
 	@Override
 	public void run() {
 		started = true;
+		startTime = System.currentTimeMillis();
 
 		for (QueryCommand cmd : pipeline) {
 			cmd.setStatus(Status.Running);
@@ -140,6 +152,7 @@ public class QueryTaskScheduler implements Runnable {
 
 			query.postRun();
 			finished = true;
+			finishTime = System.currentTimeMillis();
 
 			// send final timeline callback
 			for (QueryTimelineCallback c : query.getCallbacks().getTimelineCallbacks()) {

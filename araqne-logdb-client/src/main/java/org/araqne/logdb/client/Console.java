@@ -767,7 +767,7 @@ public class Console {
 		}
 
 		try {
-			List<ParserInfo> parsers = client.getParsers();
+			List<ParserInfo> parsers = client.listParsers();
 			if (parsers.size() == 0) {
 				w("no result");
 				return;
@@ -917,7 +917,7 @@ public class Console {
 		}
 
 		try {
-			List<TransformerInfo> transformers = client.getTransformers();
+			List<TransformerInfo> transformers = client.listTransformers();
 			if (transformers.size() == 0) {
 				w("no result");
 				return;

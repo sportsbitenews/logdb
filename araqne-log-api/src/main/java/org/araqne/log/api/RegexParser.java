@@ -15,7 +15,9 @@
  */
 package org.araqne.log.api;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,6 +28,7 @@ public class RegexParser extends V1LogParser {
 	private final String[] names;
 	private final boolean includeOriginalField;
 	private final Matcher matcher;
+	private final List<FieldDefinition> fieldDefs;
 
 	public RegexParser(String field, Pattern p, String[] names) {
 		this(field, p, names, false);
@@ -37,6 +40,10 @@ public class RegexParser extends V1LogParser {
 		this.names = names;
 		this.includeOriginalField = includeOriginalField;
 		this.matcher = p.matcher("");
+
+		this.fieldDefs = new ArrayList<FieldDefinition>();
+		for (String name : names)
+			fieldDefs.add(new FieldDefinition(name, "string"));
 	}
 
 	@Override
@@ -55,6 +62,14 @@ public class RegexParser extends V1LogParser {
 			m.put(field, s);
 
 		return m;
+	}
+
+	/**
+	 * @since 2.9.1
+	 */
+	@Override
+	public List<FieldDefinition> getFieldDefinitions() {
+		return fieldDefs;
 	}
 
 	@Override
