@@ -41,9 +41,12 @@ public class DelimiterParser extends V1LogParser {
 		this.targetField = targetField;
 		this.includeTargetField = includeTargetField;
 
-		this.fieldDefs = new ArrayList<FieldDefinition>();
-		for (String c : columnHeaders)
-			fieldDefs.add(new FieldDefinition(c, "string"));
+		if (columnHeaders != null) {
+			this.fieldDefs = new ArrayList<FieldDefinition>();
+			for (String c : columnHeaders)
+				fieldDefs.add(new FieldDefinition(c, "string"));
+		} else
+			this.fieldDefs = null;
 	}
 
 	@Override
