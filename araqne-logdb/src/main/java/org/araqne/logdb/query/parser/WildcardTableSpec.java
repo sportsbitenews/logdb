@@ -31,19 +31,48 @@ public class WildcardTableSpec implements TableSpec {
 
 	public WildcardTableSpec(String spec) {
 		this.spec = spec;
+		
+		// XXX
+		Matcher m = Pattern.compile("^(?:(`[^`]+`|[\\w\\*]+)\\:|)(`[^`]+`|[^\\.\\?]+)(?:(\\?)|)").matcher(spec);
+		if (m.matches()) {
+			String n = m.group(1);
+			String t = m.group(2);
+			boolean o = m.group(3) != null;
+			if (n != null && !n.startsWith("`") && !Pattern.matches("^[\\w*]+$", n)) {
+				n = "`" + n + "`";
+			}
+			if (!t.startsWith("`") && !Pattern.matches("^[\\w*]+$", t)) {
+				t = "`" + t + "`";
+			}
+			StringBuffer sb = new StringBuffer();
+			if (n != null)
+				sb.append(n + ":");
+			sb.append(t);
+			if (o)
+				sb.append("?");
+			spec = sb.toString();
+		}
+		
 		Matcher matcher = qualifierPattern.matcher(spec);
 		if (matcher.matches()) {
-			namespace = matcher.group(1);
-			table = matcher.group(2);
-			optional = matcher.group(3) != null;
+			namespace = selectNonNull(matcher.group(1), matcher.group(2));
+			table = selectNonNull(matcher.group(3), matcher.group(4));
+			optional = matcher.group(5) != null;
 			pattern = WildcardMatcher.buildPattern(table);
 		} else {
 			throw new IllegalArgumentException();
 		}
 	}
 
+	private String selectNonNull(String s1, String s2) {
+		if (s1 == null)
+			return s2;
+		else
+			return s1;
+	}
+
 	public static Pattern qualifierPattern = Pattern
-			.compile("^(?:(`[^`]+`|[\\w\\*]+)\\:|)(`[^`]+`|[\\w\\*]+)(?:(\\?)|)");
+			.compile("^(?:`([^`]+)`|([\\w\\*]+)\\:|)(?:`([^`]+)`|([\\w\\*]+))(?:(\\?)|)");
 	public static Pattern unquotedNameConstraint = Pattern.compile("^[\\w\\*]+$");
 
 	private String quote(String tableName) {
