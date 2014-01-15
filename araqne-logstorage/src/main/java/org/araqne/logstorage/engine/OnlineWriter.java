@@ -140,12 +140,14 @@ public class OnlineWriter {
 		if (writer == null)
 			throw new IllegalStateException("file closed");
 
+		ArrayList<Log> copy = new ArrayList<Log>(logs.size());
 		for (Log record : logs) {
 			record.setId(nextId());
+			copy.add(record.shallowCopy());
 		}
 
 		synchronized (this) {
-			writer.write(logs);
+			writer.write(copy);
 			lastAccess = new Date();
 		}
 	}
