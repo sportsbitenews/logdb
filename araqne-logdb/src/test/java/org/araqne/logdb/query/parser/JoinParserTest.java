@@ -18,6 +18,7 @@ import org.araqne.logdb.query.command.Table.TableParams;
 import org.araqne.logdb.query.engine.QueryResultFactoryImpl;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
+import org.araqne.storage.api.URIResolver;
 import org.araqne.storage.localfile.LocalFilePath;
 import org.junit.Test;
 
@@ -35,6 +36,11 @@ public class JoinParserTest {
 
 		@Override
 		public void stop() {
+		}
+
+		@Override
+		public void addURIResolver(URIResolver r) {
+			throw new UnsupportedOperationException();
 		}
 		
 	}

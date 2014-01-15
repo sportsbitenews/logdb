@@ -11,6 +11,8 @@ import org.araqne.storage.api.StorageInputStream;
 import org.araqne.storage.api.StorageOutputStream;
 
 public class LocalFilePath implements FilePath {
+	static final String PROTOCOL_NAME = "file";
+	static final String PROTOCOL_STRING = "file://";
 	private final File path;
 	
 	public LocalFilePath(File path) {
@@ -18,7 +20,7 @@ public class LocalFilePath implements FilePath {
 	}
 	
 	public LocalFilePath(String pathStr) {
-		if (pathStr.startsWith("file://"))
+		if (pathStr.startsWith(PROTOCOL_STRING))
 			pathStr = pathStr.substring(7);
 		
 		this.path = new File(pathStr);
@@ -160,7 +162,7 @@ public class LocalFilePath implements FilePath {
 
 	@Override
 	public String getProtocol() {
-		return "file";
+		return PROTOCOL_NAME;
 	}
 
 	@Override

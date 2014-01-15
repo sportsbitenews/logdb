@@ -1,6 +1,6 @@
 package org.araqne.storage.api;
 
-public interface StorageManager {
+public interface URIResolver {
 	/**
 	 * @param URI
 	 *            File URI
@@ -10,12 +10,7 @@ public interface StorageManager {
 	FilePath resolveFilePath(String path);
 	
 	/**
-	 * @param URIResolver
-	 *			UriResolver make FilePath Object for specific URI
+	 * @return Protocol String UriResolver can handle
 	 */
-	void addURIResolver(URIResolver r);
-	
-	void start();
-	
-	void stop();
+	String getProtocol();
 }
