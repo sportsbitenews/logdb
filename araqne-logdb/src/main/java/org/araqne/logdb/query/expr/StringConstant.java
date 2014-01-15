@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.expr;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.Strings;
 
 public class StringConstant implements Expression {
 
@@ -36,6 +37,6 @@ public class StringConstant implements Expression {
 
 	@Override
 	public String toString() {
-		return "\"" + str + "\"";
+		return Strings.doubleQuote(str);
 	}
 }

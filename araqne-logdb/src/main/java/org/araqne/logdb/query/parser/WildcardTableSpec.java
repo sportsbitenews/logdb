@@ -16,6 +16,18 @@ public class WildcardTableSpec implements TableSpec {
 	boolean optional;
 	Pattern pattern;
 	private String spec;
+	
+	public static void main(String[] args) {
+		String specStr = "*";
+		Matcher matcher = qualifierPattern.matcher(specStr);
+		if (matcher.matches()) {
+			System.out.println(matcher.group(1));
+			System.out.println(matcher.group(2));
+			System.out.println(matcher.group(3));
+		} else {
+			System.out.println("ERROR");
+		}
+	}
 
 	public WildcardTableSpec(String spec) {
 		this.spec = spec;
@@ -60,7 +72,7 @@ public class WildcardTableSpec implements TableSpec {
 	}
 
 	private StorageObjectName resolveWith(String tableName) {
-		return new StorageObjectName(quote(namespace), quote(tableName));
+		return new StorageObjectName(namespace, tableName);
 	}
 
 	@Override

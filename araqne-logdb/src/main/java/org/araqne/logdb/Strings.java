@@ -56,4 +56,35 @@ public class Strings {
 			return Pattern.compile(expanded, Pattern.CASE_INSENSITIVE);
 		return null;
 	}
+
+	public static String doubleQuote(String s) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("\"");
+		for (int i = 0; i < s.length(); ++i) {
+			char c = s.charAt(i);
+			switch (c) {
+			case '\\':
+				sb.append("\\\\");
+				break;
+
+			case '\"':
+				sb.append("\\\"");
+				break;
+
+			case '\n':
+				sb.append("\\n");
+				break;
+
+			case '\t':
+				sb.append("\\t");
+				break;
+
+			default:
+				sb.append(c);
+				break;
+			}
+		}
+		sb.append("\"");
+		return sb.toString();
+	}
 }

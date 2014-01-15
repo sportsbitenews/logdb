@@ -114,7 +114,7 @@ public class TableParser implements QueryCommandParser {
 
 		if (options.containsKey("parser"))
 			parser = options.get("parser");
-		
+
 		if (options.containsKey("order"))
 			ordered = !options.get("order").equals("f");
 
@@ -295,7 +295,7 @@ public class TableParser implements QueryCommandParser {
 			this.patterns = new ArrayList<TableSpec>();
 			for (Expression e : args.subList(1, args.size())) {
 				try {
-					this.patterns.add(new WildcardTableSpec(e.toString()));
+					this.patterns.add(new WildcardTableSpec(e.eval(new Row()).toString()));
 				} catch (IllegalArgumentException exc) {
 					throw new QueryParseException("invalid-table-spec", -1, e.toString());
 				}
@@ -387,14 +387,10 @@ public class TableParser implements QueryCommandParser {
 		Object evalResult = expr.eval(new Row());
 		if (evalResult instanceof List) {
 			for (Object o : (List<Object>) evalResult) {
-				if (o instanceof TableSpec)
-					addTableSpec(tableNames, context, (TableSpec) o);
-				else {
-					addTableSpec(tableNames, context, new WildcardTableSpec(o.toString()));
-				}
+				addTableSpec(tableNames, context, o);
 			}
 		} else {
-			addTableSpec(tableNames, context, new WildcardTableSpec(evalResult.toString()));
+			addTableSpec(tableNames, context, evalResult);
 		}
 
 		if (tableNames.isEmpty())
@@ -403,9 +399,11 @@ public class TableParser implements QueryCommandParser {
 		return tableNames;
 	}
 
-	private void addTableSpec(List<TableSpec> target, QueryContext context, TableSpec spec) {
-		if (spec instanceof WildcardTableSpec) {
-			WildcardTableSpec wspec = (WildcardTableSpec) spec;
+	private void addTableSpec(List<TableSpec> target, QueryContext context, Object spec) {
+		if (spec instanceof TableSpec) {
+			target.add((TableSpec) spec);
+		} else {
+			WildcardTableSpec wspec = new WildcardTableSpec(spec.toString());
 			if (!wspec.hasWildcard()) {
 				StorageObjectName son = wspec.match(tableRegistry).get(0);
 				// check only local tables
@@ -414,11 +412,8 @@ public class TableParser implements QueryCommandParser {
 
 				if (!accountService.checkPermission(context.getSession(), son.getTable(), Permission.READ))
 					throw new QueryParseException("no-read-permission", -1, "table=" + son.toString());
-				
-				target.add(spec);
 			}
-		} else {
-			target.add(spec);
+			target.add(wspec);
 		}
 	}
 

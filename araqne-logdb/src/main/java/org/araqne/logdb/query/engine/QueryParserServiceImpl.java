@@ -64,6 +64,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 			throw t;
 		} catch (Throwable t) {
 			closePrematureCommands(commands);
+			slog.debug("QueryParserServiceImpl", t);
 			throw new QueryParseException("parse failure", -1, t.toString());
 		}
 
