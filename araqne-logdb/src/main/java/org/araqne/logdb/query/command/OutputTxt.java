@@ -23,14 +23,16 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +45,7 @@ import org.slf4j.LoggerFactory;
 public class OutputTxt extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(OutputTxt.class.getName());
 	private OutputStream os;
-	private List<String> fields;
+	private String[] fields;
 	private BufferedOutputStream bos;
 	private OutputStreamWriter osw;
 	private SimpleDateFormat sdf;
@@ -59,13 +61,15 @@ public class OutputTxt extends QueryCommand {
 			this.f = f;
 			this.filePath = filePath;
 			this.overwrite = overwrite;
-			this.fields = fields;
-			if (useCompression)
-				this.os = new GZIPOutputStream(new FileOutputStream(f));
-			else
+			this.fields = fields.toArray(new String[0]);
+			if (useCompression) {
+				this.os = new GZIPOutputStream(new FileOutputStream(f), 8192);
+				this.osw = new OutputStreamWriter(os, Charset.forName("utf-8"));
+			} else {
 				this.os = new FileOutputStream(f);
-			this.bos = new BufferedOutputStream(os);
-			this.osw = new OutputStreamWriter(bos, Charset.forName("utf-8"));
+				this.bos = new BufferedOutputStream(os);
+				this.osw = new OutputStreamWriter(bos, Charset.forName("utf-8"));
+			}
 			this.sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 			this.lineSeparator = System.getProperty("line.separator");
 			this.delimiter = delimiter;
@@ -80,7 +84,7 @@ public class OutputTxt extends QueryCommand {
 	}
 
 	public List<String> getFields() {
-		return fields;
+		return Arrays.asList(fields);
 	}
 
 	public String getDelimiter() {
@@ -88,16 +92,64 @@ public class OutputTxt extends QueryCommand {
 	}
 
 	@Override
+	public void onPush(RowBatch rowBatch) {
+		try {
+			if (rowBatch.selectedInUse) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					int p = rowBatch.selected[i];
+					Row m = rowBatch.rows[p];
+
+					int n = 0;
+					int last = fields.length - 1;
+					for (String field : fields) {
+						Object o = m.get(field);
+						String s = o == null ? "" : o.toString();
+						if (o instanceof Date)
+							s = sdf.format(o);
+						osw.write(s);
+						if (n++ != last)
+							osw.write(delimiter);
+					}
+					osw.write(lineSeparator);
+				}
+			} else {
+				for (Row m : rowBatch.rows) {
+					int n = 0;
+					int last = fields.length - 1;
+					for (String field : fields) {
+						Object o = m.get(field);
+						String s = o == null ? "" : o.toString();
+						if (o instanceof Date)
+							s = sdf.format(o);
+						osw.write(s);
+						if (n++ != last)
+							osw.write(delimiter);
+					}
+					osw.write(lineSeparator);
+				}
+			}
+		} catch (Throwable t) {
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logdb: cannot write log to txt file", t);
+
+			getQuery().stop(QueryStopReason.CommandFailure);
+		}
+
+		pushPipe(rowBatch);
+	}
+
+	@Override
 	public void onPush(Row m) {
 		try {
-			for (int index = 0; index < fields.size(); index++) {
-				String field = fields.get(index);
+			int n = 0;
+			int last = fields.length - 1;
+			for (String field : fields) {
 				Object o = m.get(field);
 				String s = o == null ? "" : o.toString();
 				if (o instanceof Date)
 					s = sdf.format(o);
 				osw.write(s);
-				if (index != fields.size() - 1)
+				if (n++ != last)
 					osw.write(delimiter);
 			}
 			osw.write(lineSeparator);
@@ -141,9 +193,9 @@ public class OutputTxt extends QueryCommand {
 		String path = " " + filePath;
 
 		String fieldsOption = "";
-		if (!fields.isEmpty())
-			fieldsOption = " " + Strings.join(fields, ", ");
+		if (fields.length > 0)
+			fieldsOption = " " + Strings.join(getFields(), ", ");
 
-		return "outputjson" + overwriteOption + delimiterOption + path + fieldsOption;
+		return "outputtxt" + overwriteOption + delimiterOption + path + fieldsOption;
 	}
 }
