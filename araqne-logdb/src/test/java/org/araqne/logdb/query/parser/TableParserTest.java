@@ -16,8 +16,7 @@
 package org.araqne.logdb.query.parser;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,18 +24,18 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import org.junit.Test;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.Permission;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.Permission;
 import org.araqne.logdb.query.command.StorageObjectName;
 import org.araqne.logdb.query.command.Table;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
+import org.junit.Test;
 
 public class TableParserTest {
 	@Test
@@ -179,7 +178,7 @@ public class TableParserTest {
 			for (TableSpec spec : table.getTableSpecs()) {
 				names.addAll(spec.match(mockTableRegistry));
 			}
-			assertTrue(!names.contains(new StorageObjectName(null, "iis")));
+			assertTrue(!names.contains(new StorageObjectName(null, "iis", false)));
 		}
 		when(mockTableRegistry.exists("xtm")).thenReturn(true);
 		when(mockTableRegistry.exists("iis")).thenReturn(true);
@@ -191,7 +190,7 @@ public class TableParserTest {
 			for (TableSpec spec : table.getTableSpecs()) {
 				names.addAll(spec.match(mockTableRegistry));
 			}
-			assertTrue(names.contains(new StorageObjectName(null, "iis")));
+			assertTrue(names.contains(new StorageObjectName(null, "iis", true)));
 		}
 	}
 

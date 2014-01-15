@@ -72,7 +72,7 @@ public class WildcardTableSpec implements TableSpec {
 	}
 
 	private StorageObjectName resolveWith(String tableName) {
-		return new StorageObjectName(namespace, tableName);
+		return new StorageObjectName(namespace, tableName, optional);
 	}
 
 	@Override
@@ -87,10 +87,7 @@ public class WildcardTableSpec implements TableSpec {
 	@Override
 	public List<StorageObjectName> match(LogTableRegistry logTableRegistry) {
 		if (pattern == null) {
-			if (optional && namespace == null && !logTableRegistry.exists(table))
-				return Arrays.<StorageObjectName>asList();
-			else
-				return Arrays.asList(new StorageObjectName(namespace, table));
+			return Arrays.asList(new StorageObjectName(namespace, table, optional));
 		} else {
 			ArrayList<StorageObjectName> result = new ArrayList<StorageObjectName>();
 			for (String tableName: logTableRegistry.getTableNames()) {

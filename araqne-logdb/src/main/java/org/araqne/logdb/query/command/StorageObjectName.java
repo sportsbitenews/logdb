@@ -3,10 +3,12 @@ package org.araqne.logdb.query.command;
 public class StorageObjectName {
 	protected String namespace;
 	protected String table;
+	protected boolean optional;
 
-	public StorageObjectName(String namespace, String tableName) {
+	public StorageObjectName(String namespace, String tableName, boolean optional) {
 		this.namespace = namespace;
 		this.table = tableName;
+		this.optional = optional;
 	}
 
 	@Override
@@ -14,6 +16,7 @@ public class StorageObjectName {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((namespace == null) ? 0 : namespace.hashCode());
+		result = prime * result + (optional ? 1231 : 1237);
 		result = prime * result + ((table == null) ? 0 : table.hashCode());
 		return result;
 	}
@@ -32,6 +35,8 @@ public class StorageObjectName {
 				return false;
 		} else if (!namespace.equals(other.namespace))
 			return false;
+		if (optional != other.optional)
+			return false;
 		if (table == null) {
 			if (other.table != null)
 				return false;
@@ -47,6 +52,10 @@ public class StorageObjectName {
 	public String getTable() {
 		return table;
 	}
+	
+	public boolean isOptional() {
+		return optional;
+	}
 
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
@@ -54,6 +63,8 @@ public class StorageObjectName {
 			sb.append(namespace + ":");
 		}
 		sb.append(table);
+		if (optional) 
+			sb.append("?");
 		return sb.toString();
 	}
 }

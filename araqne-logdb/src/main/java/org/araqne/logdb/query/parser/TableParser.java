@@ -405,9 +405,11 @@ public class TableParser implements QueryCommandParser {
 		} else {
 			WildcardTableSpec wspec = new WildcardTableSpec(spec.toString());
 			if (!wspec.hasWildcard()) {
-				StorageObjectName son = wspec.match(tableRegistry).get(0);
+				List<StorageObjectName> sonList = wspec.match(tableRegistry);
+
+				StorageObjectName son = sonList.get(0);
 				// check only local tables
-				if (!tableRegistry.exists(son.getTable()))
+				if (!son.isOptional() && !tableRegistry.exists(son.getTable()))
 					throw new QueryParseException("table-not-found", -1, "table=" + son.toString());
 
 				if (!accountService.checkPermission(context.getSession(), son.getTable(), Permission.READ))

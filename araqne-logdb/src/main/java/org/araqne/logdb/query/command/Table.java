@@ -246,6 +246,8 @@ public class Table extends DriverQueryCommand {
 			for (StorageObjectName son : s.match(tableRegistry)) {
 				if (son.getNamespace() != null)
 					continue;
+				if (son.isOptional() && !tableRegistry.exists(son.getTable()))
+					continue;
 				if (isAccessible(son))
 					localTableNames.add(son);
 			}
