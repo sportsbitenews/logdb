@@ -117,4 +117,11 @@ public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistr
 		if (matcher.find())
 			write(new SimpleLog(log.getDate(), getFullName(), log.getParams()));
 	}
+
+	@Override
+	public void onLogBatch(Logger logger, Log[] logs) {
+		for (Log log : logs)
+			if (log != null)
+				onLog(logger, log);
+	}
 }
