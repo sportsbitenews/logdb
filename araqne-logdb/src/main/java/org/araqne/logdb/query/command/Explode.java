@@ -45,7 +45,8 @@ public class Explode extends QueryCommand {
 			Collection<?> c = (Collection<?>) o;
 			ArrayList<Row> rows = new ArrayList<Row>(c.size());
 			for (Object e : c) {
-				Row copy = new Row(row.map());
+				HashMap<String, Object> copyMap = new HashMap<String, Object>(row.map());
+				Row copy = new Row(copyMap);
 				copy.put(arrayFieldName, e);
 				rows.add(copy);
 			}
@@ -118,7 +119,8 @@ public class Explode extends QueryCommand {
 				if (o instanceof Collection) {
 					Collection<?> c = (Collection<?>) o;
 					for (Object e : c) {
-						Row copy = new Row(row.map());
+						HashMap<String, Object> copyMap = new HashMap<String, Object>(row.map());
+						Row copy = new Row(copyMap);
 						copy.put(arrayFieldName, e);
 						exploded[index++] = copy;
 					}
