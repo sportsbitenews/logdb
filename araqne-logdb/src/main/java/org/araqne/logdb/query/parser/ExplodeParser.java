@@ -36,5 +36,4 @@ public class ExplodeParser implements QueryCommandParser {
 
 		return new Explode(arrayFieldName);
 	}
-
 }

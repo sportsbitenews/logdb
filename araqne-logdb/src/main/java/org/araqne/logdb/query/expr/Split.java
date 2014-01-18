@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class Split implements Expression {
@@ -27,8 +28,15 @@ public class Split implements Expression {
 	private final String delimiters;
 
 	public Split(List<Expression> exprs) {
+		if (exprs.size() < 2)
+			throw new QueryParseException("missing-split-args", -1);
+
 		this.target = exprs.get(0);
-		this.delimiters = exprs.get(1).eval(null).toString();
+		try {
+			this.delimiters = exprs.get(1).eval(null).toString();
+		} catch (NullPointerException e) {
+			throw new QueryParseException("invalid-delimiters", -1);
+		}
 	}
 
 	@Override
