@@ -52,6 +52,7 @@ public class Explode extends QueryCommand {
 
 			RowBatch batch = new RowBatch();
 			batch.size = rows.size();
+			batch.rows = new Row[batch.size];
 
 			int i = 0;
 			for (Row r : rows)
