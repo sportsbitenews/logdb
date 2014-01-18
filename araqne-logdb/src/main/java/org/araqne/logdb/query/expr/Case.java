@@ -18,6 +18,7 @@ package org.araqne.logdb.query.expr;
 import java.util.List;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.Strings;
 
 public class Case implements Expression {
 	private List<Expression> exprs;
@@ -52,7 +53,6 @@ public class Case implements Expression {
 
 	@Override
 	public String toString() {
-		return "case(" + exprs + ")";
+		return "case(" + Strings.join(exprs, ", ") + ")";
 	}
-
 }

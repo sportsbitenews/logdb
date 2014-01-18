@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Future Systems
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,29 +15,34 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
 
-public class Concat implements Expression {
+public class Array implements Expression {
 	private List<Expression> exprs;
+	private final int count;
 
-	public Concat(List<Expression> exprs) {
+	public Array(List<Expression> exprs) {
 		this.exprs = exprs;
+		this.count = exprs.size();
 	}
 
 	@Override
-	public Object eval(Row map) {
-		StringBuilder sb = new StringBuilder();
-		for (Expression expr : exprs)
-			sb.append(expr.eval(map));
+	public Object eval(Row row) {
 
-		return sb.toString();
+		ArrayList<Object> array = new ArrayList<Object>(count);
+		for (Expression expr : exprs) {
+			array.add(expr.eval(row));
+		}
+
+		return array;
 	}
 
 	@Override
 	public String toString() {
-		return "concat(" + Strings.join(exprs, ", ") + ")";
+		return "array(" + Strings.join(exprs, ", ") + ")";
 	}
 }

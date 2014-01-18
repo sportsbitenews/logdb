@@ -100,6 +100,8 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new Ceil(args));
 		} else if (name.equals("split")) {
 			exprStack.add(new Split(args));
+		} else if (name.equals("array")) {
+			exprStack.add(new Array(args));
 		} else {
 			throw new QueryParseException("unsupported-function", -1, "function name is " + name);
 		}
