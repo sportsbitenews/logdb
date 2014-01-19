@@ -23,6 +23,10 @@ public enum TimeUnit {
 		this.acronym = acronym;
 	}
 
+	public long getMillis() {
+		return millis;
+	}
+
 	public int getCalendarField() {
 		return calendarField;
 	}
