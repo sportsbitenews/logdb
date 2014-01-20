@@ -24,17 +24,8 @@ import java.io.InputStreamReader;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
@@ -47,6 +38,7 @@ import org.araqne.api.ScriptUsage;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.FieldDefinition;
+import org.araqne.log.api.WildcardMatcher;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.logstorage.LogCryptoProfileRegistry;
@@ -61,6 +53,7 @@ import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogWriterStatus;
 import org.araqne.logstorage.TableWildcardMatcher;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
+import org.araqne.logstorage.backup.FileStorageBackupMedia;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
 import org.araqne.logstorage.engine.LogTableSchema;
@@ -500,6 +493,57 @@ public class LogStorageScript implements Script {
 		context.println("set");
 	}
 
+	public static void main(String[] args) {
+		String s = "/hdd/hhsonbo/*/*11.log";
+
+		List<File> files = getMatchingFiles(s, null);
+
+		for (File f : files) {
+			System.out.println(f.getAbsolutePath());
+		}
+	}
+
+	private static List<File> getMatchingFiles(String s, File workingDir) {
+		File root = getListRoot(s);
+
+		Stack<File> dirs = new Stack<File>();
+		dirs.push(root);
+
+		if (workingDir == null) {
+			s = new File(s).getAbsolutePath();
+		} else {
+			s = new File(workingDir, s).getAbsolutePath();
+		}
+
+		System.err.println(s);
+		Pattern p = WildcardMatcher.buildPattern(s);
+
+		List<File> result = new ArrayList<File>();
+		while (!dirs.isEmpty()) {
+			File cur = dirs.pop();
+			File[] files = null;
+			if ((files = cur.listFiles()) == null)
+				continue;
+			for (File f : cur.listFiles()) {
+				if (f.isDirectory()) {
+					dirs.push(f);
+					continue;
+				}
+				if (p.matcher(f.getAbsolutePath()).matches())
+					result.add(f);
+			}
+		}
+
+		Collections.sort(result);
+
+		return result;
+	}
+
+	private static File getListRoot(String s) {
+		File parent = new File(s.substring(0, s.indexOf('/', s.indexOf('*'))));
+		return parent.getParentFile();
+	}
+
 	@ScriptUsage(description = "import text log file", arguments = {
 			@ScriptArgument(name = "table name", type = "string", description = "table name"),
 			@ScriptArgument(name = "file path", type = "string", description = "text log file path"),
@@ -507,15 +551,34 @@ public class LogStorageScript implements Script {
 			@ScriptArgument(name = "limit", type = "int", description = "load limit count", optional = true) })
 	public void importTextFile(String[] args) throws IOException {
 		String tableName = args[0];
-		File file = new File(args[1]);
-		int offset = 0;
-		if (args.length > 2)
-			offset = Integer.valueOf(args[2]);
+		if (args[1].contains("*")) {
+			int offset = 0;
+			int limit = Integer.MAX_VALUE;
 
-		int limit = Integer.MAX_VALUE;
-		if (args.length > 3)
-			limit = Integer.valueOf(args[3]);
+			List<File> files = getMatchingFiles(args[1], null);
 
+			int cur = 1;
+			for (File f : files) {
+				String startedAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
+				context.printf("[%s] loading (%d/%d) %s\n", startedAt, cur, files.size(), f.getAbsolutePath());
+				importFile(tableName, f, offset, limit);
+				cur += 1;
+			}
+		} else {
+			File file = new File(args[1]);
+			int offset = 0;
+			if (args.length > 2)
+				offset = Integer.valueOf(args[2]);
+
+			int limit = Integer.MAX_VALUE;
+			if (args.length > 3)
+				limit = Integer.valueOf(args[3]);
+
+			importFile(tableName, file, offset, limit);
+		}
+	}
+
+	private void importFile(String tableName, File file, int offset, int limit) throws IOException {
 		InputStream is = null;
 		try {
 			is = new FileInputStream(file);
@@ -580,6 +643,9 @@ public class LogStorageScript implements Script {
 		ArrayList<Log> buf = new ArrayList<Log>(1000);
 
 		int i = 0;
+		long lastCheck = System.currentTimeMillis();
+		long lastCount = 0;
+		double lps = 0.0;
 		while (true) {
 			line = br.readLine();
 			if (line == null)
@@ -609,7 +675,13 @@ public class LogStorageScript implements Script {
 			}
 
 			if (count % 10000 == 0) {
-				context.println("loaded " + count);
+				context.print("\rloaded " + count + (lps != 0.0 ? String.format(" (%.2f lps)", lps) : ""));
+				long curTime = System.currentTimeMillis();
+				if (curTime - lastCheck > 1000) {
+					lps = (count - lastCount) / ((double) (curTime - lastCheck) / 1000);
+					lastCount = count;
+					lastCheck = curTime;
+				}
 			}
 		}
 
@@ -618,7 +690,7 @@ public class LogStorageScript implements Script {
 
 		long milliseconds = new Date().getTime() - begin.getTime();
 		long speed = count * 1000 / milliseconds;
-		context.println("loaded " + count + " logs in " + milliseconds + " ms, " + speed + " logs/sec");
+		context.println("\rloaded " + count + " logs in " + milliseconds + " ms, " + speed + " logs/sec");
 	}
 
 	@ScriptUsage(description = "benchmark table fullscan", arguments = {
