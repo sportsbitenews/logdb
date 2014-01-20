@@ -107,6 +107,7 @@ public class BoxPlot extends LogQueryCommand {
 		Object iqr3 = null;
 		Object max = null;
 		Object last = null;
+		Object count = null;
 		GroupKey lastGroupKey = null;
 
 		CloseableIterator it;
@@ -126,7 +127,7 @@ public class BoxPlot extends LogQueryCommand {
 				if (lastGroupKey == null || !lastGroupKey.equals(groupKey)) {
 					if (lastGroupKey != null) {
 						max = last;
-						writeSummary(lastGroupKey, min, iqr1, iqr2, iqr3, max);
+						writeSummary(lastGroupKey, min, iqr1, iqr2, iqr3, max, count);
 					}
 
 					long groupSize = groupCounts.get(groupKey).get();
@@ -136,6 +137,7 @@ public class BoxPlot extends LogQueryCommand {
 					iqr2Index = quartile * 2;
 					iqr3Index = quartile * 3;
 
+					count = groupSize;
 					min = value;
 					iqr1 = null;
 					iqr2 = null;
@@ -158,7 +160,7 @@ public class BoxPlot extends LogQueryCommand {
 			max = last;
 
 			if (lastGroupKey != null)
-				writeSummary(lastGroupKey, min, iqr1, iqr2, iqr3, max);
+				writeSummary(lastGroupKey, min, iqr1, iqr2, iqr3, max, count);
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -167,7 +169,7 @@ public class BoxPlot extends LogQueryCommand {
 		super.eof(cancelled);
 	}
 
-	private void writeSummary(GroupKey groupKey, Object min, Object iqr1, Object iqr2, Object iqr3, Object max) {
+	private void writeSummary(GroupKey groupKey, Object min, Object iqr1, Object iqr2, Object iqr3, Object max, Object count) {
 		Map<String, Object> summary = new HashMap<String, Object>();
 		int i = 0;
 		for (String clause : clauses)
@@ -178,6 +180,7 @@ public class BoxPlot extends LogQueryCommand {
 		summary.put("iqr2", iqr2);
 		summary.put("iqr3", iqr3);
 		summary.put("max", max);
+		summary.put("count", count);
 
 		write(new LogMap(summary));
 	}
