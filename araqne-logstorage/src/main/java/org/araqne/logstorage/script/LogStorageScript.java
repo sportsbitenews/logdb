@@ -39,21 +39,7 @@ import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.WildcardMatcher;
-import org.araqne.logstorage.Log;
-import org.araqne.logstorage.LogCryptoProfile;
-import org.araqne.logstorage.LogCryptoProfileRegistry;
-import org.araqne.logstorage.LogFileService;
-import org.araqne.logstorage.LogFileServiceRegistry;
-import org.araqne.logstorage.LogRetentionPolicy;
-import org.araqne.logstorage.LogSearchCallback;
-import org.araqne.logstorage.LogStorage;
-import org.araqne.logstorage.LogStorageEventListener;
-import org.araqne.logstorage.LogStorageMonitor;
-import org.araqne.logstorage.LogTableRegistry;
-import org.araqne.logstorage.LogWriterStatus;
-import org.araqne.logstorage.TableWildcardMatcher;
-import org.araqne.logstorage.UnsupportedLogFileTypeException;
-import org.araqne.logstorage.backup.FileStorageBackupMedia;
+import org.araqne.logstorage.*;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
 import org.araqne.logstorage.engine.LogTableSchema;
@@ -494,7 +480,7 @@ public class LogStorageScript implements Script {
 	}
 
 	public static void main(String[] args) {
-		String s = "/hdd/hhsonbo/*/*11.log";
+		String s = "/hdd/hhsonbo/*/*.log";
 
 		List<File> files = getMatchingFiles(s, null);
 
@@ -515,7 +501,6 @@ public class LogStorageScript implements Script {
 			s = new File(workingDir, s).getAbsolutePath();
 		}
 
-		System.err.println(s);
 		Pattern p = WildcardMatcher.buildPattern(s);
 
 		List<File> result = new ArrayList<File>();
@@ -524,7 +509,7 @@ public class LogStorageScript implements Script {
 			File[] files = null;
 			if ((files = cur.listFiles()) == null)
 				continue;
-			for (File f : cur.listFiles()) {
+			for (File f : files) {
 				if (f.isDirectory()) {
 					dirs.push(f);
 					continue;
@@ -540,8 +525,14 @@ public class LogStorageScript implements Script {
 	}
 
 	private static File getListRoot(String s) {
-		File parent = new File(s.substring(0, s.indexOf('/', s.indexOf('*'))));
-		return parent.getParentFile();
+		File parent = new File(s);
+		while (true) {
+			if (parent.getAbsolutePath().contains("*"))
+				parent = parent.getParentFile();
+			else 
+				break;
+		}
+		return parent;
 	}
 
 	@ScriptUsage(description = "import text log file", arguments = {
