@@ -27,11 +27,14 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
+import org.araqne.api.FieldOption;
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
+import org.araqne.logstorage.LogCryptoProfile;
+import org.araqne.logstorage.LogCryptoProfileRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
@@ -60,6 +63,9 @@ public class ManagementPlugin {
 
 	@Requires
 	private LogStorage storage;
+
+	@Requires
+	private LogCryptoProfileRegistry logCryptoProfileRegistry;
 
 	@AllowGuestAccess
 	@MsgbusMethod
@@ -378,4 +384,59 @@ public class ManagementPlugin {
 		resp.put("logdates", logDates);
 	}
 
+	@MsgbusMethod
+	public void getCryptoProfiles(Request req, Response resp) {
+		resp.put("profiles", logCryptoProfileRegistry.getProfiles());
+	}
+
+	@MsgbusMethod
+	public void getCryptoProfile(Request req, Response resp) {
+		String name = req.getString("name");
+		resp.put("profile", logCryptoProfileRegistry.getProfile(name));
+	}
+
+	@MsgbusMethod
+	public void addCryptoProfile(Request req, Response resp) {
+		String name = req.getString("name");
+		String cipher = req.getString("cipher");
+		String digest = req.getString("digest");
+		String filePath = req.getString("filePath");
+		String password = req.getString("password");
+
+		LogCryptoProfile p = new LogCryptoProfile();
+
+		/**
+		 * profile name
+		 */
+		p.setName(name);
+
+		/**
+		 * cipher algorithm (e.g. AES/CBC/PKCS5Padding)
+		 */
+		p.setCipher(cipher);
+
+		/**
+		 * digest algorithm (e.g. HmacSHA256)
+		 */
+		p.setDigest(digest);
+
+		/**
+		 * pkcs#12 file path
+		 */
+		p.setFilePath(filePath);
+
+		/**
+		 * pkcs#12 keystore password
+		 */
+		p.setPassword(password);
+
+		logCryptoProfileRegistry.addProfile(p);
+
+	}
+
+	@MsgbusMethod
+	public void removeCryptoProfile(Request req, Response resp) {
+		String name = req.getString("name");
+		logCryptoProfileRegistry.removeProfile(name);
+	}
 }
