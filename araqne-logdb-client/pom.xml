@@ -111,7 +111,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-websocket</artifactId>
-			<version>0.1.2</version>
+			<version>0.1.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
