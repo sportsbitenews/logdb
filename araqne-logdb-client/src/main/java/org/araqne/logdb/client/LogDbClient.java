@@ -532,7 +532,38 @@ public class LogDbClient implements TrapListener, Closeable {
 		return t;
 	}
 
+	/***
+	 * @since 0.9.0 and logdb 2.0.3
+	 */
+	public void setTableFields(String tableName, List<FieldInfo> fields) throws IOException {
+		if (tableName == null)
+			throw new IllegalArgumentException("table name cannot be null");
+
+		List<Object> l = null;
+
+		if (fields != null) {
+			l = new ArrayList<Object>();
+
+			for (FieldInfo f : fields) {
+				Map<String, Object> m = new HashMap<String, Object>();
+				m.put("name", f.getName());
+				m.put("type", f.getType());
+				m.put("length", f.getLength());
+				l.add(m);
+			}
+		}
+
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+		params.put("fields", l);
+
+		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.setTableFields", params);
+	}
+
 	public void setTableMetadata(String tableName, Map<String, String> config) throws IOException {
+		if (tableName == null)
+			throw new IllegalArgumentException("table name cannot be null");
+
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
 		params.put("metadata", config);

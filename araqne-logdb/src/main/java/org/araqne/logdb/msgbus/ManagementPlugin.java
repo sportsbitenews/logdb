@@ -27,7 +27,6 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
-import org.araqne.api.FieldOption;
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.logdb.AccountService;
@@ -285,6 +284,33 @@ public class ManagementPlugin {
 			metadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 		}
 		return metadata;
+	}
+
+	/**
+	 * @since 2.0.3
+	 */
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void setTableFields(Request req, Response resp) {
+		ensureAdminSession(req);
+
+		String tableName = req.getString("table", true);
+		List<Object> l = (List<Object>) req.get("fields");
+		List<FieldDefinition> fields = null;
+		if (l != null) {
+			fields = new ArrayList<FieldDefinition>();
+
+			for (Object o : l) {
+				Map<String, Object> m = (Map<String, Object>) o;
+				FieldDefinition f = new FieldDefinition();
+				f.setName((String) m.get("name"));
+				f.setType((String) m.get("type"));
+				f.setLength((Integer) m.get("length"));
+				fields.add(f);
+			}
+		}
+
+		tableRegistry.setTableFields(tableName, fields);
 	}
 
 	@SuppressWarnings("unchecked")
