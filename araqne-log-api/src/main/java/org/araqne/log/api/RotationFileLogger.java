@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
@@ -44,32 +45,33 @@ public class RotationFileLogger extends AbstractLogger {
 		extractor = new MultilineLogExtractor(this, receiver);
 
 		// optional
-		String datePatternRegex = getConfig().get("date_pattern");
+		Map<String, String> configs = getConfigs();
+		String datePatternRegex = configs.get("date_pattern");
 		if (datePatternRegex != null) {
 			extractor.setDateMatcher(Pattern.compile(datePatternRegex).matcher(""));
 		}
 
 		// optional
-		String dateLocale = getConfig().get("date_locale");
+		String dateLocale = configs.get("date_locale");
 		if (dateLocale == null)
 			dateLocale = "en";
 
 		// optional
-		String dateFormatString = getConfig().get("date_format");
+		String dateFormatString = configs.get("date_format");
 		if (dateFormatString != null)
 			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)));
 
 		// optional
-		String beginRegex = getConfig().get("begin_regex");
+		String beginRegex = configs.get("begin_regex");
 		if (beginRegex != null)
 			extractor.setBeginMatcher(Pattern.compile(beginRegex).matcher(""));
 
-		String endRegex = getConfig().get("end_regex");
+		String endRegex = configs.get("end_regex");
 		if (endRegex != null)
 			extractor.setEndMatcher(Pattern.compile(endRegex).matcher(""));
 
 		// optional
-		charset = getConfig().get("charset");
+		charset = configs.get("charset");
 		if (charset == null)
 			charset = "utf-8";
 
@@ -81,7 +83,7 @@ public class RotationFileLogger extends AbstractLogger {
 	protected void runOnce() {
 		LastState state = getLastPosition();
 
-		String filePath = getConfig().get("file_path");
+		String filePath = getConfigs().get("file_path");
 		File f = new File(filePath);
 		if (!f.exists()) {
 			slog.debug("araqne log api: rotation logger [{}] file [{}] not found", getFullName(), filePath);

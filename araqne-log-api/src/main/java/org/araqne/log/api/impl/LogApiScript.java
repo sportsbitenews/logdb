@@ -417,7 +417,7 @@ public class LogApiScript implements Script {
 
 		context.println("Configuration");
 		context.println("---------------");
-		Map<String, String> props = logger.getConfig();
+		Map<String, String> props = logger.getConfigs();
 		if (props != null) {
 			for (Object key : props.keySet())
 				context.println(" * " + key + ": " + props.get(key));

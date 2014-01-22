@@ -37,7 +37,7 @@ public class ParseLogger extends AbstractLogger implements LoggerRegistryEventLi
 			runner.start();
 		}
 
-		parser = parserRegistry.newParser(getConfig().get("parser_name"));
+		parser = parserRegistry.newParser(getConfigs().get("parser_name"));
 		loggerRegistry.addListener(this);
 		Logger logger = loggerRegistry.getLogger(loggerName);
 
