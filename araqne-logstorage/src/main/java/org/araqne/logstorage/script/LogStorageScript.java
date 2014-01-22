@@ -496,9 +496,9 @@ public class LogStorageScript implements Script {
 		dirs.push(root);
 
 		if (workingDir == null) {
-			s = new File(s).getAbsolutePath();
+			s = new File(s).getAbsolutePath().replaceAll("\\\\", "/");
 		} else {
-			s = new File(workingDir, s).getAbsolutePath();
+			s = new File(workingDir, s).getAbsolutePath().replaceAll("\\\\", "/");
 		}
 
 		Pattern p = WildcardMatcher.buildPattern(s);
@@ -514,7 +514,7 @@ public class LogStorageScript implements Script {
 					dirs.push(f);
 					continue;
 				}
-				if (p.matcher(f.getAbsolutePath()).matches())
+				if (p.matcher(f.getAbsolutePath().replaceAll("\\\\", "/")).matches())
 					result.add(f);
 			}
 		}
@@ -529,7 +529,7 @@ public class LogStorageScript implements Script {
 		while (true) {
 			if (parent.getAbsolutePath().contains("*"))
 				parent = parent.getParentFile();
-			else 
+			else
 				break;
 		}
 		return parent;
