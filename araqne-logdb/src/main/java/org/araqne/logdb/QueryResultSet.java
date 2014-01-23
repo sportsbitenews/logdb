@@ -20,6 +20,8 @@ import java.util.Iterator;
 import java.util.Map;
 
 public interface QueryResultSet extends Iterator<Map<String, Object>> {
+	String getStorageName();
+
 	File getIndexPath();
 
 	File getDataPath();

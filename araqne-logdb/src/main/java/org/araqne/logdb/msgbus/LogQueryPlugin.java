@@ -32,11 +32,11 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
-import org.araqne.logdb.QueryService;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryResultCallback;
 import org.araqne.logdb.QueryResultSet;
+import org.araqne.logdb.QueryService;
 import org.araqne.logdb.QueryStatusCallback;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTimelineCallback;
@@ -295,7 +295,7 @@ public class LogQueryPlugin {
 			org.araqne.logdb.Session dbSession = getDbSession(req);
 
 			SavedResult sr = new SavedResult();
-			sr.setType("v2");
+			sr.setStorageName(rs.getStorageName());
 			sr.setOwner(dbSession.getLoginName());
 			sr.setQueryString(query.getQueryString());
 			sr.setTitle(title);

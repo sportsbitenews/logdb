@@ -147,7 +147,7 @@ public class QueryResultImpl implements QueryResult {
 		LogFileReader reader = null;
 		try {
 			reader = resultStorage.createReader(config);
-			return new LogResultSetImpl(reader, count);
+			return new LogResultSetImpl(resultStorage.getName(), reader, count);
 		} catch (Throwable t) {
 			if (reader != null)
 				reader.close();
@@ -206,14 +206,21 @@ public class QueryResultImpl implements QueryResult {
 	}
 
 	private static class LogResultSetImpl implements QueryResultSet {
+		private String storageName;
 		private LogFileReader reader;
 		private LogRecordCursor cursor;
 		private long count;
 
-		public LogResultSetImpl(LogFileReader reader, long count) throws IOException {
+		public LogResultSetImpl(String storageName, LogFileReader reader, long count) throws IOException {
+			this.storageName = storageName;
 			this.reader = reader;
 			this.cursor = reader.getCursor(true);
 			this.count = count;
+		}
+
+		@Override
+		public String getStorageName() {
+			return storageName;
 		}
 
 		@Override

@@ -473,7 +473,7 @@ public class Console {
 			long total = rs.getIndexPath().length() + rs.getDataPath().length();
 
 			SavedResult sr = new SavedResult();
-			sr.setType("v2");
+			sr.setStorageName(rs.getStorageName());
 			sr.setOwner(session.getLoginName());
 			sr.setQueryString(q.getQueryString());
 			sr.setTitle(title);

@@ -50,6 +50,10 @@ public class QueryResultFactoryImpl implements QueryResultFactory {
 	}
 
 	private static class QueryResultStorageV2 implements QueryResultStorage {
+		@Override
+		public String getName() {
+			return "v2";
+		}
 
 		@Override
 		public LogFileWriter createWriter(QueryResultConfig config) throws IOException {
