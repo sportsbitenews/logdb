@@ -20,14 +20,15 @@ import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 
-public class Lookup extends QueryCommand {
+public class Lookup extends QueryCommand implements ThreadSafe {
 	private LookupHandlerRegistry registry;
-	private String handlerName;
-	private String lookupInputField;
-	private String sourceField;
-	private String lookupOutputField;
-	private String targetField;
+	private final String handlerName;
+	private final String lookupInputField;
+	private final String sourceField;
+	private final String lookupOutputField;
+	private final String targetField;
 
 	public Lookup(String handlerName, String srcField, String dstField) {
 		this(handlerName, srcField, srcField, dstField, dstField);

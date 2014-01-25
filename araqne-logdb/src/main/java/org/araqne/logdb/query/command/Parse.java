@@ -24,6 +24,7 @@ import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * @author xeraph
  * 
  */
-public class Parse extends QueryCommand {
+public class Parse extends QueryCommand implements ThreadSafe {
 	private final Logger logger = LoggerFactory.getLogger(Parse.class);
 	private final int parserVersion;
 	private final LogParserInput input = new LogParserInput();

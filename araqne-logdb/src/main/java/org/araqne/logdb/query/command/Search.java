@@ -15,16 +15,23 @@
  */
 package org.araqne.logdb.query.command;
 
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Search extends QueryCommand {
-	private long count;
+public class Search extends QueryCommand implements ThreadSafe {
+	private AtomicLong count = new AtomicLong();
 	private final Long limit;
 	private final Expression expr;
+
+	// for accurate limit
+	private ReentrantLock lock = new ReentrantLock();
 
 	public Search(Long limit, Expression expr) {
 		this.limit = limit;
@@ -45,32 +52,37 @@ public class Search extends QueryCommand {
 			// always bypass
 			if (limit == null) {
 				pushPipe(rowBatch);
-				count += rowBatch.size;
+				count.addAndGet(rowBatch.size);
 				return;
 			}
 
-			// bypass until reach the limit
-			if (rowBatch.size + count <= limit) {
+			lock.lock();
+			try {
+				// bypass until reach the limit
+				if (rowBatch.size + count.get() <= limit) {
+					pushPipe(rowBatch);
+					count.addAndGet(rowBatch.size);
+					return;
+				}
+
+				int more = (int) (limit - count.get());
+
+				if (rowBatch.selectedInUse) {
+					rowBatch.size = more;
+				} else {
+					rowBatch.selected = new int[more];
+					rowBatch.selectedInUse = true;
+					rowBatch.size = more;
+					for (int i = 0; i < more; i++)
+						rowBatch.selected[i] = i;
+				}
+
 				pushPipe(rowBatch);
-				count += rowBatch.size;
-				return;
+				count.addAndGet(more);
+				getQuery().stop(QueryStopReason.PartialFetch);
+			} finally {
+				lock.unlock();
 			}
-
-			int more = (int) (limit - count);
-
-			if (rowBatch.selectedInUse) {
-				rowBatch.size = more;
-			} else {
-				rowBatch.selected = new int[more];
-				rowBatch.selectedInUse = true;
-				rowBatch.size = more;
-				for (int i = 0; i < more; i++)
-					rowBatch.selected[i] = i;
-			}
-
-			pushPipe(rowBatch);
-			count += more;
-			getQuery().stop(QueryStopReason.PartialFetch);
 			return;
 		}
 
@@ -113,17 +125,28 @@ public class Search extends QueryCommand {
 		}
 
 		// apply limit
-		if (limit == null || rowBatch.size + count <= limit) {
+		if (limit == null) {
 			pushPipe(rowBatch);
-			count += rowBatch.size;
+			count.addAndGet(rowBatch.size);
 			return;
 		}
 
-		int more = (int) (limit - count);
-		rowBatch.size = more;
-		pushPipe(rowBatch);
-		count += more;
-		getQuery().stop(QueryStopReason.PartialFetch);
+		lock.lock();
+		try {
+			if (rowBatch.size + count.get() <= limit) {
+				pushPipe(rowBatch);
+				count.addAndGet(rowBatch.size);
+				return;
+			}
+
+			int more = (int) (limit - count.get());
+			rowBatch.size = more;
+			pushPipe(rowBatch);
+			count.addAndGet(more);
+			getQuery().stop(QueryStopReason.PartialFetch);
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	@Override
@@ -141,10 +164,15 @@ public class Search extends QueryCommand {
 				return;
 		}
 
-		pushPipe(m);
+		lock.lock();
+		try {
+			pushPipe(m);
 
-		if (limit != null && ++count >= limit)
-			getQuery().stop(QueryStopReason.PartialFetch);
+			if (limit != null && count.incrementAndGet() >= limit)
+				getQuery().stop(QueryStopReason.PartialFetch);
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	@Override

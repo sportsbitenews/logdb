@@ -21,13 +21,14 @@ import java.util.regex.Pattern;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 
-public class Rex extends QueryCommand {
+public class Rex extends QueryCommand implements ThreadSafe {
 
-	private String field;
-	private Pattern p;
-	private Matcher matcher;
-	private String[] names;
+	private final String field;
+	private final Pattern p;
+	private final Matcher matcher;
+	private final String[] names;
 
 	// for query string generation convenience
 	private String originalRegexToken;
