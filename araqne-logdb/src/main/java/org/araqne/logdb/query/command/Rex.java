@@ -27,7 +27,7 @@ public class Rex extends QueryCommand implements ThreadSafe {
 
 	private final String field;
 	private final Pattern p;
-	private final Matcher matcher;
+	private final ThreadLocal<Matcher> localMatcher;
 	private final String[] names;
 
 	// for query string generation convenience
@@ -37,7 +37,13 @@ public class Rex extends QueryCommand implements ThreadSafe {
 		this.field = field;
 		this.p = p;
 		this.names = names;
-		this.matcher = p.matcher("");
+		this.localMatcher = new ThreadLocal<Matcher>() {
+			@Override
+			protected Matcher initialValue() {
+				return Rex.this.p.matcher("");
+			}
+		};
+
 		this.originalRegexToken = originalRegexToken;
 	}
 
@@ -63,6 +69,7 @@ public class Rex extends QueryCommand implements ThreadSafe {
 
 		String s = o.toString();
 
+		Matcher matcher = localMatcher.get();
 		matcher.reset(s);
 		if (matcher.find())
 			for (int i = 0; i < matcher.groupCount(); i++)
@@ -73,6 +80,7 @@ public class Rex extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
+		Matcher matcher = localMatcher.get();
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
@@ -105,11 +113,6 @@ public class Rex extends QueryCommand implements ThreadSafe {
 		}
 
 		pushPipe(rowBatch);
-	}
-
-	@Override
-	public boolean isReducer() {
-		return false;
 	}
 
 	@Override
