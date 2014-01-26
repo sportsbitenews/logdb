@@ -24,6 +24,7 @@ import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,56 @@ public class Parse extends QueryCommand implements ThreadSafe {
 		this.parser = parser;
 		this.parserVersion = parser.getVersion();
 		this.overlay = overlay;
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		// TODO: boost v2 performance
+		if (parserVersion == 2) {
+			if (rowBatch.selectedInUse) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row row = rowBatch.rows[rowBatch.selected[i]];
+					onPush(row);
+				}
+			} else {
+				for (Row row : rowBatch.rows)
+					onPush(row);
+			}
+
+			return;
+		}
+
+		int n = 0;
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+				Row parsed = parseV1(row);
+				if (parsed != null) {
+					rowBatch.selected[n] = p;
+					rowBatch.rows[p] = parsed;
+					n++;
+				}
+			}
+		} else {
+			rowBatch.selected = new int[rowBatch.size];
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+				Row parsed = parseV1(row);
+				if (parsed != null) {
+					rowBatch.selected[n] = i;
+					rowBatch.rows[i] = parsed;
+					n++;
+				}
+			}
+		}
+
+		if (!rowBatch.selectedInUse && rowBatch.size != n)
+			rowBatch.selectedInUse = true;
+
+		rowBatch.size = n;
+
+		pushPipe(rowBatch);
 	}
 
 	@Override
@@ -87,23 +138,9 @@ public class Parse extends QueryCommand implements ThreadSafe {
 					}
 				}
 			} else {
-				Map<String, Object> row = parser.parse(m.map());
-				if (row != null) {
-					if (!row.containsKey("_id"))
-						row.put("_id", m.get("_id"));
-					if (!row.containsKey("_time"))
-						row.put("_time", m.get("_time"));
-					if (!row.containsKey("_table"))
-						row.put("_table", m.get("_table"));
-
-					if (overlay) {
-						Map<String, Object> source = new HashMap<String, Object>(m.map());
-						source.putAll(row);
-						pushPipe(new Row(source));
-					} else {
-						pushPipe(new Row(row));
-					}
-				}
+				Row parsed = parseV1(m);
+				if (parsed != null)
+					pushPipe(parsed);
 			}
 		} catch (Throwable t) {
 			if (logger.isDebugEnabled())
@@ -111,9 +148,24 @@ public class Parse extends QueryCommand implements ThreadSafe {
 		}
 	}
 
-	@Override
-	public boolean isReducer() {
-		return false;
+	private Row parseV1(Row m) {
+		Map<String, Object> row = parser.parse(m.map());
+		if (row == null)
+			return null;
+
+		if (!row.containsKey("_id"))
+			row.put("_id", m.get("_id"));
+		if (!row.containsKey("_time"))
+			row.put("_time", m.get("_time"));
+		if (!row.containsKey("_table"))
+			row.put("_table", m.get("_table"));
+
+		if (overlay) {
+			Map<String, Object> source = new HashMap<String, Object>(m.map());
+			source.putAll(row);
+			return new Row(source);
+		} else
+			return new Row(row);
 	}
 
 	@Override

@@ -36,6 +36,10 @@ public class Row {
 		this.map = map;
 	}
 
+	public Row clone() {
+		return new Row(new HashMap<String, Object>(map));
+	}
+
 	public Date getDate() {
 		return d;
 	}
