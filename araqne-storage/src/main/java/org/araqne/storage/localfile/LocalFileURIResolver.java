@@ -5,6 +5,7 @@ import org.araqne.storage.api.StorageUtil;
 import org.araqne.storage.api.URIResolver;
 
 public class LocalFileURIResolver implements URIResolver{
+	private final String[] protocols = new String[] {LocalFilePath.PROTOCOL_STRING};
 
 	@Override
 	public FilePath resolveFilePath(String path) {
@@ -16,8 +17,8 @@ public class LocalFileURIResolver implements URIResolver{
 	}
 
 	@Override
-	public String getProtocol() {
-		return LocalFilePath.PROTOCOL_STRING;
+	public String[] getProtocols() {
+		return protocols;
 	}
 
 }

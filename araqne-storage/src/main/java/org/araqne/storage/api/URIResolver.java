@@ -10,7 +10,7 @@ public interface URIResolver {
 	FilePath resolveFilePath(String path);
 	
 	/**
-	 * @return Protocol String UriResolver can handle
+	 * @return Array of Protocol String that UriResolver can handle
 	 */
-	String getProtocol();
+	String[] getProtocols();
 }
