@@ -288,8 +288,10 @@ public class TableParser implements QueryCommandParser {
 		private List<TableSpec> patterns;
 		private MetadataMatcher<TableSpec> mm;
 		private String predStr;
+		private List<Expression> args;
 
 		public Meta(List<Expression> args) {
+			this.args = args;
 			Expression predicate = args.get(0);
 			this.predStr = predicate.toString();
 			this.patterns = new ArrayList<TableSpec>();
@@ -306,7 +308,11 @@ public class TableParser implements QueryCommandParser {
 
 			this.mm = new MetadataMatcher<TableSpec>(predicate.eval(new Row()).toString(), patterns);
 		}
-
+		
+		public Object clone() {
+			return new Meta(args);
+		}
+		
 		@Override
 		public Object eval(Row map) {
 			return this;
@@ -336,6 +342,11 @@ public class TableParser implements QueryCommandParser {
 		@Override
 		public String getNamespace() {
 			return null;
+		}
+		
+		@Override
+		public void setNamespace(String ns) {
+			// XXX not implemented yet
 		}
 
 		@Override
@@ -408,12 +419,15 @@ public class TableParser implements QueryCommandParser {
 				List<StorageObjectName> sonList = wspec.match(tableRegistry);
 
 				StorageObjectName son = sonList.get(0);
-				// check only local tables
-				if (!son.isOptional() && !tableRegistry.exists(son.getTable()))
-					throw new QueryParseException("table-not-found", -1, "table=" + son.toString());
 
-				if (!accountService.checkPermission(context.getSession(), son.getTable(), Permission.READ))
-					throw new QueryParseException("no-read-permission", -1, "table=" + son.toString());
+				if (son.getNamespace() == null) {
+					// check only local tables
+					if (!son.isOptional() && !tableRegistry.exists(son.getTable()))
+						throw new QueryParseException("table-not-found", -1, "table=" + son.toString());
+
+					if (!accountService.checkPermission(context.getSession(), son.getTable(), Permission.READ))
+						throw new QueryParseException("no-read-permission", -1, "table=" + son.toString());
+				}
 			}
 			target.add(wspec);
 		}

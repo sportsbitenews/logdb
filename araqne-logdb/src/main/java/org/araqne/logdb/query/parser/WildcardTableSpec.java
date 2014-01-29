@@ -28,6 +28,10 @@ public class WildcardTableSpec implements TableSpec {
 			System.out.println("ERROR");
 		}
 	}
+	
+	public Object clone() {
+		return new WildcardTableSpec(toString());
+	}
 
 	public WildcardTableSpec(String spec) {
 		this.spec = spec;
@@ -110,7 +114,14 @@ public class WildcardTableSpec implements TableSpec {
 	}
 	
 	public String toString() {
-		return spec;
+		StringBuilder sb = new StringBuilder();
+		if (namespace != null) {
+			sb.append(quote(namespace) + ":");
+		}
+		sb.append(quote(table));
+		if (optional) 
+			sb.append("?");
+		return sb.toString();
 	}
 
 	@Override
@@ -135,6 +146,11 @@ public class WildcardTableSpec implements TableSpec {
 	@Override
 	public String getTable() {
 		return table;
+	}
+
+	@Override
+	public void setNamespace(String ns) {
+		this.namespace = ns;
 	}
 }
 
