@@ -105,7 +105,7 @@ public class LocalFilePath implements FilePath {
 		List<FilePath> ret = new ArrayList<FilePath>();
 		for (File f : files) {
 			FilePath curr = new LocalFilePath(f);
-			if (filter.accept(curr, f.getName()))
+			if (filter.accept(this, f.getName()))
 				ret.add(curr);
 		}
 		                              
