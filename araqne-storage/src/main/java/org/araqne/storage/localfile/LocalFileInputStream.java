@@ -28,11 +28,6 @@ public class LocalFileInputStream extends StorageInputStream {
 	}
 
 	@Override
-	public void readFully(byte[] b) throws IOException {
-		readFully(b, 0, b.length);
-	}
-
-	@Override
 	public void readFully(byte[] b, int off, int len) throws IOException {
 		source.readFully(b, off, len);
 	}
