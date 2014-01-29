@@ -224,6 +224,7 @@
 		<module>araqne-regex-tester</module>
 		<module>araqne-logdb-jmx</module>
 		<module>araqne-storage</module>
+		<module>araqne-storage-hdfs</module>
 		<module>araqne-logstorage-exporter</module>
 	</modules>
 </project>
