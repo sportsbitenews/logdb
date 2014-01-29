@@ -7,7 +7,7 @@ import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageOutputStream;
 
 public class LocalFileOutputStream extends StorageOutputStream {
-	private LocalFilePath path;
+	private final LocalFilePath path;
 	private final RandomAccessFile target;
 	
 	public LocalFileOutputStream(LocalFilePath path, boolean append) throws IOException {
