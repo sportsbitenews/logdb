@@ -45,6 +45,8 @@ import org.araqne.logstorage.backup.StorageBackupType;
 import org.araqne.logstorage.backup.StorageFile;
 import org.araqne.logstorage.backup.StorageTransferStream;
 import org.araqne.logstorage.backup.StorageTransferRequest;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageManager;
 import org.araqne.storage.localfile.LocalFilePath;
 import org.json.JSONConverter;
 import org.slf4j.Logger;
@@ -66,6 +68,9 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 	@Requires
 	private LogStorage storage;
+	
+	@Requires
+	private StorageManager storageManager;
 
 	@Override
 	public StorageBackupJob prepare(StorageBackupRequest req) throws IOException {
@@ -87,10 +92,15 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 				int tableId = tableRegistry.getTableId(tableName);
 				String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
+				FilePath baseDir = storageManager.resolveFilePath(basePath);
+				if (baseDir == null || !(baseDir instanceof LocalFilePath)) {
+					logger.warn("araqne logstorage : unsupported base path : " + basePath);
+					continue;
+				}
 
-				totalBytes += addStorageFile(files, tableName, tableId, DatapathUtil.getIndexFile(tableId, day, basePath));
-				totalBytes += addStorageFile(files, tableName, tableId, DatapathUtil.getDataFile(tableId, day, basePath));
-				totalBytes += addStorageFile(files, tableName, tableId, DatapathUtil.getKeyFile(tableId, day, basePath));
+				totalBytes += addStorageFile(files, tableName, tableId, ((LocalFilePath)DatapathUtil.getIndexFile(tableId, day, baseDir)).getFile());
+				totalBytes += addStorageFile(files, tableName, tableId, ((LocalFilePath)DatapathUtil.getDataFile(tableId, day, baseDir)).getFile());
+				totalBytes += addStorageFile(files, tableName, tableId, ((LocalFilePath)DatapathUtil.getKeyFile(tableId, day, baseDir)).getFile());
 			}
 
 			storageFiles.put(tableName, files);
@@ -176,6 +186,13 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 					if (monitor != null)
 						monitor.onBeginTable(job, tableName);
 
+					// TODO : handle non-local table directory
+					FilePath tableDir = storage.getTableDirectory(tableName);
+					if (tableDir == null || !(tableDir instanceof LocalFilePath)) {
+						logger.warn("araqne logstorage: cannot handle table " + tableName + ". skip...");
+						continue;
+					}
+
 					// restore table metadata
 					try {
 						Map<String, String> metadata = media.getTableMetadata(tableName);
@@ -200,10 +217,9 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 					for (StorageMediaFile mediaFile : files) {
 						String storageFilename = new File(mediaFile.getFileName()).getName();
-						// TODO : use storage interface
+						
 						File storageFilePath =
-								((LocalFilePath) storage.getTableDirectory(tableName).newFilePath(storageFilename))
-										.getFile();
+								((LocalFilePath) tableDir.newFilePath(storageFilename)).getFile();
 						StorageFile storageFile = new StorageFile(tableName, tableId, storageFilePath);
 						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
 						try {

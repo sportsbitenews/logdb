@@ -15,7 +15,6 @@
  */
 package org.araqne.logstorage.engine;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
@@ -25,7 +24,8 @@ import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV2;
-import org.araqne.storage.localfile.LocalFilePath;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageManager;
 
 /**
  * 
@@ -33,28 +33,33 @@ import org.araqne.storage.localfile.LocalFilePath;
  * @since 0.9
  */
 class LogFileFetcher {
-	private LogTableRegistry tableRegistry;
-	private LogFileServiceRegistry lfsRegistry;
+	private final LogTableRegistry tableRegistry;
+	private final LogFileServiceRegistry lfsRegistry;
+	private final StorageManager storageManager;
 
-	public LogFileFetcher(LogTableRegistry tableRegistry, LogFileServiceRegistry lfsRegistry) {
+	public LogFileFetcher(LogTableRegistry tableRegistry, LogFileServiceRegistry lfsRegistry, StorageManager storageManager) {
 		this.tableRegistry = tableRegistry;
 		this.lfsRegistry = lfsRegistry;
+		this.storageManager = storageManager;
 	}
 
 	public LogFileReader fetch(String tableName, Date day) throws IOException {
 		// FIXME : add option for path
 		int tableId = tableRegistry.getTableId(tableName);
-		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
+		String basePathString = tableRegistry.getTableMetadata(tableName, "base_path");
+		FilePath basePath = storageManager.resolveFilePath(basePathString);
+		if (basePath == null)
+			throw new IllegalStateException("base path not found: " + basePathString);;
 
-		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
+		FilePath indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
 		if (!indexPath.exists())
 			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
 
-		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
+		FilePath dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
 		if (!dataPath.exists())
 			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
 
-		File keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
+		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
 		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
 
@@ -62,8 +67,8 @@ class LogFileFetcher {
 		for (String key : tableRegistry.getTableMetadataKeys(tableName))
 			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 
-		LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, new LocalFilePath(indexPath),
-				new LocalFilePath(dataPath), new LocalFilePath(keyPath));
+		LogFileServiceV2.Option options = 
+				new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
 		options.put("day", day);
 		return lfsRegistry.newReader(tableName, logFileType, options);
 

@@ -19,45 +19,73 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.localfile.LocalFilePath;
+
 // TODO : this class will be deprecated. use table specified configuration
 public class DatapathUtil {
-	private static File logDir;
+	private static FilePath logDir;
 
 	public static void setLogDir(File logDir) {
-		DatapathUtil.logDir = logDir;
+		setLogDir(new LocalFilePath(logDir));
 	}
-
-	public static File getIndexFile(int tableId, Date day, String basePath) {
-		File baseDir = logDir;
-		if (basePath != null)
-			baseDir = new File(basePath);
-
+	
+	public static void setLogDir(FilePath path) {
+		DatapathUtil.logDir = path;
+	}
+	
+	public static FilePath getIndexFile(int tableId, Date day, FilePath basePath) {
+		if (basePath == null)
+			basePath = logDir;
+		
 		String dateText = getDayText(day);
-		File tableDir = new File(baseDir, Integer.toString(tableId));
-		File datafile = new File(tableDir, dateText + ".idx");
+		FilePath tableDir = basePath.newFilePath(Integer.toString(tableId));
+		FilePath datafile = tableDir.newFilePath(dateText + ".idx");
 		return datafile;
 	}
 
-	public static File getDataFile(int tableId, Date day, String basePath) {
-		File baseDir = logDir;
+	public static FilePath getLocalIndexFile(int tableId, Date day, String basePath) {
+		FilePath baseDir = logDir;
 		if (basePath != null)
-			baseDir = new File(basePath);
+			baseDir = new LocalFilePath(basePath);
+		
+		return getIndexFile(tableId, day, baseDir);
+	}
+
+	public static FilePath getDataFile(int tableId, Date day, FilePath basePath) {
+		if (basePath == null)
+			basePath = logDir;
 
 		String dateText = getDayText(day);
-		File tableDir = new File(baseDir, Integer.toString(tableId));
-		File datafile = new File(tableDir, dateText + ".dat");
+		FilePath tableDir = basePath.newFilePath(Integer.toString(tableId));
+		FilePath datafile = tableDir.newFilePath(dateText + ".dat");
 		return datafile;
 	}
 
-	public static File getKeyFile(int tableId, Date day, String basePath) {
-		File baseDir = logDir;
+	public static FilePath getLocalDataFile(int tableId, Date day, String basePath) {
+		FilePath baseDir = logDir;
 		if (basePath != null)
-			baseDir = new File(basePath);
+			baseDir = new LocalFilePath(basePath);
+
+		return getDataFile(tableId, day, baseDir);
+	}
+
+	public static FilePath getKeyFile(int tableId, Date day, FilePath basePath) {
+		if (basePath == null)
+			basePath = logDir;
 
 		String dateText = getDayText(day);
-		File tableDir = new File(baseDir, Integer.toString(tableId));
-		File keyfile = new File(tableDir, dateText + ".key");
+		FilePath tableDir = basePath.newFilePath(Integer.toString(tableId));
+		FilePath keyfile = tableDir.newFilePath(dateText + ".key");
 		return keyfile;
+	}
+
+	public static FilePath getLocalKeyFile(int tableId, Date day, String basePath) {
+		FilePath baseDir = logDir;
+		if (basePath != null)
+			baseDir = new LocalFilePath(basePath);
+		
+		return getKeyFile(tableId, day, baseDir);
 	}
 
 	private static String getDayText(Date day) {

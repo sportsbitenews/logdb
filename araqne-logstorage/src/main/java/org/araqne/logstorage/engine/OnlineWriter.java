@@ -29,7 +29,7 @@ import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.storage.api.FilePath;
-import org.araqne.storage.localfile.LocalFilePath;
+import org.araqne.storage.api.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,18 +63,21 @@ public class OnlineWriter {
 	private LogFileWriter writer;
 
 	private final LogFileService logFileService;
-
-	public OnlineWriter(LogFileService logFileService, String tableName, int tableId, Date day, Map<String, String> tableMetadata)
+	
+	public OnlineWriter(StorageManager storageManager, LogFileService logFileService, String tableName, int tableId, Date day, Map<String, String> tableMetadata)
 			throws IOException {
 		this.logFileService = logFileService;
 		this.tableId = tableId;
 		this.day = day;
 
-		String basePath = tableMetadata.get("base_path");
-		// TODO: path
-		FilePath indexPath = new LocalFilePath(DatapathUtil.getIndexFile(tableId, day, basePath));
-		FilePath dataPath = new LocalFilePath(DatapathUtil.getDataFile(tableId, day, basePath));
-		FilePath keyPath = new LocalFilePath(DatapathUtil.getKeyFile(tableId, day, basePath));
+		String basePathString = tableMetadata.get("base_path");
+		FilePath basePath = null;
+		if (basePathString != null)
+			basePath = storageManager.resolveFilePath(basePathString);
+
+		FilePath indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
+		FilePath dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
+		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
 		indexPath.getParentFilePath().mkdirs();
 		dataPath.getParentFilePath().mkdirs();

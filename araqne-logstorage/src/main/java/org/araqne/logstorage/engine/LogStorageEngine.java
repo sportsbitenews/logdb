@@ -44,7 +44,6 @@ import org.araqne.logstorage.file.LogRecordCursor;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.FilePathNameFilter;
 import org.araqne.storage.api.StorageManager;
-import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,11 +99,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		callbacks = new CopyOnWriteArraySet<LogCallback>();
 		tableNameCache = new ConcurrentHashMap<String, Integer>();
 
-		FilePath sysArgLogDir = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
-		logDir = storageManager.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, sysArgLogDir.getAbsolutePath()));
-		logDir.mkdirs();
-		DatapathUtil.setLogDir(((LocalFilePath)logDir).getFile()); // FIXME : use storage path profile
-
 		listeners = new CopyOnWriteArraySet<LogStorageEventListener>();
 	}
 
@@ -120,10 +114,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 		if (!f.isDirectory())
 			throw new IllegalArgumentException("storage path should be directory");
-
+		
 		ConfigUtil.set(conf, Constants.LogStorageDirectory, f.getAbsolutePath());
 		logDir = f;
-		DatapathUtil.setLogDir(((LocalFilePath)logDir).getFile()); // FIXME : use storage path profile
+		DatapathUtil.setLogDir(logDir); 
 	}
 
 	private String getStringParameter(Constants key, String defaultValue) {
@@ -148,11 +142,16 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	@Validate
 	@Override
 	public void start() {
+		FilePath sysArgLogDir = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
+		logDir = storageManager.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, sysArgLogDir.getAbsolutePath()));
+		logDir.mkdirs();
+		DatapathUtil.setLogDir(logDir); 
+
 		if (status != LogStorageStatus.Closed)
 			throw new IllegalStateException("log archive already started");
 
 		status = LogStorageStatus.Starting;
-		fetcher = new LogFileFetcher(tableRegistry, lfsRegistry);
+		fetcher = new LogFileFetcher(tableRegistry, lfsRegistry, storageManager);
 
 		writerSweeperThread = new Thread(writerSweeper, "LogStorage LogWriter Sweeper");
 		writerSweeperThread.start();
@@ -553,10 +552,14 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		if (onlineWriter != null)
 			buffer = (ArrayList<Log>) onlineWriter.getBuffer();
 
-		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
-		FilePath indexPath = new LocalFilePath(DatapathUtil.getIndexFile(tableId, day, basePath));
-		FilePath dataPath = new LocalFilePath(DatapathUtil.getDataFile(tableId, day, basePath));
-		FilePath keyPath = new LocalFilePath(DatapathUtil.getKeyFile(tableId, day, basePath));
+		String basePathString = tableRegistry.getTableMetadata(tableName, "base_path");
+		FilePath basePath = null;
+		if (basePathString != null)
+			basePath = storageManager.resolveFilePath(basePathString);
+		
+		FilePath indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
+		FilePath dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
+		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
 		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
 		if (logFileType == null)
@@ -661,7 +664,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		Map<String, String> tableMetadata = new HashMap<String, String>();
 		for (String key : tableRegistry.getTableMetadataKeys(tableName))
 			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
-		return new OnlineWriter(lfs, tableName, tableId, day, tableMetadata);
+		return new OnlineWriter(storageManager, lfs, tableName, tableId, day, tableMetadata);
 	}
 
 	@Override
@@ -976,11 +979,14 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	private boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId,
 			LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException {
 		int tableId = tableRegistry.getTableId(tableName);
-		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
+		String basePathString = tableRegistry.getTableMetadata(tableName, "base_path");
+		FilePath basePath = null;
+		if (basePathString != null)
+			basePath = storageManager.resolveFilePath(basePathString);
 
-		FilePath indexPath = new LocalFilePath(DatapathUtil.getIndexFile(tableId, day, basePath));
-		FilePath dataPath = new LocalFilePath(DatapathUtil.getDataFile(tableId, day, basePath));
-		FilePath keyPath = new LocalFilePath(DatapathUtil.getKeyFile(tableId, day, basePath));
+		FilePath indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
+		FilePath dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
+		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 		LogFileReader reader = null;
 
 		long onlineMinId = -1;
