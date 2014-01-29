@@ -41,6 +41,8 @@ public class StorageManagerImpl implements StorageManager {
 	@Invalidate
 	@Override
 	public void stop() {
+		// TODO : close uri resolvers
+		uriResolvers.clear();
 	}
 
 	@Override
