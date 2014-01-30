@@ -39,6 +39,11 @@ public class Mv extends QueryCommand implements ThreadSafe {
 	}
 
 	@Override
+	public String getName() {
+		return "mv";
+	}
+
+	@Override
 	public void onClose(QueryStopReason reason) {
 		if (reason != QueryStopReason.End) {
 			logger.error("araqne logdb: invalid query stop, reason [{}]", reason.toString());

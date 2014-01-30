@@ -43,6 +43,11 @@ public class Transaction extends QueryCommand {
 		this.fields = fields;
 	}
 
+	@Override
+	public String getName() {
+		return "transaction";
+	}
+
 	/**
 	 * assume that onPush() is called in descending order
 	 */

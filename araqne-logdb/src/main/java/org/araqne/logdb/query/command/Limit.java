@@ -37,6 +37,11 @@ public class Limit extends QueryCommand {
 		this.limit = limit;
 	}
 
+	@Override
+	public String getName() {
+		return "limit";
+	}
+
 	public long getOffset() {
 		return offset;
 	}

@@ -34,6 +34,11 @@ public class Signature extends QueryCommand implements ThreadSafe {
 	}
 
 	@Override
+	public String getName() {
+		return "signature";
+	}
+
+	@Override
 	public void onPush(RowBatch rowBatch) {
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {

@@ -79,6 +79,11 @@ public class OutputTxt extends QueryCommand {
 		}
 	}
 
+	@Override
+	public String getName() {
+		return "outputtxt";
+	}
+
 	public File getTxtFile() {
 		return f;
 	}

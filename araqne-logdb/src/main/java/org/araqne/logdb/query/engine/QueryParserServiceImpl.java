@@ -41,6 +41,11 @@ public class QueryParserServiceImpl implements QueryParserService {
 	private ConcurrentMap<String, QueryCommandParser> commandParsers = new ConcurrentHashMap<String, QueryCommandParser>();
 
 	@Override
+	public QueryCommandParser getCommandParser(String name) {
+		return commandParsers.get(name);
+	}
+
+	@Override
 	public List<QueryCommand> parseCommands(QueryContext context, String queryString) {
 		List<QueryCommand> commands = new ArrayList<QueryCommand>();
 
@@ -55,8 +60,6 @@ public class QueryParserServiceImpl implements QueryParserService {
 					throw new QueryParseException("unsupported-command", -1, "command is [" + commandType + "]");
 
 				QueryCommand cmd = parser.parse(context, q);
-				cmd.setName(parser.getCommandName());
-				cmd.setQueryString(q);
 				commands.add(cmd);
 			}
 		} catch (QueryParseException t) {
@@ -91,7 +94,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 	private void closePrematureCommands(List<QueryCommand> commands) {
 		for (QueryCommand cmd : commands) {
 			try {
-				slog.debug("araqne logdb: parse failed, closing command [{}]", cmd.getQueryString());
+				slog.debug("araqne logdb: parse failed, closing command [{}]", cmd.toString());
 				cmd.onClose(QueryStopReason.CommandFailure);
 			} catch (Throwable t2) {
 				slog.error("araqne logdb: cannot close command", t2);

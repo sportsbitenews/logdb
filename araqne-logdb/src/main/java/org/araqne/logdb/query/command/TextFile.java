@@ -45,6 +45,11 @@ public class TextFile extends DriverQueryCommand {
 	}
 
 	@Override
+	public String getName() {
+		return "textfile";
+	}
+
+	@Override
 	public void run() {
 		status = Status.Running;
 

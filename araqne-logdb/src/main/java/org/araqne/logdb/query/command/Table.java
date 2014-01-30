@@ -60,6 +60,11 @@ public class Table extends DriverQueryCommand {
 	}
 
 	@Override
+	public String getName() {
+		return "table";
+	}
+
+	@Override
 	public void run() {
 		try {
 			ResultSink sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
@@ -257,7 +262,8 @@ public class Table extends DriverQueryCommand {
 
 	// private List<String> matchTables(String tableNameExpr) {
 	// List<String> filtered = new ArrayList<String>();
-	// for (String name : TableWildcardMatcher.apply(new HashSet<String>(tableRegistry.getTableNames()), tableNameExpr)) {
+	// for (String name : TableWildcardMatcher.apply(new
+	// HashSet<String>(tableRegistry.getTableNames()), tableNameExpr)) {
 	// if (!isAccessible(name))
 	// continue;
 	//

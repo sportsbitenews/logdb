@@ -33,6 +33,11 @@ public class Json extends DriverQueryCommand {
 	}
 
 	@Override
+	public String getName() {
+		return "json";
+	}
+
+	@Override
 	public void run() {
 		RowBatch rowBatch = new RowBatch();
 		rowBatch.size = logs.size();

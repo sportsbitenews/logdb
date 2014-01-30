@@ -37,6 +37,11 @@ public class Fields extends QueryCommand implements ThreadSafe {
 	}
 
 	@Override
+	public String getName() {
+		return "fields";
+	}
+
+	@Override
 	public void onPush(Row m) {
 		if (selector) {
 			Row newMap = new Row();

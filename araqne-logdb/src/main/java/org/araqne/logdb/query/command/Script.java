@@ -42,6 +42,11 @@ public class Script extends QueryCommand {
 		this.output = new DefaultScriptOutput();
 	}
 
+	@Override
+	public String getName() {
+		return "script";
+	}
+
 	public String getScriptName() {
 		return scriptName;
 	}

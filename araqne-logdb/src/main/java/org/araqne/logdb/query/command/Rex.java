@@ -47,6 +47,11 @@ public class Rex extends QueryCommand implements ThreadSafe {
 		this.originalRegexToken = originalRegexToken;
 	}
 
+	@Override
+	public String getName() {
+		return "rex";
+	}
+
 	public String getInputField() {
 		return field;
 	}

@@ -53,6 +53,11 @@ public class OutputCsv extends QueryCommand {
 		writer.writeNext(fields.toArray(new String[0]));
 	}
 
+	@Override
+	public String getName() {
+		return "outputcsv";
+	}
+
 	public File getCsvFile() {
 		return f;
 	}

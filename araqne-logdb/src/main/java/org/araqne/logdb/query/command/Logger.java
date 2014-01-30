@@ -18,6 +18,11 @@ public class Logger extends DriverQueryCommand {
 		this.loggerRegistry = loggerRegistry;
 	}
 
+	@Override
+	public String getName() {
+		return "logger";
+	}
+
 	public void run() {
 		try {
 			for (org.araqne.log.api.Logger logger : loggerRegistry.getLoggers()) {

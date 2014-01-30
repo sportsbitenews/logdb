@@ -70,6 +70,11 @@ public class Stats extends QueryCommand {
 			this.funcs[i] = fields.get(i).getFunction();
 	}
 
+	@Override
+	public String getName() {
+		return "stats";
+	}
+
 	public List<AggregationField> getAggregationFields() {
 		return fields;
 	}

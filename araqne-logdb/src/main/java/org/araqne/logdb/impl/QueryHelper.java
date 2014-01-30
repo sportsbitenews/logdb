@@ -53,7 +53,7 @@ public class QueryHelper {
 		if (q.getCommands() != null) {
 			for (QueryCommand cmd : q.getCommands()) {
 				Map<String, Object> c = new HashMap<String, Object>();
-				c.put("command", cmd.getQueryString());
+				c.put("command", cmd.toString());
 				c.put("status", cmd.getStatus());
 				c.put("push_count", cmd.getOutputCount());
 				commands.add(c);

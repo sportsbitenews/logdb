@@ -42,6 +42,11 @@ public class Lookup extends QueryCommand implements ThreadSafe {
 		this.targetField = targetField;
 	}
 
+	@Override
+	public String getName() {
+		return "lookup";
+	}
+
 	public String getHandlerName() {
 		return handlerName;
 	}

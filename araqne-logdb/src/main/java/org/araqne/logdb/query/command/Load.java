@@ -25,6 +25,11 @@ public class Load extends DriverQueryCommand {
 	}
 
 	@Override
+	public String getName() {
+		return "load";
+	}
+
+	@Override
 	public void run() {
 		try {
 			while (cursor.hasNext()) {

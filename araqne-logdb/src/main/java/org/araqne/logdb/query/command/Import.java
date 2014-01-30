@@ -44,6 +44,11 @@ public class Import extends QueryCommand implements ThreadSafe {
 	}
 
 	@Override
+	public String getName() {
+		return "import";
+	}
+
+	@Override
 	public void onStart() {
 		if (create) {
 			try {

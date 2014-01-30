@@ -22,7 +22,6 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.nio.charset.Charset;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
@@ -50,10 +49,15 @@ public class JsonFile extends DriverQueryCommand {
 		this.overlay = overlay;
 		this.offset = offset;
 		this.limit = limit;
-		
+
 		if (this.parseTarget == null) {
 			this.parseTarget = "line";
 		}
+	}
+
+	@Override
+	public String getName() {
+		return "jsonfile";
 	}
 
 	@Override
@@ -79,16 +83,16 @@ public class JsonFile extends DriverQueryCommand {
 
 				JSONTokener tokenizer = new JSONTokener(new StringReader(line));
 				Object value = tokenizer.nextValue();
-				
+
 				if (value instanceof JSONObject) {
 					Map<String, Object> m = JSONConverter.parse((JSONObject) value);
 					if (parser != null && m.containsKey(parseTarget)) {
 						Map<String, Object> parsed = parser.parse(m);
 						if (parsed != null)
 							if (overlay) {
-								for (Map.Entry<String, Object> e: parsed.entrySet()) {
+								for (Map.Entry<String, Object> e : parsed.entrySet()) {
 									m.put(e.getKey(), e.getValue());
-								} 
+								}
 							} else {
 								m = parsed;
 							}

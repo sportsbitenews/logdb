@@ -18,6 +18,11 @@ package org.araqne.logdb;
 import java.util.List;
 
 public interface QueryParserService {
+	/**
+	 * @since 2.0.3
+	 */
+	QueryCommandParser getCommandParser(String name);
+
 	List<QueryCommand> parseCommands(QueryContext context, String queryString);
 
 	void addCommandParser(QueryCommandParser parser);

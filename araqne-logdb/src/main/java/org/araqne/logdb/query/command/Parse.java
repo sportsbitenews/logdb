@@ -50,6 +50,11 @@ public class Parse extends QueryCommand implements ThreadSafe {
 	}
 
 	@Override
+	public String getName() {
+		return "parse";
+	}
+
+	@Override
 	public void onPush(RowBatch rowBatch) {
 		// TODO: boost v2 performance
 		if (parserVersion == 2) {
@@ -144,7 +149,7 @@ public class Parse extends QueryCommand implements ThreadSafe {
 			}
 		} catch (Throwable t) {
 			if (logger.isDebugEnabled())
-				logger.debug("araqne logdb: cannot parse " + m.map() + ", query - " + getQueryString(), t);
+				logger.debug("araqne logdb: cannot parse " + m.map() + ", query - " + toString(), t);
 		}
 	}
 

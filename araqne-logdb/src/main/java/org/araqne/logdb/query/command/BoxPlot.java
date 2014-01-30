@@ -52,6 +52,11 @@ public class BoxPlot extends QueryCommand {
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
 	}
 
+	@Override
+	public String getName() {
+		return "boxplot";
+	}
+
 	public Expression getExpression() {
 		return expr;
 	}
