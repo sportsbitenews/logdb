@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Eediom Inc.
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,43 +18,20 @@ package org.araqne.logdb.client;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LogQueryCommand {
-	private String name;
-	private String command;
-	private String status;
-	private long pushCount;
+/**
+ * @since 0.9.1
+ * @author xeraph
+ */
+public class SubQuery {
+	private int id;
 	private List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 
-	public String getName() {
-		return name;
+	public int getId() {
+		return id;
 	}
 
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public String getCommand() {
-		return command;
-	}
-
-	public void setCommand(String command) {
-		this.command = command;
-	}
-
-	public String getStatus() {
-		return status;
-	}
-
-	public void setStatus(String status) {
-		this.status = status;
-	}
-
-	public long getPushCount() {
-		return pushCount;
-	}
-
-	public void setPushCount(long pushCount) {
-		this.pushCount = pushCount;
+	public void setId(int id) {
+		this.id = id;
 	}
 
 	public List<LogQueryCommand> getCommands() {
@@ -63,10 +40,5 @@ public class LogQueryCommand {
 
 	public void setCommands(List<LogQueryCommand> commands) {
 		this.commands = commands;
-	}
-
-	@Override
-	public String toString() {
-		return "[" + status + "] " + command + " - passed " + pushCount;
 	}
 }

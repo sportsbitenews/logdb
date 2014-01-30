@@ -140,17 +140,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return queries.get(id);
 	}
 
+	@SuppressWarnings("unchecked")
 	private void parseQueryStatus(Map<String, Object> q, LogQuery query) {
 		List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 
-		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> cl = (List<Map<String, Object>>) q.get("commands");
 		for (Map<String, Object> cm : cl) {
-			LogQueryCommand c = new LogQueryCommand();
-			c.setStatus((String) cm.get("status"));
-			c.setPushCount(toLong(cm.get("push_count")));
-			c.setCommand((String) cm.get("command"));
-			commands.add(c);
+			commands.add(parseCommand(cm));
 		}
 
 		query.setCommands(commands);
@@ -194,6 +190,42 @@ public class LogDbClient implements TrapListener, Closeable {
 		if (q.get("last_started") != null)
 			query.setLastStarted(df.parse((String) q.get("last_started"), new ParsePosition(0)));
 
+		List<Object> subQueries = (List<Object>) q.get("sub_queries");
+		if (subQueries != null) {
+			for (Object o : subQueries) {
+				SubQuery subQuery = parseSubQuery((Map<String, Object>) o);
+				query.getSubQueries().add(subQuery);
+			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private SubQuery parseSubQuery(Map<String, Object> m) {
+		SubQuery q = new SubQuery();
+		q.setId((Integer) m.get("id"));
+		List<Object> l = (List<Object>) m.get("commands");
+		if (l != null) {
+			for (Object o : l)
+				q.getCommands().add(parseCommand((Map<String, Object>) o));
+		}
+		return q;
+	}
+
+	@SuppressWarnings("unchecked")
+	private LogQueryCommand parseCommand(Map<String, Object> m) {
+		LogQueryCommand c = new LogQueryCommand();
+		c.setName((String) m.get("name"));
+		c.setStatus((String) m.get("status"));
+		c.setPushCount(toLong(m.get("push_count")));
+		c.setCommand((String) m.get("command"));
+
+		List<Object> l = (List<Object>) m.get("commands");
+		if (l != null) {
+			for (Object o : l)
+				c.getCommands().add(parseCommand((Map<String, Object>) o));
+		}
+
+		return c;
 	}
 
 	private Long toLong(Object v) {

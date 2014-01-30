@@ -39,6 +39,8 @@ public class LogQuery {
 	private List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 	private CopyOnWriteArrayList<WaitingCondition> waitingConditions;
 
+	private List<SubQuery> subQueries = new ArrayList<SubQuery>();
+
 	public LogQuery(LogDbClient client, int id, String queryString) {
 		this.client = client;
 		this.id = id;
@@ -163,6 +165,14 @@ public class LogQuery {
 
 	public void setCommands(List<LogQueryCommand> commands) {
 		this.commands = commands;
+	}
+
+	public List<SubQuery> getSubQueries() {
+		return subQueries;
+	}
+
+	public void setSubQueries(List<SubQuery> subQueries) {
+		this.subQueries = subQueries;
 	}
 
 	private class WaitingCondition {
