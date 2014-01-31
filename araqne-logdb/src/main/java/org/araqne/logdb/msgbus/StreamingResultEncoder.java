@@ -4,8 +4,10 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -91,11 +93,34 @@ public class StreamingResultEncoder {
 		}
 
 		@Override
+		@SuppressWarnings("unchecked")
 		protected Map<String, Object> callSafely() throws Exception {
+			// row-oriented to column-oriented
+			int len = rows.size();
+			Map<String, Object[]> columns = new HashMap<String, Object[]>();
+
+			int i = 0;
+			for (Object o : rows) {
+				Map<String, Object> rows = (Map<String, Object>) o;
+				for (Entry<String, Object> e : rows.entrySet()) {
+					String key = e.getKey();
+					Object[] items = columns.get(key);
+					if (items == null) {
+						items = new Object[len];
+						columns.put(key, items);
+					}
+
+					items[i] = e.getValue();
+				}
+
+				i++;
+			}
+
+			// encode and compress
 			Map<String, Object> msg = new HashMap<String, Object>();
 
 			FastEncodingRule enc = new FastEncodingRule();
-			ByteBuffer bb = enc.encode(rows);
+			ByteBuffer bb = enc.encode(columns);
 
 			Deflater c = new Deflater();
 			c.setInput(bb.array(), 0, bb.array().length);

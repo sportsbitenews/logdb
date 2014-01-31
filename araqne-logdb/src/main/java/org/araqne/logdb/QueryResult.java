@@ -30,6 +30,10 @@ public interface QueryResult extends RowPipe {
 
 	void purge();
 
+	boolean isStreaming();
+
+	void setStreaming(boolean streaming);
+
 	QueryResultSet getResultSet() throws IOException;
 
 	Set<QueryResultCallback> getResultCallbacks();

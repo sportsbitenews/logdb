@@ -36,6 +36,7 @@ import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryResult;
 import org.araqne.logdb.QueryResultCallback;
 import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.QueryService;
@@ -183,8 +184,10 @@ public class LogQueryPlugin {
 			throw new MsgbusException("logdb", "already running");
 
 		// set query and timeline callback
-		QueryResultCallback qc = new MsgbusLogQueryCallback(orgDomain, offset, limit, streaming);
-		query.getResult().getResultCallbacks().add(qc);
+		QueryResultCallback qc = new MsgbusQueryResultCallback(orgDomain, offset, limit, streaming);
+		QueryResult result = query.getResult();
+		result.setStreaming(streaming);
+		result.getResultCallbacks().add(qc);
 
 		QueryStatusCallback qs = new MsgbusStatusCallback(orgDomain);
 		query.getCallbacks().getStatusCallbacks().add(qs);
@@ -425,7 +428,7 @@ public class LogQueryPlugin {
 		}
 	}
 
-	private class MsgbusLogQueryCallback implements QueryResultCallback {
+	private class MsgbusQueryResultCallback implements QueryResultCallback {
 		private static final int STREAM_FLUSH_SIZE = 10000;
 		private int offset;
 		private int limit;
@@ -435,7 +438,7 @@ public class LogQueryPlugin {
 		private boolean streaming;
 		private ArrayList<Object> rows = new ArrayList<Object>(10000);
 
-		private MsgbusLogQueryCallback(String orgDomain, int offset, int limit, boolean streaming) {
+		private MsgbusQueryResultCallback(String orgDomain, int offset, int limit, boolean streaming) {
 			this.orgDomain = orgDomain;
 			this.offset = offset;
 			this.limit = limit;

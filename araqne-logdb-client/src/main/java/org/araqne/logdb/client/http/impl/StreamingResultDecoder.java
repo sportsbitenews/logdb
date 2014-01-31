@@ -3,6 +3,7 @@ package org.araqne.logdb.client.http.impl;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -84,8 +85,30 @@ public class StreamingResultDecoder {
 				inflater.end();
 			}
 
-			Object[] logs = (Object[]) EncodingRule.decode(ByteBuffer.wrap(output));
-			return Arrays.asList(logs);
+			Map<String, Object> m = (Map<String, Object>) EncodingRule.decode(ByteBuffer.wrap(output));
+
+			Object[] rows = null;
+			for (String key : m.keySet()) {
+				Object[] o = (Object[]) m.get(key);
+				if (rows == null)
+					rows = new Object[o.length];
+
+				int i = 0;
+				for (Object item : o) {
+					Map<String, Object> row = (Map<String, Object>) rows[i];
+					if (row == null) {
+						row = new HashMap<String, Object>();
+						rows[i] = row;
+					}
+
+					if (item != null)
+						row.put(key, item);
+
+					i++;
+				}
+			}
+
+			return Arrays.asList(rows);
 		}
 	}
 
