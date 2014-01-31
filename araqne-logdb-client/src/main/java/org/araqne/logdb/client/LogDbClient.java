@@ -22,6 +22,7 @@ import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,12 +34,14 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.EncodingRule;
 import org.araqne.logdb.client.http.WebSocketTransport;
+import org.araqne.logdb.client.http.impl.StreamingResultDecoder;
 import org.araqne.logdb.client.http.impl.TrapListener;
 import org.araqne.websocket.Base64;
 import org.slf4j.Logger;
@@ -55,7 +58,9 @@ public class LogDbClient implements TrapListener, Closeable {
 	private LogDbSession session;
 	private int fetchSize = 10000;
 	private ConcurrentMap<Integer, LogQuery> queries = new ConcurrentHashMap<Integer, LogQuery>();
+	private ConcurrentMap<Integer, StreamingResultSet> streamCallbacks = new ConcurrentHashMap<Integer, StreamingResultSet>();
 	private Locale locale = Locale.getDefault();
+	private StreamingResultDecoder streamingDecoder;
 
 	public LogDbClient() {
 		this(new WebSocketTransport());
@@ -63,6 +68,8 @@ public class LogDbClient implements TrapListener, Closeable {
 
 	public LogDbClient(LogDbTransport transport) {
 		this.transport = transport;
+		int poolSize = Math.min(8, Runtime.getRuntime().availableProcessors());
+		this.streamingDecoder = new StreamingResultDecoder("Streaming Result Decoder", poolSize);
 	}
 
 	public Locale getLocale() {
@@ -1171,13 +1178,22 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	public int createQuery(String queryString) throws IOException {
+		return createQuery(queryString, null);
+	}
+
+	public int createQuery(String queryString, StreamingResultSet rs) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("query", queryString);
 
 		Message resp = rpc("org.araqne.logdb.msgbus.LogQueryPlugin.createQuery", params);
 		int id = resp.getInt("id");
-		session.registerTrap("logstorage-query-" + id);
-		session.registerTrap("logstorage-query-timeline-" + id);
+		session.registerTrap("logdb-query-" + id);
+		session.registerTrap("logdb-query-timeline-" + id);
+
+		if (rs != null) {
+			streamCallbacks.put(id, rs);
+			session.registerTrap("logdb-query-result-" + id);
+		}
 
 		queries.putIfAbsent(id, new LogQuery(this, id, queryString));
 		return id;
@@ -1197,6 +1213,7 @@ public class LogDbClient implements TrapListener, Closeable {
 
 		// timeline may degrade little performance
 		params.put("timeline_limit", timelineSize);
+		params.put("streaming", streamCallbacks.containsKey(id));
 
 		rpc("org.araqne.logdb.msgbus.LogQueryPlugin.startQuery", params);
 	}
@@ -1213,8 +1230,12 @@ public class LogDbClient implements TrapListener, Closeable {
 	public void removeQuery(int id) throws IOException {
 		verifyQueryId(id);
 
-		session.unregisterTrap("logstorage-query-" + id);
-		session.unregisterTrap("logstorage-query-timeline-" + id);
+		StreamingResultSet rs = streamCallbacks.remove(id);
+		if (rs != null)
+			session.unregisterTrap("logdb-query-result-" + id);
+
+		session.unregisterTrap("logdb-query-" + id);
+		session.unregisterTrap("logdb-query-timeline-" + id);
 
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("id", id);
@@ -1259,11 +1280,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> m = EncodingRule.decodeMap(ByteBuffer.wrap(uncompressed));
 
 		Object[] resultArray = (Object[]) m.get("result");
-		List<Object> resultList = new ArrayList<Object>(resultArray.length);
-		for (int i = 0; i < resultArray.length; i++)
-			resultList.add(resultArray[i]);
-
-		m.put("result", resultList);
+		m.put("result", Arrays.asList(resultArray));
 
 		return m;
 	}
@@ -1289,17 +1306,26 @@ public class LogDbClient implements TrapListener, Closeable {
 	public void close() throws IOException {
 		if (session != null)
 			session.close();
+
+		if (streamingDecoder != null) {
+			streamingDecoder.close();
+			streamingDecoder = null;
+		}
 	}
 
 	@Override
 	public void onTrap(Message msg) {
-		if (msg.getMethod().startsWith("logstorage-query-timeline")) {
+		String method = msg.getMethod();
+
+		if (method.startsWith("logdb-query-timeline-")) {
 			int id = msg.getInt("id");
 			LogQuery q = queries.get(id);
 			q.updateCount(msg.getLong("count"));
 			if (msg.getString("type").equals("eof"))
 				q.updateStatus("Ended");
-		} else if (msg.getMethod().startsWith("logstorage-query")) {
+		} else if (method.startsWith("logdb-query-result-")) {
+			handleStreamingResult(msg);
+		} else if (method.startsWith("logdb-query-")) {
 			int id = msg.getInt("id");
 			LogQuery q = queries.get(id);
 			if (msg.getString("type").equals("eof")) {
@@ -1312,6 +1338,29 @@ public class LogDbClient implements TrapListener, Closeable {
 				q.updateCount(msg.getLong("count"));
 				q.updateStatus(msg.getString("status"));
 			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void handleStreamingResult(Message msg) {
+		List<Map<String, Object>> chunks = (List<Map<String, Object>>) msg.get("bins");
+		boolean last = msg.getBoolean("last");
+		int queryId = Integer.valueOf(msg.getMethod().substring("logdb-query-result-".length()));
+
+		try {
+			List<Object> l = streamingDecoder.decode(chunks);
+
+			ArrayList<Row> rows = new ArrayList<Row>(l.size());
+			for (Object o : l)
+				rows.add(new Row((Map<String, Object>) o));
+
+			LogQuery query = queries.get(queryId);
+			StreamingResultSet rs = streamCallbacks.get(queryId);
+			if (query != null && rs != null)
+				rs.onRows(query, rows, last);
+
+		} catch (ExecutionException e) {
+			logger.error("araqne logdb client: cannot decode streaming result", e);
 		}
 	}
 

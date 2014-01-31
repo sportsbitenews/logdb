@@ -56,6 +56,11 @@ public class QueryResultImpl implements QueryResult {
 	 */
 	private volatile boolean purged;
 
+	/**
+	 * prevent indirect recursive query.stop()
+	 */
+	private volatile boolean stopRequested;
+
 	private volatile boolean writerClosed;
 	private volatile Date eofDate;
 
@@ -81,7 +86,7 @@ public class QueryResultImpl implements QueryResult {
 
 	@Override
 	public boolean isThreadSafe() {
-		return true;
+		return false;
 	}
 
 	@Override
@@ -93,18 +98,29 @@ public class QueryResultImpl implements QueryResult {
 		} catch (IOException e) {
 			// cancel query when disk is full
 			synchronized (writerLock) {
-				if (writer.isLowDisk())
-					invokeStopCallbacks(QueryStopReason.LowDisk);
+				if (!stopRequested && writer.isLowDisk()) {
+					stopRequested = true;
+					config.getQuery().stop(QueryStopReason.LowDisk);
+				}
 			}
 			throw new IllegalStateException(e);
 		}
+
+		for (QueryResultCallback c : resultCallbacks) {
+			try {
+				c.onRow(config.getQuery(), row);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: result callback should not throw any exception", t);
+			}
+		}
+
 		count++;
 	}
 
-	private void invokeStopCallbacks(QueryStopReason reason) {
+	private void invokeCloseCallbacks(QueryStopReason reason) {
 		for (QueryResultCallback c : resultCallbacks) {
 			try {
-				c.onStop(reason);
+				c.onClose(config.getQuery(), reason);
 			} catch (Throwable t) {
 				logger.error("araqne logdb: cannot handle QueryResult.onStop()", t);
 			}
@@ -125,11 +141,21 @@ public class QueryResultImpl implements QueryResult {
 						writer.write(new Log("$Result$", new Date(), ++count, row.map()));
 				}
 			}
+
+			for (QueryResultCallback c : resultCallbacks) {
+				try {
+					c.onRowBatch(config.getQuery(), rowBatch);
+				} catch (Throwable t) {
+					logger.warn("araqne logdb: result callback should not throw any exception", t);
+				}
+			}
 		} catch (IOException e) {
 			// cancel query when disk is full
 			synchronized (writerLock) {
-				if (writer.isLowDisk())
-					invokeStopCallbacks(QueryStopReason.LowDisk);
+				if (!stopRequested && writer.isLowDisk()) {
+					stopRequested = true;
+					config.getQuery().stop(QueryStopReason.LowDisk);
+				}
 			}
 			throw new IllegalStateException(e);
 		}
@@ -184,6 +210,8 @@ public class QueryResultImpl implements QueryResult {
 
 		for (QueryStatusCallback callback : config.getQuery().getCallbacks().getStatusCallbacks())
 			callback.onChange(config.getQuery());
+
+		invokeCloseCallbacks(QueryStopReason.End);
 	}
 
 	@Override

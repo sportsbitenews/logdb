@@ -22,5 +22,12 @@ public interface QueryResultCallback {
 
 	void onPageLoaded(Query query);
 
-	void onStop(QueryStopReason reason);
+	void onRow(Query query, Row row);
+
+	void onRowBatch(Query query, RowBatch rowBatch);
+
+	/**
+	 * invoked when result writer is closed (i.e. end of result)
+	 */
+	void onClose(Query query, QueryStopReason reason);
 }
