@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 @Component(name = "mem-event-ctx-storage")
 public class MemoryEventContextStorage implements EventContextStorage {
-	private final Logger logger = LoggerFactory.getLogger(MemoryEventContextStorage.class);
+	private final Logger slog = LoggerFactory.getLogger(MemoryEventContextStorage.class);
 
 	@Requires
 	private EventContextService eventContextService;
@@ -124,8 +124,8 @@ public class MemoryEventContextStorage implements EventContextStorage {
 
 			for (EventContext ctx : evict) {
 				EventKey key = ctx.getKey();
-				if (logger.isDebugEnabled())
-					logger.debug("araqne logdb cep: generate timeout event, topic [{}] key [{}]", key.getTopic(), key.getKey());
+				if (slog.isDebugEnabled())
+					slog.debug("araqne logdb cep: generate timeout event, topic [{}] key [{}]", key.getTopic(), key.getKey());
 
 				contexts.remove(key);
 				generateEvent(ctx, EventCause.TIMEOUT);
@@ -138,14 +138,25 @@ public class MemoryEventContextStorage implements EventContextStorage {
 		ev.getRows().addAll(ctx.getRows());
 
 		CopyOnWriteArraySet<EventSubscriber> s = subscribers.get(ctx.getKey().getTopic());
-		if (s == null)
-			return;
+		if (s != null) {
+			for (EventSubscriber subscriber : s) {
+				try {
+					subscriber.onEvent(ev);
+				} catch (Throwable t) {
+					slog.error("araqne logdb cep: subscriber should not throw any exception", t);
+				}
+			}
+		}
 
-		for (EventSubscriber subscriber : s) {
-			try {
-				subscriber.onEvent(ev);
-			} catch (Throwable t) {
-				logger.error("araqne logdb cep: subscriber should not throw any exception", t);
+		// for wild subscriber
+		s = subscribers.get("*");
+		if (s != null) {
+			for (EventSubscriber subscriber : s) {
+				try {
+					subscriber.onEvent(ev);
+				} catch (Throwable t) {
+					slog.error("araqne logdb cep: subscriber should not throw any exception", t);
+				}
 			}
 		}
 	}

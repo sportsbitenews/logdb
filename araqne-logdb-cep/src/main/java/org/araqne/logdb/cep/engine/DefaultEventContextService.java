@@ -18,17 +18,38 @@ package org.araqne.logdb.cep.engine;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.felix.ipojo.annotations.Component;
+import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
+import org.araqne.logdb.cep.EventSubscriber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component(name = "event-ctx-service")
-@Provides
-public class DefaultEventContextService implements EventContextService {
+@Provides(specifications = { EventContextService.class })
+public class DefaultEventContextService implements EventContextService, EventSubscriber {
+	private final Logger slog = LoggerFactory.getLogger(DefaultEventContextService.class);
 
 	private ConcurrentHashMap<String, EventContextStorage> storages = new ConcurrentHashMap<String, EventContextStorage>();
+
+	// topic to subscribers
+	private ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>> subscribers;
+
+	@Validate
+	public void start() {
+		subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
+	}
+
+	@Invalidate
+	public void stop() {
+		subscribers.clear();
+	}
 
 	@Override
 	public List<EventContextStorage> getStorages() {
@@ -45,11 +66,56 @@ public class DefaultEventContextService implements EventContextService {
 		EventContextStorage old = storages.putIfAbsent(storage.getName(), storage);
 		if (old != null)
 			throw new IllegalStateException("duplicated event context storage: " + storage.getName());
+
+		storage.addSubscriber("*", this);
 	}
 
 	@Override
 	public void unregisterStorage(EventContextStorage storage) {
 		storages.remove(storage.getName(), storage);
+		storage.removeSubscriber("*", this);
 	}
 
+	@Override
+	public void addSubscriber(String topic, EventSubscriber subscriber) {
+		CopyOnWriteArraySet<EventSubscriber> s = new CopyOnWriteArraySet<EventSubscriber>();
+		CopyOnWriteArraySet<EventSubscriber> old = subscribers.putIfAbsent(topic, s);
+		if (old != null)
+			s = old;
+
+		s.add(subscriber);
+	}
+
+	@Override
+	public void removeSubscriber(String topic, EventSubscriber subscriber) {
+		CopyOnWriteArraySet<EventSubscriber> s = subscribers.get(topic);
+		if (s != null)
+			s.remove(subscriber);
+	}
+
+	@Override
+	public void onEvent(Event ev) {
+		CopyOnWriteArraySet<EventSubscriber> s = subscribers.get(ev.getKey().getTopic());
+		if (s != null) {
+			for (EventSubscriber subscriber : s) {
+				try {
+					subscriber.onEvent(ev);
+				} catch (Throwable t) {
+					slog.error("araqne logdb cep: subscriber should not throw any exception", t);
+				}
+			}
+		}
+
+		// for wild subscriber
+		s = subscribers.get("*");
+		if (s != null) {
+			for (EventSubscriber subscriber : s) {
+				try {
+					subscriber.onEvent(ev);
+				} catch (Throwable t) {
+					slog.error("araqne logdb cep: subscriber should not throw any exception", t);
+				}
+			}
+		}
+	}
 }

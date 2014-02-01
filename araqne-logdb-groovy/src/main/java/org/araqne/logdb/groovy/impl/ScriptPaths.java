@@ -13,20 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.cep;
+package org.araqne.logdb.groovy.impl;
 
-import java.util.List;
+import java.io.File;
 
-public interface EventContextService {
-	List<EventContextStorage> getStorages();
+class ScriptPaths {
+	private ScriptPaths() {
+	}
 
-	EventContextStorage getStorage(String name);
+	public static String getPath(String category) {
+		File dir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb-groovy/" + category);
+		dir.mkdirs();
 
-	void registerStorage(EventContextStorage storage);
+		String path = "file:///" + dir.getAbsolutePath();
+		path = path.replaceAll("\\\\", "/");
+		if (!path.endsWith("/"))
+			path += "/";
 
-	void unregisterStorage(EventContextStorage storage);
-
-	void addSubscriber(String topic, EventSubscriber subscriber);
-
-	void removeSubscriber(String topic, EventSubscriber subscriber);
+		return path;
+	}
 }

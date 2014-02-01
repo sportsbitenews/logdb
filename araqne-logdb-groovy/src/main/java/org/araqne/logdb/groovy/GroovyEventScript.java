@@ -13,20 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.cep;
+package org.araqne.logdb.groovy;
 
-import java.util.List;
+import org.araqne.logdb.cep.Event;
+import org.osgi.framework.BundleContext;
 
-public interface EventContextService {
-	List<EventContextStorage> getStorages();
+public abstract class GroovyEventScript {
+	protected BundleContext bc;
 
-	EventContextStorage getStorage(String name);
+	public void setBundleContext(BundleContext bc) {
+		this.bc = bc;
+	}
 
-	void registerStorage(EventContextStorage storage);
-
-	void unregisterStorage(EventContextStorage storage);
-
-	void addSubscriber(String topic, EventSubscriber subscriber);
-
-	void removeSubscriber(String topic, EventSubscriber subscriber);
+	public void onEvent(Event event) {
+	}
 }

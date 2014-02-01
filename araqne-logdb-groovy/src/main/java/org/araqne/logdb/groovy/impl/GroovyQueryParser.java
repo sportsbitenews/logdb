@@ -29,7 +29,7 @@ import org.araqne.logdb.groovy.GroovyQueryScriptRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(name = "groovy-query-parser")
+@Component(name = "logdb-groovy-query-parser")
 public class GroovyQueryParser implements QueryCommandParser {
 	private final Logger slog = LoggerFactory.getLogger(GroovyQueryParser.class);
 
@@ -58,8 +58,8 @@ public class GroovyQueryParser implements QueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		try {
-			String fileName = commandString.substring(getCommandName().length()).trim();
-			GroovyQueryScript script = scriptRegistry.newScript(fileName);
+			String scriptName = commandString.substring(getCommandName().length()).trim();
+			GroovyQueryScript script = scriptRegistry.newScript(scriptName + ".groovy");
 			return new GroovyQueryCommand(script);
 		} catch (Throwable t) {
 			slog.error("araqne logdb groovy: cannot instanciate groovy script", t);

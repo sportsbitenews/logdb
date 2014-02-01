@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.cep;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -49,5 +50,11 @@ public class Event {
 
 	public Date getCreated() {
 		return created;
+	}
+
+	@Override
+	public String toString() {
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		return "event key=" + key + ", cause=" + cause + ", rows=" + rows + ", created=" + df.format(created);
 	}
 }

@@ -17,7 +17,6 @@ package org.araqne.logdb.groovy.impl;
 
 import groovy.util.GroovyScriptEngine;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -28,7 +27,7 @@ import org.araqne.logdb.groovy.GroovyQueryScript;
 import org.araqne.logdb.groovy.GroovyQueryScriptRegistry;
 import org.osgi.framework.BundleContext;
 
-@Component(name = "groovy-query-script-registry")
+@Component(name = "logdb-groovy-query-script-registry")
 @Provides
 public class GroovyQueryScriptRegistryImpl implements GroovyQueryScriptRegistry {
 	private BundleContext bc;
@@ -40,15 +39,7 @@ public class GroovyQueryScriptRegistryImpl implements GroovyQueryScriptRegistry 
 
 	@Validate
 	public void start() throws IOException {
-		File dir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb-groovy/queries");
-		dir.mkdirs();
-
-		String path = "file:///" + dir.getAbsolutePath();
-		path = path.replaceAll("\\\\", "/");
-		if (!path.endsWith("/"))
-			path += "/";
-
-		System.out.println(path);
+		String path = ScriptPaths.getPath("query_scripts");
 		gse = new GroovyScriptEngine(path);
 	}
 
@@ -67,7 +58,7 @@ public class GroovyQueryScriptRegistryImpl implements GroovyQueryScriptRegistry 
 			script.setBundleContext(bc);
 			return script;
 		} catch (Throwable t) {
-			throw new IllegalStateException("cannot instanciate groovy script: " + fileName, t);
+			throw new IllegalStateException("cannot instanciate groovy query script: " + fileName, t);
 		}
 	}
 }
