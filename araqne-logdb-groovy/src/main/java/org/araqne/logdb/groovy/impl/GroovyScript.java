@@ -79,4 +79,19 @@ public class GroovyScript implements Script {
 		eventScriptRegistry.unsubscribeEvent(s);
 		context.println("unsubscribed");
 	}
+
+	@ScriptUsage(description = "reload event script", arguments = { @ScriptArgument(name = "script name", type = "string", description = "script name") })
+	public void reloadEventScript(String[] args) {
+		try {
+			// test availability
+			String scriptName = args[0];
+			eventScriptRegistry.newScript(scriptName);
+
+			// reload
+			eventScriptRegistry.reloadScript(scriptName);
+			context.println("reloaded");
+		} catch (IllegalStateException e) {
+			context.println(e.getCause().getMessage());
+		}
+	}
 }

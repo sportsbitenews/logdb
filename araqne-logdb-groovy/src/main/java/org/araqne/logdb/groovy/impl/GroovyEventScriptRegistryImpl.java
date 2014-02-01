@@ -198,6 +198,16 @@ public class GroovyEventScriptRegistryImpl implements GroovyEventScriptRegistry,
 	}
 
 	@Override
+	public void reloadScript(String scriptName) {
+		for (GroovyEventSubscription s : getEventSubscriptions(null)) {
+			if (s.getScriptName().equals(scriptName)) {
+				unloadScript(s);
+				loadScript(s);
+			}
+		}
+	}
+
+	@Override
 	public GroovyEventScript newScript(String scriptName) {
 		try {
 			Class<?> clazz = gse.loadScriptByName(scriptName + ".groovy");

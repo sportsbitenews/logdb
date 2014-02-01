@@ -37,6 +37,14 @@ public interface GroovyEventScriptRegistry {
 	void unsubscribeEvent(GroovyEventSubscription subscription);
 
 	/**
+	 * reload event handler
+	 * 
+	 * @param scriptName
+	 *            groovy script file name except .groovy extension
+	 */
+	void reloadScript(String scriptName);
+
+	/**
 	 * @param scriptName
 	 *            groovy script file name except .groovy extension
 	 * @return new event script instance
