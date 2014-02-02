@@ -23,6 +23,10 @@ public class LogQueryCommand {
 	private String command;
 	private String status;
 	private long pushCount;
+
+	/**
+	 * @since 0.9.1
+	 */
 	private List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 
 	public String getName() {
@@ -57,10 +61,16 @@ public class LogQueryCommand {
 		this.pushCount = pushCount;
 	}
 
+	/**
+	 * @since 0.9.1
+	 */
 	public List<LogQueryCommand> getCommands() {
 		return commands;
 	}
 
+	/**
+	 * @since 0.9.1
+	 */
 	public void setCommands(List<LogQueryCommand> commands) {
 		this.commands = commands;
 	}
