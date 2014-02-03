@@ -223,6 +223,21 @@ public class LastStateServiceImpl implements LastStateService {
 	}
 
 	@Override
+	public void deleteState(String loggerName) {
+		DeleteState state = new DeleteState();
+		state.setLoggerName(loggerName);
+
+		// queue disk sync
+		try {
+			sync.queue.put(state);
+		} catch (InterruptedException e) {
+			slog.warn("araqne log api: interrupted last state update of logger [{}]", state.getLoggerName());
+		}
+
+		states.remove(loggerName);
+	}
+
+	@Override
 	public void addListener(LastStateListener listener) {
 		listeners.add(listener);
 	}
@@ -230,6 +245,10 @@ public class LastStateServiceImpl implements LastStateService {
 	@Override
 	public void removeListener(LastStateListener listener) {
 		listeners.remove(listener);
+	}
+
+	private class DeleteState extends LastState {
+
 	}
 
 	private class FileSyncThread extends Thread {
@@ -256,7 +275,7 @@ public class LastStateServiceImpl implements LastStateService {
 						if (s != null) {
 							l.add(s);
 							queue.drainTo(l);
-							saveFiles(l);
+							syncFiles(l);
 
 							slog.debug("araqne log api: sync'ed [{}] state", l.size());
 						}
@@ -269,7 +288,7 @@ public class LastStateServiceImpl implements LastStateService {
 			}
 		}
 
-		private void saveFiles(List<LastState> l) {
+		private void syncFiles(List<LastState> l) {
 			// merge state by logger name
 			Map<String, LastState> merge = new HashMap<String, LastState>();
 			for (LastState s : l) {
@@ -279,7 +298,10 @@ public class LastStateServiceImpl implements LastStateService {
 			// flush files
 			for (LastState s : merge.values()) {
 				File f = getFilePath(s);
-				writeStateFile(s, f);
+				if (s instanceof DeleteState)
+					f.delete();
+				else
+					writeStateFile(s, f);
 			}
 		}
 	}

@@ -282,6 +282,9 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 
 		loggers.remove(fullName);
 
+		LastStateService lss = getLastStateService();
+		lss.deleteState(fullName);
+
 		for (LoggerFactoryEventListener callback : callbacks) {
 			try {
 				callback.loggerDeleted(this, logger);

@@ -24,6 +24,14 @@ public interface LastStateService {
 
 	void setState(LastState state);
 
+	/**
+	 * delete json state file
+	 * 
+	 * @param loggerName
+	 *            full qualified name
+	 */
+	void deleteState(String loggerName);
+
 	void addListener(LastStateListener listener);
 
 	void removeListener(LastStateListener listener);
