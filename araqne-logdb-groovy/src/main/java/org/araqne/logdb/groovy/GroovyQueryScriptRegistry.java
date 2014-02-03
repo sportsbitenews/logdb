@@ -16,5 +16,5 @@
 package org.araqne.logdb.groovy;
 
 public interface GroovyQueryScriptRegistry {
-	GroovyQueryScript newScript(String fileName);
+	GroovyQueryScript newScript(String scriptName);
 }

@@ -59,7 +59,7 @@ public class GroovyQueryParser implements QueryCommandParser {
 	public QueryCommand parse(QueryContext context, String commandString) {
 		try {
 			String scriptName = commandString.substring(getCommandName().length()).trim();
-			GroovyQueryScript script = scriptRegistry.newScript(scriptName + ".groovy");
+			GroovyQueryScript script = scriptRegistry.newScript(scriptName);
 			return new GroovyQueryCommand(script);
 		} catch (Throwable t) {
 			slog.error("araqne logdb groovy: cannot instanciate groovy script", t);

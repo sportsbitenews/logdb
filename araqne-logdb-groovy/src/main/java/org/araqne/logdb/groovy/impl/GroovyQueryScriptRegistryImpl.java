@@ -50,15 +50,15 @@ public class GroovyQueryScriptRegistryImpl implements GroovyQueryScriptRegistry 
 	}
 
 	@Override
-	public GroovyQueryScript newScript(String fileName) {
+	public GroovyQueryScript newScript(String scriptName) {
 		try {
-			Class<?> clazz = gse.loadScriptByName(fileName);
+			Class<?> clazz = gse.loadScriptByName(scriptName + ".groovy");
 			Object o = clazz.newInstance();
 			GroovyQueryScript script = (GroovyQueryScript) o;
 			script.setBundleContext(bc);
 			return script;
 		} catch (Throwable t) {
-			throw new IllegalStateException("cannot instanciate groovy query script: " + fileName, t);
+			throw new IllegalStateException("cannot instanciate groovy query script: " + scriptName, t);
 		}
 	}
 }
