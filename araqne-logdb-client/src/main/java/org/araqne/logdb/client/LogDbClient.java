@@ -261,7 +261,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	@SuppressWarnings("unchecked")
 	public List<ArchiveConfig> listArchiveConfigs() throws IOException {
 		List<ArchiveConfig> configs = new ArrayList<ArchiveConfig>();
-		Message resp = rpc("org.logpresso.core.msgbus.ArchivePlugin.getConfigs");
+		Message resp = rpc("com.logpresso.core.msgbus.ArchivePlugin.getConfigs");
 		List<Map<String, Object>> l = (List<Map<String, Object>>) resp.get("configs");
 		for (Map<String, Object> m : l) {
 			configs.add(parseArchiveConfig(m));
@@ -275,7 +275,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", loggerName);
 
-		Message resp = rpc("org.logpresso.core.msgbus.ArchivePlugin.getConfig", params);
+		Message resp = rpc("com.logpresso.core.msgbus.ArchivePlugin.getConfig", params);
 		Map<String, Object> m = (Map<String, Object>) resp.getParameters().get("config");
 		return parseArchiveConfig(m);
 	}
@@ -300,13 +300,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("host", config.getHost());
 		params.put("enabled", config.isEnabled());
 		params.put("metadata", config.getMetadata());
-		rpc("org.logpresso.core.msgbus.ArchivePlugin.createConfig", params);
+		rpc("com.logpresso.core.msgbus.ArchivePlugin.createConfig", params);
 	}
 
 	public void removeArchiveConfig(String loggerName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", loggerName);
-		rpc("org.logpresso.core.msgbus.ArchivePlugin.removeConfig", params);
+		rpc("com.logpresso.core.msgbus.ArchivePlugin.removeConfig", params);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -717,7 +717,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("factory_name", name);
 
-		Message resp = rpc("org.logpresso.core.msgbus.ParserPlugin.getParserFactoryInfo", params);
+		Message resp = rpc("com.logpresso.core.msgbus.ParserPlugin.getParserFactoryInfo", params);
 		Map<String, Object> m = (Map<String, Object>) resp.get("factory");
 
 		ParserFactoryInfo f = new ParserFactoryInfo();
@@ -757,7 +757,7 @@ public class LogDbClient implements TrapListener, Closeable {
 
 	@SuppressWarnings("unchecked")
 	public List<ParserInfo> listParsers() throws IOException {
-		Message resp = rpc("org.logpresso.core.msgbus.ParserPlugin.getParsers");
+		Message resp = rpc("com.logpresso.core.msgbus.ParserPlugin.getParsers");
 		List<Object> l = (List<Object>) resp.get("parsers");
 
 		List<ParserInfo> parsers = new ArrayList<ParserInfo>();
@@ -771,7 +771,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	public ParserInfo getParser(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
-		Message resp = rpc("org.logpresso.core.msgbus.ParserPlugin.getParser", params);
+		Message resp = rpc("com.logpresso.core.msgbus.ParserPlugin.getParser", params);
 
 		@SuppressWarnings("unchecked")
 		Map<String, Object> m = (Map<String, Object>) resp.get("parser");
@@ -803,13 +803,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("factory_name", parser.getFactoryName());
 		params.put("configs", parser.getConfigs());
 
-		rpc("org.logpresso.core.msgbus.ParserPlugin.createParser", params);
+		rpc("com.logpresso.core.msgbus.ParserPlugin.createParser", params);
 	}
 
 	public void removeParser(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
-		rpc("org.logpresso.core.msgbus.ParserPlugin.removeParser", params);
+		rpc("com.logpresso.core.msgbus.ParserPlugin.removeParser", params);
 	}
 
 	/**
@@ -821,7 +821,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("name", parserName);
 		params.put("data", data);
 
-		Message resp = rpc("org.logpresso.core.msgbus.ParserPlugin.testParser", params);
+		Message resp = rpc("com.logpresso.core.msgbus.ParserPlugin.testParser", params);
 		return (List<Map<String, Object>>) resp.get("rows");
 	}
 
@@ -830,7 +830,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("locale", locale.getLanguage());
 
-		Message resp = rpc("org.logpresso.core.msgbus.TransformerPlugin.listTransformerFactories", params);
+		Message resp = rpc("com.logpresso.core.msgbus.TransformerPlugin.listTransformerFactories", params);
 		List<Object> l = (List<Object>) resp.get("factories");
 
 		List<TransformerFactoryInfo> factories = new ArrayList<TransformerFactoryInfo>();
@@ -854,7 +854,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("factory_name", name);
 		params.put("locale", locale.getLanguage());
 
-		Message resp = rpc("org.logpresso.core.msgbus.TransformerPlugin.getTransformerFactoryInfo", params);
+		Message resp = rpc("com.logpresso.core.msgbus.TransformerPlugin.getTransformerFactoryInfo", params);
 		Map<String, Object> m = (Map<String, Object>) resp.get("factory");
 
 		TransformerFactoryInfo f = new TransformerFactoryInfo();
@@ -875,7 +875,7 @@ public class LogDbClient implements TrapListener, Closeable {
 
 	@SuppressWarnings("unchecked")
 	public List<TransformerInfo> listTransformers() throws IOException {
-		Message resp = rpc("org.logpresso.core.msgbus.TransformerPlugin.getTransformers");
+		Message resp = rpc("com.logpresso.core.msgbus.TransformerPlugin.getTransformers");
 		List<Object> l = (List<Object>) resp.get("transformers");
 
 		List<TransformerInfo> transformers = new ArrayList<TransformerInfo>();
@@ -889,7 +889,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	public TransformerInfo getTransformer(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
-		Message resp = rpc("org.logpresso.core.msgbus.TransformerPlugin.getTransformer", params);
+		Message resp = rpc("com.logpresso.core.msgbus.TransformerPlugin.getTransformer", params);
 
 		@SuppressWarnings("unchecked")
 		Map<String, Object> m = (Map<String, Object>) resp.get("transformer");
@@ -911,13 +911,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("factory_name", transformer.getFactoryName());
 		params.put("configs", transformer.getConfigs());
 
-		rpc("org.logpresso.core.msgbus.TransformerPlugin.createTransformer", params);
+		rpc("com.logpresso.core.msgbus.TransformerPlugin.createTransformer", params);
 	}
 
 	public void removeTransformer(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
-		rpc("org.logpresso.core.msgbus.TransformerPlugin.removeTransformer", params);
+		rpc("com.logpresso.core.msgbus.TransformerPlugin.removeTransformer", params);
 	}
 
 	public List<LoggerInfo> listLoggers() throws IOException {

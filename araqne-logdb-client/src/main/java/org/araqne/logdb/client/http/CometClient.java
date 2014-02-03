@@ -73,7 +73,7 @@ public class CometClient implements TrapListener {
 	@SuppressWarnings("unchecked")
 	public List<ArchiveConfig> listArchiveConfigs() throws IOException {
 		List<ArchiveConfig> configs = new ArrayList<ArchiveConfig>();
-		Message resp = session.rpc("org.logpresso.core.msgbus.ArchivePlugin.getConfigs");
+		Message resp = session.rpc("com.logpresso.core.msgbus.ArchivePlugin.getConfigs");
 		List<Map<String, Object>> l = (List<Map<String, Object>>) resp.get("configs");
 		for (Map<String, Object> m : l) {
 			configs.add(parseArchiveConfig(m));
@@ -87,7 +87,7 @@ public class CometClient implements TrapListener {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", loggerName);
 
-		Message resp = session.rpc("org.logpresso.core.msgbus.ArchivePlugin.getConfig", params);
+		Message resp = session.rpc("com.logpresso.core.msgbus.ArchivePlugin.getConfig", params);
 		Map<String, Object> m = (Map<String, Object>) resp.getParameters().get("config");
 		return parseArchiveConfig(m);
 	}
@@ -110,13 +110,13 @@ public class CometClient implements TrapListener {
 		params.put("host", config.getHost());
 		params.put("enabled", config.isEnabled());
 		params.put("metadata", config.getMetadata());
-		session.rpc("org.logpresso.core.msgbus.ArchivePlugin.createConfig", params);
+		session.rpc("com.logpresso.core.msgbus.ArchivePlugin.createConfig", params);
 	}
 
 	public void removeArchiveConfig(String loggerName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", loggerName);
-		session.rpc("org.logpresso.core.msgbus.ArchivePlugin.removeConfig", params);
+		session.rpc("com.logpresso.core.msgbus.ArchivePlugin.removeConfig", params);
 	}
 
 	@SuppressWarnings("unchecked")
