@@ -15,6 +15,8 @@
  */
 package org.araqne.logdb.msgbus;
 
+import java.security.Provider;
+import java.security.Security;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -412,7 +414,22 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void getCryptoProfiles(Request req, Response resp) {
-		resp.put("profiles", logCryptoProfileRegistry.getProfiles());
+		List<Object> l = new ArrayList<Object>();
+		for (LogCryptoProfile p : logCryptoProfileRegistry.getProfiles()) {
+			Map<String, Object> m = serialize(p);
+			l.add(m);
+		}
+
+		resp.put("profiles", l);
+	}
+
+	private Map<String, Object> serialize(LogCryptoProfile profile) {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("name", profile.getName());
+		m.put("cipher", profile.getCipher());
+		m.put("digest", profile.getDigest());
+		m.put("file_path", profile.getFilePath());
+		return m;
 	}
 
 	@MsgbusMethod
@@ -426,34 +443,14 @@ public class ManagementPlugin {
 		String name = req.getString("name");
 		String cipher = req.getString("cipher");
 		String digest = req.getString("digest");
-		String filePath = req.getString("filePath");
+		String filePath = req.getString("file_path");
 		String password = req.getString("password");
 
 		LogCryptoProfile p = new LogCryptoProfile();
-
-		/**
-		 * profile name
-		 */
 		p.setName(name);
-
-		/**
-		 * cipher algorithm (e.g. AES/CBC/PKCS5Padding)
-		 */
 		p.setCipher(cipher);
-
-		/**
-		 * digest algorithm (e.g. HmacSHA256)
-		 */
 		p.setDigest(digest);
-
-		/**
-		 * pkcs#12 file path
-		 */
 		p.setFilePath(filePath);
-
-		/**
-		 * pkcs#12 keystore password
-		 */
 		p.setPassword(password);
 
 		logCryptoProfileRegistry.addProfile(p);
@@ -464,5 +461,27 @@ public class ManagementPlugin {
 	public void removeCryptoProfile(Request req, Response resp) {
 		String name = req.getString("name");
 		logCryptoProfileRegistry.removeProfile(name);
+	}
+
+	@MsgbusMethod
+	public void getCipherTransformers(Request req, Response resp) {
+		List<String> l = new ArrayList<String>();
+		l.add("AES/CBC/NoPadding");
+		l.add("AES/CBC/PKCS5Padding");
+		l.add("AES/ECB/NoPadding");
+		l.add("AES/ECB/PKCS5Padding");
+		l.add("DES/CBC/NoPadding");
+		l.add("DES/CBC/PKCS5Padding");
+		l.add("DES/ECB/NoPadding");
+		l.add("DES/ECB/PKCS5Padding");
+		l.add("DESede/CBC/NoPadding");
+		l.add("DESede/CBC/PKCS5Padding");
+		l.add("DESede/ECB/NoPadding");
+		l.add("DESede/ECB/PKCS5Padding");
+		l.add("RSA/ECB/PKCS1Padding");
+		l.add("RSA/ECB/OAEPWithSHA-1AndMGF1Padding");
+		l.add("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+
+		resp.put("cipher_transformers", l);
 	}
 }
