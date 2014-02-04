@@ -2,12 +2,12 @@ package org.araqne.storage.hdfs;
 
 import org.apache.hadoop.fs.FileSystem;
 
-class HDFSRoot {
+class HDFSCluster {
 	private final FileSystem fs;
 	private final String alias;
 	private final String protocol;
 	
-	public HDFSRoot(FileSystem fs, String alias) {
+	public HDFSCluster(FileSystem fs, String alias) {
 		this.fs = fs;
 		this.alias = alias;
 		this.protocol = "hdfs"; // TODO : handle hftp, webhdfs
@@ -15,6 +15,10 @@ class HDFSRoot {
 	
 	public String toString() {
 		return protocol + "://" + alias;
+	}
+	
+	public String getProtocol() {
+		return protocol;
 	}
 	
 	public FileSystem getFileSystem() {
@@ -27,11 +31,11 @@ class HDFSRoot {
 	
 	@Override
 	public boolean equals(Object o) {
-		if (!(o instanceof HDFSRoot))
+		if (!(o instanceof HDFSCluster))
 			return false;
 		
 		// if FileSystems are identical, HDFSRoots are identical.
-		HDFSRoot rhs = (HDFSRoot) o;
+		HDFSCluster rhs = (HDFSCluster) o;
 		return fs.equals(rhs.fs);
 	}
 }

@@ -19,19 +19,19 @@ import org.apache.hadoop.fs.permission.FsPermission;
 public class HDFSFilePath implements FilePath {
 	static final String PROTOCOL_NAME = "hdfs";
 	static final String PROTOCOL_STRING = "hdfs://";
-	private final HDFSRoot root;
+	private final HDFSCluster root;
 	private final Path path;
 	
-	public HDFSFilePath(HDFSRoot root, String path) {
+	public HDFSFilePath(HDFSCluster root, String path) {
 		this(root, new Path(path));
 	}
 	
-	public HDFSFilePath(HDFSRoot root, Path path) {
+	public HDFSFilePath(HDFSCluster root, Path path) {
 		this.root = root;
 		this.path = path;
 	}
 	
-	HDFSRoot getRoot() {
+	HDFSCluster getRoot() {
 		return root;
 	}
 
