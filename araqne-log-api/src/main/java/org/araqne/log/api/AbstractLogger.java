@@ -65,6 +65,12 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	 * @since 1.7.0
 	 */
 	public AbstractLogger(LoggerSpecification spec, LoggerFactory factory) {
+		// logger factory info
+		this.factoryNamespace = factory.getNamespace();
+		this.factoryName = factory.getName();
+		this.factoryFullName = factoryNamespace + "\\" + factoryName;
+		this.factory = factory;
+
 		// logger info
 		this.namespace = spec.getNamespace();
 		this.name = spec.getName();
@@ -72,33 +78,11 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		this.description = spec.getDescription();
 		this.config = spec.getConfig();
 
-		// load state
-		LastStateService lss = factory.getLastStateService();
-		LastState state = lss.getState(fullName);
-		long lastLogCount = 0;
-		long lastDropCount = 0;
-		int interval = 0;
+		reloadStates();
 
-		if (state != null) {
-			lastLogCount = state.getLogCount();
-			lastDropCount = state.getDropCount();
-			lastLogDate = state.getLastLogDate();
-		}
-
-		// logger factory info
-		this.factoryNamespace = factory.getNamespace();
-		this.factoryName = factory.getName();
-		this.factoryFullName = factoryNamespace + "\\" + factoryName;
-
-		this.logCounter = new AtomicLong(lastLogCount);
-		this.dropCounter = new AtomicLong(lastDropCount);
-		this.lastLogDate = lastLogDate;
 		this.pipes = new CopyOnWriteArraySet<LogPipe>();
-
 		this.eventListeners = Collections.newSetFromMap(new ConcurrentHashMap<LoggerEventListener, Boolean>());
 
-		this.interval = interval;
-		this.factory = factory;
 	}
 
 	@Override
@@ -623,6 +607,23 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		dropCounter.set(0);
 		lastLogDate = null;
 		setStates(new HashMap<String, Object>());
+	}
+
+	@Override
+	public void reloadStates() {
+		LastStateService lss = factory.getLastStateService();
+		LastState state = lss.getState(fullName);
+		long lastLogCount = 0;
+		long lastDropCount = 0;
+
+		if (state != null) {
+			lastLogCount = state.getLogCount();
+			lastDropCount = state.getDropCount();
+			lastLogDate = state.getLastLogDate();
+		}
+		this.logCounter = new AtomicLong(lastLogCount);
+		this.dropCounter = new AtomicLong(lastDropCount);
+		this.lastLogDate = lastLogDate;
 	}
 
 	@Override

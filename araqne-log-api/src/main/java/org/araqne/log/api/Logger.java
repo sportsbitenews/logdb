@@ -120,6 +120,11 @@ public interface Logger {
 	 * replace current persistent state
 	 */
 	void setStates(Map<String, Object> state);
+	
+	/**
+	 * reload log count, update count 
+	 */
+	void reloadStates();
 
 	/**
 	 * reset log/drop count, last date, and all properties
