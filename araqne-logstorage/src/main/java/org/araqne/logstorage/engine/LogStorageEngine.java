@@ -571,7 +571,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 		LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
 		options.put("day", day);
-		LogFileReader reader = lfsRegistry.newReader(tableName, logFileType, options);
+		LogFileReader reader = newReader(onlineWriter, tableName, logFileType, options);
 
 		return new LogCursorImpl(tableName, day, buffer, reader, ascending);
 	}
@@ -1038,7 +1038,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 			LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
 			options.put("day", day);
-			reader = lfsRegistry.newReader(tableName, logFileType, options);
+			reader = newReader(onlineWriter, tableName, logFileType, options);
 
 			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
 			if (minId < 0 || flushedMaxId < 0 || flushedMaxId >= minId)
@@ -1070,6 +1070,18 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		}
 
 		return !c.isEof();
+	}
+	
+	private LogFileReader newReader(OnlineWriter onlineWriter, String tableName, String logFileType, Map<String, Object> options) {
+		if (onlineWriter != null) {
+			try {
+				onlineWriter.sync();
+			} catch (IOException e) {
+				logger.error("araqne logstorage: cannot sync online writer", e);
+			}
+		}
+
+		return lfsRegistry.newReader(tableName, logFileType, options);
 	}
 
 	@Override
