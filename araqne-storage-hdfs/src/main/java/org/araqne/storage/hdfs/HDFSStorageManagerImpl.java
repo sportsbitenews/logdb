@@ -90,7 +90,7 @@ public class HDFSStorageManagerImpl implements HDFSStorageManager {
 
         FileSystem hdfs = null; 
         try {
-        	hdfs = FileSystem.get(conf);
+        	hdfs = FileSystem.newInstance(conf);
         } catch (IOException e) {
         	logger.error("araqne storage hdfs : cannot get FileSystem - ", e);
         }
