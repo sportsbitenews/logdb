@@ -20,7 +20,7 @@ public interface EventContextStorage {
 
 	EventContext getContext(EventKey key);
 
-	void addContext(EventContext ctx);
+	EventContext addContext(EventContext ctx);
 
 	void removeContext(EventKey key);
 

@@ -25,6 +25,7 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.cep.EventContextService;
@@ -62,12 +63,19 @@ public class CepAddParser implements QueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("topic", "key", "timeout", "threshold"));
+				Arrays.asList("topic", "key", "timeout", "threshold", "maxrows"));
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 		String topic = options.get("topic");
 		String keyField = options.get("key");
+		int maxRows = 10;
+		try {
+			if (options.get("maxrows") != null)
+				maxRows = Integer.parseInt(options.get("maxrows").toString());
+		} catch (NumberFormatException e) {
+			throw new QueryParseException("invalid-maxrows", -1);
+		}
 
 		TimeSpan timeout = null;
 		if (options.get("timeout") != null)
@@ -80,6 +88,6 @@ public class CepAddParser implements QueryCommandParser {
 		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next));
 
 		EventContextStorage storage = eventContextService.getStorage("mem");
-		return new CepAddCommand(storage, topic, keyField, timeout, threshold, matcher);
+		return new CepAddCommand(storage, topic, keyField, timeout, threshold, maxRows, matcher);
 	}
 }

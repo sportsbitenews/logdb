@@ -30,15 +30,17 @@ public class CepAddCommand extends QueryCommand {
 	private String keyField;
 	private TimeSpan timeout;
 	private int threshold;
+	private int maxRows;
 	private Expression matcher;
 
 	public CepAddCommand(EventContextStorage storage, String topic, String keyField, TimeSpan timeout, int threshold,
-			Expression matcher) {
+			int maxRows, Expression matcher) {
 		this.storage = storage;
 		this.topic = topic;
 		this.keyField = keyField;
 		this.timeout = timeout;
 		this.threshold = threshold;
+		this.maxRows = maxRows;
 		this.matcher = matcher;
 	}
 
@@ -72,8 +74,9 @@ public class CepAddCommand extends QueryCommand {
 				expireTime += timeout.unit.getMillis() * timeout.amount;
 			}
 
-			EventContext ctx = new EventContext(eventKey, expireTime, threshold);
-			storage.addContext(ctx);
+			EventContext ctx = new EventContext(eventKey, expireTime, threshold, maxRows);
+			ctx = storage.addContext(ctx);
+			ctx.addRow(row);
 		}
 
 		pushPipe(row);

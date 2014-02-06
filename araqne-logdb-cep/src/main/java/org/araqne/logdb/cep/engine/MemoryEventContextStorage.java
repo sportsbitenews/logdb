@@ -83,13 +83,18 @@ public class MemoryEventContextStorage implements EventContextStorage {
 	}
 
 	@Override
-	public void addContext(EventContext ctx) {
-		contexts.put(ctx.getKey(), ctx);
+	public EventContext addContext(EventContext ctx) {
+		EventContext old = contexts.putIfAbsent(ctx.getKey(), ctx);
+		if (old == null)
+			return ctx;
+		return old;
 	}
 
 	@Override
 	public void removeContext(EventKey key) {
-		contexts.remove(key);
+		EventContext ctx = contexts.remove(key);
+		if (ctx != null)
+			generateEvent(ctx, EventCause.REMOVAL);
 	}
 
 	@Override

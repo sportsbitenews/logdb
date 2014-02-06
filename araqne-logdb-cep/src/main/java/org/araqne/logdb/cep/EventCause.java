@@ -16,5 +16,5 @@
 package org.araqne.logdb.cep;
 
 public enum EventCause {
-	TIMEOUT, THRESHOLD
+	TIMEOUT, THRESHOLD, REMOVAL
 }

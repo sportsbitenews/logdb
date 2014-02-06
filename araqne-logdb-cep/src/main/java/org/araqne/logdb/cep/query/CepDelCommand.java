@@ -17,6 +17,7 @@ package org.araqne.logdb.cep.query;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.query.expr.Expression;
@@ -57,6 +58,11 @@ public class CepDelCommand extends QueryCommand {
 		if (matched) {
 			String key = k.toString();
 			EventKey eventKey = new EventKey(topic, key);
+
+			EventContext ctx = storage.getContext(eventKey);
+			if (ctx != null)
+				ctx.addRow(row);
+
 			storage.removeContext(eventKey);
 		}
 
