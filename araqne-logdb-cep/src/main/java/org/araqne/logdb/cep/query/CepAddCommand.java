@@ -76,6 +76,7 @@ public class CepAddCommand extends QueryCommand {
 
 			EventContext ctx = new EventContext(eventKey, expireTime, threshold, maxRows);
 			ctx = storage.addContext(ctx);
+			ctx.setExpireTime(expireTime);
 			ctx.addRow(row);
 		}
 

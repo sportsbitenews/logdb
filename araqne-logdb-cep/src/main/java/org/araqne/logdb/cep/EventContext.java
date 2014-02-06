@@ -48,6 +48,10 @@ public class EventContext {
 		return key;
 	}
 
+	public void setKey(EventKey key) {
+		this.key = key;
+	}
+
 	public List<Row> getRows() {
 		return Collections.unmodifiableList(rows);
 	}
@@ -56,8 +60,16 @@ public class EventContext {
 		return expireTime;
 	}
 
+	public void setExpireTime(long expireTime) {
+		this.expireTime = expireTime;
+	}
+
 	public int getThreshold() {
 		return threshold;
+	}
+
+	public void setThreshold(int threshold) {
+		this.threshold = threshold;
 	}
 
 	public AtomicInteger getCounter() {
