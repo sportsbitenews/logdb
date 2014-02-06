@@ -10,10 +10,12 @@ import org.araqne.storage.api.StorageInputStream;
 public class HDFSFileInputStream extends StorageInputStream {
 	private final HDFSFilePath path;
 	private final FSDataInputStream stream;
+	private long length;
 	
 	public HDFSFileInputStream(HDFSFilePath path, FSDataInputStream stream) {
 		this.path = path;
 		this.stream = stream;
+		this.length = -1;
 	}
 
 	@Override
@@ -23,7 +25,22 @@ public class HDFSFileInputStream extends StorageInputStream {
 
 	@Override
 	public long length() throws IOException {
-		return path.length();
+		long pathlength = path.length(); 
+		if (length < pathlength)
+			length = pathlength;
+		
+		// check stream grew up
+		long oldPos = stream.getPos();
+		try {
+			stream.seek(length);
+			long remain = stream.skip(Long.MAX_VALUE - length);
+			if (remain > 0)
+				length += remain;
+		
+			return length;
+		} finally {
+			stream.seek(oldPos);
+		}
 	}
 
 	@Override
