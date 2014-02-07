@@ -82,6 +82,13 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * @since 0.9.1
+	 */
+	public LogDbSession getSession() {
+		return session;
+	}
+
+	/**
 	 * @since 0.6.0
 	 */
 	public int getFetchSize() {

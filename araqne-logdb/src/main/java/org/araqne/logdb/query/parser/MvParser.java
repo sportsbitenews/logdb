@@ -53,7 +53,7 @@ public class MvParser implements QueryCommandParser {
 		String to = options.get("to");
 
 		if (new File(to).exists())
-			throw new QueryParseException("invalid-path", -1);
+			throw new QueryParseException("file-exists", -1, to);
 
 		return new Mv(from, to);
 	}

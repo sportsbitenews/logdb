@@ -50,13 +50,20 @@ public class Mv extends QueryCommand implements ThreadSafe {
 			return;
 		}
 
-		File f = new File(from);
-		if (!f.exists()) {
-			logger.error("araqne logdb: from file does not exist", f.getAbsolutePath());
+		File fromFile = new File(from);
+		File toFile = new File(to);
+
+		toFile.getParentFile().mkdirs();
+
+		if (!fromFile.exists()) {
+			logger.error("araqne logdb: mv - source file [{}] not found", fromFile.getAbsolutePath());
 			return;
 		}
 
-		if (!f.renameTo(new File(to)))
-			logger.error("araqne logdb: file move failed");
+		if (!fromFile.renameTo(toFile)) {
+			// TODO: copy using nio channel
+			logger.error("araqne logdb: file move failed, from [{}] to [{}]", fromFile.getAbsolutePath(),
+					toFile.getAbsolutePath());
+		}
 	}
 }
