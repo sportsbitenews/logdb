@@ -104,8 +104,6 @@ public class Sort extends QueryCommand {
 		} catch (IOException e) {
 			throw new IllegalStateException("sort failed, query " + query, e);
 		}
-
-		pushPipe(rowBatch);
 	}
 
 	@Override
