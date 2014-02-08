@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
 	private static final String OPT_SOURCE_LOGGER = "source_logger";
 	private static final String OPT_PATTERN = "pattern";
+	private static final String OPT_INVERT = "invert";
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SelectorLogger.class.getName());
 	private LoggerRegistry loggerRegistry;
 
@@ -31,6 +32,8 @@ public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistr
 	private String loggerName;
 
 	private String pattern;
+
+	private final boolean invert;
 
 	/**
 	 * cached pattern matchers per thread
@@ -43,6 +46,7 @@ public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistr
 		Map<String, String> config = spec.getConfig();
 		loggerName = config.get(OPT_SOURCE_LOGGER);
 		pattern = config.get(OPT_PATTERN);
+		invert = config.get(OPT_INVERT) != null && Boolean.parseBoolean(config.get(OPT_INVERT));
 	}
 
 	@Override
@@ -114,7 +118,11 @@ public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistr
 			matcher.reset(line);
 		}
 
-		if (matcher.find())
+		boolean select = matcher.find();
+		if (invert)
+			select = !select;
+
+		if (select)
 			write(new SimpleLog(log.getDate(), getFullName(), log.getParams()));
 	}
 

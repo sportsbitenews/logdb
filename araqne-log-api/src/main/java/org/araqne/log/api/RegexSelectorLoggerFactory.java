@@ -30,6 +30,7 @@ import org.apache.felix.ipojo.annotations.Requires;
 public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 	private static final String OPT_SOURCE_LOGGER = "source_logger";
 	private static final String OPT_PATTERN = "pattern";
+	private static final String OPT_INVERT = "invert";
 
 	@Requires
 	private LoggerRegistry loggerRegistry;
@@ -69,7 +70,9 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름"), true);
 		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Regex pattern", "정규표현식 패턴"), t(
 				"Regex pattern to match", "매칭할 정규표현식"), true);
-		return Arrays.asList(loggerName, pattern);
+		LoggerConfigOption invert = new StringConfigType(OPT_INVERT, t("Invert match", "매칭 결과 반전"), t(
+				"Invert pattern match result", "정규표현식 매칭 결과 반전"), false);
+		return Arrays.asList(loggerName, pattern, invert);
 	}
 
 	private Map<Locale, String> t(String enText, String koText) {
