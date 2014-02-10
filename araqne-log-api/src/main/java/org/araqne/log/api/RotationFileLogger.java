@@ -18,10 +18,10 @@ package org.araqne.log.api;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -77,11 +77,21 @@ public class RotationFileLogger extends AbstractLogger {
 
 		extractor.setCharset(charset);
 
+		// try migration at boot
+		File oldLastFile = getLastLogFile();
+		if (oldLastFile.exists()) {
+			LastState lastState = getLastStateFromFile();
+			setStates(lastState.serialize());
+			oldLastFile.renameTo(new File(oldLastFile.getAbsolutePath() + ".migrated"));
+		}
 	}
 
 	@Override
 	protected void runOnce() {
-		LastState state = getLastPosition();
+		LastState oldState = null;
+		if (!getStates().isEmpty()) {
+			oldState = LastState.deserialize(getStates());
+		}
 
 		String filePath = getConfigs().get("file_path");
 		File f = new File(filePath);
@@ -99,11 +109,11 @@ public class RotationFileLogger extends AbstractLogger {
 		long fileLength = f.length();
 		long offset = 0;
 
-		if (state != null) {
-			if (firstLine == null || !firstLine.equals(state.firstLine) || fileLength < state.lastLength)
+		if (oldState != null) {
+			if (firstLine == null || !firstLine.equals(oldState.firstLine) || fileLength < oldState.lastLength)
 				offset = 0;
 			else
-				offset = state.lastPosition;
+				offset = oldState.lastPosition;
 		}
 
 		AtomicLong lastPosition = new AtomicLong(offset);
@@ -124,28 +134,8 @@ public class RotationFileLogger extends AbstractLogger {
 				}
 			}
 
-			updateLastState(getLastLogFile(), fileLength, lastPosition.get(), firstLine);
-		}
-	}
-
-	private void updateLastState(File f, long length, long pos, String firstLine) {
-		// write last positions
-		FileOutputStream os = null;
-
-		try {
-			os = new FileOutputStream(f);
-
-			String line = length + "\n" + pos + "\n" + firstLine + "\n";
-			os.write(line.getBytes("utf-8"));
-		} catch (IOException e) {
-			slog.error("araqne log api: cannot write last position file", e);
-		} finally {
-			if (os != null) {
-				try {
-					os.close();
-				} catch (IOException e) {
-				}
-			}
+			LastState newState = new LastState(firstLine, lastPosition.get(), fileLength);
+			setStates(newState.serialize());
 		}
 	}
 
@@ -177,7 +167,7 @@ public class RotationFileLogger extends AbstractLogger {
 		}
 	}
 
-	private LastState getLastPosition() {
+	private LastState getLastStateFromFile() {
 		FileInputStream is = null;
 		BufferedReader br = null;
 		try {
@@ -208,7 +198,7 @@ public class RotationFileLogger extends AbstractLogger {
 		return new File(dataDir, "rotation-" + getName() + ".lastlog");
 	}
 
-	private class LastState {
+	private static class LastState {
 		private String firstLine;
 		private long lastPosition;
 		private long lastLength;
@@ -217,6 +207,21 @@ public class RotationFileLogger extends AbstractLogger {
 			this.firstLine = firstLine;
 			this.lastPosition = lastPosition;
 			this.lastLength = lastLength;
+		}
+
+		public static LastState deserialize(Map<String, Object> m) {
+			String firstLine = (String) m.get("first_line");
+			long lastPosition = (Long) m.get("last_position");
+			long lastLength = (Long) m.get("last_length");
+			return new LastState(firstLine, lastPosition, lastLength);
+		}
+
+		public Map<String, Object> serialize() {
+			HashMap<String, Object> m = new HashMap<String, Object>();
+			m.put("first_line", firstLine);
+			m.put("last_position", lastPosition);
+			m.put("last_length", lastLength);
+			return m;
 		}
 	}
 
