@@ -28,18 +28,22 @@ public class EventContext {
 
 	private AtomicInteger counter = new AtomicInteger();
 
-	// 0 means infinite
+	// 0 means infinite, absolutely disappears
 	private long expireTime;
+
+	// 0 means infinite, extended when new row arrives
+	private long timeoutTime;
 
 	// 0 means infinite
 	private int threshold;
 
 	private int maxRows;
 
-	public EventContext(EventKey key, long expireTime, int threshold, int maxRows) {
+	public EventContext(EventKey key, long expireTime, long timeoutTime, int threshold, int maxRows) {
 		this.key = key;
 		this.rows = Collections.synchronizedList(new ArrayList<Row>());
 		this.expireTime = expireTime;
+		this.timeoutTime = timeoutTime;
 		this.threshold = threshold;
 		this.maxRows = maxRows;
 	}
@@ -54,6 +58,14 @@ public class EventContext {
 
 	public List<Row> getRows() {
 		return Collections.unmodifiableList(rows);
+	}
+
+	public long getTimeoutTime() {
+		return timeoutTime;
+	}
+
+	public void setTimeoutTime(long timeoutTime) {
+		this.timeoutTime = timeoutTime;
 	}
 
 	public long getExpireTime() {

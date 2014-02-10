@@ -118,16 +118,33 @@ public class MemoryEventContextStorage implements EventContextStorage {
 
 		@Override
 		public void run() {
-			List<EventContext> evict = new ArrayList<EventContext>();
+			List<EventContext> evictExpire = new ArrayList<EventContext>();
 
 			long now = System.currentTimeMillis();
 			for (EventContext ctx : contexts.values()) {
 				long expire = ctx.getExpireTime();
 				if (expire != 0 && expire <= now)
-					evict.add(ctx);
+					evictExpire.add(ctx);
 			}
 
-			for (EventContext ctx : evict) {
+			for (EventContext ctx : evictExpire) {
+				EventKey key = ctx.getKey();
+				if (slog.isDebugEnabled())
+					slog.debug("araqne logdb cep: generate timeout event, topic [{}] key [{}]", key.getTopic(), key.getKey());
+
+				contexts.remove(key);
+				generateEvent(ctx, EventCause.EXPIRE);
+			}
+
+			List<EventContext> evictTimeout = new ArrayList<EventContext>();
+
+			for (EventContext ctx : contexts.values()) {
+				long time = ctx.getTimeoutTime();
+				if (time != 0 && time <= now)
+					evictTimeout.add(ctx);
+			}
+
+			for (EventContext ctx : evictTimeout) {
 				EventKey key = ctx.getKey();
 				if (slog.isDebugEnabled())
 					slog.debug("araqne logdb cep: generate timeout event, topic [{}] key [{}]", key.getTopic(), key.getKey());

@@ -28,16 +28,18 @@ public class CepAddCommand extends QueryCommand {
 	private EventContextStorage storage;
 	private String topic;
 	private String keyField;
+	private TimeSpan expire;
 	private TimeSpan timeout;
 	private int threshold;
 	private int maxRows;
 	private Expression matcher;
 
-	public CepAddCommand(EventContextStorage storage, String topic, String keyField, TimeSpan timeout, int threshold,
-			int maxRows, Expression matcher) {
+	public CepAddCommand(EventContextStorage storage, String topic, String keyField, TimeSpan expire, TimeSpan timeout,
+			int threshold, int maxRows, Expression matcher) {
 		this.storage = storage;
 		this.topic = topic;
 		this.keyField = keyField;
+		this.expire = expire;
 		this.timeout = timeout;
 		this.threshold = threshold;
 		this.maxRows = maxRows;
@@ -69,14 +71,22 @@ public class CepAddCommand extends QueryCommand {
 			EventKey eventKey = new EventKey(topic, key);
 
 			long expireTime = 0;
-			if (timeout != null) {
+			if (expire != null) {
 				expireTime = System.currentTimeMillis();
-				expireTime += timeout.unit.getMillis() * timeout.amount;
+				expireTime += expire.unit.getMillis() * expire.amount;
 			}
 
-			EventContext ctx = new EventContext(eventKey, expireTime, threshold, maxRows);
+			long timeoutTime = 0;
+			if (timeout != null) {
+				timeoutTime = System.currentTimeMillis();
+				timeoutTime += timeout.unit.getMillis() * timeout.amount;
+			}
+
+			EventContext ctx = new EventContext(eventKey, expireTime, timeoutTime, threshold, maxRows);
 			ctx = storage.addContext(ctx);
-			ctx.setExpireTime(expireTime);
+
+			// extend timeout
+			ctx.setTimeoutTime(timeoutTime);
 			ctx.addRow(row);
 		}
 

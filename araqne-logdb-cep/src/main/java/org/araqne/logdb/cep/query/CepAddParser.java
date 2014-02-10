@@ -63,7 +63,7 @@ public class CepAddParser implements QueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("topic", "key", "timeout", "threshold", "maxrows"));
+				Arrays.asList("topic", "key", "expire", "timeout", "threshold", "maxrows"));
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -77,6 +77,10 @@ public class CepAddParser implements QueryCommandParser {
 			throw new QueryParseException("invalid-maxrows", -1);
 		}
 
+		TimeSpan expire = null;
+		if (options.get("expire") != null)
+			expire = TimeSpan.parse(options.get("expire"));
+
 		TimeSpan timeout = null;
 		if (options.get("timeout") != null)
 			timeout = TimeSpan.parse(options.get("timeout"));
@@ -88,6 +92,6 @@ public class CepAddParser implements QueryCommandParser {
 		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next));
 
 		EventContextStorage storage = eventContextService.getStorage("mem");
-		return new CepAddCommand(storage, topic, keyField, timeout, threshold, maxRows, matcher);
+		return new CepAddCommand(storage, topic, keyField, expire, timeout, threshold, maxRows, matcher);
 	}
 }
