@@ -283,8 +283,58 @@ public class TableParser implements QueryCommandParser {
 			exprStack.add(new StringConstant(t.toString()));
 		}
 	}
+	
+	private static class MetaS implements TableSpec {
+		private Expression predicate;
+		private TableSpec pattern;
+		private MetadataMatcher<TableSpec> mm;
 
-	private static class Meta implements Expression, TableSpec {
+		public MetaS(Expression pred, TableSpec pat) {
+			this.predicate = pred;
+			this.pattern = pat;
+			this.mm = new MetadataMatcher<TableSpec>(predicate.eval(new Row()).toString(), Arrays.asList(pattern));
+		}
+
+		public Object clone() {
+			return new MetaS(predicate, pattern);
+		}
+
+		@Override
+		public String getSpec() {
+			return toString();
+		}
+
+		@Override
+		public List<StorageObjectName> match(LogTableRegistry logTableRegistry) {
+			return mm.match(logTableRegistry);
+		}
+
+		@Override
+		public String getNamespace() {
+			return pattern.getNamespace();
+		}
+		
+		@Override
+		public void setNamespace(String ns) {
+			pattern.setNamespace(ns);
+		}
+
+		@Override
+		public String getTable() {
+			return pattern.getTable();
+		}
+
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			sb.append("meta(");
+			sb.append(predicate.toString());
+			sb.append(", " + pattern.toString());
+			sb.append(")");
+			return sb.toString();
+		}
+	}
+
+	private static class Meta implements Expression {
 		private List<TableSpec> patterns;
 		private MetadataMatcher<TableSpec> mm;
 		private String predStr;
@@ -315,17 +365,11 @@ public class TableParser implements QueryCommandParser {
 		
 		@Override
 		public Object eval(Row map) {
-			return this;
-		}
-
-		@Override
-		public String getSpec() {
-			return toString();
-		}
-
-		@Override
-		public List<StorageObjectName> match(LogTableRegistry logTableRegistry) {
-			return mm.match(logTableRegistry);
+			List<TableSpec> result = new ArrayList<TableSpec>();
+			for (TableSpec ts: patterns) {
+				result.add(new MetaS(args.get(0), ts));
+			}
+			return result;
 		}
 
 		public String toString() {
@@ -337,21 +381,6 @@ public class TableParser implements QueryCommandParser {
 			}
 			sb.append(")");
 			return sb.toString();
-		}
-
-		@Override
-		public String getNamespace() {
-			return null;
-		}
-		
-		@Override
-		public void setNamespace(String ns) {
-			// XXX not implemented yet
-		}
-
-		@Override
-		public String getTable() {
-			return null;
 		}
 	}
 
@@ -413,6 +442,10 @@ public class TableParser implements QueryCommandParser {
 	private void addTableSpec(List<TableSpec> target, QueryContext context, Object spec) {
 		if (spec instanceof TableSpec) {
 			target.add((TableSpec) spec);
+		} else if (spec instanceof List) {
+			for (Object o : (List<Object>) spec) {
+				addTableSpec(target, context, o);
+			}
 		} else {
 			WildcardTableSpec wspec = new WildcardTableSpec(spec.toString());
 			if (!wspec.hasWildcard()) {

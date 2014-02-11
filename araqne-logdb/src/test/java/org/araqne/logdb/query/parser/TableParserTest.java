@@ -157,6 +157,20 @@ public class TableParserTest {
 		System.out.println(table.getTableNames());
 		assertTrue(table.getTableNames().contains("meta(\"logparser==trusguard\", *)"));
 		assertTrue(table.getTableNames().contains("iis"));
+
+		query = "table duration=1d meta(\"logparser==trusguard\", \"n1:s*\", \"*:s2\", \"s3\"), iis";
+		table = parse(query);
+
+		System.out.println(table.getTableNames());
+		assertEquals("meta(\"logparser==trusguard\", n1:s*)", table.getTableSpecs().get(0).toString());
+		assertEquals("meta(\"logparser==trusguard\", *:s2)", table.getTableSpecs().get(1).toString());
+		assertEquals("meta(\"logparser==trusguard\", s3)", table.getTableSpecs().get(2).toString());
+		assertEquals("iis", table.getTableSpecs().get(3).toString());
+		
+		assertEquals("n1", table.getTableSpecs().get(0).getNamespace());
+		assertEquals("*", table.getTableSpecs().get(1).getNamespace());
+		assertEquals(null, table.getTableSpecs().get(2).getNamespace());
+		assertEquals(null, table.getTableSpecs().get(3).getNamespace());
 	}
 
 	@Test
@@ -172,7 +186,7 @@ public class TableParserTest {
 		System.out.println(table.getTableNames());
 		assertTrue(table.getTableNames().contains("meta(\"logparser==trusguard\", *)"));
 		assertTrue(table.getTableNames().contains("iis?"));
-		
+
 		{
 			List<StorageObjectName> names = new ArrayList<StorageObjectName>();
 			for (TableSpec spec : table.getTableSpecs()) {
