@@ -209,7 +209,7 @@ public class LastStateServiceImpl implements LastStateService {
 		}
 
 		// update count can be assigned from caller
-		if (old != null && state.getUpdateCount() == old.getUpdateCount())
+		if (old != null && state.getUpdateCount() == 0)
 			state.setUpdateCount(old.getUpdateCount() + 1);
 
 		states.put(state.getLoggerName(), state);
