@@ -195,13 +195,16 @@ public class HDFSFilePath implements FilePath {
 	public FilePath[] listFiles(FilePathNameFilter filter) throws SecurityException {
 		List<FilePath> ret = new ArrayList<FilePath>();
 		
+		if (!this.exists())
+			return (FilePath[]) (ret.toArray(new FilePath[0]));
+		
 		try {
-		RemoteIterator<LocatedFileStatus> it = root.getFileSystem().listFiles(path, false);
-		while (it.hasNext()) {
-			FilePath curr = new HDFSFilePath(root, it.next().getPath());
-			if (filter.accept(this, curr.getName()))
-				ret.add(curr);
-		}
+			RemoteIterator<LocatedFileStatus> it = root.getFileSystem().listFiles(path, false);
+			while (it.hasNext()) {
+				FilePath curr = new HDFSFilePath(root, it.next().getPath());
+				if (filter.accept(this, curr.getName()))
+					ret.add(curr);
+			}
 		} catch (IOException e) {
 			throw new IllegalStateException("Unexpected IOException", e);
 		}
