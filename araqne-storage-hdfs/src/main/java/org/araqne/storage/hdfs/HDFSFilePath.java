@@ -179,6 +179,9 @@ public class HDFSFilePath implements FilePath {
 	public FilePath[] listFiles() throws SecurityException {
 		List<FilePath> ret = new ArrayList<FilePath>();
 		
+		if (!this.exists())
+			return (FilePath[]) (ret.toArray(new FilePath[0]));
+		
 		try {
 			RemoteIterator<LocatedFileStatus> it = root.getFileSystem().listFiles(path, false);
 			while (it.hasNext()) {
