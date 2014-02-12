@@ -47,9 +47,9 @@ class LogFileFetcher {
 		// FIXME : add option for path
 		int tableId = tableRegistry.getTableId(tableName);
 		String basePathString = tableRegistry.getTableMetadata(tableName, "base_path");
-		FilePath basePath = storageManager.resolveFilePath(basePathString);
-		if (basePath == null)
-			throw new IllegalStateException("base path not found: " + basePathString);;
+		FilePath basePath = null;
+		if (basePathString != null)
+			basePath = storageManager.resolveFilePath(basePathString);
 
 		FilePath indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
 		if (!indexPath.exists())
