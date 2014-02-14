@@ -13,6 +13,12 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.araqne.confdb.Config;
+import org.araqne.confdb.ConfigCollection;
+import org.araqne.confdb.ConfigDatabase;
+import org.araqne.confdb.ConfigIterator;
+import org.araqne.confdb.ConfigService;
+import org.araqne.confdb.Predicates;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
 import org.araqne.storage.api.StorageUtil;
@@ -29,19 +35,25 @@ public class HDFSStorageManagerImpl implements HDFSStorageManager {
 
     private List<HDFSCluster> clusters = new ArrayList<HDFSCluster>();
     
+    private HDFSStorageManagerImpl() {
+    }
+    
+    @Requires
+    private ConfigService confService;
+    
 	@Requires
 	private StorageManager storageManager;
     
 	@Validate
 	@Override
 	public void start() {
-		// TODO : Remove this hard-coded configuration
-        Configuration conf = new Configuration();
-        conf.addResource(new Path("/data/hadoop-2.2.0/etc/hadoop/core-site.xml"));
-        conf.addResource(new Path("/data/hadoop-2.2.0/etc/hadoop/hdfs-site.xml"));
-
-        addCluster(conf, "localhost:9000");
-        // XXX : hard coded end
+		// load from confdb
+		ConfigDatabase db = confService.ensureDatabase("araqne-hdfs-storage");
+		ConfigCollection col = db.ensureCollection(HDFSStorageClusterConfig.class);
+		ConfigIterator it = col.findAll();
+		for (HDFSStorageClusterConfig c : it.getDocuments(HDFSStorageClusterConfig.class)) {
+			addCluster(c.getConfFiles(), c.getName(), false);
+		}
         
         storageManager.addURIResolver(this);
 	}
@@ -67,6 +79,7 @@ public class HDFSStorageManagerImpl implements HDFSStorageManager {
 		String host = path.substring(protocolString.length(), rootStartIdx);
 		String subPath = path.substring(rootStartIdx);
 		
+		// there are a few clusters
 		for (HDFSCluster root : clusters) {
 			if (root.getProtocol().equals(protocol) && root.getAlias().equals(host)) {
 				return new HDFSFilePath(root, subPath);
@@ -84,7 +97,28 @@ public class HDFSStorageManagerImpl implements HDFSStorageManager {
 	}
 
 	@Override
-	public boolean addCluster(Configuration conf, String alias) {
+	public boolean addCluster(List<String> confFiles, String alias) {
+		return addCluster(confFiles, alias, true);
+	}
+	
+	private boolean addCluster(List<String> confFiles, String alias, boolean saveConf) {
+		Configuration conf = new Configuration();
+		for (String cf : confFiles) {
+			conf.addResource(new Path(cf));
+		}
+		
+		// TODO : synchronization
+		// save configuration to confDB
+		if (saveConf) {
+			HDFSStorageClusterConfig c = new HDFSStorageClusterConfig(alias, confFiles);
+			ConfigDatabase db = confService.ensureDatabase("araqne-hdfs-storage");
+			db.add(c, "araqne-storage-hdfs", "added " + alias + " cluster");
+		}
+		
+		return addCluster(conf, alias);
+	}
+	
+	private boolean addCluster(Configuration conf, String alias) {
         conf.setIfUnset("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
         conf.setClassLoader(Configuration.class.getClassLoader());
 
@@ -117,10 +151,45 @@ public class HDFSStorageManagerImpl implements HDFSStorageManager {
 			}
 		}
 
-		// TODO: handle protocol
+		// TODO: handle protocol (hftp, webhdfs, ...)
 		clusters.add(new HDFSCluster(hdfs, alias));
         
         return true;
+	}
+	
+	@Override
+	public boolean removeCluster(String alias) {
+		HDFSCluster cluster = null;
+		for (HDFSCluster c : clusters) {
+			if (c.getAlias().equals(alias)) {
+				cluster = c;
+				break;
+			}
+		}
+		
+		if (cluster == null)
+			return false;
+		
+		// TODO : synchronization
+		ConfigDatabase db = confService.ensureDatabase("araqne-hdfs-storage");
+		Config c = db.findOne(HDFSStorageClusterConfig.class, Predicates.field("name", cluster.getAlias()));
+		if (c == null)
+			throw new IllegalStateException("hdfs cluster not found, alias=" + cluster.getAlias());
+		
+		db.remove(c);
+		
+		clusters.remove(cluster);
+		try {
+			cluster.getFileSystem().close();
+		} catch (IOException e) {
+		}
+		
+		return true;
+	}
+
+	@Override
+	public List<HDFSCluster> getClusters() {
+		return clusters;
 	}
 
 }

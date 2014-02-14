@@ -2,7 +2,7 @@ package org.araqne.storage.hdfs;
 
 import org.apache.hadoop.fs.FileSystem;
 
-class HDFSCluster {
+public class HDFSCluster {
 	private final FileSystem fs;
 	private final String alias;
 	private final String protocol;

@@ -2,4 +2,5 @@
 	xsi:schemaLocation="org.apache.felix.ipojo http://felix.apache.org/ipojo/schemas/CURRENT/core.xsd"
 	xmlns="org.apache.felix.ipojo">
 	<instance component="araqne-hdfs-storage-manager" />
+	<instance component="araqne-hdfs-storage-script-factory" />
 </ipojo>
