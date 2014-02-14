@@ -80,9 +80,11 @@ public class HDFSStorageManagerImpl implements HDFSStorageManager {
 		String subPath = path.substring(rootStartIdx);
 		
 		// there are a few clusters
-		for (HDFSCluster root : clusters) {
-			if (root.getProtocol().equals(protocol) && root.getAlias().equals(host)) {
-				return new HDFSFilePath(root, subPath);
+		synchronized (this) {
+			for (HDFSCluster root : clusters) {
+				if (root.getProtocol().equals(protocol) && root.getAlias().equals(host)) {
+					return new HDFSFilePath(root, subPath);
+				}
 			}
 		}
 		
@@ -97,7 +99,7 @@ public class HDFSStorageManagerImpl implements HDFSStorageManager {
 	}
 
 	@Override
-	public boolean addCluster(List<String> confFiles, String alias) {
+	public synchronized boolean  addCluster(List<String> confFiles, String alias) {
 		return addCluster(confFiles, alias, true);
 	}
 	
@@ -107,7 +109,6 @@ public class HDFSStorageManagerImpl implements HDFSStorageManager {
 			conf.addResource(new Path(cf));
 		}
 		
-		// TODO : synchronization
 		// save configuration to confDB
 		if (saveConf) {
 			HDFSStorageClusterConfig c = new HDFSStorageClusterConfig(alias, confFiles);
@@ -158,7 +159,7 @@ public class HDFSStorageManagerImpl implements HDFSStorageManager {
 	}
 	
 	@Override
-	public boolean removeCluster(String alias) {
+	public synchronized boolean removeCluster(String alias) {
 		HDFSCluster cluster = null;
 		for (HDFSCluster c : clusters) {
 			if (c.getAlias().equals(alias)) {
@@ -170,7 +171,6 @@ public class HDFSStorageManagerImpl implements HDFSStorageManager {
 		if (cluster == null)
 			return false;
 		
-		// TODO : synchronization
 		ConfigDatabase db = confService.ensureDatabase("araqne-hdfs-storage");
 		Config c = db.findOne(HDFSStorageClusterConfig.class, Predicates.field("name", cluster.getAlias()));
 		if (c == null)
