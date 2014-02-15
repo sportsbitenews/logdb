@@ -33,6 +33,7 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerRegistry;
@@ -72,6 +73,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	private static final String QUERY_LOG_TABLE = "araqne_query_logs";
 
 	private final Logger logger = LoggerFactory.getLogger(QueryServiceImpl.class);
+
+	@Requires
+	private ConfigService conf;
 
 	@Requires
 	private AccountService accountService;
@@ -171,6 +175,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new LoadParser(savedResultManager));
 		parsers.add(new LoggerParser(loggerRegistry));
 		parsers.add(new MvParser());
+		parsers.add(new ConfdbParser(conf));
 
 		this.queryParsers = parsers;
 	}
