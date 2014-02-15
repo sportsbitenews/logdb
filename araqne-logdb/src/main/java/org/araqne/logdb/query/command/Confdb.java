@@ -32,7 +32,7 @@ import org.araqne.logdb.Row;
 /**
  * @since 2.1.2
  * @author xeraph
- *
+ * 
  */
 public class Confdb extends DriverQueryCommand {
 	private ConfigService conf;
@@ -54,12 +54,19 @@ public class Confdb extends DriverQueryCommand {
 		if (options.op == Confdb.Op.DATABASES) {
 			for (String name : conf.getDatabaseNames()) {
 				ConfigDatabase db = conf.getDatabase(name);
-				long commitCount = db.getCommitCount();
-				List<CommitLog> logs = db.getCommitLogs(0, 1);
+				long commitCount = 0;
+
+				List<CommitLog> logs = null;
+				try {
+					commitCount = db.getCommitCount();
+					logs = db.getCommitLogs(0, 1);
+				} catch (Throwable t) {
+				}
+
 				long rev = 0;
 				String lastMsg = null;
 				Date lastCommit = null;
-				if (!logs.isEmpty()) {
+				if (logs != null && !logs.isEmpty()) {
 					CommitLog last = logs.get(0);
 					rev = last.getRev();
 					lastCommit = last.getCreated();
