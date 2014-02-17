@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.codec.EncodingRule;
 import org.araqne.logdb.QueryResult;
@@ -44,7 +45,7 @@ import org.slf4j.LoggerFactory;
 public class QueryResultImpl implements QueryResult {
 	private final Logger logger = LoggerFactory.getLogger(QueryResultImpl.class);
 	private LogFileWriter writer;
-	private long count;
+	private AtomicLong counter = new AtomicLong();
 
 	/**
 	 * do NOT directly lock on log file writer. input should be serialized at
@@ -57,8 +58,14 @@ public class QueryResultImpl implements QueryResult {
 	 */
 	private volatile boolean purged;
 
+	/**
+	 * prevent indirect recursive query.stop()
+	 */
+	private volatile boolean stopRequested;
+
 	private volatile boolean writerClosed;
 	private volatile Date eofDate;
+	private volatile boolean streaming;
 
 	private QueryResultConfig config;
 	private QueryResultStorage resultStorage;
@@ -77,35 +84,47 @@ public class QueryResultImpl implements QueryResult {
 
 	@Override
 	public long getCount() {
-		return count;
+		return counter.get();
 	}
 
 	@Override
 	public boolean isThreadSafe() {
-		return true;
+		return false;
 	}
 
 	@Override
 	public void onRow(Row row) {
+		long count = counter.incrementAndGet();
 		try {
-			synchronized (writerLock) {
-				writer.write(new Log("$Result$", new Date(), count + 1, row.map()));
+			if (!streaming) {
+				synchronized (writerLock) {
+					writer.write(new Log("$Result$", new Date(), count, row.map()));
+				}
 			}
 		} catch (IOException e) {
 			// cancel query when disk is full
 			synchronized (writerLock) {
-				if (writer.isLowDisk())
-					invokeStopCallbacks(QueryStopReason.LowDisk);
+				if (!stopRequested && writer.isLowDisk()) {
+					stopRequested = true;
+					config.getQuery().stop(QueryStopReason.LowDisk);
+				}
 			}
 			throw new IllegalStateException(e);
 		}
-		count++;
-	}
 
-	private void invokeStopCallbacks(QueryStopReason reason) {
 		for (QueryResultCallback c : resultCallbacks) {
 			try {
-				c.onStop(reason);
+				c.onRow(config.getQuery(), row);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: result callback should not throw any exception", t);
+			}
+		}
+	}
+
+	private void invokeCloseCallbacks(QueryStopReason reason) {
+		for (QueryResultCallback c : resultCallbacks) {
+			try {
+				c.onClose(config.getQuery(), reason);
 			} catch (Throwable t) {
 				logger.error("araqne logdb: cannot handle QueryResult.onStop()", t);
 			}
@@ -114,23 +133,39 @@ public class QueryResultImpl implements QueryResult {
 
 	@Override
 	public void onRowBatch(RowBatch rowBatch) {
+
 		try {
 			synchronized (writerLock) {
 				if (rowBatch.selectedInUse) {
 					for (int i = 0; i < rowBatch.size; i++) {
 						Row row = rowBatch.rows[rowBatch.selected[i]];
-						writer.write(new Log("$Result$", new Date(), ++count, row.map()));
+						long count = counter.incrementAndGet();
+						if (!streaming)
+							writer.write(new Log("$Result$", new Date(), count, row.map()));
 					}
 				} else {
-					for (Row row : rowBatch.rows)
-						writer.write(new Log("$Result$", new Date(), ++count, row.map()));
+					for (Row row : rowBatch.rows) {
+						long count = counter.incrementAndGet();
+						if (!streaming)
+							writer.write(new Log("$Result$", new Date(), count, row.map()));
+					}
+				}
+			}
+
+			for (QueryResultCallback c : resultCallbacks) {
+				try {
+					c.onRowBatch(config.getQuery(), rowBatch);
+				} catch (Throwable t) {
+					logger.warn("araqne logdb: result callback should not throw any exception", t);
 				}
 			}
 		} catch (IOException e) {
 			// cancel query when disk is full
 			synchronized (writerLock) {
-				if (writer.isLowDisk())
-					invokeStopCallbacks(QueryStopReason.LowDisk);
+				if (!stopRequested && writer.isLowDisk()) {
+					stopRequested = true;
+					config.getQuery().stop(QueryStopReason.LowDisk);
+				}
 			}
 			throw new IllegalStateException(e);
 		}
@@ -148,7 +183,7 @@ public class QueryResultImpl implements QueryResult {
 		LogFileReader reader = null;
 		try {
 			reader = resultStorage.createReader(config);
-			return new LogResultSetImpl(reader, count);
+			return new LogResultSetImpl(resultStorage.getName(), reader, counter.get());
 		} catch (Throwable t) {
 			if (reader != null)
 				reader.close();
@@ -185,6 +220,8 @@ public class QueryResultImpl implements QueryResult {
 
 		for (QueryStatusCallback callback : config.getQuery().getCallbacks().getStatusCallbacks())
 			callback.onChange(config.getQuery());
+
+		invokeCloseCallbacks(QueryStopReason.End);
 	}
 
 	@Override
@@ -202,20 +239,37 @@ public class QueryResultImpl implements QueryResult {
 	}
 
 	@Override
+	public boolean isStreaming() {
+		return streaming;
+	}
+
+	@Override
+	public void setStreaming(boolean streaming) {
+		this.streaming = streaming;
+	}
+
+	@Override
 	public Set<QueryResultCallback> getResultCallbacks() {
 		return resultCallbacks;
 	}
 
 	private static class LogResultSetImpl implements QueryResultSet {
+		private String storageName;
 		private LogFileReader reader;
 		private LogRecordCursor cursor;
 		private long count;
 
 		// assume result is stored in local storage
-		public LogResultSetImpl(LogFileReader reader, long count) throws IOException {
+		public LogResultSetImpl(String storageName, LogFileReader reader, long count) throws IOException {
+			this.storageName = storageName;
 			this.reader = reader;
 			this.cursor = reader.getCursor(true);
 			this.count = count;
+		}
+
+		@Override
+		public String getStorageName() {
+			return storageName;
 		}
 
 		@Override

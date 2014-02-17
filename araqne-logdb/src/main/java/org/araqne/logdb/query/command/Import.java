@@ -19,6 +19,7 @@ import java.util.Date;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.ThreadSafe;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
 
@@ -27,19 +28,24 @@ import org.araqne.logstorage.LogStorage;
  * @author xeraph
  * 
  */
-public class Import extends QueryCommand {
-	private LogStorage storage;
-	private String tableName;
+public class Import extends QueryCommand implements ThreadSafe {
+	private final LogStorage storage;
+	private final String tableName;
 
 	/**
 	 * @since 1.8.2
 	 */
-	private boolean create;
+	private final boolean create;
 
 	public Import(LogStorage storage, String tableName, boolean create) {
 		this.storage = storage;
 		this.tableName = tableName;
 		this.create = create;
+	}
+
+	@Override
+	public String getName() {
+		return "import";
 	}
 
 	@Override

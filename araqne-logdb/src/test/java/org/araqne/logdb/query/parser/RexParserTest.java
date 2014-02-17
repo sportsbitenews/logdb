@@ -54,6 +54,11 @@ public class RexParserTest {
 		private List<Row> list = new ArrayList<Row>();
 
 		@Override
+		public String getName() {
+			return "output";
+		}
+
+		@Override
 		public void onPush(Row m) {
 			list.add(m);
 		}

@@ -68,7 +68,6 @@ public class JoinParser implements QueryCommandParser {
 		// add sort command to end
 		SortField[] sortFieldArray = sortFields.toArray(new SortField[0]);
 		Sort sort = new Sort(null, sortFieldArray);
-		sort.setName("sort");
 		sort.onStart();
 
 		QueryCommand lastCmd = subCommands.get(subCommands.size() - 1);

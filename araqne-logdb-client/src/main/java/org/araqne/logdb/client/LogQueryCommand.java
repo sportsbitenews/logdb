@@ -15,10 +15,27 @@
  */
 package org.araqne.logdb.client;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class LogQueryCommand {
+	private String name;
 	private String command;
 	private String status;
 	private long pushCount;
+
+	/**
+	 * @since 0.9.1
+	 */
+	private List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
 
 	public String getCommand() {
 		return command;
@@ -42,6 +59,20 @@ public class LogQueryCommand {
 
 	public void setPushCount(long pushCount) {
 		this.pushCount = pushCount;
+	}
+
+	/**
+	 * @since 0.9.1
+	 */
+	public List<LogQueryCommand> getCommands() {
+		return commands;
+	}
+
+	/**
+	 * @since 0.9.1
+	 */
+	public void setCommands(List<LogQueryCommand> commands) {
+		this.commands = commands;
 	}
 
 	@Override

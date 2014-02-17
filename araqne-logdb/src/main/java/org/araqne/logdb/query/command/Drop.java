@@ -22,6 +22,11 @@ import org.araqne.logdb.ThreadSafe;
 
 public class Drop extends QueryCommand implements ThreadSafe {
 	@Override
+	public String getName() {
+		return "drop";
+	}
+
+	@Override
 	public void onPush(Row m) {
 	}
 

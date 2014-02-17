@@ -15,6 +15,8 @@
  */
 package org.araqne.logdb.msgbus;
 
+import java.security.Provider;
+import java.security.Security;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -32,6 +34,8 @@ import org.araqne.log.api.FieldDefinition;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
+import org.araqne.logstorage.LogCryptoProfile;
+import org.araqne.logstorage.LogCryptoProfileRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
@@ -60,6 +64,9 @@ public class ManagementPlugin {
 
 	@Requires
 	private LogStorage storage;
+
+	@Requires
+	private LogCryptoProfileRegistry logCryptoProfileRegistry;
 
 	@AllowGuestAccess
 	@MsgbusMethod
@@ -281,6 +288,33 @@ public class ManagementPlugin {
 		return metadata;
 	}
 
+	/**
+	 * @since 2.0.3
+	 */
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void setTableFields(Request req, Response resp) {
+		ensureAdminSession(req);
+
+		String tableName = req.getString("table", true);
+		List<Object> l = (List<Object>) req.get("fields");
+		List<FieldDefinition> fields = null;
+		if (l != null) {
+			fields = new ArrayList<FieldDefinition>();
+
+			for (Object o : l) {
+				Map<String, Object> m = (Map<String, Object>) o;
+				FieldDefinition f = new FieldDefinition();
+				f.setName((String) m.get("name"));
+				f.setType((String) m.get("type"));
+				f.setLength((Integer) m.get("length"));
+				fields.add(f);
+			}
+		}
+
+		tableRegistry.setTableFields(tableName, fields);
+	}
+
 	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void setTableMetadata(Request req, Response resp) {
@@ -378,4 +412,76 @@ public class ManagementPlugin {
 		resp.put("logdates", logDates);
 	}
 
+	@MsgbusMethod
+	public void getCryptoProfiles(Request req, Response resp) {
+		List<Object> l = new ArrayList<Object>();
+		for (LogCryptoProfile p : logCryptoProfileRegistry.getProfiles()) {
+			Map<String, Object> m = serialize(p);
+			l.add(m);
+		}
+
+		resp.put("profiles", l);
+	}
+
+	private Map<String, Object> serialize(LogCryptoProfile profile) {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("name", profile.getName());
+		m.put("cipher", profile.getCipher());
+		m.put("digest", profile.getDigest());
+		m.put("file_path", profile.getFilePath());
+		return m;
+	}
+
+	@MsgbusMethod
+	public void getCryptoProfile(Request req, Response resp) {
+		String name = req.getString("name");
+		resp.put("profile", logCryptoProfileRegistry.getProfile(name));
+	}
+
+	@MsgbusMethod
+	public void addCryptoProfile(Request req, Response resp) {
+		String name = req.getString("name");
+		String cipher = req.getString("cipher");
+		String digest = req.getString("digest");
+		String filePath = req.getString("file_path");
+		String password = req.getString("password");
+
+		LogCryptoProfile p = new LogCryptoProfile();
+		p.setName(name);
+		p.setCipher(cipher);
+		p.setDigest(digest);
+		p.setFilePath(filePath);
+		p.setPassword(password);
+
+		logCryptoProfileRegistry.addProfile(p);
+
+	}
+
+	@MsgbusMethod
+	public void removeCryptoProfile(Request req, Response resp) {
+		String name = req.getString("name");
+		logCryptoProfileRegistry.removeProfile(name);
+	}
+
+	@MsgbusMethod
+	public void getCipherTransformers(Request req, Response resp) {
+		List<String> l = new ArrayList<String>();
+		l.add("AES/CBC/NoPadding");
+		l.add("AES/CBC/PKCS5Padding");
+		l.add("AES/ECB/NoPadding");
+		l.add("AES/ECB/PKCS5Padding");
+		l.add("DES/CBC/NoPadding");
+		l.add("DES/CBC/PKCS5Padding");
+		l.add("DES/ECB/NoPadding");
+		l.add("DES/ECB/PKCS5Padding");
+		l.add("DESede/CBC/NoPadding");
+		l.add("DESede/CBC/PKCS5Padding");
+		l.add("DESede/ECB/NoPadding");
+		l.add("DESede/ECB/PKCS5Padding");
+		l.add("RSA/ECB/PKCS1Padding");
+		l.add("RSA/ECB/OAEPWithSHA-1AndMGF1Padding");
+		l.add("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+
+		resp.put("cipher_transformers", l);
+	}
 }

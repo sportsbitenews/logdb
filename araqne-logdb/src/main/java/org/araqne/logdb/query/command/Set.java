@@ -34,6 +34,11 @@ public class Set extends QueryCommand {
 		this.expr = expr;
 	}
 
+	@Override
+	public String getName() {
+		return "set";
+	}
+
 	public String getField() {
 		return field;
 	}

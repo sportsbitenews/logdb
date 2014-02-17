@@ -70,6 +70,11 @@ public class OutputJson extends QueryCommand {
 		}
 	}
 
+	@Override
+	public String getName() {
+		return "outputjson";
+	}
+
 	public File getTxtFile() {
 		return f;
 	}

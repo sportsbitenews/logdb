@@ -40,6 +40,8 @@ public class KeyValueTaggerFactory implements LogTransformerFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "키/밸류 태그";
 		return "key/value tagger";
 	}
 
@@ -50,6 +52,8 @@ public class KeyValueTaggerFactory implements LogTransformerFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "모든 로그에 키/밸류 태그를 추가 합니다.";
 		return "add key/value tag to every logs";
 	}
 

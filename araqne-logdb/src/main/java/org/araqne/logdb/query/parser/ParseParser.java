@@ -63,7 +63,7 @@ public class ParseParser implements QueryCommandParser {
 		try {
 			return new Parse(parserName, registry.newParser(parserName), overlay);
 		} catch (Throwable t) {
-			throw new QueryParseException("parser-init-failure", -1);
+			throw new QueryParseException("parser-init-failure", -1, t.toString());
 		}
 	}
 }

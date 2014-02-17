@@ -30,6 +30,11 @@ public class Eval extends QueryCommand implements ThreadSafe {
 		this.expr = expr;
 	}
 
+	@Override
+	public String getName() {
+		return "eval";
+	}
+
 	public String getField() {
 		return field;
 	}

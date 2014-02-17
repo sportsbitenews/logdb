@@ -39,6 +39,11 @@ public class Logdb extends DriverQueryCommand {
 	}
 
 	@Override
+	public String getName() {
+		return "logdb";
+	}
+
+	@Override
 	public void run() {
 		metadataService.query(context, objectType, args, metadataWriter);
 		completed = true;

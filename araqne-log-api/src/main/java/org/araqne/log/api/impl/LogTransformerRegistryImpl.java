@@ -144,7 +144,7 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 
 	private void setTransformers(LogTransformerProfile profile) {
 		for (Logger logger : loggerRegistry.getLoggers()) {
-			String transformerName = logger.getConfig().get("transformer");
+			String transformerName = logger.getConfigs().get("transformer");
 			if (profile.getName().equals(transformerName)) {
 				try {
 					LogTransformer transformer = newTransformer(transformerName);
@@ -175,7 +175,7 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 
 	private void unsetTransformers(String name) {
 		for (Logger logger : loggerRegistry.getLoggers()) {
-			String transformerName = logger.getConfig().get("transformer");
+			String transformerName = logger.getConfigs().get("transformer");
 			if (transformerName != null && transformerName.equals(name)) {
 				logger.setTransformer(null);
 			}

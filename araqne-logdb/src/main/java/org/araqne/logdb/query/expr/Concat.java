@@ -18,6 +18,7 @@ package org.araqne.logdb.query.expr;
 import java.util.List;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.Strings;
 
 public class Concat implements Expression {
 	private List<Expression> exprs;
@@ -37,6 +38,6 @@ public class Concat implements Expression {
 
 	@Override
 	public String toString() {
-		return "concat(" + exprs + ")";
+		return "concat(" + Strings.join(exprs, ", ") + ")";
 	}
 }

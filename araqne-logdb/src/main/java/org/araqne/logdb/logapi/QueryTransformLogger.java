@@ -34,6 +34,8 @@ import org.araqne.log.api.SimpleLog;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandPipe;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.RowPipe;
 
 /**
  * @since 1.7.8
@@ -69,10 +71,11 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 		loggerName = config.get("source_logger");
 
 		first = commands.get(0);
-		commands.add(queryResult);
 
 		for (int i = commands.size() - 2; i >= 0; i--)
 			commands.get(i).setOutput(new QueryCommandPipe(commands.get(i + 1)));
+
+		commands.get(commands.size() - 1).setOutput(queryResult);
 	}
 
 	@Override
@@ -143,12 +146,37 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 		}
 	}
 
-	private class QueryResult extends QueryCommand {
+	private class QueryResult implements RowPipe {
+
 		@Override
-		public void onPush(Row m) {
+		public boolean isThreadSafe() {
+			return false;
+		}
+
+		@Override
+		public void onRow(Row row) {
 			Date date = currentLog.getDate();
-			SimpleLog log = new SimpleLog(date, loggerName, m.map());
+			SimpleLog log = new SimpleLog(date, loggerName, row.map());
 			QueryTransformLogger.this.write(log);
+		}
+
+		@Override
+		public void onRowBatch(RowBatch rowBatch) {
+			Date date = currentLog.getDate();
+
+			ArrayList<Log> logs = new ArrayList<Log>(rowBatch.size);
+			if (rowBatch.selectedInUse) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					int p = rowBatch.selected[i];
+					Row row = rowBatch.rows[p];
+					logs.add(new SimpleLog(date, loggerName, row.map()));
+				}
+			} else {
+				for (Row row : rowBatch.rows)
+					logs.add(new SimpleLog(date, loggerName, row.map()));
+			}
+
+			QueryTransformLogger.this.writeBatch(logs.toArray(new Log[0]));
 		}
 	}
 

@@ -1,0 +1,10 @@
+<ipojo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="org.apache.felix.ipojo http://felix.apache.org/ipojo/schemas/CURRENT/core.xsd"
+	xmlns="org.apache.felix.ipojo">
+	<instance component="logdb-groovy-query-script-registry" />
+	<instance component="logdb-groovy-event-script-registry" />
+	<instance component="logdb-groovy-query-parser" />
+	<instance component="logdb-groovy-script-factory" />
+	<instance component="logdb-groovy-parser-factory" />
+	<instance component="logdb-groovy-parser-script-registry" />
+</ipojo>

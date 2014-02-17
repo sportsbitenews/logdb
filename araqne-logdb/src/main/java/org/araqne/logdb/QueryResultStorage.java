@@ -6,6 +6,8 @@ import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileWriter;
 
 public interface QueryResultStorage {
+	String getName();
+
 	LogFileWriter createWriter(QueryResultConfig config) throws IOException;
 
 	LogFileReader createReader(QueryResultConfig config) throws IOException;

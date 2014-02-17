@@ -28,18 +28,23 @@ import java.util.Map;
 import java.util.zip.Deflater;
 
 import org.apache.felix.ipojo.annotations.Component;
+import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
+import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
-import org.araqne.logdb.QueryService;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryResult;
 import org.araqne.logdb.QueryResultCallback;
 import org.araqne.logdb.QueryResultSet;
+import org.araqne.logdb.QueryService;
 import org.araqne.logdb.QueryStatusCallback;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTimelineCallback;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResult;
 import org.araqne.logdb.SavedResultManager;
@@ -76,6 +81,22 @@ public class LogQueryPlugin {
 
 	@Requires
 	private SavedResultManager savedResultManager;
+
+	private StreamingResultEncoder streamingEncoder;
+
+	@Validate
+	public void start() {
+		int poolSize = Math.min(8, Runtime.getRuntime().availableProcessors());
+		streamingEncoder = new StreamingResultEncoder("Streaming Result Encoder", poolSize);
+	}
+
+	@Invalidate
+	public void stop() {
+		if (streamingEncoder != null) {
+			streamingEncoder.close();
+			streamingEncoder = null;
+		}
+	}
 
 	@MsgbusMethod
 	public void logs(Request req, Response resp) {
@@ -146,6 +167,9 @@ public class LogQueryPlugin {
 		int offset = req.getInteger("offset");
 		int limit = req.getInteger("limit");
 		Integer timelineLimit = req.getInteger("timeline_limit");
+		boolean streaming = false;
+		if (req.getBoolean("streaming") != null)
+			streaming = req.getBoolean("streaming");
 
 		Query query = service.getQuery(id);
 
@@ -160,8 +184,10 @@ public class LogQueryPlugin {
 			throw new MsgbusException("logdb", "already running");
 
 		// set query and timeline callback
-		QueryResultCallback qc = new MsgbusLogQueryCallback(orgDomain, offset, limit);
-		query.getResult().getResultCallbacks().add(qc);
+		QueryResultCallback qc = new MsgbusQueryResultCallback(orgDomain, offset, limit, streaming);
+		QueryResult result = query.getResult();
+		result.setStreaming(streaming);
+		result.getResultCallbacks().add(qc);
 
 		QueryStatusCallback qs = new MsgbusStatusCallback(orgDomain);
 		query.getCallbacks().getStatusCallbacks().add(qs);
@@ -295,7 +321,7 @@ public class LogQueryPlugin {
 			org.araqne.logdb.Session dbSession = getDbSession(req);
 
 			SavedResult sr = new SavedResult();
-			sr.setType("v2");
+			sr.setStorageName(rs.getStorageName());
 			sr.setOwner(dbSession.getLoginName());
 			sr.setQueryString(query.getQueryString());
 			sr.setTitle(title);
@@ -402,16 +428,21 @@ public class LogQueryPlugin {
 		}
 	}
 
-	private class MsgbusLogQueryCallback implements QueryResultCallback {
+	private class MsgbusQueryResultCallback implements QueryResultCallback {
+		private static final int STREAM_FLUSH_SIZE = 10000;
 		private int offset;
 		private int limit;
 		private String orgDomain;
 		private boolean pageLoaded;
 
-		private MsgbusLogQueryCallback(String orgDomain, int offset, int limit) {
+		private boolean streaming;
+		private ArrayList<Object> rows = new ArrayList<Object>(10000);
+
+		private MsgbusQueryResultCallback(String orgDomain, int offset, int limit, boolean streaming) {
 			this.orgDomain = orgDomain;
 			this.offset = offset;
 			this.limit = limit;
+			this.streaming = streaming;
 		}
 
 		@Override
@@ -443,7 +474,66 @@ public class LogQueryPlugin {
 		}
 
 		@Override
-		public void onStop(QueryStopReason reason) {
+		public void onRow(Query query, Row row) {
+			if (!streaming)
+				return;
+
+			try {
+				rows.add(row.map());
+				if (rows.size() >= STREAM_FLUSH_SIZE)
+					flushResultSet(query, false);
+			} catch (IOException e) {
+				query.stop(QueryStopReason.NetworkFailure);
+			}
+		}
+
+		@Override
+		public void onRowBatch(Query query, RowBatch rowBatch) {
+			if (!streaming)
+				return;
+
+			try {
+				if (rowBatch.selectedInUse) {
+					for (int i = 0; i < rowBatch.size; i++) {
+						int p = rowBatch.selected[i];
+						Row row = rowBatch.rows[p];
+						rows.add(row.map());
+					}
+				} else {
+					for (Row row : rowBatch.rows)
+						rows.add(row.map());
+				}
+
+				if (rows.size() >= STREAM_FLUSH_SIZE)
+					flushResultSet(query, false);
+
+			} catch (IOException e) {
+				query.stop(QueryStopReason.NetworkFailure);
+			}
+		}
+
+		@Override
+		public void onClose(Query query, QueryStopReason reason) {
+			try {
+				flushResultSet(query, true);
+			} catch (IOException e) {
+				logger.error("araqne logdb: cannot flush streaming result set of query " + query.getId(), e);
+			}
+		}
+
+		private void flushResultSet(Query query, boolean last) throws IOException {
+			try {
+				List<Map<String, Object>> bins = streamingEncoder.encode(rows);
+
+				Map<String, Object> m = new HashMap<String, Object>();
+				m.put("bins", bins);
+				m.put("last", last);
+
+				pushApi.push(orgDomain, "logdb-query-result-" + query.getId(), m);
+				rows.clear();
+			} catch (Throwable t) {
+				logger.error("araqne logdb: cannot encode streaming result", t);
+			}
 		}
 	}
 

@@ -73,6 +73,11 @@ public class Timechart extends QueryCommand {
 			this.funcs[i] = fields.get(i).getFunction();
 	}
 
+	@Override
+	public String getName() {
+		return "timechart";
+	}
+
 	public List<AggregationField> getAggregationFields() {
 		return fields;
 	}

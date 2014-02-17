@@ -71,6 +71,11 @@ public class QueryResultFactoryImpl implements QueryResultFactory {
 		}
 
 		@Override
+		public String getName() {
+			return "v2";
+		}
+
+		@Override
 		public LogFileWriter createWriter(QueryResultConfig config) throws IOException {
 			BASE_DIR.mkdirs();
 

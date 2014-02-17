@@ -18,7 +18,6 @@ package org.araqne.logstorage.engine;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -137,16 +136,18 @@ public class OnlineWriter {
 		}
 	}
 
-	public void write(Collection<Log> logs) throws IOException {
+	public void write(List<Log> logs) throws IOException {
 		if (writer == null)
 			throw new IllegalStateException("file closed");
 
-		for (Log record : logs) {
-			record.setId(nextId());
-		}
-
 		synchronized (this) {
-			writer.write(logs);
+			ArrayList<Log> copy = new ArrayList<Log>(logs.size());
+			for (Log record : logs) {
+				record.setId(nextId());
+				copy.add(record.shallowCopy());
+			}
+
+			writer.write(copy);
 			lastAccess = new Date();
 		}
 	}

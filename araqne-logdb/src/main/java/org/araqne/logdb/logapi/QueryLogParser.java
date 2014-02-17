@@ -41,6 +41,11 @@ public class QueryLogParser extends QueryCommand implements LogParser {
 	}
 
 	@Override
+	public String getName() {
+		return "querylogparser";
+	}
+
+	@Override
 	public int getVersion() {
 		return 1;
 	}

@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -179,7 +178,7 @@ public class LogFileWriterV1 extends LogFileWriter {
 	}
 
 	@Override
-	public void write(Collection<Log> data) throws IOException {
+	public void write(List<Log> data) throws IOException {
 		for (Log log : data) {
 			try {
 				write(log);

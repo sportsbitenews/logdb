@@ -37,6 +37,7 @@ import java.util.regex.Matcher;
  * 
  */
 public class MultilineLogExtractor {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(MultilineLogExtractor.class);
 	private Logger logger;
 	private String charset = "utf-8";
 	private Matcher beginMatcher;
@@ -278,9 +279,18 @@ public class MultilineLogExtractor {
 			s = dateFromFileName + s;
 		}
 
-		Date d = dateFormat.parse(s, new ParsePosition(0));
-		if (d == null)
+		if (s == null)
 			return new Date();
+
+		Date d = null;
+		try {
+			d = dateFormat.parse(s, new ParsePosition(0));
+			if (d == null)
+				return new Date();
+		} catch (NumberFormatException e) {
+			slog.debug("araqne log api: cannot parse date [{}] line [{}]", s, line);
+			return new Date();
+		}
 
 		if (yearModifier != null) {
 			int year = Calendar.getInstance().get(Calendar.YEAR);

@@ -22,6 +22,7 @@ import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,12 +34,14 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.EncodingRule;
 import org.araqne.logdb.client.http.WebSocketTransport;
+import org.araqne.logdb.client.http.impl.StreamingResultDecoder;
 import org.araqne.logdb.client.http.impl.TrapListener;
 import org.araqne.websocket.Base64;
 import org.slf4j.Logger;
@@ -55,7 +58,9 @@ public class LogDbClient implements TrapListener, Closeable {
 	private LogDbSession session;
 	private int fetchSize = 10000;
 	private ConcurrentMap<Integer, LogQuery> queries = new ConcurrentHashMap<Integer, LogQuery>();
+	private ConcurrentMap<Integer, StreamingResultSet> streamCallbacks = new ConcurrentHashMap<Integer, StreamingResultSet>();
 	private Locale locale = Locale.getDefault();
+	private StreamingResultDecoder streamingDecoder;
 
 	public LogDbClient() {
 		this(new WebSocketTransport());
@@ -63,6 +68,8 @@ public class LogDbClient implements TrapListener, Closeable {
 
 	public LogDbClient(LogDbTransport transport) {
 		this.transport = transport;
+		int poolSize = Math.min(8, Runtime.getRuntime().availableProcessors());
+		this.streamingDecoder = new StreamingResultDecoder("Streaming Result Decoder", poolSize);
 	}
 
 	public Locale getLocale() {
@@ -72,6 +79,13 @@ public class LogDbClient implements TrapListener, Closeable {
 	public void setLocale(Locale locale) {
 		checkNotNull("locale", locale);
 		this.locale = locale;
+	}
+
+	/**
+	 * @since 0.9.1
+	 */
+	public LogDbSession getSession() {
+		return session;
 	}
 
 	/**
@@ -93,7 +107,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	public List<LogQuery> getQueries() throws IOException {
-		Message resp = session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.queries");
+		Message resp = rpc("org.araqne.logdb.msgbus.LogQueryPlugin.queries");
 
 		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> l = (List<Map<String, Object>>) resp.getParameters().get("queries");
@@ -119,7 +133,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("id", id);
 
 		try {
-			Message resp = session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.queryStatus", params);
+			Message resp = rpc("org.araqne.logdb.msgbus.LogQueryPlugin.queryStatus", params);
 
 			Map<String, Object> q = resp.getParameters();
 			int queryId = (Integer) q.get("id");
@@ -140,17 +154,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return queries.get(id);
 	}
 
+	@SuppressWarnings("unchecked")
 	private void parseQueryStatus(Map<String, Object> q, LogQuery query) {
 		List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 
-		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> cl = (List<Map<String, Object>>) q.get("commands");
 		for (Map<String, Object> cm : cl) {
-			LogQueryCommand c = new LogQueryCommand();
-			c.setStatus((String) cm.get("status"));
-			c.setPushCount(toLong(cm.get("push_count")));
-			c.setCommand((String) cm.get("command"));
-			commands.add(c);
+			commands.add(parseCommand(cm));
 		}
 
 		query.setCommands(commands);
@@ -194,6 +204,42 @@ public class LogDbClient implements TrapListener, Closeable {
 		if (q.get("last_started") != null)
 			query.setLastStarted(df.parse((String) q.get("last_started"), new ParsePosition(0)));
 
+		List<Object> subQueries = (List<Object>) q.get("sub_queries");
+		if (subQueries != null) {
+			for (Object o : subQueries) {
+				SubQuery subQuery = parseSubQuery((Map<String, Object>) o);
+				query.getSubQueries().add(subQuery);
+			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private SubQuery parseSubQuery(Map<String, Object> m) {
+		SubQuery q = new SubQuery();
+		q.setId((Integer) m.get("id"));
+		List<Object> l = (List<Object>) m.get("commands");
+		if (l != null) {
+			for (Object o : l)
+				q.getCommands().add(parseCommand((Map<String, Object>) o));
+		}
+		return q;
+	}
+
+	@SuppressWarnings("unchecked")
+	private LogQueryCommand parseCommand(Map<String, Object> m) {
+		LogQueryCommand c = new LogQueryCommand();
+		c.setName((String) m.get("name"));
+		c.setStatus((String) m.get("status"));
+		c.setPushCount(toLong(m.get("push_count")));
+		c.setCommand((String) m.get("command"));
+
+		List<Object> l = (List<Object>) m.get("commands");
+		if (l != null) {
+			for (Object o : l)
+				c.getCommands().add(parseCommand((Map<String, Object>) o));
+		}
+
+		return c;
 	}
 
 	private Long toLong(Object v) {
@@ -222,7 +268,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	@SuppressWarnings("unchecked")
 	public List<ArchiveConfig> listArchiveConfigs() throws IOException {
 		List<ArchiveConfig> configs = new ArrayList<ArchiveConfig>();
-		Message resp = session.rpc("org.logpresso.core.msgbus.ArchivePlugin.getConfigs");
+		Message resp = rpc("com.logpresso.core.msgbus.ArchivePlugin.getConfigs");
 		List<Map<String, Object>> l = (List<Map<String, Object>>) resp.get("configs");
 		for (Map<String, Object> m : l) {
 			configs.add(parseArchiveConfig(m));
@@ -236,7 +282,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", loggerName);
 
-		Message resp = session.rpc("org.logpresso.core.msgbus.ArchivePlugin.getConfig", params);
+		Message resp = rpc("com.logpresso.core.msgbus.ArchivePlugin.getConfig", params);
 		Map<String, Object> m = (Map<String, Object>) resp.getParameters().get("config");
 		return parseArchiveConfig(m);
 	}
@@ -261,18 +307,18 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("host", config.getHost());
 		params.put("enabled", config.isEnabled());
 		params.put("metadata", config.getMetadata());
-		session.rpc("org.logpresso.core.msgbus.ArchivePlugin.createConfig", params);
+		rpc("com.logpresso.core.msgbus.ArchivePlugin.createConfig", params);
 	}
 
 	public void removeArchiveConfig(String loggerName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", loggerName);
-		session.rpc("org.logpresso.core.msgbus.ArchivePlugin.removeConfig", params);
+		rpc("com.logpresso.core.msgbus.ArchivePlugin.removeConfig", params);
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<AccountInfo> listAccounts() throws IOException {
-		Message resp = session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.listAccounts");
+		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.listAccounts");
 		List<AccountInfo> accounts = new ArrayList<AccountInfo>();
 		List<Object> l = (List<Object>) resp.get("accounts");
 		for (Object o : l) {
@@ -300,14 +346,14 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("login_name", account.getLoginName());
 		params.put("password", account.getPassword());
 
-		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.createAccount", params);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.createAccount", params);
 	}
 
 	public void removeAccount(String loginName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("login_name", loginName);
 
-		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.removeAccount", params);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.removeAccount", params);
 	}
 
 	public void changePassword(String loginName, String password) throws IOException {
@@ -315,7 +361,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("login_name", loginName);
 		params.put("password", password);
 
-		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.changePassword", params);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.changePassword", params);
 	}
 
 	public void grantPrivilege(Privilege privilege) throws IOException {
@@ -323,7 +369,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("login_name", privilege.getLoginName());
 		params.put("table_name", privilege.getTableName());
 
-		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.grantPrivilege", params);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.grantPrivilege", params);
 	}
 
 	public void revokePrivilege(Privilege privilege) throws IOException {
@@ -331,7 +377,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("login_name", privilege.getLoginName());
 		params.put("table_name", privilege.getTableName());
 
-		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.revokePrivilege", params);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.revokePrivilege", params);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -339,7 +385,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("locale", locale.getLanguage());
 
-		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.listIndexTokenizerFactories", params);
+		Message resp = rpc("com.logpresso.index.msgbus.ManagementPlugin.listIndexTokenizerFactories", params);
 
 		List<IndexTokenizerFactoryInfo> l = new ArrayList<IndexTokenizerFactoryInfo>();
 		for (Object o : (List<Object>) resp.getParameters().get("factories")) {
@@ -355,7 +401,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("name", name);
 		params.put("locale", locale.getLanguage());
 
-		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.getIndexTokenizerFactoryInfo", params);
+		Message resp = rpc("com.logpresso.index.msgbus.ManagementPlugin.getIndexTokenizerFactoryInfo", params);
 		return parseIndexTokenizerFactory(resp.getParameters().get("factory"));
 	}
 
@@ -390,7 +436,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
 
-		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.listIndexes", params);
+		Message resp = rpc("com.logpresso.index.msgbus.ManagementPlugin.listIndexes", params);
 		List<IndexInfo> indexes = new ArrayList<IndexInfo>();
 
 		List<Object> l = (List<Object>) resp.getParameters().get("indexes");
@@ -409,7 +455,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("table", tableName);
 		params.put("index", indexName);
 
-		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.getIndexInfo", params);
+		Message resp = rpc("com.logpresso.index.msgbus.ManagementPlugin.getIndexInfo", params);
 		return getIndexInfo((Map<String, Object>) resp.getParameters().get("index"));
 	}
 
@@ -423,7 +469,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("index", indexName);
 		params.put("data", data);
 
-		Message resp = session.rpc("com.logpresso.index.msgbus.ManagementPlugin.testIndexTokenizer", params);
+		Message resp = rpc("com.logpresso.index.msgbus.ManagementPlugin.testIndexTokenizer", params);
 		return new HashSet<String>((List<String>) resp.getParameters().get("tokens"));
 
 	}
@@ -470,7 +516,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("min_index_day", info.getMinIndexDay());
 		params.put("build_past_index", info.isBuildPastIndex());
 
-		session.rpc("com.logpresso.index.msgbus.ManagementPlugin.createIndex", params);
+		rpc("com.logpresso.index.msgbus.ManagementPlugin.createIndex", params);
 	}
 
 	public void dropIndex(String tableName, String indexName) throws IOException {
@@ -478,12 +524,12 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("table", tableName);
 		params.put("index", indexName);
 
-		session.rpc("com.logpresso.index.msgbus.ManagementPlugin.dropIndex", params);
+		rpc("com.logpresso.index.msgbus.ManagementPlugin.dropIndex", params);
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<TableInfo> listTables() throws IOException {
-		Message resp = session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.listTables");
+		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.listTables");
 		List<TableInfo> tables = new ArrayList<TableInfo>();
 		Map<String, Object> metadataMap = (Map<String, Object>) resp.getParameters().get("tables");
 		Map<String, Object> fieldsMap = (Map<String, Object>) resp.getParameters().get("fields");
@@ -502,7 +548,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	public TableInfo getTableInfo(String tableName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
-		Message resp = session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.getTableInfo", params);
+		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.getTableInfo", params);
 
 		return getTableInfo(tableName, (Map<String, Object>) resp.get("table"), (List<Object>) resp.get("fields"));
 	}
@@ -532,12 +578,43 @@ public class LogDbClient implements TrapListener, Closeable {
 		return t;
 	}
 
+	/***
+	 * @since 0.9.0 and logdb 2.0.3
+	 */
+	public void setTableFields(String tableName, List<FieldInfo> fields) throws IOException {
+		if (tableName == null)
+			throw new IllegalArgumentException("table name cannot be null");
+
+		List<Object> l = null;
+
+		if (fields != null) {
+			l = new ArrayList<Object>();
+
+			for (FieldInfo f : fields) {
+				Map<String, Object> m = new HashMap<String, Object>();
+				m.put("name", f.getName());
+				m.put("type", f.getType());
+				m.put("length", f.getLength());
+				l.add(m);
+			}
+		}
+
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+		params.put("fields", l);
+
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.setTableFields", params);
+	}
+
 	public void setTableMetadata(String tableName, Map<String, String> config) throws IOException {
+		if (tableName == null)
+			throw new IllegalArgumentException("table name cannot be null");
+
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
 		params.put("metadata", config);
 
-		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.setTableMetadata", params);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.setTableMetadata", params);
 	}
 
 	public void unsetTableMetadata(String tableName, Set<String> keySet) throws IOException {
@@ -545,7 +622,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("table", tableName);
 		params.put("keys", keySet);
 
-		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.unsetTableMetadata", params);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.unsetTableMetadata", params);
 	}
 
 	public void createTable(String tableName) throws IOException {
@@ -556,13 +633,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
 		params.put("metadata", metadata);
-		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.createTable", params);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.createTable", params);
 	}
 
 	public void dropTable(String tableName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
-		session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.dropTable", params);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.dropTable", params);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -570,7 +647,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("locale", locale.getLanguage());
 
-		Message resp = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getLoggerFactories", params);
+		Message resp = rpc("org.araqne.log.api.msgbus.LoggerPlugin.getLoggerFactories", params);
 
 		List<LoggerFactoryInfo> factories = new ArrayList<LoggerFactoryInfo>();
 		List<Object> l = (List<Object>) resp.get("factories");
@@ -599,7 +676,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("factory", factoryName);
 		params.put("locale", locale.getLanguage());
-		Message resp2 = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getFactoryOptions", params);
+		Message resp2 = rpc("org.araqne.log.api.msgbus.LoggerPlugin.getFactoryOptions", params);
 		List<ConfigSpec> configSpecs = parseConfigList((List<Object>) resp2.get("options"));
 		found.setConfigSpecs(configSpecs);
 		return found;
@@ -624,7 +701,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("locale", locale.getLanguage());
 
-		Message resp = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getParserFactories", params);
+		Message resp = rpc("org.araqne.log.api.msgbus.LoggerPlugin.getParserFactories", params);
 		List<Object> l = (List<Object>) resp.get("factories");
 
 		List<ParserFactoryInfo> parsers = new ArrayList<ParserFactoryInfo>();
@@ -647,7 +724,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("factory_name", name);
 
-		Message resp = session.rpc("org.logpresso.core.msgbus.ParserPlugin.getParserFactoryInfo", params);
+		Message resp = rpc("com.logpresso.core.msgbus.ParserPlugin.getParserFactoryInfo", params);
 		Map<String, Object> m = (Map<String, Object>) resp.get("factory");
 
 		ParserFactoryInfo f = new ParserFactoryInfo();
@@ -687,7 +764,7 @@ public class LogDbClient implements TrapListener, Closeable {
 
 	@SuppressWarnings("unchecked")
 	public List<ParserInfo> listParsers() throws IOException {
-		Message resp = session.rpc("org.logpresso.core.msgbus.ParserPlugin.getParsers");
+		Message resp = rpc("com.logpresso.core.msgbus.ParserPlugin.getParsers");
 		List<Object> l = (List<Object>) resp.get("parsers");
 
 		List<ParserInfo> parsers = new ArrayList<ParserInfo>();
@@ -701,7 +778,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	public ParserInfo getParser(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
-		Message resp = session.rpc("org.logpresso.core.msgbus.ParserPlugin.getParser", params);
+		Message resp = rpc("com.logpresso.core.msgbus.ParserPlugin.getParser", params);
 
 		@SuppressWarnings("unchecked")
 		Map<String, Object> m = (Map<String, Object>) resp.get("parser");
@@ -733,13 +810,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("factory_name", parser.getFactoryName());
 		params.put("configs", parser.getConfigs());
 
-		session.rpc("org.logpresso.core.msgbus.ParserPlugin.createParser", params);
+		rpc("com.logpresso.core.msgbus.ParserPlugin.createParser", params);
 	}
 
 	public void removeParser(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
-		session.rpc("org.logpresso.core.msgbus.ParserPlugin.removeParser", params);
+		rpc("com.logpresso.core.msgbus.ParserPlugin.removeParser", params);
 	}
 
 	/**
@@ -751,7 +828,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("name", parserName);
 		params.put("data", data);
 
-		Message resp = session.rpc("org.logpresso.core.msgbus.ParserPlugin.testParser", params);
+		Message resp = rpc("com.logpresso.core.msgbus.ParserPlugin.testParser", params);
 		return (List<Map<String, Object>>) resp.get("rows");
 	}
 
@@ -760,7 +837,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("locale", locale.getLanguage());
 
-		Message resp = session.rpc("org.logpresso.core.msgbus.TransformerPlugin.listTransformerFactories", params);
+		Message resp = rpc("com.logpresso.core.msgbus.TransformerPlugin.listTransformerFactories", params);
 		List<Object> l = (List<Object>) resp.get("factories");
 
 		List<TransformerFactoryInfo> factories = new ArrayList<TransformerFactoryInfo>();
@@ -784,7 +861,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("factory_name", name);
 		params.put("locale", locale.getLanguage());
 
-		Message resp = session.rpc("org.logpresso.core.msgbus.TransformerPlugin.getTransformerFactoryInfo", params);
+		Message resp = rpc("com.logpresso.core.msgbus.TransformerPlugin.getTransformerFactoryInfo", params);
 		Map<String, Object> m = (Map<String, Object>) resp.get("factory");
 
 		TransformerFactoryInfo f = new TransformerFactoryInfo();
@@ -805,7 +882,7 @@ public class LogDbClient implements TrapListener, Closeable {
 
 	@SuppressWarnings("unchecked")
 	public List<TransformerInfo> listTransformers() throws IOException {
-		Message resp = session.rpc("org.logpresso.core.msgbus.TransformerPlugin.getTransformers");
+		Message resp = rpc("com.logpresso.core.msgbus.TransformerPlugin.getTransformers");
 		List<Object> l = (List<Object>) resp.get("transformers");
 
 		List<TransformerInfo> transformers = new ArrayList<TransformerInfo>();
@@ -819,7 +896,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	public TransformerInfo getTransformer(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
-		Message resp = session.rpc("org.logpresso.core.msgbus.TransformerPlugin.getTransformer", params);
+		Message resp = rpc("com.logpresso.core.msgbus.TransformerPlugin.getTransformer", params);
 
 		@SuppressWarnings("unchecked")
 		Map<String, Object> m = (Map<String, Object>) resp.get("transformer");
@@ -841,13 +918,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("factory_name", transformer.getFactoryName());
 		params.put("configs", transformer.getConfigs());
 
-		session.rpc("org.logpresso.core.msgbus.TransformerPlugin.createTransformer", params);
+		rpc("com.logpresso.core.msgbus.TransformerPlugin.createTransformer", params);
 	}
 
 	public void removeTransformer(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
-		session.rpc("org.logpresso.core.msgbus.TransformerPlugin.removeTransformer", params);
+		rpc("com.logpresso.core.msgbus.TransformerPlugin.removeTransformer", params);
 	}
 
 	public List<LoggerInfo> listLoggers() throws IOException {
@@ -859,7 +936,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger_names", loggerNames);
 
-		Message resp = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getLoggers", params);
+		Message resp = rpc("org.araqne.log.api.msgbus.LoggerPlugin.getLoggers", params);
 		List<Object> l = (List<Object>) resp.get("loggers");
 
 		List<LoggerInfo> loggers = new ArrayList<LoggerInfo>();
@@ -892,7 +969,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("include_configs", true);
 		params.put("include_states", includeStates);
 
-		Message resp = session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.getLogger", params);
+		Message resp = rpc("org.araqne.log.api.msgbus.LoggerPlugin.getLogger", params);
 		Map<String, Object> m = (Map<String, Object>) resp.get("logger");
 		if (m == null)
 			return null;
@@ -948,34 +1025,34 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("description", logger.getDescription());
 		params.put("options", logger.getConfigs());
 
-		session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.createLogger", params);
+		rpc("org.araqne.log.api.msgbus.LoggerPlugin.createLogger", params);
 	}
 
 	public void removeLogger(String fullName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", fullName);
-		session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.removeLogger", params);
+		rpc("org.araqne.log.api.msgbus.LoggerPlugin.removeLogger", params);
 	}
 
 	public void startLogger(String fullName, int interval) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", fullName);
 		params.put("interval", interval);
-		session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.startLogger", params);
+		rpc("org.araqne.log.api.msgbus.LoggerPlugin.startLogger", params);
 	}
 
 	public void stopLogger(String fullName, int waitTime) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", fullName);
 		params.put("wait_time", waitTime);
-		session.rpc("org.araqne.log.api.msgbus.LoggerPlugin.stopLogger", params);
+		rpc("org.araqne.log.api.msgbus.LoggerPlugin.stopLogger", params);
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<JdbcProfileInfo> listJdbcProfiles() throws IOException {
 		List<JdbcProfileInfo> l = new ArrayList<JdbcProfileInfo>();
 
-		Message resp = session.rpc("org.logpresso.jdbc.JdbcProfilePlugin.getProfiles");
+		Message resp = rpc("org.logpresso.jdbc.JdbcProfilePlugin.getProfiles");
 
 		List<Object> profiles = (List<Object>) resp.get("profiles");
 
@@ -1005,7 +1082,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("user", profile.getUser());
 		params.put("password", profile.getPassword());
 
-		session.rpc("org.logpresso.jdbc.JdbcProfilePlugin.createProfile", params);
+		rpc("org.logpresso.jdbc.JdbcProfilePlugin.createProfile", params);
 	}
 
 	public void removeJdbcProfile(String name) throws IOException {
@@ -1014,7 +1091,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
 
-		session.rpc("org.logpresso.jdbc.JdbcProfilePlugin.removeProfile", params);
+		rpc("org.logpresso.jdbc.JdbcProfilePlugin.removeProfile", params);
 	}
 
 	public LogCursor query(String queryString) throws IOException {
@@ -1108,13 +1185,22 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	public int createQuery(String queryString) throws IOException {
+		return createQuery(queryString, null);
+	}
+
+	public int createQuery(String queryString, StreamingResultSet rs) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("query", queryString);
 
-		Message resp = session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.createQuery", params);
+		Message resp = rpc("org.araqne.logdb.msgbus.LogQueryPlugin.createQuery", params);
 		int id = resp.getInt("id");
-		session.registerTrap("logstorage-query-" + id);
-		session.registerTrap("logstorage-query-timeline-" + id);
+		session.registerTrap("logdb-query-" + id);
+		session.registerTrap("logdb-query-timeline-" + id);
+
+		if (rs != null) {
+			streamCallbacks.put(id, rs);
+			session.registerTrap("logdb-query-result-" + id);
+		}
 
 		queries.putIfAbsent(id, new LogQuery(this, id, queryString));
 		return id;
@@ -1134,8 +1220,9 @@ public class LogDbClient implements TrapListener, Closeable {
 
 		// timeline may degrade little performance
 		params.put("timeline_limit", timelineSize);
+		params.put("streaming", streamCallbacks.containsKey(id));
 
-		session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.startQuery", params);
+		rpc("org.araqne.logdb.msgbus.LogQueryPlugin.startQuery", params);
 	}
 
 	public void stopQuery(int id) throws IOException {
@@ -1144,18 +1231,22 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("id", id);
 
-		session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.stopQuery", params);
+		rpc("org.araqne.logdb.msgbus.LogQueryPlugin.stopQuery", params);
 	}
 
 	public void removeQuery(int id) throws IOException {
 		verifyQueryId(id);
 
-		session.unregisterTrap("logstorage-query-" + id);
-		session.unregisterTrap("logstorage-query-timeline-" + id);
+		StreamingResultSet rs = streamCallbacks.remove(id);
+		if (rs != null)
+			session.unregisterTrap("logdb-query-result-" + id);
+
+		session.unregisterTrap("logdb-query-" + id);
+		session.unregisterTrap("logdb-query-timeline-" + id);
 
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("id", id);
-		session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.removeQuery", params);
+		rpc("org.araqne.logdb.msgbus.LogQueryPlugin.removeQuery", params);
 
 		queries.remove(id);
 	}
@@ -1174,7 +1265,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("limit", limit);
 		params.put("binary_encode", true);
 
-		Message resp = session.rpc("org.araqne.logdb.msgbus.LogQueryPlugin.getResult", params);
+		Message resp = rpc("org.araqne.logdb.msgbus.LogQueryPlugin.getResult", params);
 		if (resp.getParameters().size() == 0)
 			throw new MessageException("query-not-found", "", resp.getParameters());
 
@@ -1196,11 +1287,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> m = EncodingRule.decodeMap(ByteBuffer.wrap(uncompressed));
 
 		Object[] resultArray = (Object[]) m.get("result");
-		List<Object> resultList = new ArrayList<Object>(resultArray.length);
-		for (int i = 0; i < resultArray.length; i++)
-			resultList.add(resultArray[i]);
-
-		m.put("result", resultList);
+		m.put("result", Arrays.asList(resultArray));
 
 		return m;
 	}
@@ -1226,17 +1313,26 @@ public class LogDbClient implements TrapListener, Closeable {
 	public void close() throws IOException {
 		if (session != null)
 			session.close();
+
+		if (streamingDecoder != null) {
+			streamingDecoder.close();
+			streamingDecoder = null;
+		}
 	}
 
 	@Override
 	public void onTrap(Message msg) {
-		if (msg.getMethod().startsWith("logstorage-query-timeline")) {
+		String method = msg.getMethod();
+
+		if (method.startsWith("logdb-query-timeline-")) {
 			int id = msg.getInt("id");
 			LogQuery q = queries.get(id);
 			q.updateCount(msg.getLong("count"));
 			if (msg.getString("type").equals("eof"))
 				q.updateStatus("Ended");
-		} else if (msg.getMethod().startsWith("logstorage-query")) {
+		} else if (method.startsWith("logdb-query-result-")) {
+			handleStreamingResult(msg);
+		} else if (method.startsWith("logdb-query-")) {
 			int id = msg.getInt("id");
 			LogQuery q = queries.get(id);
 			if (msg.getString("type").equals("eof")) {
@@ -1252,6 +1348,29 @@ public class LogDbClient implements TrapListener, Closeable {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	private void handleStreamingResult(Message msg) {
+		List<Map<String, Object>> chunks = (List<Map<String, Object>>) msg.get("bins");
+		boolean last = msg.getBoolean("last");
+		int queryId = Integer.valueOf(msg.getMethod().substring("logdb-query-result-".length()));
+
+		try {
+			List<Object> l = streamingDecoder.decode(chunks);
+
+			ArrayList<Row> rows = new ArrayList<Row>(l.size());
+			for (Object o : l)
+				rows.add(new Row((Map<String, Object>) o));
+
+			LogQuery query = queries.get(queryId);
+			StreamingResultSet rs = streamCallbacks.get(queryId);
+			if (query != null && rs != null)
+				rs.onRows(query, rows, last);
+
+		} catch (ExecutionException e) {
+			logger.error("araqne logdb client: cannot decode streaming result", e);
+		}
+	}
+
 	@Override
 	public void onClose(Throwable t) {
 		for (LogQuery q : queries.values())
@@ -1261,5 +1380,17 @@ public class LogDbClient implements TrapListener, Closeable {
 	private void checkNotNull(String name, Object o) {
 		if (o == null)
 			throw new IllegalArgumentException(name + " parameter should be not null");
+	}
+
+	private Message rpc(String method) throws IOException {
+		if (session == null)
+			throw new IOException("not connected yet, use connect()");
+		return session.rpc(method);
+	}
+
+	private Message rpc(String method, Map<String, Object> params) throws IOException {
+		if (session == null)
+			throw new IOException("not connected yet, use connect()");
+		return session.rpc(method, params);
 	}
 }

@@ -15,7 +15,8 @@
  */
 package org.araqne.log.api;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 public class SelectorLogger extends AbstractLogger implements LoggerRegistryEventListener {
@@ -110,19 +111,22 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 
 		@Override
 		public void onLogBatch(Logger logger, Log[] logs) {
-			Log[] copy = Arrays.copyOf(logs, logs.length);
+			ArrayList<Log> selected = new ArrayList<Log>(logs.length);
+
 			for (int i = 0; i < logs.length; i++) {
 				Log log = logs[i];
 				if (log == null)
 					continue;
 
-				String line = (String) log.getParams().get("line");
-				if (line != null && line.startsWith(pattern))
-					copy[i] = new SimpleLog(log.getDate(), getFullName(), log.getParams());
+				Map<String, Object> params = log.getParams();
+				String line = (String) params.get("line");
+				if (line != null && line.startsWith(pattern)) {
+					params = new HashMap<String, Object>(params);
+					selected.add(new SimpleLog(log.getDate(), getFullName(), params));
+				}
 			}
 
-			writeBatch(copy);
+			writeBatch(selected.toArray(new Log[0]));
 		}
-
 	}
 }

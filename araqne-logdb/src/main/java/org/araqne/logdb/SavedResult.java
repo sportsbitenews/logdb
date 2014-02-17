@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
 
@@ -35,9 +36,8 @@ public class SavedResult {
 	@FieldOption(nullable = false)
 	private String queryString;
 
-	// v2, v3p
-	@FieldOption(nullable = false)
-	private String type;
+	@FieldOption(name = "storage", nullable = false)
+	private String storageName = "v2";
 
 	@FieldOption(skip = true)
 	private String indexPath;
@@ -86,12 +86,12 @@ public class SavedResult {
 		this.queryString = queryString;
 	}
 
-	public String getType() {
-		return type;
+	public String getStorageName() {
+		return storageName;
 	}
 
-	public void setType(String type) {
-		this.type = type;
+	public void setStorageName(String type) {
+		this.storageName = type;
 	}
 
 	public String getIndexPath() {
@@ -133,4 +133,13 @@ public class SavedResult {
 	public void setCreated(Date created) {
 		this.created = created;
 	}
+
+	@Override
+	public String toString() {
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		return "guid=" + guid + ", title=" + title + ", owner=" + owner + ", query=" + queryString + ", storage=" + storageName
+				+ ", index_path=" + indexPath + ", data_path=" + dataPath + ", file_size=" + fileSize + ", rows=" + rowCount
+				+ ", created=" + df.format(created);
+	}
+
 }

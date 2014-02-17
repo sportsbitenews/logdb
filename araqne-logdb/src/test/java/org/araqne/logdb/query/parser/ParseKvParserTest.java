@@ -58,6 +58,11 @@ public class ParseKvParserTest {
 		private Row output;
 
 		@Override
+		public String getName() {
+			return "output";
+		}
+
+		@Override
 		public void onPush(Row m) {
 			output = m;
 		}

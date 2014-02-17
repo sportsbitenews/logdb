@@ -56,6 +56,9 @@ public class DefaultQuery implements Query {
 
 		if (resultFactory != null)
 			openResult(resultFactory);
+
+		if (context != null)
+			context.getQueries().add(this);
 	}
 
 	private void openResult(QueryResultFactory resultFactory) {

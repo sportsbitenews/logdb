@@ -37,11 +37,19 @@ public class WtmpLogger extends AbstractLogger {
 		dataDir.mkdirs();
 
 		path = spec.getConfig().get("path");
+
+		// try migration at boot
+		File oldLastFile = getLastLogFile();
+		if (oldLastFile.exists()) {
+			Map<String, LastPosition> lastPositions = LastPositionHelper.readLastPositions(oldLastFile);
+			setStates(LastPositionHelper.serialize(lastPositions));
+			oldLastFile.renameTo(new File(oldLastFile.getAbsolutePath() + ".migrated"));
+		}
 	}
 
 	@Override
 	protected void runOnce() {
-		Map<String, LastPosition> lastPositions = LastPositionHelper.readLastPositions(getLastLogFile());
+		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
 		LastPosition inform = lastPositions.get(path);
 		if (inform == null)
 			inform = new LastPosition(path);
@@ -102,7 +110,7 @@ public class WtmpLogger extends AbstractLogger {
 			}
 			inform.setPosition(pos);
 			lastPositions.put(path, inform);
-			LastPositionHelper.updateLastPositionFile(getLastLogFile(), lastPositions);
+			setStates(LastPositionHelper.serialize(lastPositions));
 		}
 	}
 

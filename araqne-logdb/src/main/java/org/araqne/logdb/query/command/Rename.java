@@ -29,6 +29,11 @@ public class Rename extends QueryCommand implements ThreadSafe {
 		this.to = to;
 	}
 
+	@Override
+	public String getName() {
+		return "rename";
+	}
+
 	public String getFrom() {
 		return from;
 	}

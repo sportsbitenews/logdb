@@ -15,6 +15,8 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.araqne.logdb.Row;
 
 /**
@@ -23,11 +25,11 @@ import org.araqne.logdb.Row;
  * 
  */
 public class Seq implements Expression {
-	private long index = 1;
+	private AtomicLong index = new AtomicLong(1);
 
 	@Override
 	public Object eval(Row map) {
-		return index++;
+		return index.incrementAndGet();
 	}
 
 	@Override

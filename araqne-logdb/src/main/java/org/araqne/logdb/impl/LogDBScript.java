@@ -17,6 +17,7 @@ package org.araqne.logdb.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import org.araqne.api.PathAutoCompleter;
 import org.araqne.api.Script;
@@ -32,6 +33,7 @@ import org.araqne.logdb.QueryScriptRegistry;
 import org.araqne.logdb.QueryService;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.Query;
+import org.araqne.logdb.SavedResult;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 
@@ -221,5 +223,39 @@ public class LogDBScript implements Script {
 			qs.removeQuery(q.getId());
 			context.println("removed query " + q.getId());
 		}
+	}
+
+	/**
+	 * @since 2.0.3
+	 */
+	@ScriptUsage(description = "delete saved query result", arguments = { @ScriptArgument(name = "guid", type = "string", description = "the guid of saved query result") })
+	public void deleteSavedResult(String[] args) throws IOException {
+		String guid = args[0];
+		SavedResult sr = savedResultManager.getResult(guid);
+		if (sr == null) {
+			context.println("query result not found");
+			return;
+		}
+
+		savedResultManager.deleteResult(guid);
+		context.println("deleted '" + sr.getTitle() + "', " + sr.getFileSize() + " bytes, " + sr.getRowCount() + " rows");
+	}
+
+	/**
+	 * @since 2.0.3
+	 */
+	@ScriptUsage(description = "list all saved query results", arguments = { @ScriptArgument(name = "owner", type = "string", description = "login name", optional = true) })
+	public void savedResults(String[] args) {
+		String owner = args.length > 0 ? args[0] : null;
+		List<SavedResult> savedResults = savedResultManager.getResultList(owner);
+
+		context.println("Saved Query Results");
+		context.println("---------------------");
+
+		for (SavedResult sr : savedResults) {
+			context.println(sr);
+		}
+
+		context.println("total " + savedResults.size() + " results");
 	}
 }

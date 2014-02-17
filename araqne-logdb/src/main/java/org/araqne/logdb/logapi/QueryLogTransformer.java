@@ -47,6 +47,11 @@ public class QueryLogTransformer extends QueryCommand implements LogTransformer 
 	}
 
 	@Override
+	public String getName() {
+		return "querylogtransformer";
+	}
+
+	@Override
 	public LogTransformerFactory getTransformerFactory() {
 		return factory;
 	}

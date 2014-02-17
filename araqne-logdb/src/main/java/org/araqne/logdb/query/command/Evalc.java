@@ -35,6 +35,11 @@ public class Evalc extends QueryCommand implements ThreadSafe {
 		this.expr = expr;
 	}
 
+	@Override
+	public String getName() {
+		return "evalc";
+	}
+
 	public String getConstantName() {
 		return constantName;
 	}

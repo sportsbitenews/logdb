@@ -21,6 +21,7 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.api.InetAddresses;
 import org.araqne.geoip.GeoIpLocation;
 import org.araqne.geoip.GeoIpService;
 import org.araqne.logdb.LookupHandler;

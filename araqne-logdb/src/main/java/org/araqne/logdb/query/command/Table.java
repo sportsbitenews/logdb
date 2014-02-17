@@ -19,7 +19,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -37,11 +36,11 @@ import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.query.parser.TableSpec;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogTraverseCallback;
-import org.araqne.logstorage.TableWildcardMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,18 +60,23 @@ public class Table extends DriverQueryCommand {
 	}
 
 	@Override
+	public String getName() {
+		return "table";
+	}
+
+	@Override
 	public void run() {
 		try {
 			ResultSink sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
 			boolean isSuppressedBugAlert = false;
 
-			for (String tableName : expandTableNames(params.tableNames)) {
+			for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
 				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
-						tableName);
+						tableName.getTable());
 				if (isSuppressedBugAlert)
 					builder.suppressBugAlert();
 
-				storage.search(tableName, params.from, params.to, builder, new LogTraverseCallbackImpl(sink));
+				storage.search(tableName.getTable(), params.from, params.to, builder, new LogTraverseCallbackImpl(sink));
 
 				isSuppressedBugAlert = isSuppressedBugAlert || builder.isBugAlertSuppressed();
 				if (sink.isEof())
@@ -87,11 +91,20 @@ public class Table extends DriverQueryCommand {
 		}
 	}
 
+	@Deprecated
 	public List<String> getTableNames() {
+		List<String> result = new ArrayList<String>();
+		for (TableSpec s : params.tableNames) {
+			result.add(s.toString());
+		}
+		return result;
+	}
+
+	public List<TableSpec> getTableSpecs() {
 		return params.tableNames;
 	}
 
-	public void setTableNames(List<String> tableNames) {
+	public void setTableNames(List<TableSpec> tableNames) {
 		params.tableNames = tableNames;
 	}
 
@@ -232,30 +245,35 @@ public class Table extends DriverQueryCommand {
 		}
 	}
 
-	private List<String> expandTableNames(List<String> tableNames) {
-		List<String> localTableNames = new ArrayList<String>();
-		for (String s : tableNames) {
-			if (s.contains("*"))
-				localTableNames.addAll(matchTables(s));
-			else if (isAccessible(s))
-				localTableNames.add(s);
+	private List<StorageObjectName> expandTableNames(List<TableSpec> tableNames) {
+		final List<StorageObjectName> localTableNames = new ArrayList<StorageObjectName>();
+		for (TableSpec s : tableNames) {
+			for (StorageObjectName son : s.match(tableRegistry)) {
+				if (son.getNamespace() != null)
+					continue;
+				if (son.isOptional() && !tableRegistry.exists(son.getTable()))
+					continue;
+				if (isAccessible(son))
+					localTableNames.add(son);
+			}
 		}
 		return localTableNames;
 	}
 
-	private List<String> matchTables(String tableNameExpr) {
-		List<String> filtered = new ArrayList<String>();
-		for (String name : TableWildcardMatcher.apply(new HashSet<String>(tableRegistry.getTableNames()), tableNameExpr)) {
-			if (!isAccessible(name))
-				continue;
+	// private List<String> matchTables(String tableNameExpr) {
+	// List<String> filtered = new ArrayList<String>();
+	// for (String name : TableWildcardMatcher.apply(new
+	// HashSet<String>(tableRegistry.getTableNames()), tableNameExpr)) {
+	// if (!isAccessible(name))
+	// continue;
+	//
+	// filtered.add(name);
+	// }
+	// return filtered;
+	// }
 
-			filtered.add(name);
-		}
-		return filtered;
-	}
-
-	private boolean isAccessible(String name) {
-		return accountService.checkPermission(query.getContext().getSession(), name, Permission.READ);
+	private boolean isAccessible(StorageObjectName name) {
+		return accountService.checkPermission(query.getContext().getSession(), name.getTable(), Permission.READ);
 	}
 
 	@Override
@@ -317,7 +335,7 @@ public class Table extends DriverQueryCommand {
 	}
 
 	public static class TableParams {
-		private List<String> tableNames;
+		private List<TableSpec> tableNames;
 		private long offset;
 		private long limit;
 		private boolean ordered = true;
@@ -325,11 +343,11 @@ public class Table extends DriverQueryCommand {
 		private Date to;
 		private String parserName;
 
-		public List<String> getTableNames() {
+		public List<TableSpec> getTableSpecs() {
 			return tableNames;
 		}
 
-		public void setTableNames(List<String> tableNames) {
+		public void setTableSpecs(List<TableSpec> tableNames) {
 			this.tableNames = tableNames;
 		}
 
@@ -400,6 +418,6 @@ public class Table extends DriverQueryCommand {
 		if (params.getLimit() > 0)
 			s += " limit=" + params.getLimit();
 
-		return s + " " + Strings.join(params.getTableNames(), ", ");
+		return s + " " + Strings.join(getTableNames(), ", ");
 	}
 }

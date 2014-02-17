@@ -21,13 +21,14 @@ import java.util.regex.Pattern;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 
-public class Rex extends QueryCommand {
+public class Rex extends QueryCommand implements ThreadSafe {
 
-	private String field;
-	private Pattern p;
-	private Matcher matcher;
-	private String[] names;
+	private final String field;
+	private final Pattern p;
+	private final ThreadLocal<Matcher> localMatcher;
+	private final String[] names;
 
 	// for query string generation convenience
 	private String originalRegexToken;
@@ -36,8 +37,19 @@ public class Rex extends QueryCommand {
 		this.field = field;
 		this.p = p;
 		this.names = names;
-		this.matcher = p.matcher("");
+		this.localMatcher = new ThreadLocal<Matcher>() {
+			@Override
+			protected Matcher initialValue() {
+				return Rex.this.p.matcher("");
+			}
+		};
+
 		this.originalRegexToken = originalRegexToken;
+	}
+
+	@Override
+	public String getName() {
+		return "rex";
 	}
 
 	public String getInputField() {
@@ -62,6 +74,7 @@ public class Rex extends QueryCommand {
 
 		String s = o.toString();
 
+		Matcher matcher = localMatcher.get();
 		matcher.reset(s);
 		if (matcher.find())
 			for (int i = 0; i < matcher.groupCount(); i++)
@@ -72,6 +85,7 @@ public class Rex extends QueryCommand {
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
+		Matcher matcher = localMatcher.get();
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
@@ -104,11 +118,6 @@ public class Rex extends QueryCommand {
 		}
 
 		pushPipe(rowBatch);
-	}
-
-	@Override
-	public boolean isReducer() {
-		return false;
 	}
 
 	@Override

@@ -167,6 +167,30 @@
 						</execution>
 					</executions>
 				</plugin>
+				<plugin>
+					<groupId>pl.project13.maven</groupId>
+					<artifactId>git-commit-id-plugin</artifactId>
+					<version>2.1.9</version>
+					<executions>
+						<execution>
+							<goals>
+								<goal>revision</goal>
+							 </goals>
+						</execution>
+					</executions>
+
+					<configuration>
+						<generateGitPropertiesFile>true</generateGitPropertiesFile>
+						<generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
+						<failOnNoGitDirectory>false</failOnNoGitDirectory>
+						<gitDescribe>
+							<always>false</always>
+							<abbrev>7</abbrev>
+							<dirty>-dirty</dirty>
+							<forceLongFormat>false</forceLongFormat>
+						</gitDescribe>
+					</configuration>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>
@@ -213,7 +237,6 @@
 	<modules>
 		<module>araqne-log-api</module>
 		<module>araqne-logdb</module>
-		<!--module>araqne-logdb2</module -->
 		<module>araqne-logfile-parser</module>
 		<module>araqne-logstorage</module>
 		<module>araqne-snmptrap-parser</module>
@@ -226,5 +249,7 @@
 		<module>araqne-storage</module>
 		<module>araqne-storage-hdfs</module>
 		<module>araqne-logstorage-exporter</module>
+		<module>araqne-logdb-groovy</module>
+		<module>araqne-logdb-cep</module>
 	</modules>
 </project>

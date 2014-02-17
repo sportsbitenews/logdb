@@ -53,12 +53,17 @@ public class QueryHelper {
 		if (q.getCommands() != null) {
 			for (QueryCommand cmd : q.getCommands()) {
 				Map<String, Object> c = new HashMap<String, Object>();
-				c.put("command", cmd.getQueryString());
+				c.put("command", cmd.toString());
 				c.put("status", cmd.getStatus());
 				c.put("push_count", cmd.getOutputCount());
 				commands.add(c);
 			}
 		}
+
+		List<Object> subQueries = new ArrayList<Object>();
+		for (Query subQuery : q.getContext().getQueries())
+			if (q != subQuery)
+				subQueries.add(serializeSubQuery(subQuery));
 
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("id", q.getId());
@@ -72,7 +77,37 @@ public class QueryHelper {
 		m.put("elapsed", msec);
 		m.put("background", q.getRunMode() == RunMode.BACKGROUND);
 		m.put("commands", commands);
+		m.put("sub_queries", subQueries);
 
+		return m;
+	}
+
+	private static Map<String, Object> serializeSubQuery(Query q) {
+		List<Object> commands = new ArrayList<Object>();
+		for (QueryCommand cmd : q.getCommands())
+			commands.add(serializeQueryCommand(cmd));
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("id", q.getId());
+		if (commands.size() > 0)
+			m.put("commands", commands);
+		return m;
+	}
+
+	private static Map<String, Object> serializeQueryCommand(QueryCommand cmd) {
+		Map<String, Object> m = new HashMap<String, Object>();
+		List<Object> l = new ArrayList<Object>();
+		for (QueryCommand c : cmd.getNestedCommands()) {
+			l.add(serializeQueryCommand(c));
+		}
+
+		m.put("name", cmd.getName());
+		m.put("command", cmd.toString());
+		m.put("push_count", cmd.getOutputCount());
+		m.put("status", cmd.getStatus());
+
+		if (l.size() > 0)
+			m.put("commands", l);
 		return m;
 	}
 

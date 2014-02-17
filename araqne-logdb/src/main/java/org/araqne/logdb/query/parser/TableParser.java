@@ -21,12 +21,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
-import org.araqne.log.api.WildcardMatcher;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.QueryCommand;
@@ -34,6 +31,7 @@ import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.query.command.StorageObjectName;
 import org.araqne.logdb.query.command.Table;
 import org.araqne.logdb.query.command.Table.TableParams;
 import org.araqne.logdb.query.expr.Comma;
@@ -75,7 +73,7 @@ public class TableParser implements QueryCommandParser {
 				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order"));
 		Map<String, String> options = (Map<String, String>) r.value;
 		String tableTokens = commandString.substring(r.next);
-		List<String> tableNames = parseTableNames(context, tableTokens);
+		List<TableSpec> tableNames = parseTableNames(context, tableTokens);
 
 		Date from = null;
 		Date to = null;
@@ -116,12 +114,12 @@ public class TableParser implements QueryCommandParser {
 
 		if (options.containsKey("parser"))
 			parser = options.get("parser");
-		
+
 		if (options.containsKey("order"))
 			ordered = !options.get("order").equals("f");
 
 		TableParams params = new TableParams();
-		params.setTableNames(tableNames);
+		params.setTableSpecs(tableNames);
 		params.setOffset(offset);
 		params.setLimit(limit);
 		params.setFrom(from);
@@ -264,13 +262,14 @@ public class TableParser implements QueryCommandParser {
 
 		public StringConstant(String token) {
 			this.token = token;
-			if (token.startsWith("\"") && token.endsWith("\""))
-				this.token = token.substring(1, token.length() - 1);
 		}
 
 		@Override
 		public Object eval(Row map) {
-			return token.toString();
+			if (token.startsWith("\"") && token.endsWith("\""))
+				return token.substring(1, token.length() - 1);
+			else
+				return token.toString();
 		}
 
 		public String toString() {
@@ -284,100 +283,109 @@ public class TableParser implements QueryCommandParser {
 			exprStack.add(new StringConstant(t.toString()));
 		}
 	}
+	
+	private static class MetaS implements TableSpec {
+		private Expression predicate;
+		private TableSpec pattern;
+		private MetadataMatcher<TableSpec> mm;
 
-	public static interface TableNameMatcher {
-		String toString(String tableName);
-
-		boolean matches(String tableName);
-	}
-
-	private static class TableSpec implements TableNameMatcher {
-		String namespace;
-		String table;
-		Pattern pattern;
-
-		public TableSpec(String spec) {
-			Matcher matcher = TableSpec.qualifierPattern.matcher(spec);
-			if (matcher.matches()) {
-				namespace = matcher.group(1);
-				table = matcher.group(2);
-				pattern = WildcardMatcher.buildPattern(table);
-			} else {
-				throw new IllegalArgumentException();
-			}
+		public MetaS(Expression pred, TableSpec pat) {
+			this.predicate = pred;
+			this.pattern = pat;
+			this.mm = new MetadataMatcher<TableSpec>(predicate.eval(new Row()).toString(), Arrays.asList(pattern));
 		}
 
-		public static Pattern qualifierPattern = Pattern
-				.compile("^(?:(`[^`]+`|[\\w\\*]+)\\:|)(`[^`]+`|[\\w\\*]+)");
+		public Object clone() {
+			return new MetaS(predicate, pattern);
+		}
 
-		public String toString(String tableName) {
-			if (namespace == null)
-				return tableName;
-			else
-				return namespace + ":" + quote(tableName);
+		@Override
+		public String getSpec() {
+			return toString();
+		}
+
+		@Override
+		public List<StorageObjectName> match(LogTableRegistry logTableRegistry) {
+			return mm.match(logTableRegistry);
+		}
+
+		@Override
+		public String getNamespace() {
+			return pattern.getNamespace();
 		}
 		
-		public static Pattern unquotedNameConstraint = Pattern.compile("^[\\w\\*]+$");
-
-		private String quote(String tableName) {
-			if (unquotedNameConstraint.matcher(tableName).matches()) {
-				return tableName;
-			} else {
-				return "`" + tableName + "`";
-			}
+		@Override
+		public void setNamespace(String ns) {
+			pattern.setNamespace(ns);
 		}
 
-		public boolean matches(String tableName) {
-			if (pattern == null)
-				return table.equals(tableName);
-			else
-				return pattern.matcher(tableName).matches();
+		@Override
+		public String getTable() {
+			return pattern.getTable();
+		}
+
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			sb.append("meta(");
+			sb.append(predicate.toString());
+			sb.append(", " + pattern.toString());
+			sb.append(")");
+			return sb.toString();
 		}
 	}
 
 	private static class Meta implements Expression {
-		private ArrayList<TableNameMatcher> patterns;
-		private MetadataMatcher mm;
+		private List<TableSpec> patterns;
+		private MetadataMatcher<TableSpec> mm;
+		private String predStr;
+		private List<Expression> args;
 
-		public Meta(List<Expression> args, LogTableRegistry tableRegistry) {
+		public Meta(List<Expression> args) {
+			this.args = args;
 			Expression predicate = args.get(0);
-			this.patterns = new ArrayList<TableNameMatcher>();
+			this.predStr = predicate.toString();
+			this.patterns = new ArrayList<TableSpec>();
 			for (Expression e : args.subList(1, args.size())) {
 				try {
-					patterns.add(new TableSpec(e.toString()));
+					this.patterns.add(new WildcardTableSpec(e.eval(new Row()).toString()));
 				} catch (IllegalArgumentException exc) {
 					throw new QueryParseException("invalid-table-spec", -1, e.toString());
 				}
 			}
 			if (args.size() < 2) {
-				patterns.add(new TableSpec("*"));
+				this.patterns.add(new WildcardTableSpec("*"));
 			}
 
-			mm = new MetadataMatcher(predicate.eval(new Row()).toString(), tableRegistry, patterns);
+			this.mm = new MetadataMatcher<TableSpec>(predicate.eval(new Row()).toString(), patterns);
 		}
-
+		
+		public Object clone() {
+			return new Meta(args);
+		}
+		
 		@Override
 		public Object eval(Row map) {
-			Row m = new Row() {
-				{
-					put(MetadataMatcher.IDFACTORY_KEY, new MetadataMatcher.IdentifierFactory() {
-						@Override
-						public Object create(String concreteString) {
-							return new String(concreteString);
-						}
-					});
-				}
-			};
-			return mm.eval(m);
+			List<TableSpec> result = new ArrayList<TableSpec>();
+			for (TableSpec ts: patterns) {
+				result.add(new MetaS(args.get(0), ts));
+			}
+			return result;
 		}
 
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			sb.append("meta(");
+			sb.append(predStr);
+			for (TableSpec spec : patterns) {
+				sb.append(", " + spec.toString());
+			}
+			sb.append(")");
+			return sb.toString();
+		}
 	}
 
 	private static class FuncEmitterFactoryI implements FuncEmitterFactory {
-		private LogTableRegistry tableRegistry;
-
-		public FuncEmitterFactoryI(LogTableRegistry tableRegistry) {
-			this.tableRegistry = tableRegistry;
+		public FuncEmitterFactoryI() {
 		}
 
 		@Override
@@ -386,7 +394,7 @@ public class TableParser implements QueryCommandParser {
 			List<Expression> args = getArgsFromStack(f, exprStack);
 
 			if (name.equals("meta")) {
-				exprStack.add(new Meta(args, tableRegistry));
+				exprStack.add(new Meta(args));
 			}
 		}
 
@@ -407,39 +415,55 @@ public class TableParser implements QueryCommandParser {
 	}
 
 	@SuppressWarnings("unchecked")
-	private List<String> parseTableNames(QueryContext context, String tableTokens) {
-		List<String> tableNames = new ArrayList<String>();
+	private List<TableSpec> parseTableNames(QueryContext context, String tableTokens) {
+		List<TableSpec> tableNames = new ArrayList<TableSpec>();
 
 		OpEmitterFactory of = new OpEmitterFactoryI();
-		FuncEmitterFactory ff = new FuncEmitterFactoryI(tableRegistry);
+		FuncEmitterFactory ff = new FuncEmitterFactoryI();
 		TermEmitterFactory tf = new TermEmitterFactoryI();
 
 		Expression expr = ExpressionParser.parse(context, tableTokens, new ParsingRule(OpTermI.NOP, of, ff, tf));
 
 		Object evalResult = expr.eval(new Row());
 		if (evalResult instanceof List) {
-		
-			// TODO: can be more simplified
 			for (Object o : (List<Object>) evalResult) {
-				if (o instanceof List) {
-					for (Object o2: (List<Object>) o) {
-						String fqdn = o2.toString().trim();
-						addTableNames(tableNames, context, fqdn);
-					}
-				} else {
-					String fqdn = o.toString().trim();
-					addTableNames(tableNames, context, fqdn);
-				}
-				
+				addTableSpec(tableNames, context, o);
 			}
 		} else {
-			addTableNames(tableNames, context, evalResult.toString());
+			addTableSpec(tableNames, context, evalResult);
 		}
-		
+
 		if (tableNames.isEmpty())
 			throw new QueryParseException("no-table-data-source", -1);
 
 		return tableNames;
+	}
+
+	private void addTableSpec(List<TableSpec> target, QueryContext context, Object spec) {
+		if (spec instanceof TableSpec) {
+			target.add((TableSpec) spec);
+		} else if (spec instanceof List) {
+			for (Object o : (List<Object>) spec) {
+				addTableSpec(target, context, o);
+			}
+		} else {
+			WildcardTableSpec wspec = new WildcardTableSpec(spec.toString());
+			if (!wspec.hasWildcard()) {
+				List<StorageObjectName> sonList = wspec.match(tableRegistry);
+
+				StorageObjectName son = sonList.get(0);
+
+				if (son.getNamespace() == null) {
+					// check only local tables
+					if (!son.isOptional() && !tableRegistry.exists(son.getTable()))
+						throw new QueryParseException("table-not-found", -1, "table=" + son.toString());
+
+					if (!accountService.checkPermission(context.getSession(), son.getTable(), Permission.READ))
+						throw new QueryParseException("no-read-permission", -1, "table=" + son.toString());
+				}
+			}
+			target.add(wspec);
+		}
 	}
 
 	private void addTableNames(List<String> target, QueryContext context, String fqdn) {
@@ -459,10 +483,9 @@ public class TableParser implements QueryCommandParser {
 			// XXX
 			if (name.startsWith("`") && name.endsWith("`")) {
 				name = name.substring(1, name.length() - 1);
-				fqdn = name; 
+				fqdn = name;
 			}
 		}
-		
 
 		if (namespace == null && !name.contains("*")) {
 			// check only local tables

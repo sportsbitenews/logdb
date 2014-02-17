@@ -47,6 +47,11 @@ public class Sort extends QueryCommand {
 	}
 
 	@Override
+	public String getName() {
+		return "sort";
+	}
+
+	@Override
 	public void onStart() {
 		super.onStart();
 		if (limit != null && limit <= TOP_OPTIMIZE_THRESHOLD)
@@ -99,8 +104,6 @@ public class Sort extends QueryCommand {
 		} catch (IOException e) {
 			throw new IllegalStateException("sort failed, query " + query, e);
 		}
-
-		pushPipe(rowBatch);
 	}
 
 	@Override

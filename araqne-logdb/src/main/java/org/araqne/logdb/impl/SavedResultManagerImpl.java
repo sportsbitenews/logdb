@@ -149,7 +149,7 @@ public class SavedResultManagerImpl implements SavedResultManager {
 		if (sr == null)
 			throw new IllegalStateException("saved result not found: " + guid);
 
-		LogFileService lfs = fileServiceRegistry.getLogFileService(sr.getType());
+		LogFileService lfs = fileServiceRegistry.getLogFileService(sr.getStorageName());
 		Map<String, Object> options = new HashMap<String, Object>();
 		options.put("indexPath", new File(baseDir, guid + ".idx"));
 		options.put("dataPath", new File(baseDir, guid + ".dat"));

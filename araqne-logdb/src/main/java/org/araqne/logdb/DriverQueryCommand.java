@@ -40,7 +40,7 @@ public abstract class DriverQueryCommand extends QueryCommand {
 
 		@Override
 		public String toString() {
-			return "scan: " + DriverQueryCommand.this.getQueryString();
+			return "scan: " + DriverQueryCommand.this.toString();
 		}
 	}
 }

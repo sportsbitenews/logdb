@@ -37,6 +37,11 @@ public class ParseKv extends QueryCommand {
 		this.kvDelim = kvDelim;
 	}
 
+	@Override
+	public String getName() {
+		return "parsekv";
+	}
+
 	public String getField() {
 		return field;
 	}

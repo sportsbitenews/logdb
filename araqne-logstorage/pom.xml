@@ -36,6 +36,7 @@
 							org.araqne.codec;version=2.2.0,
 							org.araqne.confdb;version=0.10.0,
 							org.araqne.confdb.file;version=0.10.0,
+							org.xerial.snappy;resolution:=optional,
 							!org.junit,*
 						</Import-Package>
 					</instructions>
@@ -51,6 +52,10 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>pl.project13.maven</groupId>
+				<artifactId>git-commit-id-plugin</artifactId>
 			</plugin>
 		</plugins>
 	</build>
@@ -95,7 +100,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>2.9.1-SNAPSHOT</version>
+			<version>2.9.5</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jcraft</groupId>

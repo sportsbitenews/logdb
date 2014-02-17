@@ -65,6 +65,11 @@ public class LogCheck extends QueryCommand {
 	}
 
 	@Override
+	public String getName() {
+		return "logcheck";
+	}
+
+	@Override
 	public QueryTask getMainTask() {
 		return mainTask;
 	}

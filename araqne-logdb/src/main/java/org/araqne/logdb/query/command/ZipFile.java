@@ -48,6 +48,11 @@ public class ZipFile extends DriverQueryCommand {
 	}
 
 	@Override
+	public String getName() {
+		return "zipfile";
+	}
+
+	@Override
 	public void run() {
 		status = Status.Running;
 

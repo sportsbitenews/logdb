@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 
 import org.araqne.api.ScriptContext;
 import org.araqne.logdb.Query;
@@ -91,15 +92,35 @@ public class QueryPrintHelper {
 		String loginName = query.getContext().getSession().getLoginName();
 		String status = String.format("[%d:%s] %s%s\n", query.getId(), loginName, query.getQueryString(), when);
 
-		if (query.getCommands() != null) {
-			for (QueryCommand cmd : query.getCommands()) {
-				status += String.format("    [%s] %s \t/ passed %d data to next query\n", cmd.getStatus(), cmd.getQueryString(),
-						cmd.getOutputCount());
-			}
-		} else {
-			status += "    null\n";
+		int i = 0;
+		for (Query q : query.getContext().getQueries()) {
+			if (i++ != 0)
+				status += "Sub Query #" + q.getId() + "\n";
+
+			status += getCommandStatuses(q.getCommands(), 2);
 		}
 
 		return status;
+	}
+
+	private static String getCommandStatuses(List<QueryCommand> commands, int indent) {
+		String status = "";
+		for (QueryCommand cmd : commands) {
+			if (cmd.getNestedCommands().size() > 0) {
+				status += tab(indent) + "Command [" + cmd.getName() + "]\n";
+				status += getCommandStatuses(cmd.getNestedCommands(), indent + 2);
+			} else {
+				status += String.format(tab(indent) + "[%s] %s \t/ passed %d data to next query\n", cmd.getStatus(),
+						cmd.toString(), cmd.getOutputCount());
+			}
+		}
+		return status;
+	}
+
+	private static String tab(int n) {
+		StringBuilder sb = new StringBuilder(100);
+		for (int i = 0; i < n; i++)
+			sb.append(" ");
+		return sb.toString();
 	}
 }

@@ -296,6 +296,11 @@ public class SearchParserTest {
 		private Row m;
 
 		@Override
+		public String getName() {
+			return "output";
+		}
+
+		@Override
 		public void onPush(Row m) {
 			this.m = m;
 		}

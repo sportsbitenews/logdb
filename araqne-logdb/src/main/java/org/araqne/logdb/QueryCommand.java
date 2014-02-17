@@ -17,6 +17,7 @@ package org.araqne.logdb;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public abstract class QueryCommand {
 	public static enum Status {
@@ -26,9 +27,6 @@ public abstract class QueryCommand {
 	protected Query query;
 	private boolean cancelled = false;
 
-	// command name
-	private String name;
-	private String queryString;
 	protected RowPipe output;
 	private boolean invokeTimelineCallback;
 
@@ -63,21 +61,7 @@ public abstract class QueryCommand {
 		return cancelled;
 	}
 
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public String getQueryString() {
-		return queryString;
-	}
-
-	public void setQueryString(String queryString) {
-		this.queryString = queryString;
-	}
+	public abstract String getName();
 
 	public QueryContext getContext() {
 		return query.getContext();
@@ -190,5 +174,9 @@ public abstract class QueryCommand {
 
 	public void setInvokeTimelineCallback(boolean invokeTimelineCallback) {
 		this.invokeTimelineCallback = invokeTimelineCallback;
+	}
+
+	public List<QueryCommand> getNestedCommands() {
+		return new ArrayList<QueryCommand>();
 	}
 }

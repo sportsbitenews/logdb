@@ -16,7 +16,6 @@
 package org.araqne.logstorage.file;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -43,7 +42,7 @@ public abstract class LogFileWriter {
 
 	public abstract void write(Log data) throws IOException;
 
-	public abstract void write(Collection<Log> data) throws IOException;
+	public abstract void write(List<Log> data) throws IOException;
 
 	public abstract List<Log> getBuffer();
 
