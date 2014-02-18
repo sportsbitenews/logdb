@@ -455,6 +455,9 @@ public class Table extends DriverQueryCommand {
 		if (params.getLimit() > 0)
 			s += " limit=" + params.getLimit();
 
+		if (params.getWindow() != null)
+			s += " window=" + params.getWindow();
+
 		return s + " " + Strings.join(getTableNames(), ", ");
 	}
 
@@ -604,7 +607,5 @@ public class Table extends DriverQueryCommand {
 
 			throw new LogParserBugException(t, log.getTableName(), log.getId(), log.getDate(), row);
 		}
-
 	}
-
 }
