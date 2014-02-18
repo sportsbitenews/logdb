@@ -123,6 +123,55 @@ public class RexParserTest {
 		String query = rex.toString();
 		assertEquals(s, query);
 	}
+	
+	// for araqne/issue#280
+	@Test
+	public void testNestedCapture() {
+		String s = "rex field=line \"(?<payload>cpu_usage=\\\"(?<cpu_usage>.*)\\\" mem_usage=\\\"(?<mem_usage>.*)\\\")\"";
+		RexParser parser = new RexParser();
+		Rex rex = (Rex) parser.parse(null, s);
+
+		DummyOutput out = new DummyOutput();
+		rex.setOutput(new QueryCommandPipe(out));
+		Row map = new Row();
+		map.put("line", "sample cpu_usage=\"3 %\" mem_usage=\"60 %\"");
+
+		rex.onPush(map);
+		Row map2 = out.list.get(0);
+
+		assertEquals("3 %", map2.get("cpu_usage"));
+		assertEquals("60 %", map2.get("mem_usage"));
+		assertEquals("cpu_usage=\"3 %\" mem_usage=\"60 %\"", map2.get("payload"));
+		
+		s = "rex field=line \"((?<key>\\w+,\\w+))\"";
+		parser = new RexParser();
+		rex = (Rex) parser.parse(null, s);
+		
+		out = new DummyOutput();
+		rex.setOutput(new QueryCommandPipe(out));
+		map = new Row();
+		map.put("line", "sample (aaa,bbb)");
+		
+		rex.onPush(map);
+		map2 = out.list.get(0);
+		
+		assertEquals("aaa,bbb", map2.get("key"));
+
+		s = "rex field=line \"\\((?<key>\\w+,\\w+)\\)\"";
+		parser = new RexParser();
+		rex = (Rex) parser.parse(null, s);
+		
+		out = new DummyOutput();
+		rex.setOutput(new QueryCommandPipe(out));
+		map = new Row();
+		map.put("line", "sample (aaa,bbb)");
+		
+		rex.onPush(map);
+		map2 = out.list.get(0);
+		
+		assertEquals("aaa,bbb", map2.get("key"));
+	}
+	
 
 	// for araqne/issue#127
 	@Test

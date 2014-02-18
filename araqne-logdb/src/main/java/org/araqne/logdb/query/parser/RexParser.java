@@ -49,7 +49,7 @@ public class RexParser implements QueryCommandParser {
 		if (field == null)
 			throw new QueryParseException("field-not-found", commandString.length());
 
-		Pattern placeholder = Pattern.compile("\\(\\?<(.*?)>(.*?)\\)");
+		Pattern placeholder = Pattern.compile("\\(\\?<(.*?)>");
 		String regexToken = commandString.substring(r.next);
 		if (!QueryTokenizer.isQuoted(regexToken.trim()))
 			throw new QueryParseException("invalid-regex", commandString.length());
@@ -69,8 +69,8 @@ public class RexParser implements QueryCommandParser {
 			if (!matcher.find())
 				break;
 
-			// supporess special meaning of $ and \
-			String quoted = Matcher.quoteReplacement("(" + matcher.group(2) + ")");
+			// suppress special meaning of $ and \
+			String quoted = Matcher.quoteReplacement("(");
 			regexToken = matcher.replaceFirst(quoted);
 		}
 
@@ -81,12 +81,14 @@ public class RexParser implements QueryCommandParser {
 	private String toNonCapturingGroup(String s) {
 		StringBuilder sb = new StringBuilder();
 
+		char last2 = ' ';
 		char last = ' ';
 		for (int i = 0; i < s.length(); i++) {
 			char c = s.charAt(i);
-			if (last == '(' && c != '?')
+			if (last2 != '\\' && last == '(' && c != '?')
 				sb.append("?:");
 			sb.append(c);
+			last2 = last;
 			last = c;
 		}
 
