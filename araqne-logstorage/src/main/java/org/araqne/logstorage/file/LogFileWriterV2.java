@@ -78,6 +78,20 @@ public class LogFileWriterV2 extends LogFileWriter {
 		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL);
 	}
 
+	private boolean checkExists(FilePath path) throws IOException {
+		if (!path.exists())
+			return false;
+		
+		StorageInputStream is = null;
+		try {
+			is = indexPath.newInputStream();
+			return is.available() > 0;
+		} finally {
+			if (is != null)
+				is.close();
+		}
+	}
+
 	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, int level) throws IOException,
 			InvalidLogFileHeaderException {
 		// level 0 will not use compression (no zip metadata overhead)
@@ -85,8 +99,8 @@ public class LogFileWriterV2 extends LogFileWriter {
 			if (level < 0 || level > 9)
 				throw new IllegalArgumentException("compression level should be between 0 and 9");
 
-			boolean indexExists = indexPath.exists() && indexPath.length() > 0;
-			boolean dataExists = dataPath.exists() && dataPath.length() > 0;
+			boolean indexExists = checkExists(indexPath);
+			boolean dataExists = checkExists(dataPath);
 			this.indexPath = indexPath;
 			this.dataPath = dataPath;
 
@@ -125,7 +139,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 				
 			} else {
 				indexFileHeader = new LogFileHeader((short) 2, LogFileHeader.MAGIC_STRING_INDEX);
-				indexOutStream = indexPath.newOutputStream(false);
+				indexOutStream = indexPath.newOutputStream(indexPath.exists());
 				indexOutStream.write(indexFileHeader.serialize());
 			}
 
@@ -168,7 +182,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 				}
 
 				dataFileHeader.setExtraData(ext);
-				dataOutStream = dataPath.newOutputStream(false);
+				dataOutStream = dataPath.newOutputStream(dataPath.exists());
 				dataOutStream.write(dataFileHeader.serialize());
 			}
 
