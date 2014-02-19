@@ -147,4 +147,11 @@ public interface LogStorage {
 	boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder,
 			LogTraverseCallback c, boolean doParallel) throws InterruptedException;
 
+	/*
+	 * @since 2.5.3
+	 */
+	<T> void addEventListener(Class<T> clazz, T callback);
+	
+	<T> void removeEventListener(Class<T> clazz, T callback);
+
 }
