@@ -86,8 +86,21 @@ public class Table extends DriverQueryCommand {
 		try {
 			this.receiver = new RealtimeReceiver();
 			storage.addLogListener(receiver);
-			Thread.sleep(params.window.unit.getMillis() * params.window.amount);
-		} catch (InterruptedException e) {
+
+			long expire = System.currentTimeMillis() + params.window.unit.getMillis() * params.window.amount;
+
+			while (true) {
+				if (System.currentTimeMillis() >= expire)
+					break;
+
+				if (stopped)
+					break;
+
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+				}
+			}
 		} finally {
 			storage.removeLogListener(receiver);
 		}
@@ -287,18 +300,6 @@ public class Table extends DriverQueryCommand {
 		}
 		return localTableNames;
 	}
-
-	// private List<String> matchTables(String tableNameExpr) {
-	// List<String> filtered = new ArrayList<String>();
-	// for (String name : TableWildcardMatcher.apply(new
-	// HashSet<String>(tableRegistry.getTableNames()), tableNameExpr)) {
-	// if (!isAccessible(name))
-	// continue;
-	//
-	// filtered.add(name);
-	// }
-	// return filtered;
-	// }
 
 	private boolean isAccessible(StorageObjectName name) {
 		return accountService.checkPermission(query.getContext().getSession(), name.getTable(), Permission.READ);
