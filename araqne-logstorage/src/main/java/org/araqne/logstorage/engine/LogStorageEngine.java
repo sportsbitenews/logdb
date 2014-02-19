@@ -1146,4 +1146,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			LogTraverseCallback c, boolean doParallel) throws InterruptedException {
 		return searchTablet(tableName, day, from, to, minId, -1, builder, c, doParallel);
 	}
+
+	@Override
+	public StorageManager getStorageManager() {
+		return storageManager;
+	}
 }

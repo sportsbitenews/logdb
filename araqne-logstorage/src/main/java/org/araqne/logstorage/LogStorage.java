@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageManager;
 
 public interface LogStorage {
 	/**
@@ -121,5 +122,11 @@ public interface LogStorage {
 
 	boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder,
 			LogTraverseCallback c, boolean doParallel) throws InterruptedException;
-
+	
+	
+	/**
+	 * 
+	 * @since 2.5.10-SNAPSHOT
+	 */
+	StorageManager getStorageManager();
 }
