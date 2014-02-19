@@ -203,4 +203,9 @@ public class LocalFilePath implements FilePath {
 		return File.separatorChar;
 	}
 
+	@Override
+	public boolean isNotEmpty() throws IOException {
+		return exists() && length() > 0;
+	}
+
 }

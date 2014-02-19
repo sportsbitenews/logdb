@@ -23,6 +23,9 @@ public class StorageManagerImpl implements StorageManager {
 	
 	@Override
 	public FilePath resolveFilePath(String path) {
+		if (path == null)
+			return null;
+		
 		for (URIResolver resolver : uriResolvers) {
 			FilePath filePath = resolver.resolveFilePath(path);
 			if (filePath != null)

@@ -78,20 +78,6 @@ public class LogFileWriterV2 extends LogFileWriter {
 		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL);
 	}
 
-	private boolean checkExists(FilePath path) throws IOException {
-		if (!path.exists())
-			return false;
-		
-		StorageInputStream is = null;
-		try {
-			is = indexPath.newInputStream();
-			return is.available() > 0;
-		} finally {
-			if (is != null)
-				is.close();
-		}
-	}
-
 	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, int level) throws IOException,
 			InvalidLogFileHeaderException {
 		// level 0 will not use compression (no zip metadata overhead)
@@ -99,8 +85,8 @@ public class LogFileWriterV2 extends LogFileWriter {
 			if (level < 0 || level > 9)
 				throw new IllegalArgumentException("compression level should be between 0 and 9");
 
-			boolean indexExists = checkExists(indexPath);
-			boolean dataExists = checkExists(dataPath);
+			boolean indexExists = indexPath.isNotEmpty();
+			boolean dataExists = dataPath.isNotEmpty();
 			this.indexPath = indexPath;
 			this.dataPath = dataPath;
 

@@ -13,6 +13,8 @@ public interface FilePath extends Comparable<FilePath> {
 	
 	boolean exists() throws SecurityException;
 	
+	boolean isNotEmpty() throws IOException;
+	
 	boolean mkdirs() throws SecurityException;
 	
 	boolean delete() throws SecurityException;

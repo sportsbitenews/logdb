@@ -288,4 +288,19 @@ public class HDFSFilePath implements FilePath {
 		return root.toString() + path.toString();
 	}
 
+	@Override
+	public boolean isNotEmpty() throws IOException {
+		if (!exists())
+			return false;
+		
+		StorageInputStream is = null;
+		try {
+			is = newInputStream();
+			return is.available() > 0;
+		} finally {
+			if (is != null)
+				is.close();
+		}
+	}
+
 }
