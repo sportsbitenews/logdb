@@ -78,6 +78,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	private ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters;
 
 	private CopyOnWriteArraySet<LogCallback> callbacks;
+	private ConcurrentMap<Class<?>, CopyOnWriteArraySet<?>> callbackSets;
 
 	// sweeping and flushing data
 	private WriterSweeper writerSweeper;
@@ -88,7 +89,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	private FilePath logDir;
 
 	private ConcurrentHashMap<String, Integer> tableNameCache;
-	private CopyOnWriteArraySet<LogStorageEventListener> listeners;
+//	private CopyOnWriteArraySet<LogStorageEventListener> listeners;
 
 	public LogStorageEngine() {
 		int checkInterval = getIntParameter(Constants.LogCheckInterval, DEFAULT_LOG_CHECK_INTERVAL);
@@ -98,9 +99,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		onlineWriters = new ConcurrentHashMap<OnlineWriterKey, OnlineWriter>();
 		writerSweeper = new WriterSweeper(checkInterval, maxIdleTime, flushInterval);
 		callbacks = new CopyOnWriteArraySet<LogCallback>();
+		callbackSets = new ConcurrentHashMap<Class<?>, CopyOnWriteArraySet<?>>();
 		tableNameCache = new ConcurrentHashMap<String, Integer>();
 
-		listeners = new CopyOnWriteArraySet<LogStorageEventListener>();
+//		listeners = new CopyOnWriteArraySet<LogStorageEventListener>();
 	}
 
 	@Override
@@ -514,7 +516,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		FilePath idxFile = dir.newFilePath(fileName + ".idx");
 		FilePath datFile = dir.newFilePath(fileName + ".dat");
 
-		for (LogStorageEventListener listener : listeners) {
+		for (LogStorageEventListener listener : getCallbacks(LogStorageEventListener.class)) {
 			try {
 				listener.onPurge(tableName, day);
 			} catch (Throwable t) {
@@ -525,6 +527,18 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		logger.debug("araqne logstorage: try to purge log data of table [{}], day [{}]", tableName, fileName);
 		ensureDelete(idxFile);
 		ensureDelete(datFile);
+	}
+
+	@SuppressWarnings("unchecked")
+	private <T> CopyOnWriteArraySet<T> getCallbacks(Class<T> class1) {
+		CopyOnWriteArraySet<?> result = callbackSets.get(class1);
+		if (result == null) {
+			result = new CopyOnWriteArraySet<T>();
+			CopyOnWriteArraySet<?> concensus = callbackSets.putIfAbsent(class1, result);
+			if (concensus != null)
+				result = concensus;
+		}
+		return (CopyOnWriteArraySet<T>) result;
 	}
 
 	@Override
@@ -765,14 +779,25 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 	@Override
 	public void addEventListener(LogStorageEventListener listener) {
-		listeners.add(listener);
+		getCallbacks(LogStorageEventListener.class).add(listener);
 	}
 
 	@Override
 	public void removeEventListener(LogStorageEventListener listener) {
-		listeners.remove(listener);
+		getCallbacks(LogStorageEventListener.class).remove(listener);
+	}
+	
+
+	@Override
+	public <T> void addEventListener(Class<T> clazz, T listener) {
+		getCallbacks(clazz).add(listener);
 	}
 
+	@Override
+	public <T> void removeEventListener(Class<T> clazz, T listener) {
+		getCallbacks(clazz).remove(listener);
+	}
+	
 	private class WriterSweeper implements Runnable {
 		private final Logger logger = LoggerFactory.getLogger(WriterSweeper.class.getName());
 		private volatile int checkInterval;

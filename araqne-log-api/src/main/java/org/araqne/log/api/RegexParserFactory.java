@@ -85,7 +85,7 @@ public class RegexParserFactory implements LogParserFactory {
 		String field = config.get("field");
 		List<String> names = new ArrayList<String>();
 
-		Pattern placeholder = Pattern.compile("\\(\\?<(.*?)>(.*?)\\)");
+		Pattern placeholder = Pattern.compile("\\(\\?<(.*?)>");
 		String regexToken = config.get("regex");
 
 		regexToken = toNonCapturingGroup(regexToken);
@@ -100,7 +100,7 @@ public class RegexParserFactory implements LogParserFactory {
 				break;
 
 			// suppress special meaning of $ and \
-			String quoted = Matcher.quoteReplacement("(" + matcher.group(2) + ")");
+			String quoted = Matcher.quoteReplacement("(");
 			regexToken = matcher.replaceFirst(quoted);
 		}
 
@@ -116,12 +116,14 @@ public class RegexParserFactory implements LogParserFactory {
 	private String toNonCapturingGroup(String s) {
 		StringBuilder sb = new StringBuilder();
 
+		char last2 = ' ';
 		char last = ' ';
 		for (int i = 0; i < s.length(); i++) {
 			char c = s.charAt(i);
-			if (last == '(' && c != '?')
+			if (last2 != '\\' && last == '(' && c != '?')
 				sb.append("?:");
 			sb.append(c);
+			last2 = last;
 			last = c;
 		}
 

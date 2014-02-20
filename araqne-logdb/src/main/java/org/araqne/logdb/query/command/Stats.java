@@ -103,13 +103,19 @@ public class Stats extends QueryCommand {
 				keys.clear();
 				Row row = rowBatch.rows[rowBatch.selected[index]];
 				if (useClause) {
+					boolean isNullGroup = false;
 					for (String clause : clauses) {
 						Object keyValue = row.get(clause);
-						if (keyValue == null)
-							return;
+						if (keyValue == null) {
+							isNullGroup = true;
+							break;
+						}
 
 						keys.add(keyValue);
 					}
+
+					if (isNullGroup)
+						continue;
 				}
 
 				inputCount++;
@@ -130,13 +136,19 @@ public class Stats extends QueryCommand {
 			for (Row m : rowBatch.rows) {
 				if (useClause) {
 					keys.clear();
+					boolean isNullGroup = false;
 					for (String clause : clauses) {
 						Object keyValue = m.get(clause);
-						if (keyValue == null)
-							return;
+						if (keyValue == null) {
+							isNullGroup = true;
+							break;
+						}
 
 						keys.add(keyValue);
 					}
+
+					if (isNullGroup)
+						continue;
 				}
 
 				inputCount++;

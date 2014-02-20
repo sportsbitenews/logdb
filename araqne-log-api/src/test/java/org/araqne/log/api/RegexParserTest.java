@@ -48,4 +48,42 @@ public class RegexParserTest {
 		assertEquals("http://domain.com/index.html", parsed.get("referer"));
 		assertEquals("/1986.js", parsed.get("url"));
 	}
+	
+	// related with araqne/issue#280
+	@Test
+	public void testNestedRegex() {
+		RegexParserFactory f = new RegexParserFactory();
+		Map<String, String> config = new HashMap<String, String>();
+		config.put("field", "line");
+		config.put("regex", "(?<payload>cpu_usage=\\\"(?<cpu_usage>.*)\\\" mem_usage=\\\"(?<mem_usage>.*)\\\")");
+
+		LogParser parser = f.createParser(config);
+		Map<String, Object> log = new HashMap<String, Object>();
+		log.put("line","sample cpu_usage=\"3 %\" mem_usage=\"60 %\"");
+
+		Map<String, Object> parsed = parser.parse(log);
+
+		assertEquals("3 %", parsed.get("cpu_usage"));
+		assertEquals("60 %", parsed.get("mem_usage"));
+		assertEquals("cpu_usage=\"3 %\" mem_usage=\"60 %\"", parsed.get("payload"));
+		
+		config.put("regex", "((?<key>\\w+,\\w+))");
+		parser = f.createParser(config);
+		
+		log.put("line", "sample (aaa,bbb)");
+		
+		parsed = parser.parse(log);
+
+		assertEquals("aaa,bbb", parsed.get("key"));
+
+		config.put("regex", "\\((?<key>\\w+,\\w+)\\)");
+		parser = f.createParser(config);
+		
+		log.put("line", "sample (aaa,bbb)");
+		
+		parsed = parser.parse(log);
+
+		assertEquals("aaa,bbb", parsed.get("key"));
+
+	}
 }

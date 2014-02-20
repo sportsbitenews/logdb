@@ -15,17 +15,22 @@
  */
 package org.araqne.logdb.query.command;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
+import org.araqne.log.api.LogParserInput;
+import org.araqne.log.api.LogParserOutput;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.logdb.AccountService;
@@ -36,11 +41,14 @@ import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.parser.TableSpec;
 import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogCallback;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogTraverseCallback;
+import org.araqne.logstorage.WrongTimeTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +63,8 @@ public class Table extends DriverQueryCommand {
 	private TableParams params = new TableParams();
 	private volatile boolean stopped;
 
+	private RealtimeReceiver receiver;
+
 	public Table(TableParams params) {
 		this.params = params;
 	}
@@ -66,6 +76,37 @@ public class Table extends DriverQueryCommand {
 
 	@Override
 	public void run() {
+		if (params.window != null)
+			receiveTableInputs();
+		else
+			scanTables();
+	}
+
+	private void receiveTableInputs() {
+		try {
+			this.receiver = new RealtimeReceiver();
+			storage.addLogListener(receiver);
+
+			long expire = System.currentTimeMillis() + params.window.unit.getMillis() * params.window.amount;
+
+			while (true) {
+				if (System.currentTimeMillis() >= expire)
+					break;
+
+				if (stopped)
+					break;
+
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+				}
+			}
+		} finally {
+			storage.removeLogListener(receiver);
+		}
+	}
+
+	private void scanTables() {
 		try {
 			ResultSink sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
 			boolean isSuppressedBugAlert = false;
@@ -260,18 +301,6 @@ public class Table extends DriverQueryCommand {
 		return localTableNames;
 	}
 
-	// private List<String> matchTables(String tableNameExpr) {
-	// List<String> filtered = new ArrayList<String>();
-	// for (String name : TableWildcardMatcher.apply(new
-	// HashSet<String>(tableRegistry.getTableNames()), tableNameExpr)) {
-	// if (!isAccessible(name))
-	// continue;
-	//
-	// filtered.add(name);
-	// }
-	// return filtered;
-	// }
-
 	private boolean isAccessible(StorageObjectName name) {
 		return accountService.checkPermission(query.getContext().getSession(), name.getTable(), Permission.READ);
 	}
@@ -341,6 +370,7 @@ public class Table extends DriverQueryCommand {
 		private boolean ordered = true;
 		private Date from;
 		private Date to;
+		private TimeSpan window;
 		private String parserName;
 
 		public List<TableSpec> getTableSpecs() {
@@ -383,6 +413,14 @@ public class Table extends DriverQueryCommand {
 			this.to = to;
 		}
 
+		public TimeSpan getWindow() {
+			return window;
+		}
+
+		public void setWindow(TimeSpan window) {
+			this.window = window;
+		}
+
 		public String getParserName() {
 			return parserName;
 		}
@@ -418,6 +456,157 @@ public class Table extends DriverQueryCommand {
 		if (params.getLimit() > 0)
 			s += " limit=" + params.getLimit();
 
+		if (params.getWindow() != null)
+			s += " window=" + params.getWindow();
+
 		return s + " " + Strings.join(getTableNames(), ", ");
+	}
+
+	private class RealtimeReceiver implements LogCallback {
+
+		private HashSet<String> tableFilters = new HashSet<String>();
+		private Map<String, LogParser> parsers = new HashMap<String, LogParser>();
+
+		public RealtimeReceiver() {
+
+			for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
+				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
+						tableName.getTable());
+				parsers.put(tableName.table, builder.build());
+				tableFilters.add(tableName.table);
+			}
+		}
+
+		@Override
+		public void onLogBatch(String tableName, List<Log> logBatch) {
+			if (!tableFilters.contains(tableName))
+				return;
+
+			List<Row> rows = new ArrayList<Row>();
+			LogParser parser = parsers.get(tableName);
+			if (parser != null) {
+				int ver = parser.getVersion();
+
+				for (Log log : logBatch) {
+					try {
+						if (ver == 1) {
+							Log parsed = parseV1(parser, log);
+							if (parsed != null) {
+								Row row = new Row(parsed.getData());
+								row.put("_table", tableName);
+								row.put("_id", log.getId());
+								row.put("_time", log.getDate());
+								rows.add(row);
+							}
+
+						} else if (ver == 2) {
+							for (Log parsed : parseV2(parser, log)) {
+								Row row = new Row(parsed.getData());
+								row.put("_table", tableName);
+								row.put("_id", log.getId());
+								row.put("_time", log.getDate());
+								rows.add(row);
+							}
+						}
+					} catch (Throwable t) {
+						continue;
+					}
+
+				}
+			} else {
+				for (Log log : logBatch) {
+					Row row = new Row(new HashMap<String, Object>(log.getData()));
+					rows.add(row);
+				}
+			}
+
+			RowBatch rowBatch = new RowBatch();
+			rowBatch.size = rows.size();
+			rowBatch.rows = rows.toArray(new Row[0]);
+
+			try {
+				pushPipe(rowBatch);
+			} catch (Throwable t) {
+				if (t.getMessage().contains("already closed"))
+					return;
+				logger.error("araqne logstorage: realtime table query failed", t);
+			}
+		}
+	}
+
+	private static Log parseV1(LogParser parser, Log log) throws LogParserBugException {
+		Map<String, Object> m = null;
+		Object time = log.getDate();
+		try {
+			// can be unmodifiableMap when it comes from memory buffer.
+			Map<String, Object> m2 = new HashMap<String, Object>(log.getData());
+			m2.put("_time", log.getDate());
+			Map<String, Object> parsed = parser.parse(m2);
+			if (parsed == null)
+				throw new ParseException("log parse failed", -1);
+
+			parsed.put("_table", log.getTableName());
+			parsed.put("_id", log.getId());
+
+			time = parsed.get("_time");
+			if (time == null) {
+				parsed.put("_time", log.getDate());
+				time = log.getDate();
+			} else if (!(time instanceof Date)) {
+				throw new WrongTimeTypeException(time);
+			}
+
+			m = parsed;
+			return new Log(log.getTableName(), (Date) time, log.getId(), m);
+		} catch (WrongTimeTypeException e) {
+			throw e;
+		} catch (Throwable t) {
+			// can be unmodifiableMap when it comes from memory
+			// buffer.
+			m = new HashMap<String, Object>(log.getData());
+			m.put("_table", log.getTableName());
+			m.put("_id", log.getId());
+			m.put("_time", log.getDate());
+
+			throw new LogParserBugException(t, log.getTableName(), log.getId(), (Date) time, m);
+		}
+	}
+
+	private static List<Log> parseV2(LogParser parser, Log log) throws LogParserBugException {
+		LogParserInput input = new LogParserInput();
+		input.setDate(log.getDate());
+		input.setSource(log.getTableName());
+		input.setData(log.getData());
+
+		List<Log> ret = new ArrayList<Log>();
+		try {
+			LogParserOutput output = parser.parse(input);
+			if (output != null) {
+				for (Map<String, Object> row : output.getRows()) {
+					row.put("_table", log.getTableName());
+					row.put("_id", log.getId());
+
+					Object time = row.get("_time");
+					if (time == null)
+						row.put("_time", log.getDate());
+					else if (!(time instanceof Date)) {
+						throw new WrongTimeTypeException(time);
+					}
+
+					ret.add(new Log(log.getTableName(), log.getDate(), log.getDay(), log.getId(), row));
+				}
+
+			}
+			return ret;
+		} catch (Throwable t) {
+			// NOTE: log can be unmodifiableMap when it comes from memory
+			// buffer.
+			HashMap<String, Object> row = new HashMap<String, Object>(log.getData());
+			row.put("_table", log.getTableName());
+			row.put("_id", log.getId());
+			row.put("_time", log.getDate());
+
+			throw new LogParserBugException(t, log.getTableName(), log.getId(), log.getDate(), row);
+		}
 	}
 }

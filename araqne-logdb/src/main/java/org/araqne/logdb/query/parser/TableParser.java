@@ -31,6 +31,7 @@ import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.command.StorageObjectName;
 import org.araqne.logdb.query.command.Table;
 import org.araqne.logdb.query.command.Table.TableParams;
@@ -70,7 +71,7 @@ public class TableParser implements QueryCommandParser {
 			throw new QueryParseException("archive-not-opened", -1);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order"));
+				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order", "window"));
 		Map<String, String> options = (Map<String, String>) r.value;
 		String tableTokens = commandString.substring(r.next);
 		List<TableSpec> tableNames = parseTableNames(context, tableTokens);
@@ -81,6 +82,10 @@ public class TableParser implements QueryCommandParser {
 		long limit = 0;
 		String parser = null;
 		boolean ordered = true;
+		TimeSpan window = null;
+
+		if (options.containsKey("window"))
+			window = TimeSpan.parse(options.get("window"));
 
 		if (options.containsKey("duration")) {
 			String duration = options.get("duration");
@@ -126,6 +131,7 @@ public class TableParser implements QueryCommandParser {
 		params.setTo(to);
 		params.setParserName(parser);
 		params.setOrdered(ordered);
+		params.setWindow(window);
 
 		Table table = new Table(params);
 		table.setAccountService(accountService);
@@ -137,8 +143,7 @@ public class TableParser implements QueryCommandParser {
 	}
 
 	private static enum OpTermI implements OpTerm {
-		Comma(",", 200), ListEndComma(",", 200),
-		NOP("", 0, true, false, true);
+		Comma(",", 200), ListEndComma(",", 200), NOP("", 0, true, false, true);
 
 		private String symbol;
 		private int precedence;
@@ -283,7 +288,7 @@ public class TableParser implements QueryCommandParser {
 			exprStack.add(new StringConstant(t.toString()));
 		}
 	}
-	
+
 	private static class MetaS implements TableSpec {
 		private Expression predicate;
 		private TableSpec pattern;
@@ -313,7 +318,7 @@ public class TableParser implements QueryCommandParser {
 		public String getNamespace() {
 			return pattern.getNamespace();
 		}
-		
+
 		@Override
 		public void setNamespace(String ns) {
 			pattern.setNamespace(ns);
@@ -358,15 +363,15 @@ public class TableParser implements QueryCommandParser {
 
 			this.mm = new MetadataMatcher<TableSpec>(predicate.eval(new Row()).toString(), patterns);
 		}
-		
+
 		public Object clone() {
 			return new Meta(args);
 		}
-		
+
 		@Override
 		public Object eval(Row map) {
 			List<TableSpec> result = new ArrayList<TableSpec>();
-			for (TableSpec ts: patterns) {
+			for (TableSpec ts : patterns) {
 				result.add(new MetaS(args.get(0), ts));
 			}
 			return result;
