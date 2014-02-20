@@ -35,8 +35,8 @@ import org.araqne.logdb.query.parser.ExpressionParser;
 import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 
-@Component(name = "cepadd-parser")
-public class CepAddParser implements QueryCommandParser {
+@Component(name = "evtctxadd-parser")
+public class EvtCtxAddParser implements QueryCommandParser {
 
 	@Requires
 	private QueryParserService queryParserService;
@@ -46,7 +46,7 @@ public class CepAddParser implements QueryCommandParser {
 
 	@Override
 	public String getCommandName() {
-		return "cepadd";
+		return "evtctxadd";
 	}
 
 	@Validate
@@ -92,6 +92,6 @@ public class CepAddParser implements QueryCommandParser {
 		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next));
 
 		EventContextStorage storage = eventContextService.getStorage("mem");
-		return new CepAddCommand(storage, topic, keyField, expire, timeout, threshold, maxRows, matcher);
+		return new EvtCtxAddCommand(storage, topic, keyField, expire, timeout, threshold, maxRows, matcher);
 	}
 }

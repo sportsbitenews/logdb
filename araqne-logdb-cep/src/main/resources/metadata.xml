@@ -3,6 +3,6 @@
 	xmlns="org.apache.felix.ipojo">
 	<instance component="event-ctx-service" />
 	<instance component="mem-event-ctx-storage" />
-	<instance component="cepadd-parser" />
-	<instance component="cepdel-parser" />
+	<instance component="evtctxadd-parser" />
+	<instance component="evtctxdel-parser" />
 </ipojo>

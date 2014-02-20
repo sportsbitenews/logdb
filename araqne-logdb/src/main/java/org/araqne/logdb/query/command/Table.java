@@ -61,7 +61,7 @@ public class Table extends DriverQueryCommand {
 	private LogParserRegistry parserRegistry;
 
 	private TableParams params = new TableParams();
-	private volatile boolean stopped;
+	private volatile boolean stopped = false;
 
 	private RealtimeReceiver receiver;
 
