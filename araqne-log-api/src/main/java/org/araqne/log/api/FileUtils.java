@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.log.api.impl;
+package org.araqne.log.api;
 
-import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,18 +48,10 @@ public class FileUtils {
 		return logFiles;
 	}
 
-	public static void ensureClose(BufferedReader br) {
+	public static void ensureClose(Closeable c) {
 		try {
-			if (br != null)
-				br.close();
-		} catch (IOException e) {
-		}
-	}
-
-	public static void ensureClose(InputStream is) {
-		try {
-			if (is != null)
-				is.close();
+			if (c != null)
+				c.close();
 		} catch (IOException e) {
 		}
 	}

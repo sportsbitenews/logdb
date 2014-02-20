@@ -27,8 +27,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.araqne.log.api.impl.FileUtils;
-
 public class DirectoryWatchLogger extends AbstractLogger {
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DirectoryWatchLogger.class.getName());
 	protected File dataDir;
