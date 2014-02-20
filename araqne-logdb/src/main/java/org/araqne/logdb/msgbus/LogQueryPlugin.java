@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.Deflater;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -171,6 +172,10 @@ public class LogQueryPlugin {
 		if (req.getBoolean("streaming") != null)
 			streaming = req.getBoolean("streaming");
 
+		String compression = "deflate";
+		if (req.getString("compression") != null)
+			compression = "gzip";
+
 		Query query = service.getQuery(id);
 
 		// validation check
@@ -184,7 +189,7 @@ public class LogQueryPlugin {
 			throw new MsgbusException("logdb", "already running");
 
 		// set query and timeline callback
-		QueryResultCallback qc = new MsgbusQueryResultCallback(orgDomain, offset, limit, streaming);
+		QueryResultCallback qc = new MsgbusQueryResultCallback(orgDomain, offset, limit, streaming, compression);
 		QueryResult result = query.getResult();
 		result.setStreaming(streaming);
 		result.getResultCallbacks().add(qc);
@@ -221,6 +226,8 @@ public class LogQueryPlugin {
 		int offset = req.getInteger("offset", true);
 		int limit = req.getInteger("limit", true);
 		Boolean binaryEncode = req.getBoolean("binary_encode");
+		String compression = req.getString("compression");
+		boolean useGzip = compression != null && compression.equals("gzip");
 
 		Map<String, Object> m = QueryHelper.getResultData(service, id, offset, limit);
 		if (m == null)
@@ -230,32 +237,44 @@ public class LogQueryPlugin {
 		if (binaryEncode != null && binaryEncode) {
 			ByteBuffer binary = enc.encode(m);
 			int uncompressedSize = binary.array().length;
-			byte[] b = compress(binary.array());
+			byte[] b = compress(binary.array(), useGzip);
 			resp.put("binary", new String(Base64.encode(b)));
 			resp.put("uncompressed_size", uncompressedSize);
 		} else
 			resp.putAll(m);
 	}
 
-	private byte[] compress(byte[] b) throws IOException {
+	private byte[] compress(byte[] b, boolean useGzip) throws IOException {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream(b.length);
-		Deflater c = new Deflater();
-		try {
-			c.reset();
-			c.setInput(b);
-			c.finish();
-			byte[] compressed = new byte[b.length];
 
-			while (true) {
-				int compressedSize = c.deflate(compressed);
-				if (compressedSize == 0)
-					break;
-				bos.write(compressed, 0, compressedSize);
+		if (useGzip) {
+			GZIPOutputStream zos = new GZIPOutputStream(bos);
+			try {
+				zos.write(b);
+				zos.finish();
+				return bos.toByteArray();
+			} finally {
+				zos.close();
 			}
+		} else {
+			Deflater c = new Deflater();
+			try {
+				c.reset();
+				c.setInput(b);
+				c.finish();
+				byte[] compressed = new byte[b.length];
 
-			return bos.toByteArray();
-		} finally {
-			c.end();
+				while (true) {
+					int compressedSize = c.deflate(compressed);
+					if (compressedSize == 0)
+						break;
+					bos.write(compressed, 0, compressedSize);
+				}
+
+				return bos.toByteArray();
+			} finally {
+				c.end();
+			}
 		}
 	}
 
@@ -436,13 +455,15 @@ public class LogQueryPlugin {
 		private boolean pageLoaded;
 
 		private boolean streaming;
+		private boolean useGzip;
 		private ArrayList<Object> rows = new ArrayList<Object>(10000);
 
-		private MsgbusQueryResultCallback(String orgDomain, int offset, int limit, boolean streaming) {
+		private MsgbusQueryResultCallback(String orgDomain, int offset, int limit, boolean streaming, String compression) {
 			this.orgDomain = orgDomain;
 			this.offset = offset;
 			this.limit = limit;
 			this.streaming = streaming;
+			this.useGzip = compression != null && compression.equals("gzip");
 		}
 
 		@Override
@@ -523,7 +544,7 @@ public class LogQueryPlugin {
 
 		private void flushResultSet(Query query, boolean last) throws IOException {
 			try {
-				List<Map<String, Object>> bins = streamingEncoder.encode(rows);
+				List<Map<String, Object>> bins = streamingEncoder.encode(rows, useGzip);
 
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("bins", bins);
