@@ -29,4 +29,5 @@
 	<instance component="parse-logger-factory" />
 	<instance component="last-state-service" />
 	<instance component="regex-selector-logger-factory" />
+	<instance component="gzip-directory-watch-logger-factory" />
 </ipojo>
