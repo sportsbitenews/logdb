@@ -125,8 +125,13 @@ public class QueryTaskScheduler implements Runnable {
 			task.setStatus(TaskStatus.RUNNING);
 			new QueryTaskRunner(this, task).start();
 		} else {
-			if (logger.isDebugEnabled() && task.getStatus() == TaskStatus.INIT)
-				logger.debug("araqne logdb: task [{}] is not runnable", task);
+			if (logger.isDebugEnabled() && task.getStatus() == TaskStatus.INIT) {
+				StringBuilder sb = new StringBuilder();
+				for (QueryTask d : task.getDependencies())
+					sb.append(d + " " + d.getStatus() + "\n");
+
+				logger.debug("araqne logdb: task [{}] is not runnable. dependencies => [{}]", task, sb.toString());
+			}
 		}
 
 		for (QueryTask subTask : task.getSubTasks())

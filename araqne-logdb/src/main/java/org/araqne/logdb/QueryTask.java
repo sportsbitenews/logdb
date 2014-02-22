@@ -42,7 +42,6 @@ public abstract class QueryTask implements Runnable {
 	private CopyOnWriteArraySet<QueryTask> dependencies = new CopyOnWriteArraySet<QueryTask>();
 	private CopyOnWriteArraySet<QueryTaskListener> listeners = new CopyOnWriteArraySet<QueryTaskListener>();
 
-
 	public TaskStatus getStatus() {
 		return status;
 	}
@@ -86,7 +85,7 @@ public abstract class QueryTask implements Runnable {
 
 	public boolean isRunnable() {
 		for (QueryTask t : dependencies)
-			if (t.getStatus() != TaskStatus.COMPLETED)
+			if (t.getStatus() != TaskStatus.COMPLETED && t.getStatus() != TaskStatus.CANCELED)
 				return false;
 
 		return status == TaskStatus.INIT;
