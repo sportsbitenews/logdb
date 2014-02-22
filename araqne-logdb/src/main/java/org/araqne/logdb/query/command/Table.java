@@ -290,7 +290,7 @@ public class Table extends DriverQueryCommand {
 		final List<StorageObjectName> localTableNames = new ArrayList<StorageObjectName>();
 		for (TableSpec s : tableNames) {
 			for (StorageObjectName son : s.match(tableRegistry)) {
-				if (son.getNamespace() != null)
+				if (son.getNamespace() != null && !son.getNamespace().equals("*"))
 					continue;
 				if (son.isOptional() && !tableRegistry.exists(son.getTable()))
 					continue;
