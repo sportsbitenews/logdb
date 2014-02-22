@@ -27,12 +27,15 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import org.araqne.codec.FastEncodingRule;
+import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.CachedRandomSeeker;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogRecord;
+import org.slf4j.LoggerFactory;
 
 /**
  * not thread-safe
@@ -48,6 +51,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 	private ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters;
 	private Map<OnlineWriterKey, List<Log>> onlineBuffers;
 	private Map<TabletKey, LogFileReader> cachedReaders;
+	private org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	public CachedRandomSeekerImpl(LogTableRegistry tableRegistry, LogFileFetcher fetcher,
 			ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters) {
@@ -79,7 +83,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		return null;
 	}
 
-	private List<Log> getLogsFromOnlineWriter(String tableName, int tableId, Date day, List<Long> ids) {
+	private List<Log> getLogsFromOnlineWriter(String tableName, int tableId, Date day, List<Long> ids, LogParserBuilder builder) {
 		OnlineWriterKey onlineKey = new OnlineWriterKey(tableName, day, tableId);
 		List<Log> buffer = onlineBuffers.get(onlineKey);
 		if (buffer == null) {
@@ -90,12 +94,17 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 				onlineBuffers.put(onlineKey, buffer);
 			}
 		}
+		
+		LogParser parser = null;
+		if (builder != null) {
+			parser = builder.build();
+		}
 
 		List<Log> ret = new ArrayList<Log>();
 		if (buffer != null) {
 			for (Log r : buffer) {
 				if (Collections.binarySearch(ids, r.getId(), Collections.reverseOrder()) >= 0) {
-					ret.add(r);
+					parseLogs(tableName, parser, r, ret);
 				}
 			}
 		}
@@ -104,6 +113,23 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		// reverse logs to descending order
 		Collections.reverse(ret);
 		return ret;
+	}
+
+	private void parseLogs(String tableName, LogParser parser, Log r, List<Log> ret) {
+		List<Log> result = null;
+		try {
+			result = LogFileReader.parse(tableName, parser, r);
+		} catch (LogParserBugException e) {
+			result = new ArrayList<Log>(1);
+			result.add(new Log(e.tableName, e.date, e.id, e.logMap));
+			logger.error("logpresso logstorage : parse log error - ", e);
+		} finally {
+			if (result != null) {
+				for (Log log : result) {
+					ret.add(log);
+				}
+			}
+		}
 	}
 
 	// TODO : remove duplicated method convert (LogStorageEngine.convert())
@@ -172,7 +198,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		int tableId = tableRegistry.getTableId(tableName);
 
 		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
-		List<Log> onlineLogs = getLogsFromOnlineWriter(tableName, tableId, day, ids);
+		List<Log> onlineLogs = getLogsFromOnlineWriter(tableName, tableId, day, ids, null);
 		List<Long> fileLogIds = getFileLogIds(onlineLogs, ids);
 		List<LogRecord> fileLogRecords = null;
 
@@ -239,7 +265,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		int tableId = tableRegistry.getTableId(tableName);
 
 		List<Log> ret = new ArrayList<Log>(ids.size());
-		List<Log> onlineLogs = getLogsFromOnlineWriter(tableName, tableId, day, ids);
+		List<Log> onlineLogs = getLogsFromOnlineWriter(tableName, tableId, day, ids, builder);
 		List<Long> fileLogIds = getFileLogIds(onlineLogs, ids);
 		List<Log> fileLogs = null;
 
