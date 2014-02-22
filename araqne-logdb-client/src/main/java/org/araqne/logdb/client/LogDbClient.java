@@ -950,8 +950,8 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
-	 * Retrieve specific logger information with config using RPC call. States
-	 * will not returned because logger states' size can be very large.
+	 * Retrieve specific logger information with config using RPC call. States will not returned because logger states' size can be very
+	 * large.
 	 * 
 	 * @since 0.8.6
 	 */
@@ -1352,22 +1352,33 @@ public class LogDbClient implements TrapListener, Closeable {
 	private void handleStreamingResult(Message msg) {
 		List<Map<String, Object>> chunks = (List<Map<String, Object>>) msg.get("bins");
 		boolean last = msg.getBoolean("last");
+		boolean lastCalled = false;
 		int queryId = Integer.valueOf(msg.getMethod().substring("logdb-query-result-".length()));
+		StreamingResultSet rs = null;
+		LogQuery query = null;
 
 		try {
+			query = queries.get(queryId);
+			rs = streamCallbacks.get(queryId);
+
 			List<Object> l = streamingDecoder.decode(chunks);
 
 			ArrayList<Row> rows = new ArrayList<Row>(l.size());
 			for (Object o : l)
 				rows.add(new Row((Map<String, Object>) o));
 
-			LogQuery query = queries.get(queryId);
-			StreamingResultSet rs = streamCallbacks.get(queryId);
-			if (query != null && rs != null)
+			if (query != null && rs != null) {
 				rs.onRows(query, rows, last);
-
+				if (last)
+					lastCalled = true;
+			}
 		} catch (ExecutionException e) {
 			logger.error("araqne logdb client: cannot decode streaming result", e);
+			if (query != null && rs != null && last && !lastCalled)
+				rs.onRows(query, new ArrayList<Row>(), true);
+		} catch (Throwable t) {
+			if (query != null && rs != null && last && !lastCalled)
+				rs.onRows(query, new ArrayList<Row>(), true);
 		}
 	}
 

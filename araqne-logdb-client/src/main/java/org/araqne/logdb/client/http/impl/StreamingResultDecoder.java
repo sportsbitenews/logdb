@@ -86,6 +86,9 @@ public class StreamingResultDecoder {
 			}
 
 			Map<String, Object> m = (Map<String, Object>) EncodingRule.decode(ByteBuffer.wrap(output));
+			
+			if (m.isEmpty())
+				return Arrays.asList();
 
 			Object[] rows = null;
 			for (String key : m.keySet()) {
