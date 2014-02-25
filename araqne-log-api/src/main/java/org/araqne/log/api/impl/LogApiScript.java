@@ -50,6 +50,7 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerFactoryRegistry;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.WildcardMatcher;
 
 import com.bethecoder.ascii_table.ASCIITable;
@@ -322,6 +323,13 @@ public class LogApiScript implements Script {
 			return logger.getLastLogDate();
 		}
 
+		public String getStopReason() {
+			LoggerStopReason reason = logger.getStopReason();
+			if (reason == null)
+				return "";
+			return reason.toString().toLowerCase().replace('_', ' ');
+		}
+
 	}
 
 	public void loggers(String[] args) {
@@ -374,7 +382,7 @@ public class LogApiScript implements Script {
 					new CollectionASCIITableAware<LoggerListItem>(filteredList, new PropertyColumn("fullName", "l!name"),
 							new PropertyColumn("factoryName", "l!factory"), new PropertyColumn("status", "l!status"),
 							new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
-							new PropertyColumn("lastLogDate", "l!last log"))));
+							new PropertyColumn("lastLogDate", "l!last log"), new PropertyColumn("stopReason", "stop reason"))));
 
 	}
 
@@ -614,7 +622,7 @@ public class LogApiScript implements Script {
 			if (!logger.isPassive())
 				context.println("waiting...");
 
-			logger.stop(maxWaitTime);
+			logger.stop(LoggerStopReason.USER_REQUEST, maxWaitTime);
 			context.println("logger stopped");
 		} catch (Exception e) {
 			context.println(e.getMessage());
@@ -653,7 +661,7 @@ public class LogApiScript implements Script {
 					if (!logger.isRunning()) {
 						context.println("logger [" + logger.getFullName() + "] is not running");
 					} else {
-						logger.stop(maxWaitTime);
+						logger.stop(LoggerStopReason.USER_REQUEST, maxWaitTime);
 						context.println("logger [" + logger.getFullName() + "] stopped");
 					}
 				}
@@ -674,7 +682,7 @@ public class LogApiScript implements Script {
 					if (!logger.isRunning()) {
 						context.println("logger [" + logger.getFullName() + "] is not running");
 					} else {
-						logger.stop();
+						logger.stop(LoggerStopReason.USER_REQUEST);
 						context.println("logger [" + logger.getFullName() + "] stopped");
 					}
 				}
@@ -748,7 +756,7 @@ public class LogApiScript implements Script {
 			}
 
 			// stop logger
-			logger.stop();
+			logger.stop(LoggerStopReason.USER_REQUEST);
 
 			String[] tokens = fullName.split("\\\\");
 

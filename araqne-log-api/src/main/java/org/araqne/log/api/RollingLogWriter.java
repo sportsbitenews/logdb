@@ -82,7 +82,7 @@ public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEv
 	}
 
 	@Override
-	protected void onStop() {
+	protected void onStop(LoggerStopReason reason) {
 		ensureClose();
 
 		try {

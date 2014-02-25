@@ -22,16 +22,15 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.api.DateFormat;
 import org.araqne.log.api.LastState;
-import org.araqne.log.api.LastStateService;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.LogTransformer;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerEventListener;
 import org.araqne.log.api.LoggerFactory;
-import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStatus;
+import org.araqne.log.api.LoggerStopReason;
 
 public abstract class JythonActiveLogger implements Logger, Runnable {
 	private final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JythonActiveLogger.class.getName());
@@ -199,12 +198,12 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public void stop() {
-		stop(0);
+	public void stop(LoggerStopReason reason) {
+		stop(reason, 0);
 	}
 
 	@Override
-	public void stop(int maxWaitTime) {
+	public void stop(LoggerStopReason reason, int maxWaitTime) {
 		if (t != null) {
 			if (!t.isAlive()) {
 				t = null;
@@ -231,7 +230,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		} catch (InterruptedException e) {
 		}
 
-		invokeStopCallback();
+		invokeStopCallback(reason);
 	}
 
 	@Override
@@ -321,7 +320,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		}
 	}
 
-	private void invokeStopCallback() {
+	private void invokeStopCallback(LoggerStopReason reason) {
 		LastState s = new LastState();
 		s.setLoggerName(getFullName());
 		s.setLogCount(getLogCount());
@@ -335,7 +334,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 
 		for (LoggerEventListener callback : listeners) {
 			try {
-				callback.onStop(this);
+				callback.onStop(this, reason);
 			} catch (Exception e) {
 				log.warn("logger callback should not throw any exception", e);
 			}

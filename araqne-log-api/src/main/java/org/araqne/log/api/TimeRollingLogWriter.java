@@ -84,7 +84,7 @@ public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegist
 	}
 
 	@Override
-	protected void onStop() {
+	protected void onStop(LoggerStopReason reason) {
 		ensureClose();
 
 		try {

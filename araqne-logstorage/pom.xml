@@ -31,6 +31,7 @@
 							org.araqne.logstorage.script
 						</Private-Package>
 						<Import-Package>
+							org.araqne.log.api;version="3.0.0",
 							org.araqne.msgbus;resolution:=optional,
 							org.araqne.msgbus.handler;resolution:=optional,
 							org.araqne.codec;version=2.2.0,
@@ -100,7 +101,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>2.9.8</version>
+			<version>3.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jcraft</groupId>

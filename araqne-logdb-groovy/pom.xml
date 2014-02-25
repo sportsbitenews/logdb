@@ -23,7 +23,8 @@
 						<Bundle-SymbolicName>org.araqne.logdb.groovy</Bundle-SymbolicName>
 						<Export-Package>org.araqne.logdb.groovy;version=${project.version}</Export-Package>
 						<Private-Package>org.araqne.logdb.groovy.impl</Private-Package>
-						<Import-Package>javax.script,*</Import-Package>
+						<Import-Package>
+							org.araqne.log.api;version="3.0.0",javax.script,*</Import-Package>
 					</instructions>
 				</configuration>
 			</plugin>
@@ -71,7 +72,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>2.9.8</version>
+			<version>3.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.codehaus.groovy</groupId>

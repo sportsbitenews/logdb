@@ -102,7 +102,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 
 			// stop and unregister
 			if (logger.isRunning())
-				logger.stop(5000);
+				logger.stop(LoggerStopReason.FACTORY_DEPENDENCY, 5000);
 			if (loggerRegistry != null)
 				loggerRegistry.removeLogger(logger);
 		}
@@ -354,7 +354,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		}
 
 		@Override
-		public void onStop(Logger logger) {
+		public void onStop(Logger logger, LoggerStopReason reason) {
 			LastState s = new LastState();
 			s.setLoggerName(logger.getFullName());
 			s.setLogCount(logger.getLogCount());
@@ -365,7 +365,8 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 
 			// do not save status caused by bundle stopping
 			LoggerRegistry loggerRegistry = getLoggerRegistry();
-			if (loggerRegistry != null && loggerRegistry.isOpen()) {
+			if (loggerRegistry != null && loggerRegistry.isOpen() && reason != LoggerStopReason.FACTORY_DEPENDENCY
+					&& reason != LoggerStopReason.TRANSFORMER_DEPENDENCY) {
 				slog.trace("araqne log api: [{}] stopped state saved", logger.getFullName());
 				s.setRunning(false);
 			} else {
