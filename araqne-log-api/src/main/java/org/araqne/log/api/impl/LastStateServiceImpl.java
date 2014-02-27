@@ -137,6 +137,7 @@ public class LastStateServiceImpl implements LastStateService {
 
 			slog.info("araqne log api: state thread ended");
 		} catch (InterruptedException e) {
+			slog.warn("araqne log api: last state sync thread join interrupted", e);
 		}
 
 	}
@@ -215,10 +216,13 @@ public class LastStateServiceImpl implements LastStateService {
 		states.put(state.getLoggerName(), state);
 
 		// queue disk sync
-		try {
-			sync.queue.put(state);
-		} catch (InterruptedException e) {
-			slog.warn("araqne log api: interrupted last state update of logger [{}]", state.getLoggerName());
+		while (true) {
+			try {
+				sync.queue.put(state);
+				break;
+			} catch (InterruptedException e) {
+				slog.debug("araqne log api: interrupted last state update of logger [{}]", state.getLoggerName());
+			}
 		}
 	}
 
