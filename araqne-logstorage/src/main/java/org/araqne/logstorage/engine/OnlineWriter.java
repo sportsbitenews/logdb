@@ -23,10 +23,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.LogFlushCallback;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,11 +64,18 @@ public class OnlineWriter {
 
 	private final LogFileService logFileService;
 
-	public OnlineWriter(LogFileService logFileService, String tableName, int tableId, Date day, Map<String, String> tableMetadata)
+	private CopyOnWriteArraySet<LogFlushCallback> flushCallbacks;
+
+	private String tableName;
+
+	public OnlineWriter(LogFileService logFileService, String tableName, int tableId, Date day, 
+			Map<String, String> tableMetadata, CopyOnWriteArraySet<LogFlushCallback> flushCallbacks)
 			throws IOException {
 		this.logFileService = logFileService;
+		this.tableName = tableName;
 		this.tableId = tableId;
 		this.day = day;
+		this.flushCallbacks = flushCallbacks;
 
 		String basePath = tableMetadata.get("base_path");
 		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
@@ -83,6 +92,7 @@ public class OnlineWriter {
 			writerConfig.put("indexPath", indexPath);
 			writerConfig.put("dataPath", dataPath);
 			writerConfig.put("keyPath", keyPath);
+			writerConfig.put("flushCallbacks", flushCallbacks);
 			writer = this.logFileService.newWriter(writerConfig);
 		} catch (IllegalArgumentException e) {
 			throw e;

@@ -23,9 +23,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.araqne.codec.FastEncodingRule;
 import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogFlushCallback;
+import org.araqne.logstorage.LogFlushCallbackArgs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,11 +64,19 @@ public class LogFileWriterV1 extends LogFileWriter {
 	private List<Log> bufferedLogs;
 	private volatile Date lastFlush = new Date();
 
-	public LogFileWriterV1(File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
-		this(indexPath, dataPath, DEFAULT_MAX_LOG_BUFFERING);
+	private Set<LogFlushCallback> flushCallbacks = new CopyOnWriteArraySet<LogFlushCallback>();
+	private LogFlushCallbackArgs flushCallbackArgs;
+
+	public LogFileWriterV1(File indexPath, File dataPath, Set<LogFlushCallback> flushCallbacks, LogFlushCallbackArgs flushCallbackArgs)
+			throws IOException, InvalidLogFileHeaderException {
+		this(indexPath, dataPath, flushCallbacks, flushCallbackArgs, DEFAULT_MAX_LOG_BUFFERING);
 	}
 
-	public LogFileWriterV1(File indexPath, File dataPath, int maxLogBuffering) throws IOException, InvalidLogFileHeaderException {
+	public LogFileWriterV1(File indexPath, File dataPath, Set<LogFlushCallback> flushCallbacks, LogFlushCallbackArgs flushCallbackArgs,
+			int maxLogBuffering)
+			throws IOException, InvalidLogFileHeaderException {
+		this.flushCallbackArgs = flushCallbackArgs;
+		this.flushCallbacks = flushCallbacks;
 		this.bufferedLogs = new ArrayList<Log>(maxLogBuffering * 2);
 		this.maxLogBuffering = maxLogBuffering;
 
@@ -211,6 +223,18 @@ public class LogFileWriterV1 extends LogFileWriter {
 			rawWrite(convert(it.next()));
 		}
 
+		if (flushCallbacks != null && flushCallbackArgs != null) {
+			for (LogFlushCallback c : flushCallbacks) {
+				try {
+					LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
+					arg.setLogs(b);
+					c.onFlushCompleted(arg);
+				} catch (Throwable t) {
+					logger.warn("flush callback should not throw any exception", t);
+				}
+			}
+		}
+
 		return true;
 	}
 
@@ -347,4 +371,5 @@ public class LogFileWriterV1 extends LogFileWriter {
 		result = dataPath.delete();
 		logger.debug("araqne logstorage: delete [{}] file => {}", dataPath, result);
 	}
+
 }

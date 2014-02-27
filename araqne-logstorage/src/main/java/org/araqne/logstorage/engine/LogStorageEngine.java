@@ -989,7 +989,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		Map<String, String> tableMetadata = new HashMap<String, String>();
 		for (String key : tableRegistry.getTableMetadataKeys(tableName))
 			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
-		return new OnlineWriter(lfs, tableName, tableId, day, tableMetadata);
+		return new OnlineWriter(lfs, tableName, tableId, day, tableMetadata, getCallbacks(LogFlushCallback.class));
 	}
 
 	@Override
