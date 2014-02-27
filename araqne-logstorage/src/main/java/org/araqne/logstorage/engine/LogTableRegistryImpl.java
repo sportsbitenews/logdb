@@ -36,6 +36,7 @@ import org.araqne.confdb.ConfigIterator;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.ConfigTransaction;
 import org.araqne.confdb.Predicates;
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableRegistry;
