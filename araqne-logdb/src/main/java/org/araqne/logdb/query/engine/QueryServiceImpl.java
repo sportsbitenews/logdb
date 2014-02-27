@@ -316,7 +316,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		}
 
 		try {
-			query.getCallbacks().getTimelineCallbacks().clear();
 			query.getCallbacks().getStatusCallbacks().clear();
 			query.getResult().getResultCallbacks().clear();
 

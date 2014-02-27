@@ -214,9 +214,6 @@ public class QueryResultImpl implements QueryResult {
 
 		eofDate = new Date();
 
-		for (QueryResultCallback callback : resultCallbacks)
-			callback.onPageLoaded(config.getQuery());
-
 		for (QueryStatusCallback callback : config.getQuery().getCallbacks().getStatusCallbacks())
 			callback.onChange(config.getQuery());
 
