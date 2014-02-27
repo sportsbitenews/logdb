@@ -28,6 +28,7 @@ public class LogQuery {
 	private String status;
 	private long loadedCount;
 	private boolean background;
+	private int stamp;
 
 	// @since 0.9.0
 	private Date startTime;
@@ -53,6 +54,14 @@ public class LogQuery {
 
 	public int getId() {
 		return id;
+	}
+
+	public int getStamp() {
+		return stamp;
+	}
+
+	public void setStamp(int s) {
+		stamp = s;
 	}
 
 	public long getLoadedCount() {
@@ -95,7 +104,9 @@ public class LogQuery {
 		}
 	}
 
-	public void updateCount(long count) {
+	public void updateCount(long count, long stamp) {
+		if (stamp != 0 && this.stamp >= stamp)
+			return;
 		loadedCount = count;
 
 		for (WaitingCondition cond : waitingConditions) {
@@ -107,7 +118,9 @@ public class LogQuery {
 		}
 	}
 
-	public void updateStatus(String status) {
+	public void updateStatus(String status, long stamp) {
+		if (stamp != 0 && this.stamp >= stamp)
+			return;
 		this.status = status;
 		if (status.equals("Ended") || status.equals("Cancelled")) {
 			for (WaitingCondition cond : waitingConditions) {

@@ -163,6 +163,10 @@ public class LogDbClient implements TrapListener, Closeable {
 			commands.add(parseCommand(cm));
 		}
 
+		long stamp = 0;
+		if (q.containsKey("stamp"))
+			stamp = Long.parseLong(q.get("stamp").toString());
+
 		query.setCommands(commands);
 		boolean end = (Boolean) q.get("is_end");
 
@@ -176,14 +180,14 @@ public class LogDbClient implements TrapListener, Closeable {
 
 		if (eof) {
 			if (!query.getCommands().get(0).getStatus().equalsIgnoreCase("Waiting"))
-				query.updateStatus("Ended");
+				query.updateStatus("Ended", stamp);
 
 			if (cancelled)
-				query.updateStatus("Cancelled");
+				query.updateStatus("Cancelled", stamp);
 		} else if (end) {
-			query.updateStatus("Stopped");
+			query.updateStatus("Stopped", stamp);
 		} else {
-			query.updateStatus("Running");
+			query.updateStatus("Running", stamp);
 		}
 
 		if (q.containsKey("background"))
@@ -950,8 +954,8 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
-	 * Retrieve specific logger information with config using RPC call. States will not returned because logger states' size can be very
-	 * large.
+	 * Retrieve specific logger information with config using RPC call. States
+	 * will not returned because logger states' size can be very large.
 	 * 
 	 * @since 0.8.6
 	 */
@@ -1323,27 +1327,31 @@ public class LogDbClient implements TrapListener, Closeable {
 	@Override
 	public void onTrap(Message msg) {
 		String method = msg.getMethod();
-
+		long stamp = 0;
+		if (msg.containsKey("stamp"))
+			stamp = Long.parseLong(msg.get("stamp").toString());
+		
 		if (method.startsWith("logdb-query-timeline-")) {
 			int id = msg.getInt("id");
 			LogQuery q = queries.get(id);
-			q.updateCount(msg.getLong("count"));
+
+			q.updateCount(msg.getLong("count"), stamp);
 			if (msg.getString("type").equals("eof"))
-				q.updateStatus("Ended");
+				q.updateStatus("Ended", stamp);
 		} else if (method.startsWith("logdb-query-result-")) {
 			handleStreamingResult(msg);
 		} else if (method.startsWith("logdb-query-")) {
 			int id = msg.getInt("id");
 			LogQuery q = queries.get(id);
 			if (msg.getString("type").equals("eof")) {
-				q.updateCount(msg.getLong("total_count"));
-				q.updateStatus("Ended");
+				q.updateCount(msg.getLong("total_count"), stamp);
+				q.updateStatus("Ended", stamp);
 			} else if (msg.getString("type").equals("page_loaded")) {
-				q.updateCount(msg.getLong("count"));
-				q.updateStatus("Running");
+				q.updateCount(msg.getLong("count"), stamp);
+				q.updateStatus("Running", stamp);
 			} else if (msg.getString("type").equals("status_change")) {
-				q.updateCount(msg.getLong("count"));
-				q.updateStatus(msg.getString("status"));
+				q.updateCount(msg.getLong("count"), stamp);
+				q.updateStatus(msg.getString("status"), stamp);
 			}
 		}
 	}
@@ -1385,7 +1393,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	@Override
 	public void onClose(Throwable t) {
 		for (LogQuery q : queries.values())
-			q.updateStatus("Cancelled");
+			q.updateStatus("Cancelled", Long.MAX_VALUE);
 	}
 
 	private void checkNotNull(String name, Object o) {
