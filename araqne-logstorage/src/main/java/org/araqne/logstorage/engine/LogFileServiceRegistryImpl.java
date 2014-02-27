@@ -20,12 +20,14 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceEventListener;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileWriter;
+import org.araqne.logstorage.repair.IntegrityChecker;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +36,12 @@ import org.slf4j.LoggerFactory;
 @Provides
 public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	private final static Logger logger = LoggerFactory.getLogger(LogFileServiceRegistryImpl.class);
+
+	/**
+	 * force dependency
+	 */
+	@Requires
+	private IntegrityChecker consistencyChecker;
 
 	private BundleContext bc;
 	private ConcurrentHashMap<String, WaitEvent> availableEngines = new ConcurrentHashMap<String, WaitEvent>();
