@@ -102,6 +102,8 @@ public class EvalFuncEmitterFactory implements FuncEmitterFactory {
 			exprStack.add(new Split(args));
 		} else if (name.equals("array")) {
 			exprStack.add(new Array(args));
+		} else if (name.equals("kvjoin")) {
+			exprStack.add(new KvJoin(args));
 		} else {
 			throw new QueryParseException("unsupported-function", -1, "function name is " + name);
 		}
