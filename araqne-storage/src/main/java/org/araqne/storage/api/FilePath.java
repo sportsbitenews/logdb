@@ -19,6 +19,8 @@ public interface FilePath extends Comparable<FilePath> {
 	
 	boolean delete() throws SecurityException;
 	
+	boolean deleteOnExit() throws SecurityException;
+	
 	boolean renameTo(FilePath dest) throws SecurityException;
 	
 	boolean isDirectory() throws SecurityException;

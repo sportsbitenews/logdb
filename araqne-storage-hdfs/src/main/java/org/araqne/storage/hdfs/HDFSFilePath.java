@@ -303,4 +303,13 @@ public class HDFSFilePath implements FilePath {
 		}
 	}
 
+	@Override
+	public boolean deleteOnExit() throws SecurityException {
+		try {
+			return root.getFileSystem().deleteOnExit(path);
+		} catch (IOException e) {
+			throw new IllegalStateException("Unexpected IOException", e);
+		}
+	}
+
 }

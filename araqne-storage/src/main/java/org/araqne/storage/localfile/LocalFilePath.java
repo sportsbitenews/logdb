@@ -208,4 +208,10 @@ public class LocalFilePath implements FilePath {
 		return exists() && length() > 0;
 	}
 
+	@Override
+	public boolean deleteOnExit() throws SecurityException {
+		path.deleteOnExit();
+		return true;
+	}
+
 }
