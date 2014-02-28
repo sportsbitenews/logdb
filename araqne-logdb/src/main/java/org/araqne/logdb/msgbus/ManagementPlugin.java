@@ -390,6 +390,16 @@ public class ManagementPlugin {
 		String tableName = req.getString("table", true);
 		storage.dropTable(tableName);
 	}
+	
+	@MsgbusMethod
+	public void dropTables(Request req, Response resp) {
+		ensureAdminSession(req);
+		@SuppressWarnings("unchecked")
+		List<String> tableNames = (List<String>) req.get("tables", true);
+		
+		for(String name :  tableNames) 
+			storage.dropTable(name);
+	}
 
 	private org.araqne.logdb.Session ensureAdminSession(Request req) {
 		org.araqne.logdb.Session session = (org.araqne.logdb.Session) req.getSession().get("araqne_logdb_session");
