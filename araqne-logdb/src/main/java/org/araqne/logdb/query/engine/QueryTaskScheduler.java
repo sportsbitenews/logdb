@@ -24,7 +24,6 @@ import org.araqne.logdb.QueryCommand.Status;
 import org.araqne.logdb.QueryStatusCallback;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
-import org.araqne.logdb.QueryTimelineCallback;
 import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.QueryTaskEvent;
 import org.araqne.logdb.QueryTaskListener;
@@ -125,8 +124,13 @@ public class QueryTaskScheduler implements Runnable {
 			task.setStatus(TaskStatus.RUNNING);
 			new QueryTaskRunner(this, task).start();
 		} else {
-			if (logger.isDebugEnabled() && task.getStatus() == TaskStatus.INIT)
-				logger.debug("araqne logdb: task [{}] is not runnable", task);
+			if (logger.isDebugEnabled() && task.getStatus() == TaskStatus.INIT) {
+				StringBuilder sb = new StringBuilder();
+				for (QueryTask d : task.getDependencies())
+					sb.append(d + " " + d.getStatus() + "\n");
+
+				logger.debug("araqne logdb: task [{}] is not runnable. dependencies => [{}]", task, sb.toString());
+			}
 		}
 
 		for (QueryTask subTask : task.getSubTasks())
@@ -153,15 +157,6 @@ public class QueryTaskScheduler implements Runnable {
 			query.postRun();
 			finished = true;
 			finishTime = System.currentTimeMillis();
-
-			// send final timeline callback
-			for (QueryTimelineCallback c : query.getCallbacks().getTimelineCallbacks()) {
-				try {
-					c.notifyTimeline();
-				} catch (Throwable t) {
-					logger.warn("araqne logdb: timeline callback should not throw any exception", t);
-				}
-			}
 
 			// notify finish immediately
 			for (QueryStatusCallback c : query.getCallbacks().getStatusCallbacks()) {

@@ -55,7 +55,7 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	}
 
 	@Override
-	protected void onStop() {
+	protected void onStop(LoggerStopReason reason) {
 		try {
 			if (loggerRegistry != null) {
 				Logger logger = loggerRegistry.getLogger(loggerName);

@@ -17,38 +17,27 @@ package org.araqne.logdb.cep.query;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.query.expr.Expression;
 
-public class CepAddCommand extends QueryCommand {
-
+public class EvtCtxDelCommand extends QueryCommand {
 	private EventContextStorage storage;
 	private String topic;
 	private String keyField;
-	private TimeSpan expire;
-	private TimeSpan timeout;
-	private int threshold;
-	private int maxRows;
 	private Expression matcher;
 
-	public CepAddCommand(EventContextStorage storage, String topic, String keyField, TimeSpan expire, TimeSpan timeout,
-			int threshold, int maxRows, Expression matcher) {
+	public EvtCtxDelCommand(EventContextStorage storage, String topic, String keyField, Expression matcher) {
 		this.storage = storage;
 		this.topic = topic;
 		this.keyField = keyField;
-		this.expire = expire;
-		this.timeout = timeout;
-		this.threshold = threshold;
-		this.maxRows = maxRows;
 		this.matcher = matcher;
 	}
 
 	@Override
 	public String getName() {
-		return "cepadd";
+		return "evtctxdel";
 	}
 
 	@Override
@@ -70,26 +59,18 @@ public class CepAddCommand extends QueryCommand {
 			String key = k.toString();
 			EventKey eventKey = new EventKey(topic, key);
 
-			long expireTime = 0;
-			if (expire != null) {
-				expireTime = System.currentTimeMillis();
-				expireTime += expire.unit.getMillis() * expire.amount;
-			}
+			EventContext ctx = storage.getContext(eventKey);
+			if (ctx != null)
+				ctx.addRow(row);
 
-			long timeoutTime = 0;
-			if (timeout != null) {
-				timeoutTime = System.currentTimeMillis();
-				timeoutTime += timeout.unit.getMillis() * timeout.amount;
-			}
-
-			EventContext ctx = new EventContext(eventKey, expireTime, timeoutTime, threshold, maxRows);
-			ctx = storage.addContext(ctx);
-
-			// extend timeout
-			ctx.setTimeoutTime(timeoutTime);
-			ctx.addRow(row);
+			storage.removeContext(eventKey);
 		}
 
 		pushPipe(row);
+	}
+
+	@Override
+	public String toString() {
+		return "evtctxdel topic=" + topic + " key=" + keyField + " " + matcher;
 	}
 }

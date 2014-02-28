@@ -33,6 +33,7 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerFactoryRegistry;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStopReason;
 import org.araqne.msgbus.Request;
 import org.araqne.msgbus.Response;
 import org.araqne.msgbus.handler.MsgbusMethod;
@@ -194,7 +195,7 @@ public class LoggerPlugin {
 			if (logger == null)
 				continue;
 
-			logger.stop();
+			logger.stop(LoggerStopReason.USER_REQUEST);
 			String[] tokens = fullName.split("\\\\");
 			LoggerFactory factory = loggerFactoryRegistry.getLoggerFactory(logger.getFactoryNamespace(), logger.getFactoryName());
 			factory.deleteLogger(tokens[0], tokens[1]);
@@ -209,7 +210,7 @@ public class LoggerPlugin {
 		if (logger == null)
 			return;
 
-		logger.stop();
+		logger.stop(LoggerStopReason.USER_REQUEST);
 		String[] tokens = fullName.split("\\\\");
 		LoggerFactory factory = loggerFactoryRegistry.getLoggerFactory(logger.getFactoryNamespace(), logger.getFactoryName());
 		factory.deleteLogger(tokens[0], tokens[1]);
@@ -237,7 +238,7 @@ public class LoggerPlugin {
 		if (logger == null)
 			return;
 
-		logger.stop(waitTime);
+		logger.stop(LoggerStopReason.USER_REQUEST, waitTime);
 	}
 
 }

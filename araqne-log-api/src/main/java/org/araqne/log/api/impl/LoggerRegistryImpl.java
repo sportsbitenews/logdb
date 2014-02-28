@@ -36,6 +36,7 @@ import org.araqne.log.api.LoggerFactoryEventListener;
 import org.araqne.log.api.LoggerFactoryRegistryEventListener;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerRegistryEventListener;
+import org.araqne.log.api.LoggerStopReason;
 
 @Component(name = "logger-registry")
 @Provides(specifications = { LoggerRegistry.class })
@@ -89,7 +90,7 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 			try {
 				// logger stop event caused by factory removal will not be sent.
 				logger.clearEventListeners();
-				logger.stop();
+				logger.stop(LoggerStopReason.FACTORY_DEPENDENCY);
 				removeLogger(logger);
 			} catch (Exception e) {
 				log.warn("araqne-log-api: logger remove error", e);

@@ -78,6 +78,7 @@ public class QueryHelper {
 		m.put("background", q.getRunMode() == RunMode.BACKGROUND);
 		m.put("commands", commands);
 		m.put("sub_queries", subQueries);
+		m.put("stamp", q.getNextStamp());
 
 		return m;
 	}

@@ -62,7 +62,7 @@ public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistr
 	}
 
 	@Override
-	protected void onStop() {
+	protected void onStop(LoggerStopReason reason) {
 		try {
 			if (loggerRegistry != null) {
 				Logger logger = loggerRegistry.getLogger(loggerName);

@@ -25,7 +25,7 @@
 						<Export-Package>
 							org.araqne.logdb.jmx;version=${project.version}
 						</Export-Package>
-						<Import-Package>org.araqne.log.api;version=2.6.0,*</Import-Package>
+						<Import-Package>org.araqne.log.api;version="3.0.0",,*</Import-Package>
 						<Private-Package>org.araqne.logdb.jmx.impl</Private-Package>
 					</instructions>
 				</configuration>
@@ -74,7 +74,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>2.9.7</version>
+			<version>3.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sun</groupId>

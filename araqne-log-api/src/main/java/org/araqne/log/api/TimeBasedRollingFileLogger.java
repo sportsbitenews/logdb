@@ -161,8 +161,7 @@ public class TimeBasedRollingFileLogger extends AbstractLogger {
 	}
 
 	@Override
-	protected void onStop() {
-		super.onStop();
+	protected void onStop(LoggerStopReason reason) {
 		lastLog = null;
 	}
 

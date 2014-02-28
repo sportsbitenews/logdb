@@ -1,10 +1,10 @@
 package org.araqne.logdb.msgbus;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -17,6 +17,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.Deflater;
+import java.util.zip.GZIPOutputStream;
 
 import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
@@ -39,7 +40,7 @@ public class StreamingResultEncoder {
 		slog.info("araqne logdb: created encoder thread pool [{}]", poolSize);
 	}
 
-	public List<Map<String, Object>> encode(List<Object> rows) throws InterruptedException, ExecutionException {
+	public List<Map<String, Object>> encode(List<Object> rows, boolean useGzip) throws InterruptedException, ExecutionException {
 		int flushSize = (rows.size() + poolSize) / poolSize;
 		List<Map<String, Object>> chunks = new ArrayList<Map<String, Object>>();
 		List<Future<Map<String, Object>>> futures = new ArrayList<Future<Map<String, Object>>>();
@@ -55,7 +56,7 @@ public class StreamingResultEncoder {
 			}
 
 			List<Object> slice = rows.subList(from, to);
-			Future<Map<String, Object>> future = executor.submit(new Encoder(slice));
+			Future<Map<String, Object>> future = executor.submit(new Encoder(slice, useGzip));
 			futures.add(future);
 
 			from = to;
@@ -86,10 +87,12 @@ public class StreamingResultEncoder {
 
 	private class Encoder extends FunctorBase<Map<String, Object>> {
 		private List<Object> rows;
+		private boolean useGzip;
 
-		public Encoder(List<Object> rows) {
+		public Encoder(List<Object> rows, boolean useGzip) {
 			super(slog);
 			this.rows = rows;
+			this.useGzip = useGzip;
 		}
 
 		@Override
@@ -122,14 +125,38 @@ public class StreamingResultEncoder {
 			FastEncodingRule enc = new FastEncodingRule();
 			ByteBuffer bb = enc.encode(columns);
 
-			Deflater c = new Deflater();
-			c.setInput(bb.array(), 0, bb.array().length);
-			c.finish();
+			ByteBuffer compressed = null;
+			int compressedSize = 0;
 
-			ByteBuffer compressed = ByteBuffer.allocate(bb.array().length * 2);
-			int compressedSize = c.deflate(compressed.array());
-			compressed = ByteBuffer.wrap(Arrays.copyOf(compressed.array(), compressedSize));
-			c.end();
+			if (useGzip) {
+				ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				GZIPOutputStream zos = null;
+
+				try {
+					zos = new GZIPOutputStream(bos);
+					zos.write(bb.array());
+					zos.finish();
+
+					byte[] out = bos.toByteArray();
+					compressed = ByteBuffer.wrap(out);
+					compressedSize = out.length;
+				} finally {
+					if (zos != null)
+						zos.close();
+				}
+			} else {
+				Deflater c = new Deflater();
+				try {
+					c.setInput(bb.array(), 0, bb.array().length);
+					c.finish();
+
+					compressed = ByteBuffer.allocate(bb.array().length * 2);
+					compressedSize = c.deflate(compressed.array());
+					compressed = ByteBuffer.wrap(Arrays.copyOf(compressed.array(), compressedSize));
+				} finally {
+					c.end();
+				}
+			}
 
 			msg.put("size", bb.array().length);
 			msg.put("bin", new String(Base64.encode(compressed.array())));

@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Eediom Inc.
+/**
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb;
+package org.araqne.log.api;
 
-public interface QueryResultCallback {
-	void onRow(Query query, Row row);
-
-	void onRowBatch(Query query, RowBatch rowBatch);
-
-	/**
-	 * invoked when result writer is closed (i.e. end of result)
-	 */
-	void onClose(Query query, QueryStopReason reason);
+public enum LoggerStopReason {
+	USER_REQUEST, LOW_DISK, TRANSFORMER_DEPENDENCY, FACTORY_DEPENDENCY, STOP_EXCEPTION, LOGGER_EXCEPTION
 }

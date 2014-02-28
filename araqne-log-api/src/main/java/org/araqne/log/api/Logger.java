@@ -48,6 +48,8 @@ public interface Logger {
 	 */
 	Log getLastLog();
 
+	LoggerStopReason getStopReason();
+
 	/**
 	 * @since 2.3.1
 	 */
@@ -84,9 +86,9 @@ public interface Logger {
 
 	void start(int interval);
 
-	void stop();
+	void stop(LoggerStopReason reason);
 
-	void stop(int maxWaitTime);
+	void stop(LoggerStopReason reason, int maxWaitTime);
 
 	void addLogPipe(LogPipe pipe);
 
@@ -120,9 +122,9 @@ public interface Logger {
 	 * replace current persistent state
 	 */
 	void setStates(Map<String, Object> state);
-	
+
 	/**
-	 * reload log count, update count 
+	 * reload log count, update count
 	 */
 	void reloadStates();
 

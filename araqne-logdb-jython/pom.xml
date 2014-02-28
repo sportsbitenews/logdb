@@ -25,7 +25,7 @@
 						<Private-Package>org.araqne.logdb.jython.impl</Private-Package>
 						<Import-Package>
 							org.araqne.logdb;version="1.3.3",
-							org.araqne.log.api;version="2.7.0",
+							org.araqne.log.api;version="3.0.0",
 							org.araqne.logstorage;version="2.1.3",
 							*</Import-Package>
 					</instructions>
@@ -62,7 +62,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>2.9.7</version>
+			<version>3.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>

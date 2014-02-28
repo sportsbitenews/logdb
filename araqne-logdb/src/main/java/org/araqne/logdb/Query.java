@@ -90,4 +90,9 @@ public interface Query extends Runnable {
 	 * @since 0.17.0
 	 */
 	void setRunMode(RunMode mode, QueryContext context);
+
+	/**
+	 * return stamp number to client for message ordering
+	 */
+	long getNextStamp();
 }

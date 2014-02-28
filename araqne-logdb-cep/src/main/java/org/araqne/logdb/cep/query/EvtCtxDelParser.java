@@ -33,8 +33,8 @@ import org.araqne.logdb.query.parser.ExpressionParser;
 import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 
-@Component(name = "cepdel-parser")
-public class CepDelParser implements QueryCommandParser {
+@Component(name = "evtctxdel-parser")
+public class EvtCtxDelParser implements QueryCommandParser {
 	@Requires
 	private QueryParserService queryParserService;
 
@@ -43,7 +43,7 @@ public class CepDelParser implements QueryCommandParser {
 
 	@Override
 	public String getCommandName() {
-		return "cepdel";
+		return "evtctxdel";
 	}
 
 	@Validate
@@ -70,7 +70,7 @@ public class CepDelParser implements QueryCommandParser {
 		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next));
 
 		EventContextStorage storage = eventContextService.getStorage("mem");
-		return new CepDelCommand(storage, topic, keyField, matcher);
+		return new EvtCtxDelCommand(storage, topic, keyField, matcher);
 	}
 
 }

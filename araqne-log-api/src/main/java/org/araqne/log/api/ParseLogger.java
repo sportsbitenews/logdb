@@ -49,7 +49,7 @@ public class ParseLogger extends AbstractLogger implements LoggerRegistryEventLi
 	}
 
 	@Override
-	protected void onStop() {
+	protected void onStop(LoggerStopReason reason) {
 		try {
 			stopRunner = true;
 			runner.interrupt();

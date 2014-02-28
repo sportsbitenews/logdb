@@ -30,6 +30,7 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerRegistryEventListener;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.SimpleLog;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandPipe;
@@ -96,7 +97,7 @@ public class QueryTransformLogger extends AbstractLogger implements LoggerRegist
 	}
 
 	@Override
-	protected void onStop() {
+	protected void onStop(LoggerStopReason reason) {
 		try {
 			stopRunner = true;
 			runner.interrupt();
