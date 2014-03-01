@@ -15,15 +15,12 @@
  */
 package org.araqne.logdb.query.engine;
 
-import java.io.IOException;
-
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.logdb.QueryService;
 import org.araqne.logdb.Query;
-import org.araqne.logdb.QueryResultCallback;
+import org.araqne.logdb.QueryService;
 import org.araqne.logdb.QueryStatusCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,22 +76,8 @@ public class QueryStatusNotifier {
 		}
 
 		private void checkQuery(Query q) {
-			long count = 0;
-			try {
-				count = q.getResultCount();
-			} catch (IOException e) {
-				return;
-			}
-
 			for (QueryStatusCallback c : q.getCallbacks().getStatusCallbacks()) {
 				c.onChange(q);
-			}
-
-			for (QueryResultCallback c : q.getResult().getResultCallbacks()) {
-				if (c.offset() + c.limit() <= count) {
-					c.onPageLoaded(q);
-					logger.debug("araqne logdb: sent page loaded callback for query [{}], count [{}]", q.getId(), count);
-				}
 			}
 		}
 	}

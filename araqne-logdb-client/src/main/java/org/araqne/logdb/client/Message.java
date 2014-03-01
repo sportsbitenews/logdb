@@ -113,7 +113,11 @@ public class Message {
 	public Object get(String key) {
 		return parameters.get(key);
 	}
-
+	
+	public boolean containsKey(String key) {
+		return parameters.containsKey(key);
+	}
+	
 	public Long getLong(String key) {
 		if (!parameters.containsKey(key))
 			return null;

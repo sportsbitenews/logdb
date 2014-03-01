@@ -686,24 +686,23 @@ public class CometClient implements TrapListener {
 
 	@Override
 	public void onTrap(Message msg) {
-		if (msg.getMethod().startsWith("logstorage-query-timeline")) {
-			int id = msg.getInt("id");
-			LogQuery q = queries.get(id);
-			q.updateCount(msg.getLong("count"));
-			if (msg.getString("type").equals("eof"))
-				q.updateStatus("Ended");
-		} else if (msg.getMethod().startsWith("logstorage-query")) {
+		long stamp = 0;
+		if (msg.containsKey("stamp"))
+			stamp = Long.parseLong(msg.get("stamp").toString());
+
+		String method = msg.getMethod();
+		if (method.startsWith("logstorage-query-") || method.startsWith("logdb-query-")) {
 			int id = msg.getInt("id");
 			LogQuery q = queries.get(id);
 			if (msg.getString("type").equals("eof")) {
-				q.updateCount(msg.getLong("total_count"));
-				q.updateStatus("Ended");
+				q.updateCount(msg.getLong("total_count"), stamp);
+				q.updateStatus("Ended", stamp);
 			} else if (msg.getString("type").equals("page_loaded")) {
-				q.updateCount(msg.getLong("count"));
-				q.updateStatus("Running");
+				q.updateCount(msg.getLong("count"), stamp);
+				q.updateStatus("Running", stamp);
 			} else if (msg.getString("type").equals("status_change")) {
-				q.updateCount(msg.getLong("count"));
-				q.updateStatus(msg.getString("status"));
+				q.updateCount(msg.getLong("count"), stamp);
+				q.updateStatus(msg.getString("status"), stamp);
 			}
 		}
 	}

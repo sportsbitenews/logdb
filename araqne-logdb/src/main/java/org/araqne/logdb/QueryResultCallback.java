@@ -16,12 +16,6 @@
 package org.araqne.logdb;
 
 public interface QueryResultCallback {
-	int offset();
-
-	int limit();
-
-	void onPageLoaded(Query query);
-
 	void onRow(Query query, Row row);
 
 	void onRowBatch(Query query, RowBatch rowBatch);

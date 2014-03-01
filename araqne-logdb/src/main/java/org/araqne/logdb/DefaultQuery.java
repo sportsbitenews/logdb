@@ -21,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.QueryCommand.Status;
 import org.araqne.logdb.query.engine.QueryTaskScheduler;
@@ -44,6 +45,8 @@ public class DefaultQuery implements Query {
 
 	// task scheduler which consider dependency
 	private QueryTaskScheduler scheduler;
+
+	private AtomicLong stamp = new AtomicLong(1);
 
 	public DefaultQuery(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory) {
 		this.context = context;
@@ -174,7 +177,6 @@ public class DefaultQuery implements Query {
 		// prevent deleted result file access caused by result check of query
 		// callback or timeline callbacks
 		callbacks.getStatusCallbacks().clear();
-		callbacks.getTimelineCallbacks().clear();
 
 		if (result != null)
 			result.purge();
@@ -295,6 +297,11 @@ public class DefaultQuery implements Query {
 	@Override
 	public QueryCallbacks getCallbacks() {
 		return callbacks;
+	}
+
+	@Override
+	public long getNextStamp() {
+		return stamp.incrementAndGet();
 	}
 
 	@Override

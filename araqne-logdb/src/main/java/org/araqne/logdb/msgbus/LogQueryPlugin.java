@@ -19,9 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +41,6 @@ import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.QueryService;
 import org.araqne.logdb.QueryStatusCallback;
 import org.araqne.logdb.QueryStopReason;
-import org.araqne.logdb.QueryTimelineCallback;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.RunMode;
@@ -165,9 +162,6 @@ public class LogQueryPlugin {
 	public void startQuery(Request req, Response resp) {
 		String orgDomain = req.getOrgDomain();
 		int id = req.getInteger("id");
-		int offset = req.getInteger("offset");
-		int limit = req.getInteger("limit");
-		Integer timelineLimit = req.getInteger("timeline_limit");
 		boolean streaming = false;
 		if (req.getBoolean("streaming") != null)
 			streaming = req.getBoolean("streaming");
@@ -189,19 +183,13 @@ public class LogQueryPlugin {
 			throw new MsgbusException("logdb", "already running");
 
 		// set query and timeline callback
-		QueryResultCallback qc = new MsgbusQueryResultCallback(orgDomain, offset, limit, streaming, compression);
+		QueryResultCallback qc = new MsgbusQueryResultCallback(orgDomain, streaming, compression);
 		QueryResult result = query.getResult();
 		result.setStreaming(streaming);
 		result.getResultCallbacks().add(qc);
 
 		QueryStatusCallback qs = new MsgbusStatusCallback(orgDomain);
 		query.getCallbacks().getStatusCallbacks().add(qs);
-
-		if (timelineLimit != null) {
-			int size = timelineLimit.intValue();
-			QueryTimelineCallback tc = new MsgbusTimelineCallback(orgDomain, query, size);
-			query.getCallbacks().getTimelineCallbacks().add(tc);
-		}
 
 		// start query
 		service.startQuery(query.getId());
@@ -418,6 +406,7 @@ public class LogQueryPlugin {
 					m.put("id", query.getId());
 					m.put("type", "eof");
 					m.put("total_count", query.getResultCount());
+					m.put("stamp", query.getNextStamp());
 					pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
 					pushApi.push(orgDomain, "logstorage-query-" + query.getId(), m); // deprecated
 
@@ -438,6 +427,7 @@ public class LogQueryPlugin {
 					m.put("type", "status_change");
 					m.put("status", status);
 					m.put("count", query.getResultCount());
+					m.put("stamp", query.getNextStamp());
 					pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
 					pushApi.push(orgDomain, "logstorage-query-" + query.getId(), m); // deprecated
 				} catch (IOException e) {
@@ -449,49 +439,16 @@ public class LogQueryPlugin {
 
 	private class MsgbusQueryResultCallback implements QueryResultCallback {
 		private static final int STREAM_FLUSH_SIZE = 10000;
-		private int offset;
-		private int limit;
 		private String orgDomain;
-		private boolean pageLoaded;
 
 		private boolean streaming;
 		private boolean useGzip;
 		private ArrayList<Object> rows = new ArrayList<Object>(10000);
 
-		private MsgbusQueryResultCallback(String orgDomain, int offset, int limit, boolean streaming, String compression) {
+		private MsgbusQueryResultCallback(String orgDomain, boolean streaming, String compression) {
 			this.orgDomain = orgDomain;
-			this.offset = offset;
-			this.limit = limit;
 			this.streaming = streaming;
 			this.useGzip = compression != null && compression.equals("gzip");
-		}
-
-		@Override
-		public int offset() {
-			return offset;
-		}
-
-		@Override
-		public int limit() {
-			return limit;
-		}
-
-		@Override
-		public void onPageLoaded(Query query) {
-			try {
-				if (pageLoaded)
-					return;
-
-				Map<String, Object> m = QueryHelper.getResultData(service, query.getId(), offset, limit);
-				m.put("id", query.getId());
-				m.put("type", "page_loaded");
-				pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
-				pushApi.push(orgDomain, "logstorage-query-" + query.getId(), m); // deprecated
-
-				pageLoaded = true;
-			} catch (IOException e) {
-				logger.error("araqne logdb: msgbus push fail", e);
-			}
 		}
 
 		@Override
@@ -554,54 +511,6 @@ public class LogQueryPlugin {
 				rows.clear();
 			} catch (Throwable t) {
 				logger.error("araqne logdb: cannot encode streaming result", t);
-			}
-		}
-	}
-
-	private class MsgbusTimelineCallback extends QueryTimelineCallback {
-		private Logger logger = LoggerFactory.getLogger(MsgbusTimelineCallback.class);
-		private String orgDomain;
-		private Query query;
-		private int size;
-
-		private MsgbusTimelineCallback(String orgDomain, Query query) {
-			this(orgDomain, query, 10);
-		}
-
-		private MsgbusTimelineCallback(String orgDomain, Query query, int size) {
-			this.orgDomain = orgDomain;
-			this.query = query;
-			this.size = size;
-		}
-
-		@Override
-		public int getSize() {
-			return size;
-		}
-
-		@Override
-		protected void onPush(Date beginTime, SpanValue spanValue, int[] values, boolean isEnd) {
-			try {
-				Map<String, Object> m = new HashMap<String, Object>();
-				m.put("id", query.getId());
-				m.put("type", isEnd ? "eof" : "periodic");
-				m.put("span_field", spanValue.getFieldName());
-				m.put("span_amount", spanValue.getAmount());
-				m.put("begin", beginTime);
-				m.put("values", values);
-				pushApi.push(orgDomain, "logdb-query-timeline-" + query.getId(), m);
-
-				m.put("count", query.getResultCount());
-				pushApi.push(orgDomain, "logstorage-query-timeline-" + query.getId(), m); // deprecated
-
-				if (logger.isTraceEnabled()) {
-					Object[] trace = new Object[] { query.getId(), spanValue.getFieldName(), spanValue.getAmount(), beginTime,
-							Arrays.toString(values), query.getResultCount() };
-					logger.trace("araqne logdb: timeline callback => "
-							+ "{id={}, span_field={}, span_amount={}, begin={}, values={}, count={}}", trace);
-				}
-			} catch (IOException e) {
-				logger.error("araqne logdb: msgbus push fail", e);
 			}
 		}
 	}

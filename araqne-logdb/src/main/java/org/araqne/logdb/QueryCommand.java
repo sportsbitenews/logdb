@@ -16,7 +16,6 @@
 package org.araqne.logdb;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public abstract class QueryCommand {
@@ -104,14 +103,6 @@ public abstract class QueryCommand {
 		outputCount++;
 
 		if (output != null) {
-			if (invokeTimelineCallback && query != null) {
-				for (QueryTimelineCallback callback : query.getCallbacks().getTimelineCallbacks()) {
-					Date date = row.getDate();
-					if (date != null)
-						callback.put((Date) date);
-				}
-			}
-
 			if (output.isThreadSafe()) {
 				output.onRow(row);
 			} else {
@@ -125,31 +116,6 @@ public abstract class QueryCommand {
 	protected final void pushPipe(RowBatch rowBatch) {
 		outputCount += rowBatch.size;
 		if (output != null) {
-			if (invokeTimelineCallback && query != null) {
-				for (QueryTimelineCallback callback : query.getCallbacks().getTimelineCallbacks()) {
-					if (rowBatch.selectedInUse) {
-						ArrayList<Date> dates = new ArrayList<Date>(rowBatch.size);
-						for (int i = 0; i < rowBatch.size; i++) {
-							Row row = rowBatch.rows[rowBatch.selected[i]];
-							Date date = row.getDate();
-							if (date != null)
-								dates.add(date);
-						}
-
-						callback.put(dates);
-					} else {
-						ArrayList<Date> dates = new ArrayList<Date>(rowBatch.size);
-						for (Row row : rowBatch.rows) {
-							Date date = row.getDate();
-							if (date != null)
-								dates.add(date);
-						}
-
-						callback.put(dates);
-					}
-				}
-			}
-
 			if (output.isThreadSafe()) {
 				output.onRowBatch(rowBatch);
 			} else {
