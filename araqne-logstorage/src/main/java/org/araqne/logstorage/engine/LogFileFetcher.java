@@ -17,11 +17,10 @@ package org.araqne.logstorage.engine;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.storage.api.FilePath;
@@ -45,8 +44,9 @@ class LogFileFetcher {
 
 	public LogFileReader fetch(String tableName, Date day) throws IOException {
 		// FIXME : add option for path
-		int tableId = tableRegistry.getTableId(tableName);
-		String basePathString = tableRegistry.getTableMetadata(tableName, "base_path");
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		int tableId = schema.getId();
+		String basePathString = schema.getBasePath();
 		FilePath basePath = null;
 		if (basePathString != null)
 			basePath = storageManager.resolveFilePath(basePathString);
@@ -61,14 +61,9 @@ class LogFileFetcher {
 
 		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
-		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
-
-		Map<String, String> tableMetadata = new HashMap<String, String>();
-		for (String key : tableRegistry.getTableMetadataKeys(tableName))
-			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
-
-		LogFileServiceV2.Option options = 
-				new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
+		String logFileType = schema.getStorageEngine();
+		LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getMetadata(), tableName, indexPath, dataPath,
+				keyPath);
 		options.put("day", day);
 		return lfsRegistry.newReader(tableName, logFileType, options);
 

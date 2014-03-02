@@ -1,6 +1,5 @@
 package org.araqne.logdb.metadata;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
@@ -12,14 +11,15 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.Row;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.file.LogBlock;
 import org.araqne.logstorage.file.LogBlockCursor;
 import org.araqne.logstorage.file.LogFileReader;
@@ -68,11 +68,9 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
 		String[] tokens = queryString.split(" ");
 		String tableName = tokens[1];
-		String type = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
 
-		Map<String, String> tableMetadata = new HashMap<String, String>();
-		for (String key : tableRegistry.getTableMetadataKeys(tableName))
-			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		String type = schema.getStorageEngine();
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 		Date day = df.parse(tokens[2], new ParsePosition(0));
@@ -89,8 +87,8 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 		LogFileReader reader = null;
 		LogBlockCursor cursor = null;
 		try {
-			reader = logFileServiceRegistry.newReader(tableName, type, 
-					new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath));
+			reader = logFileServiceRegistry.newReader(tableName, type, new LogFileServiceV2.Option(schema.getMetadata(),
+					tableName, indexPath, dataPath, keyPath));
 			cursor = reader.getBlockCursor();
 
 			while (cursor.hasNext()) {

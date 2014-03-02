@@ -14,15 +14,15 @@ public class LocalFilePath implements FilePath {
 	static final String PROTOCOL_NAME = "file";
 	static final String PROTOCOL_STRING = "file://";
 	private final File path;
-	
+
 	public LocalFilePath(File path) {
 		this.path = path;
 	}
-	
+
 	public LocalFilePath(String pathStr) {
 		if (pathStr.startsWith(PROTOCOL_STRING))
 			pathStr = pathStr.substring(7);
-		
+
 		this.path = new File(pathStr);
 	}
 
@@ -30,12 +30,12 @@ public class LocalFilePath implements FilePath {
 	public StorageInputStream newInputStream() throws IOException {
 		return new LocalFileInputStream(this);
 	}
-	
+
 	@Override
 	public StorageOutputStream newOutputStream(boolean append) throws IOException {
 		return new LocalFileOutputStream(this, append);
 	}
-	
+
 	@Override
 	public String getAbsolutePath() {
 		return path.getAbsolutePath();
@@ -45,7 +45,7 @@ public class LocalFilePath implements FilePath {
 	public String getName() {
 		return path.getName();
 	}
-	
+
 	public File getFile() {
 		return path;
 	}
@@ -78,11 +78,13 @@ public class LocalFilePath implements FilePath {
 	@Override
 	public FilePath[] listFiles() {
 		File[] files = path.listFiles();
+		if (files == null)
+			return new FilePath[0];
 		FilePath[] ret = new FilePath[files.length];
 		for (int i = 0; i < ret.length; ++i) {
 			ret[i] = new LocalFilePath(files[i]);
 		}
-		                              
+
 		return ret;
 	}
 
@@ -101,14 +103,14 @@ public class LocalFilePath implements FilePath {
 		File[] files = path.listFiles();
 		if (files == null)
 			return null;
-		
+
 		List<FilePath> ret = new ArrayList<FilePath>();
 		for (File f : files) {
 			FilePath curr = new LocalFilePath(f);
 			if (filter.accept(this, f.getName()))
 				ret.add(curr);
 		}
-		                              
+
 		return (FilePath[]) (ret.toArray(new FilePath[0]));
 	}
 
@@ -118,10 +120,10 @@ public class LocalFilePath implements FilePath {
 
 		if (parentFile == null)
 			return null;
-		
+
 		return new LocalFilePath(parentFile);
 	}
-	
+
 	@Override
 	public boolean equals(Object o) {
 		if (!(o instanceof LocalFilePath))
@@ -129,7 +131,7 @@ public class LocalFilePath implements FilePath {
 		LocalFilePath rhs = (LocalFilePath) o;
 		return path.equals(rhs);
 	}
-	
+
 	@Override
 	public int hashCode() {
 		return ("file://" + path.getAbsolutePath()).hashCode();
@@ -156,7 +158,7 @@ public class LocalFilePath implements FilePath {
 			LocalFilePath rhs = (LocalFilePath) o;
 			return path.compareTo(rhs.path);
 		}
-		
+
 		return getProtocol().compareTo(o.getProtocol());
 	}
 
@@ -174,8 +176,8 @@ public class LocalFilePath implements FilePath {
 	public boolean renameTo(FilePath dest) {
 		if (!(dest instanceof LocalFilePath))
 			return false;
-		
-		return path.renameTo(((LocalFilePath)dest).path);
+
+		return path.renameTo(((LocalFilePath) dest).path);
 	}
 
 	@Override

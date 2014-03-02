@@ -19,13 +19,15 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileService;
-import org.araqne.logstorage.file.LogFileServiceV2;
+import org.araqne.logstorage.TableConfig;
+import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
@@ -62,14 +64,14 @@ public class OnlineWriter {
 	private LogFileWriter writer;
 
 	private final LogFileService logFileService;
-	
-	public OnlineWriter(StorageManager storageManager, LogFileService logFileService, String tableName, int tableId, Date day, Map<String, String> tableMetadata)
+
+	public OnlineWriter(StorageManager storageManager, LogFileService logFileService, TableSchema schema, Date day)
 			throws IOException {
 		this.logFileService = logFileService;
-		this.tableId = tableId;
+		this.tableId = schema.getId();
 		this.day = day;
 
-		String basePathString = tableMetadata.get("base_path");
+		String basePathString = schema.getBasePath();
 		FilePath basePath = null;
 		if (basePathString != null)
 			basePath = storageManager.resolveFilePath(basePathString);
@@ -83,7 +85,18 @@ public class OnlineWriter {
 
 		try {
 			// options including table metadata
-			writer = this.logFileService.newWriter(new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath));
+			Map<String, Object> writerOptions = new HashMap<String, Object>();
+			writerOptions.putAll(schema.getMetadata());
+			writerOptions.put("tableName", schema.getName());
+			writerOptions.put("indexPath", indexPath);
+			writerOptions.put("dataPath", dataPath);
+			writerOptions.put("keyPath", keyPath);
+
+			for (TableConfig c : schema.getStorageConfigs()) {
+				writerOptions.put(c.getKey(), c.getValues().size() > 1 ? c.getValues() : c.getValue());
+			}
+
+			writer = this.logFileService.newWriter(writerOptions);
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (Throwable t) {

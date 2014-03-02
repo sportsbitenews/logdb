@@ -15,7 +15,6 @@
  */
 package org.araqne.logdb.metadata;
 
-import java.io.File;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -30,16 +29,17 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logdb.AccountService;
-import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.Row;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogWriterStatus;
+import org.araqne.logstorage.TableSchema;
 import org.araqne.storage.api.FilePath;
 
 @Component(name = "logdb-logcount-metadata")
@@ -100,10 +100,8 @@ public class LogCountMetadataProvider implements MetadataProvider {
 	}
 
 	private void countFiles(String tableName, Date from, Date to, List<LogWriterStatus> memoryBuffers, MetadataCallback callback) {
-		String fileType = tableRegistry.getTableMetadata(tableName, "_filetype");
-		if (fileType == null)
-			fileType = "v2";
-
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		String fileType = schema.getStorageEngine();
 		FilePath dir = storage.getTableDirectory(tableName);
 		countFiles(tableName, fileType, dir, from, to, memoryBuffers, callback);
 	}

@@ -173,7 +173,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		if (closed)
 			throw new IllegalStateException("already closed");
 
-		int tableId = tableRegistry.getTableId(tableName);
+		int tableId = tableRegistry.getTableSchema(tableName, true).getId();
 
 		List<Log> ret = new ArrayList<Log>(ids.size());
 		List<Log> onlineLogs = getLogsFromOnlineWriter(tableName, tableId, day, ids, builder);

@@ -46,14 +46,15 @@ import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
-import org.araqne.logstorage.LogTableEventListener;
+import org.araqne.logstorage.TableEventListener;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.TableSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component(name = "logdb-account")
 @Provides(specifications = { AccountService.class })
-public class AccountServiceImpl implements AccountService, LogTableEventListener {
+public class AccountServiceImpl implements AccountService, TableEventListener {
 	private final Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 	private static final String DB_NAME = "araqne-logdb";
 	private static final String DEFAULT_MASTER_ACCOUNT = "araqne";
@@ -608,11 +609,17 @@ public class AccountServiceImpl implements AccountService, LogTableEventListener
 	}
 
 	@Override
-	public void onCreate(String tableName, Map<String, String> tableMetadata) {
+	public void onCreate(TableSchema schema) {
 	}
 
 	@Override
-	public void onDrop(String tableName) {
+	public void onAlter(TableSchema oldSchema, TableSchema newSchema) {
+	}
+
+	@Override
+	public void onDrop(TableSchema schema) {
+		String tableName = schema.getName();
+
 		// remove all granted permissions for this table
 		for (Account account : localAccounts.values()) {
 			if (account.getReadableTables().contains(tableName)) {

@@ -15,6 +15,7 @@ import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.parser.ExpressionParser.FuncTerm;
 import org.araqne.logdb.query.parser.ExpressionParser.TokenTerm;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.TableSchema;
 
 public class MetadataMatcher<T extends StorageObjectSpec> {
 	public static final String IDFACTORY_KEY = "identifier_factory";
@@ -27,36 +28,34 @@ public class MetadataMatcher<T extends StorageObjectSpec> {
 
 	public MetadataMatcher(String predicate, List<T> specs) {
 		this.specs = specs;
-		
+
 		OpEmitterFactory of = new OpEmitter();
 		FuncEmitterFactory ff = new FuncEmitter();
 		TermEmitterFactory tf = new TermEmitter();
 
 		Expression pred = ExpressionParser.parse(null, predicate, new ParsingRule(Ops.NOP, of, ff, tf));
 
-		matcherExpr = ((TableMatcher)pred.eval(new Row()));
+		matcherExpr = ((TableMatcher) pred.eval(new Row()));
 	}
-	
+
 	public List<StorageObjectName> match(LogTableRegistry tableRegistry) {
 		ArrayList<StorageObjectName> result = new ArrayList<StorageObjectName>();
-		
-		for (T spec: specs) {
+
+		for (T spec : specs) {
 			List<StorageObjectName> match = spec.match(tableRegistry);
-			for (StorageObjectName n: match) {
+			for (StorageObjectName n : match) {
 				if (matcherExpr.match(tableRegistry, n)) {
 					result.add(n);
 				}
 			}
 		}
-		
+
 		return result;
 	}
 
 	private static enum Ops implements OpTerm {
-		Eq("==", 400), Neq("!=", 400),
-		And("and", 310, true, false, true), Or("or", 300, true, false, true), Not("not", 320, false, true, true),
-		Comma(",", 200), ListEndComma(",", 200),
-		NOP("", 0, true, false, true);
+		Eq("==", 400), Neq("!=", 400), And("and", 310, true, false, true), Or("or", 300, true, false, true), Not("not", 320,
+				false, true, true), Comma(",", 200), ListEndComma(",", 200), NOP("", 0, true, false, true);
 
 		Ops(String symbol, int precedence) {
 			this(symbol, precedence, true, false, false);
@@ -187,7 +186,8 @@ public class MetadataMatcher<T extends StorageObjectSpec> {
 
 		@Override
 		public boolean match(LogTableRegistry tr, StorageObjectName o) {
-			String rv = tr.getTableMetadata(o.getTable(), key);
+			TableSchema schema = tr.getTableSchema(o.getTable(), true);
+			String rv = schema.getMetadata().get(key);
 			if (pattern != null) {
 				if (rv == null)
 					return false;

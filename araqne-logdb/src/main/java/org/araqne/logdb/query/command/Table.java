@@ -48,6 +48,8 @@ import org.araqne.logstorage.LogCallback;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogTraverseCallback;
+import org.araqne.logstorage.TableNotFoundException;
+import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.WrongTimeTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -237,8 +239,9 @@ public class Table extends DriverQueryCommand {
 			this.parserRegistry = parserRegistry;
 
 			if (tableName != null) {
-				this.tableParserName = tableRegistry.getTableMetadata(tableName, "parser");
-				this.tableParserFactoryName = tableRegistry.getTableMetadata(tableName, "logparser");
+				TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+				this.tableParserName = schema.getMetadata().get("parser");
+				this.tableParserFactoryName = schema.getMetadata().get("logparser");
 
 				if (tableParserFactoryName != null) {
 					this.tableParserFactory = parserFactoryRegistry.get(tableParserFactoryName);
@@ -246,7 +249,7 @@ public class Table extends DriverQueryCommand {
 						parserProperty = new HashMap<String, String>();
 						for (LoggerConfigOption configOption : tableParserFactory.getConfigOptions()) {
 							String optionName = configOption.getName();
-							String optionValue = tableRegistry.getTableMetadata(tableName, optionName);
+							String optionValue = schema.getMetadata().get(optionName);
 							if (configOption.isRequired() && optionValue == null)
 								throw new IllegalArgumentException("require table metadata " + optionName);
 							parserProperty.put(optionName, optionValue);

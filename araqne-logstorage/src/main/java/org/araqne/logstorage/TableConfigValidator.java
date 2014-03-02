@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 NCHOVY
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +15,8 @@
  */
 package org.araqne.logstorage;
 
-public class LogTableNotFoundException extends RuntimeException {
-	private static final long serialVersionUID = 1L;
-	private String tableName;
+import java.util.List;
 
-	public LogTableNotFoundException(String tableName) {
-		super("table " + tableName + " not found");
-		this.tableName = tableName;
-	}
-
-	public String getTableName() {
-		return tableName;
-	}
-
+public interface TableConfigValidator {
+	void validate(String key, List<String> values);
 }

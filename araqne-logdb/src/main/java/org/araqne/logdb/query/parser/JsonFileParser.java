@@ -22,12 +22,11 @@ import java.util.Map;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.JsonFile;
-import org.araqne.logdb.query.command.TextFile;
 
 public class JsonFileParser implements QueryCommandParser {
 
@@ -58,7 +57,7 @@ public class JsonFileParser implements QueryCommandParser {
 			int limit = 0;
 			if (options.containsKey("limit"))
 				limit = Integer.valueOf(options.get("limit"));
-			
+
 			if (options.containsKey("overlay")) {
 				String o = options.get("overlay");
 				overlay = o.equals("t") || o.equals("1") || o.equals("true");
@@ -77,7 +76,7 @@ public class JsonFileParser implements QueryCommandParser {
 
 				parser = factory.createParser(options);
 			}
-			
+
 			String parseTarget = options.get("parsetarget");
 
 			return new JsonFile(filePath, parser, parseTarget, overlay, offset, limit);

@@ -35,7 +35,7 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
-import org.araqne.logstorage.backup.StorageMediaFile;
+import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.backup.StorageBackupJob;
 import org.araqne.logstorage.backup.StorageBackupManager;
 import org.araqne.logstorage.backup.StorageBackupMedia;
@@ -43,8 +43,9 @@ import org.araqne.logstorage.backup.StorageBackupProgressMonitor;
 import org.araqne.logstorage.backup.StorageBackupRequest;
 import org.araqne.logstorage.backup.StorageBackupType;
 import org.araqne.logstorage.backup.StorageFile;
-import org.araqne.logstorage.backup.StorageTransferStream;
+import org.araqne.logstorage.backup.StorageMediaFile;
 import org.araqne.logstorage.backup.StorageTransferRequest;
+import org.araqne.logstorage.backup.StorageTransferStream;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
 import org.araqne.storage.localfile.LocalFilePath;
@@ -68,7 +69,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 	@Requires
 	private LogStorage storage;
-	
+
 	@Requires
 	private StorageManager storageManager;
 
@@ -90,17 +91,21 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 				if ((req.getFrom() != null && day.before(req.getFrom())) || (req.getTo() != null && day.after(req.getTo())))
 					continue;
 
-				int tableId = tableRegistry.getTableId(tableName);
-				String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
+				TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+				int tableId = schema.getId();
+				String basePath = schema.getBasePath();
 				FilePath baseDir = storageManager.resolveFilePath(basePath);
 				if (baseDir == null || !(baseDir instanceof LocalFilePath)) {
 					logger.warn("araqne logstorage : unsupported base path : " + basePath);
 					continue;
 				}
 
-				totalBytes += addStorageFile(files, tableName, tableId, ((LocalFilePath)DatapathUtil.getIndexFile(tableId, day, baseDir)).getFile());
-				totalBytes += addStorageFile(files, tableName, tableId, ((LocalFilePath)DatapathUtil.getDataFile(tableId, day, baseDir)).getFile());
-				totalBytes += addStorageFile(files, tableName, tableId, ((LocalFilePath)DatapathUtil.getKeyFile(tableId, day, baseDir)).getFile());
+				totalBytes += addStorageFile(files, tableName, tableId,
+						((LocalFilePath) DatapathUtil.getIndexFile(tableId, day, baseDir)).getFile());
+				totalBytes += addStorageFile(files, tableName, tableId,
+						((LocalFilePath) DatapathUtil.getDataFile(tableId, day, baseDir)).getFile());
+				totalBytes += addStorageFile(files, tableName, tableId,
+						((LocalFilePath) DatapathUtil.getKeyFile(tableId, day, baseDir)).getFile());
 			}
 
 			storageFiles.put(tableName, files);
@@ -201,7 +206,12 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 							throw new IOException("storage type not found for table " + tableName);
 
 						if (!tableRegistry.exists(tableName)) {
-							tableRegistry.createTable(tableName, type, metadata);
+							TableSchema schema = new TableSchema();
+							schema.setName(tableName);
+							schema.setStorageEngine(type);
+							schema.setMetadata(metadata);
+
+							tableRegistry.createTable(schema);
 						}
 					} catch (IOException e) {
 						if (monitor != null)
@@ -212,14 +222,13 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 					}
 
 					// transfer files
-					int tableId = tableRegistry.getTableId(tableName);
+					int tableId = tableRegistry.getTableSchema(tableName, true).getId();
 					List<StorageMediaFile> files = job.getMediaFiles().get(tableName);
 
 					for (StorageMediaFile mediaFile : files) {
 						String storageFilename = new File(mediaFile.getFileName()).getName();
-						
-						File storageFilePath =
-								((LocalFilePath) tableDir.newFilePath(storageFilename)).getFile();
+
+						File storageFilePath = ((LocalFilePath) tableDir.newFilePath(storageFilename)).getFile();
 						StorageFile storageFile = new StorageFile(tableName, tableId, storageFilePath);
 						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
 						try {
@@ -277,19 +286,16 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 						monitor.onBeginTable(job, tableName);
 
 					// overwrite table metadata file
+					TableSchema schema = tableRegistry.getTableSchema(tableName);
 					Map<String, Object> metadata = new HashMap<String, Object>();
 					metadata.put("table_name", tableName);
-					Map<String, String> tableMetadata = new HashMap<String, String>();
-					for (String key : tableRegistry.getTableMetadataKeys(tableName)) {
-						tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
-					}
-					metadata.put("metadata", tableMetadata);
+					metadata.put("metadata", schema.getMetadata());
 
 					try {
 						String json = JSONConverter.jsonize(metadata);
 						byte[] b = json.getBytes("utf-8");
 						ByteArrayInputStream is = new ByteArrayInputStream(b);
-						int tableId = tableRegistry.getTableId(tableName);
+						int tableId = schema.getId();
 
 						StorageTransferStream stream = new StorageTransferStream(tableName, tableId, is, TABLE_METADATA_JSON);
 						media.copyToMedia(new StorageTransferRequest(stream));

@@ -23,6 +23,10 @@ import org.araqne.storage.localfile.LocalFilePath;
 import org.junit.Test;
 
 public class JoinParserTest {
+	static {
+		System.setProperty("araqne.data.dir", ".");
+	}
+
 	public static class LocalStorageManager implements StorageManager {
 
 		@Override
@@ -42,12 +46,11 @@ public class JoinParserTest {
 		public void addURIResolver(URIResolver r) {
 			throw new UnsupportedOperationException();
 		}
-		
+
 	}
-	
+
 	@Test
 	public void testParse() {
-		System.setProperty("araqne.data.dir", ".");
 		String joinCommand = "join ip [ table users ]";
 		QueryParserService p = prepareMockQueryParser();
 		StorageManager storageManager = new LocalStorageManager();
@@ -82,7 +85,7 @@ public class JoinParserTest {
 	private QueryParserService prepareMockQueryParser() {
 		QueryParserService p = mock(QueryParserService.class);
 		TableParams params = new TableParams();
-		params.setTableSpecs(Arrays.<TableSpec>asList(new WildcardTableSpec("users")));
+		params.setTableSpecs(Arrays.<TableSpec> asList(new WildcardTableSpec("users")));
 		QueryCommand table = new Table(params);
 
 		ArrayList<QueryCommand> commands = new ArrayList<QueryCommand>();

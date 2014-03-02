@@ -30,6 +30,7 @@ import org.araqne.logstorage.Crypto;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.file.LogBlock;
 import org.araqne.logstorage.file.LogBlockCursor;
 import org.araqne.logstorage.file.LogFileReader;
@@ -96,13 +97,11 @@ public class LogCheck extends QueryCommand {
 	}
 
 	private void checkTable(String tableName) {
-		String type = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		Map<String, String> metadata = schema.getMetadata();
+		String type = schema.getStorageEngine();
 
 		FilePath dir = storage.getTableDirectory(tableName);
-
-		Map<String, String> tableMetadata = new HashMap<String, String>();
-		for (String key : tableRegistry.getTableMetadataKeys(tableName))
-			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
 
 		for (Date day : storage.getLogDates(tableName)) {
 			if (getStatus() == Status.End)
@@ -126,8 +125,8 @@ public class LogCheck extends QueryCommand {
 			LogFileReader reader = null;
 			LogBlockCursor cursor = null;
 			try {
-				reader = fileServiceRegistry.newReader(tableName, type, 
-						new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath));
+				reader = fileServiceRegistry.newReader(tableName, type, new LogFileServiceV2.Option(metadata, tableName,
+						indexPath, dataPath, keyPath));
 				cursor = reader.getBlockCursor();
 
 				while (cursor.hasNext() && getStatus() != Status.End) {

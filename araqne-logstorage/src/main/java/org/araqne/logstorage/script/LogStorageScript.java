@@ -17,14 +17,25 @@ package org.araqne.logstorage.script;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
@@ -35,18 +46,32 @@ import org.araqne.api.Script;
 import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
 import org.araqne.api.ScriptUsage;
-import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.WildcardMatcher;
-import org.araqne.logstorage.*;
+import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogCryptoProfile;
+import org.araqne.logstorage.LogCryptoProfileRegistry;
+import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.LogFileServiceRegistry;
+import org.araqne.logstorage.LogRetentionPolicy;
+import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.LogStorageEventListener;
+import org.araqne.logstorage.LogStorageMonitor;
+import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.LogTraverseCallback;
+import org.araqne.logstorage.LogWriterStatus;
+import org.araqne.logstorage.SimpleLogTraverseCallback;
+import org.araqne.logstorage.TableConfig;
+import org.araqne.logstorage.TableConfigSpec;
+import org.araqne.logstorage.TableSchema;
+import org.araqne.logstorage.TableWildcardMatcher;
+import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
-import org.araqne.logstorage.engine.LogTableSchema;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
 import org.araqne.storage.api.URIResolver;
-import org.araqne.storage.engine.StorageManagerImpl;
 import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,43 +166,16 @@ public class LogStorageScript implements Script {
 		context.println("set");
 	}
 
-	@ScriptUsage(description = "migrate old properties to new confdb metadata")
-	public void migrate(String[] args) {
-		context.println("migrate table metadata from properties to confdb");
-
-		FileInputStream is = null;
-		try {
-			ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
-			is = new FileInputStream(new File(System.getProperty("araqne.data.dir"), "araqne-logstorage/tables"));
-
-			Properties p = new Properties();
-			p.load(is);
-
-			for (Object key : p.keySet()) {
-				String tableName = key.toString();
-				if (!tableName.contains(".")) {
-					int id = Integer.valueOf(p.getProperty(tableName));
-					LogTableSchema t = new LogTableSchema(id, tableName);
-					db.add(t, "araqne-logstorage", tableName + " metadata is migrated from old version");
-				}
-			}
-		} catch (IOException e) {
-			context.println(e.getMessage());
-		} finally {
-			if (is != null) {
-				try {
-					is.close();
-				} catch (IOException e) {
-				}
-			}
-		}
-	}
-
 	@ScriptUsage(description = "print table metadata", arguments = {
 			@ScriptArgument(name = "table name", type = "string", description = "table name"),
 			@ScriptArgument(name = "table metadata key", type = "string", description = "key", optional = true),
 			@ScriptArgument(name = "table metadata value", type = "string", description = "value", optional = true) })
 	public void table(String[] args) {
+		String lang = System.getProperty("user.language");
+		Locale locale = Locale.ENGLISH;
+		if (lang != null)
+			locale = new Locale(lang);
+
 		String tableName = args[0];
 
 		if (!tableRegistry.exists(tableName)) {
@@ -186,13 +184,52 @@ public class LogStorageScript implements Script {
 		}
 
 		if (args.length == 1) {
-			context.println("Table " + args[0]);
-			context.println();
-			context.println("Table Metadata");
-			context.println("----------------");
-			for (String key : tableRegistry.getTableMetadataKeys(tableName)) {
-				String value = tableRegistry.getTableMetadata(tableName, key);
-				context.println(key + "=" + value);
+			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+			List<FieldDefinition> fields = schema.getFieldDefinitions();
+			LogFileService lfs = lfsRegistry.getLogFileService(schema.getStorageEngine());
+
+			context.println("Storage Configs for " + schema.getStorageEngine());
+			context.println("-------------------------");
+			for (TableConfigSpec spec : lfs.getConfigSpecs()) {
+				TableConfig c = schema.getStorageConfig(spec.getKey());
+				String config = null;
+				if (c != null && c.getValues().size() > 1)
+					config = c.getValues().toString();
+				else if (c != null)
+					config = c.getValue();
+
+				context.println(spec.getDisplayNames().get(locale) + ": " + config);
+			}
+
+			context.println("");
+
+			if (fields != null) {
+				context.println("Field Definitions");
+				context.println("-------------------");
+
+				for (FieldDefinition field : fields) {
+					String line = null;
+					if (field.getLength() > 0)
+						line = field.getName() + "\t" + field.getType() + "(" + field.getLength() + ")";
+					line = field.getName() + "\t" + field.getType();
+
+					context.println(line);
+				}
+
+				context.println("");
+			}
+
+			Map<String, String> metadata = schema.getMetadata();
+			if (metadata != null && metadata.size() > 0) {
+				context.println("Table Metadata");
+				context.println("----------------");
+
+				for (String key : metadata.keySet()) {
+					String value = metadata.get(key);
+					context.println(key + "=" + value);
+				}
+
+				context.println();
 			}
 
 			long total = 0;
@@ -202,33 +239,21 @@ public class LogStorageScript implements Script {
 					total += f.length();
 			}
 
-			List<FieldDefinition> fields = tableRegistry.getTableFields(tableName);
-			if (fields != null) {
-				context.println("");
-				context.println("Table Schema");
-				context.println("---------------");
-				for (FieldDefinition field : fields) {
-					String line = null;
-					if (field.getLength() > 0)
-						line = field.getName() + "\t" + field.getType() + "(" + field.getLength() + ")";
-					line = field.getName() + "\t" + field.getType();
-
-					context.println(line);
-				}
-			}
-
-			context.println();
-			context.println("Storage information");
+			context.println("Storage Information");
 			context.println("---------------------");
 			context.println("Data path: " + storage.getTableDirectory(tableName).getAbsolutePath());
 			NumberFormat nf = NumberFormat.getNumberInstance();
 			context.println("Consumption: " + nf.format(total) + " bytes");
+			context.println("");
 		} else if (args.length == 2) {
-			String value = tableRegistry.getTableMetadata(tableName, args[1]);
+			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+			String value = schema.getMetadata().remove(args[1]);
+			tableRegistry.alterTable(tableName, schema);
 			context.println("unset " + value);
-			tableRegistry.unsetTableMetadata(tableName, args[1]);
 		} else if (args.length == 3) {
-			tableRegistry.setTableMetadata(tableName, args[1], args[2]);
+			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+			schema.getMetadata().put(args[1], args[2]);
+			tableRegistry.alterTable(tableName, schema);
 			context.printf("set %s to %s\n", args[1], args[2]);
 		}
 	}
@@ -244,11 +269,12 @@ public class LogStorageScript implements Script {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
 		ArrayList<TableInfo> tables = new ArrayList<TableInfo>();
-		for (String tableName : tableRegistry.getTableNames()) {
+		for (TableSchema schema : tableRegistry.getTableSchemas()) {
+			String tableName = schema.getName();
 			if (filter != null && !tableName.contains(filter))
 				continue;
 
-			int tableId = tableRegistry.getTableId(tableName);
+			int tableId = schema.getId();
 			Iterator<Date> it = storage.getLogDates(tableName).iterator();
 			Date lastDay = null;
 			if (it.hasNext())
@@ -296,29 +322,123 @@ public class LogStorageScript implements Script {
 
 	@ScriptUsage(description = "create new table", arguments = {
 			@ScriptArgument(name = "name", type = "string", description = "log table name"),
-			@ScriptArgument(name = "type", type = "string", description = "log file type (v1, v2, etc)") })
+			@ScriptArgument(name = "engine type", type = "string", description = "engine type (v1, v2, etc)") })
 	public void createTable(String[] args) {
-		Map<String, String> metadata = new HashMap<String, String>();
-		if (args.length > 2) {
-			for (int i = 2; i < args.length; i++) {
-				String[] pair = args[i].split("=");
-				if (pair.length != 2)
-					continue;
+		if (args.length > 2)
+			context.println("WARN: storage engine config and metadata will be set separately.");
 
-				metadata.put(pair[0], pair[1]);
+		String lang = System.getProperty("user.language");
+		Locale locale = Locale.ENGLISH;
+		if (lang != null)
+			locale = new Locale(lang);
+
+		try {
+			TableSchema schema = new TableSchema(args[0], args[1]);
+			schema.setBasePath(readLine("Base Path? (optional, enter to skip)? "));
+
+			String engineType = args[1];
+			LogFileService lfs = lfsRegistry.getLogFileService(engineType);
+
+			for (TableConfigSpec spec : lfs.getConfigSpecs()) {
+				while (true) {
+					String optional = spec.isOptional() ? " (optional, enter to skip)" : "";
+					String line = readLine(spec.getDisplayNames().get(locale) + optional + "? ");
+
+					if (line != null) {
+						try {
+							if (spec.getValidator() != null)
+								spec.getValidator().validate(spec.getKey(), Arrays.asList(line));
+						} catch (Throwable t) {
+							context.println(t.getMessage());
+							continue;
+						}
+
+						schema.getStorageConfigs().add(new TableConfig(spec.getKey(), line));
+						break;
+					} else if (spec.isOptional())
+						break;
+				}
 			}
-		}
 
-		storage.createTable(args[0], args[1], metadata);
-		context.println("table created");
+			Map<String, String> metadata = new HashMap<String, String>();
+			if (args.length > 2) {
+				for (int i = 2; i < args.length; i++) {
+					String[] pair = args[i].split("=");
+					if (pair.length != 2)
+						continue;
+
+					metadata.put(pair[0], pair[1]);
+				}
+			}
+
+			schema.setMetadata(metadata);
+			storage.createTable(schema);
+			context.println("table created");
+		} catch (InterruptedException e) {
+			context.println("");
+			context.println("interrupted");
+		} catch (Throwable t) {
+			context.println("cannot create table " + args[0] + ": " + t.getMessage());
+			logger.error("araqne logstorage: cannot create table " + args[0], t);
+		}
 	}
 
-	@ScriptUsage(description = "rename table", arguments = {
-			@ScriptArgument(name = "current table name", type = "string", description = "current log table name"),
-			@ScriptArgument(name = "new table name", type = "string", description = "new table name") })
-	public void renameTable(String[] args) {
-		tableRegistry.renameTable(args[0], args[1]);
-		context.println("ok");
+	@ScriptUsage(description = "alter table", arguments = { @ScriptArgument(name = "name", type = "string", description = "log table name") })
+	public void alterTable(String[] args) {
+		String lang = System.getProperty("user.language");
+		Locale locale = Locale.ENGLISH;
+		if (lang != null)
+			locale = new Locale(lang);
+
+		int count = 0;
+		String tableName = args[0];
+		try {
+			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+			LogFileService lfs = lfsRegistry.getLogFileService(schema.getStorageEngine());
+
+			for (TableConfigSpec spec : lfs.getConfigSpecs()) {
+				if (!spec.isUpdatable())
+					continue;
+
+				count++;
+
+				TableConfig config = schema.getStorageConfig(spec.getKey());
+
+				while (true) {
+					String optional = spec.isOptional() ? " (optional, enter to drop)" : "";
+					String line = readLine(spec.getDisplayNames().get(locale) + optional + "? ");
+
+					if (line != null) {
+						schema.getStorageConfigs().remove(config);
+						schema.getStorageConfigs().add(new TableConfig(spec.getKey(), line));
+						break;
+					} else if (spec.isOptional()) {
+						schema.getStorageConfigs().remove(config);
+						break;
+					}
+				}
+			}
+
+			storage.alterTable(args[0], schema);
+		} catch (InterruptedException e) {
+			context.println("");
+			context.println("interrupted");
+		} catch (Throwable t) {
+			context.println("cannot alter table " + args[0] + ": " + t.getMessage());
+			logger.error("araqne logstorage: cannot alter table " + args[0], t);
+		}
+
+		if (count == 0)
+			context.println("no updatable configs");
+	}
+
+	private String readLine(String question) throws InterruptedException {
+		context.print(question);
+		String line = context.readLine();
+		if (line.trim().isEmpty())
+			return null;
+
+		return line;
 	}
 
 	@ScriptUsage(description = "drop log table", arguments = { @ScriptArgument(name = "name", type = "string", description = "log table name") })
@@ -351,7 +471,10 @@ public class LogStorageScript implements Script {
 				fields.add(field);
 			}
 
-			tableRegistry.setTableFields(tableName, fields);
+			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+			schema.setFieldDefinitions(fields);
+			tableRegistry.alterTable(tableName, schema);
+
 			context.println("schema changed");
 		} catch (Throwable t) {
 			context.println("cannot update schema: " + t.getMessage());
@@ -361,7 +484,10 @@ public class LogStorageScript implements Script {
 
 	@ScriptUsage(description = "unset table fields", arguments = { @ScriptArgument(name = "table name", type = "string", description = "table name") })
 	public void unsetFields(String[] args) {
-		tableRegistry.setTableFields(args[0], null);
+		String tableName = args[0];
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		schema.setFieldDefinitions(null);
+		tableRegistry.alterTable(tableName, schema);
 		context.println("schema changed");
 	}
 
@@ -387,7 +513,7 @@ public class LogStorageScript implements Script {
 					for (Log log : logs)
 						context.println(log.toString());
 				}
-				
+
 			};
 			storage.search(tableName, from, to, null, new SimpleLogTraverseCallback(contextSink));
 		} catch (InterruptedException e) {
@@ -411,7 +537,7 @@ public class LogStorageScript implements Script {
 			long begin = new Date().getTime();
 
 			LogTraverseCallback.Sink printSink = new LogTraverseCallback.Sink(0, limit) {
-				
+
 				@Override
 				protected void processLogs(List<Log> logs) {
 					for (Log log : logs) {
@@ -424,7 +550,7 @@ public class LogStorageScript implements Script {
 					}
 				}
 			};
-			
+
 			storage.search(tableName, from, to, null, new SimpleLogTraverseCallback(printSink));
 
 			long end = new Date().getTime();
@@ -469,7 +595,7 @@ public class LogStorageScript implements Script {
 		ConfigUtil.set(conf, configKey, value);
 		context.println("set");
 	}
-	
+
 	public static class LocalStorageManager implements StorageManager {
 
 		@Override
@@ -489,12 +615,12 @@ public class LogStorageScript implements Script {
 		public void addURIResolver(URIResolver r) {
 			throw new UnsupportedOperationException();
 		}
-		
+
 	}
-	
+
 	public static void main(String[] args) {
 		String s = "/hdd/hhsonbo/*/*.log";
-		
+
 		StorageManager storageManager = new LocalStorageManager();
 
 		List<FilePath> files = getMatchingFiles(storageManager, s, null);
@@ -571,7 +697,7 @@ public class LogStorageScript implements Script {
 				cur += 1;
 			}
 		} else {
-            FilePath file = storageManager.resolveFilePath(args[1]);
+			FilePath file = storageManager.resolveFilePath(args[1]);
 			int offset = 0;
 			if (args.length > 2)
 				offset = Integer.valueOf(args[2]);
@@ -722,7 +848,7 @@ public class LogStorageScript implements Script {
 			context.println("interrupted");
 		}
 	}
-	
+
 	private class CounterSink extends LogTraverseCallback.Sink {
 		private int count;
 
@@ -734,12 +860,12 @@ public class LogStorageScript implements Script {
 		public int getCount() {
 			return count;
 		}
-		
+
 		@Override
 		protected void processLogs(List<Log> logs) {
 			count += logs.size();
 		}
-		
+
 	}
 
 	public void flush(String[] args) {
@@ -846,9 +972,9 @@ public class LogStorageScript implements Script {
 
 	private void benchmark(String name, String tableName, int count, Map<String, Object> data) {
 		try {
-			storage.createTable(tableName, "v3p");
+			storage.createTable(new TableSchema(tableName, "v3p"));
 		} catch (UnsupportedLogFileTypeException e) {
-			storage.createTable(tableName, "v2");
+			storage.createTable(new TableSchema(tableName, "v2"));
 		}
 
 		Log log = new Log(tableName, new Date(), data);
@@ -873,7 +999,7 @@ public class LogStorageScript implements Script {
 				protected void processLogs(List<Log> logs) {
 				}
 			};
-			
+
 			storage.search(tableName, new Date(0), new Date(), null, new SimpleLogTraverseCallback(benchSink));
 		} catch (InterruptedException e) {
 		}

@@ -15,26 +15,17 @@
  */
 package org.araqne.logstorage;
 
-import java.util.List;
+public class TableNotFoundException extends RuntimeException {
+	private static final long serialVersionUID = 1L;
+	private String tableName;
 
-public interface LogTableRegistry {
-	boolean exists(String tableName);
+	public TableNotFoundException(String tableName) {
+		super("table " + tableName + " not found");
+		this.tableName = tableName;
+	}
 
-	List<String> getTableNames();
+	public String getTableName() {
+		return tableName;
+	}
 
-	List<TableSchema> getTableSchemas();
-
-	TableSchema getTableSchema(String tableName);
-
-	TableSchema getTableSchema(String tableName, boolean required);
-
-	void createTable(TableSchema schema);
-
-	void alterTable(String tableName, TableSchema schema);
-
-	void dropTable(String tableName);
-
-	void addListener(TableEventListener listener);
-
-	void removeListener(TableEventListener listener);
 }

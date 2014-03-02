@@ -15,8 +15,6 @@
  */
 package org.araqne.logdb.msgbus;
 
-import java.security.Provider;
-import java.security.Security;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -38,6 +36,7 @@ import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.logstorage.LogCryptoProfileRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.msgbus.MessageBus;
 import org.araqne.msgbus.MsgbusException;
@@ -244,18 +243,19 @@ public class ManagementPlugin {
 		Map<String, Object> fields = new HashMap<String, Object>();
 
 		if (session.isAdmin()) {
-			for (String tableName : tableRegistry.getTableNames()) {
-				tables.put(tableName, getTableMetadata(tableName));
-				List<FieldDefinition> defs = tableRegistry.getTableFields(tableName);
+			for (TableSchema schema : tableRegistry.getTableSchemas()) {
+				tables.put(schema.getName(), getTableMetadata(schema));
+				List<FieldDefinition> defs = schema.getFieldDefinitions();
 				if (defs != null)
-					fields.put(tableName, PrimitiveConverter.serialize(defs));
+					fields.put(schema.getName(), PrimitiveConverter.serialize(defs));
 			}
 		} else {
 			List<Privilege> privileges = accountService.getPrivileges(session, session.getLoginName());
 			for (Privilege p : privileges) {
 				if (p.getPermissions().size() > 0 && tableRegistry.exists(p.getTableName())) {
-					tables.put(p.getTableName(), getTableMetadata(p.getTableName()));
-					List<FieldDefinition> defs = tableRegistry.getTableFields(p.getTableName());
+					TableSchema schema = tableRegistry.getTableSchema(p.getTableName(), true);
+					tables.put(p.getTableName(), getTableMetadata(schema));
+					List<FieldDefinition> defs = schema.getFieldDefinitions();
 					if (defs != null)
 						fields.put(p.getTableName(), PrimitiveConverter.serialize(defs));
 				}
@@ -273,17 +273,19 @@ public class ManagementPlugin {
 		String tableName = req.getString("table", true);
 		checkTableAccess(req, tableName, Permission.READ);
 
-		List<FieldDefinition> defs = tableRegistry.getTableFields(tableName);
+		TableSchema schema = tableRegistry.getTableSchema(tableName);
+		List<FieldDefinition> defs = schema.getFieldDefinitions();
 		if (defs != null)
 			resp.put("fields", PrimitiveConverter.serialize(defs));
 
-		resp.put("table", getTableMetadata(tableName));
+		resp.put("table", getTableMetadata(schema));
 	}
 
-	private Map<String, Object> getTableMetadata(String tableName) {
+	private Map<String, Object> getTableMetadata(TableSchema schema) {
 		Map<String, Object> metadata = new HashMap<String, Object>();
-		for (String key : tableRegistry.getTableMetadataKeys(tableName)) {
-			metadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+		Map<String, String> strings = schema.getMetadata();
+		for (String key : strings.keySet()) {
+			metadata.put(key, strings.get(key));
 		}
 		return metadata;
 	}
@@ -312,7 +314,9 @@ public class ManagementPlugin {
 			}
 		}
 
-		tableRegistry.setTableFields(tableName, fields);
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		schema.setFieldDefinitions(fields);
+		tableRegistry.alterTable(tableName, schema);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -323,10 +327,14 @@ public class ManagementPlugin {
 		String tableName = req.getString("table", true);
 		Map<String, Object> metadata = (Map<String, Object>) req.get("metadata", true);
 
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+
 		for (String key : metadata.keySet()) {
 			Object value = metadata.get(key);
-			tableRegistry.setTableMetadata(tableName, key, value == null ? null : value.toString());
+			schema.getMetadata().put(key, value == null ? null : value.toString());
 		}
+
+		tableRegistry.alterTable(tableName, schema);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -337,9 +345,14 @@ public class ManagementPlugin {
 		String tableName = req.getString("table", true);
 		List<Object> keys = (List<Object>) req.get("keys", true);
 
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		Map<String, String> metadata = schema.getMetadata();
+
 		for (Object key : keys) {
-			tableRegistry.unsetTableMetadata(tableName, key.toString());
+			metadata.remove(key.toString());
 		}
+
+		tableRegistry.alterTable(tableName, schema);
 	}
 
 	private void checkTableAccess(Request req, String tableName, Permission permission) {
@@ -360,9 +373,13 @@ public class ManagementPlugin {
 		@SuppressWarnings("unchecked")
 		Map<String, String> metadata = (Map<String, String>) req.get("metadata");
 		try {
-			storage.createTable(tableName, "v3p", metadata);
+			TableSchema schema = new TableSchema(tableName, "v3p");
+			schema.setMetadata(metadata);
+			storage.createTable(schema);
 		} catch (UnsupportedLogFileTypeException e) {
-			storage.createTable(tableName, "v2", metadata);
+			TableSchema schema = new TableSchema(tableName, "v2");
+			schema.setMetadata(metadata);
+			storage.createTable(schema);
 		}
 	}
 

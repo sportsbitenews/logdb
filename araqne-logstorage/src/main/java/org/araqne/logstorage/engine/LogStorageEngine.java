@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
 @Component(name = "logstorage-engine")
 @Provides
-public class LogStorageEngine implements LogStorage, LogTableEventListener, LogFileServiceEventListener {
+public class LogStorageEngine implements LogStorage, TableEventListener, LogFileServiceEventListener {
 	private static final String DEFAULT_LOGFILETYPE = "v2";
 
 	private final Logger logger = LoggerFactory.getLogger(LogStorageEngine.class.getName());
@@ -70,7 +70,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 	@Requires
 	private LogFileServiceRegistry lfsRegistry;
-	
+
 	@Requires
 	private StorageManager storageManager;
 
@@ -89,7 +89,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	private FilePath logDir;
 
 	private ConcurrentHashMap<String, Integer> tableNameCache;
-//	private CopyOnWriteArraySet<LogStorageEventListener> listeners;
+
+	// private CopyOnWriteArraySet<LogStorageEventListener> listeners;
 
 	public LogStorageEngine() {
 		int checkInterval = getIntParameter(Constants.LogCheckInterval, DEFAULT_LOG_CHECK_INTERVAL);
@@ -102,7 +103,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		callbackSets = new ConcurrentHashMap<Class<?>, CopyOnWriteArraySet<?>>();
 		tableNameCache = new ConcurrentHashMap<String, Integer>();
 
-//		listeners = new CopyOnWriteArraySet<LogStorageEventListener>();
+		// listeners = new CopyOnWriteArraySet<LogStorageEventListener>();
 	}
 
 	@Override
@@ -117,10 +118,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 		if (!f.isDirectory())
 			throw new IllegalArgumentException("storage path should be directory");
-		
+
 		ConfigUtil.set(conf, Constants.LogStorageDirectory, f.getAbsolutePath());
 		logDir = f;
-		DatapathUtil.setLogDir(logDir); 
+		DatapathUtil.setLogDir(logDir);
 	}
 
 	private String getStringParameter(Constants key, String defaultValue) {
@@ -145,10 +146,12 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	@Validate
 	@Override
 	public void start() {
-		FilePath sysArgLogDir = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
-		logDir = storageManager.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, sysArgLogDir.getAbsolutePath()));
+		FilePath sysArgLogDir = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath(
+				"araqne-logstorage/log");
+		logDir = storageManager
+				.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, sysArgLogDir.getAbsolutePath()));
 		logDir.mkdirs();
-		DatapathUtil.setLogDir(logDir); 
+		DatapathUtil.setLogDir(logDir);
 
 		if (status != LogStorageStatus.Closed)
 			throw new IllegalStateException("log archive already started");
@@ -161,8 +164,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 		// load table name cache
 		tableNameCache.clear();
-		for (String tableName : tableRegistry.getTableNames()) {
-			tableNameCache.put(tableName, tableRegistry.getTableId(tableName));
+		for (TableSchema schema : tableRegistry.getTableSchemas()) {
+			tableNameCache.put(schema.getName(), schema.getId());
 		}
 
 		tableRegistry.addListener(this);
@@ -221,18 +224,25 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	}
 
 	@Override
-	public void createTable(String tableName, String type) {
-		createTable(tableName, type, null);
+	public void createTable(TableSchema schema) {
+		tableRegistry.createTable(schema);
 	}
 
 	@Override
-	public void createTable(String tableName, String type, Map<String, String> tableMetadata) {
-		tableRegistry.createTable(tableName, type, tableMetadata);
+	public void ensureTable(TableSchema schema) {
+		if (!tableRegistry.exists(schema.getName()))
+			createTable(schema);
+	}
+
+	@Override
+	public void alterTable(String tableName, TableSchema schema) {
+		tableRegistry.alterTable(tableName, schema);
 	}
 
 	@Override
 	public void dropTable(String tableName) {
-		int tableId = tableRegistry.getTableId(tableName);
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		int tableId = schema.getId();
 		Collection<Date> dates = getLogDates(tableName);
 
 		// drop retention policy
@@ -242,7 +252,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			c.remove();
 
 		// drop table metadata
-		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
 		tableRegistry.dropTable(tableName);
 
 		// evict online writers
@@ -257,7 +266,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		}
 
 		// purge existing files
-		FilePath tableDir = getTableDirectory(tableId, basePath);
+		FilePath tableDir = getTableDirectory(schema);
 		if (!tableDir.exists())
 			return;
 
@@ -305,26 +314,24 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		if (!tableRegistry.exists(tableName))
 			throw new IllegalArgumentException("table not exists: " + tableName);
 
-		int tableId = tableRegistry.getTableId(tableName);
-		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
-		return getTableDirectory(tableId, basePath);
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		return getTableDirectory(schema);
 	}
 
-	private FilePath getTableDirectory(int tableId, String basePath) {
+	private FilePath getTableDirectory(TableSchema schema) {
 		FilePath baseDir = logDir;
-		if (basePath != null)
-			baseDir = storageManager.resolveFilePath(basePath);
+		if (schema.getBasePath() != null)
+			baseDir = storageManager.resolveFilePath(schema.getBasePath());
 
-		return baseDir.newFilePath(Integer.toString(tableId));
+		return baseDir.newFilePath(Integer.toString(schema.getId()));
 	}
 
 	@Override
 	public Collection<Date> getLogDates(String tableName) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-		int tableId = tableRegistry.getTableId(tableName);
-		String basePath = tableRegistry.getTableMetadata(tableName, "base_path");
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 
-		FilePath tableDir = getTableDirectory(tableId, basePath);
+		FilePath tableDir = getTableDirectory(schema);
 		FilePath[] files = tableDir.listFiles(new FilePathNameFilter() {
 			@Override
 			public boolean accept(FilePath dir, String name) {
@@ -397,7 +404,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		for (Log log : logs) {
 			Integer tableId = tableNameCache.get(log.getTableName());
 			if (tableId == null)
-				throw new LogTableNotFoundException(log.getTableName());
+				throw new TableNotFoundException(log.getTableName());
 
 			OnlineWriterKey writerKey = new OnlineWriterKey(log.getTableName(), log.getDay(), tableId);
 			List<Log> l = keyLogs.get(writerKey);
@@ -451,7 +458,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		final List<Log> ret = new ArrayList<Log>(limit);
 		try {
 			LogTraverseCallback.Sink listSink = new LogTraverseCallback.Sink(offset, limit) {
-				
+
 				@Override
 				protected void processLogs(List<Log> logs) {
 					ret.addAll(logs);
@@ -504,11 +511,11 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	@Override
 	public void purge(String tableName, Date day) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-		int tableId = tableRegistry.getTableId(tableName);
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 		FilePath dir = getTableDirectory(tableName);
 
 		// evict online buffer and close
-		OnlineWriter writer = onlineWriters.remove(new OnlineWriterKey(tableName, day, tableId));
+		OnlineWriter writer = onlineWriters.remove(new OnlineWriterKey(tableName, day, schema.getId()));
 		if (writer != null)
 			writer.close();
 
@@ -610,31 +617,26 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 		Integer tableId = tableNameCache.get(tableName);
 		if (tableId == null)
-			throw new LogTableNotFoundException(tableName);
+			throw new TableNotFoundException(tableName);
 
 		OnlineWriter onlineWriter = onlineWriters.get(new OnlineWriterKey(tableName, day, tableId));
 		ArrayList<Log> buffer = null;
 		if (onlineWriter != null)
 			buffer = (ArrayList<Log>) onlineWriter.getBuffer();
 
-		String basePathString = tableRegistry.getTableMetadata(tableName, "base_path");
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		String basePathString = schema.getBasePath();
 		FilePath basePath = null;
 		if (basePathString != null)
 			basePath = storageManager.resolveFilePath(basePathString);
-		
+
 		FilePath indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
 		FilePath dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
 		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
-		String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
-		if (logFileType == null)
-			logFileType = "v2";
-
-		Map<String, String> tableMetadata = new HashMap<String, String>();
-		for (String key : tableRegistry.getTableMetadataKeys(tableName))
-			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
-
-		LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
+		String logFileType = schema.getStorageEngine();
+		LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getMetadata(), tableName, indexPath, dataPath,
+				keyPath);
 		options.put("day", day);
 		LogFileReader reader = newReader(onlineWriter, tableName, logFileType, options);
 
@@ -645,7 +647,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		// check table existence
 		Integer tableId = tableNameCache.get(tableName);
 		if (tableId == null)
-			throw new LogTableNotFoundException(tableName);
+			throw new TableNotFoundException(tableName);
 
 		Date day = DateUtil.getDay(date);
 		OnlineWriterKey key = new OnlineWriterKey(tableName, day, tableId);
@@ -657,7 +659,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		try {
 			int blockSize = getIntParameter(Constants.LogBlockSize, DEFAULT_BLOCK_SIZE);
 			OnlineWriter oldWriter = onlineWriters.get(key);
-			String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
+
+			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+			String logFileType = schema.getStorageEngine();
 
 			if (oldWriter != null) {
 				synchronized (oldWriter) {
@@ -726,10 +730,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			throw new UnsupportedLogFileTypeException(logFileType);
 		}
 
-		Map<String, String> tableMetadata = new HashMap<String, String>();
-		for (String key : tableRegistry.getTableMetadataKeys(tableName))
-			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
-		return new OnlineWriter(storageManager, lfs, tableName, tableId, day, tableMetadata);
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		return new OnlineWriter(storageManager, lfs, schema, day);
 	}
 
 	@Override
@@ -786,7 +788,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	public void removeEventListener(LogStorageEventListener listener) {
 		getCallbacks(LogStorageEventListener.class).remove(listener);
 	}
-	
 
 	@Override
 	public <T> void addEventListener(Class<T> clazz, T listener) {
@@ -797,7 +798,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	public <T> void removeEventListener(Class<T> clazz, T listener) {
 		getCallbacks(clazz).remove(listener);
 	}
-	
+
 	private class WriterSweeper implements Runnable {
 		private final Logger logger = LoggerFactory.getLogger(WriterSweeper.class.getName());
 		private volatile int checkInterval;
@@ -979,19 +980,17 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	}
 
 	@Override
-	public void ensureTable(String tableName, String type) {
-		if (!tableRegistry.exists(tableName))
-			createTable(tableName, type);
+	public void onCreate(TableSchema schema) {
+		tableNameCache.put(schema.getName(), schema.getId());
 	}
 
 	@Override
-	public void onCreate(String tableName, Map<String, String> tableMetadata) {
-		tableNameCache.put(tableName, tableRegistry.getTableId(tableName));
+	public void onAlter(TableSchema oldSchema, TableSchema newSchema) {
 	}
 
 	@Override
-	public void onDrop(String tableName) {
-		tableNameCache.remove(tableName);
+	public void onDrop(TableSchema schema) {
+		tableNameCache.remove(schema.getName());
 	}
 
 	public void purgeOnlineWriters() {
@@ -1054,8 +1053,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 	private boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId,
 			LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException {
-		int tableId = tableRegistry.getTableId(tableName);
-		String basePathString = tableRegistry.getTableMetadata(tableName, "base_path");
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		int tableId = schema.getId();
+		String basePathString = schema.getBasePath();
 		FilePath basePath = null;
 		if (basePathString != null)
 			basePath = storageManager.resolveFilePath(basePathString);
@@ -1104,15 +1104,9 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				}
 			}
 
-			String logFileType = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
-			if (logFileType == null)
-				logFileType = "v2";
-
-			Map<String, String> tableMetadata = new HashMap<String, String>();
-			for (String key : tableRegistry.getTableMetadataKeys(tableName))
-				tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
-
-			LogFileServiceV2.Option options = new LogFileServiceV2.Option(tableMetadata, tableName, indexPath, dataPath, keyPath);
+			String logFileType = schema.getStorageEngine();
+			LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getMetadata(), tableName, indexPath, dataPath,
+					keyPath);
 			options.put("day", day);
 			reader = newReader(onlineWriter, tableName, logFileType, options);
 
@@ -1147,7 +1141,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 		return !c.isEof();
 	}
-	
+
 	private LogFileReader newReader(OnlineWriter onlineWriter, String tableName, String logFileType, Map<String, Object> options) {
 		if (onlineWriter != null) {
 			try {

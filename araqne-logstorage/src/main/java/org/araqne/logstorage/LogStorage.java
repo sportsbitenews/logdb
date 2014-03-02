@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.storage.api.FilePath;
@@ -52,11 +51,11 @@ public interface LogStorage {
 
 	void stop();
 
-	void createTable(String tableName, String type);
+	void createTable(TableSchema schema);
 
-	void ensureTable(String tableName, String type);
+	void ensureTable(TableSchema schema);
 
-	void createTable(String tableName, String type, Map<String, String> tableMetadata);
+	void alterTable(String tableName, TableSchema schema);
 
 	void dropTable(String tableName);
 
@@ -127,9 +126,9 @@ public interface LogStorage {
 	 * @since 2.5.3
 	 */
 	<T> void addEventListener(Class<T> clazz, T callback);
-	
+
 	<T> void removeEventListener(Class<T> clazz, T callback);
-	
+
 	/**
 	 * 
 	 * @since 2.5.10-SNAPSHOT

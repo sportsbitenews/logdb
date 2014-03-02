@@ -15,7 +15,9 @@
  */
 package org.araqne.logstorage.file;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -26,6 +28,7 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logstorage.LogFileRepairer;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
+import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.localfile.LocalFilePath;
 
@@ -90,13 +93,18 @@ public class LogFileServiceV1 implements LogFileService {
 	@Override
 	public LogFileReader newReader(String tableName, Map<String, Object> options) {
 		checkOption(options);
-		FilePath indexPath = (FilePath)options.get(OPT_INDEX_PATH);
-		FilePath dataPath = (FilePath)options.get(OPT_DATA_PATH);
+		FilePath indexPath = (FilePath) options.get(OPT_INDEX_PATH);
+		FilePath dataPath = (FilePath) options.get(OPT_DATA_PATH);
 		try {
 			return new LogFileReaderV1(tableName, indexPath, dataPath);
 		} catch (Throwable t) {
 			throw new IllegalStateException("cannot open reader v1: data file - " + dataPath.getAbsolutePath(), t);
 		}
+	}
+
+	@Override
+	public List<TableConfigSpec> getConfigSpecs() {
+		return Arrays.asList();
 	}
 
 	@Override
