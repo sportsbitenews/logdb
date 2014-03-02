@@ -99,7 +99,7 @@ public class LogCheck extends QueryCommand {
 	private void checkTable(String tableName) {
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 		Map<String, String> metadata = schema.getMetadata();
-		String type = schema.getStorageEngine();
+		String type = schema.getPrimaryStorage().getType();
 
 		FilePath dir = storage.getTableDirectory(tableName);
 

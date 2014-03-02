@@ -62,6 +62,7 @@ import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogTraverseCallback;
 import org.araqne.logstorage.LogWriterStatus;
 import org.araqne.logstorage.SimpleLogTraverseCallback;
+import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableConfig;
 import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.logstorage.TableSchema;
@@ -186,12 +187,13 @@ public class LogStorageScript implements Script {
 		if (args.length == 1) {
 			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 			List<FieldDefinition> fields = schema.getFieldDefinitions();
-			LogFileService lfs = lfsRegistry.getLogFileService(schema.getStorageEngine());
+			StorageConfig primaryStorage = schema.getPrimaryStorage();
+			LogFileService lfs = lfsRegistry.getLogFileService(primaryStorage.getType());
 
-			context.println("Storage Configs for " + schema.getStorageEngine());
+			context.println("Storage Configs for " + primaryStorage.getType());
 			context.println("-------------------------");
 			for (TableConfigSpec spec : lfs.getConfigSpecs()) {
-				TableConfig c = schema.getStorageConfig(spec.getKey());
+				TableConfig c = primaryStorage.getConfig(spec.getKey());
 				String config = null;
 				if (c != null && c.getValues().size() > 1)
 					config = c.getValues().toString();
@@ -333,8 +335,9 @@ public class LogStorageScript implements Script {
 			locale = new Locale(lang);
 
 		try {
-			TableSchema schema = new TableSchema(args[0], args[1]);
-			schema.setBasePath(readLine("Base Path? (optional, enter to skip)? "));
+			String basePath = readLine("Base Path? (optional, enter to skip)? ");
+			StorageConfig primaryStorage = new StorageConfig(args[1], basePath);
+			TableSchema schema = new TableSchema(args[0], primaryStorage);
 
 			String engineType = args[1];
 			LogFileService lfs = lfsRegistry.getLogFileService(engineType);
@@ -353,7 +356,7 @@ public class LogStorageScript implements Script {
 							continue;
 						}
 
-						schema.getStorageConfigs().add(new TableConfig(spec.getKey(), line));
+						primaryStorage.getConfigs().add(new TableConfig(spec.getKey(), line));
 						break;
 					} else if (spec.isOptional())
 						break;
@@ -394,7 +397,7 @@ public class LogStorageScript implements Script {
 		String tableName = args[0];
 		try {
 			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
-			LogFileService lfs = lfsRegistry.getLogFileService(schema.getStorageEngine());
+			LogFileService lfs = lfsRegistry.getLogFileService(schema.getPrimaryStorage().getType());
 
 			for (TableConfigSpec spec : lfs.getConfigSpecs()) {
 				if (!spec.isUpdatable())
@@ -402,18 +405,19 @@ public class LogStorageScript implements Script {
 
 				count++;
 
-				TableConfig config = schema.getStorageConfig(spec.getKey());
+				StorageConfig primaryStorage = schema.getPrimaryStorage();
+				TableConfig config = primaryStorage.getConfig(spec.getKey());
 
 				while (true) {
 					String optional = spec.isOptional() ? " (optional, enter to drop)" : "";
 					String line = readLine(spec.getDisplayNames().get(locale) + optional + "? ");
 
 					if (line != null) {
-						schema.getStorageConfigs().remove(config);
-						schema.getStorageConfigs().add(new TableConfig(spec.getKey(), line));
+						primaryStorage.getConfigs().remove(config);
+						primaryStorage.getConfigs().add(new TableConfig(spec.getKey(), line));
 						break;
 					} else if (spec.isOptional()) {
-						schema.getStorageConfigs().remove(config);
+						primaryStorage.getConfigs().remove(config);
 						break;
 					}
 				}
@@ -972,9 +976,9 @@ public class LogStorageScript implements Script {
 
 	private void benchmark(String name, String tableName, int count, Map<String, Object> data) {
 		try {
-			storage.createTable(new TableSchema(tableName, "v3p"));
+			storage.createTable(new TableSchema(tableName, new StorageConfig("v3p")));
 		} catch (UnsupportedLogFileTypeException e) {
-			storage.createTable(new TableSchema(tableName, "v2"));
+			storage.createTable(new TableSchema(tableName, new StorageConfig("v2")));
 		}
 
 		Log log = new Log(tableName, new Date(), data);

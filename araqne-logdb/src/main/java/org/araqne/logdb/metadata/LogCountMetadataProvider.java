@@ -101,7 +101,7 @@ public class LogCountMetadataProvider implements MetadataProvider {
 
 	private void countFiles(String tableName, Date from, Date to, List<LogWriterStatus> memoryBuffers, MetadataCallback callback) {
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
-		String fileType = schema.getStorageEngine();
+		String fileType = schema.getPrimaryStorage().getType();
 		FilePath dir = storage.getTableDirectory(tableName);
 		countFiles(tableName, fileType, dir, from, to, memoryBuffers, callback);
 	}

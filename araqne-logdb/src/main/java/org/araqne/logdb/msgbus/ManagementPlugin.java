@@ -36,6 +36,7 @@ import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.logstorage.LogCryptoProfileRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.msgbus.MessageBus;
@@ -373,11 +374,11 @@ public class ManagementPlugin {
 		@SuppressWarnings("unchecked")
 		Map<String, String> metadata = (Map<String, String>) req.get("metadata");
 		try {
-			TableSchema schema = new TableSchema(tableName, "v3p");
+			TableSchema schema = new TableSchema(tableName, new StorageConfig("v3p"));
 			schema.setMetadata(metadata);
 			storage.createTable(schema);
 		} catch (UnsupportedLogFileTypeException e) {
-			TableSchema schema = new TableSchema(tableName, "v2");
+			TableSchema schema = new TableSchema(tableName, new StorageConfig("v2"));
 			schema.setMetadata(metadata);
 			storage.createTable(schema);
 		}

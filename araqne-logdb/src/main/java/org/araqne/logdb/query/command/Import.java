@@ -22,6 +22,7 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.ThreadSafe;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableSchema;
 
 /**
@@ -53,12 +54,12 @@ public class Import extends QueryCommand implements ThreadSafe {
 	public void onStart() {
 		if (create) {
 			try {
-				storage.createTable(new TableSchema(tableName, "v3p"));
+				storage.createTable(new TableSchema(tableName, new StorageConfig("v3p")));
 			} catch (Throwable t) {
 			}
 
 			try {
-				storage.createTable(new TableSchema(tableName, "v2"));
+				storage.createTable(new TableSchema(tableName, new StorageConfig("v2")));
 			} catch (Throwable t) {
 			}
 		}

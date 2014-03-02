@@ -40,19 +40,12 @@ public class TableSchema {
 	@FieldOption(nullable = false)
 	private int id;
 
-	@FieldOption(nullable = true)
-	private String basePath;
+	private StorageConfig primaryStorage;
 
-	@FieldOption(nullable = false)
-	private String storageEngine;
+	private StorageConfig replicaStorage;
 
-	@CollectionTypeHint(TableConfig.class)
-	private List<TableConfig> storageConfigs = new ArrayList<TableConfig>();
-
-	private String replicator;
-
-	@CollectionTypeHint(TableConfig.class)
-	private List<TableConfig> replicatorConfigs = new ArrayList<TableConfig>();
+	@CollectionTypeHint(StorageConfig.class)
+	private List<StorageConfig> secondaryStorages = new ArrayList<StorageConfig>();
 
 	/**
 	 * Table may contains other field which is not specified here. Query
@@ -67,20 +60,26 @@ public class TableSchema {
 	public TableSchema() {
 	}
 
-	public TableSchema(String name, String storageEngine) {
+	public TableSchema(String name, StorageConfig primaryConfig) {
 		this.name = name;
-		this.storageEngine = storageEngine;
+		this.primaryStorage = primaryConfig;
 	}
 
 	public TableSchema clone() {
 		TableSchema c = new TableSchema();
 		c.setName(name);
 		c.setId(id);
-		c.setBasePath(basePath);
-		c.setStorageEngine(storageEngine);
-		c.setStorageConfigs(cloneConfigs(storageConfigs));
-		c.setReplicator(replicator);
-		c.setReplicatorConfigs(cloneConfigs(replicatorConfigs));
+		c.setPrimaryStorage(primaryStorage.clone());
+
+		if (replicaStorage != null)
+			c.setReplicaStorage(replicaStorage.clone());
+
+		List<StorageConfig> l = new ArrayList<StorageConfig>();
+		for (StorageConfig s : secondaryStorages)
+			l.add(s.clone());
+
+		c.setSecondaryStorages(l);
+
 		c.setFieldDefinitions(cloneFieldDefinitions(fieldDefinitions));
 		c.setMetadata(new HashMap<String, String>(metadata));
 
@@ -94,13 +93,6 @@ public class TableSchema {
 		List<FieldDefinition> cloned = new ArrayList<FieldDefinition>();
 		for (FieldDefinition d : l)
 			cloned.add(FieldDefinition.parse(d.toString()));
-		return cloned;
-	}
-
-	private List<TableConfig> cloneConfigs(List<TableConfig> l) {
-		List<TableConfig> cloned = new ArrayList<TableConfig>();
-		for (TableConfig config : l)
-			cloned.add(config.clone());
 		return cloned;
 	}
 
@@ -120,51 +112,28 @@ public class TableSchema {
 		this.id = id;
 	}
 
-	public String getBasePath() {
-		return basePath;
+	public StorageConfig getPrimaryStorage() {
+		return primaryStorage;
 	}
 
-	public void setBasePath(String basePath) {
-		this.basePath = basePath;
+	public void setPrimaryStorage(StorageConfig primaryStorage) {
+		this.primaryStorage = primaryStorage;
 	}
 
-	public String getStorageEngine() {
-		return storageEngine;
+	public StorageConfig getReplicaStorage() {
+		return replicaStorage;
 	}
 
-	public void setStorageEngine(String storageEngine) {
-		this.storageEngine = storageEngine;
+	public void setReplicaStorage(StorageConfig replicaStorage) {
+		this.replicaStorage = replicaStorage;
 	}
 
-	public List<TableConfig> getStorageConfigs() {
-		return storageConfigs;
+	public List<StorageConfig> getSecondaryStorages() {
+		return secondaryStorages;
 	}
 
-	public TableConfig getStorageConfig(String key) {
-		for (TableConfig c : storageConfigs)
-			if (c.getKey().equals(key))
-				return c;
-		return null;
-	}
-
-	public void setStorageConfigs(List<TableConfig> storageConfigs) {
-		this.storageConfigs = storageConfigs;
-	}
-
-	public String getReplicator() {
-		return replicator;
-	}
-
-	public void setReplicator(String replicator) {
-		this.replicator = replicator;
-	}
-
-	public List<TableConfig> getReplicatorConfigs() {
-		return replicatorConfigs;
-	}
-
-	public void setReplicatorConfigs(List<TableConfig> replicatorConfigs) {
-		this.replicatorConfigs = replicatorConfigs;
+	public void setSecondaryStorages(List<StorageConfig> secondaryStorages) {
+		this.secondaryStorages = secondaryStorages;
 	}
 
 	public List<FieldDefinition> getFieldDefinitions() {

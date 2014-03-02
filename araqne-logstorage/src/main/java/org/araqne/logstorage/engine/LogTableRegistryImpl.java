@@ -39,6 +39,7 @@ import org.araqne.confdb.Predicates;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableConfig;
 import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.logstorage.TableEventListener;
@@ -98,7 +99,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 			while (it.hasNext()) {
 				Config c = it.next();
 				TableSchema schema = c.getDocument(TableSchema.class);
-				if (schema.getStorageEngine() != null)
+				if (schema.getPrimaryStorage() != null)
 					continue;
 
 				// do not remove _filetype immediately
@@ -106,18 +107,17 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 				if (fileType == null)
 					fileType = "v2";
 
-				schema.setStorageEngine(fileType);
-				schema.setBasePath(schema.getMetadata().get("base_path"));
-
-				List<TableConfig> configs = schema.getStorageConfigs();
+				StorageConfig primaryStorage = new StorageConfig(fileType, schema.getMetadata().get("base_path"));
 
 				String compression = schema.getMetadata().get("compression");
 				if (compression != null)
-					configs.add(new TableConfig("compression", compression));
+					primaryStorage.getConfigs().add(new TableConfig("compression", compression));
 
 				String crypto = schema.getMetadata().get("crypto");
 				if (crypto != null)
-					configs.add(new TableConfig("crypto", crypto));
+					primaryStorage.getConfigs().add(new TableConfig("crypto", crypto));
+
+				schema.setPrimaryStorage(primaryStorage);
 
 				db.update(c, schema);
 				logger.info("araqne logstorage: migrated table [{}] _filetype [{}] metadata to schema", schema.getName(),
@@ -224,12 +224,12 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 		if (!oldSchema.getName().equals(schema.getName()))
 			throw new IllegalArgumentException("rename is not supported: " + tableName + " => " + schema.getName());
 
-		LogFileService lfs = lfsRegistry.getLogFileService(schema.getStorageEngine());
+		LogFileService lfs = lfsRegistry.getLogFileService(schema.getPrimaryStorage().getType());
 		List<TableConfigSpec> specs = lfs.getConfigSpecs();
 
 		// check add, update, delete is accepted
-		Map<String, TableConfig> oldConfigs = toMap(oldSchema.getStorageConfigs());
-		Map<String, TableConfig> newConfigs = toMap(schema.getStorageConfigs());
+		Map<String, TableConfig> oldConfigs = toMap(oldSchema.getPrimaryStorage().getConfigs());
+		Map<String, TableConfig> newConfigs = toMap(schema.getPrimaryStorage().getConfigs());
 
 		Set<String> deleted = new HashSet<String>(oldConfigs.keySet());
 		deleted.removeAll(newConfigs.keySet());
@@ -307,18 +307,18 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	 * verifier for both create and alter table
 	 */
 	private void verifyInputSchema(TableSchema schema) {
-		// verify file service readiness
-		verifyFileService(schema.getStorageEngine());
-
-		if (schema.getReplicator() != null)
-			verifyFileService(schema.getReplicator());
-
 		verifyNotNull(schema.getName(), "table name is missing");
-		verifyNotNull(schema.getStorageEngine(), "file type is missing");
+		verifyNotNull(schema.getPrimaryStorage(), "file type is missing");
+
+		// verify file service readiness
+		verifyFileService(schema.getPrimaryStorage());
+
+		if (schema.getReplicaStorage() != null)
+			verifyFileService(schema.getReplicaStorage());
 
 		// config validation
-		LogFileService lfs = lfsRegistry.getLogFileService(schema.getStorageEngine());
-		Map<String, TableConfig> configMap = toMap(schema.getStorageConfigs());
+		LogFileService lfs = lfsRegistry.getLogFileService(schema.getPrimaryStorage().getType());
+		Map<String, TableConfig> configMap = toMap(schema.getPrimaryStorage().getConfigs());
 		validateTableConfigs(lfs.getConfigSpecs(), configMap);
 	}
 
@@ -345,16 +345,16 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 			throw new IllegalStateException(msg);
 	}
 
-	private void verifyFileService(String type) {
-		if (type == null)
-			throw new IllegalArgumentException("storage engine type is missing");
+	private void verifyFileService(StorageConfig storage) {
+		if (storage == null)
+			throw new IllegalArgumentException("storage engine is missing");
 
 		String[] installedTypes = lfsRegistry.getInstalledTypes();
 		for (String t : installedTypes)
-			if (t.equals(type))
+			if (t.equals(storage.getType()))
 				return;
 
-		throw new UnsupportedLogFileTypeException(type);
+		throw new UnsupportedLogFileTypeException(storage.getType());
 	}
 
 	@Override

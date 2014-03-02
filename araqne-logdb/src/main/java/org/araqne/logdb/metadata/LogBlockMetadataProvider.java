@@ -70,7 +70,7 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 		String tableName = tokens[1];
 
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
-		String type = schema.getStorageEngine();
+		String type = schema.getPrimaryStorage().getType();
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 		Date day = df.parse(tokens[2], new ParsePosition(0));

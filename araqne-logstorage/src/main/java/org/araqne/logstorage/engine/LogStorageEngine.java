@@ -320,8 +320,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 	private FilePath getTableDirectory(TableSchema schema) {
 		FilePath baseDir = logDir;
-		if (schema.getBasePath() != null)
-			baseDir = storageManager.resolveFilePath(schema.getBasePath());
+		if (schema.getPrimaryStorage().getBasePath() != null)
+			baseDir = storageManager.resolveFilePath(schema.getPrimaryStorage().getBasePath());
 
 		return baseDir.newFilePath(Integer.toString(schema.getId()));
 	}
@@ -625,7 +625,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			buffer = (ArrayList<Log>) onlineWriter.getBuffer();
 
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
-		String basePathString = schema.getBasePath();
+		String basePathString = schema.getPrimaryStorage().getBasePath();
 		FilePath basePath = null;
 		if (basePathString != null)
 			basePath = storageManager.resolveFilePath(basePathString);
@@ -634,7 +634,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		FilePath dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
 		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
-		String logFileType = schema.getStorageEngine();
+		String logFileType = schema.getPrimaryStorage().getType();
 		LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getMetadata(), tableName, indexPath, dataPath,
 				keyPath);
 		options.put("day", day);
@@ -661,7 +661,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			OnlineWriter oldWriter = onlineWriters.get(key);
 
 			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
-			String logFileType = schema.getStorageEngine();
+			String logFileType = schema.getPrimaryStorage().getType();
 
 			if (oldWriter != null) {
 				synchronized (oldWriter) {
@@ -1055,7 +1055,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException {
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 		int tableId = schema.getId();
-		String basePathString = schema.getBasePath();
+		String basePathString = schema.getPrimaryStorage().getBasePath();
 		FilePath basePath = null;
 		if (basePathString != null)
 			basePath = storageManager.resolveFilePath(basePathString);
@@ -1104,7 +1104,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				}
 			}
 
-			String logFileType = schema.getStorageEngine();
+			String logFileType = schema.getPrimaryStorage().getType();
 			LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getMetadata(), tableName, indexPath, dataPath,
 					keyPath);
 			options.put("day", day);

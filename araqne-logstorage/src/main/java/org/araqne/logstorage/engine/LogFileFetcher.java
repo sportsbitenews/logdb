@@ -46,7 +46,7 @@ class LogFileFetcher {
 		// FIXME : add option for path
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 		int tableId = schema.getId();
-		String basePathString = schema.getBasePath();
+		String basePathString = schema.getPrimaryStorage().getBasePath();
 		FilePath basePath = null;
 		if (basePathString != null)
 			basePath = storageManager.resolveFilePath(basePathString);
@@ -61,7 +61,7 @@ class LogFileFetcher {
 
 		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
-		String logFileType = schema.getStorageEngine();
+		String logFileType = schema.getPrimaryStorage().getType();
 		LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getMetadata(), tableName, indexPath, dataPath,
 				keyPath);
 		options.put("day", day);

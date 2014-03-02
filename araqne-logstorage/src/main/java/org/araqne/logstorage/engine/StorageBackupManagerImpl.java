@@ -35,6 +35,7 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.backup.StorageBackupJob;
 import org.araqne.logstorage.backup.StorageBackupManager;
@@ -93,7 +94,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 				TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 				int tableId = schema.getId();
-				String basePath = schema.getBasePath();
+				String basePath = schema.getPrimaryStorage().getBasePath();
 				FilePath baseDir = storageManager.resolveFilePath(basePath);
 				if (baseDir == null || !(baseDir instanceof LocalFilePath)) {
 					logger.warn("araqne logstorage : unsupported base path : " + basePath);
@@ -208,7 +209,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 						if (!tableRegistry.exists(tableName)) {
 							TableSchema schema = new TableSchema();
 							schema.setName(tableName);
-							schema.setStorageEngine(type);
+							schema.setPrimaryStorage(new StorageConfig(type));
 							schema.setMetadata(metadata);
 
 							tableRegistry.createTable(schema);

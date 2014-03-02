@@ -71,7 +71,7 @@ public class OnlineWriter {
 		this.tableId = schema.getId();
 		this.day = day;
 
-		String basePathString = schema.getBasePath();
+		String basePathString = schema.getPrimaryStorage().getBasePath();
 		FilePath basePath = null;
 		if (basePathString != null)
 			basePath = storageManager.resolveFilePath(basePathString);
@@ -92,7 +92,7 @@ public class OnlineWriter {
 			writerOptions.put("dataPath", dataPath);
 			writerOptions.put("keyPath", keyPath);
 
-			for (TableConfig c : schema.getStorageConfigs()) {
+			for (TableConfig c : schema.getPrimaryStorage().getConfigs()) {
 				writerOptions.put(c.getKey(), c.getValues().size() > 1 ? c.getValues() : c.getValue());
 			}
 
