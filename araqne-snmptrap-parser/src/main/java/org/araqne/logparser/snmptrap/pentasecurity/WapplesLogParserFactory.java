@@ -40,22 +40,10 @@ public class WapplesLogParserFactory extends AbstractLogParserFactory {
 	}
 
 	@Override
-	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
-			return "와플 SNMP 트랩";
-		return "wapples snmp trap log parser";
-	}
-
-	@Override
-	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
-	}
-
-	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
-			return "와플 SNMP 트랩 로그를 파싱합니다.";
-		return "wapples snmp trap log parser";
+			return "와플 SNMP 트랩";
+		return "Wapples SNMP Trap";
 	}
 
 	@Override
@@ -63,4 +51,15 @@ public class WapplesLogParserFactory extends AbstractLogParserFactory {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
+	@Override
+	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "와플 웹방화벽 장비의 SNMP 트랩 로그를 파싱합니다.";
+		return "Parse Wapples SNMP Trap logs";
+	}
+
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+	}
 }

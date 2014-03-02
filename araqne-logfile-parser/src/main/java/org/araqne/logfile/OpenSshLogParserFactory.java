@@ -47,21 +47,23 @@ public class OpenSshLogParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "OpenSSH Log Parser Factory";
+		return "OpenSSH";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "OpenSSH 로그 파일을 파싱합니다.";
 		return "Create redhat openssh log parser";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 }
