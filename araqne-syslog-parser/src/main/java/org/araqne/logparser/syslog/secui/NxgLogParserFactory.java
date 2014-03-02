@@ -38,22 +38,26 @@ public class NxgLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "NXG";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "시큐아이 NXG";
+		return "SECUI NXG";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		return "SECUI NXG";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "SECUI NXG 시스로그를 파싱합니다.";
+		return "Parse SECUI NXG syslog";
 	}
 
 	@Override

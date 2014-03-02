@@ -35,22 +35,26 @@ public class FieldMappingParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "필드 이름 변경";
 		return "field mapper";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		return "replace original field name by specified name";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "필드 이름을 변경합니다.";
+		return "Replace original field name by specified name";
 	}
 
 	@Override
@@ -71,5 +75,4 @@ public class FieldMappingParserFactory extends AbstractLogParserFactory {
 	public LogParser createParser(Map<String, String> config) {
 		return new FieldMappingParser(config);
 	}
-
 }

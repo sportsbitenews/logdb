@@ -46,35 +46,44 @@ public class ApacheWebLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption s = new StringConfigType("log_format", text("Log Format"), text("Apache Log Format"), true,
-				text("%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\""));
+		LoggerConfigOption s = new StringConfigType("log_format", text("Log Format", "로그 포맷"), text("Apache Log Format",
+				"아파리 로그 포맷"), true, text("%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\""));
 		return Arrays.asList(s);
 	}
 
-	private Map<Locale, String> text(String text) {
+	private Map<Locale, String> text(String en) {
+		return text(en, en);
+	}
+
+	private Map<Locale, String> text(String en, String ko) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
-		m.put(Locale.ENGLISH, text);
+		m.put(Locale.ENGLISH, en);
+		m.put(Locale.KOREAN, ko);
 		return m;
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "Apache Web Log Parser Factory";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "아파치 웹 로그";
+		return "Apache Web Log";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "아파치 웹 로그 포맷 지시자의 조합을 이용한 아파치 웹 로그 파싱을 지원합니다.";
 		return "Create apache httpd log parser with log format option";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 }

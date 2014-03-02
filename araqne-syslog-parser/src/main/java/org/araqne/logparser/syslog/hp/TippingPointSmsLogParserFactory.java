@@ -43,22 +43,26 @@ public class TippingPointSmsLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "tippingpoint log parser";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "HP 티핑포인트";
+		return "HP TippingPoint";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		return "tippingpoint log parser";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "HP 티핑포인트 로그를 파싱합니다.";
+		return "Parse HP TippingPoint logs";
 	}
 
 	@Override
@@ -70,5 +74,4 @@ public class TippingPointSmsLogParserFactory implements LogParserFactory {
 	public LogParser createParser(Map<String, String> config) {
 		return new TippingPointSmsLogParser();
 	}
-
 }
