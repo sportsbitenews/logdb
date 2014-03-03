@@ -213,29 +213,59 @@ public class LogFileWriterV1 extends LogFileWriter {
 	@Override
 	public boolean flush(boolean sweep) throws IOException {
 		lastFlush = new Date();
-
-		List<Log> b = bufferedLogs;
-		bufferedLogs = new ArrayList<Log>(maxLogBuffering * 2);
-
-		Iterator<Log> it = b.iterator();
-
-		while (it.hasNext()) {
-			rawWrite(convert(it.next()));
-		}
-
+		
 		if (flushCallbacks != null && flushCallbackArgs != null) {
 			for (LogFlushCallback c : flushCallbacks) {
 				try {
 					LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
-					arg.setLogs(b);
-					c.onFlushCompleted(arg);
+					arg.setLogs(bufferedLogs);
+					c.onFlush(arg);
 				} catch (Throwable t) {
 					logger.warn("flush callback should not throw any exception", t);
 				}
 			}
 		}
 
-		return true;
+		List<Log> b = bufferedLogs;
+
+		try {
+			bufferedLogs = new ArrayList<Log>(maxLogBuffering * 2);
+
+			Iterator<Log> it = b.iterator();
+
+			while (it.hasNext()) {
+				rawWrite(convert(it.next()));
+			}
+
+			if (flushCallbacks != null && flushCallbackArgs != null) {
+				for (LogFlushCallback c : flushCallbacks) {
+					try {
+						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
+						arg.setLogs(b);
+						c.onFlushCompleted(arg);
+					} catch (Throwable t) {
+						logger.warn("flush callback should not throw any exception", t);
+					}
+				}
+			}
+
+			return true;
+			
+		} catch (Throwable t) {
+			if (flushCallbacks != null && flushCallbackArgs != null) {
+				for (LogFlushCallback c : flushCallbacks) {
+					try {
+						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
+						arg.setLogs(bufferedLogs);
+						c.onFlushException(arg, t);
+					} catch (Throwable t2) {
+						logger.warn("flush callback should not throw any exception", t2);
+					}
+				}
+			}
+			
+			return false;
+		}
 	}
 
 	private LogRecord convert(Log log) {

@@ -93,7 +93,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 			boolean indexExists = indexPath.exists();
 			boolean dataExists = dataPath.exists();
-			
+
 			this.flushCallbacks = fcb;
 			this.flushCallbackArgs = fcbArgs;
 			this.indexPath = indexPath;
@@ -290,77 +290,103 @@ public class LogFileWriterV2 extends LogFileWriter {
 		if (logger.isTraceEnabled())
 			logger.trace("araqne logstorage: flush idx [{}], dat [{}] files", indexPath, dataPath);
 
-		// mark last flush
-		lastFlush = new Date();
-
-		// write start date
-		prepareLong(blockStartLogTime, longbuf);
-		dataFile.write(longbuf);
-
-		// write end date
-		prepareLong(blockEndLogTime, longbuf);
-		dataFile.write(longbuf);
-
-		// write original size
-		dataBuffer.flip();
-		prepareInt(dataBuffer.limit(), intbuf);
-		dataFile.write(intbuf);
-
-		// compress data
-		byte[] output = null;
-		int outputSize = 0;
-
-		if (compressLevel > 0) {
-			compresser.setInput(dataBuffer.array(), 0, dataBuffer.limit());
-			compresser.finish();
-			int compressedSize = compresser.deflate(compressed);
-
-			output = compressed;
-			outputSize = compressedSize;
-		} else {
-			output = dataBuffer.array();
-			outputSize = dataBuffer.limit();
-		}
-
-		// write compressed size
-		prepareInt(outputSize, intbuf);
-		dataFile.write(intbuf);
-
-		// write compressed logs
-		dataFile.write(output, 0, outputSize);
-
-		dataBuffer.clear();
-		compresser.reset();
-		// dataFile.getFD().sync();
-
-		// write log count
-		prepareInt(blockLogCount, intbuf);
-		indexFile.write(intbuf);
-
-		// write log indexes
-		indexBuffer.flip();
-		indexFile.write(indexBuffer.array(), 0, indexBuffer.limit());
-		indexBuffer.clear();
-		// indexFile.getFD().sync();
-
-		blockStartLogTime = null;
-		blockEndLogTime = null;
-		blockLogCount = 0;
-
 		if (flushCallbacks != null && flushCallbackArgs != null)
 			for (LogFlushCallback c : flushCallbacks) {
 				try {
 					LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
 					arg.setLogs(buffer);
-					c.onFlushCompleted(arg);
+					c.onFlush(arg);
 				} catch (Throwable t) {
 					logger.warn("flush callback should not throw any exception", t);
 				}
 			}
 
-		buffer.clear();
+		try {
+			// mark last flush
+			lastFlush = new Date();
 
-		return true;
+			// write start date
+			prepareLong(blockStartLogTime, longbuf);
+			dataFile.write(longbuf);
+
+			// write end date
+			prepareLong(blockEndLogTime, longbuf);
+			dataFile.write(longbuf);
+
+			// write original size
+			dataBuffer.flip();
+			prepareInt(dataBuffer.limit(), intbuf);
+			dataFile.write(intbuf);
+
+			// compress data
+			byte[] output = null;
+			int outputSize = 0;
+
+			if (compressLevel > 0) {
+				compresser.setInput(dataBuffer.array(), 0, dataBuffer.limit());
+				compresser.finish();
+				int compressedSize = compresser.deflate(compressed);
+
+				output = compressed;
+				outputSize = compressedSize;
+			} else {
+				output = dataBuffer.array();
+				outputSize = dataBuffer.limit();
+			}
+
+			// write compressed size
+			prepareInt(outputSize, intbuf);
+			dataFile.write(intbuf);
+
+			// write compressed logs
+			dataFile.write(output, 0, outputSize);
+
+			dataBuffer.clear();
+			compresser.reset();
+			// dataFile.getFD().sync();
+
+			// write log count
+			prepareInt(blockLogCount, intbuf);
+			indexFile.write(intbuf);
+
+			// write log indexes
+			indexBuffer.flip();
+			indexFile.write(indexBuffer.array(), 0, indexBuffer.limit());
+			indexBuffer.clear();
+			// indexFile.getFD().sync();
+
+			blockStartLogTime = null;
+			blockEndLogTime = null;
+			blockLogCount = 0;
+
+			if (flushCallbacks != null && flushCallbackArgs != null)
+				for (LogFlushCallback c : flushCallbacks) {
+					try {
+						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
+						arg.setLogs(buffer);
+						c.onFlushCompleted(arg);
+					} catch (Throwable t) {
+						logger.warn("flush callback should not throw any exception", t);
+					}
+				}
+
+			buffer.clear();
+
+			return true;
+		} catch (Throwable t) {
+			if (flushCallbacks != null && flushCallbackArgs != null)
+				for (LogFlushCallback c : flushCallbacks) {
+					try {
+						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
+						arg.setLogs(buffer);
+						c.onFlushException(arg, t);
+					} catch (Throwable t2) {
+						logger.warn("flush callback should not throw any exception", t2);
+					}
+				}
+			
+			return false;
+		}
 	}
 
 	@Override

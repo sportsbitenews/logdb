@@ -27,4 +27,8 @@ public interface LogFlushCallback {
 	 *            all logs' table name should be same
 	 */
 	void onFlushCompleted(LogFlushCallbackArgs args);
+
+	void onFlush(LogFlushCallbackArgs arg);
+	
+	void onFlushException(LogFlushCallbackArgs arg, Throwable t);
 }

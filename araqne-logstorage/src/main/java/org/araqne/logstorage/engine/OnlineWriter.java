@@ -24,6 +24,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logstorage.Log;
@@ -68,6 +74,8 @@ public class OnlineWriter {
 
 	private String tableName;
 
+	private volatile boolean closeReserved;
+
 	public OnlineWriter(LogFileService logFileService, String tableName, int tableId, Date day, 
 			Map<String, String> tableMetadata, CopyOnWriteArraySet<LogFlushCallback> flushCallbacks)
 			throws IOException {
@@ -76,6 +84,7 @@ public class OnlineWriter {
 		this.tableId = tableId;
 		this.day = day;
 		this.flushCallbacks = flushCallbacks;
+		this.closeReserved = new Boolean(false);
 
 		String basePath = tableMetadata.get("base_path");
 		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
@@ -191,9 +200,8 @@ public class OnlineWriter {
 	}
 
 	public void sync() throws IOException {
-		synchronized (this) {
-			writer.sync();
-		}
+		// intentional access without lock
+		writer.sync();
 	}
 
 	public void close() {
@@ -205,6 +213,9 @@ public class OnlineWriter {
 				closing = true;
 				writer.close();
 				notifyAll();
+				if (closeMonitor != null) {
+					closeMonitor.countDown();
+				}
 			}
 
 		} catch (IOException e) {
@@ -214,5 +225,23 @@ public class OnlineWriter {
 
 	public String getFileServiceType() {
 		return logFileService.getType();
+	}
+	
+	CountDownLatch closeMonitor = null;
+	
+	public CountDownLatch reserveClose() {
+		synchronized (this) {
+			closeReserved = true;
+			if (closeMonitor == null) {
+				closeMonitor = new CountDownLatch(1);
+			}
+			return closeMonitor;
+		}
+	}
+
+	public boolean isCloseReserved() {
+		synchronized (this) {
+			return closeReserved;
+		}
 	}
 }

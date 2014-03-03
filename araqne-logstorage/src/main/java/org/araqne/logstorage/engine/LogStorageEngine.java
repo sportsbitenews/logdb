@@ -25,8 +25,12 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -89,7 +93,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	private File logDir;
 
 	private ConcurrentHashMap<String, Integer> tableNameCache;
-//	private CopyOnWriteArraySet<LogStorageEventListener> listeners;
+
+	// private CopyOnWriteArraySet<LogStorageEventListener> listeners;
 
 	public LogStorageEngine() {
 		int checkInterval = getIntParameter(Constants.LogCheckInterval, DEFAULT_LOG_CHECK_INTERVAL);
@@ -107,7 +112,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		logDir.mkdirs();
 		DatapathUtil.setLogDir(logDir);
 
-//		listeners = new CopyOnWriteArraySet<LogStorageEventListener>();
+		// listeners = new CopyOnWriteArraySet<LogStorageEventListener>();
 	}
 
 	@Override
@@ -1003,6 +1008,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	@Override
 	public void flush() {
 		writerSweeper.setForceFlush(true);
+		writerSweeper.setFlushAll(true);
 		writerSweeperThread.interrupt();
 	}
 
@@ -1046,7 +1052,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	public void removeEventListener(LogStorageEventListener listener) {
 		getCallbacks(LogStorageEventListener.class).remove(listener);
 	}
-	
 
 	@Override
 	public <T> void addEventListener(Class<T> clazz, T listener) {
@@ -1057,7 +1062,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	public <T> void removeEventListener(Class<T> clazz, T listener) {
 		getCallbacks(clazz).remove(listener);
 	}
-	
+
 	private class WriterSweeper implements Runnable {
 		private final Logger logger = LoggerFactory.getLogger(WriterSweeper.class.getName());
 		private volatile int checkInterval;
@@ -1067,6 +1072,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 		private volatile boolean doStop = false;
 		private volatile boolean isStopped = true;
 		private volatile boolean forceFlush = false;
+		private volatile boolean flushAll = false;
 
 		public WriterSweeper(int checkInterval, int maxIdleTime, int flushInterval) {
 			this.checkInterval = checkInterval;
@@ -1086,6 +1092,10 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			this.forceFlush = forceFlush;
 		}
 
+		public void setFlushAll(boolean flushAll) {
+			this.flushAll = flushAll;
+		}
+
 		@Override
 		public void run() {
 			try {
@@ -1102,8 +1112,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 						if (forceFlush) {
 							sweep();
 							forceFlush = false;
+							logger.trace("araqne logstorage: sweeper interrupted: forced flushing");
 						}
-						logger.trace("araqne logstorage: sweeper interrupted");
 					} catch (Exception e) {
 						logger.error("araqne logstorage: sweeper error", e);
 					}
@@ -1123,7 +1133,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 				// periodic log flush
 				for (OnlineWriterKey key : onlineWriters.keySet()) {
 					OnlineWriter writer = onlineWriters.get(key);
-					boolean doFlush = forceFlush || ((now - writer.getLastFlush().getTime()) > flushInterval);
+					boolean doFlush = writer.isCloseReserved() || ((now - writer.getLastFlush().getTime()) > flushInterval);
+					doFlush = flushAll ? true : doFlush;
 					if (doFlush) {
 						try {
 							logger.trace("araqne logstorage: flushing writer [{}]", key);
@@ -1135,12 +1146,16 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 					// close file if writer is in idle state
 					int interval = (int) (now - writer.getLastAccess().getTime());
-					if (interval > maxIdleTime)
+					if (interval > maxIdleTime || writer.isCloseReserved())
 						evicts.add(key);
 				}
 			} catch (ConcurrentModificationException e) {
 			}
 
+			closeAndKickout(evicts);
+		}
+
+		private void closeAndKickout(List<OnlineWriterKey> evicts) {
 			for (OnlineWriterKey key : evicts) {
 				OnlineWriter evictee = onlineWriters.get(key);
 				if (evictee != null) {
@@ -1330,6 +1345,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			OnlineWriter onlineWriter = onlineWriters.get(new OnlineWriterKey(tableName, day, tableId));
 			if (onlineWriter != null) {
 				List<Log> buffer = onlineWriter.getBuffer();
+				
+				onlineWriter.sync();
 
 				if (buffer != null && !buffer.isEmpty()) {
 					LogParser parser = null;
@@ -1415,5 +1432,39 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	public boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder,
 			LogTraverseCallback c, boolean doParallel) throws InterruptedException {
 		return searchTablet(tableName, day, from, to, minId, -1, builder, c, doParallel);
+	}
+
+	@Override
+	public void lock(LockKey storageLockKey, String tableName) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void unlock(LockKey storageLockKey, String tableName) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void flush(String tableName) {
+		Lock lock = new ReentrantLock();
+		List<CountDownLatch> monitors = new ArrayList<CountDownLatch>();
+		for (OnlineWriterKey key : onlineWriters.keySet()) {
+			if (key.getTableName().equals(tableName)) {
+				OnlineWriter ow = onlineWriters.get(key);
+				CountDownLatch monitor = ow.reserveClose();
+				monitors.add(monitor);
+			}
+		}
+		writerSweeper.setForceFlush(true);
+		writerSweeperThread.interrupt();
+		try {
+			for (CountDownLatch monitor : monitors) {
+				monitor.await();
+			}
+		} catch (InterruptedException e) {
+			logger.warn(this + ": wait for flush interrupted");
+		}
 	}
 }
