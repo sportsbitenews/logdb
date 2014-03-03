@@ -22,8 +22,6 @@ public interface LogFileService {
 
 	LogFileReader newReader(String tableName, Map<String, Object> options);
 
-	LogFileRepairer newRepairer();
-
 	/**
 	 * config specifications for table data file
 	 * 

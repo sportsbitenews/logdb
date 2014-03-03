@@ -25,7 +25,6 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.logstorage.LogFileRepairer;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.TableConfigSpec;
@@ -121,11 +120,6 @@ public class LogFileServiceV2 implements LogFileService {
 
 	@Override
 	public void unsetConfig(String key) {
-	}
-
-	@Override
-	public LogFileRepairer newRepairer() {
-		return new LogFileRepairerV2();
 	}
 
 }
