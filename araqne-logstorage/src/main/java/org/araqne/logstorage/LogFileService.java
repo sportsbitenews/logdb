@@ -20,8 +20,6 @@ public interface LogFileService {
 	LogFileWriter newWriter(Map<String, Object> options);
 
 	LogFileReader newReader(String tableName, Map<String, Object> options);
-	
-	LogFileRepairer newRepairer();
 
 	Map<String, String> getConfigs();
 
