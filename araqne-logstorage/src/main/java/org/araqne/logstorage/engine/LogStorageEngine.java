@@ -36,6 +36,7 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
+import org.apache.felix.ipojo.annotations.Unbind;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.EncodingRule;
@@ -95,6 +96,11 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	private ConcurrentHashMap<String, Integer> tableNameCache;
 
 	// private CopyOnWriteArraySet<LogStorageEventListener> listeners;
+	
+	@Unbind
+	public void unbind(LogFileServiceRegistry reg) {
+		logger.info("log file service registry unbinded");
+	}
 
 	public LogStorageEngine() {
 		int checkInterval = getIntParameter(Constants.LogCheckInterval, DEFAULT_LOG_CHECK_INTERVAL);
@@ -1435,20 +1441,19 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 	}
 
 	@Override
-	public void lock(LockKey storageLockKey, String tableName) {
+	public void lock(LockKey storageLockKey) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void unlock(LockKey storageLockKey, String tableName) {
+	public void unlock(LockKey storageLockKey) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
 	public void flush(String tableName) {
-		Lock lock = new ReentrantLock();
 		List<CountDownLatch> monitors = new ArrayList<CountDownLatch>();
 		for (OnlineWriterKey key : onlineWriters.keySet()) {
 			if (key.getTableName().equals(tableName)) {

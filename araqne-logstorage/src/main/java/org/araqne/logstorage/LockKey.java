@@ -1,17 +1,25 @@
 package org.araqne.logstorage;
 
-public class LockKey {
-	public final String keyName;
+import java.util.Date;
 
-	public LockKey(String keyName) {
-		this.keyName = keyName;
+public class LockKey {
+	public final String owner;
+	public final String tableName;
+	public final Date day;
+
+	public LockKey(String keyName, String tableName, Date day) {
+		this.owner = keyName;
+		this.tableName = tableName;
+		this.day = day;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((keyName == null) ? 0 : keyName.hashCode());
+		result = prime * result + ((day == null) ? 0 : day.hashCode());
+		result = prime * result + ((owner == null) ? 0 : owner.hashCode());
+		result = prime * result + ((tableName == null) ? 0 : tableName.hashCode());
 		return result;
 	}
 
@@ -24,11 +32,22 @@ public class LockKey {
 		if (getClass() != obj.getClass())
 			return false;
 		LockKey other = (LockKey) obj;
-		if (keyName == null) {
-			if (other.keyName != null)
+		if (day == null) {
+			if (other.day != null)
 				return false;
-		} else if (!keyName.equals(other.keyName))
+		} else if (!day.equals(other.day))
+			return false;
+		if (owner == null) {
+			if (other.owner != null)
+				return false;
+		} else if (!owner.equals(other.owner))
+			return false;
+		if (tableName == null) {
+			if (other.tableName != null)
+				return false;
+		} else if (!tableName.equals(other.tableName))
 			return false;
 		return true;
 	}
+
 }

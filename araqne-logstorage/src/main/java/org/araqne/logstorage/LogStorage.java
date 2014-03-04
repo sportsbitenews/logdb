@@ -157,9 +157,9 @@ public interface LogStorage {
 	/*
 	 * @since 2.5.5
 	 */
-	void lock(LockKey storageLockKey, String tableName);
+	void lock(LockKey storageLockKey);
 
-	void unlock(LockKey storageLockKey, String tableName);
+	void unlock(LockKey storageLockKey);
 
 	void flush(String tableName);
 
