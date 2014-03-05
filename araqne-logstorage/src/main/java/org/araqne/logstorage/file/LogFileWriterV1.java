@@ -202,7 +202,9 @@ public class LogFileWriterV1 extends LogFileWriter {
 
 	@Override
 	public List<Log> getBuffer() {
-		return bufferedLogs;
+		List<Log> captured = bufferedLogs;
+		int capturedLimit = captured.size();
+		return captured.subList(0, capturedLimit);
 	}
 
 	@Override

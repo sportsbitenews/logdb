@@ -269,7 +269,9 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 	@Override
 	public List<Log> getBuffer() {
-		return buffer;
+		List<Log> captured = buffer;
+		int capturedLimit = captured.size();
+		return captured.subList(0, capturedLimit);
 	}
 
 	@SuppressWarnings("unchecked")

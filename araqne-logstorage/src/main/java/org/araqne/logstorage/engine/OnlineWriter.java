@@ -172,19 +172,21 @@ public class OnlineWriter {
 	}
 
 	public List<Log> getBuffer() {
-		synchronized (this) {
-			// return new ArrayList<LogRecord>(writer.getBuffer());
-			List<List<Log>> buffers = writer.getBuffers();
-			int bufSize = 0;
-			for (List<Log> buffer : buffers) {
-				bufSize += buffer.size();
-			}
-			List<Log> merged = new ArrayList<Log>(bufSize);
-			for (List<Log> buffer : buffers) {
-				merged.addAll(buffer);
-			}
-			return merged;
-		}
+		// all log file writer should have lock free implementation
+		return writer.getBuffer();
+//		synchronized (this) {
+//			// return new ArrayList<LogRecord>(writer.getBuffer());
+//			List<Log> buffers = writer.getBuffer();
+//			int bufSize = 0;
+//			for (List<Log> buffer : buffers) {
+//				bufSize += buffer.size();
+//			}
+//			List<Log> merged = new ArrayList<Log>(bufSize);
+//			for (List<Log> buffer : buffers) {
+//				merged.addAll(buffer);
+//			}
+//			return merged;
+//		}
 	}
 
 	public void flush() throws IOException {

@@ -1365,6 +1365,7 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 
 					while (li.hasPrevious()) {
 						Log logData = li.previous();
+						onlineMinId = logData.getId(); // reversed traversing
 						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
 								&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
 							List<Log> result = null;
@@ -1397,8 +1398,11 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			reader = lfsRegistry.newReader(tableName, logFileType, options);
 
 			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
-			if (minId < 0 || flushedMaxId < 0 || flushedMaxId >= minId)
-				reader.traverse(from, to, minId, flushedMaxId, builder, c, doParallel);
+			if (maxId == -1)
+				logger.info("flushedMaxId: {}", flushedMaxId);
+			long readerMaxId = maxId != -1 ? Math.min(flushedMaxId, maxId) : flushedMaxId;
+			if (minId < 0 || readerMaxId < 0 || readerMaxId >= minId)
+				reader.traverse(from, to, minId, readerMaxId, builder, c, doParallel);
 		} catch (InterruptedException e) {
 			throw e;
 		} catch (IllegalStateException e) {

@@ -343,6 +343,8 @@ public class Table extends DriverQueryCommand {
 			super(sink);
 		}
 
+		long __lastId = -1;
+
 		@Override
 		public void interrupt() {
 		}
@@ -359,6 +361,14 @@ public class Table extends DriverQueryCommand {
 
 		@Override
 		protected List<Log> filter(List<Log> logs) {
+			if (logger.isDebugEnabled()) {
+				if (__lastId != -1) {
+					if (logs.get(0).getId() > __lastId) {
+						logger.info("log id reversed: {}->{}", __lastId, logs.get(0).getId());
+					}
+				}
+				__lastId = logs.get(logs.size() - 1).getId();
+			}
 			return logs;
 		}
 	}
