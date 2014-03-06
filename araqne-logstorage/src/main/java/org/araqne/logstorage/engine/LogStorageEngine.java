@@ -1398,8 +1398,6 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			reader = lfsRegistry.newReader(tableName, logFileType, options);
 
 			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
-			if (maxId == -1)
-				logger.info("flushedMaxId: {}", flushedMaxId);
 			long readerMaxId = maxId != -1 ? Math.min(flushedMaxId, maxId) : flushedMaxId;
 			if (minId < 0 || readerMaxId < 0 || readerMaxId >= minId)
 				reader.traverse(from, to, minId, readerMaxId, builder, c, doParallel);
