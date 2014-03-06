@@ -204,7 +204,11 @@ public class LogFileWriterV1 extends LogFileWriter {
 	public List<Log> getBuffer() {
 		List<Log> captured = bufferedLogs;
 		int capturedLimit = captured.size();
-		return captured.subList(0, capturedLimit);
+		List<Log> result = new ArrayList<Log>(capturedLimit);
+		for (int i = 0; i < capturedLimit; ++i) {
+			result.add(captured.get(i));
+		}
+		return result;
 	}
 
 	@Override
