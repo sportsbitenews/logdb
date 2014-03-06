@@ -53,6 +53,9 @@ public class ToString implements Expression {
 
 	@Override
 	public String toString() {
-		return "string(" + valueExpr + ", " + Strings.doubleQuote(format) + ")";
+		if (format == null)
+			return "string(" + valueExpr + ")";
+		else
+			return "string(" + valueExpr + ", " + Strings.doubleQuote(format) + ")";
 	}
 }
