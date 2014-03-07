@@ -272,7 +272,7 @@ public class Timechart extends QueryCommand {
 			flush();
 
 			// reclaim buffer (GC support)
-			buffer = null;
+			buffer.clear();
 
 			// sort
 			it = sorter.sort();

@@ -29,7 +29,7 @@ public class Seq implements Expression {
 
 	@Override
 	public Object eval(Row map) {
-		return index.incrementAndGet();
+		return index.getAndIncrement();
 	}
 
 	@Override

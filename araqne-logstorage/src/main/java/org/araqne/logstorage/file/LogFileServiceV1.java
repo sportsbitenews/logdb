@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -27,6 +28,8 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
+import org.araqne.logstorage.LogFlushCallback;
+import org.araqne.logstorage.LogFlushCallbackArgs;
 import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.localfile.LocalFilePath;
@@ -38,7 +41,9 @@ public class LogFileServiceV1 implements LogFileService {
 
 	private static final String OPT_INDEX_PATH = "indexPath";
 	private static final String OPT_DATA_PATH = "dataPath";
-
+	private static final String OPT_TABLE_NAME = "tableName";
+	private static final String OPT_FLUSH_CALLBACKS = "flushCallbacks";
+	
 	public static class Option extends TreeMap<String, Object> {
 		private static final long serialVersionUID = 1L;
 
@@ -75,8 +80,10 @@ public class LogFileServiceV1 implements LogFileService {
 		checkOption(options);
 		LocalFilePath indexPath = (LocalFilePath) options.get(OPT_INDEX_PATH);
 		LocalFilePath dataPath = (LocalFilePath) options.get(OPT_DATA_PATH);
+		String tableName = (String) options.get(OPT_TABLE_NAME);
+		Set<LogFlushCallback> flushCallbacks = (Set<LogFlushCallback>) options.get(OPT_FLUSH_CALLBACKS);
 		try {
-			return new LogFileWriterV1(indexPath.getFile(), dataPath.getFile());
+			return new LogFileWriterV1(indexPath.getFile(), dataPath.getFile(), flushCallbacks, new LogFlushCallbackArgs(tableName));
 		} catch (Throwable t) {
 			throw new IllegalStateException("cannot open writer: data file " + dataPath.getAbsolutePath(), t);
 		}

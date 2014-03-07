@@ -129,6 +129,15 @@ public interface LogStorage {
 
 	<T> void removeEventListener(Class<T> clazz, T callback);
 
+	/*
+	 * @since 2.5.5
+	 */
+	void lock(LockKey storageLockKey);
+
+	void unlock(LockKey storageLockKey);
+
+	void flush(String tableName);
+
 	/**
 	 * 
 	 * @since 2.5.10-SNAPSHOT

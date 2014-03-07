@@ -22,10 +22,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.LogFlushCallback;
 import org.araqne.logstorage.TableConfig;
 import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.file.LogFileWriter;
@@ -65,11 +68,18 @@ public class OnlineWriter {
 
 	private final LogFileService logFileService;
 
-	public OnlineWriter(StorageManager storageManager, LogFileService logFileService, TableSchema schema, Date day)
+	private CopyOnWriteArraySet<LogFlushCallback> flushCallbacks;
+
+	private volatile boolean closeReserved;
+
+	public OnlineWriter(StorageManager storageManager, LogFileService logFileService, TableSchema schema, Date day,
+			CopyOnWriteArraySet<LogFlushCallback> flushCallbacks)
 			throws IOException {
 		this.logFileService = logFileService;
 		this.tableId = schema.getId();
 		this.day = day;
+		this.flushCallbacks = flushCallbacks;
+		this.closeReserved = new Boolean(false);
 
 		String basePathString = schema.getPrimaryStorage().getBasePath();
 		FilePath basePath = null;
@@ -91,6 +101,7 @@ public class OnlineWriter {
 			writerOptions.put("indexPath", indexPath);
 			writerOptions.put("dataPath", dataPath);
 			writerOptions.put("keyPath", keyPath);
+			writerOptions.put("flushCallbacks", this.flushCallbacks);
 
 			for (TableConfig c : schema.getPrimaryStorage().getConfigs()) {
 				writerOptions.put(c.getKey(), c.getValues().size() > 1 ? c.getValues() : c.getValue());
@@ -166,19 +177,21 @@ public class OnlineWriter {
 	}
 
 	public List<Log> getBuffer() {
-		synchronized (this) {
-			// return new ArrayList<LogRecord>(writer.getBuffer());
-			List<List<Log>> buffers = writer.getBuffers();
-			int bufSize = 0;
-			for (List<Log> buffer : buffers) {
-				bufSize += buffer.size();
-			}
-			List<Log> merged = new ArrayList<Log>(bufSize);
-			for (List<Log> buffer : buffers) {
-				merged.addAll(buffer);
-			}
-			return merged;
-		}
+		// all log file writer should have lock free implementation
+		return writer.getBuffer();
+		// synchronized (this) {
+		// // return new ArrayList<LogRecord>(writer.getBuffer());
+		// List<Log> buffers = writer.getBuffer();
+		// int bufSize = 0;
+		// for (List<Log> buffer : buffers) {
+		// bufSize += buffer.size();
+		// }
+		// List<Log> merged = new ArrayList<Log>(bufSize);
+		// for (List<Log> buffer : buffers) {
+		// merged.addAll(buffer);
+		// }
+		// return merged;
+		// }
 	}
 
 	public void flush() throws IOException {
@@ -194,9 +207,8 @@ public class OnlineWriter {
 	}
 
 	public void sync() throws IOException {
-		synchronized (this) {
-			writer.sync();
-		}
+		// intentional access without lock
+		writer.sync();
 	}
 
 	public void close() {
@@ -208,6 +220,9 @@ public class OnlineWriter {
 				closing = true;
 				writer.close();
 				notifyAll();
+				if (closeMonitor != null) {
+					closeMonitor.countDown();
+				}
 			}
 
 		} catch (IOException e) {
@@ -217,5 +232,23 @@ public class OnlineWriter {
 
 	public String getFileServiceType() {
 		return logFileService.getType();
+	}
+
+	CountDownLatch closeMonitor = null;
+
+	public CountDownLatch reserveClose() {
+		synchronized (this) {
+			closeReserved = true;
+			if (closeMonitor == null) {
+				closeMonitor = new CountDownLatch(1);
+			}
+			return closeMonitor;
+		}
+	}
+
+	public boolean isCloseReserved() {
+		synchronized (this) {
+			return closeReserved;
+		}
 	}
 }

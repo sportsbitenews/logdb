@@ -26,5 +26,9 @@ public interface LogFlushCallback {
 	 * @param logBatch
 	 *            all logs' table name should be same
 	 */
-	void onLogBatch(String tableName, List<Log> logBatch);
+	void onFlushCompleted(LogFlushCallbackArgs args);
+
+	void onFlush(LogFlushCallbackArgs arg);
+	
+	void onFlushException(LogFlushCallbackArgs arg, Throwable t);
 }

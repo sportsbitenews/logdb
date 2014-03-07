@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.Strings;
 
 public class ToString implements Expression {
 	private Expression valueExpr;
@@ -52,6 +53,9 @@ public class ToString implements Expression {
 
 	@Override
 	public String toString() {
-		return "string(" + valueExpr + ", " + format + ")";
+		if (format == null)
+			return "string(" + valueExpr + ")";
+		else
+			return "string(" + valueExpr + ", " + Strings.doubleQuote(format) + ")";
 	}
 }
