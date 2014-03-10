@@ -48,6 +48,4 @@ public interface QueryService {
 	void addPlanner(QueryPlanner planner);
 
 	void removePlanner(QueryPlanner planner);
-
-	QueryPlanner getPlanner(String name);
 }

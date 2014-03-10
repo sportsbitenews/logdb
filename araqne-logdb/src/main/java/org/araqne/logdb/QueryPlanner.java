@@ -34,10 +34,4 @@ public interface QueryPlanner {
 	 * @return the new query execution pipeline
 	 */
 	List<QueryCommand> plan(QueryContext context, List<QueryCommand> commands);
-
-	String getName();
-
-	boolean isEnabled();
-
-	void setEnabled(boolean b);
 }
