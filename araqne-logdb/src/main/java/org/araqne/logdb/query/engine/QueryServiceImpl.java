@@ -395,15 +395,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	}
 
 	@Override
-	public QueryPlanner getPlanner(String name) {
-		for (QueryPlanner p : planners) {
-			if (p.getName().equals(name))
-				return p;
-		}
-		return null;
-	}
-
-	@Override
 	public void removePlanner(QueryPlanner planner) {
 		planners.remove(planner);
 	}
