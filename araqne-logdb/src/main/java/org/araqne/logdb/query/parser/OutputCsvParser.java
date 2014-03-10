@@ -43,12 +43,22 @@ public class OutputCsvParser implements QueryCommandParser {
 			throw new QueryParseException("missing-field", commandString.length());
 
 		boolean overwrite = false;
+		boolean useBom = false;
+		String encoding = null;
 		ParseResult r = QueryTokenizer
-				.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overwrite"));
+				.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overwrite", "encoding", "bom"));
 
 		Map<String, String> options = (Map<String, String>) r.value;
 		if (options != null && options.containsKey("overwrite"))
 			overwrite = Boolean.parseBoolean(options.get("overwrite"));
+
+		if (options != null && options.containsKey("bom"))
+			useBom = Boolean.parseBoolean(options.get("bom"));
+
+		if (options.get("encoding") != null)
+			encoding = options.get("encoding").toString();
+		if (encoding == null)
+			encoding = "utf-8";
 
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
 		List<String> fields = new ArrayList<String>();
@@ -72,7 +82,7 @@ public class OutputCsvParser implements QueryCommandParser {
 		try {
 			if (csvFile.getParentFile() != null)
 				csvFile.getParentFile().mkdirs();
-			return new OutputCsv(originalCsvPath, csvFile, overwrite, fields);
+			return new OutputCsv(originalCsvPath, csvFile, overwrite, fields, encoding, useBom);
 		} catch (IOException e) {
 			throw new QueryParseException("io-error", -1, e.getMessage());
 		}

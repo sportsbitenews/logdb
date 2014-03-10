@@ -49,8 +49,9 @@ public class OutputTxtParser implements QueryCommandParser {
 		boolean overwrite = false;
 		boolean useCompression = false;
 		String delimiter = null;
+		String encoding = null;
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(),
-				Arrays.asList("delimiter", "overwrite", "gz"));
+				Arrays.asList("delimiter", "overwrite", "gz", "encoding"));
 
 		@SuppressWarnings("unchecked")
 		Map<String, Object> options = (Map<String, Object>) r.value;
@@ -58,6 +59,11 @@ public class OutputTxtParser implements QueryCommandParser {
 			delimiter = options.get("delimiter").toString();
 		if (delimiter == null)
 			delimiter = " ";
+
+		if (options.get("encoding") != null)
+			encoding = options.get("encoding").toString();
+		if (encoding == null)
+			encoding = "utf-8";
 
 		if (options.get("overwrite") != null)
 			overwrite = Boolean.parseBoolean(options.get("overwrite").toString());
@@ -99,7 +105,7 @@ public class OutputTxtParser implements QueryCommandParser {
 		try {
 			if (txtFile.getParentFile() != null)
 				txtFile.getParentFile().mkdirs();
-			return new OutputTxt(txtFile, filePath, overwrite, delimiter, fields, useCompression);
+			return new OutputTxt(txtFile, filePath, overwrite, delimiter, fields, useCompression, encoding);
 		} catch (IOException e) {
 			throw new QueryParseException("io-error", -1, e.getMessage());
 		}
