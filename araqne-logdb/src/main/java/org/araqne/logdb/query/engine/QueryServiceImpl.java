@@ -377,6 +377,19 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	}
 
 	@Override
+	public List<QueryPlanner> getPlanners() {
+		return new ArrayList<QueryPlanner>(planners);
+	}
+
+	@Override
+	public QueryPlanner getPlanner(String name) {
+		for (QueryPlanner planner : planners)
+			if (planner.getName().equals(name))
+				return planner;
+		return null;
+	}
+
+	@Override
 	public void addPlanner(QueryPlanner planner) {
 		planners.add(planner);
 	}
