@@ -55,7 +55,8 @@ public class OutputTxt extends QueryCommand {
 	private String filePath;
 	private boolean overwrite;
 
-	public OutputTxt(File f, String filePath, boolean overwrite, String delimiter, List<String> fields, boolean useCompression)
+	public OutputTxt(File f, String filePath, boolean overwrite, String delimiter, List<String> fields, boolean useCompression,
+			String encoding)
 			throws IOException {
 		try {
 			this.f = f;
@@ -64,11 +65,11 @@ public class OutputTxt extends QueryCommand {
 			this.fields = fields.toArray(new String[0]);
 			if (useCompression) {
 				this.os = new GZIPOutputStream(new FileOutputStream(f), 8192);
-				this.osw = new OutputStreamWriter(os, Charset.forName("utf-8"));
+				this.osw = new OutputStreamWriter(os, Charset.forName(encoding));
 			} else {
 				this.os = new FileOutputStream(f);
 				this.bos = new BufferedOutputStream(os);
-				this.osw = new OutputStreamWriter(bos, Charset.forName("utf-8"));
+				this.osw = new OutputStreamWriter(bos, Charset.forName(encoding));
 			}
 			this.sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 			this.lineSeparator = System.getProperty("line.separator");
