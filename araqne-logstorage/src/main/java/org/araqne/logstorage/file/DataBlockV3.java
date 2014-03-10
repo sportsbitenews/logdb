@@ -102,14 +102,15 @@ public class DataBlockV3 {
 			maxId = bb.getLong();
 			originalSize = bb.getInt();
 			compressedSize = bb.getInt();
-		// check fixed block
-		if (isFixed()) {
-			if ((originalSize & 0x80000000) != 0x80000000) {
-				logger.warn("logpresso logstorage: data block has been fixed. please check [{} : {}]",
-						params.dataPath.getAbsolutePath(), params.indexHeader.toString());
+			
+			// check fixed block
+			if (isFixed()) {
+				if ((originalSize & 0x80000000) != 0x80000000) {
+					logger.warn("logpresso logstorage: data block has been fixed. please check [{} : {}]",
+							params.dataPath.getAbsolutePath(), params.indexHeader.toString());
+				}
+				return;
 			}
-			return;
-		}
 
 			int lengthBlockSize = bb.getInt();
 			byte[] lengthBytes = new byte[lengthBlockSize];

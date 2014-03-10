@@ -18,6 +18,8 @@ package org.araqne.logstorage.file;
 import java.io.IOException;
 
 public class IndexBlockV3Header {
+	public static final int ITEM_SIZE = 28;
+	
 	// index header file offset
 	public long fp;
 	public long firstId;
