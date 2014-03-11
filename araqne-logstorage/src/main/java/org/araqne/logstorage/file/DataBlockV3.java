@@ -16,7 +16,10 @@
 package org.araqne.logstorage.file;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import org.araqne.logstorage.Crypto;
 import org.araqne.storage.api.StorageInputStream;
@@ -243,6 +246,20 @@ public class DataBlockV3 {
 
 	public byte[] getCompressedBuffer() {
 		return compressedBuffer;
+	}
+	
+	public String getDataHash() {
+		byte[] data = compressedBuffer;
+		if (compressionMethod == null) {
+			data = dataBuffer.array();
+		}
+		
+        try {
+			return String.format("%X", new BigInteger(1, MessageDigest.getInstance("MD5").digest(data)));
+		} catch (NoSuchAlgorithmException e) {
+			// It is impossible there is no MD5 algorithm
+			throw new IllegalStateException(e);
+		}		
 	}
 
 }

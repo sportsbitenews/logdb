@@ -127,7 +127,10 @@ public class LogFileV3Reader implements Closeable {
 		public byte[] getCompressedBuffer() {
 			return dataBlock.getCompressedBuffer();
 		}
-
+		
+		public String getDataHash() {
+			return dataBlock.getDataHash();
+		}
 	}
 
 	public LogFileV3Reader(FilePath indexPath, FilePath dataPath, FilePath keyPath, LogCryptoProfile crypto) throws IOException {
