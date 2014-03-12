@@ -146,7 +146,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		List<Class<? extends QueryCommandParser>> parserClazzes = Arrays.asList(DropParser.class, SearchParser.class,
 				StatsParser.class, FieldsParser.class, SortParser.class, TimechartParser.class, RenameParser.class,
 				EvalParser.class, RexParser.class, JsonParser.class, SignatureParser.class, LimitParser.class, SetParser.class,
-				EvalcParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class, ExplodeParser.class);
+				EvalcParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class, ExplodeParser.class,
+				ParseJsonParser.class);
 
 		List<QueryCommandParser> parsers = new ArrayList<QueryCommandParser>();
 		for (Class<? extends QueryCommandParser> clazz : parserClazzes) {
