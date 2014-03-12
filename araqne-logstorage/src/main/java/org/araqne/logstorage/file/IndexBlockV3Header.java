@@ -33,8 +33,8 @@ public class IndexBlockV3Header {
 	public long ascLogCount;
 	public long dscLogCount;
 
-	public IndexBlockV3Header(long fp, long minTime, long maxTime, int logCount, long firstId) throws IOException {
-		this.dataFp = fp;
+	public IndexBlockV3Header(long datafp, long minTime, long maxTime, int logCount, long firstId) throws IOException {
+		this.dataFp = datafp;
 		this.minTime = minTime;
 		this.maxTime = maxTime;
 		this.logCount = logCount;
