@@ -42,13 +42,14 @@ public class ValueOf implements Expression {
 		if (c == null || k == null)
 			return null;
 
-		if (c instanceof Map) {
-			return ((Map<?, ?>) c).get(k);
-		} else if (c instanceof List && k instanceof Integer) {
-			return ((List<?>) c).get((Integer) k);
+		try {
+			if (c instanceof Map) {
+				return ((Map<?, ?>) c).get(k);
+			} else if (c instanceof List && k instanceof Integer) {
+				return ((List<?>) c).get((Integer) k);
+			}
+		} catch (Throwable t) {
 		}
-
 		return null;
 	}
-
 }
