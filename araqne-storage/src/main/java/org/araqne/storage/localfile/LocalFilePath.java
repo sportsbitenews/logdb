@@ -11,6 +11,11 @@ import org.araqne.storage.api.StorageInputStream;
 import org.araqne.storage.api.StorageOutputStream;
 
 public class LocalFilePath implements FilePath {
+	@Override
+	public String toString() {
+		return String.format("LocalFilePath [%s]", path);
+	}
+
 	static final String PROTOCOL_NAME = "file";
 	static final String PROTOCOL_STRING = "file://";
 	private final File path;

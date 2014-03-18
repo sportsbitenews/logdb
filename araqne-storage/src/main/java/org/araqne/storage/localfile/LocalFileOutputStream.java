@@ -108,4 +108,12 @@ public class LocalFileOutputStream extends StorageOutputStream {
 		return target.getFilePointer();
 	}
 
+	public void setLength(long l) throws IOException {
+		target.setLength(l);
+	}
+
+	public void seek(long p) throws IOException {
+		target.seek(p);
+	}
+
 }
