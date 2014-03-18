@@ -23,7 +23,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
+import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
+import org.araqne.storage.api.StorageUtil;
 
 public class LogFileHeader {
 	public static final String MAGIC_STRING_DATA = "NCHOVY_BEAST_DAT";
@@ -113,6 +115,16 @@ public class LogFileHeader {
 		byte[] hdr = new byte[hdrSize];
 		f.readFully(hdr);
 		return unserialize(hdr);
+	}
+	
+	public static LogFileHeader extractHeader(FilePath f) throws IOException {
+		StorageInputStream is = null;
+		try {
+			is = f.newInputStream();
+			return extractHeader(is);
+		} finally {
+			StorageUtil.ensureClose(is);
+		}
 	}
 
 	public static LogFileHeader extractHeader(StorageInputStream f) throws IOException,
