@@ -31,6 +31,7 @@ import org.araqne.logstorage.Crypto;
 import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
+import org.araqne.storage.api.StorageUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -269,8 +270,8 @@ public class LogFileV3Reader implements Closeable {
 			logger.trace("araqne logstorage: {} has {} blocks, {} logs.",
 					new Object[] { indexPath.getName(), indexBlockHeaders.size(), totalCount });
 		} finally {
-			if (indexReader != null)
-				indexReader.close();
+			StorageUtil.ensureClose(indexStream);
+			StorageUtil.ensureClose(indexReader);
 		}
 	}
 	
