@@ -106,7 +106,7 @@ public class LogFileV3Reader implements Closeable {
 		}
 		
 		public long getDataFp() {
-			return dataBlock.getDataFp();
+			return indexBlock.dataFp;
 		}
 
 		public int getCompressedSize() {
@@ -162,10 +162,12 @@ public class LogFileV3Reader implements Closeable {
 		
 		currentBlockIndex ++;
 		
-		try {
-			block.dataBlock = loadDataBlock(block.indexBlock);
-		} catch (Throwable t) {
-			
+		if (block.indexBlock.dataFp >= 0) {
+			try {
+				block.dataBlock = loadDataBlock(block.indexBlock);
+			} catch (Throwable t) {
+
+			}
 		}
 		
 		return block;
