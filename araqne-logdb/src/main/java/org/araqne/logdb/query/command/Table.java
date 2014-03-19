@@ -547,9 +547,12 @@ public class Table extends DriverQueryCommand {
 	private static Log parseV1(LogParser parser, Log log) throws LogParserBugException {
 		Map<String, Object> m = null;
 		Object time = log.getDate();
+		Object hostTag = null;
 		try {
 			// can be unmodifiableMap when it comes from memory buffer.
 			Map<String, Object> m2 = new HashMap<String, Object>(log.getData());
+			hostTag = m2.get("_host");
+
 			m2.put("_time", log.getDate());
 			Map<String, Object> parsed = parser.parse(m2);
 			if (parsed == null)
@@ -557,6 +560,9 @@ public class Table extends DriverQueryCommand {
 
 			parsed.put("_table", log.getTableName());
 			parsed.put("_id", log.getId());
+
+			if (hostTag != null)
+				parsed.put("_host", hostTag);
 
 			time = parsed.get("_time");
 			if (time == null) {
@@ -587,6 +593,7 @@ public class Table extends DriverQueryCommand {
 		input.setDate(log.getDate());
 		input.setSource(log.getTableName());
 		input.setData(log.getData());
+		Object hostTag = log.getData().get("_host");
 
 		List<Log> ret = new ArrayList<Log>();
 		try {
@@ -595,6 +602,8 @@ public class Table extends DriverQueryCommand {
 				for (Map<String, Object> row : output.getRows()) {
 					row.put("_table", log.getTableName());
 					row.put("_id", log.getId());
+					if (hostTag != null)
+						row.put("_host", hostTag);
 
 					Object time = row.get("_time");
 					if (time == null)
