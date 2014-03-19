@@ -20,4 +20,5 @@
 	<instance component="nxg-log-parser-factory" />
 	<instance component="mf2-log-parser-factory" />
 	<instance component="sniper-log-parser-factory" />
+	<instance component="fireeye-log-parser-factory" />
 </ipojo>
