@@ -41,7 +41,7 @@ public class OutputCsv extends QueryCommand {
 	private CSVWriter writer;
 	private String[] csvLine;
 
-	public OutputCsv(String pathToken, File f, boolean overwrite, List<String> fields, String encoding, boolean useBom)
+	public OutputCsv(String pathToken, File f, boolean overwrite, List<String> fields, String encoding, boolean useBom, boolean useTab)
 			throws IOException {
 		this.pathToken = pathToken;
 		this.f = f;
@@ -52,7 +52,9 @@ public class OutputCsv extends QueryCommand {
 		this.fields = fields;
 		this.charset = Charset.forName(encoding);
 		this.csvLine = new String[fields.size()];
-		this.writer = new CSVWriter(new OutputStreamWriter(os, charset));
+		
+		char separator = useTab ? '\t' : ','; 
+		this.writer = new CSVWriter(new OutputStreamWriter(os, charset), separator);
 		writer.writeNext(fields.toArray(new String[0]));
 	}
 
