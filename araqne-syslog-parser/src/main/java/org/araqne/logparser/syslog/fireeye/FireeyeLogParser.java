@@ -19,13 +19,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.V1LogParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FireeyeLogParser extends V1LogParser {
+	private final Logger slog = LoggerFactory.getLogger(FireeyeLogParser.class);
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
+		String line = null;
 		try {
-			String line = (String) params.get("line");
+			line = (String) params.get("line");
 			if (line == null)
 				return params;
 
@@ -80,9 +84,9 @@ public class FireeyeLogParser extends V1LogParser {
 
 			return m;
 		} catch (Throwable t) {
-			t.printStackTrace();
+			if (slog.isDebugEnabled())
+				slog.debug("araqne syslog parser: cannot parse fireeye log - [{}]", line);
 			return params;
 		}
 	}
-
 }
