@@ -46,29 +46,25 @@ public class OutputTxtParser implements QueryCommandParser {
 		if (commandString.trim().endsWith(","))
 			throw new QueryParseException("missing-field", commandString.length());
 
-		boolean overwrite = false;
-		boolean useCompression = false;
 		String delimiter = null;
 		String encoding = null;
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(),
 				Arrays.asList("delimiter", "overwrite", "gz", "encoding"));
 
 		@SuppressWarnings("unchecked")
-		Map<String, Object> options = (Map<String, Object>) r.value;
+		Map<String, String> options = (Map<String, String>) r.value;
 		if (options.get("delimiter") != null)
-			delimiter = options.get("delimiter").toString();
+			delimiter = options.get("delimiter");
 		if (delimiter == null)
 			delimiter = " ";
 
 		if (options.get("encoding") != null)
-			encoding = options.get("encoding").toString();
+			encoding = options.get("encoding");
 		if (encoding == null)
 			encoding = "utf-8";
 
-		if (options.get("overwrite") != null)
-			overwrite = Boolean.parseBoolean(options.get("overwrite").toString());
-		if (options.get("gz") != null)
-			useCompression = Boolean.parseBoolean(options.get("gz").toString());
+		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
+		boolean useCompression = CommandOptions.parseBoolean(options.get("gz"));
 
 		int next = r.next;
 		if (next < 0)

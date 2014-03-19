@@ -42,25 +42,19 @@ public class OutputCsvParser implements QueryCommandParser {
 		if (commandString.trim().endsWith(","))
 			throw new QueryParseException("missing-field", commandString.length());
 
-		boolean overwrite = false;
-		boolean useBom = false;
 		String encoding = null;
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
 				Arrays.asList("overwrite", "encoding", "bom", "tab"));
 
 		Map<String, String> options = (Map<String, String>) r.value;
-		if (options != null && options.containsKey("overwrite"))
-			overwrite = Boolean.parseBoolean(options.get("overwrite"));
-
-		if (options != null && options.containsKey("bom"))
-			useBom = Boolean.parseBoolean(options.get("bom"));
+		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
+		boolean useBom = CommandOptions.parseBoolean(options.get("bom"));
+		boolean useTab = CommandOptions.parseBoolean(options.get("tab"));
 
 		if (options.get("encoding") != null)
 			encoding = options.get("encoding").toString();
 		if (encoding == null)
 			encoding = "utf-8";
-
-		boolean useTab = CommandOptions.parseBoolean(options.get("tab"));
 
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
 		List<String> fields = new ArrayList<String>();
