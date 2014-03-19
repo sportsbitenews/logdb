@@ -19,6 +19,9 @@ public class EventKey {
 	private String topic;
 	private String key;
 
+	// optional host value for log tick
+	private String host;
+
 	public EventKey(String topic, String key) {
 		this.topic = topic;
 		this.key = key;
@@ -30,6 +33,14 @@ public class EventKey {
 
 	public String getKey() {
 		return key;
+	}
+
+	public String getHost() {
+		return host;
+	}
+
+	public void setHost(String host) {
+		this.host = host;
 	}
 
 	@Override
@@ -65,6 +76,8 @@ public class EventKey {
 
 	@Override
 	public String toString() {
-		return "topic=" + topic + ", key=" + key;
+		if (host == null)
+			return "topic=" + topic + ", key=" + key;
+		return "topic=" + topic + ", key=" + key + ", host=" + host;
 	}
 }

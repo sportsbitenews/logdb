@@ -15,8 +15,11 @@
  */
 package org.araqne.logdb.cep.query;
 
+import java.util.Date;
+
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.cep.EventCause;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
@@ -28,11 +31,15 @@ public class EvtCtxDelCommand extends QueryCommand {
 	private String keyField;
 	private Expression matcher;
 
-	public EvtCtxDelCommand(EventContextStorage storage, String topic, String keyField, Expression matcher) {
+	// host field for external clock
+	private String hostField;
+
+	public EvtCtxDelCommand(EventContextStorage storage, String topic, String keyField, Expression matcher, String hostField) {
 		this.storage = storage;
 		this.topic = topic;
 		this.keyField = keyField;
 		this.matcher = matcher;
+		this.hostField = hostField;
 	}
 
 	@Override
@@ -51,9 +58,25 @@ public class EvtCtxDelCommand extends QueryCommand {
 		if (o instanceof Boolean && !(Boolean) o)
 			matched = false;
 
+		// extract host for log tick
+		String host = null;
+		Object h = null;
+
+		if (hostField != null)
+			h = row.get(hostField);
+
+		if (h != null)
+			host = h.toString();
+
 		Object k = row.get(keyField);
 		if (k == null)
 			matched = false;
+
+		// extract log time
+		Date logTime = null;
+		Object t = row.get("_time");
+		if (t instanceof Date)
+			logTime = (Date) t;
 
 		if (matched) {
 			String key = k.toString();
@@ -63,8 +86,11 @@ public class EvtCtxDelCommand extends QueryCommand {
 			if (ctx != null)
 				ctx.addRow(row);
 
-			storage.removeContext(eventKey);
+			storage.removeContext(eventKey, EventCause.REMOVAL);
 		}
+
+		if (host != null && logTime != null)
+			storage.advanceTime(host, logTime.getTime());
 
 		pushPipe(row);
 	}

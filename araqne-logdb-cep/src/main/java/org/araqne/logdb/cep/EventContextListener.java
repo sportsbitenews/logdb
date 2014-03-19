@@ -15,33 +15,6 @@
  */
 package org.araqne.logdb.cep;
 
-import java.util.Set;
-
-public interface EventContextStorage {
-	String getName();
-
-	/**
-	 * return hosts which contains external clock
-	 */
-	Set<String> getHosts();
-
-	EventClock getClock(String host);
-
-	Set<EventKey> getContextKeys();
-
-	EventContext getContext(EventKey key);
-
-	EventContext addContext(EventContext ctx);
-
-	void removeContext(EventKey key, EventCause cause);
-
-	void advanceTime(String host, long now);
-
-	void clearClocks();
-
-	void clearContexts();
-
-	void addSubscriber(String topic, EventSubscriber subscriber);
-
-	void removeSubscriber(String topic, EventSubscriber subscriber);
+public interface EventContextListener {
+	void onUpdateTimeout(EventContext ctx);
 }
