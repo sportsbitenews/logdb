@@ -220,6 +220,14 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	@Invalidate
 	public void stop() {
+		for (int id : queries.keySet()) {
+			Query query = queries.get(id);
+			if (query != null) {
+				logger.info("araqne logdb: cancel query [{}:{}] due to service down", id, query.getQueryString());
+				removeQuery(id);
+			}
+		}
+
 		if (accountService != null) {
 			accountService.removeListener(this);
 		}
