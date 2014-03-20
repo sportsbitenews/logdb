@@ -22,11 +22,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.PartitionPlaceholder.Source;
 import org.araqne.logdb.query.command.OutputTxt;
 
 /**
@@ -46,29 +50,37 @@ public class OutputTxtParser implements QueryCommandParser {
 		if (commandString.trim().endsWith(","))
 			throw new QueryParseException("missing-field", commandString.length());
 
-		String delimiter = null;
-		String encoding = null;
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(),
-				Arrays.asList("delimiter", "overwrite", "gz", "encoding"));
+				Arrays.asList("delimiter", "overwrite", "gz", "encoding", "partition", "tmp"));
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
-		if (options.get("delimiter") != null)
-			delimiter = options.get("delimiter");
+
+		String delimiter = options.get("delimiter");
 		if (delimiter == null)
 			delimiter = " ";
 
-		if (options.get("encoding") != null)
-			encoding = options.get("encoding");
+		String encoding = options.get("encoding");
 		if (encoding == null)
 			encoding = "utf-8";
 
+		String tmpPath = options.get("tmp");
+
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
 		boolean useCompression = CommandOptions.parseBoolean(options.get("gz"));
+		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
+
+		File tmpFile = null;
+		if (tmpPath != null) {
+			tmpFile = new File(tmpPath);
+			if (!usePartition && tmpFile.exists())
+				throw new QueryParseException("tmp file exist: " + tmpPath, -1);
+		}
 
 		int next = r.next;
 		if (next < 0)
 			throw new QueryParseException("invalid-field", next);
+
 		String remainCommandString = commandString.substring(next);
 		QueryTokens tokens = QueryTokenizer.tokenize(remainCommandString);
 		if (tokens.size() < 1)
@@ -76,6 +88,10 @@ public class OutputTxtParser implements QueryCommandParser {
 
 		String filePath = tokens.token(0).token;
 		filePath = ExpressionParser.evalContextReference(context, filePath);
+
+		List<PartitionPlaceholder> holders = PartitionPlaceholder.parse(filePath);
+		if (!usePartition && holders.size() > 0)
+			throw new QueryParseException("use-partition-option", -1, holders.size() + " partition holders");
 
 		List<String> fields = new ArrayList<String>();
 
@@ -101,7 +117,9 @@ public class OutputTxtParser implements QueryCommandParser {
 		try {
 			if (txtFile.getParentFile() != null)
 				txtFile.getParentFile().mkdirs();
-			return new OutputTxt(txtFile, filePath, overwrite, delimiter, fields, useCompression, encoding);
+
+			return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useCompression, encoding,
+					usePartition, holders);
 		} catch (IOException e) {
 			throw new QueryParseException("io-error", -1, e.getMessage());
 		}

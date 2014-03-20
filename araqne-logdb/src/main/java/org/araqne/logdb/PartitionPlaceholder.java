@@ -16,7 +16,11 @@
 package org.araqne.logdb;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 
@@ -25,7 +29,18 @@ import java.util.Date;
  */
 public class PartitionPlaceholder {
 	public enum Source {
-		NOW, LOGTIME
+		NOW, LOGTIME;
+
+		public static Source parse(String s) {
+			if (s == null)
+				return null;
+
+			if (s.equals("now"))
+				return NOW;
+			else if (s.equals("logtime"))
+				return LOGTIME;
+			return null;
+		}
 	};
 
 	public enum Format {
@@ -64,4 +79,19 @@ public class PartitionPlaceholder {
 			return sdf.format(target);
 		}
 	}
+
+	public static List<PartitionPlaceholder> parse(String path) {
+		List<PartitionPlaceholder> holders = new ArrayList<PartitionPlaceholder>();
+		Pattern p = Pattern.compile("\\{(logtime|now):(.*?)\\}");
+		Matcher m = p.matcher(path);
+
+		while (m.find()) {
+			String source = m.group(1);
+			String format = m.group(2);
+			PartitionPlaceholder holder = new PartitionPlaceholder(Source.parse(source), format);
+			holders.add(holder);
+		}
+		return holders;
+	}
+
 }
