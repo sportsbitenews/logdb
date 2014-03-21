@@ -123,10 +123,10 @@ public class CepScript implements Script {
 		int offset = 0;
 		int limit = 100;
 
-		if (args.length >= 1)
+		if (args.length > 0)
 			offset = Integer.parseInt(args[0]);
 
-		if (args.length >= 2)
+		if (args.length > 1)
 			limit = Integer.parseInt(args[1]);
 
 		context.println("Event Clocks");
@@ -149,12 +149,12 @@ public class CepScript implements Script {
 			@ScriptArgument(name = "limit", type = "int", description = "limit", optional = true) })
 	public void contexts(String[] args) {
 		int offset = 0;
-		int limit = 10;
+		int limit = 100;
 
-		if (args.length > 1)
+		if (args.length > 0)
 			offset = Integer.parseInt(args[0]);
 
-		if (args.length > 2)
+		if (args.length > 1)
 			limit = Integer.parseInt(args[1]);
 
 		context.println("Event Contexts");
@@ -162,16 +162,10 @@ public class CepScript implements Script {
 
 		EventContextStorage storage = eventContextService.getStorage("mem");
 
-		Set<EventKey> keys = storage.getContextKeys();
+		List<EventKey> keys = new ArrayList<EventKey>(storage.getContextKeys());
+		List<EventKey> page = keys.subList(Math.min(offset, keys.size()), Math.min(offset + limit, keys.size()));
 
-		int p = 0;
-		for (EventKey key : keys) {
-			if (p++ < offset)
-				continue;
-
-			if (p >= limit)
-				break;
-
+		for (EventKey key : page) {
 			context.println(key);
 		}
 
