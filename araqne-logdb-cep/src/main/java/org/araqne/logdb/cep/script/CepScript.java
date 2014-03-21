@@ -17,7 +17,9 @@ package org.araqne.logdb.cep.script;
 
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 import org.araqne.api.Script;
@@ -119,35 +121,27 @@ public class CepScript implements Script {
 			@ScriptArgument(name = "limit", type = "int", description = "limit", optional = true) })
 	public void clocks(String[] args) {
 		int offset = 0;
-		int limit = 10;
+		int limit = 100;
 
-		if (args.length > 1)
+		if (args.length >= 1)
 			offset = Integer.parseInt(args[0]);
 
-		if (args.length > 2)
+		if (args.length >= 2)
 			limit = Integer.parseInt(args[1]);
 
 		context.println("Event Clocks");
 		context.println("-----------------");
 
 		EventContextStorage storage = eventContextService.getStorage("mem");
+		List<String> hosts = new ArrayList<String>(storage.getHosts());
+		List<String> page = hosts.subList(Math.min(offset, hosts.size()), Math.min(offset + limit, hosts.size()));
 
-		Set<String> hosts = storage.getHosts();
-
-		int p = 0;
-		for (String host : hosts) {
-			if (p++ < offset)
-				continue;
-
-			if (p >= limit)
-				break;
-
+		for (String host : page) {
 			EventClock clock = storage.getClock(host);
 			context.println(clock);
 		}
 
 		context.println("total " + hosts.size() + " clocks");
-
 	}
 
 	@ScriptUsage(description = "print contexts", arguments = {
