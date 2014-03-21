@@ -74,6 +74,8 @@ public abstract class LogFileReader {
 		try {
 			// can be unmodifiableMap when it comes from memory buffer.
 			Map<String, Object> m2 = new HashMap<String, Object>(log.getData());
+			Object hostTag = m2.get("_host");
+
 			m2.put("_time", log.getDate());
 			Map<String, Object> parsed = parser.parse(m2);
 			if (parsed == null)
@@ -81,6 +83,8 @@ public abstract class LogFileReader {
 
 			parsed.put("_table", log.getTableName());
 			parsed.put("_id", log.getId());
+			if (hostTag != null)
+				parsed.put("_host", hostTag);
 
 			time = parsed.get("_time");
 			if (time == null) {
@@ -112,6 +116,8 @@ public abstract class LogFileReader {
 		input.setSource(log.getTableName());
 		input.setData(log.getData());
 
+		Object hostTag = log.getData().get("_host");
+
 		List<Log> ret = new ArrayList<Log>();
 		try {
 			LogParserOutput output = parser.parse(input);
@@ -119,6 +125,8 @@ public abstract class LogFileReader {
 				for (Map<String, Object> row : output.getRows()) {
 					row.put("_table", log.getTableName());
 					row.put("_id", log.getId());
+					if (hostTag != null)
+						row.put("_host", hostTag);
 
 					Object time = row.get("_time");
 					if (time == null)

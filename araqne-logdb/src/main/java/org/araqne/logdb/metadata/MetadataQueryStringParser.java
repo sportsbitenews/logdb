@@ -14,6 +14,7 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Privilege;
+import org.araqne.logdb.query.parser.CommandOptions;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.araqne.logstorage.LogTableRegistry;
 
@@ -96,9 +97,7 @@ public class MetadataQueryStringParser {
 		opt.setTableNames(tableNames);
 		opt.setFrom(from);
 		opt.setTo(to);
-
-		if (optionTokens.containsKey("diskonly"))
-			opt.setDiskOnly(Boolean.parseBoolean((String) optionTokens.get("diskonly")));
+		opt.setDiskOnly(CommandOptions.parseBoolean((String) optionTokens.get("diskonly")));
 
 		return opt;
 	}

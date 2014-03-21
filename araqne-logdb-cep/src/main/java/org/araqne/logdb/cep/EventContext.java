@@ -18,6 +18,7 @@ package org.araqne.logdb.cep;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.araqne.logdb.Row;
@@ -27,6 +28,9 @@ public class EventContext {
 	private List<Row> rows;
 
 	private AtomicInteger counter = new AtomicInteger();
+
+	// log time or real time
+	private long created;
 
 	// 0 means infinite, absolutely disappears
 	private long expireTime;
@@ -39,13 +43,20 @@ public class EventContext {
 
 	private int maxRows;
 
-	public EventContext(EventKey key, long expireTime, long timeoutTime, int threshold, int maxRows) {
+	// host for external log tick
+	private String host;
+
+	private CopyOnWriteArraySet<EventContextListener> listeners = new CopyOnWriteArraySet<EventContextListener>();
+
+	public EventContext(EventKey key, long created, long expireTime, long timeoutTime, int threshold, int maxRows, String host) {
 		this.key = key;
+		this.created = created;
 		this.rows = Collections.synchronizedList(new ArrayList<Row>());
 		this.expireTime = expireTime;
 		this.timeoutTime = timeoutTime;
 		this.threshold = threshold;
 		this.maxRows = maxRows;
+		this.host = host;
 	}
 
 	public EventKey getKey() {
@@ -66,6 +77,10 @@ public class EventContext {
 
 	public void setTimeoutTime(long timeoutTime) {
 		this.timeoutTime = timeoutTime;
+
+		for (EventContextListener listener : listeners) {
+			listener.onUpdateTimeout(this);
+		}
 	}
 
 	public long getExpireTime() {
@@ -92,6 +107,22 @@ public class EventContext {
 		return maxRows;
 	}
 
+	public String getHost() {
+		return host;
+	}
+
+	public void setHost(String host) {
+		this.host = host;
+	}
+
+	public long getCreated() {
+		return created;
+	}
+
+	public void setCreated(long created) {
+		this.created = created;
+	}
+
 	public void addRow(Row row) {
 		synchronized (rows) {
 			if (rows.size() < maxRows)
@@ -103,5 +134,13 @@ public class EventContext {
 		synchronized (rows) {
 			rows.remove(row);
 		}
+	}
+
+	public CopyOnWriteArraySet<EventContextListener> getListeners() {
+		return listeners;
+	}
+
+	public void setListeners(CopyOnWriteArraySet<EventContextListener> listeners) {
+		this.listeners = listeners;
 	}
 }

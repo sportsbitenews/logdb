@@ -52,11 +52,9 @@ public class ImportParser implements QueryCommandParser {
 		if (context == null || !context.getSession().isAdmin())
 			throw new QueryParseException("no-permission", -1);
 
-		boolean create = false;
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("create"));
 		Map<String, String> m = (Map<String, String>) r.value;
-		if (m != null && m.containsKey("create"))
-			create = Boolean.parseBoolean(m.get("create"));
+		boolean create = CommandOptions.parseBoolean(m.get("create"));
 
 		String tableName = commandString.substring(r.next).trim();
 		if (!tableRegistry.exists(tableName) && !create)

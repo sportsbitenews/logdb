@@ -46,12 +46,10 @@ public class OutputJsonParser implements QueryCommandParser {
 		if (commandString.trim().endsWith(","))
 			throw new QueryParseException("missing-field", commandString.length());
 
-		boolean overwrite = false;
 		ParseResult r = QueryTokenizer
 				.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overwrite"));
 		Map<String, String> options = (Map<String, String>) r.value;
-		if (options != null && options.containsKey("overwrite"))
-			overwrite = Boolean.parseBoolean(options.get("overwrite"));
+		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
 
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
 		if (tokens.size() < 1)

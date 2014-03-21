@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Eediom Inc.
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb;
+package org.araqne.logdb.query.parser;
 
-import java.util.List;
+/**
+ * @since 2.2.0
+ * @author xeraph
+ * 
+ */
+public class CommandOptions {
+	public static boolean parseBoolean(String s) {
+		if (s == null)
+			return false;
 
-public interface QueryPlanner {
-	/**
-	 * @since 2.1.7
-	 * @return planner name
-	 */
-	String getName();
-
-	boolean isEnabled();
-
-	void setEnabled(boolean b);
-
-	/**
-	 * planner may throw parse exception
-	 * 
-	 * @return the new query execution pipeline
-	 */
-	List<QueryCommand> plan(QueryContext context, List<QueryCommand> commands);
+		return s.equalsIgnoreCase("t") || s.equalsIgnoreCase("true");
+	}
 }

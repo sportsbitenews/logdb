@@ -183,7 +183,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		List<Class<? extends QueryCommandParser>> parserClazzes = Arrays.asList(DropParser.class, SearchParser.class,
 				StatsParser.class, FieldsParser.class, SortParser.class, TimechartParser.class, RenameParser.class,
 				EvalParser.class, RexParser.class, JsonParser.class, SignatureParser.class, LimitParser.class, SetParser.class,
-				EvalcParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class, ExplodeParser.class);
+				EvalcParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class, ExplodeParser.class,
+				ParseJsonParser.class);
 
 		List<QueryCommandParser> parsers = new ArrayList<QueryCommandParser>();
 		for (Class<? extends QueryCommandParser> clazz : parserClazzes) {
@@ -256,6 +257,14 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	@Invalidate
 	public void stop() {
+		for (int id : queries.keySet()) {
+			Query query = queries.get(id);
+			if (query != null) {
+				logger.info("araqne logdb: cancel query [{}:{}] due to service down", id, query.getQueryString());
+				removeQuery(id);
+			}
+		}
+
 		if (accountService != null) {
 			accountService.removeListener(this);
 		}
@@ -411,6 +420,19 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	@Override
 	public void removeListener(QueryEventListener listener) {
 		callbacks.remove(listener);
+	}
+
+	@Override
+	public List<QueryPlanner> getPlanners() {
+		return new ArrayList<QueryPlanner>(planners);
+	}
+
+	@Override
+	public QueryPlanner getPlanner(String name) {
+		for (QueryPlanner planner : planners)
+			if (planner.getName().equals(name))
+				return planner;
+		return null;
 	}
 
 	@Override

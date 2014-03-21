@@ -15,8 +15,8 @@
  */
 package org.araqne.logdb.cep.engine;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,15 +29,17 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventCause;
 import org.araqne.logdb.cep.EventContext;
+import org.araqne.logdb.cep.EventContextListener;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.cep.EventSubscriber;
+import org.araqne.logdb.cep.EventClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component(name = "mem-event-ctx-storage")
-public class MemoryEventContextStorage implements EventContextStorage {
+public class MemoryEventContextStorage implements EventContextStorage, EventContextListener {
 	private final Logger slog = LoggerFactory.getLogger(MemoryEventContextStorage.class);
 
 	@Requires
@@ -48,7 +50,11 @@ public class MemoryEventContextStorage implements EventContextStorage {
 	// topic to subscribers
 	private ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>> subscribers;
 
-	private TimeoutChecker timeoutChecker = new TimeoutChecker();
+	// log tick host to aging context mappings
+	private ConcurrentHashMap<String, EventClock> logClocks;
+	private EventClock realClock;
+
+	private RealClockTask realClockTask = new RealClockTask();
 	private Timer timer;
 
 	@Override
@@ -60,8 +66,11 @@ public class MemoryEventContextStorage implements EventContextStorage {
 	public void start() {
 		contexts = new ConcurrentHashMap<EventKey, EventContext>();
 		subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
-		timer = new Timer("Event Context Timeout Checker", true);
-		timer.scheduleAtFixedRate(timeoutChecker, 0, 1000);
+		logClocks = new ConcurrentHashMap<String, EventClock>();
+		realClock = new EventClock(this, "real", System.currentTimeMillis(), 10000);
+
+		timer = new Timer("Event Real Clock", true);
+		timer.scheduleAtFixedRate(realClockTask, 0, 100);
 
 		eventContextService.registerStorage(this);
 	}
@@ -72,9 +81,24 @@ public class MemoryEventContextStorage implements EventContextStorage {
 			eventContextService.unregisterStorage(this);
 		}
 
-		timeoutChecker.cancel();
+		realClockTask.cancel();
 		contexts.clear();
 		subscribers.clear();
+	}
+
+	@Override
+	public Set<String> getHosts() {
+		return new HashSet<String>(logClocks.keySet());
+	}
+
+	@Override
+	public EventClock getClock(String host) {
+		return logClocks.get(host);
+	}
+
+	@Override
+	public Set<EventKey> getContextKeys() {
+		return new HashSet<EventKey>(contexts.keySet());
 	}
 
 	@Override
@@ -85,16 +109,62 @@ public class MemoryEventContextStorage implements EventContextStorage {
 	@Override
 	public EventContext addContext(EventContext ctx) {
 		EventContext old = contexts.putIfAbsent(ctx.getKey(), ctx);
-		if (old == null)
+		if (old == null) {
+			ctx.getListeners().add(this);
+
+			if (ctx.getHost() != null) {
+				EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+				logClock.add(ctx);
+			} else {
+				realClock.add(ctx);
+			}
+
 			return ctx;
+		}
 		return old;
 	}
 
+	private EventClock ensureClock(ConcurrentHashMap<String, EventClock> clocks, String host, long time) {
+		EventClock clock = new EventClock(this, host, time, 11);
+		EventClock old = clocks.putIfAbsent(host, clock);
+		if (old != null)
+			return old;
+		return clock;
+	}
+
 	@Override
-	public void removeContext(EventKey key) {
+	public void removeContext(EventKey key, EventCause cause) {
 		EventContext ctx = contexts.remove(key);
-		if (ctx != null)
-			generateEvent(ctx, EventCause.REMOVAL);
+		if (ctx != null) {
+			ctx.getListeners().remove(this);
+
+			if (key.getHost() != null) {
+				EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+				logClock.remove(ctx);
+			} else {
+				realClock.remove(ctx);
+			}
+
+			generateEvent(ctx, cause);
+		}
+	}
+
+	@Override
+	public void advanceTime(String host, long logTime) {
+		EventClock logClock = ensureClock(logClocks, host, logTime);
+		logClock.setTime(logTime, false);
+	}
+
+	@Override
+	public void clearClocks() {
+		realClock = new EventClock(this, "real", System.currentTimeMillis(), 10000);
+		logClocks = new ConcurrentHashMap<String, EventClock>();
+	}
+
+	@Override
+	public void clearContexts() {
+		if (contexts != null)
+			contexts.clear();
 	}
 
 	@Override
@@ -114,48 +184,17 @@ public class MemoryEventContextStorage implements EventContextStorage {
 			s.remove(subscriber);
 	}
 
-	private class TimeoutChecker extends TimerTask {
-
+	private class RealClockTask extends TimerTask {
 		@Override
 		public void run() {
-			List<EventContext> evictExpire = new ArrayList<EventContext>();
-
-			long now = System.currentTimeMillis();
-			for (EventContext ctx : contexts.values()) {
-				long expire = ctx.getExpireTime();
-				if (expire != 0 && expire <= now)
-					evictExpire.add(ctx);
-			}
-
-			for (EventContext ctx : evictExpire) {
-				EventKey key = ctx.getKey();
-				if (slog.isDebugEnabled())
-					slog.debug("araqne logdb cep: generate timeout event, topic [{}] key [{}]", key.getTopic(), key.getKey());
-
-				contexts.remove(key);
-				generateEvent(ctx, EventCause.EXPIRE);
-			}
-
-			List<EventContext> evictTimeout = new ArrayList<EventContext>();
-
-			for (EventContext ctx : contexts.values()) {
-				long time = ctx.getTimeoutTime();
-				if (time != 0 && time <= now)
-					evictTimeout.add(ctx);
-			}
-
-			for (EventContext ctx : evictTimeout) {
-				EventKey key = ctx.getKey();
-				if (slog.isDebugEnabled())
-					slog.debug("araqne logdb cep: generate timeout event, topic [{}] key [{}]", key.getTopic(), key.getKey());
-
-				contexts.remove(key);
-				generateEvent(ctx, EventCause.TIMEOUT);
-			}
+			realClock.setTime(System.currentTimeMillis(), false);
 		}
 	}
 
 	private void generateEvent(EventContext ctx, EventCause cause) {
+		if (slog.isDebugEnabled())
+			slog.debug("araqne logdb cep: generate event ctx [{}] cause [{}]", ctx.getKey(), cause);
+
 		Event ev = new Event(ctx.getKey(), cause);
 		ev.getRows().addAll(ctx.getRows());
 
@@ -181,5 +220,14 @@ public class MemoryEventContextStorage implements EventContextStorage {
 				}
 			}
 		}
+	}
+
+	@Override
+	public void onUpdateTimeout(EventContext ctx) {
+		EventClock clock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+		if (clock == null)
+			return;
+
+		clock.updateTimeout(ctx);
 	}
 }

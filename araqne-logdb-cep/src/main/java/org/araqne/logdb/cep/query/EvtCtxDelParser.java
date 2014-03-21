@@ -60,17 +60,18 @@ public class EvtCtxDelParser implements QueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("topic", "key"));
+				Arrays.asList("topic", "key", "logtick"));
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 		String topic = options.get("topic");
 		String keyField = options.get("key");
+		String hostField = options.get("logtick");
 
 		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next));
 
 		EventContextStorage storage = eventContextService.getStorage("mem");
-		return new EvtCtxDelCommand(storage, topic, keyField, matcher);
+		return new EvtCtxDelCommand(storage, topic, keyField, matcher, hostField);
 	}
 
 }

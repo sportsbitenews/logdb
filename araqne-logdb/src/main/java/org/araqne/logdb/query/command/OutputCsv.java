@@ -30,7 +30,7 @@ import org.araqne.logdb.Strings;
 import au.com.bytecode.opencsv.CSVWriter;
 
 public class OutputCsv extends QueryCommand {
-	private Charset utf8;
+	private Charset charset;
 	private List<String> fields;
 
 	// for query string generation
@@ -41,16 +41,67 @@ public class OutputCsv extends QueryCommand {
 	private CSVWriter writer;
 	private String[] csvLine;
 
-	public OutputCsv(String pathToken, File f, boolean overwrite, List<String> fields) throws IOException {
+	public OutputCsv(String pathToken, File f, boolean overwrite, List<String> fields, String encoding, boolean useBom, boolean useTab)
+			throws IOException {
 		this.pathToken = pathToken;
 		this.f = f;
 		this.overwrite = overwrite;
 		this.os = new FileOutputStream(f);
+		if (useBom)
+			writeBom(encoding, os);
 		this.fields = fields;
-		this.utf8 = Charset.forName("utf-8");
+		this.charset = Charset.forName(encoding);
 		this.csvLine = new String[fields.size()];
-		this.writer = new CSVWriter(new OutputStreamWriter(os, utf8));
+		
+		char separator = useTab ? '\t' : ','; 
+		this.writer = new CSVWriter(new OutputStreamWriter(os, charset), separator);
 		writer.writeNext(fields.toArray(new String[0]));
+	}
+
+	private void writeBom(String encoding, FileOutputStream fos) throws IOException {
+		if (encoding.equalsIgnoreCase("utf-8")) {
+			fos.write(0xEF);
+			fos.write(0xBB);
+			fos.write(0xBF);
+		} else if (encoding.equalsIgnoreCase("utf-16") || encoding.equalsIgnoreCase("utf-16le")) {
+			fos.write(0xFF);
+			fos.write(0xFE);
+		} else if (encoding.equalsIgnoreCase("utf-16be")) {
+			fos.write(0xFE);
+			fos.write(0xFF);
+		} else if (encoding.equalsIgnoreCase("utf-32") || encoding.equalsIgnoreCase("utf-32le")) {
+			fos.write(0xFF);
+			fos.write(0xFE);
+			fos.write(0x00);
+			fos.write(0x00);
+		} else if (encoding.equalsIgnoreCase("utf-32be")) {
+			fos.write(0x00);
+			fos.write(0x00);
+			fos.write(0xFE);
+			fos.write(0xFF);
+		} else if (encoding.equalsIgnoreCase("utf-1")) {
+			fos.write(0xF7);
+			fos.write(0x64);
+			fos.write(0x4C);
+		} else if (encoding.equalsIgnoreCase("utf-ebcdic")) {
+			fos.write(0xDD);
+			fos.write(0x73);
+			fos.write(0x66);
+			fos.write(0x73);
+		} else if (encoding.equalsIgnoreCase("scsu")) {
+			fos.write(0x02);
+			fos.write(0xFE);
+			fos.write(0xFF);
+		} else if (encoding.equalsIgnoreCase("bocu-1")) {
+			fos.write(0xFB);
+			fos.write(0xEE);
+			fos.write(0x28);
+		} else if (encoding.equalsIgnoreCase("gb-18030")) {
+			fos.write(0x84);
+			fos.write(0x31);
+			fos.write(0x95);
+			fos.write(0x33);
+		}
 	}
 
 	@Override
