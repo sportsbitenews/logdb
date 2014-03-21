@@ -246,13 +246,14 @@ public class LogFileV3Reader implements Closeable {
 			indexReader.skip(pos);
 
 			ByteBuffer bb = ByteBuffer.allocate(IndexBlockV3Header.ITEM_SIZE);
+			int id = 0;
 			while (pos < length) {
 				try {
 					readFully(indexReader, bb);
 				} catch (IOException e) {
 					break;
 				}
-				IndexBlockV3Header header = new IndexBlockV3Header(bb.getLong(), bb.getLong(), bb.getLong(), bb.getInt(),
+				IndexBlockV3Header header = new IndexBlockV3Header(id++, bb.getLong(), bb.getLong(), bb.getLong(), bb.getInt(),
 						totalCount + 1);
 				header.fp = pos;
 				header.ascLogCount = totalCount;

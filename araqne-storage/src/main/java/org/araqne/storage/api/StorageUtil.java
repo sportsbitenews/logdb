@@ -2,6 +2,8 @@ package org.araqne.storage.api;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 
 public class StorageUtil {
 	public static String extractProtocol(String path) {
@@ -20,4 +22,16 @@ public class StorageUtil {
 			}
 		}
 	}
+	
+	public static void readFully(InputStream in, ByteBuffer bb) throws IOException {
+		int total = 0;
+		int limit = bb.limit();
+		while (total < limit) {
+			int ret = in.read(bb.array(), total, limit - total);
+			if (ret < 0)
+				throw new IOException("ByteBuffer underflow");
+			total += ret;
+		}
+	}
+
 }
