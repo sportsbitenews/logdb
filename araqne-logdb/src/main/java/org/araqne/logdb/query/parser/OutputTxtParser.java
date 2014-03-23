@@ -115,7 +115,7 @@ public class OutputTxtParser implements QueryCommandParser {
 			throw new IllegalStateException("txt file exists: " + txtFile.getAbsolutePath());
 
 		try {
-			if (txtFile.getParentFile() != null)
+			if (!usePartition && txtFile.getParentFile() != null)
 				txtFile.getParentFile().mkdirs();
 
 			return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useCompression, encoding,
