@@ -1040,4 +1040,12 @@ public class LogStorageScript implements Script {
 			context.println("purging table " + tableName + " day " + df.format(day));
 		}
 	}
+	
+	public void _lock(String[] args) {
+		storage.lock(new LockKey("script", args[0], null));
+	}
+	
+	public void _unlock(String[] args) {
+		storage.unlock(new LockKey("script", args[0], null));
+	}
 }

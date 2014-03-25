@@ -24,7 +24,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileService;
@@ -144,7 +150,7 @@ public class OnlineWriter {
 	public Date getLastFlush() {
 		return writer.getLastFlush();
 	}
-
+	
 	public void write(Log log) throws IOException {
 		synchronized (this) {
 			if (writer == null)
@@ -251,4 +257,103 @@ public class OnlineWriter {
 			return closeReserved;
 		}
 	}
+	
+	public static class RWLock implements ReadWriteLock {
+		final int EXCLUSIVE = 65535;
+		Semaphore sem = new Semaphore(EXCLUSIVE, true);
+
+		@Override
+		public Lock readLock() {
+			return new Lock() {
+
+				@Override
+				public void lock() {
+					try {
+						sem.acquire();
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
+				}
+
+				@Override
+				public void lockInterruptibly() throws InterruptedException {
+					sem.acquire();
+				}
+
+				@Override
+				public boolean tryLock() {
+					return sem.tryAcquire();
+				}
+
+				@Override
+				public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+					return sem.tryAcquire(time, unit);
+				}
+
+				@Override
+				public void unlock() {
+					sem.release();
+				}
+
+				@Override
+				public Condition newCondition() {
+					throw new UnsupportedOperationException();
+				}
+				
+			};
+		}
+
+		@Override
+		public Lock writeLock() {
+			return new Lock() {
+
+				@Override
+				public void lock() {
+					try {
+						sem.acquire(EXCLUSIVE);
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
+				}
+
+				@Override
+				public void lockInterruptibly() throws InterruptedException {
+					sem.acquire(EXCLUSIVE);
+				}
+
+				@Override
+				public boolean tryLock() {
+					return sem.tryAcquire(EXCLUSIVE);
+				}
+
+				@Override
+				public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+					return sem.tryAcquire(EXCLUSIVE, time, unit);
+				}
+
+				@Override
+				public void unlock() {
+					sem.release(EXCLUSIVE);
+				}
+
+				@Override
+				public Condition newCondition() {
+					throw new UnsupportedOperationException();
+				}
+				
+			};
+		}
+		
+	}
+	
+	RWLock rwlock = new RWLock();
+	
+	public Lock readLock() {
+		return rwlock.readLock();
+	}
+	
+	public Lock writeLock() {
+		return rwlock.writeLock();
+	}
+
 }

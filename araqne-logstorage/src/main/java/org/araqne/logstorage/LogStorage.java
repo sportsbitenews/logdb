@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.storage.api.FilePath;
@@ -144,4 +145,11 @@ public interface LogStorage {
 	 */
 	StorageManager getStorageManager();
 
+	boolean tryWrite(Log log);
+	
+	boolean tryWrite(Log log, long timeout, TimeUnit unit);
+
+	boolean tryWrite(List<Log> log);
+	
+	boolean tryWrite(List<Log> log, long timeout, TimeUnit unit);
 }

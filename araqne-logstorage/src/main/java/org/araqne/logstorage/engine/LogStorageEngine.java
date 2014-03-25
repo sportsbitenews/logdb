@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -380,8 +381,10 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		String tableName = log.getTableName();
 
 		for (int i = 0; i < 2; i++) {
+			OnlineWriter writer = null;
 			try {
-				OnlineWriter writer = getOnlineWriter(tableName, log.getDate());
+				writer = getOnlineWriter(tableName, log.getDate());
+				writer.readLock().lock();
 				writer.write(log);
 				break;
 			} catch (IOException e) {
@@ -391,6 +394,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				}
 
 				throw new IllegalStateException("cannot write log: " + tableName + ", " + log.getDate());
+			} finally {
+				if (writer != null) 
+					writer.readLock().unlock();
 			}
 		}
 
@@ -438,8 +444,10 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			List<Log> l = e.getValue();
 
 			for (int i = 0; i < 2; i++) {
+				OnlineWriter writer = null;
 				try {
-					OnlineWriter writer = getOnlineWriter(writerKey.getTableName(), writerKey.getDay());
+					writer = getOnlineWriter(writerKey.getTableName(), writerKey.getDay());
+					writer.readLock().lock();
 					writer.write(l);
 					break;
 				} catch (IOException ex) {
@@ -449,6 +457,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 					}
 
 					throw new IllegalStateException("cannot write [" + l.size() + "] logs to table [" + tableName + "]");
+				} finally {
+					if (writer != null)
+						writer.readLock().unlock();
 				}
 			}
 
@@ -1203,14 +1214,26 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	}
 
 	public void lock(LockKey storageLockKey) {
-		// TODO Auto-generated method stub
-
+		for (OnlineWriterKey key : onlineWriters.keySet()) {
+			if (key.getTableName().equals(storageLockKey.tableName)) {
+				if (storageLockKey.day != null && !storageLockKey.day.equals(key.getDay()))
+					continue;
+				OnlineWriter ow = onlineWriters.get(key);
+				ow.writeLock().lock();
+			}
+		}
 	}
 
 	@Override
 	public void unlock(LockKey storageLockKey) {
-		// TODO Auto-generated method stub
-
+		for (OnlineWriterKey key : onlineWriters.keySet()) {
+			if (key.getTableName().equals(storageLockKey.tableName)) {
+				if (storageLockKey.day != null && !storageLockKey.day.equals(key.getDay()))
+					continue;
+				OnlineWriter ow = onlineWriters.get(key);
+				ow.writeLock().unlock();
+			}
+		}
 	}
 
 	@Override
@@ -1233,5 +1256,29 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			logger.warn(this + ": wait for flush interrupted");
 		}
 
+	}
+
+	@Override
+	public boolean tryWrite(Log log) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean tryWrite(Log log, long timeout, TimeUnit unit) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean tryWrite(List<Log> log) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean tryWrite(List<Log> log, long timeout, TimeUnit unit) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 }
