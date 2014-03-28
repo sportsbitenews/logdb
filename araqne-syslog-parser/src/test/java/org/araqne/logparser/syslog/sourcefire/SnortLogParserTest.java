@@ -25,7 +25,7 @@ import static org.junit.Assert.*;
 
 public class SnortLogParserTest {
 	private SnortLogParser parser = new SnortLogParser();
-
+	
 	@Test
 	public void testCase1() {
 		String log = "snort[20586]: [1:1000000:0] what the hell {TCP} 10.10.0.10:5432 -> 10.10.0.8:1837";

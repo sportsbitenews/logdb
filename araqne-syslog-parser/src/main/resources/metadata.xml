@@ -1,14 +1,10 @@
 <ipojo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="org.apache.felix.ipojo http://felix.apache.org/ipojo/schemas/CURRENT/core.xsd"
 	xmlns="org.apache.felix.ipojo">
-	<instance component="netscreen-log-normalizer-factory" />
 	<instance component="netscreen-log-parser-factory" />
-	<instance component="fortigate-log-normalizer-factory" />
 	<instance component="fortigate-log-parser-factory" />
-	<instance component="snort-log-normalizer-factory" />
 	<instance component="snort-log-parser-factory" />
 	<instance component="weguardia-log-parser-factory" />
-	<instance component="weguardia-log-normalizer-factory" />
 	<instance component="neobox-log-parser-factory" />
 	<instance component="defensepro-log-parser-factory" />
 	<instance component="paloalto-log-parser-factory" />
@@ -20,4 +16,11 @@
 	<instance component="nxg-log-parser-factory" />
 	<instance component="mf2-log-parser-factory" />
 	<instance component="sniper-log-parser-factory" />
+	<instance component="riorey-ddos-parser-factory" />
+	<instance component="tippingpoint-ips-log-parser-factory" />
+	<instance component="swg-parser-factory" />
+	<instance component="wapples-syslog-parser-factory" />
+	<instance component="anti-web-shell-log-parser-factory" />
+	
+	
 </ipojo>
