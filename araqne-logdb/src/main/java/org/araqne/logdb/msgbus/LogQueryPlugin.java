@@ -20,9 +20,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -30,6 +32,7 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.api.FieldOption;
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
@@ -306,7 +309,22 @@ public class LogQueryPlugin {
 		org.araqne.logdb.Session dbSession = getDbSession(req);
 
 		List<SavedResult> l = savedResultManager.getResultList(dbSession.getLoginName());
-		resp.put("saved_results", PrimitiveConverter.serialize(l));
+		List<Object> savedResults = new ArrayList<Object>();
+		for (SavedResult s : l) {
+			Map<String, Object> m = new HashMap<String, Object>();
+			m.put("guid", s.getGuid());
+			m.put("title", s.getTitle());
+			m.put("file_size", s.getFileSize());
+			m.put("created", s.getCreated());
+			m.put("owner", s.getOwner());
+			m.put("row_count", s.getRowCount());
+			m.put("storage", s.getStorageName());
+			m.put("index_path", s.getIndexPath());
+			m.put("data_path", s.getDataPath());
+			savedResults.add(m);
+		}
+
+		resp.put("saved_results", savedResults);
 	}
 
 	/**
