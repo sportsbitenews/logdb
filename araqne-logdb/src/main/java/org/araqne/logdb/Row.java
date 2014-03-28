@@ -15,9 +15,13 @@
  */
 package org.araqne.logdb;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 public class Row {
 	// _time cache
@@ -37,7 +41,36 @@ public class Row {
 	}
 
 	public Row clone() {
-		return new Row(new HashMap<String, Object>(map));
+		return new Row(clone(map));
+	}
+
+	@SuppressWarnings("unchecked")
+	public static Map<String, Object> clone(Map<String, Object> m) {
+		HashMap<String, Object> cloned = new HashMap<String, Object>();
+		for (Entry<String, Object> e : m.entrySet()) {
+			Object val = e.getValue();
+			if (val instanceof Map)
+				cloned.put(e.getKey(), clone((Map<String, Object>) val));
+			else if (val instanceof Collection)
+				cloned.put(e.getKey(), clone((Collection<Object>) val));
+			else
+				cloned.put(e.getKey(), val);
+		}
+		return cloned;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<Object> clone(Collection<Object> c) {
+		ArrayList<Object> l = new ArrayList<Object>(c.size());
+		for (Object o : c) {
+			if (o instanceof Map)
+				l.add(clone((Map<String, Object>) o));
+			else if (o instanceof Collection)
+				l.add(clone((Collection<Object>) o));
+			else
+				l.add(o);
+		}
+		return l;
 	}
 
 	public Date getDate() {

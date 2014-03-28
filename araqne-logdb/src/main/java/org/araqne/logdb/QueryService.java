@@ -16,6 +16,7 @@
 package org.araqne.logdb;
 
 import java.util.Collection;
+import java.util.List;
 
 public interface QueryService {
 	Collection<Query> getQueries();
@@ -39,6 +40,10 @@ public interface QueryService {
 	void addListener(QueryEventListener listener);
 
 	void removeListener(QueryEventListener listener);
+
+	List<QueryPlanner> getPlanners();
+
+	QueryPlanner getPlanner(String name);
 
 	void addPlanner(QueryPlanner planner);
 

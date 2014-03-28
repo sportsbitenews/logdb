@@ -26,17 +26,17 @@ public class ToDate implements Expression {
 
 	private Expression valueExpr;
 	private String format;
-	private SimpleDateFormat dateFormat;
+	private Locale locale;
 
 	public ToDate(List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
-		Locale locale = Locale.ENGLISH;
+		locale = Locale.ENGLISH;
 		if (exprs.size() > 2)
 			locale = new Locale(exprs.get(2).toString());
 
 		try {
 			this.format = (String) exprs.get(1).eval(null);
-			this.dateFormat = new SimpleDateFormat(format, locale);
+			SimpleDateFormat dateFormat = new SimpleDateFormat(format, locale);
 		} catch (IllegalArgumentException e) {
 			throw new QueryParseException("invalid-argument", -1, "invalid date format pattern");
 		}
@@ -53,7 +53,7 @@ public class ToDate implements Expression {
 			if (s.isEmpty())
 				return null;
 
-			return dateFormat.parse(s);
+			return new SimpleDateFormat(format, locale).parse(s);
 		} catch (Throwable t) {
 			return null;
 		}

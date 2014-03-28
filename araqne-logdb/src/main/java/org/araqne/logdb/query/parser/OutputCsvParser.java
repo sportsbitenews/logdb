@@ -42,13 +42,19 @@ public class OutputCsvParser implements QueryCommandParser {
 		if (commandString.trim().endsWith(","))
 			throw new QueryParseException("missing-field", commandString.length());
 
-		boolean overwrite = false;
-		ParseResult r = QueryTokenizer
-				.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overwrite"));
+		String encoding = null;
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
+				Arrays.asList("overwrite", "encoding", "bom", "tab"));
 
 		Map<String, String> options = (Map<String, String>) r.value;
-		if (options != null && options.containsKey("overwrite"))
-			overwrite = Boolean.parseBoolean(options.get("overwrite"));
+		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
+		boolean useBom = CommandOptions.parseBoolean(options.get("bom"));
+		boolean useTab = CommandOptions.parseBoolean(options.get("tab"));
+
+		if (options.get("encoding") != null)
+			encoding = options.get("encoding").toString();
+		if (encoding == null)
+			encoding = "utf-8";
 
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
 		List<String> fields = new ArrayList<String>();
@@ -72,10 +78,9 @@ public class OutputCsvParser implements QueryCommandParser {
 		try {
 			if (csvFile.getParentFile() != null)
 				csvFile.getParentFile().mkdirs();
-			return new OutputCsv(originalCsvPath, csvFile, overwrite, fields);
+			return new OutputCsv(originalCsvPath, csvFile, overwrite, fields, encoding, useBom, useTab);
 		} catch (IOException e) {
 			throw new QueryParseException("io-error", -1, e.getMessage());
 		}
-
 	}
 }

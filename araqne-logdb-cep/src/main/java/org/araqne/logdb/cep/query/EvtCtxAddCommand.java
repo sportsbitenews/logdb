@@ -15,6 +15,8 @@
  */
 package org.araqne.logdb.cep.query;
 
+import java.util.Date;
+
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.TimeSpan;
@@ -34,8 +36,11 @@ public class EvtCtxAddCommand extends QueryCommand {
 	private int maxRows;
 	private Expression matcher;
 
+	// host field for external clock
+	private String hostField;
+
 	public EvtCtxAddCommand(EventContextStorage storage, String topic, String keyField, TimeSpan expire, TimeSpan timeout,
-			int threshold, int maxRows, Expression matcher) {
+			int threshold, int maxRows, Expression matcher, String hostField) {
 		this.storage = storage;
 		this.topic = topic;
 		this.keyField = keyField;
@@ -44,6 +49,7 @@ public class EvtCtxAddCommand extends QueryCommand {
 		this.threshold = threshold;
 		this.maxRows = maxRows;
 		this.matcher = matcher;
+		this.hostField = hostField;
 	}
 
 	@Override
@@ -66,28 +72,51 @@ public class EvtCtxAddCommand extends QueryCommand {
 		if (k == null)
 			matched = false;
 
+		// extract host for log tick
+		String host = null;
+		Object h = null;
+
+		if (hostField != null)
+			h = row.get(hostField);
+
+		if (h != null)
+			host = h.toString();
+
+		// extract log time
+		long created = 0;
+		Date logTime = null;
+		Object t = row.get("_time");
+		if (t instanceof Date) {
+			logTime = (Date) t;
+			created = logTime.getTime();
+		} else {
+			created = System.currentTimeMillis();
+		}
+
 		if (matched) {
 			String key = k.toString();
 			EventKey eventKey = new EventKey(topic, key);
 
 			long expireTime = 0;
-			if (expire != null) {
-				expireTime = System.currentTimeMillis();
-				expireTime += expire.unit.getMillis() * expire.amount;
-			}
+			if (expire != null)
+				expireTime = created + expire.unit.getMillis() * expire.amount;
 
 			long timeoutTime = 0;
-			if (timeout != null) {
-				timeoutTime = System.currentTimeMillis();
-				timeoutTime += timeout.unit.getMillis() * timeout.amount;
-			}
+			if (timeout != null)
+				timeoutTime = created + timeout.unit.getMillis() * timeout.amount;
 
-			EventContext ctx = new EventContext(eventKey, expireTime, timeoutTime, threshold, maxRows);
+			EventContext ctx = new EventContext(eventKey, created, expireTime, timeoutTime, threshold, maxRows, (String) host);
 			ctx = storage.addContext(ctx);
 
 			// extend timeout
 			ctx.setTimeoutTime(timeoutTime);
 			ctx.addRow(row);
+		}
+
+		if (host != null && logTime != null) {
+			Object date = row.get("_time");
+			if (date instanceof Date)
+				storage.advanceTime(host, logTime.getTime());
 		}
 
 		pushPipe(row);
@@ -108,6 +137,9 @@ public class EvtCtxAddCommand extends QueryCommand {
 
 		if (maxRows != 10)
 			s += " maxrows=" + maxRows;
+
+		if (hostField != null)
+			s += " logtick=" + hostField;
 
 		s += " " + matcher;
 

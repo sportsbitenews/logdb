@@ -53,7 +53,7 @@ public class MessageCodec {
 			msg.setTarget(header.getString("target"));
 			msg.setMethod(header.getString("method").trim());
 
-			if (header.containsKey("requestId"))
+			if (header.has("requestId"))
 				msg.setRequestId(header.getString("requestId").trim());
 
 			if (header.has("errorCode")) {

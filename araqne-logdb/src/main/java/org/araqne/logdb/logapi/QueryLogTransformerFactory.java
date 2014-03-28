@@ -100,4 +100,8 @@ public class QueryLogTransformerFactory extends AbstractLogTransformerFactory {
 		return new QueryLogTransformer(this, commands);
 	}
 
+	@Override
+	public String toString() {
+		return "Transform data using query";
+	}
 }

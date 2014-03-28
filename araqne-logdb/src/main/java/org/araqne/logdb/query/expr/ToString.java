@@ -21,17 +21,16 @@ import java.util.Date;
 import java.util.List;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.Strings;
 
 public class ToString implements Expression {
 	private Expression valueExpr;
 	private String format;
-	private SimpleDateFormat dateFormat;
 
 	public ToString(List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		if (exprs.size() > 1) {
 			this.format = (String) exprs.get(1).eval(null);
-			this.dateFormat = new SimpleDateFormat(format);
 		}
 	}
 
@@ -42,7 +41,7 @@ public class ToString implements Expression {
 			return null;
 
 		if (value instanceof Date)
-			return dateFormat.format(value);
+			return new SimpleDateFormat(format).format(value);
 
 		if (value instanceof InetAddress)
 			return ((InetAddress) value).getHostAddress();
@@ -52,6 +51,9 @@ public class ToString implements Expression {
 
 	@Override
 	public String toString() {
-		return "string(" + valueExpr + ", " + format + ")";
+		if (format == null)
+			return "string(" + valueExpr + ")";
+		else
+			return "string(" + valueExpr + ", " + Strings.doubleQuote(format) + ")";
 	}
 }

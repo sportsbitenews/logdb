@@ -24,10 +24,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.zip.Deflater;
 
 import org.araqne.codec.FastEncodingRule;
 import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogFlushCallback;
+import org.araqne.logstorage.LogFlushCallbackArgs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,16 +72,19 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 	private List<Log> buffer = new ArrayList<Log>();
 
-	public LogFileWriterV2(File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
-		this(indexPath, dataPath, DEFAULT_BLOCK_SIZE);
+	public LogFileWriterV2(File indexPath, File dataPath, Set<LogFlushCallback> fcb, LogFlushCallbackArgs fcbArgs) throws IOException,
+			InvalidLogFileHeaderException {
+		this(indexPath, dataPath, DEFAULT_BLOCK_SIZE, fcb, fcbArgs);
 	}
 
 	// TODO: block size modification does not work
-	private LogFileWriterV2(File indexPath, File dataPath, int blockSize) throws IOException, InvalidLogFileHeaderException {
-		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL);
+	private LogFileWriterV2(File indexPath, File dataPath, int blockSize, Set<LogFlushCallback> fcb, LogFlushCallbackArgs fcbArgs)
+			throws IOException, InvalidLogFileHeaderException {
+		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL, fcb, fcbArgs);
 	}
 
-	public LogFileWriterV2(File indexPath, File dataPath, int blockSize, int level) throws IOException,
+	public LogFileWriterV2(File indexPath, File dataPath, int blockSize, int level, Set<LogFlushCallback> fcb, LogFlushCallbackArgs fcbArgs)
+			throws IOException,
 			InvalidLogFileHeaderException {
 		// level 0 will not use compression (no zip metadata overhead)
 		try {
@@ -86,6 +93,9 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 			boolean indexExists = indexPath.exists();
 			boolean dataExists = dataPath.exists();
+
+			this.flushCallbacks = fcb;
+			this.flushCallbackArgs = fcbArgs;
 			this.indexPath = indexPath;
 			this.dataPath = dataPath;
 			this.indexFile = new RandomAccessFile(indexPath, "rw");
@@ -259,7 +269,13 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 	@Override
 	public List<Log> getBuffer() {
-		return buffer;
+		List<Log> captured = buffer;
+		int capturedLimit = captured.size();
+		List<Log> result = new ArrayList<Log>(capturedLimit);
+		for (int i = 0; i < capturedLimit; ++i) {
+			result.add(captured.get(i));
+		}
+		return result;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -280,65 +296,103 @@ public class LogFileWriterV2 extends LogFileWriter {
 		if (logger.isTraceEnabled())
 			logger.trace("araqne logstorage: flush idx [{}], dat [{}] files", indexPath, dataPath);
 
-		// mark last flush
-		lastFlush = new Date();
+		if (flushCallbacks != null && flushCallbackArgs != null)
+			for (LogFlushCallback c : flushCallbacks) {
+				try {
+					LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
+					arg.setLogs(buffer);
+					c.onFlush(arg);
+				} catch (Throwable t) {
+					logger.warn("flush callback should not throw any exception", t);
+				}
+			}
 
-		// write start date
-		prepareLong(blockStartLogTime, longbuf);
-		dataFile.write(longbuf);
+		try {
+			// mark last flush
+			lastFlush = new Date();
 
-		// write end date
-		prepareLong(blockEndLogTime, longbuf);
-		dataFile.write(longbuf);
+			// write start date
+			prepareLong(blockStartLogTime, longbuf);
+			dataFile.write(longbuf);
 
-		// write original size
-		dataBuffer.flip();
-		prepareInt(dataBuffer.limit(), intbuf);
-		dataFile.write(intbuf);
+			// write end date
+			prepareLong(blockEndLogTime, longbuf);
+			dataFile.write(longbuf);
 
-		// compress data
-		byte[] output = null;
-		int outputSize = 0;
+			// write original size
+			dataBuffer.flip();
+			prepareInt(dataBuffer.limit(), intbuf);
+			dataFile.write(intbuf);
 
-		if (compressLevel > 0) {
-			compresser.setInput(dataBuffer.array(), 0, dataBuffer.limit());
-			compresser.finish();
-			int compressedSize = compresser.deflate(compressed);
+			// compress data
+			byte[] output = null;
+			int outputSize = 0;
 
-			output = compressed;
-			outputSize = compressedSize;
-		} else {
-			output = dataBuffer.array();
-			outputSize = dataBuffer.limit();
+			if (compressLevel > 0) {
+				compresser.setInput(dataBuffer.array(), 0, dataBuffer.limit());
+				compresser.finish();
+				int compressedSize = compresser.deflate(compressed);
+
+				output = compressed;
+				outputSize = compressedSize;
+			} else {
+				output = dataBuffer.array();
+				outputSize = dataBuffer.limit();
+			}
+
+			// write compressed size
+			prepareInt(outputSize, intbuf);
+			dataFile.write(intbuf);
+
+			// write compressed logs
+			dataFile.write(output, 0, outputSize);
+
+			dataBuffer.clear();
+			compresser.reset();
+			// dataFile.getFD().sync();
+
+			// write log count
+			prepareInt(blockLogCount, intbuf);
+			indexFile.write(intbuf);
+
+			// write log indexes
+			indexBuffer.flip();
+			indexFile.write(indexBuffer.array(), 0, indexBuffer.limit());
+			indexBuffer.clear();
+			// indexFile.getFD().sync();
+
+			blockStartLogTime = null;
+			blockEndLogTime = null;
+			blockLogCount = 0;
+
+			if (flushCallbacks != null && flushCallbackArgs != null)
+				for (LogFlushCallback c : flushCallbacks) {
+					try {
+						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
+						arg.setLogs(buffer);
+						c.onFlushCompleted(arg);
+					} catch (Throwable t) {
+						logger.warn("flush callback should not throw any exception", t);
+					}
+				}
+
+			buffer.clear();
+
+			return true;
+		} catch (Throwable t) {
+			if (flushCallbacks != null && flushCallbackArgs != null)
+				for (LogFlushCallback c : flushCallbacks) {
+					try {
+						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
+						arg.setLogs(buffer);
+						c.onFlushException(arg, t);
+					} catch (Throwable t2) {
+						logger.warn("flush callback should not throw any exception", t2);
+					}
+				}
+			
+			return false;
 		}
-
-		// write compressed size
-		prepareInt(outputSize, intbuf);
-		dataFile.write(intbuf);
-
-		// write compressed logs
-		dataFile.write(output, 0, outputSize);
-
-		dataBuffer.clear();
-		compresser.reset();
-		// dataFile.getFD().sync();
-
-		// write log count
-		prepareInt(blockLogCount, intbuf);
-		indexFile.write(intbuf);
-
-		// write log indexes
-		indexBuffer.flip();
-		indexFile.write(indexBuffer.array(), 0, indexBuffer.limit());
-		indexBuffer.clear();
-		// indexFile.getFD().sync();
-
-		blockStartLogTime = null;
-		blockEndLogTime = null;
-		blockLogCount = 0;
-		buffer.clear();
-
-		return true;
 	}
 
 	@Override
@@ -403,4 +457,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 		result = dataPath.delete();
 		logger.debug("araqne logstorage: delete [{}] file => {}", dataPath, result);
 	}
+
+	private Set<LogFlushCallback> flushCallbacks = new CopyOnWriteArraySet<LogFlushCallback>();
+	private LogFlushCallbackArgs flushCallbackArgs;
 }

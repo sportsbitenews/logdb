@@ -81,7 +81,7 @@ public class ExpressionParser {
 		}
 
 		if (exprStack.size() > 1) {
-			throw new QueryParseException("remain-terms", -1);
+			throw new QueryParseException("remain-terms", -1, exprStack.toString());
 		}
 		return exprStack.pop();
 	}

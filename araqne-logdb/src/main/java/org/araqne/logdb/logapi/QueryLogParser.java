@@ -15,7 +15,6 @@
  */
 package org.araqne.logdb.logapi;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -58,7 +57,7 @@ public class QueryLogParser extends QueryCommand implements LogParser {
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
-		first.onPush(new Row(new HashMap<String, Object>(params)));
+		first.onPush(new Row(Row.clone(params)));
 		Map<String, Object> m = last;
 		last = null;
 		return m;

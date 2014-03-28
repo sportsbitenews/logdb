@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,12 +21,14 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceEventListener;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileWriter;
+import org.araqne.logstorage.repair.IntegrityChecker;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +37,12 @@ import org.slf4j.LoggerFactory;
 @Provides
 public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	private final static Logger logger = LoggerFactory.getLogger(LogFileServiceRegistryImpl.class);
+
+	/**
+	 * force dependency
+	 */
+	@Requires
+	private IntegrityChecker consistencyChecker;
 
 	private BundleContext bc;
 	private ConcurrentHashMap<String, WaitEvent> availableEngines = new ConcurrentHashMap<String, WaitEvent>();
@@ -199,7 +208,10 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 
 	@Override
 	public String[] getInstalledTypes() {
-		return availableEngines.keySet().toArray(new String[0]);
+		Set<String> types = new HashSet<String>(availableEngines.keySet());
+		types.add("v1");
+		types.add("v2");
+		return types.toArray(new String[0]);
 	}
 
 	@Override

@@ -41,10 +41,7 @@ public class ParseKvParser implements QueryCommandParser {
 		if (field == null)
 			field = "line";
 
-		String overlayStr = options.get("overlay");
-		boolean overlay = false;
-		if (overlayStr != null)
-			overlay = Boolean.parseBoolean(overlayStr);
+		boolean overlay = CommandOptions.parseBoolean(options.get("overlay"));
 
 		String pairDelim = options.get("pairdelim");
 		if (pairDelim == null)

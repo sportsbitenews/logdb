@@ -48,10 +48,7 @@ public class ParseParser implements QueryCommandParser {
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overlay"));
 		Map<String, String> options = (Map<String, String>) r.value;
-		String s = options.get("overlay");
-		boolean overlay = false;
-		if (s != null)
-			overlay = Boolean.parseBoolean(s);
+		boolean overlay = CommandOptions.parseBoolean(options.get("overlay"));
 
 		String parserName = commandString.substring(r.next).trim();
 		if (parserName.isEmpty())

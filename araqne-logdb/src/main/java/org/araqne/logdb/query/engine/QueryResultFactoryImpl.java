@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
@@ -62,7 +63,7 @@ public class QueryResultFactoryImpl implements QueryResultFactory {
 			String filePrefix = getFileNamePrefix(config);
 			File indexPath = new File(BASE_DIR, filePrefix + ".idx");
 			File dataPath = new File(BASE_DIR, filePrefix + ".dat");
-			return new LogFileWriterV2(indexPath, dataPath, 1024 * 1024, 1);
+			return new LogFileWriterV2(indexPath, dataPath, 1024 * 1024, 1, null, null);
 		}
 
 		@Override

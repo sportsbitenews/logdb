@@ -28,4 +28,8 @@ public class ContextReference implements Expression {
 		return constants.get(field);
 	}
 
+	@Override
+	public String toString() {
+		return "$(\"" + field + "\")";
+	}
 }

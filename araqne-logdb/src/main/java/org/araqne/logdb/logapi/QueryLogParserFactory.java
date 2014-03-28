@@ -66,7 +66,9 @@ public class QueryLogParserFactory implements LogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		return "parse log using logdb query";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "쿼리를 이용하여 파싱을 수행합니다.";
+		return "Parse log using query";
 	}
 
 	@Override

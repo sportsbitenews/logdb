@@ -147,6 +147,94 @@ public class SrxLogParserTest {
 		assertEquals("untrust", m.get("dst_zone"));
 	}
 
+	@Test
+	public void testCreateLog() {
+		SrxLogParser parser = new SrxLogParser();
+		Map<String, Object> m = parser
+				.parse(line("1 2014-01-19T11:16:39.616 SRX3400_1 RT_FLOW - RT_FLOW_SESSION_CREATE [junos@2636.1.1.1.2.35 source-address=\"226.57.142.105\" source-port=\"46556\" destination-address=\"132.58.192.215\" destination-port=\"1152\" service-name=\"None\" nat-source-address=\"226.57.142.105\" nat-source-port=\"46556\" nat-destination-address=\"10.201.50.215\" nat-destination-port=\"1152\" src-nat-rule-name=\"None\" dst-nat-rule-name=\"natrule3\" protocol-id=\"6\" policy-name=\"268\" source-zone-name=\"untrust\" destination-zone-name=\"trust\" session-id-32=\"60663108\" username=\"N/A\" roles=\"N/A\" packet-incoming-interface=\"eth0\"]"));
+
+		assertEquals("create", m.get("action"));
+		assertEquals("226.57.142.105", m.get("source-address"));
+		assertEquals("46556", m.get("source-port"));
+		assertEquals("132.58.192.215", m.get("destination-address"));
+		assertEquals("1152", m.get("destination-port"));
+		assertEquals("None", m.get("service-name"));
+		assertEquals("226.57.142.105", m.get("nat-source-address"));
+		assertEquals("46556", m.get("nat-source-port"));
+		assertEquals("10.201.50.215", m.get("nat-destination-address"));
+		assertEquals("1152", m.get("nat-destination-port"));
+		assertEquals("None", m.get("src-nat-rule-name"));
+		assertEquals("natrule3", m.get("dst-nat-rule-name"));
+		assertEquals("6", m.get("protocol-id"));
+		assertEquals("268", m.get("policy-name"));
+		assertEquals("untrust", m.get("source-zone-name"));
+		assertEquals("trust", m.get("destination-zone-name"));
+		assertEquals("60663108", m.get("session-id-32"));
+		assertEquals("N/A", m.get("username"));
+		assertEquals("N/A", m.get("roles"));
+		assertEquals("eth0", m.get("packet-incoming-interface"));
+	}
+
+	@Test
+	public void testCloseLog() {
+		SrxLogParser parser = new SrxLogParser();
+		Map<String, Object> m = parser
+				.parse(line("1 2014-01-19T11:16:37.266 SRX3400_1 RT_FLOW - RT_FLOW_SESSION_CLOSE [junos@2636.1.1.1.2.35 reason=\"ICMP error\" source-address=\"10.40.29.180\" source-port=\"56255\" destination-address=\"216.85.144.3\" destination-port=\"53\" service-name=\"junos-dns-udp\" nat-source-address=\"132.58.192.15\" nat-source-port=\"57572\" nat-destination-address=\"216.85.144.3\" nat-destination-port=\"53\" src-nat-rule-name=\"natrule7\" dst-nat-rule-name=\"None\" protocol-id=\"17\" policy-name=\"1000\" source-zone-name=\"trust\" destination-zone-name=\"untrust\" session-id-32=\"40174772\" packets-from-client=\"1\" bytes-from-client=\"75\" packets-from-server=\"0\" bytes-from-server=\"0\" elapsed-time=\"1\" application=\"UNKNOWN\" nested-application=\"UNKNOWN\" username=\"N/A\" roles=\"N/A\" packet-incoming-nterface=\"eth1\"]"));
+
+		assertEquals("close", m.get("action"));
+		assertEquals("ICMP error", m.get("reason"));
+		assertEquals("10.40.29.180", m.get("source-address"));
+		assertEquals("56255", m.get("source-port"));
+		assertEquals("216.85.144.3", m.get("destination-address"));
+		assertEquals("53", m.get("destination-port"));
+		assertEquals("junos-dns-udp", m.get("service-name"));
+		assertEquals("132.58.192.15", m.get("nat-source-address"));
+		assertEquals("57572", m.get("nat-source-port"));
+		assertEquals("216.85.144.3", m.get("nat-destination-address"));
+		assertEquals("53", m.get("nat-destination-port"));
+		assertEquals("natrule7", m.get("src-nat-rule-name"));
+		assertEquals("None", m.get("dst-nat-rule-name"));
+		assertEquals("17", m.get("protocol-id"));
+		assertEquals("1000", m.get("policy-name"));
+		assertEquals("trust", m.get("source-zone-name"));
+		assertEquals("untrust", m.get("destination-zone-name"));
+		assertEquals("40174772", m.get("session-id-32"));
+		assertEquals("1", m.get("packets-from-client"));
+		assertEquals("75", m.get("bytes-from-client"));
+		assertEquals("0", m.get("packets-from-server"));
+		assertEquals("0", m.get("bytes-from-server"));
+		assertEquals("1", m.get("elapsed-time"));
+		assertEquals("UNKNOWN", m.get("application"));
+		assertEquals("UNKNOWN", m.get("nested-application"));
+		assertEquals("N/A", m.get("username"));
+		assertEquals("N/A", m.get("roles"));
+		assertEquals("eth1", m.get("packet-incoming-nterface"));
+	}
+
+	@Test
+	public void testDenyLog2() {
+		SrxLogParser parser = new SrxLogParser();
+		Map<String, Object> m = parser
+				.parse(line("1 2014-01-19T11:16:37.375 SRX3400_1 RT_FLOW - RT_FLOW_SESSION_DENY [junos@2636.1.1.1.2.35 source-address=\"230.178.7.14\" source-port=\"39722\" destination-address=\"132.58.173.32\" destination-port=\"1931\" service-name=\"None\" protocol-id=\"6\" icmp-type=\"0\" policy-name=\"2000\" source-zone-name=\"untrust\" destination-zone-name=\"trust\" application=\"UNKNOWN\" nested-application=\"UNKNOWN\" username=\"N/A\" roles=\"N/A\" packet-incoming-interface=\"eth0\"]"));
+
+		assertEquals("deny", m.get("action"));
+		assertEquals("230.178.7.14", m.get("source-address"));
+		assertEquals("39722", m.get("source-port"));
+		assertEquals("132.58.173.32", m.get("destination-address"));
+		assertEquals("1931", m.get("destination-port"));
+		assertEquals("None", m.get("service-name"));
+		assertEquals("6", m.get("protocol-id"));
+		assertEquals("0", m.get("icmp-type"));
+		assertEquals("2000", m.get("policy-name"));
+		assertEquals("untrust", m.get("source-zone-name"));
+		assertEquals("trust", m.get("destination-zone-name"));
+		assertEquals("UNKNOWN", m.get("application"));
+		assertEquals("UNKNOWN", m.get("nested-application"));
+		assertEquals("N/A", m.get("username"));
+		assertEquals("N/A", m.get("roles"));
+		assertEquals("eth0", m.get("packet-incoming-interface"));
+	}
+
 	private Map<String, Object> line(String line) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("line", line);

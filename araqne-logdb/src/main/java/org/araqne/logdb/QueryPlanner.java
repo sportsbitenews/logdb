@@ -19,6 +19,16 @@ import java.util.List;
 
 public interface QueryPlanner {
 	/**
+	 * @since 2.1.7
+	 * @return planner name
+	 */
+	String getName();
+
+	boolean isEnabled();
+
+	void setEnabled(boolean b);
+
+	/**
 	 * planner may throw parse exception
 	 * 
 	 * @return the new query execution pipeline

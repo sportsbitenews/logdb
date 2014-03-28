@@ -151,6 +151,7 @@ public class QueryTokenizer {
 		StringBuilder sb = new StringBuilder();
 		char before = 0;
 		boolean quoted = false;
+		boolean escape = false;
 
 		Stack<Integer> sqStack = new Stack<Integer>();
 
@@ -162,7 +163,7 @@ public class QueryTokenizer {
 			else if (c == ']' && !quoted)
 				sqStack.pop();
 
-			if (c == '"' && before != '\\') {
+			if (c == '"' && !escape) {
 				quoted = !quoted;
 				sb.append(c);
 			} else {
@@ -175,6 +176,8 @@ public class QueryTokenizer {
 				} else
 					sb.append(c);
 			}
+
+			escape = c == '\\' && before != '\\';
 			before = c;
 		}
 

@@ -42,7 +42,6 @@ import org.araqne.log.api.WildcardMatcher;
 import org.araqne.logstorage.*;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
-import org.araqne.logstorage.engine.LogTableSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
