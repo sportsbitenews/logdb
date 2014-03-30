@@ -76,7 +76,7 @@ public class GzipDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				"gzip 압축 해제된 텍스트 파일의 문자 인코딩 방식"), false);
 
 		LoggerConfigOption isDeleteFile = new StringConfigType("is_delete", t("Delete GZIP file",
-				"GZIP 파일 삭제 (true 혹은 false)"), t("Delete collected GZIP file", "수집 완료된 GZIP 파일의 삭제 여부"), false);
+				"GZIP 파일 삭제"), t("Delete GZIP file after load, true or false", "수집 완료된 GZIP 파일의 삭제 여부, true 혹은 false"), false);
 
 		return Arrays
 				.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, newlogRegex, newlogEndRegex, charset,
