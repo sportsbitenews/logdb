@@ -24,4 +24,6 @@ import java.util.Date;
  */
 public interface LogStorageEventListener {
 	void onPurge(String tableName, Date day);
+	
+	void onClose(String tableName, Date day);
 }

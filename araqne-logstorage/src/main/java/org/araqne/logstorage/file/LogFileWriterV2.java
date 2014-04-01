@@ -23,13 +23,15 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.zip.Deflater;
 
 import org.araqne.codec.FastEncodingRule;
+import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFlushCallback;
 import org.araqne.logstorage.LogFlushCallbackArgs;
+import org.araqne.logstorage.LogStorageEventArgs;
+import org.araqne.logstorage.LogStorageEventListener;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
 import org.araqne.storage.api.StorageOutputStream;
@@ -73,16 +75,21 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 	private List<Log> buffer = new ArrayList<Log>();
 
-	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, Set<LogFlushCallback> fcb, LogFlushCallbackArgs fcbArgs) throws IOException, InvalidLogFileHeaderException {
-		this(indexPath, dataPath, DEFAULT_BLOCK_SIZE, fcb, fcbArgs);
+	private LogFlushCallbackArgs flushCallbackArgs;
+	private LogStorageEventArgs closeCallbackArgs;
+
+	private CallbackSet callbackSet;
+
+	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, CallbackSet cbSet, String tableName, Date day) throws IOException, InvalidLogFileHeaderException {
+		this(indexPath, dataPath, DEFAULT_BLOCK_SIZE, cbSet, tableName, day);
 	}
 
 	// TODO: block size modification does not work
-	private LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, Set<LogFlushCallback> fcb, LogFlushCallbackArgs fcbArgs) throws IOException, InvalidLogFileHeaderException {
-		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL, fcb, fcbArgs);
+	private LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, CallbackSet cbSet, String tableName, Date day) throws IOException, InvalidLogFileHeaderException {
+		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL, cbSet, tableName, day);
 	}
 
-	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, int level, Set<LogFlushCallback> fcb, LogFlushCallbackArgs fcbArgs) throws IOException,
+	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, int level, CallbackSet cbSet, String tableName, Date day) throws IOException,
 			InvalidLogFileHeaderException {
 		// level 0 will not use compression (no zip metadata overhead)
 		try {
@@ -92,8 +99,11 @@ public class LogFileWriterV2 extends LogFileWriter {
 			boolean indexExists = indexPath.isNotEmpty();
 			boolean dataExists = dataPath.isNotEmpty();
 
-			this.flushCallbacks = fcb;
-			this.flushCallbackArgs = fcbArgs;
+			if (cbSet != null) {
+				this.callbackSet = cbSet;
+				this.flushCallbackArgs = new LogFlushCallbackArgs(tableName);
+				this.closeCallbackArgs = new LogStorageEventArgs(tableName, day);
+			}
 			this.indexPath = indexPath;
 			this.dataPath = dataPath;
 
@@ -311,8 +321,8 @@ public class LogFileWriterV2 extends LogFileWriter {
 		if (logger.isTraceEnabled())
 			logger.trace("araqne logstorage: flush idx [{}], dat [{}] files", indexPath, dataPath);
 
-		if (flushCallbacks != null && flushCallbackArgs != null)
-			for (LogFlushCallback c : flushCallbacks) {
+		if (callbackSet != null && flushCallbackArgs != null)
+			for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
 				try {
 					LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
 					arg.setLogs(buffer);
@@ -380,8 +390,8 @@ public class LogFileWriterV2 extends LogFileWriter {
 			blockEndLogTime = null;
 			blockLogCount = 0;
 
-			if (flushCallbacks != null && flushCallbackArgs != null)
-				for (LogFlushCallback c : flushCallbacks) {
+			if (callbackSet != null && flushCallbackArgs != null)
+				for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
 					try {
 						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
 						arg.setLogs(buffer);
@@ -395,8 +405,8 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 			return true;
 		} catch (Throwable t) {
-			if (flushCallbacks != null && flushCallbackArgs != null)
-				for (LogFlushCallback c : flushCallbacks) {
+			if (callbackSet != null && flushCallbackArgs != null)
+				for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
 					try {
 						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
 						arg.setLogs(buffer);
@@ -454,6 +464,18 @@ public class LogFileWriterV2 extends LogFileWriter {
 			dataOutStream.close();
 			dataOutStream = null;
 		}
+		
+		invokeCloseCallback();
+	}
+
+	private void invokeCloseCallback() {
+		if (callbackSet != null && closeCallbackArgs != null) {
+			Set<LogStorageEventListener> callbacks = callbackSet.get(LogStorageEventListener.class);
+
+			for (LogStorageEventListener cb : callbacks) {
+				cb.onClose(closeCallbackArgs.tableName, closeCallbackArgs.day);
+			}
+		}
 	}
 
 	@Override
@@ -473,6 +495,4 @@ public class LogFileWriterV2 extends LogFileWriter {
 		logger.debug("araqne logstorage: delete [{}] file => {}", dataPath.getAbsolutePath(), result);
 	}
 
-	private Set<LogFlushCallback> flushCallbacks = new CopyOnWriteArraySet<LogFlushCallback>();
-	private LogFlushCallbackArgs flushCallbackArgs;
 }

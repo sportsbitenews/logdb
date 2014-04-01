@@ -18,6 +18,7 @@ package org.araqne.logdb.query.command;
 import java.util.Date;
 
 import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.ThreadSafe;
 import org.araqne.logstorage.Log;
@@ -82,8 +83,12 @@ public class Import extends QueryCommand implements ThreadSafe {
 		else
 			date = new Date();
 
-		storage.write(new Log(tableName, date, row.map()));
-		pushPipe(row);
+		try {
+			storage.write(new Log(tableName, date, row.map()));
+			pushPipe(row);
+		} catch (InterruptedException e) {
+			getQuery().stop(QueryStopReason.Interrupted);
+		}
 	}
 
 	@Override

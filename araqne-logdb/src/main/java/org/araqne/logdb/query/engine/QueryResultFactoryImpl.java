@@ -83,7 +83,7 @@ public class QueryResultFactoryImpl implements QueryResultFactory {
 			String filePrefix = getFileNamePrefix(config);
 			FilePath indexPath = BASE_DIR.newFilePath(filePrefix+".idx");
 			FilePath dataPath = BASE_DIR.newFilePath(filePrefix+".dat");
-			return new LogFileWriterV2(indexPath, dataPath, 1024 * 1024, 1, null, null);
+			return new LogFileWriterV2(indexPath, dataPath, 1024 * 1024, 1, null, null, null);
 		}
 
 		@Override

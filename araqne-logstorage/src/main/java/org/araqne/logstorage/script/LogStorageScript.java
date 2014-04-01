@@ -24,6 +24,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
@@ -740,7 +741,7 @@ public class LogStorageScript implements Script {
 		}
 	}
 
-	private void importFromStream(String tableName, InputStream fis, int offset, int limit) throws IOException {
+	private void importFromStream(String tableName, InputStream fis, int offset, int limit) throws IOException, InterruptedException {
 		Date begin = new Date();
 		long count = 0;
 		BufferedReader br = new BufferedReader(new InputStreamReader(fis), 16384 * 1024); // 16MB
@@ -904,7 +905,7 @@ public class LogStorageScript implements Script {
 	@ScriptUsage(description = "", arguments = {
 			@ScriptArgument(name = "count", type = "integer", description = "log count", optional = true),
 			@ScriptArgument(name = "repeat", type = "integer", description = "repeat count", optional = true) })
-	public void benchmark(String[] args) {
+	public void benchmark(String[] args) throws InterruptedException {
 		String tableName = "benchmark";
 		int count = 1000000;
 		int repeat = 1;
@@ -944,7 +945,7 @@ public class LogStorageScript implements Script {
 		}
 	}
 
-	private void benchmark(String name, String tableName, int count, Map<String, Object> data) {
+	private void benchmark(String name, String tableName, int count, Map<String, Object> data) throws InterruptedException {
 		try {
 			storage.createTable(new TableSchema(tableName, new StorageConfig("v3p")));
 		} catch (UnsupportedLogFileTypeException e) {
@@ -1033,16 +1034,33 @@ public class LogStorageScript implements Script {
 	}
 
 	private class PurgePrinter implements LogStorageEventListener {
-
 		@Override
 		public void onPurge(String tableName, Date day) {
 			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 			context.println("purging table " + tableName + " day " + df.format(day));
 		}
+
+		@Override
+		public void onClose(String tableName, Date day) {
+		}
 	}
 	
-	public void _lock(String[] args) {
-		storage.lock(new LockKey("script", args[0], null));
+	public void _lockStatus(String[] args) {
+		LockStatus status = storage.lockStatus(new LockKey("script", args[0], null));
+		if(status.isLocked()) 
+			context.printf("locked(owner: %s)\n", status.getOwner());
+		else
+			context.printf("unlocked\n");
+	}
+	
+	public void _lock(String[] args) throws InterruptedException {
+		boolean lock = storage.lock(new LockKey("script", args[0], null), 5, TimeUnit.SECONDS);
+		if (lock)
+			context.println("locked");
+		else {
+			context.println("failed");
+			_lockStatus(args);
+		}
 	}
 	
 	public void _unlock(String[] args) {

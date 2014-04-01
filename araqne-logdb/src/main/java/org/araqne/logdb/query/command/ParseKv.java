@@ -134,6 +134,6 @@ public class ParseKv extends QueryCommand {
 
 	@Override
 	public String toString() {
-		return "parseKv field=" + field + " overlay=" + overlay + " pairdelim=\"" + pairDelim + "\" kvdelim=\"" + kvDelim + "\"";
+		return "parsekv field=" + field + " overlay=" + overlay + " pairdelim=\"" + pairDelim + "\" kvdelim=\"" + kvDelim + "\"";
 	}
 }

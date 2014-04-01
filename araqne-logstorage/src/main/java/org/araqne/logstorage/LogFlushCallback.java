@@ -15,8 +15,6 @@
  */
 package org.araqne.logstorage;
 
-import java.util.List;
-
 public interface LogFlushCallback {
 	/**
 	 * invoked when logs are inserted to table

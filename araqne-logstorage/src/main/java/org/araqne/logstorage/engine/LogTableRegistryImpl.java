@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
@@ -36,17 +37,7 @@ import org.araqne.confdb.ConfigIterator;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.ConfigTransaction;
 import org.araqne.confdb.Predicates;
-import org.araqne.log.api.FieldDefinition;
-import org.araqne.logstorage.LogFileService;
-import org.araqne.logstorage.LogFileServiceRegistry;
-import org.araqne.logstorage.LogTableRegistry;
-import org.araqne.logstorage.StorageConfig;
-import org.araqne.logstorage.TableConfig;
-import org.araqne.logstorage.TableConfigSpec;
-import org.araqne.logstorage.TableEventListener;
-import org.araqne.logstorage.TableNotFoundException;
-import org.araqne.logstorage.TableSchema;
-import org.araqne.logstorage.UnsupportedLogFileTypeException;
+import org.araqne.logstorage.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,6 +148,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 		for (TableSchema t : it.getDocuments(TableSchema.class)) {
 			tableNames.put(t.getId(), t.getName());
 			tableSchemas.put(t.getName(), t);
+			tableLocks.put(t.getName(), new TableLock());
 			if (maxId < t.getId())
 				maxId = t.getId();
 		}
@@ -200,6 +192,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 		tableNames.put(newSchema.getId(), tableName);
 		tableSchemas.put(tableName, newSchema);
+		tableLocks.put(tableName, new TableLock());
 
 		// invoke callbacks
 		for (TableEventListener callback : callbacks) {
@@ -378,6 +371,8 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 			}
 		}
 
+		TableLock tableLock = tableLocks.remove(tableName);
+		// XXX : maybe we should invalidate lock.
 		TableSchema t = tableSchemas.remove(tableName);
 		if (t != null)
 			tableNames.remove(t.getId());
@@ -409,4 +404,39 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	public void removeListener(TableEventListener listener) {
 		callbacks.remove(listener);
 	}
+
+	@Override
+	public Lock getExclusiveTableLock(String tableName, String owner) {
+		TableLock tableLock = tableLocks.get(tableName);
+		if (tableLock == null)
+			throw new TableNotFoundException(tableName);
+
+		return tableLock.writeLock(owner);
+	}
+
+	@Override
+	public Lock getSharedTableLock(String tableName) {
+		TableLock tableLock = tableLocks.get(tableName);
+		if (tableLock == null)
+			throw new TableNotFoundException(tableName);
+
+		return tableLock.readLock();
+	}
+
+	private ConcurrentHashMap<String, TableLock> tableLocks = new ConcurrentHashMap<String, TableLock>();
+
+	@Override
+	public LockStatus getTableLockStatus(String tableName) {
+		TableLock tableLock = tableLocks.get(tableName);
+		if (tableLock != null) {
+			String owner = tableLock.getOwner();
+			if (owner != null)
+				return new LockStatus(owner, tableLock.availableShared());
+			else
+				return new LockStatus(tableLock.availableShared());
+		} else {
+			return new LockStatus(-1);
+		}
+	}
+
 }

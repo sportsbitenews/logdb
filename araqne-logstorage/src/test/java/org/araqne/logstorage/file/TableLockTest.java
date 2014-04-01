@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.araqne.logstorage.LockKey;
 import org.araqne.logstorage.Log;
@@ -25,7 +26,7 @@ public class TableLockTest {
 	}
 
 	@Test
-	public void tableLockTest() {
+	public void tableLockTest() throws InterruptedException {
 		List<Log> logs = new ArrayList<Log>();
 
 		logs.add(new Log("test1", LogUtil.getDay(new Date()), LogUtil.newLogData("line", "line0")));
@@ -42,7 +43,7 @@ public class TableLockTest {
 		assertTrue(ls.tryWrite(logs.get(0)));
 		assertTrue(ls.tryWrite(logs.get(1)));
 		
-		ls.lock(new LockKey("test", "T1", null));
+		ls.lock(new LockKey("test", "T1", null), Long.MAX_VALUE, TimeUnit.SECONDS);
 		
 		assertFalse(ls.tryWrite(logs.get(2)));
 		

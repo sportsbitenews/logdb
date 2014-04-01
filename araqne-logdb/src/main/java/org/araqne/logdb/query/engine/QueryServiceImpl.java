@@ -471,7 +471,11 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			else
 				m.put("duration", 0);
 
-			storage.write(new Log(QUERY_LOG_TABLE, now, m));
+			try {
+				storage.write(new Log(QUERY_LOG_TABLE, now, m));
+			} catch (InterruptedException e) {
+				logger.warn("writing query log is interrupted: {}", m);
+			}
 
 			invokeCallbacks(query, QueryStatus.EOF);
 		}

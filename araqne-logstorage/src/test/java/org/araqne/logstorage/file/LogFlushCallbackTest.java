@@ -12,13 +12,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFlushCallback;
 import org.araqne.logstorage.LogFlushCallbackArgs;
 import org.araqne.logstorage.LogMarshaler;
-import org.araqne.logstorage.LogMatchCallback;
-import org.araqne.logstorage.LogTraverseCallback;
 import org.araqne.logstorage.LogTraverseCallback.Sink;
+import org.araqne.logstorage.LogUtil;
 import org.araqne.logstorage.SimpleLogTraverseCallback;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.localfile.LocalFilePath;
@@ -29,30 +29,31 @@ public class LogFlushCallbackTest {
 	public void testv2() throws InvalidLogFileHeaderException, IOException {
 		final AtomicInteger fcnt = new AtomicInteger(0);
 		final AtomicInteger cmplcnt = new AtomicInteger(0);
-		Set<LogFlushCallback> flushCallbacks = new HashSet<LogFlushCallback>();
-		flushCallbacks.add(new LogFlushCallback() {
-			@Override
-			public void onFlushException(LogFlushCallbackArgs arg, Throwable t) {
+		CallbackSet cbSet = new CallbackSet();
+		cbSet.get(LogFlushCallback.class).add(
+				new LogFlushCallback() {
+					@Override
+					public void onFlushException(LogFlushCallbackArgs arg, Throwable t) {
 
-			}
+					}
 
-			@Override
-			public void onFlushCompleted(LogFlushCallbackArgs args) {
-				cmplcnt.incrementAndGet();
-			}
+					@Override
+					public void onFlushCompleted(LogFlushCallbackArgs args) {
+						cmplcnt.incrementAndGet();
+					}
 
-			@Override
-			public void onFlush(LogFlushCallbackArgs arg) {
-				fcnt.incrementAndGet();
-			}
-		});
+					@Override
+					public void onFlush(LogFlushCallbackArgs arg) {
+						fcnt.incrementAndGet();
+					}
+				});
 		FilePath indexPath = new LocalFilePath("lfctestv2.idx");
 		FilePath dataPath = new LocalFilePath("lfctestv2.dat");
 
 		indexPath.deleteOnExit();
 		dataPath.deleteOnExit();
 
-		LogFileWriterV2 writer = new LogFileWriterV2(indexPath, dataPath, flushCallbacks, new LogFlushCallbackArgs("test"));
+		LogFileWriterV2 writer = new LogFileWriterV2(indexPath, dataPath, cbSet, "test", LogUtil.getDay(new Date()));
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < 100; ++i) {

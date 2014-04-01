@@ -82,9 +82,9 @@ public interface LogStorage {
 
 	Collection<Date> getLogDates(String tableName);
 
-	void write(Log log);
+	void write(Log log) throws InterruptedException;
 
-	void write(List<Log> logs);
+	void write(List<Log> logs) throws InterruptedException;
 
 	Collection<Log> getLogs(String tableName, Date from, Date to, int limit);
 
@@ -133,7 +133,7 @@ public interface LogStorage {
 	/*
 	 * @since 2.5.5
 	 */
-	void lock(LockKey storageLockKey);
+	boolean lock(LockKey storageLockKey, long timeout, TimeUnit unit) throws InterruptedException;
 
 	void unlock(LockKey storageLockKey);
 
@@ -144,7 +144,7 @@ public interface LogStorage {
 	 * @since 2.5.10-SNAPSHOT
 	 */
 	StorageManager getStorageManager();
-
+	
 	boolean tryWrite(Log log);
 	
 	boolean tryWrite(Log log, long timeout, TimeUnit unit);
@@ -152,4 +152,6 @@ public interface LogStorage {
 	boolean tryWrite(List<Log> log);
 	
 	boolean tryWrite(List<Log> log, long timeout, TimeUnit unit);
+
+	LockStatus lockStatus(LockKey storageLockKey);
 }
