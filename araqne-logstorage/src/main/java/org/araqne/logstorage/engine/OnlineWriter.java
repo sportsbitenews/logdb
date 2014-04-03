@@ -30,6 +30,7 @@ import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.TableConfig;
 import org.araqne.logstorage.TableSchema;
+import org.araqne.logstorage.file.DatapathUtil;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;

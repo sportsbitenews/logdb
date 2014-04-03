@@ -47,6 +47,7 @@ import org.araqne.logstorage.backup.StorageFile;
 import org.araqne.logstorage.backup.StorageMediaFile;
 import org.araqne.logstorage.backup.StorageTransferRequest;
 import org.araqne.logstorage.backup.StorageTransferStream;
+import org.araqne.logstorage.file.DatapathUtil;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
 import org.araqne.storage.localfile.LocalFilePath;

@@ -21,6 +21,7 @@ import java.util.Date;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.TableSchema;
+import org.araqne.logstorage.file.DatapathUtil;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.storage.api.FilePath;
