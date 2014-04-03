@@ -177,15 +177,17 @@ public class LogStorageScript implements Script {
 
 			// replica storage
 			StorageConfig replicaStorage = schema.getReplicaStorage();
-			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
-				TableConfig c = replicaStorage.getConfig(spec.getKey());
-				String config = null;
-				if (c != null && c.getValues().size() > 1)
-					config = c.getValues().toString();
-				else if (c != null)
-					config = c.getValue();
+			if (replicaStorage != null) {
+				for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
+					TableConfig c = replicaStorage.getConfig(spec.getKey());
+					String config = null;
+					if (c != null && c.getValues().size() > 1)
+						config = c.getValues().toString();
+					else if (c != null)
+						config = c.getValue();
 
-				context.println(spec.getDisplayNames().get(locale) + ": " + config);
+					context.println(spec.getDisplayNames().get(locale) + ": " + config);
+				}
 			}
 			
 			// TODO : handle secondary storages
@@ -353,6 +355,7 @@ public class LogStorageScript implements Script {
 
 			// replica storage
 			StorageConfig replicaStorage = primaryStorage.clone(); // TODO check replica storage initiation
+			schema.setReplicaStorage(replicaStorage);
 			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
 				while (true) {
 					String optional = spec.isOptional() ? " (optional, enter to skip)" : "";
@@ -439,6 +442,10 @@ public class LogStorageScript implements Script {
 
 			// replica storage
 			StorageConfig replicaStorage = schema.getReplicaStorage();
+			if (replicaStorage == null) {
+				replicaStorage = primaryStorage.clone();
+				schema.setReplicaStorage(replicaStorage);
+			}
 			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
 				if (!spec.isUpdatable())
 					continue;
