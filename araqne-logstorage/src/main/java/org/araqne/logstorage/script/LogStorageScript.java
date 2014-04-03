@@ -163,6 +163,7 @@ public class LogStorageScript implements Script {
 
 			context.println("Storage Configs for " + primaryStorage.getType());
 			context.println("-------------------------");
+			// primary storage
 			for (TableConfigSpec spec : lfs.getConfigSpecs()) {
 				TableConfig c = primaryStorage.getConfig(spec.getKey());
 				String config = null;
@@ -173,6 +174,21 @@ public class LogStorageScript implements Script {
 
 				context.println(spec.getDisplayNames().get(locale) + ": " + config);
 			}
+
+			// replica storage
+			StorageConfig replicaStorage = schema.getReplicaStorage();
+			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
+				TableConfig c = replicaStorage.getConfig(spec.getKey());
+				String config = null;
+				if (c != null && c.getValues().size() > 1)
+					config = c.getValues().toString();
+				else if (c != null)
+					config = c.getValue();
+
+				context.println(spec.getDisplayNames().get(locale) + ": " + config);
+			}
+			
+			// TODO : handle secondary storages
 
 			context.println("");
 
@@ -313,6 +329,7 @@ public class LogStorageScript implements Script {
 			String engineType = args[1];
 			LogFileService lfs = lfsRegistry.getLogFileService(engineType);
 
+			// primary storage
 			for (TableConfigSpec spec : lfs.getConfigSpecs()) {
 				while (true) {
 					String optional = spec.isOptional() ? " (optional, enter to skip)" : "";
@@ -333,6 +350,31 @@ public class LogStorageScript implements Script {
 						break;
 				}
 			}
+
+			// replica storage
+			StorageConfig replicaStorage = primaryStorage.clone(); // TODO check replica storage initiation
+			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
+				while (true) {
+					String optional = spec.isOptional() ? " (optional, enter to skip)" : "";
+					String line = readLine(spec.getDisplayNames().get(locale) + optional + "? ");
+
+					if (line != null) {
+						try {
+							if (spec.getValidator() != null)
+								spec.getValidator().validate(spec.getKey(), Arrays.asList(line));
+						} catch (Throwable t) {
+							context.println(t.getMessage());
+							continue;
+						}
+
+						replicaStorage.getConfigs().add(new TableConfig(spec.getKey(), line));
+						break;
+					} else if (spec.isOptional())
+						break;
+				}
+			}
+			
+			// TODO secondary storages
 
 			Map<String, String> metadata = new HashMap<String, String>();
 			if (args.length > 2) {
@@ -370,13 +412,14 @@ public class LogStorageScript implements Script {
 			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 			LogFileService lfs = lfsRegistry.getLogFileService(schema.getPrimaryStorage().getType());
 
+			// primary storage
+			StorageConfig primaryStorage = schema.getPrimaryStorage();
 			for (TableConfigSpec spec : lfs.getConfigSpecs()) {
 				if (!spec.isUpdatable())
 					continue;
 
 				count++;
 
-				StorageConfig primaryStorage = schema.getPrimaryStorage();
 				TableConfig config = primaryStorage.getConfig(spec.getKey());
 
 				while (true) {
@@ -393,6 +436,33 @@ public class LogStorageScript implements Script {
 					}
 				}
 			}
+
+			// replica storage
+			StorageConfig replicaStorage = schema.getReplicaStorage();
+			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
+				if (!spec.isUpdatable())
+					continue;
+
+				count++;
+
+				TableConfig config = replicaStorage.getConfig(spec.getKey());
+
+				while (true) {
+					String optional = spec.isOptional() ? " (optional, enter to drop)" : "";
+					String line = readLine(spec.getDisplayNames().get(locale) + optional + "? ");
+
+					if (line != null) {
+						replicaStorage.getConfigs().remove(config);
+						replicaStorage.getConfigs().add(new TableConfig(spec.getKey(), line));
+						break;
+					} else if (spec.isOptional()) {
+						replicaStorage.getConfigs().remove(config);
+						break;
+					}
+				}
+			}
+			
+			// TODO secondary storage
 
 			storage.alterTable(args[0], schema);
 		} catch (InterruptedException e) {

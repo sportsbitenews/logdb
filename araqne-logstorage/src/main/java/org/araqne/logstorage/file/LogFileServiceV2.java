@@ -20,7 +20,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -30,8 +29,6 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
-import org.araqne.logstorage.LogFlushCallback;
-import org.araqne.logstorage.LogFlushCallbackArgs;
 import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.storage.api.FilePath;
 
@@ -130,6 +127,16 @@ public class LogFileServiceV2 implements LogFileService {
 
 	@Override
 	public void unsetConfig(String key) {
+	}
+
+	@Override
+	public List<TableConfigSpec> getReplicaConfigSpecs() {
+		return Arrays.asList();
+	}
+
+	@Override
+	public List<TableConfigSpec> getSecondaryConfigSpecs() {
+		return Arrays.asList();
 	}
 
 }

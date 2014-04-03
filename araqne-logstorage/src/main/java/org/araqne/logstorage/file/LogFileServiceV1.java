@@ -126,4 +126,14 @@ public class LogFileServiceV1 implements LogFileService {
 	public void unsetConfig(String key) {
 	}
 
+	@Override
+	public List<TableConfigSpec> getReplicaConfigSpecs() {
+		return Arrays.asList();
+	}
+
+	@Override
+	public List<TableConfigSpec> getSecondaryConfigSpecs() {
+		return Arrays.asList();
+	}
+
 }
