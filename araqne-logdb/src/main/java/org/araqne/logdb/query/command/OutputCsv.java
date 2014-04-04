@@ -209,7 +209,7 @@ public class OutputCsv extends QueryCommand {
 	public String toString() {
 		String overwriteOption = " ";
 		if (overwrite)
-			overwriteOption = " overwrite=true ";
+			overwriteOption = " overwrite=true";
 
 		String partitionOption = "";
 		if (usePartition)
@@ -231,7 +231,7 @@ public class OutputCsv extends QueryCommand {
 		if (useTab)
 			tabOption = " tab=t";
 
-		return "outputcsv" + overwriteOption + partitionOption + tmpPathOption + bomOption + encodingOption + tabOption
+		return "outputcsv" + overwriteOption + partitionOption + tmpPathOption + bomOption + encodingOption + tabOption + " "
 				+ pathToken + " " + Strings.join(fields, ", ");
 	}
 }
