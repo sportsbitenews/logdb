@@ -16,91 +16,81 @@
 package org.araqne.logdb.query.command;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.araqne.logdb.FileMover;
+import org.araqne.logdb.LocalFileMover;
+import org.araqne.logdb.PartitionOutput;
+import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
-
-import au.com.bytecode.opencsv.CSVWriter;
+import org.araqne.logdb.writer.CsvLineWriterFactory;
+import org.araqne.logdb.writer.LineWriter;
+import org.araqne.logdb.writer.LineWriterFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OutputCsv extends QueryCommand {
-	private Charset charset;
+	private final Logger logger = LoggerFactory.getLogger(OutputCsv.class.getName());
 	private List<String> fields;
 
 	// for query string generation
 	private String pathToken;
 	private File f;
+	private String tmpPath;
+
 	private boolean overwrite;
-	private FileOutputStream os;
-	private CSVWriter writer;
-	private String[] csvLine;
+	private boolean usePartition;
+	private boolean useTab;
+	private boolean useBom;
+	private String encoding;
 
-	public OutputCsv(String pathToken, File f, boolean overwrite, List<String> fields, String encoding, boolean useBom, boolean useTab)
-			throws IOException {
-		this.pathToken = pathToken;
-		this.f = f;
-		this.overwrite = overwrite;
-		this.os = new FileOutputStream(f);
-		if (useBom)
-			writeBom(encoding, os);
-		this.fields = fields;
-		this.charset = Charset.forName(encoding);
-		this.csvLine = new String[fields.size()];
-		
-		char separator = useTab ? '\t' : ','; 
-		this.writer = new CSVWriter(new OutputStreamWriter(os, charset), separator);
-		writer.writeNext(fields.toArray(new String[0]));
-	}
+	private List<PartitionPlaceholder> holders;
+	private Map<List<String>, PartitionOutput> outputs;
+	private FileMover mover;
 
-	private void writeBom(String encoding, FileOutputStream fos) throws IOException {
-		if (encoding.equalsIgnoreCase("utf-8")) {
-			fos.write(0xEF);
-			fos.write(0xBB);
-			fos.write(0xBF);
-		} else if (encoding.equalsIgnoreCase("utf-16") || encoding.equalsIgnoreCase("utf-16le")) {
-			fos.write(0xFF);
-			fos.write(0xFE);
-		} else if (encoding.equalsIgnoreCase("utf-16be")) {
-			fos.write(0xFE);
-			fos.write(0xFF);
-		} else if (encoding.equalsIgnoreCase("utf-32") || encoding.equalsIgnoreCase("utf-32le")) {
-			fos.write(0xFF);
-			fos.write(0xFE);
-			fos.write(0x00);
-			fos.write(0x00);
-		} else if (encoding.equalsIgnoreCase("utf-32be")) {
-			fos.write(0x00);
-			fos.write(0x00);
-			fos.write(0xFE);
-			fos.write(0xFF);
-		} else if (encoding.equalsIgnoreCase("utf-1")) {
-			fos.write(0xF7);
-			fos.write(0x64);
-			fos.write(0x4C);
-		} else if (encoding.equalsIgnoreCase("utf-ebcdic")) {
-			fos.write(0xDD);
-			fos.write(0x73);
-			fos.write(0x66);
-			fos.write(0x73);
-		} else if (encoding.equalsIgnoreCase("scsu")) {
-			fos.write(0x02);
-			fos.write(0xFE);
-			fos.write(0xFF);
-		} else if (encoding.equalsIgnoreCase("bocu-1")) {
-			fos.write(0xFB);
-			fos.write(0xEE);
-			fos.write(0x28);
-		} else if (encoding.equalsIgnoreCase("gb-18030")) {
-			fos.write(0x84);
-			fos.write(0x31);
-			fos.write(0x95);
-			fos.write(0x33);
+	private LineWriter writer;
+	private LineWriterFactory writerFactory;
+
+	public OutputCsv(String pathToken, File f, String tmpPath, boolean overwrite, List<String> fields, String encoding,
+			boolean useBom, boolean useTab, boolean usePartition, List<PartitionPlaceholder> holders) {
+		try {
+			this.pathToken = pathToken;
+			this.f = f;
+			this.tmpPath = tmpPath;
+			this.overwrite = overwrite;
+			this.fields = fields;
+			this.usePartition = usePartition;
+			this.encoding = encoding;
+			this.holders = holders;
+			this.useTab = useTab;
+			this.useBom = useBom;
+			char separator = useTab ? '\t' : ',';
+
+			this.writerFactory = new CsvLineWriterFactory(fields, encoding, separator, useBom);
+			if (!usePartition) {
+				String path = pathToken;
+				if (tmpPath != null)
+					path = tmpPath;
+
+				this.writer = writerFactory.newWriter(path);
+				mover = new LocalFileMover();
+			} else {
+				this.holders = holders;
+				this.outputs = new HashMap<List<String>, PartitionOutput>();
+			}
+		} catch (Throwable t) {
+			close();
+			throw new QueryParseException("io-error", -1);
 		}
 	}
 
@@ -123,15 +113,64 @@ public class OutputCsv extends QueryCommand {
 
 	@Override
 	public void onPush(Row m) {
-		int i = 0;
-		for (String field : fields) {
-			Object o = m.get(field);
-			String s = o == null ? "" : o.toString();
-			csvLine[i++] = s;
+		try {
+			writeLog(m);
+		} catch (Throwable t) {
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logdb: cannot write log to csv file", t);
+
+			getQuery().stop(QueryStopReason.CommandFailure);
+		}
+		pushPipe(m);
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		try {
+			if (rowBatch.selectedInUse) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					int p = rowBatch.selected[i];
+					Row m = rowBatch.rows[p];
+
+					writeLog(m);
+				}
+			} else {
+				for (Row m : rowBatch.rows) {
+					writeLog(m);
+				}
+			}
+		} catch (Throwable t) {
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logdb: cannot write log to csv file", t);
+
+			getQuery().stop(QueryStopReason.CommandFailure);
 		}
 
-		writer.writeNext(csvLine);
-		pushPipe(m);
+		pushPipe(rowBatch);
+	}
+
+	private void writeLog(Row m) throws IOException {
+		LineWriter writer = this.writer;
+		if (usePartition) {
+			List<String> key = new ArrayList<String>(holders.size());
+			Date date = m.getDate();
+			for (PartitionPlaceholder holder : holders)
+				key.add(holder.getKey(date));
+
+			PartitionOutput output = outputs.get(key);
+			if (output == null) {
+				output = new PartitionOutput(writerFactory, pathToken, tmpPath, date, encoding);
+				outputs.put(key, output);
+
+				if (logger.isDebugEnabled())
+					logger.debug("araqne logdb: new partition found key [{}] tmpPath [{}] filePath [{}] date [{}]", new Object[] {
+							key, tmpPath, pathToken, date });
+			}
+
+			writer = output.getWriter();
+		}
+
+		writer.write(m);
 	}
 
 	@Override
@@ -141,15 +180,29 @@ public class OutputCsv extends QueryCommand {
 
 	@Override
 	public void onClose(QueryStopReason reason) {
-		this.status = Status.Finalizing;
-		try {
-			writer.flush();
-		} catch (IOException e1) {
+		close();
+		if (reason == QueryStopReason.CommandFailure) {
+			if (tmpPath != null)
+				new File(tmpPath).delete();
+			else
+				f.delete();
 		}
+	}
 
-		IoHelper.close(os);
-		if (reason == QueryStopReason.CommandFailure)
-			f.delete();
+	private void close() {
+		if (!usePartition) {
+			try {
+				writer.close();
+				if (tmpPath != null) {
+					mover.move(tmpPath, pathToken);
+				}
+			} catch (Throwable t) {
+				logger.error("araqne logdb: file move failed", t);
+			}
+		} else {
+			for (PartitionOutput output : outputs.values())
+				output.close();
+		}
 	}
 
 	@Override
@@ -158,6 +211,27 @@ public class OutputCsv extends QueryCommand {
 		if (overwrite)
 			overwriteOption = " overwrite=true ";
 
-		return "outputcsv" + overwriteOption + pathToken + " " + Strings.join(fields, ", ");
+		String partitionOption = "";
+		if (usePartition)
+			partitionOption = " partition=t";
+
+		String tmpPathOption = "";
+		if (tmpPath != null)
+			tmpPathOption = " tmp=" + tmpPath;
+
+		String bomOption = "";
+		if (useBom)
+			bomOption = " bom=t";
+
+		String encodingOption = "";
+		if (encoding != null)
+			encodingOption = " encoding=" + encoding;
+
+		String tabOption = "";
+		if (useTab)
+			tabOption = " tab=t";
+
+		return "outputcsv" + overwriteOption + partitionOption + tmpPathOption + bomOption + encodingOption + tabOption
+				+ pathToken + " " + Strings.join(fields, ", ");
 	}
 }

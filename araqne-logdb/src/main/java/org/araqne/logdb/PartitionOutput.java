@@ -15,19 +15,13 @@
  */
 package org.araqne.logdb;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
-import java.util.zip.GZIPOutputStream;
-
-import org.araqne.log.api.FileUtils;
+import org.araqne.logdb.writer.LineWriter;
+import org.araqne.logdb.writer.LineWriterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,17 +35,13 @@ public class PartitionOutput {
 
 	private String tmpPath;
 	private String path;
-	private Date day;
-	private OutputStream os;
-	private OutputStreamWriter osw;
-	private BufferedOutputStream bos;
 	private FileMover mover;
 	private File f;
+	private LineWriter writer;
 
-	public PartitionOutput(String path, String tmpPath, Date day, String encoding, boolean useCompression)
+	public PartitionOutput(LineWriterFactory lineWriterFactory, String path, String tmpPath, Date day, String encoding)
 			throws IOException {
 		this.tmpPath = tmpPath;
-		this.day = day;
 		this.path = convertPath(path, day);
 
 		if (tmpPath != null) {
@@ -72,19 +62,12 @@ public class PartitionOutput {
 		if (encoding == null)
 			encoding = "utf-8";
 
-		if (useCompression) {
-			this.os = new GZIPOutputStream(new FileOutputStream(f), 8192);
-			this.osw = new OutputStreamWriter(os, Charset.forName(encoding));
-		} else {
-			this.os = new FileOutputStream(f);
-			this.bos = new BufferedOutputStream(os);
-			this.osw = new OutputStreamWriter(bos, Charset.forName(encoding));
-		}
+		this.writer = lineWriterFactory.newWriter(f.getAbsolutePath());
 		mover = new LocalFileMover();
 	}
 
-	public OutputStreamWriter getWriter() {
-		return osw;
+	public LineWriter getWriter() {
+		return writer;
 	}
 
 	private static String convertPath(String path, Date day) {
@@ -123,11 +106,8 @@ public class PartitionOutput {
 	}
 
 	public void close() {
-		FileUtils.ensureClose(osw);
-		FileUtils.ensureClose(bos);
-		FileUtils.ensureClose(os);
-
 		try {
+			writer.close();
 			if (tmpPath != null)
 				mover.move(tmpPath, path);
 		} catch (IOException e) {

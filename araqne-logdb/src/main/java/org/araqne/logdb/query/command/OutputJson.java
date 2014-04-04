@@ -15,21 +15,27 @@
  */
 package org.araqne.logdb.query.command;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.logdb.FileMover;
+import org.araqne.logdb.LocalFileMover;
+import org.araqne.logdb.PartitionOutput;
+import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
-import org.json.JSONConverter;
+import org.araqne.logdb.writer.JsonLineWriterFactory;
+import org.araqne.logdb.writer.LineWriter;
+import org.araqne.logdb.writer.LineWriterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,30 +46,44 @@ import org.slf4j.LoggerFactory;
  */
 public class OutputJson extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(OutputJson.class.getName());
-	private FileOutputStream fos;
-	private OutputStreamWriter osw;
 	private List<String> fields;
-	private String lineSeparator;
-	private BufferedOutputStream bos;
-	private final boolean hasFields;
 	private File f;
 	private String filePathToken;
 	private boolean overwrite;
+	private String encoding;
+	private boolean usePartition;
+	private String tmpPath;
+	private List<PartitionPlaceholder> holders;
+	private Map<List<String>, PartitionOutput> outputs;
+	private LineWriterFactory writerFactory;
+	private LineWriter writer;
+	private FileMover mover;
 
-	public OutputJson(File f, String filePathToken, boolean overwrite, List<String> fields) {
+	public OutputJson(File f, String filePathToken, boolean overwrite, List<String> fields, String encoding,
+			boolean usePartition, String tmpPath, List<PartitionPlaceholder> holders) {
 		this.f = f;
 		this.overwrite = overwrite;
 		this.filePathToken = filePathToken;
 		this.fields = fields;
-		this.fos = null;
-		this.bos = null;
-		this.osw = null;
+		this.encoding = encoding;
+		this.usePartition = usePartition;
+		this.tmpPath = tmpPath;
+		this.holders = holders;
+
+		this.writerFactory = new JsonLineWriterFactory(fields, encoding);
+
 		try {
-			this.fos = new FileOutputStream(f);
-			this.bos = new BufferedOutputStream(fos);
-			this.osw = new OutputStreamWriter(bos, Charset.forName("utf-8"));
-			this.lineSeparator = System.getProperty("line.separator");
-			this.hasFields = !fields.isEmpty();
+			if (!usePartition) {
+				String path = filePathToken;
+				if (tmpPath != null)
+					path = tmpPath;
+
+				this.writer = writerFactory.newWriter(path);
+				mover = new LocalFileMover();
+			} else {
+				this.holders = holders;
+				this.outputs = new HashMap<List<String>, PartitionOutput>();
+			}
 		} catch (Throwable t) {
 			close();
 			throw new QueryParseException("io-error", -1);
@@ -86,15 +106,7 @@ public class OutputJson extends QueryCommand {
 	@Override
 	public void onPush(Row m) {
 		try {
-			HashMap<String, Object> json = new HashMap<String, Object>();
-
-			Map<String, Object> origin = m.map();
-			for (String field : hasFields ? fields : origin.keySet()) {
-				json.put(field, origin.get(field));
-			}
-
-			osw.write(JSONConverter.jsonize(json));
-			osw.write(lineSeparator);
+			writeLog(m);
 		} catch (Throwable t) {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot write log to json file", t);
@@ -105,21 +117,79 @@ public class OutputJson extends QueryCommand {
 	}
 
 	@Override
+	public void onPush(RowBatch rowBatch) {
+		try {
+			if (rowBatch.selectedInUse) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					int p = rowBatch.selected[i];
+					Row m = rowBatch.rows[p];
+
+					writeLog(m);
+				}
+			} else {
+				for (Row m : rowBatch.rows) {
+					writeLog(m);
+				}
+			}
+		} catch (Throwable t) {
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logdb: cannot write log to json file", t);
+
+			getQuery().stop(QueryStopReason.CommandFailure);
+		}
+
+		pushPipe(rowBatch);
+	}
+
+	private void writeLog(Row m) throws IOException {
+		LineWriter writer = this.writer;
+		if (usePartition) {
+			List<String> key = new ArrayList<String>(holders.size());
+			Date date = m.getDate();
+			for (PartitionPlaceholder holder : holders)
+				key.add(holder.getKey(date));
+
+			PartitionOutput output = outputs.get(key);
+			if (output == null) {
+				output = new PartitionOutput(writerFactory, filePathToken, tmpPath, date, encoding);
+				outputs.put(key, output);
+				logger.debug("araqne logdb: new partition found key [{}] tmpPath [{}] filePath [{}] date [{}]", new Object[] {
+						key, tmpPath, filePathToken, date });
+			}
+
+			writer = output.getWriter();
+		}
+
+		writer.write(m);
+	}
+
+	@Override
 	public boolean isReducer() {
 		return true;
 	}
 
 	@Override
 	public void onClose(QueryStopReason reason) {
+		this.status = Status.Finalizing;
 		close();
 		if (reason == QueryStopReason.CommandFailure)
 			f.delete();
 	}
 
 	private void close() {
-		IoHelper.close(osw);
-		IoHelper.close(bos);
-		IoHelper.close(fos);
+		if (!usePartition) {
+			try {
+				writer.close();
+				if (tmpPath != null) {
+					mover.move(tmpPath, filePathToken);
+				}
+			} catch (Throwable t) {
+				logger.error("araqne logdb: file move failed", t);
+			}
+		} else {
+			for (PartitionOutput output : outputs.values())
+				output.close();
+		}
 	}
 
 	@Override
@@ -128,10 +198,22 @@ public class OutputJson extends QueryCommand {
 		if (overwrite)
 			overwriteOption = " overwrite=true ";
 
+		String encodingOption = "";
+		if (encoding != null)
+			encoding = " encoding=" + encoding;
+
+		String partitionOption = "";
+		if (usePartition)
+			partitionOption = " partition=t";
+
+		String tmpOption = "";
+		if (tmpPath != null)
+			tmpOption = " tmp=" + tmpPath;
+
 		String fieldsOption = "";
 		if (!fields.isEmpty())
 			fieldsOption = " " + Strings.join(fields, ", ");
 
-		return "outputjson" + overwriteOption + filePathToken + fieldsOption;
+		return "outputjson" + overwriteOption + encodingOption + partitionOption + tmpOption + filePathToken + fieldsOption;
 	}
 }
