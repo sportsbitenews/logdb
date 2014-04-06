@@ -93,7 +93,7 @@ public class WgetQueryCommand extends DriverQueryCommand {
 
 	private void fetchUrl(Row row, String url) throws IOException {
 		Connection conn = Jsoup.connect(url);
-		conn.timeout(timeout);
+		conn.timeout(timeout * 1000);
 		Document doc = null;
 
 		if (method.equals("get"))

@@ -64,7 +64,7 @@ public class WgetQueryCommandParser implements QueryCommandParser {
 		String url = options.get("url");
 		String selector = options.get("selector");
 
-		int timeout = 30000;
+		int timeout = 30;
 		if (options.get("timeout") != null)
 			timeout = Integer.valueOf(options.get("timeout"));
 
