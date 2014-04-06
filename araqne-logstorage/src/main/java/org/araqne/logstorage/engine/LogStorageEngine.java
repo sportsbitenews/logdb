@@ -1137,6 +1137,8 @@ public class LogStorageEngine implements LogStorage, LogTableEventListener, LogF
 			long now = new Date().getTime();
 			try {
 				// periodic log flush
+				boolean flushAll = this.flushAll;
+				this.flushAll = false;
 				for (OnlineWriterKey key : onlineWriters.keySet()) {
 					OnlineWriter writer = onlineWriters.get(key);
 					boolean doFlush = writer.isCloseReserved() || ((now - writer.getLastFlush().getTime()) > flushInterval);

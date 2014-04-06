@@ -16,17 +16,17 @@
 package org.araqne.logdb.query.parser;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.OutputCsv;
 
 public class OutputCsvParser implements QueryCommandParser {
@@ -42,24 +42,29 @@ public class OutputCsvParser implements QueryCommandParser {
 		if (commandString.trim().endsWith(","))
 			throw new QueryParseException("missing-field", commandString.length());
 
-		String encoding = null;
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("overwrite", "encoding", "bom", "tab"));
+				Arrays.asList("overwrite", "encoding", "bom", "tab", "tmp", "partition"));
 
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
 		boolean useBom = CommandOptions.parseBoolean(options.get("bom"));
 		boolean useTab = CommandOptions.parseBoolean(options.get("tab"));
+		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
 
-		if (options.get("encoding") != null)
-			encoding = options.get("encoding").toString();
+		String encoding = options.get("encoding");
 		if (encoding == null)
 			encoding = "utf-8";
+
+		String tmpPath = options.get("tmp");
 
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
 		List<String> fields = new ArrayList<String>();
 		String originalCsvPath = tokens.string(0);
 		String csvPath = ExpressionParser.evalContextReference(context, originalCsvPath);
+
+		List<PartitionPlaceholder> holders = PartitionPlaceholder.parse(csvPath);
+		if (!usePartition && holders.size() > 0)
+			throw new QueryParseException("use-partition-option", -1, holders.size() + " partition holders");
 
 		List<QueryToken> fieldTokens = tokens.subtokens(1, tokens.size());
 		for (QueryToken t : fieldTokens) {
@@ -75,12 +80,9 @@ public class OutputCsvParser implements QueryCommandParser {
 		if (csvFile.exists() && !overwrite)
 			throw new IllegalStateException("csv file exists: " + csvFile.getAbsolutePath());
 
-		try {
-			if (csvFile.getParentFile() != null)
-				csvFile.getParentFile().mkdirs();
-			return new OutputCsv(originalCsvPath, csvFile, overwrite, fields, encoding, useBom, useTab);
-		} catch (IOException e) {
-			throw new QueryParseException("io-error", -1, e.getMessage());
-		}
+		if (!usePartition && csvFile.getParentFile() != null)
+			csvFile.getParentFile().mkdirs();
+		return new OutputCsv(originalCsvPath, csvFile, tmpPath, overwrite, fields, encoding, useBom, useTab, usePartition,
+				holders);
 	}
 }
