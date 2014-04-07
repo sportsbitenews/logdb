@@ -16,21 +16,16 @@
 package org.araqne.logdb.query.parser;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.PartitionPlaceholder.Source;
 import org.araqne.logdb.query.command.OutputTxt;
 
 /**
@@ -67,7 +62,7 @@ public class OutputTxtParser implements QueryCommandParser {
 		String tmpPath = options.get("tmp");
 
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
-		boolean useCompression = CommandOptions.parseBoolean(options.get("gz"));
+		boolean useGzip = CommandOptions.parseBoolean(options.get("gz"));
 		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
 
 		File tmpFile = null;
@@ -114,14 +109,10 @@ public class OutputTxtParser implements QueryCommandParser {
 		if (txtFile.exists() && !overwrite)
 			throw new IllegalStateException("txt file exists: " + txtFile.getAbsolutePath());
 
-		try {
-			if (!usePartition && txtFile.getParentFile() != null)
-				txtFile.getParentFile().mkdirs();
+		if (!usePartition && txtFile.getParentFile() != null)
+			txtFile.getParentFile().mkdirs();
 
-			return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useCompression, encoding,
-					usePartition, holders);
-		} catch (IOException e) {
-			throw new QueryParseException("io-error", -1, e.getMessage());
-		}
+		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding,
+				usePartition, holders);
 	}
 }

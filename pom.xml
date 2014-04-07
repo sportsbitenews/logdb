@@ -250,5 +250,6 @@
 		<module>araqne-logdb-groovy</module>
 		<module>araqne-logdb-cep</module>
 		<module>araqne-logdb-mongo</module>
+		<module>araqne-logdb-crawler</module>
 	</modules>
 </project>

@@ -67,7 +67,7 @@ public class OutputCsvParserTest {
 			new File("logexport.csv").delete();
 		}
 
-		assertEquals("outputcsv overwrite=true logexport.csv sip, dip", csv.toString());
+		assertEquals("outputcsv overwrite=true encoding=utf-8 logexport.csv sip, dip", csv.toString());
 	}
 
 	@Test

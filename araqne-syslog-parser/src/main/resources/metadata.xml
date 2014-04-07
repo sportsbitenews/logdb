@@ -22,4 +22,5 @@
 	<instance component="wapples-syslog-parser-factory" />
 	<instance component="anti-web-shell-log-parser-factory" />
 	<instance component="fireeye-log-parser-factory" />
+	<instance component="dbsafer-parser-factory" />
 </ipojo>

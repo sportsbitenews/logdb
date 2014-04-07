@@ -15,24 +15,15 @@
  */
 package org.araqne.logdb.query.command;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.GZIPOutputStream;
-
 import org.araqne.logdb.FileMover;
-import org.araqne.logdb.LocalFileMover;
 import org.araqne.logdb.PartitionOutput;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
@@ -41,6 +32,10 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.writer.GzipLineWriterFactory;
+import org.araqne.logdb.writer.LineWriter;
+import org.araqne.logdb.writer.LineWriterFactory;
+import org.araqne.logdb.writer.PlainLineWriterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,12 +46,7 @@ import org.slf4j.LoggerFactory;
  */
 public class OutputTxt extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(OutputTxt.class.getName());
-	private OutputStream os;
 	private String[] fields;
-	private BufferedOutputStream bos;
-	private OutputStreamWriter osw;
-	private SimpleDateFormat sdf;
-	private String lineSeparator;
 	private String delimiter;
 	private String encoding;
 	private File f;
@@ -64,45 +54,42 @@ public class OutputTxt extends QueryCommand {
 	private String tmpPath;
 	private boolean overwrite;
 	private boolean usePartition;
-	private boolean useCompression;
+	private boolean useGzip;
 	private List<PartitionPlaceholder> holders;
 	private Map<List<String>, PartitionOutput> outputs;
 	private FileMover mover;
 
+	private LineWriter writer;
+	private LineWriterFactory writerFactory;
+
 	public OutputTxt(File f, String filePath, String tmpPath, boolean overwrite, String delimiter,
-			List<String> fields, boolean useCompression, String encoding, boolean usePartition, List<PartitionPlaceholder> holders)
-			throws IOException {
+			List<String> fields, boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders) {
 		try {
 			this.usePartition = usePartition;
-			this.useCompression = useCompression;
+			this.useGzip = useGzip;
+			this.delimiter = delimiter;
 			this.encoding = encoding;
 			this.f = f;
 			this.filePath = filePath;
 			this.tmpPath = tmpPath;
 			this.overwrite = overwrite;
 			this.fields = fields.toArray(new String[0]);
-			if (!usePartition) {
-				File tartgetFile = f;
-				if (tmpPath != null)
-					tartgetFile = new File(tmpPath);
+			if (useGzip)
+				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding);
+			else
+				writerFactory = new PlainLineWriterFactory(fields, delimiter, encoding);
 
-				if (useCompression) {
-					this.os = new GZIPOutputStream(new FileOutputStream(tartgetFile), 8192);
-					this.osw = new OutputStreamWriter(os, Charset.forName(encoding));
-				} else {
-					this.os = new FileOutputStream(tartgetFile);
-					this.bos = new BufferedOutputStream(os);
-					this.osw = new OutputStreamWriter(bos, Charset.forName(encoding));
-				}
-				mover = new LocalFileMover();
+			if (!usePartition) {
+				String path = filePath;
+				if (tmpPath != null)
+					path = tmpPath;
+
+				this.writer = writerFactory.newWriter(path);
 			} else {
 				this.holders = holders;
 				this.outputs = new HashMap<List<String>, PartitionOutput>();
 			}
 
-			this.sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
-			this.lineSeparator = System.getProperty("line.separator");
-			this.delimiter = delimiter;
 		} catch (Throwable t) {
 			close();
 			throw new QueryParseException("io-error", -1);
@@ -165,36 +152,27 @@ public class OutputTxt extends QueryCommand {
 	}
 
 	private void writeLog(Row m) throws IOException {
-		Date date = m.getDate();
-		OutputStreamWriter writer = osw;
+		LineWriter writer = this.writer;
 		if (usePartition) {
+			Date date = m.getDate();
 			List<String> key = new ArrayList<String>(holders.size());
 			for (PartitionPlaceholder holder : holders)
 				key.add(holder.getKey(date));
 
 			PartitionOutput output = outputs.get(key);
 			if (output == null) {
-				output = new PartitionOutput(filePath, tmpPath, date, encoding, useCompression);
+				output = new PartitionOutput(writerFactory, filePath, tmpPath, date, encoding);
 				outputs.put(key, output);
-				logger.debug("araqne logdb: new partition found key [{}] tmpPath [{}] filePath [{}] date [{}]", new Object[] {
-						key, tmpPath, filePath, date });
+
+				if (logger.isDebugEnabled())
+					logger.debug("araqne logdb: new partition found key [{}] tmpPath [{}] filePath [{}] date [{}]", new Object[] {
+							key, tmpPath, filePath, date });
 			}
 
 			writer = output.getWriter();
 		}
 
-		int n = 0;
-		int last = fields.length - 1;
-		for (String field : fields) {
-			Object o = m.get(field);
-			String s = o == null ? "" : o.toString();
-			if (o instanceof Date)
-				s = sdf.format(o);
-			writer.write(s);
-			if (n++ != last)
-				writer.write(delimiter);
-		}
-		writer.write(lineSeparator);
+		writer.write(m);
 	}
 
 	@Override
@@ -206,16 +184,16 @@ public class OutputTxt extends QueryCommand {
 	public void onClose(QueryStopReason reason) {
 		close();
 		if (reason == QueryStopReason.CommandFailure)
-			f.delete();
+			if (tmpPath != null)
+				new File(tmpPath).delete();
+			else
+				f.delete();
 	}
 
 	private void close() {
 		if (!usePartition) {
-			IoHelper.close(osw);
-			IoHelper.close(bos);
-			IoHelper.close(os);
-
 			try {
+				this.writer.close();
 				if (tmpPath != null) {
 					mover.move(tmpPath, filePath);
 				}
@@ -235,8 +213,12 @@ public class OutputTxt extends QueryCommand {
 			overwriteOption = " overwrite=t";
 
 		String compressionOption = "";
-		if (useCompression)
+		if (useGzip)
 			compressionOption = " gz=t";
+
+		String encodingOption = "";
+		if (encoding != null)
+			encodingOption = " encoding=" + encoding;
 
 		String delimiterOption = "";
 		if (!delimiter.equals(" "))
@@ -256,7 +238,7 @@ public class OutputTxt extends QueryCommand {
 		if (fields.length > 0)
 			fieldsOption = " " + Strings.join(getFields(), ", ");
 
-		return "outputtxt" + overwriteOption + compressionOption + delimiterOption + partitionOption + tmpPathOption + path
-				+ fieldsOption;
+		return "outputtxt" + overwriteOption + encodingOption + compressionOption + delimiterOption + partitionOption
+				+ tmpPathOption + path + fieldsOption;
 	}
 }

@@ -17,16 +17,14 @@ package org.araqne.logstorage.engine;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 public class DateUtil {
-	private static int timezoneOffset = Calendar.getInstance().getTimeZone().getRawOffset();
-
 	private DateUtil() {
 	}
 
@@ -35,19 +33,22 @@ public class DateUtil {
 		return dateFormat.format(day);
 	}
 
-	public static Date getDay(Date date) {
-		long time = date.getTime();
-		return new Date(time - ((time + timezoneOffset) % 86400000L));
+	private static ThreadLocal<TimeZone> timeZoneCache = new ThreadLocal<TimeZone>() {
+        @Override
+        protected TimeZone initialValue() {
+            return TimeZone.getDefault();
+        }
+    };
 
-		// Calendar c = Calendar.getInstance();
-		// c.setTime(date);
-		// c.set(Calendar.HOUR_OF_DAY, 0);
-		// c.set(Calendar.MINUTE, 0);
-		// c.set(Calendar.SECOND, 0);
-		// c.set(Calendar.MILLISECOND, 0);
-		// return c.getTime();
-	}
-
+    public static Date getDay(Date date) {
+        long time = date.getTime();
+        TimeZone timeZone = timeZoneCache.get();
+        if (timeZone.inDaylightTime(date))
+            return new Date(time - ((time + timeZone.getRawOffset() + 3600000) % 86400000L));
+        else
+            return new Date(time - ((time + timeZone.getRawOffset()) % 86400000L));
+    }
+    
 	public static List<Date> filt(Collection<Date> dates, Date from, Date to) {
 		List<Date> filtered = new ArrayList<Date>();
 		// canonicalize
