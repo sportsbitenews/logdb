@@ -39,25 +39,29 @@ public class WelfParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "WELF 포맷";
+		if (locale != null && locale.equals(Locale.JAPANESE))
+			return "WELFフォーマット";
 		return "WELF Format";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "웹트렌드 로그 포맷";
+		if (locale != null && locale.equals(Locale.JAPANESE))
+			return "ウェブトレンドログフォーマット";
 		return "WebTrends Enhanced Log Format";
 	}
 

@@ -40,41 +40,47 @@ public class RegexFilterTransformerFactory implements LogTransformerFactory {
 
 	@Override
 	public List<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "정규식 필터";
+		if (locale.equals(Locale.JAPANESE))
+			return "正規表現フィルター";
 		return "regex filter";
 	}
 
 	@Override
 	public List<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
-			return "정규표현식을 이용하여 일치하는 로그만 저장합니다.";
+			return "설정된 정규표현식 패턴을 포함하는 로그만 저장합니다.";
+		if (locale.equals(Locale.JAPANESE))
+			return "設定した正規表現パータンを含むログだけ保存します。";
 		return "pass or drop logs by regex match result";
 	}
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption pattern = new StringConfigType("pattern", t("regex", "정규식"), t("regex for regex filtering",
-				"로그를 필터링하는데 사용할 정규표현식"), true);
-		LoggerConfigOption inverse = new StringConfigType("inverse", t("inverse match", "매칭결과 반전"), t(
-				"inverse regex match result, false by default", "정규표현식 매칭 결과를 반전합니다. 기본값은 false 입니다."), false);
+		LoggerConfigOption pattern = new StringConfigType("pattern", t("regex", "정규식", "正規表現"), t("regex for regex filtering",
+				"로그를 필터링하는데 사용할 정규표현식", "ログのフィルタリングに使う正規表現"), true);
+		LoggerConfigOption inverse = new StringConfigType("inverse", t("inverse match", "매칭결과 반전", "結果反転"), t(
+				"inverse regex match result, false by default", "정규표현식 매칭 결과를 반전합니다. 기본값은 false 입니다.",
+				"マッチング結果を反転します。基本値はfalseです。"), false);
 		return Arrays.asList(pattern, inverse);
 	}
 
-	private Map<Locale, String> t(String enText, String koText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
+		m.put(Locale.JAPANESE, jpText);
 		return m;
 	}
 
