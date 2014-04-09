@@ -1,4 +1,5 @@
-package org.araqne.logstorage;
-public interface LogWriteOnDiskCallback {
-	void onWriteCompleted(LogWriteOnDiskCallbackArgs arg);
+package org.araqne.storage.filepair;
+
+public interface BlockPairWriteCallback {
+	void onWriteCompleted(BlockPairWriteCallbackArgs arg);
 }
