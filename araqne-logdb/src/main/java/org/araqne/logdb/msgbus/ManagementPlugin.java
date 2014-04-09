@@ -140,6 +140,11 @@ public class ManagementPlugin {
 		resp.put("accounts", accounts);
 	}
 
+	@MsgbusMethod
+	public void getInstanceGuid(Request req, Response resp) {
+		resp.put("instance_guid", accountService.getInstanceGuid());
+	}
+	
 	private List<Object> serialize(List<Privilege> privileges) {
 		List<Object> l = new ArrayList<Object>();
 		for (Privilege p : privileges)
