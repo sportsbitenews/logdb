@@ -83,9 +83,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	private ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters;
 
 	private CopyOnWriteArraySet<LogCallback> callbacks;
-	
+
 	private CallbackSet callbackSet;
-	
+
 	// sweeping and flushing data
 	private WriterSweeper writerSweeper;
 	private Thread writerSweeperThread;
@@ -162,8 +162,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	@Validate
 	@Override
 	public void start() {
-		FilePath sysArgLogDir = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath(
-				"araqne-logstorage/log");
+		FilePath sysArgLogDir = storageManager.resolveFilePath(
+				System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
 		logDir = storageManager
 				.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, sysArgLogDir.getAbsolutePath()));
 		logDir.mkdirs();
@@ -208,7 +208,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		}
 
 		writerSweeper.doStop = true;
-		writerSweeperThread.interrupt();
+		synchronized(writerSweeper) {
+			writerSweeper.notifyAll();
+		}
 
 		// wait writer sweeper stop
 		try {
@@ -789,9 +791,10 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 	@Override
 	public void flush() {
-		writerSweeper.setForceFlush(true);
-		writerSweeper.setFlushAll(true);
-		writerSweeperThread.interrupt();
+		synchronized(writerSweeper) {
+			writerSweeper.setFlushAll(true);
+			writerSweeper.notifyAll();
+		}
 	}
 
 	@Override
@@ -853,7 +856,6 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 		private volatile boolean doStop = false;
 		private volatile boolean isStopped = true;
-		private volatile boolean forceFlush = false;
 		private volatile boolean flushAll = false;
 
 		public WriterSweeper(int checkInterval, int maxIdleTime, int flushInterval) {
@@ -870,10 +872,6 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			this.maxIdleTime = maxIdleTime;
 		}
 
-		public void setForceFlush(boolean forceFlush) {
-			this.forceFlush = forceFlush;
-		}
-
 		public void setFlushAll(boolean flushAll) {
 			this.flushAll = flushAll;
 		}
@@ -888,14 +886,12 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 						if (doStop)
 							break;
 
-						Thread.sleep(checkInterval);
+						synchronized(this) {
+							this.wait(checkInterval);
+						}
 						sweep();
 					} catch (InterruptedException e) {
-						if (forceFlush) {
-							sweep();
-							forceFlush = false;
-							logger.trace("araqne logstorage: sweeper interrupted: forced flushing");
-						}
+						logger.trace("araqne logstorage: sweeper interrupted");
 					} catch (Exception e) {
 						logger.error("araqne logstorage: sweeper error", e);
 					}
@@ -1265,8 +1261,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				monitors.add(monitor);
 			}
 		}
-		writerSweeper.setForceFlush(true);
-		writerSweeperThread.interrupt();
+		synchronized(writerSweeper) {
+			writerSweeper.notifyAll();
+		}
 		try {
 			for (CountDownLatch monitor : monitors) {
 				monitor.await();
