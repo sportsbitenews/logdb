@@ -198,6 +198,9 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 			if (next != null)
 				return true;
 
+			if (currentSegId == segCount)
+				return false;
+			
 			try {
 				if (currentSegId == 0) {
 					ByteBuffer b = ByteBuffer.allocate(ib.getBlockSize());
