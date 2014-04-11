@@ -128,6 +128,38 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 
 	}
 	
+	public void addBlock(IB indexBlock, RDB rawDataBlock) throws IOException {
+		if (indexBlock.getId() != getIndexBlockCount())
+			throw new IllegalArgumentException("unexpected block id");
+		
+		StorageOutputStream dataStream = null;
+		StorageOutputStream indexStream = null;
+		try {
+			dataStream = dfile.newOutputStream(false);
+			indexStream = ifile.newOutputStream(false);
+
+			if (dataStream instanceof LocalFileOutputStream && indexStream instanceof LocalFileOutputStream) {
+				LocalFileOutputStream lDataStream = (LocalFileOutputStream) dataStream;
+				LocalFileOutputStream lIndexStream = (LocalFileOutputStream) indexStream;
+				if (indexBlock.getPosOnData() != dfile.length())
+					throw new IllegalArgumentException("unexpected data block position");
+
+				lDataStream.seek(indexBlock.getPosOnData());
+				rawDataBlock.serialize(lDataStream);
+
+				lIndexStream.seek(getIndexFileHeaderLength() + indexBlock.getBlockSize() * indexBlock.getId());
+				indexBlock.serialize(lIndexStream);
+			} else {
+				throw new UnsupportedOperationException("the operation for non-local file is not supported yet");
+			}
+
+		} finally {
+			ensureClose(dataStream);
+			ensureClose(indexStream);
+		}
+
+	}
+	
 	public static String calcHash(ByteBuffer bb) {
 		ByteBuffer buf = bb.asReadOnlyBuffer();
 		try {
