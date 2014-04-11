@@ -647,7 +647,26 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 
 	@Override
 	public String getInstanceGuid() {
-		// TODO Auto-generated method stub
-		return null;
+		return instanceGuid;
+	}
+	
+	@Override
+	public void setInstanceGuid(String guid) {
+		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
+		ConfigCollection col = db.ensureCollection("global_config");
+		Config c = col.findOne(null);
+
+		if (c != null) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> doc = (Map<String, Object>) c.getDocument();
+			doc.put("instance_guid", guid);
+			c.setDocument(doc);
+			c.update();
+		} else {
+			Map<String, Object> doc = new HashMap<String, Object>();
+			doc.put("instance_guid", guid);
+			col.add(doc);
+		}
+		this.instanceGuid = guid;
 	}
 }

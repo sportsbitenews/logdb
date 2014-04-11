@@ -101,4 +101,6 @@ public interface AccountService {
 	 */
 	String getInstanceGuid();
 
+	void setInstanceGuid(String guid);
+
 }
