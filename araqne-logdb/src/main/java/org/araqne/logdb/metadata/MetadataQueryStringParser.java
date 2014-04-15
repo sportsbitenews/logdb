@@ -3,18 +3,18 @@ package org.araqne.logdb.metadata;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.Privilege;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.Privilege;
 import org.araqne.logdb.query.parser.CommandOptions;
+import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.araqne.logstorage.LogTableRegistry;
 
@@ -27,9 +27,12 @@ public class MetadataQueryStringParser {
 		Date from = null;
 		Date to = null;
 
-		Map<String, Object> optionTokens = parseOptions(token);
+		ParseResult r = QueryTokenizer.parseOptions(context, token, 0, Arrays.asList("duration", "from", "to", "diskonly"));
 
-		String duration = (String) optionTokens.get("duration");
+		@SuppressWarnings("unchecked")
+		Map<String, String> optionTokens = (Map<String, String>) r.value;
+
+		String duration = optionTokens.get("duration");
 		if (duration != null) {
 			int i;
 			for (i = 0; i < duration.length(); i++) {
@@ -42,14 +45,14 @@ public class MetadataQueryStringParser {
 		}
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
-		String fromToken = (String) optionTokens.get("from");
+		String fromToken = optionTokens.get("from");
 		if (fromToken != null) {
 			from = df.parse(fromToken, new ParsePosition(0));
 			if (from == null)
 				throw new QueryParseException("invalid-from", -1);
 		}
 
-		String toToken = (String) optionTokens.get("to");
+		String toToken = optionTokens.get("to");
 		if (toToken != null) {
 			to = df.parse(toToken, new ParsePosition(0));
 			if (to == null)
@@ -59,7 +62,7 @@ public class MetadataQueryStringParser {
 		if (to != null && from != null && to.before(from))
 			throw new QueryParseException("invalid-date-range", -1);
 
-		int next = (Integer) optionTokens.get("next");
+		int next = r.next;
 		token = token.substring(next).trim();
 
 		HashSet<String> tableFilter = null;
@@ -101,33 +104,4 @@ public class MetadataQueryStringParser {
 
 		return opt;
 	}
-
-	private static Map<String, Object> parseOptions(String token) {
-		Set<String> keys = new HashSet<String>();
-		keys.add("duration");
-		keys.add("from");
-		keys.add("to");
-		keys.add("diskonly");
-
-		Map<String, Object> m = new HashMap<String, Object>();
-		int next = 0;
-		for (String pairs : token.split(" ")) {
-			int p = pairs.indexOf('=');
-			if (p < 0)
-				break;
-
-			String key = pairs.substring(0, p);
-			if (!keys.contains(key))
-				throw new QueryParseException("invalid-logdb-option", -1);
-
-			String value = pairs.substring(p + 1);
-			m.put(key, value);
-
-			next = token.indexOf(pairs) + pairs.length();
-		}
-
-		m.put("next", next);
-		return m;
-	}
-
 }
