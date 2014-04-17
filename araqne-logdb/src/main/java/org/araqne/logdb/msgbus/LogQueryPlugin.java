@@ -20,11 +20,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -32,8 +30,6 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.api.FieldOption;
-import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
 import org.araqne.logdb.Query;
@@ -308,9 +304,16 @@ public class LogQueryPlugin {
 	public void getSavedResults(Request req, Response resp) {
 		org.araqne.logdb.Session dbSession = getDbSession(req);
 
+		Integer offset = req.getInteger("offset");
+		Integer limit = req.getInteger("limit");
+
 		List<SavedResult> l = savedResultManager.getResultList(dbSession.getLoginName());
+		
+		// make sublist for offset and limit
+		List<SavedResult> subList = subList(l, offset, limit);
+		
 		List<Object> savedResults = new ArrayList<Object>();
-		for (SavedResult s : l) {
+		for (SavedResult s : subList) {
 			Map<String, Object> m = new HashMap<String, Object>();
 			m.put("guid", s.getGuid());
 			m.put("title", s.getTitle());
@@ -323,8 +326,35 @@ public class LogQueryPlugin {
 			m.put("data_path", s.getDataPath());
 			savedResults.add(m);
 		}
-
+		resp.put("total", l.size());
 		resp.put("saved_results", savedResults);
+	}
+
+	public static <T> List<T> subList(List<T> list, int offset, int limit) {
+		if (offset < 0)
+			throw new IllegalArgumentException("Offset must be more than 0");
+
+		if (limit < -1)
+			throw new IllegalArgumentException("Limit must be more than -1");
+
+		if (offset > 0) {
+			if (offset >= list.size()) {
+				// return empty.
+				return list.subList(0, 0);
+			}
+			if (limit > -1) {
+				// apply offset and limit
+				return list.subList(offset, Math.min(offset + limit, list.size()));
+			} else {
+				// apply just offset
+				return list.subList(offset, list.size());
+			}
+		} else if (limit > -1) {
+			// apply just limit
+			return list.subList(0, Math.min(limit, list.size()));
+		} else {
+			return list.subList(0, list.size());
+		}
 	}
 
 	/**
