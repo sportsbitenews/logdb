@@ -65,6 +65,9 @@ public class GzipDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 		LoggerConfigOption dateLocale = new StringConfigType("date_locale", t("Date locale", "날짜 로케일", "日付ロケール"), t(
 				"date locale, e.g. en", "날짜 로케일, 예를 들면 ko", "日付ロケール、例)jp"), false);
 
+		LoggerConfigOption timezone = new StringConfigType("timezone", t("Time zone", "시간대","時間帯"), t("time zone, e.g. EST or America/New_york ",
+					"시간대, 예를 들면 KST 또는 Asia/Seoul","時間帯。例えばJSTまたはAsia/Tokyo"), false);
+
 		LoggerConfigOption newlogRegex = new StringConfigType("newlog_designator", t("Regex for first line", "로그 시작 정규식",
 				"ログ始め正規表現"), t("Regular expression to determine whether the line is start of new log."
 				+ "(if a line does not matches, the line will be merged to prev line.).",
@@ -82,8 +85,10 @@ public class GzipDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				"Delete GZIP file after load, true or false", "수집 완료된 GZIP 파일의 삭제 여부, true 혹은 false",
 				"収集を完了したGZIPファイルの削除可否。trueかfalse"), false);
 
-		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, newlogRegex, newlogEndRegex,
-				charset, isDeleteFile);
+		return Arrays
+				.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, timezone, newlogRegex, newlogEndRegex, charset,
+						isDeleteFile);
+
 	}
 
 	private Map<Locale, String> t(String enText, String koText, String jpText) {

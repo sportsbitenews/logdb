@@ -64,6 +64,7 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
+
 		LoggerConfigOption basePath = new StringConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路"), t(
 				"Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路"), true);
 
@@ -80,6 +81,9 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 
 		LoggerConfigOption dateLocale = new StringConfigType("date_locale", t("Date locale", "날짜 로케일", "日付ロケール"), t(
 				"date locale, e.g. en", "날짜 로케일, 예를 들면 ko", "日付ロケール。例えばjp"), false);
+		 
+		LoggerConfigOption timezone = new StringConfigType("timezone", t("Time zone", "시간대","時間帯"), t("time zone, e.g. EST or America/New_york ",
+				"시간대, 예를 들면 KST 또는 Asia/Seoul","時間帯。例えばJSTまたはAsia/Tokyo"), false);
 
 		LoggerConfigOption newlogRegex = new StringConfigType("newlog_designator", t("Regex for first line", "로그 시작 정규식",
 				"ログ始め正規表現"), t("Regular expression to determine whether the line is start of new log."
@@ -95,7 +99,7 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				"텍스트 파일의 문자 인코딩 방식", "テキストファイルの文字エンコーディング方式"), false);
 
 		return Arrays
-				.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, newlogRegex, newlogEndRegex, charset);
+				.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, timezone,  newlogRegex, newlogEndRegex, charset);
 	}
 
 	private Map<Locale, String> t(String enText, String koText, String jpText) {

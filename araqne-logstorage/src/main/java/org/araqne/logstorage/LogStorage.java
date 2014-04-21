@@ -80,7 +80,7 @@ public interface LogStorage {
 	void purge(String tableName, Date fromDay, Date toDay);
 
 	Collection<Date> getLogDates(String tableName);
-
+	
 	void write(Log log);
 
 	void write(List<Log> logs);

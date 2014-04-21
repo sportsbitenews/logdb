@@ -24,6 +24,7 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
@@ -57,10 +58,11 @@ public class RotationFileLogger extends AbstractLogger {
 			dateLocale = "en";
 
 		// optional
-		String dateFormatString = configs.get("date_format");
+		String dateFormatString = getConfigs().get("date_format");
+		String timeZone = getConfigs().get("timezone");
 		if (dateFormatString != null)
-			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)));
-
+			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);		
+						
 		// optional
 		String beginRegex = configs.get("begin_regex");
 		if (beginRegex != null)
