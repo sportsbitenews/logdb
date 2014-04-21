@@ -44,41 +44,46 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "정규표현식 로그 선택자";
+		if (locale.equals(Locale.JAPANESE))
+			return "正規表現ログセレクター";
 		return "Regex Selector";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
-			return "다른 로거로부터 정규표현식 패턴 매칭되는 특정 로그들만 수집합니다.";
+			return "다른 로거로부터 정규표현식 패턴이 매칭되는 특정 로그들만 수집합니다.";
+		if (locale.equals(Locale.JAPANESE))
+			return "他のロガーから正規表現がマッチングされるログだけ収集します。";
 		return "select logs from logger using regular expression pattern matching";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름"), true);
-		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Regex pattern", "정규표현식 패턴"), t(
-				"Regex pattern to match", "매칭할 정규표현식"), true);
-		LoggerConfigOption invert = new StringConfigType(OPT_INVERT, t("Invert match", "매칭 결과 반전"), t(
-				"Invert pattern match result", "정규표현식 매칭 결과 반전"), false);
+		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름", "元ロガー名"), t(
+				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名"), true);
+		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Regex pattern", "정규표현식 패턴", "正規表現パターン"), t(
+				"Regex pattern to match", "매칭할 정규표현식", "マッチングする正規表現"), true);
+		LoggerConfigOption invert = new StringConfigType(OPT_INVERT, t("Invert match", "매칭 결과 반전", "結果反転"), t(
+				"Invert pattern match result", "정규표현식 매칭 결과 반전", "正規表現マッチング結果を反転します。"), false);
 		return Arrays.asList(loggerName, pattern, invert);
 	}
 
-	private Map<Locale, String> t(String enText, String koText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
+		m.put(Locale.JAPANESE, jpText);
 		return m;
 	}
 

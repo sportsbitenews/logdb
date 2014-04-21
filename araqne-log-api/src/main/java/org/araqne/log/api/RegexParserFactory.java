@@ -39,44 +39,51 @@ public class RegexParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "정규표현식";
+		if (locale.equals(Locale.JAPANESE))
+			return "正規表現";
 		return "Regular Expression";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "정규표현식을 이용하여 로그를 파싱합니다.";
+		if (locale.equals(Locale.JAPANESE))
+			return "正規表現を使ってログを解析します。";
 		return "parse log using regular expression";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		List<LoggerConfigOption> options = new ArrayList<LoggerConfigOption>();
-		options.add(new StringConfigType("regex", t("regex", "정규표현식"), t("regular expression with placeholder",
-				"필드 이름이 포함된 정규표현식"), true));
-		options.add(new StringConfigType("field", t("field", "대상 필드"), t("parse target field. 'line' field by default",
-				"정규표현식을 적용할 필드, 미설정 시 기본값은 line"), false));
-		options.add(new StringConfigType("include_original_field", t("include original field", "원본 필드 포함"), t(
-				"return also original field (true or false)", "정규표현식으로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false"), false));
+		options.add(new StringConfigType("regex", t("regex", "정규표현식", "正規表現"), t("regular expression with placeholder",
+				"필드 이름이 포함된 정규표현식", "フィールド名を含めている正規表現"), true));
+		options.add(new StringConfigType("field", t("field", "대상 필드", "対象フィールド"), t(
+				"parse target field. 'line' field by default", "정규표현식을 적용할 필드, 미설정 시 기본값은 line", "正規表現を適用するフィールド。未設定の場合はline"),
+				false));
+		options.add(new StringConfigType("include_original_field", t("include original field", "원본 필드 포함", "元フィールド込み"), t(
+				"return also original field (true or false)", "정규표현식으로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false",
+				"正規表現の結果と元のフィールドも含むか設定します。trueかfalse"), false));
 		return options;
 	}
 
-	private Map<Locale, String> t(String enText, String koText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
+		m.put(Locale.JAPANESE, jpText);
 		return m;
 	}
 

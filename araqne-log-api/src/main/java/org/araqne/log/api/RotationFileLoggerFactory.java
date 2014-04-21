@@ -38,66 +38,71 @@ public class RotationFileLoggerFactory extends AbstractLoggerFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "로테이션 로그 파일";
+		if (locale.equals(Locale.JAPANESE))
+			return "ローテーションログファイル";
 		return "Rotation Log File";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "일정 주기마다 다른 경로에 백업 후 삭제하고 다시 쓰는 로그 파일을 수집합니다.";
+		if (locale.equals(Locale.JAPANESE))
+			return "一定周期で他の経路にバックアップしたあと削除し、書き換えるログファイルを収集します。";
 		return "collect rotation text log file";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption filePath = new StringConfigType("file_path", t("File Path", "파일 경로"), t("Log file path", "텍스트 로그 파일의 절대 경로"),
-				true, t("/var/log/"));
+		LoggerConfigOption filePath = new StringConfigType("file_path", t("File Path", "파일 경로", "ファイル経路"), t("Log file path",
+				"텍스트 로그 파일의 절대 경로", "テキストログファイルの絶対経路"), true, t("/var/log/"));
 
-		LoggerConfigOption datePattern = new StringConfigType("date_pattern", t("Date Pattern", "날짜 정규식"), t(
-				"Regex for date extraction", "날짜 문자열 추출에 사용되는 정규표현식"), false, t(null));
+		LoggerConfigOption datePattern = new StringConfigType("date_pattern", t("Date Pattern", "날짜 정규식", "日付正規表現"), t(
+				"Regex for date extraction", "날짜 문자열 추출에 사용되는 정규표현식", "日付文字列の抽出に使う正規表現"), false, t(null));
 
-		LoggerConfigOption dateFormat = new StringConfigType("date_format", t("Date Format", "날짜 패턴"), t("Date pattern of log file",
-				"날짜 파싱에 필요한 패턴 (예시: yyyy-MM-dd HH:mm:ss)"), false, t("MMM dd HH:mm:ss"));
+		LoggerConfigOption dateFormat = new StringConfigType("date_format", t("Date Format", "날짜 패턴", "日付パターン"), t(
+				"Date pattern of log file", "날짜 파싱에 필요한 패턴 (예시: yyyy-MM-dd HH:mm:ss)", "日付の解析に使うパターン (例: yyyy-MM-dd HH:mm:ss)"),
+				false, t("MMM dd HH:mm:ss"));
 
-		LoggerConfigOption dateLocale = new StringConfigType("date_locale", t("Date Locale", "날짜 로케일"), t("Date locale of log file",
-				"날짜 문자열의 로케일. 가령 날짜 패턴의 MMM 지시어은 영문 로케일에서 Jan으로 인식됩니다."), false, t("en"));
+		LoggerConfigOption dateLocale = new StringConfigType("date_locale", t("Date Locale", "날짜 로케일", "日付ロケール"), t(
+				"Date locale of log file", "날짜 문자열의 로케일. 가령 날짜 패턴의 MMM 지시어은 영문 로케일에서 Jan으로 인식됩니다.", "日付文字列ののロケール"), false,
+				t("en"));
 
-		LoggerConfigOption charset = new StringConfigType("charset", t("Charset", "문자 집합"), t("Charset", "문자 집합. 기본값 UTF-8"), false,
-				t("utf-8"));
+		LoggerConfigOption charset = new StringConfigType("charset", t("Charset", "문자 집합", "文字セット"), t("Charset",
+				"문자 집합. 기본값 UTF-8", "文字セット。基本値はutf-8"), false, t("utf-8"));
 
-		LoggerConfigOption logBeginRegex = new StringConfigType("begin_regex",
-				t("Log begin regex", "로그 시작 구분 정규식"),
+		LoggerConfigOption logBeginRegex = new StringConfigType("begin_regex", t("Log begin regex", "로그 시작 구분 정규식", "ログ始め正規表現"),
 				t("Regular expression to determine whether the line is start of new log."
 						+ "(if a line does not matches, the line will be merged to prev line.).",
-						"새 로그의 시작을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)"), false);
+						"새 로그의 시작을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "新しいログの始まりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)"), false);
 
-		LoggerConfigOption logEndRegex = new StringConfigType("end_regex",
-				t("Log end regex", "로그 끝 구분 정규식"),
-				t("Regular expression to determine whether the line is end of new log."
+		LoggerConfigOption logEndRegex = new StringConfigType("end_regex", t("Log end regex", "로그 끝 구분 정규식", "ログ終わり正規表現"), t(
+				"Regular expression to determine whether the line is end of new log."
 						+ "(if a line does not matches, the line will be merged to prev line.).",
-						"로그의 끝을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)"), false);
+				"로그의 끝을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "ログの終わりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)"), false);
 
 		return Arrays.asList(filePath, charset, datePattern, dateFormat, dateLocale, logBeginRegex, logEndRegex);
 	}
 
 	private Map<Locale, String> t(String text) {
-		return t(text, text);
+		return t(text, text, text);
 	}
 
-	private Map<Locale, String> t(String enText, String koText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
+		m.put(Locale.JAPANESE, jpText);
 		return m;
 	}
 

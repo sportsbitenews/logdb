@@ -61,8 +61,9 @@ public class RexParser implements QueryCommandParser {
 		regexToken = toNonCapturingGroup(regexToken);
 
 		Matcher matcher = placeholder.matcher(regexToken);
-		while (matcher.find())
+		while (matcher.find()) {
 			names.add(matcher.group(1));
+		}
 
 		while (true) {
 			matcher = placeholder.matcher(regexToken);

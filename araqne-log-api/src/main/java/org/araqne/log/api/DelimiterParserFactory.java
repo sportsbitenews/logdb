@@ -42,47 +42,54 @@ public class DelimiterParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "구분자";
+		if (locale.equals(Locale.JAPANESE))
+			return "区切り文字";
 		return "Delimiter";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "구분자로 구분된 각 토큰에 대하여 설정된 필드 이름들을 순서대로 적용하여 파싱합니다.";
+		if (locale.equals(Locale.JAPANESE))
+			return "区切り文字で分けている各トークンに設定されたフィールド名を順番に適用し解析します。";
 		return "devide a string into tokens based on the given delimiter and column names";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		List<LoggerConfigOption> options = new ArrayList<LoggerConfigOption>();
-		options.add(new StringConfigType(DELIMITER, t(DELIMITER, "구분자"), t(
-				"one delimiter character or 4-digit unicode escape sequence (e.g. \u0007)", "하나의 아스키 구분자 혹은 4자리 유니코드 이스케이프 시퀀스 (예: \u0007)"), true));
-		options.add(new StringConfigType(COLUMN_HEADERS, t("column headers", "필드 이름 목록"), t("separated by comma",
-				"쉼표로 구분된 필드 이름들"), false));
-		options.add(new StringConfigType(DELIMITER_TARGET, t("delimiter target field", "대상 필드"), t("delimiter target field name",
-				"구분자로 파싱할 대상 필드 이름"), false));
-		options.add(new StringConfigType(INCLUDE_DELIMITER_TARGET, t("include delimiter target", "원본 값 포함 여부"), t(
-				"return also delimiter target field (true or false)", "구분자로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false"), false));
+		options.add(new StringConfigType(DELIMITER, t(DELIMITER, "구분자", "区切り文字"), t(
+				"one delimiter character or 4-digit unicode escape sequence (e.g. \u0007)",
+				"하나의 아스키 구분자 혹은 4자리 유니코드 이스케이프 시퀀스 (예: \u0007)", "一つのアスキー区切り文字もしくは４桁のユニコードエスケープシーケンス(例: \u0007)"), true));
+		options.add(new StringConfigType(COLUMN_HEADERS, t("column headers", "필드 이름 목록", "フィールド名リスト"), t("separated by comma",
+				"쉼표로 구분된 필드 이름들", "コンマで分けているフィールドな"), false));
+		options.add(new StringConfigType(DELIMITER_TARGET, t("delimiter target field", "대상 필드", "対象フィールド"), t(
+				"delimiter target field name", "구분자로 파싱할 대상 필드 이름", "区切り文字で解析するフィールドな"), false));
+		options.add(new StringConfigType(INCLUDE_DELIMITER_TARGET, t("include delimiter target", "원본 값 포함 여부", "原本含み可否"), t(
+				"return also delimiter target field (true or false)", "구분자로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false",
+				"区切り文字で解析した結果に原本フィールドを含むか設定します。trueまたはfalse"), false));
 
 		return options;
 	}
 
-	private Map<Locale, String> t(String enText, String koText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
+		m.put(Locale.JAPANESE, jpText);
 		return m;
 	}
 
