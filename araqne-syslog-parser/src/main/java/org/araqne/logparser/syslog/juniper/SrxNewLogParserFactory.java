@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logparser.syslog.symantec;
+package org.araqne.logparser.syslog.juniper;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 
@@ -23,35 +25,41 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
-/**
- * @author kyun
- */
-@Component(name = "swg-parser-factory")
+@Component(name = "srx-new-log-parser-factory")
 @Provides
-public class SwgLogParserFactory extends AbstractLogParserFactory {
+public class SrxNewLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
-		return "symantec-web-gw";
+		return "srxnew";
+	}
+
+	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale != null && locale.equals(Locale.KOREAN))
-			return "시만텍 웹 게이트웨이";
-		return "Symantec Web Gateway";
+		if (locale.equals(Locale.KOREAN))
+			return "SRX 서비스 게이트웨이(뉴)";
+		return "New SRX Series Service Gateway";
+	}
+
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale != null && locale.equals(Locale.KOREAN))
-			return "시만텍 웹 게이트웨이의 로그를 파싱합니다.";
-		return "Parse Symantec's Symantec Web Gateway logs.";
+		if (locale.equals(Locale.KOREAN))
+			return "주니퍼 SRX 시리즈(뉴) 서비스 게이트웨이 로그를 파싱합니다.";
+		return "New Juniper SRX Series Service Gateway";
 	}
 
 	@Override
-	public LogParser createParser(Map<String, String> configs) {
-		return new SwgLogParser();
+	public LogParser createParser(Map<String, String> config) {
+		return new SrxNewLogParser();
 	}
-
 }

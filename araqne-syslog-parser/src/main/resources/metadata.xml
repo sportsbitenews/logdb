@@ -17,10 +17,15 @@
 	<instance component="mf2-log-parser-factory" />
 	<instance component="sniper-log-parser-factory" />
 	<instance component="riorey-ddos-parser-factory" />
+	<instance component="riorey-syslog-parser-factory" />
 	<instance component="tippingpoint-ips-log-parser-factory" />
 	<instance component="swg-parser-factory" />
 	<instance component="wapples-syslog-parser-factory" />
-	<instance component="anti-web-shell-log-parser-factory" />
+	<instance component="infosec-anti-web-shell-log-parser-factory" />
 	<instance component="fireeye-log-parser-factory" />
 	<instance component="dbsafer-parser-factory" />
+	<instance component="gateone-parser-factory" />
+	<instance component="webfront-factory" />	
+	<instance component="srx-new-log-parser-factory" />
+	<instance component="juniper-sslvpn-log-parser-factory" />	
 </ipojo>

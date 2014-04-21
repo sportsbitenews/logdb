@@ -30,7 +30,8 @@ import org.slf4j.LoggerFactory;
  */
 public class WapplesSyslogParser extends V1LogParser {
 	private static final String[] columnHeaders = new String[] { "INTRUSION DETECTION TIME", "SOURCE IP", "URI", "RULE NAME",
-			"RAW DATA", "HOST NAME", "DESTINATION IP", "RISK", "RESPONSE TYPE" };
+			"RAW DATA", "HOST NAME", "DESTINATION IP", "RISK", "RESPONSE TYPE", "NETWORK  CPS", "TPS", "TRANSACTION SIZE(Kbyte)",
+			"BYPASS", "SYSTEM  CPU USED", "MEM USED" };
 
 	private final Logger slog = LoggerFactory.getLogger(WapplesSyslogParser.class.getName());
 
@@ -45,7 +46,7 @@ public class WapplesSyslogParser extends V1LogParser {
 			Map<String, Object> m = new HashMap<String, Object>();
 			List<Integer> indexs = new ArrayList<Integer>();
 
-			line = rmHead(line);
+			line = removeHeader(line);
 			for (String s : columnHeaders)
 				indexs.add(line.indexOf(s));
 
@@ -58,9 +59,10 @@ public class WapplesSyslogParser extends V1LogParser {
 			int temp = 0;
 
 			for (int i : indexs) {
-				if (i > temp)
+				if (i > temp) {
 					putEntry(m, line.substring(temp, i));
-				temp = i;
+					temp = i;
+				}
 			}
 
 			return m;
@@ -73,7 +75,7 @@ public class WapplesSyslogParser extends V1LogParser {
 
 	}
 
-	private String rmHead(String s) {
+	private String removeHeader(String s) {
 		String head = "syslogmd";
 		int pos = s.indexOf(head);
 
@@ -85,10 +87,10 @@ public class WapplesSyslogParser extends V1LogParser {
 	private void putEntry(Map<String, Object> m, String s) {
 		int p = s.indexOf(": ");
 		if (p > -1)
-			m.put(changeFiled(s.substring(0, p - 1).trim()), s.substring(p + 1).trim());
+			m.put(renameField(s.substring(0, p - 1).trim()), s.substring(p + 1).trim());
 	}
 
-	private String changeFiled(String s) {
+	private String renameField(String s) {
 		s = s.toLowerCase();
 		s = s.replace(' ', '_');
 

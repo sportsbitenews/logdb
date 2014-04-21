@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014 Eediom Inc
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +15,11 @@
  */
 package org.araqne.logparser.syslog.symantec;
 
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 import org.araqne.log.api.V1LogParser;
 import org.slf4j.Logger;
@@ -29,93 +32,75 @@ public class SwgLogParser extends V1LogParser {
 
 	private final Logger slog = LoggerFactory.getLogger(SwgLogParser.class);
 
+	private enum FieldType {
+		String, Integer, Date
+	};
+
+	private SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy HH:mm", Locale.ENGLISH);
+
+	private static final String[] Keys = new String[] { "timestamp", "hostname", "local_ip", "detection", "category", "class",
+			"severity", "action", "detection_type", "dst_ip", "dst_port", "hits", "domain", "req_url" };
+
+	private static final FieldType[] Types = new FieldType[] { FieldType.Date, FieldType.String, FieldType.String,
+			FieldType.String, FieldType.String, FieldType.String, FieldType.String, FieldType.String, FieldType.String,
+			FieldType.String, FieldType.String, FieldType.String, FieldType.String, FieldType.String };
+
 	@Override
 	public Map<String, Object> parse(Map<String, Object> log) {
 		String line = (String) log.get("line");
 		if (line == null)
 			return log;
+
+		Map<String, Object> m = new HashMap<String, Object>();
+
+		int i = 0;
 		try {
-			Map<String, Object> m = new HashMap<String, Object>();
-			line = rmHead(line);
+			line = line.replaceAll(",", " ,");
+			StringTokenizer tok = new StringTokenizer(line, ",");
+			StringBuilder tmpStr = new StringBuilder();
+			boolean inSentence = false;
 
-			int i = 0;
-			int inSentence = 0; // 0이면 () 밖
-			int position = 0;
-			int keyPosition = 0;
+			while (tok.hasMoreTokens()) {
+				if (i >= 14)
+					break;
+				String token = tok.nextToken().trim();
+				if (token.equals("")) {
+					i++;
+					continue;
+				}
+				if (token.charAt(0) == '"') {
+					inSentence = true;
+					tmpStr.append(token.substring(1));
+					tmpStr.append(",");
+					continue;
+				}
+				if (inSentence) {
+					tmpStr.append(token);
+					if (token.charAt(token.length() - 1) == '"') {
+						inSentence = false;
+						token = tmpStr.toString();
+						token = token.substring(0, token.length() - 1);
+					} else {
+						tmpStr.append(",");
+						continue;
+					}
+				}
 
-			while (i < line.length()) {
-				char c = line.charAt(i);
+				String key = Keys[i];
+				FieldType type = Types[i++];
 
-				if (c == '(')
-					inSentence++;
-				else if (c == ')')
-					inSentence--;
-
-				if (c == ':' && (inSentence > 0))
-					keyPosition = i;// -1;
-
-				if (c == ',' && (inSentence == 0)) {
-					putEntry(m, line.substring(position + 1, keyPosition), line.substring(keyPosition + 2, i - 1).trim());
-					position = i + 1;
-
-				} else if ((c == ' ') && (position == i))
-					position++;
-				i++;
+				if (type == FieldType.Integer)
+					m.put(key, Integer.valueOf(token));
+				else if (type == FieldType.Date)
+					m.put(key, format.parse(token));
+				else
+					m.put(key, token);
 			}
-
-			putEntry(m, line.substring(position + 1, keyPosition), line.substring(keyPosition + 2, i - 1));
-
-			if (inSentence != 0)
-				return log;
-
 			return m;
-
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
-				slog.debug("araqne syslog parser : symantec web gateway parse error - [{}]", line);
+				slog.debug("araqne syslog parser: symantec web gateway parse error- [" + line + "]", t);
 			return log;
 		}
 	}
-
-	private void putEntry(Map<String, Object> m, String k, String v) {
-
-		if (isInteger(v))
-			m.put(changeFiled(k), Integer.valueOf(v));
-		else
-			m.put(changeFiled(k), v);
-	}
-
-	private String changeFiled(String s) {
-		s = s.toLowerCase();
-		s = s.replace(' ', '_');
-
-		return s;
-	}
-
-	private String rmHead(String s) {
-		int pos = s.indexOf("(");
-
-		if (pos > 0)
-			s = s.substring(pos);
-		return s;
-	}
-
-	private boolean isInteger(String str) {
-		char check;
-
-		if (str.equals(""))
-			return false;
-
-		for (int i = 0; i < str.length(); i++) {
-			check = str.charAt(i);
-			if (check < 48 || check > 58) {
-				// 해당 char값이 숫자가 아닐 경우
-				return false;
-			}
-
-		}
-		return true;
-
-	}
-
 }

@@ -75,9 +75,10 @@ public class AntiWebShellLogParserTest {
 		assertEquals("0", m.get("문자알림시작시간"));
 		assertEquals("0", m.get("문자알림종료시간"));
 		assertEquals("127.0.0.1", m.get("로컬서버ip주소"));
-
 	}
 
+	
+	
 	private Map<String, Object> line(String line) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("line", line);

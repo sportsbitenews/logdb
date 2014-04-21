@@ -15,58 +15,33 @@
  */
 package org.araqne.logparser.syslog.hp;
 
-import java.text.SimpleDateFormat;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
 
 import org.araqne.log.api.V1LogParser;
-import org.araqne.logparser.syslog.riorey.RioreyDdosLogParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 
- * TippingPoint(IPS)
- * 
- * [샘플로그] Mar 18 19:12:23 sms-server 8 1 591aafad-b9f6-11e1-7265-be812d7c8911
- * 00000001-0001-0001-0001-000000007121 7121: TCP: Header Length Invalid, e.g.,
- * Fragroute 7121 ip 113.216.83.239 35385 203.235.200.42 80 1 3 1 MCIPS_1
- * 100739839 1395137543039 4301345
- * 
- * 
- * Time : Mar 18 19:12:23 Hostname : sms-server Action : 8 Serverity : 1 Policy
- * UUID : 591aafad-b9f6-11e1-7265-be812d7c8911 Signature UUID :
- * 00000001-0001-0001-0001-000000007121 Signature Name : 7121: TCP: Header
- * Length Invalid, e.g., Fragroute Signature Number : 7121 Protocol : ip
- * 
- * Source IP : 113.216.83.239 Source Port : 35385 Destination IP :
- * 203.235.200.42 Destination Port : 80 Hit Count : 1
- * 
- * Source Zone Name : 3 Destination Zone Name : 1 Device Name : MCIPS_1 Taxonomy
- * ID : 100739839 Event timestamp in milliseconds : 1395137543039 Additional
- * comments : 4301345 sequence number of the event :
- * 
  * @author kyun
  * @since 1.4.0
  */
 public class TippingPointIpsLogParser extends V1LogParser {
-	private final Logger slog = LoggerFactory.getLogger(RioreyDdosLogParser.class);
+	private final Logger slog = LoggerFactory.getLogger(TippingPointIpsLogParser.class);
 
 	private enum FieldType {
-		String, Integer, Date
+		String, Integer
 	};
 
-	private static SimpleDateFormat format = new SimpleDateFormat("MMM dd HH:mm:ss", Locale.ENGLISH);
+	private static final String[] Keys = new String[] { "serverity", "policy_uuid", "sig_uuid", "sig_name", "sig_no", "protocol",
+			"src_ip", "src_port", "dst_ip", "dst_port", "hit", "src_zone", "dst_zone", "device_name", "taxonomy_id",
+			"event_timestamp", "comments", "event_seqno" };
 
-	private static final String[] Keys = new String[] { "time", "hostname", "action", "serverity", "policy_uuid", "sig_uuid",
-			"sig_name", "sig_no", "protocol", "src_ip", "src_port", "dst_ip", "dst_port", "hit", "src_zone", "dst_zone",
-			"device_name", "taxonomy_id", "event_timestamp", "comments", "event_seqno" };
-	private static final FieldType[] Types = new FieldType[] { FieldType.String, FieldType.String, FieldType.Integer,
-			FieldType.Integer, FieldType.String, FieldType.String, FieldType.String, FieldType.Integer, FieldType.String,
-			FieldType.String, FieldType.Integer, FieldType.String, FieldType.Integer, FieldType.Integer, FieldType.String,
-			FieldType.String, FieldType.String, FieldType.String, FieldType.String, FieldType.String, FieldType.String };
+	private static final FieldType[] Types = new FieldType[] { FieldType.Integer, FieldType.String, FieldType.String,
+			FieldType.String, FieldType.Integer, FieldType.String, FieldType.String, FieldType.Integer, FieldType.String,
+			FieldType.Integer, FieldType.Integer, FieldType.String, FieldType.String, FieldType.String, FieldType.String,
+			FieldType.String, FieldType.String, FieldType.String };
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> log) {
@@ -77,6 +52,9 @@ public class TippingPointIpsLogParser extends V1LogParser {
 
 		int i = 0;
 		Map<String, Object> m = new HashMap<String, Object>();
+
+		parseHeader(m, line.substring(0, line.indexOf('\t')));
+		line = line.substring(line.indexOf('\t'));
 
 		try {
 			StringTokenizer tok = new StringTokenizer(line, "\t");
@@ -90,8 +68,6 @@ public class TippingPointIpsLogParser extends V1LogParser {
 				if (!token.equals("")) {
 					if (type == FieldType.Integer)
 						m.put(key, Integer.valueOf(token));
-					else if (type == FieldType.Date)
-						m.put(key, format.parse(token));
 					else
 						m.put(key, token);
 				}
@@ -99,9 +75,17 @@ public class TippingPointIpsLogParser extends V1LogParser {
 			return m;
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
-				slog.debug("araqne syslog parser: tippingpoint ips parse error - [{}]", line);
+				slog.debug("araqne syslog parser: tippingpoint ips parse error - [" + line + "]", t);
 			return log;
 		}
+	}
+
+	private void parseHeader(Map<String, Object> m, String line) {
+		m.put("time", line.substring(0, 15).trim());
+		line = line.substring(15).trim();
+		int a = line.indexOf(" ");
+		m.put("hostname", line.substring(0, a).trim());
+		m.put("action", Integer.valueOf(line.substring(a).trim()));
 	}
 
 }
