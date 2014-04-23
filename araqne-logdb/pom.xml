@@ -30,14 +30,13 @@
 							org.araqne.logdb.sort;version=${project.version},
 							org.araqne.logdb.query.command;version=${project.version},
 							org.araqne.logdb.metadata;version=${project.version},
+							org.araqne.logdb.writer;version=${project.version}
 						</Export-Package>
 						<Private-Package>
 							org.araqne.logdb.impl,
 							org.araqne.logdb.query.engine,
 							org.araqne.logdb.msgbus,
-							
-							org.araqne.logdb.logapi,
-							org.araqne.logdb.writer
+							org.araqne.logdb.logapi
 						</Private-Package>
 						<Import-Package>
 							!org.junit,
