@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logparser.syslog.symantec;
+package org.araqne.logparser.syslog.pnp;
 
 import java.util.Locale;
 import java.util.Map;
@@ -26,32 +26,31 @@ import org.araqne.log.api.LogParser;
 /**
  * @author kyun
  */
-@Component(name = "swg-parser-factory")
+@Component(name = "dbsafer-parser-factory")
 @Provides
-public class SwgLogParserFactory extends AbstractLogParserFactory {
+public class DbSaferLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
-		return "symantec-web-gw";
+		return "dbsafer";
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "시만텍 웹 게이트웨이";
-		return "Symantec Web Gateway";
+			return "디비세이퍼";
+		return "DBSAFER";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "시만텍 웹 게이트웨이의 로그를 파싱합니다.";
-		return "Parse Symantec's Symantec Web Gateway logs.";
+			return "피엔피시큐어 디비세이퍼의 로그를 파싱합니다.";
+		return "Parse Pnp secure's DBSAFER logs.";
 	}
 
 	@Override
 	public LogParser createParser(Map<String, String> configs) {
-		return new SwgLogParser();
+		return new DbSaferLogParser();
 	}
-
 }

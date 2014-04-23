@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Eediom Inc
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logparser.syslog.symantec;
+
+package org.araqne.logparser.syslog.riorey;
 
 import java.util.Locale;
 import java.util.Map;
@@ -26,32 +27,32 @@ import org.araqne.log.api.LogParser;
 /**
  * @author kyun
  */
-@Component(name = "swg-parser-factory")
+@Component(name = "riorey-syslog-parser-factory")
 @Provides
-public class SwgLogParserFactory extends AbstractLogParserFactory {
+public class RioreySyslogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
-		return "symantec-web-gw";
+		return "riorey-sys";
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "시만텍 웹 게이트웨이";
-		return "Symantec Web Gateway";
+			return "리오레이 시스 로그";
+		return "Riorey SYS";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "시만텍 웹 게이트웨이의 로그를 파싱합니다.";
-		return "Parse Symantec's Symantec Web Gateway logs.";
+			return "리오레이 디도스 방어 솔루션의 시스 로그를 파싱합니다.";
+		return "Riorey's Riorey Syslog parser";
 	}
 
 	@Override
 	public LogParser createParser(Map<String, String> configs) {
-		return new SwgLogParser();
+		return new RioreySyslogParser();
 	}
 
 }

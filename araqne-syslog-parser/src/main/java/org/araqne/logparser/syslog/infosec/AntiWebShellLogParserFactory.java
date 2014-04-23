@@ -31,28 +31,27 @@ import org.araqne.log.api.AbstractLogParserFactory;
  * @author xeraph
  * @since 1.4.0
  */
-@Component(name = "anti-web-shell-log-parser-factory")
+@Component(name = "infosec-anti-web-shell-log-parser-factory")
 @Provides
 public class AntiWebShellLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
-		return "anti-webshell";
+		return "infosec-anti-webshell";
 	}
-
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "웹쉘 탐지";
-		return "anti web-shell";
+		return "SK Infosec Anti Webshell";
 	}
-	
+
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "SK 인포섹 웹쉘 탐지 솔루션의 로그를 파싱합니다.";
-		return "SK Infosec's Anti Webshell log parser";
+		return "Parse SK Infosec Anti Webshell logs.";
 	}
 
 	@Override
@@ -64,5 +63,4 @@ public class AntiWebShellLogParserFactory extends AbstractLogParserFactory {
 	public LogParser createParser(Map<String, String> config) {
 		return new AntiWebShellLogParser();
 	}
-
 }
