@@ -19,7 +19,8 @@ public class FireeyeLogParserTest {
 				+ "cncChannel=GET /AppTag/TagCnt_xe2.asp HTTP/1.1::~~Host: ad.syndiapi.com::~~Accept: text/html, "
 				+ "*/*::~~Accept-Encoding: identity::~~User-Agent: Mozilla/3.0 (compatible; Indy Library)::~~::~~^"
 				+ "srcMAC=10:04:96:52:de:96^";
-
+		
+	
 		Map<String, Object> input = new HashMap<String, Object>();
 		input.put("line", line);
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014 Eediom Inc
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,7 @@ public class RioreyDdosLogParser extends V1LogParser {
 
 	private final Logger slog = LoggerFactory.getLogger(RioreyDdosLogParser.class);
 
-	private static SimpleDateFormat format = new SimpleDateFormat("yyyy-M-dd HH:mm:ss");
+	private SimpleDateFormat format = new SimpleDateFormat("yyyy-M-d HH:mm:ss");
 
 	private enum FieldType {
 		String, Integer, Date
@@ -72,12 +72,11 @@ public class RioreyDdosLogParser extends V1LogParser {
 						m.put(key, token);
 				}
 			}
-
 			return m;
 
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
-				slog.debug("araqne syslog parser :  rioresy ddos parse error - [{}]", line);
+				slog.debug("araqne syslog parser:  riorey ddos parse error - [" + line + "]", t);
 			return log;
 		}
 	}
