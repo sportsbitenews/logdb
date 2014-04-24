@@ -21,8 +21,6 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 
-import org.araqne.logstorage.engine.DateUtil;
-
 public class Log implements Comparable<Log> {
 	private String tableName;
 	private Date date;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logstorage.engine;
+package org.araqne.logstorage;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
