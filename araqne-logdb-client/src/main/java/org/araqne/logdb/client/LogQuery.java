@@ -83,8 +83,8 @@ public class LogQuery {
 	 * @param stamp
 	 *            스탬프 값
 	 */
-	public void setStamp(int s) {
-		stamp = s;
+	public void setStamp(int stamp) {
+		this.stamp = stamp;
 	}
 
 	/**

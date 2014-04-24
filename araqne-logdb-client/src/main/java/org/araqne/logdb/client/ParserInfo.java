@@ -34,34 +34,79 @@ public class ParserInfo {
 
 	private Map<String, String> configs = new HashMap<String, String>();
 
+	/**
+	 * 파서 이름을 반환합니다.
+	 * 
+	 * @return 파서 이름
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * 파서 이름을 설정합니다.
+	 * 
+	 * @param name
+	 *            파서 이름
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}
 
+	/**
+	 * 파서 유형의 이름을 반환합니다.
+	 * 
+	 * @return 파서 유형의 이름
+	 */
 	public String getFactoryName() {
 		return factoryName;
 	}
 
+	/**
+	 * 파서 유형의 이름을 설정합니다.
+	 * 
+	 * @param factoryName
+	 *            파서 유형의 이름
+	 */
 	public void setFactoryName(String factoryName) {
 		this.factoryName = factoryName;
 	}
 
+	/**
+	 * 이 파서를 이용하여 파싱된 데이터의 스키마를 반환합니다.
+	 * 
+	 * @return 필드 정의 목록
+	 */
 	public List<FieldInfo> getFieldDefinitions() {
 		return fieldDefinitions;
 	}
 
+	/**
+	 * 이 파서를 이용하여 파싱된 데이터의 스키마를 설정합니다.
+	 * 
+	 * @param fieldDefinitions
+	 *            필드 정의 목록
+	 */
 	public void setFieldDefinitions(List<FieldInfo> fieldDefinitions) {
 		this.fieldDefinitions = fieldDefinitions;
 	}
 
+	/**
+	 * 파서 설정 목록을 반환합니다.
+	 * 
+	 * @return 파서 설정 목록
+	 */
 	public Map<String, String> getConfigs() {
 		return configs;
 	}
 
+	/**
+	 * 파서 설정 목록을 설정합니다. 설정 키/값 쌍은 파서 유형의 설정 명세를 따릅니다.
+	 * 
+	 * @param configs
+	 *            파서 설정 목록
+	 * @see ParserFactoryInfo#getConfigSpecs()
+	 */
 	public void setConfigs(Map<String, String> configs) {
 		this.configs = configs;
 	}

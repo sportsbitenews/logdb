@@ -38,26 +38,59 @@ public class TableInfo {
 		this.metadata = metadata;
 	}
 
+	/**
+	 * 테이블 이름을 반환합니다.
+	 * 
+	 * @return 테이블 이름
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * 테이블 이름을 설정합니다.
+	 * 
+	 * @param name
+	 *            테이블 이름
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}
 
+	/**
+	 * 테이블 스키마를 반환합니다.
+	 * 
+	 * @return 테이블 스키마
+	 */
 	public TableSchemaInfo getSchema() {
 		return schema;
 	}
 
+	/**
+	 * 테이블 스키마를 설정합니다.
+	 * 
+	 * @param schema
+	 *            테이블 스키마
+	 */
 	public void setSchema(TableSchemaInfo schema) {
 		this.schema = schema;
 	}
 
+	/**
+	 * 테이블 메타데이터를 반환합니다.
+	 * 
+	 * @return 테이블 메타데이터
+	 */
 	public Map<String, String> getMetadata() {
 		return metadata;
 	}
 
+	/**
+	 * 테이블 메타데이터를 설정합니다.
+	 * 
+	 * @param metadata
+	 *            테이블 메타데이터
+	 */
 	public void setMetadata(Map<String, String> metadata) {
 		this.metadata = metadata;
 	}

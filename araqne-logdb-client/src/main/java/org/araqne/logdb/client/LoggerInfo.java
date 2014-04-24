@@ -140,10 +140,11 @@ public class LoggerInfo {
 	}
 
 	/**
-	 * 로그 수집기의 설정 목록을 설정합니다.
+	 * 로그 수집기의 설정 목록을 설정합니다. 설정 키/값 쌍은 로그 수집기 유형의 설정 명세를 따릅니다.
 	 * 
 	 * @param configs
 	 *            설정 목록
+	 * @see LoggerFactoryInfo#getConfigSpecs()
 	 */
 	public void setConfigs(Map<String, String> configs) {
 		this.configs = configs;

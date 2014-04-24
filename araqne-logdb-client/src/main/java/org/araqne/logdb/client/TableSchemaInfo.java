@@ -30,10 +30,21 @@ public class TableSchemaInfo {
 	public TableSchemaInfo() {
 	}
 
+	/**
+	 * 스키마를 구성하는 필드 정의 목록을 반환합니다.
+	 * 
+	 * @return 필드 정의 목록
+	 */
 	public List<FieldInfo> getFieldDefinitions() {
 		return fieldDefinitions;
 	}
 
+	/**
+	 * 스키마를 구성하는 필드 정의 목록을 설정합니다.
+	 * 
+	 * @param fieldDefinitions
+	 *            필드 정의 목록
+	 */
 	public void setFieldDefinitions(List<FieldInfo> fieldDefinitions) {
 		this.fieldDefinitions = fieldDefinitions;
 	}

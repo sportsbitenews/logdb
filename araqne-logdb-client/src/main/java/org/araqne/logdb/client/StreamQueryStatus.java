@@ -32,34 +32,79 @@ public class StreamQueryStatus {
 	private Date lastRefresh;
 	private boolean running;
 
+	/**
+	 * 스트림 쿼리 구성을 반환합니다.
+	 * 
+	 * @return 스트림 쿼리 설정
+	 */
 	public StreamQueryInfo getStreamQuery() {
 		return query;
 	}
 
+	/**
+	 * 스트림 쿼리 구성을 설정합니다.
+	 * 
+	 * @param query
+	 *            스트림 쿼리 구성
+	 */
 	public void setStreamQuery(StreamQueryInfo query) {
 		this.query = query;
 	}
 
+	/**
+	 * 스트림 쿼리에 입력된 데이터 건수를 반환합니다.
+	 * 
+	 * @return 입력 데이터 건수
+	 */
 	public long getInputCount() {
 		return inputCount;
 	}
 
+	/**
+	 * 스트림 쿼리에 입력된 데이터 건수를 설정합니다.
+	 * 
+	 * @param inputCount
+	 *            입력 데이터 건수
+	 */
 	public void setInputCount(long inputCount) {
 		this.inputCount = inputCount;
 	}
 
+	/**
+	 * 마지막으로 스트림 쿼리가 다시 생성된 시각을 반환합니다.
+	 * 
+	 * @return 마지막 새로고침 시각
+	 */
 	public Date getLastRefresh() {
 		return lastRefresh;
 	}
 
+	/**
+	 * 마지막으로 스트림 쿼리가 다시 생성된 시각을 설정합니다.
+	 * 
+	 * @param lastRefresh
+	 *            마지막 새로고침 시각
+	 */
 	public void setLastRefresh(Date lastRefresh) {
 		this.lastRefresh = lastRefresh;
 	}
 
+	/**
+	 * 스트림 쿼리의 동작 여부를 반환합니다. 쿼리 생성이 지연되거나 쿼리 생성이 실패하는 경우 활성화 이후에도 스트림 쿼리가 동작하지
+	 * 않을 수 있습니다.
+	 * 
+	 * @return 스트림 쿼리 동작 여부
+	 */
 	public boolean isRunning() {
 		return running;
 	}
 
+	/**
+	 * 스트림 쿼리의 동작 여부를 설정합니다.
+	 * 
+	 * @param running
+	 *            스트림 쿼리 동작 여부
+	 */
 	public void setRunning(boolean running) {
 		this.running = running;
 	}

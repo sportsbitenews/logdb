@@ -90,7 +90,7 @@ public class ParserFactoryInfo {
 	/**
 	 * 파서를 생성하는데 필요한 설정 명세 목록을 반환합니다.
 	 * 
-	 * @return 설정 명세 목록
+	 * @return 파서 설정 명세 목록
 	 */
 	public List<ConfigSpec> getConfigSpecs() {
 		return configSpecs;
@@ -100,6 +100,7 @@ public class ParserFactoryInfo {
 	 * 파서를 생성하는데 필요한 설정 명세 목록을 설정합니다.
 	 * 
 	 * @param configSpecs
+	 *            파서 설정 명세 목록
 	 */
 	public void setConfigSpecs(List<ConfigSpec> configSpecs) {
 		this.configSpecs = configSpecs;
