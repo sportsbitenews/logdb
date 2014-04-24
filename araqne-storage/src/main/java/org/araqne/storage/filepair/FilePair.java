@@ -204,17 +204,22 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		private IB ib;
 
 		public IndexBlockEnumeration(Class<IB> ibClass) throws IOException {
+			this.currentSegId = 0;
+
 			try {
+				this.ib = ibClass.newInstance();
+				this.ibClass = ibClass;
+
+				if (!ifile.exists() || ifile.length() == 0)
+					return;
+				
 				this.stream = ifile.newInputStream();
 				this.dataStreamLength = dfile.length();
 				this.fileLength = stream.length();
-				this.ib = ibClass.newInstance();
-				this.ibClass = ibClass;
 				this.segCount = (fileLength - getIndexFileHeaderLength()) / ib.getBlockSize();
 
 				this.stream.seek(getIndexFileHeaderLength());
 
-				this.currentSegId = 0;
 			} catch (InstantiationException e) {
 				throw new IllegalArgumentException("ibClass is not class instance of IB", e);
 			} catch (IllegalAccessException e) {
