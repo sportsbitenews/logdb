@@ -31,42 +31,97 @@ public class JdbcProfileInfo {
 	// used for create profile only
 	private String password;
 
+	/**
+	 * JDBC 프로파일 이름을 반환합니다.
+	 * 
+	 * @return JDBC 프로파일 이름
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * JDBC 프로파일 이름을 설정합니다.
+	 * 
+	 * @param name
+	 *            JDBC 프로파일 이름
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}
 
+	/**
+	 * JDBC 접속 문자열을 반환합니다.
+	 * 
+	 * @return JDBC 접속 문자열
+	 */
 	public String getConnectionString() {
 		return connectionString;
 	}
 
+	/**
+	 * JDBC 접속 문자열을 설정합니다.
+	 * 
+	 * @param connectionString
+	 *            JDBC 접속 문자열
+	 */
 	public void setConnectionString(String connectionString) {
 		this.connectionString = connectionString;
 	}
 
+	/**
+	 * JDBC 접속의 읽기 전용 여부를 반환합니다. JDBC 드라이버에 따라 읽기 전용 모드가 지원되지 않을 수 있습니다.
+	 * 
+	 * @return 읽기 전용 여부
+	 */
 	public boolean isReadOnly() {
 		return readOnly;
 	}
 
+	/**
+	 * JDBC 접속의 읽기 전용 여부를 설정합니다. JDBC 드라이버에 따라 읽기 전용 모드가 지원되지 않을 수 있습니다.
+	 * 
+	 * @param readOnly
+	 *            읽기 전용 여부
+	 */
 	public void setReadOnly(boolean readOnly) {
 		this.readOnly = readOnly;
 	}
 
+	/**
+	 * JDBC 접속 계정 이름을 반환합니다.
+	 * 
+	 * @return JDBC 접속 계정 이름
+	 */
 	public String getUser() {
 		return user;
 	}
 
+	/**
+	 * JDBC 접속 계정 이름을 설정합니다.
+	 * 
+	 * @param user
+	 *            JDBC 접속 계정 이름
+	 */
 	public void setUser(String user) {
 		this.user = user;
 	}
 
+	/**
+	 * JDBC 접속 암호를 반환합니다.
+	 * 
+	 * @return JDBC 접속 암호
+	 */
 	public String getPassword() {
 		return password;
 	}
 
+	/**
+	 * JDBC 접속 암호를 설정합니다.
+	 * 
+	 * @param password
+	 *            JDBC 접속 암호
+	 */
 	public void setPassword(String password) {
 		this.password = password;
 	}

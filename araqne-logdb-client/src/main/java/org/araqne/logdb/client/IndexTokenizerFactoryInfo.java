@@ -27,18 +27,40 @@ public class IndexTokenizerFactoryInfo {
 	private String name;
 	private List<IndexConfigSpec> configSpecs;
 
+	/**
+	 * 인덱스 토크나이저 유형 이름을 반환합니다.
+	 * 
+	 * @return 인덱스 토크나이저 유형 이름
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * 인덱스 토크나이저 유형 이름을 설정합니다.
+	 * 
+	 * @param name
+	 *            인덱스 토크나이저 유형 이름
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}
 
+	/**
+	 * 인덱스 토크나이저의 설정 명세 목록을 반환합니다.
+	 * 
+	 * @return 인덱스 토크나이저 설정 명세 목록
+	 */
 	public List<IndexConfigSpec> getConfigSpecs() {
 		return configSpecs;
 	}
 
+	/**
+	 * 인덱스 토크나이저의 설정 명세 목록을 설정합니다.
+	 * 
+	 * @param configSpecs
+	 *            인덱스 토크나이저 설정 명세 목록
+	 */
 	public void setConfigSpecs(List<IndexConfigSpec> configSpecs) {
 		this.configSpecs = configSpecs;
 	}

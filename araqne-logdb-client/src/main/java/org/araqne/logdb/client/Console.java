@@ -52,6 +52,9 @@ public class Console {
 	private String loginName;
 	private String password;
 
+	/**
+	 * 콘솔 클라이언트 진입점
+	 */
 	public static void main(String[] args) throws IOException {
 		ConsoleAppender ca = new ConsoleAppender(new PatternLayout());
 		ca.setThreshold(Level.INFO);
@@ -203,6 +206,9 @@ public class Console {
 		return opts;
 	}
 
+	/**
+	 * 콘솔 명령 루프를 실행합니다.
+	 */
 	public void run() throws IOException {
 		w("Araqne LogDB Console 0.8.2 (2013-10-13)");
 		w("Type \"help\" for more information");
@@ -1524,7 +1530,7 @@ public class Console {
 		System.out.println(s);
 	}
 
-	public static String[] tokenize(String line) {
+	private static String[] tokenize(String line) {
 		StringBuilder sb = new StringBuilder();
 		List<String> args = new ArrayList<String>();
 

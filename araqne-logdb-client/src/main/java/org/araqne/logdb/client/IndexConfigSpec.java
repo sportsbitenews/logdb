@@ -27,34 +27,78 @@ public class IndexConfigSpec {
 	private String name;
 	private String description;
 
+	/**
+	 * 인덱스 설정 키를 반환합니다.
+	 * 
+	 * @return 설정 키
+	 */
 	public String getKey() {
 		return key;
 	}
 
+	/**
+	 * 인덱스 설정 키를 설정합니다.
+	 * 
+	 * @param key
+	 *            설정 키
+	 */
 	public void setKey(String key) {
 		this.key = key;
 	}
 
+	/**
+	 * 설정 필수 여부를 반환합니다.
+	 * 
+	 * @return 설정 필수 여부
+	 */
 	public boolean isRequired() {
 		return required;
 	}
 
+	/**
+	 * 설정 필수 여부를 설정합니다.
+	 * 
+	 * @param required
+	 *            설정 필수 여부
+	 */
 	public void setRequired(boolean required) {
 		this.required = required;
 	}
 
+	/**
+	 * UI 표시 이름을 반환합니다.
+	 * 
+	 * @return UI 표시 이름
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * UI 표시 이름을 설정합니다.
+	 * 
+	 * @param name
+	 *            UI 표시 이름
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}
 
+	/**
+	 * UI 표시 설명을 반환합니다.
+	 * 
+	 * @return UI 표시 설명
+	 */
 	public String getDescription() {
 		return description;
 	}
 
+	/**
+	 * UI 표시 설명을 설정합니다.
+	 * 
+	 * @param description
+	 *            UI 표시 설명
+	 */
 	public void setDescription(String description) {
 		this.description = description;
 	}

@@ -35,39 +35,85 @@ public class LogQueryCommand {
 	 */
 	private List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 
+	/**
+	 * 쿼리 커맨드 이름을 반환합니다.
+	 * 
+	 * @return 쿼리 커맨드 이름
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * 쿼리 커맨드 이름을 설정합니다.
+	 * 
+	 * @param name
+	 *            쿼리 커맨드 이름
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}
 
+	/**
+	 * 커맨드 문자열을 반환합니다.
+	 * 
+	 * @return 커맨드 문자열
+	 */
 	public String getCommand() {
 		return command;
 	}
 
+	/**
+	 * 커맨드 문자열을 설정합니다.
+	 * 
+	 * @param command
+	 *            커맨드 문자열
+	 */
 	public void setCommand(String command) {
 		this.command = command;
 	}
 
+	/**
+	 * 커맨드 동작 상태를 반환합니다.
+	 * 
+	 * @return 커맨드 동작 상태
+	 */
 	public String getStatus() {
 		return status;
 	}
 
+	/**
+	 * 커맨드 동작 상태를 설정합니다.
+	 * 
+	 * @param status
+	 *            커맨드 동작 상태
+	 */
 	public void setStatus(String status) {
 		this.status = status;
 	}
 
+	/**
+	 * 다음 단계의 커맨드로 넘긴 데이터 건수를 반환합니다.
+	 * 
+	 * @return 넘긴 데이터 건수
+	 */
 	public long getPushCount() {
 		return pushCount;
 	}
 
+	/**
+	 * 다음 단계의 커맨드로 넘긴 데이터 건수를 설정합니다.
+	 * 
+	 * @param pushCount
+	 *            넘긴 데이터 건수
+	 */
 	public void setPushCount(long pushCount) {
 		this.pushCount = pushCount;
 	}
 
 	/**
+	 * 쿼리 커맨드 목록을 반환합니다.
+	 * 
 	 * @since 0.9.1
 	 */
 	public List<LogQueryCommand> getCommands() {
@@ -75,6 +121,10 @@ public class LogQueryCommand {
 	}
 
 	/**
+	 * 쿼리 커맨드 목록을 설정합니다.
+	 * 
+	 * @param commands
+	 *            쿼리 커맨드 목록
 	 * @since 0.9.1
 	 */
 	public void setCommands(List<LogQueryCommand> commands) {

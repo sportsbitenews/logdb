@@ -32,50 +32,116 @@ public class LoggerFactoryInfo {
 	private String description;
 	private List<ConfigSpec> configSpecs = new ArrayList<ConfigSpec>();
 
+	/**
+	 * 로그 수집기 유형 이름을 반환합니다.
+	 * 
+	 * @return 로그 수집기 유형 이름. 이름공간\이름 형식.
+	 */
 	public String getFullName() {
 		return fullName;
 	}
 
+	/**
+	 * 로그 수집기 유형 이름을 설정합니다.
+	 * 
+	 * @param fullName
+	 *            로그 수집기 유형 이름. 이름공간\이름 형식.
+	 */
 	public void setFullName(String fullName) {
 		this.fullName = fullName;
 	}
 
+	/**
+	 * 로그 수집기 유형의 UI 표시 이름을 반환합니다.
+	 * 
+	 * @return UI 표시 이름
+	 */
 	public String getDisplayName() {
 		return displayName;
 	}
 
+	/**
+	 * 로그 수집기 유형의 UI 표시 이름을 설정합니다.
+	 * 
+	 * @param displayName
+	 *            UI 표시 이름
+	 */
 	public void setDisplayName(String displayName) {
 		this.displayName = displayName;
 	}
 
+	/**
+	 * 로그 수집기 유형의 이름공간을 반환합니다.
+	 * 
+	 * @return 이름공간. 일반적으로 local, 원격 시스템이 연동된 경우 GUID가 지정됨.
+	 */
 	public String getNamespace() {
 		return namespace;
 	}
 
+	/**
+	 * 로그 수집기 유형의 이름공간을 설정합니다.
+	 * 
+	 * @param namespace
+	 *            이름공간. 일반적으로 local, 원격 시스템이 연동된 경우 GUID가 지정됨.
+	 */
 	public void setNamespace(String namespace) {
 		this.namespace = namespace;
 	}
 
+	/**
+	 * 로그 수집기 유형의 이름을 반환합니다.
+	 * 
+	 * @return 로그 수집기 유형의 이름
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * 로그 수집기 유형의 이름을 설정합니다.
+	 * 
+	 * @param name
+	 *            로그 수집기 유형의 이름
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}
 
+	/**
+	 * 로그 수집기 유형에 대한 설명을 반환합니다.
+	 * 
+	 * @return 로그 수집기 유형에 대한 설명
+	 */
 	public String getDescription() {
 		return description;
 	}
 
+	/**
+	 * 로그 수집기 유형에 대한 설명을 설정합니다.
+	 * 
+	 * @param description
+	 *            로그 수집기 유형에 대한 설명
+	 */
 	public void setDescription(String description) {
 		this.description = description;
 	}
 
+	/**
+	 * 로그 수집기 유형의 설정 명세 목록을 반환합니다.
+	 * 
+	 * @return 설정 명세 목록
+	 */
 	public List<ConfigSpec> getConfigSpecs() {
 		return configSpecs;
 	}
 
+	/**
+	 * 로그 수집기 유형의 설정 명세 목록을 설정합니다.
+	 * 
+	 * @param configSpecs
+	 *            설정 명세 목록
+	 */
 	public void setConfigSpecs(List<ConfigSpec> configSpecs) {
 		this.configSpecs = configSpecs;
 	}
