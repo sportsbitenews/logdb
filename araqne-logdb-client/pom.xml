@@ -12,6 +12,9 @@
 	<version>0.9.5</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log DB Client</name>
+	<organization>
+		<name>Eediom, Inc</name>
+	</organization>
 	<build>
 		<plugins>
 			<plugin>
