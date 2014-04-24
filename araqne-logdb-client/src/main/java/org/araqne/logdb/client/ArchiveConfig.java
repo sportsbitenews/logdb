@@ -17,6 +17,12 @@ package org.araqne.logdb.client;
 
 import java.util.Map;
 
+/**
+ * 로그 수집기에서 수집되는 데이터를 실시간으로 테이블에 저장하도록 하는 테이블 저장 설정을 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class ArchiveConfig {
 	private String loggerName;
 	private String tableName;

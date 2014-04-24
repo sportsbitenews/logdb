@@ -20,8 +20,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * 파서 인스턴스 정보를 표현합니다.
+ * 
  * @since 0.8.0
- * @author xeraph
+ * @author xeraph@eediom.com
  */
 public class ParserInfo {
 	private String name;

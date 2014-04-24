@@ -18,8 +18,10 @@ package org.araqne.logdb.client;
 import java.util.List;
 
 /**
+ * 테이블 스키마를 표현합니다.
+ * 
  * @since 0.9.0
- * @author xeraph
+ * @author xeraph@eediom.com
  * 
  */
 public class TableSchemaInfo {

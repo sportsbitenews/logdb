@@ -15,6 +15,12 @@
  */
 package org.araqne.logdb.client;
 
+/**
+ * 이름, 설명, 화면 표시 이름, 필수 설정 여부, 기본값으로 구성된 설정 항목 명세를 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class ConfigSpec {
 	private String name;
 	private String description;

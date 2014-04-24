@@ -18,6 +18,12 @@ package org.araqne.logdb.client;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 테이블의 단위 데이터 항목을 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class Row {
 	private final Map<String, Object> map;
 

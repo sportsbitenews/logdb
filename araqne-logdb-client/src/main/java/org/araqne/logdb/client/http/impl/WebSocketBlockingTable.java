@@ -24,8 +24,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 현재 블록킹 호출 중인 모든 RPC 호출의 목록을 관리합니다.
+ * 
  * @since 0.5.0
- * @author xeraph
+ * @author xeraph@eediom.com
  * 
  */
 public class WebSocketBlockingTable {

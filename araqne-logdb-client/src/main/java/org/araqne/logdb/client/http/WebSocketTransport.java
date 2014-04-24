@@ -22,8 +22,10 @@ import org.araqne.logdb.client.LogDbTransport;
 import org.araqne.logdb.client.http.impl.WebSocketSession;
 
 /**
+ * 메시지버스 RPC 웹 소켓 전송 계층을 구현합니다.
+ * 
  * @since 0.5.0
- * @author xeraph
+ * @author xeraph@eediom.com
  * 
  */
 public class WebSocketTransport implements LogDbTransport {

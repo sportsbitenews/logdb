@@ -18,6 +18,12 @@ package org.araqne.logdb.client;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * DB 계정의 권한을 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class Privilege {
 	private String loginName;
 	private String tableName;

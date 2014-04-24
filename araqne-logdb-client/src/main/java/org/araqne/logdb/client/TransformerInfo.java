@@ -3,6 +3,12 @@ package org.araqne.logdb.client;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 트랜스포머 인스턴스를 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class TransformerInfo {
 	private String name;
 	private String factoryName;

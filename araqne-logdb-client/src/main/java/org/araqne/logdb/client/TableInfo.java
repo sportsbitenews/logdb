@@ -18,6 +18,12 @@ package org.araqne.logdb.client;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 테이블 설정을 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class TableInfo {
 	private String name;
 

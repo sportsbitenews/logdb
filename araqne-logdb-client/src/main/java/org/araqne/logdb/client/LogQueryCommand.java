@@ -18,6 +18,12 @@ package org.araqne.logdb.client;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 쿼리 파이프라인을 구성하는 개별 커맨드의 정보를 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class LogQueryCommand {
 	private String name;
 	private String command;

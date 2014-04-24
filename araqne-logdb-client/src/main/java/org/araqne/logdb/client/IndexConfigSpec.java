@@ -15,6 +15,12 @@
  */
 package org.araqne.logdb.client;
 
+/**
+ * 설정 키, 이름, 설명, 필수 설정 여부로 구성된 인덱스의 설정 항목 명세를 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class IndexConfigSpec {
 	private String key;
 	private boolean required;

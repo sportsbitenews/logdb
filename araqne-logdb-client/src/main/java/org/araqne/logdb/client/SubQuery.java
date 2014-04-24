@@ -19,8 +19,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * 서브 쿼리 상태를 표현합니다.
+ * 
  * @since 0.9.1
- * @author xeraph
+ * @author xeraph@eediom.com
  */
 public class SubQuery {
 	private int id;

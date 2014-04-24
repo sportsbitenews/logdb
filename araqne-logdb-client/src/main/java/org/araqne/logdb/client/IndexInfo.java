@@ -20,6 +20,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 인덱스 설정을 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class IndexInfo {
 	private String tableName;
 	private String indexName;

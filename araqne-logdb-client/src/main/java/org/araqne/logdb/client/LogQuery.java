@@ -21,6 +21,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ * 쿼리 개체의 상태 정보를 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class LogQuery {
 	private LogDbClient client;
 	private int id;

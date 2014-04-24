@@ -22,6 +22,12 @@ import org.araqne.codec.EncodingRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 쿼리 결과를 스트리밍 받을 때 병렬적으로 압축을 해제하고 아라크네 코덱으로 인코딩된 쿼리 결과 바이너리를 디코딩합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class StreamingResultDecoder {
 	private final Logger slog = LoggerFactory.getLogger(StreamingResultDecoder.class);
 	private ThreadPoolExecutor executor;
@@ -67,6 +73,7 @@ public class StreamingResultDecoder {
 			this.chunk = chunk;
 		}
 
+		@SuppressWarnings("unchecked")
 		@Override
 		protected List<Object> callSafely() throws Exception {
 			int originalSize = (Integer) chunk.get("size");
@@ -86,7 +93,7 @@ public class StreamingResultDecoder {
 			}
 
 			Map<String, Object> m = (Map<String, Object>) EncodingRule.decode(ByteBuffer.wrap(output));
-			
+
 			if (m.isEmpty())
 				return Arrays.asList();
 

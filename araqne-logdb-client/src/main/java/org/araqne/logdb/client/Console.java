@@ -39,6 +39,12 @@ import org.apache.log4j.PatternLayout;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
+/**
+ * 커맨드라인을 통해 로그프레소 서버에 접속하여 명령을 실행할 수 있도록 지원합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class Console {
 	private BufferedReader br;
 	private LogDbClient client;

@@ -20,9 +20,39 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 아라크네 메시지버스 RPC 전문을 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class Message {
+	/**
+	 * 아라크네 메시지버스 RPC 전문의 유형을 표현합니다.
+	 * 
+	 * @author xeraph
+	 * 
+	 */
 	public enum Type {
-		None, Request, Response, Trap;
+		/**
+		 * 사용되지 않음
+		 */
+		None,
+
+		/**
+		 * RPC 요청
+		 */
+		Request,
+
+		/**
+		 * RPC 응답
+		 */
+		Response,
+
+		/**
+		 * 비동기 트랩 (서버 푸시)
+		 */
+		Trap;
 	}
 
 	private String guid;
@@ -113,11 +143,11 @@ public class Message {
 	public Object get(String key) {
 		return parameters.get(key);
 	}
-	
+
 	public boolean containsKey(String key) {
 		return parameters.containsKey(key);
 	}
-	
+
 	public Long getLong(String key) {
 		if (!parameters.containsKey(key))
 			return null;

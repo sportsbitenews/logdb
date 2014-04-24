@@ -17,6 +17,12 @@ package org.araqne.logdb.client;
 
 import java.util.Map;
 
+/**
+ * 아라크네 메시지버스 RPC 예외를 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class MessageException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
 

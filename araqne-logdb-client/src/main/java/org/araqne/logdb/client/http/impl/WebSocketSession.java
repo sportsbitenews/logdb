@@ -33,8 +33,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 웹소켓 프로토콜을 이용하여 메시지버스 RPC 통신을 구현합니다.
+ * 
  * @since 0.5.0
- * @author xeraph
+ * @author xeraph@eediom.com
  * 
  */
 public class WebSocketSession extends AbstractLogDbSession implements WebSocketListener {

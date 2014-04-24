@@ -15,6 +15,12 @@
  */
 package org.araqne.logdb.client;
 
+/**
+ * 테이블 스키마를 구성하는 개별 필드의 정보를 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class FieldInfo {
 	private String name;
 	private String type;

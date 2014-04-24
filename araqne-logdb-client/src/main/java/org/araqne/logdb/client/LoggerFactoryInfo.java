@@ -18,6 +18,12 @@ package org.araqne.logdb.client;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 로그 수집기를 생성하는데 필요한 설정 명세를 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class LoggerFactoryInfo {
 	private String fullName;
 	private String displayName;

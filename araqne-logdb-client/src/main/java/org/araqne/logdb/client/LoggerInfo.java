@@ -21,20 +21,11 @@ import java.util.Map;
 
 import org.araqne.api.DateFormat;
 
-/*
- * Copyright 2013 Eediom Inc.
+/**
+ * 로그 수집기 인스턴스의 상태 정보를 표현합니다.
  * 
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * @author xeraph@eediom.com
  * 
- * http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 public class LoggerInfo {
 	private String factoryName;

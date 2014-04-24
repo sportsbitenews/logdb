@@ -16,8 +16,10 @@
 package org.araqne.logdb.client;
 
 /**
+ * JDBC 프로파일을 표현합니다.
+ * 
  * @since 0.8.2
- * @author xeraph
+ * @author xeraph@eediom.com
  * 
  */
 public class JdbcProfileInfo {

@@ -22,9 +22,11 @@ import java.util.concurrent.TimeUnit;
 import org.araqne.logdb.client.Message;
 
 /**
+ * 현재 응답 수신을 대기하는 중인 메시지버스 RPC 호출을 표현합니다.
+ * 
  * @since 0.5.0
- * @author xeraph
- *
+ * @author xeraph@eediom.com
+ * 
  */
 class WaitingCall {
 	private String guid;
