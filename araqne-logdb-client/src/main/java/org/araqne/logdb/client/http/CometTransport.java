@@ -20,8 +20,10 @@ import org.araqne.logdb.client.LogDbTransport;
 import org.araqne.logdb.client.http.impl.CometSession;
 
 /**
+ * HTTP 롱 폴링 기술을 이용하는 메시지버스 RPC 전송 계층을 구현합니다.
+ * 
  * @since 0.5.0
- * @author xeraph
+ * @author xeraph@eediom.com
  * 
  */
 public class CometTransport implements LogDbTransport {

@@ -34,6 +34,12 @@ import org.json.JSONWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 아라크네 메시지버스 RPC 전문을 JSON으로 인코딩하거나 디코딩합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class MessageCodec {
 	private MessageCodec() {
 	}

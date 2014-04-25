@@ -52,8 +52,38 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * <p>
+ * 쿼리 실행, 로그 수집 설정, 트랜스포머 설정, 테이블, 인덱스, 스트림 쿼리 설정, 예약된 쿼리 설정, 계정 관리 등 로그프레소를
+ * 원격으로 제어하는데 필요한 모든 기능을 제공합니다.
+ * </p>
+ * 
+ * <p>
+ * 아래는 접속과 쿼리를 수행하는 간단한 예시입니다:
+ * </p>
+ * 
+ * <pre>
+ * {@link LogDbClient} client = null;
+ * {@link LogCursor} cursor = null;
+ * 
+ * try {
+ * 	client = new LogDbClient();
+ * 	client.connect(&quot;localhost&quot;, 8888, &quot;araqne&quot;, &quot;&quot;);
+ * 	cursor = client.query(&quot;logdb tables&quot;);
+ * 
+ * 	while (cursor.hasNext()) {
+ * 		System.out.println(cursor.next());
+ * 	}
+ * } finally {
+ * 	if (cursor != null)
+ * 		cursor.close();
+ * 
+ * 	if (client != null)
+ * 		client.close();
+ * }
+ * </pre>
+ * 
  * @since 0.5.0
- * @author xeraph
+ * @author xeraph@eediom.com
  * 
  */
 public class LogDbClient implements TrapListener, Closeable {
@@ -69,7 +99,10 @@ public class LogDbClient implements TrapListener, Closeable {
 	private Timer timer;
 	private StreamingResultEncoder streamingEncoder;
 	private int counter = 0;
-	private int insertFetchSize = 5000;
+
+	private int insertBatchSize = 5000;
+
+	// milliseconds
 	private int indexFlushInterval = 1000;
 
 	// table name to row list mappings
@@ -89,7 +122,7 @@ public class LogDbClient implements TrapListener, Closeable {
 
 	public Locale getLocale() {
 		return locale;
-		
+
 	}
 
 	public void setLocale(Locale locale) {
@@ -98,6 +131,8 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * 현재 접속된 세션 개체를 반환합니다.
+	 * 
 	 * @since 0.9.1
 	 */
 	public LogDbSession getSession() {
@@ -105,6 +140,8 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * 현재 커서가 서버에서 한 번에 조회하는 행의 갯수를 조회합니다. 기본값은 10000입니다.
+	 * 
 	 * @since 0.6.0
 	 */
 	public int getFetchSize() {
@@ -112,6 +149,12 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * 커서가 서버에서 한 번에 조회하는 행의 갯수를 설정합니다. 이 수치가 클수록 RPC 통신 횟수가 줄어들지만, 반대로 클라이언트와
+	 * 서버의 메모리 소모와 RPC 통신 시의 소요 시간이 증가합니다. 반대로 너무 작으면 RPC 통신 회수가 증가하므로 쿼리 결과를
+	 * 가져오는 속도가 느려질 수 있습니다.
+	 * 
+	 * @param fetchSize
+	 *            RPC 호출마다 가져오는 행의 갯수
 	 * @since 0.6.0
 	 */
 	public void setFetchSize(int fetchSize) {
@@ -119,13 +162,13 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	public int getInsertFetchSize() {
-		return insertFetchSize;
+		return insertBatchSize;
 	}
 
 	public void setInserFetchSize(int insertFetchSize) {
 		if (insertFetchSize < 0 || insertFetchSize > 200000)
 			throw new IllegalArgumentException("InsertFetchSize should be > 0 and < 200000");
-		this.insertFetchSize = insertFetchSize;
+		this.insertBatchSize = insertFetchSize;
 	}
 
 	// index flush interval (ms)
@@ -145,10 +188,20 @@ public class LogDbClient implements TrapListener, Closeable {
 		}
 	}
 
+	/**
+	 * 연결 해제 상태 여부를 조회합니다.
+	 * 
+	 * @return 접속한 적이 없거나, 기존 연결이 닫힌 경우 true를 반환합니다.
+	 */
 	public boolean isClosed() {
 		return session == null || session.isClosed();
 	}
 
+	/**
+	 * 현재 세션에서 실행 중인 로그 쿼리 목록을 조회합니다. 포어그라운드와 백그라운드 실행 중인 모든 쿼리 정보가 반환됩니다.
+	 * 
+	 * @return 현재 세션에서 실행 중인 로그 쿼리 목록이 LogQuery 개체의 리스트로 반환됩니다.
+	 */
 	public List<LogQuery> getQueries() throws IOException {
 		Message resp = rpc("org.araqne.logdb.msgbus.LogQueryPlugin.queries");
 
@@ -171,6 +224,14 @@ public class LogDbClient implements TrapListener, Closeable {
 		return new ArrayList<LogQuery>(queries.values());
 	}
 
+	/**
+	 * 특정 쿼리 ID에 대응하는 쿼리 실행 정보를 조회합니다. 호출 시마다 RPC 호출이 발생하면서 쿼리 상태 정보를 갱신합니다. 지정된
+	 * 쿼리 ID가 존재하지 않거나 액세스 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @param id
+	 *            쿼리 ID
+	 * @return 갱신된 쿼리 실행 정보를 담고 있는 LogQuery 개체가 반환됩니다.
+	 */
 	public LogQuery getQuery(int id) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("id", id);
@@ -302,16 +363,45 @@ public class LogDbClient implements TrapListener, Closeable {
 		return null;
 	}
 
+	/**
+	 * 로그프레소 서버에 접속을 시도합니다. 잘못된 IP 주소, DNS 조회 실패, 방화벽 문제 혹은 암호 실패 등의 원인으로 접속 실패
+	 * 시 IOException 예외가 발생합니다.
+	 * 
+	 * @param host
+	 *            도메인 혹은 IP 주소
+	 * @param loginName
+	 *            DB 계정
+	 * @param password
+	 *            DB 암호
+	 */
 	public void connect(String host, String loginName, String password) throws IOException {
 		connect(host, 80, loginName, password);
 	}
 
+	/**
+	 * 로그프레소 서버에 접속을 시도합니다. 잘못된 IP 주소, DNS 조회 실패, 방화벽 문제 혹은 암호 실패 등의 원인으로 접속 실패
+	 * 시 IOException 예외가 발생합니다.
+	 * 
+	 * @param host
+	 *            도메인 혹은 IP 주소
+	 * @param port
+	 *            포트 번호
+	 * @param loginName
+	 *            DB 계정
+	 * @param password
+	 *            DB 암호
+	 */
 	public void connect(String host, int port, String loginName, String password) throws IOException {
 		this.session = transport.newSession(host, port);
 		this.session.login(loginName, password, true);
 		this.session.addListener(this);
 	}
 
+	/**
+	 * 로그 저장 설정 개체 목록을 조회합니다.
+	 * 
+	 * @return 저장 설정 개체의 리스트
+	 */
 	@SuppressWarnings("unchecked")
 	public List<ArchiveConfig> listArchiveConfigs() throws IOException {
 		List<ArchiveConfig> configs = new ArrayList<ArchiveConfig>();
@@ -324,6 +414,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return configs;
 	}
 
+	/**
+	 * 지정된 로그 수집기 이름과 대응하는 저장 설정을 조회합니다. 로그 수집기가 존재하지 않는 경우 예외가 발생합니다.
+	 * 
+	 * @param loggerName
+	 *            이름공간\이름 형식의 로그 수집기 이름 (NULL 허용 안 함)
+	 * @return 지정된 로그 이름과 대응하는 저장 설정 개체
+	 */
 	@SuppressWarnings("unchecked")
 	public ArchiveConfig getArchiveConfig(String loggerName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -347,6 +444,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return c;
 	}
 
+	/**
+	 * 새 로그 저장 설정을 생성합니다. 로그 수집기에서 수집되는 모든 로그를 지정된 테이블에 저장하도록 설정합니다. 로그 수집기 이름이
+	 * 중복되는 경우에 예외가 발생합니다. 테이블이 존재하지 않으면 저장 설정의 메타데이터를 이용하여 테이블이 자동 생성됩니다.
+	 * 
+	 * @param config
+	 *            로그 저장 설정 (NULL 허용 안 함)
+	 */
 	public void createArchiveConfig(ArchiveConfig config) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", config.getLoggerName());
@@ -357,12 +461,23 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("com.logpresso.core.msgbus.ArchivePlugin.createConfig", params);
 	}
 
+	/**
+	 * 지정된 로그 수집기 이름으로 된 저장 설정을 삭제합니다. 지정된 로그 수집기 이름의 설정이 존재하지 않으면 예외가 발생합니다.
+	 * 
+	 * @param loggerName
+	 *            이름공간\이름 형식의 로그 수집기 이름 (NULL 허용 안 함)
+	 */
 	public void removeArchiveConfig(String loggerName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", loggerName);
 		rpc("com.logpresso.core.msgbus.ArchivePlugin.removeConfig", params);
 	}
 
+	/**
+	 * DB 계정 목록을 조회합니다.
+	 * 
+	 * @return 계정정보 목록
+	 */
 	@SuppressWarnings("unchecked")
 	public List<AccountInfo> listAccounts() throws IOException {
 		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.listAccounts");
@@ -388,6 +503,12 @@ public class LogDbClient implements TrapListener, Closeable {
 		return accounts;
 	}
 
+	/**
+	 * 새로운 DB 계정을 생성합니다. 관리자 계정이 아니거나 계정 이름이 중복된 경우 예외가 발생합니다.
+	 * 
+	 * @param account
+	 *            새로 생성할 계정 정보 (NULL 허용 안 함)
+	 */
 	public void createAccount(AccountInfo account) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("login_name", account.getLoginName());
@@ -396,6 +517,12 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.createAccount", params);
 	}
 
+	/**
+	 * 기존 DB 계정을 삭제합니다. 관리자 계정이 아니거나 계정이 존재하지 않는 경우 예외가 발생합니다.
+	 * 
+	 * @param loginName
+	 *            삭제할 계정 이름 (NULL 허용 안 함)
+	 */
 	public void removeAccount(String loginName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("login_name", loginName);
@@ -403,6 +530,15 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.removeAccount", params);
 	}
 
+	/**
+	 * DB 계정의 암호를 변경합니다. 관리자 계정이거나 자신의 계정 암호인 경우에만 변경 가능하고, 그 외의 경우에는 예외가 발생합니다.
+	 * 존재하지 않는 계정인 경우에도 예외가 발생합니다.
+	 * 
+	 * @param loginName
+	 *            DB 계정 이름 (NULL 허용 안 함)
+	 * @param password
+	 *            새 암호 (NULL 허용 안 함)
+	 */
 	public void changePassword(String loginName, String password) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("login_name", loginName);
@@ -411,6 +547,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.changePassword", params);
 	}
 
+	/**
+	 * 계정에 테이블 접근 권한을 부여합니다. 관리자 계정이 아니거나, 권한을 부여할 계정이 존재하지 않거나, 테이블이 존재하지 않는 경우
+	 * 예외가 발생합니다.
+	 * 
+	 * @param privilege
+	 *            권한을 부여할 계정과 테이블 매핑 (NULL 허용 안 함)
+	 */
 	public void grantPrivilege(Privilege privilege) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("login_name", privilege.getLoginName());
@@ -419,6 +562,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.grantPrivilege", params);
 	}
 
+	/**
+	 * 계정의 테이블 접근 권한을 박탈합니다. 관리자 계정이 아니거나, 권한을 박탈할 계정이 존재하지 않거나, 테이블이 존재하지 않는 경우
+	 * 예외가 발생합니다.
+	 * 
+	 * @param privilege
+	 *            권한을 박탈할 계정과 테이블 매핑 (NULL 허용 안 함)
+	 */
 	public void revokePrivilege(Privilege privilege) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("login_name", privilege.getLoginName());
@@ -427,6 +577,12 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.revokePrivilege", params);
 	}
 
+	/**
+	 * 인덱스 토크나이저 유형 목록을 조회합니다. 일반적으로 createIndex() 할 때 사용자에게 설정 가능한 인덱스 토크나이저
+	 * 목록을 보여주기 위해서 호출합니다. 관리자 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @return 인덱스 토크나이저 유형 목록이 리스트로 반환됩니다.
+	 */
 	@SuppressWarnings("unchecked")
 	public List<IndexTokenizerFactoryInfo> listIndexTokenizerFactories() throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -443,6 +599,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return l;
 	}
 
+	/**
+	 * 지정된 이름을 가진 인덱스 토크나이저 유형을 조회합니다. 관리자 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @param name
+	 *            인덱스 토크나이저 유형 이름 (NULL 허용 안 함)
+	 * @return 지정된 이름을 가진 인덱스 토크나이저 유형 개체를 반환합니다.
+	 */
 	public IndexTokenizerFactoryInfo getIndexTokenizerFactory(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
@@ -478,6 +641,14 @@ public class LogDbClient implements TrapListener, Closeable {
 		return specs;
 	}
 
+	/**
+	 * 인덱스 목록을 반환합니다. 관리자 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름 (NULL 허용), NULL인 경우 전체 인덱스 목록을, 테이블 이름이 지정된 경우에는 테이블
+	 *            이름으로 필터링된 결과를 반환합니다.
+	 * @return 인덱스 정보 개체의 리스트를 반환합니다.
+	 */
 	@SuppressWarnings("unchecked")
 	public List<IndexInfo> listIndexes(String tableName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -496,6 +667,16 @@ public class LogDbClient implements TrapListener, Closeable {
 		return indexes;
 	}
 
+	/**
+	 * 주어진 테이블 및 인덱스 이름과 일치하는 인덱스 정보를 반환합니다. 관리자 권한이 없거나 해당 인덱스가 존재하지 않는 경우 예외가
+	 * 발생합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름 (NULL 허용 안 함)
+	 * @param indexName
+	 *            인덱스 이름 (NULL 허용 안 함)
+	 * @return 주어진 테이블 및 인덱스 이름과 일치하는 인덱스 정보 개체를 반환합니다.
+	 */
 	@SuppressWarnings("unchecked")
 	public IndexInfo getIndexInfo(String tableName, String indexName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -507,6 +688,18 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * 특정 인덱스에 데이터가 입력될 때 풀텍스트 토큰이 어떻게 추출되는지 시험합니다. 정상적으로 인덱스가 설정되었는지, 의도한대로
+	 * 풀텍스트 인덱싱이 진행되는지 확인할 용도로 사용합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름 (NULL 허용 안 함)
+	 * @param indexName
+	 *            인덱스 이름 (NULL 허용 안 함)
+	 * @param data
+	 *            키/값 쌍으로 구성된 원본 데이터 (NULL 허용 안 함), 일반적으로 텍스트 파일에서 데이터를 읽어오거나
+	 *            시스로그와 같은 경우 원본 데이터가 line 키와 값으로 구성됩니다. SNMP 트랩의 경우 OID와 변수 바인딩
+	 *            목록, 윈도우 이벤트 로그의 경우 이벤트 로그 필드 이름과 값 목록이 데이터 원본 키/값 쌍으로 반영됩니다.
+	 * @return 추출된 풀텍스트 토큰 문자열 집합
 	 * @since 0.8.1
 	 */
 	@SuppressWarnings("unchecked")
@@ -548,6 +741,12 @@ public class LogDbClient implements TrapListener, Closeable {
 		return index;
 	}
 
+	/**
+	 * 새 인덱스를 생성합니다. 관리자 권한이 없거나, 테이블이 존재하지 않거나, 인덱스 이름이 중복되는 경우 예외가 발생합니다.
+	 * 
+	 * @param info
+	 *            새 인덱스를 생성하는데 필요한 설정 (NULL 허용 안 함)
+	 */
 	public void createIndex(IndexInfo info) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", info.getTableName());
@@ -566,6 +765,15 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("com.logpresso.index.msgbus.ManagementPlugin.createIndex", params);
 	}
 
+	/**
+	 * 인덱스를 삭제합니다. 진행 중인 백그라운드 배치 인덱스 생성 작업은 취소됩니다. 관리자 권한이 없거나 테이블이나 인덱스가 존재하지
+	 * 않는 경우 예외가 발생합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름 (NULL 허용 안 함)
+	 * @param indexName
+	 *            인덱스 이름 (NULL 허용 안 함)
+	 */
 	public void dropIndex(String tableName, String indexName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
@@ -574,6 +782,11 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("com.logpresso.index.msgbus.ManagementPlugin.dropIndex", params);
 	}
 
+	/**
+	 * 액세스 가능한 전체 테이블 목록을 반환합니다.
+	 * 
+	 * @return 테이블 정보를 담은 TableInfo 개체의 리스트
+	 */
 	@SuppressWarnings("unchecked")
 	public List<TableInfo> listTables() throws IOException {
 		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.listTables");
@@ -591,6 +804,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return tables;
 	}
 
+	/**
+	 * 특정 테이블 정보를 반환합니다. 테이블이 존재하지 않거나, 액세스 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @param tableName
+	 *            조회할 테이블 이름 (NULL 허용 안 함)
+	 * @return 테이블 이름과 대응되는 테이블 정보
+	 */
 	@SuppressWarnings("unchecked")
 	public TableInfo getTableInfo(String tableName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -626,6 +846,12 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/***
+	 * 테이블 스키마를 설정합니다. 필드 정의는 실제 데이터 적재 및 쿼리에 제약을 가하지 않으며, UI 지원용으로만 사용됩니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름
+	 * @param fields
+	 *            필드 정의 목록
 	 * @since 0.9.0 and logdb 2.0.3
 	 */
 	public void setTableFields(String tableName, List<FieldInfo> fields) throws IOException {
@@ -653,6 +879,15 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.setTableFields", params);
 	}
 
+	/**
+	 * 테이블 메타데이터를 설정합니다. 관리자 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름 (NULL 허용 안 함)
+	 * @param config
+	 *            키/값 쌍으로 설정할 테이블 메타데이터 목록을 지정합니다. (NULL 허용 안 함)
+	 * @throws IOException
+	 */
 	public void setTableMetadata(String tableName, Map<String, String> config) throws IOException {
 		if (tableName == null)
 			throw new IllegalArgumentException("table name cannot be null");
@@ -664,6 +899,14 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.setTableMetadata", params);
 	}
 
+	/**
+	 * 테이블 메타데이터를 삭제합니다. 관리자 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름 (NULL 허용 안 함)
+	 * @param keySet
+	 *            삭제할 메타데이터 키 문자열 목록을 지정합니다. (NULL 허용 안 함)
+	 */
 	public void unsetTableMetadata(String tableName, Set<String> keySet) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
@@ -672,10 +915,24 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.unsetTableMetadata", params);
 	}
 
+	/**
+	 * 새 테이블을 생성합니다. 관리자 권한이 없거나 테이블 이름이 중복되는 경우 예외가 발생합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름 (NULL 허용 안 함)
+	 */
 	public void createTable(String tableName) throws IOException {
 		createTable(tableName, null);
 	}
 
+	/**
+	 * 새 테이블을 생성합니다. 관리자 권한이 없거나 테이블 이름이 중복되는 경우 예외가 발생합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름 (NULL 허용 안 함)
+	 * @param metadata
+	 *            테이블 초기 메타데이터 설정 (NULL 허용)
+	 */
 	public void createTable(String tableName, Map<String, String> metadata) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
@@ -683,12 +940,24 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.createTable", params);
 	}
 
+	/**
+	 * 테이블을 삭제합니다. 모든 원본 데이터와 인덱스 데이터가 삭제되고 되돌릴 수 없습니다. 관리자 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름 (NULL 허용 안 함)
+	 */
 	public void dropTable(String tableName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.dropTable", params);
 	}
 
+	/**
+	 * 로그 수집기 유형 목록을 조회합니다. 일반적으로 createLogger()를 할 때 사용자에게 사용 가능한 로그 수집기 목록을
+	 * 보여주기 위해서 호출합니다.
+	 * 
+	 * @return 로그 수집기 유형 개체를 리스트로 반환합니다.
+	 */
 	@SuppressWarnings("unchecked")
 	public List<LoggerFactoryInfo> listLoggerFactories() throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -705,6 +974,14 @@ public class LogDbClient implements TrapListener, Closeable {
 		return factories;
 	}
 
+	/**
+	 * 지정된 이름을 가진 로그 수집기 유형 정보를 반환합니다. 로그 수집기를 생성하는데 필요한 설정 명세 목록을 포함하여 반환합니다.
+	 * 해당 이름의 로그 수집기 유형이 존재하지 않는 경우 예외가 발생합니다.
+	 * 
+	 * @param factoryName
+	 *            로그 수집기 유형 이름 (NULL 허용 안 함)
+	 * @return 지정된 이름을 가진 로그 수집기 유형 개체
+	 */
 	@SuppressWarnings("unchecked")
 	public LoggerFactoryInfo getLoggerFactoryInfo(String factoryName) throws IOException {
 		List<LoggerFactoryInfo> factories = listLoggerFactories();
@@ -743,6 +1020,12 @@ public class LogDbClient implements TrapListener, Closeable {
 		factories.add(f);
 	}
 
+	/**
+	 * 파서 유형 목록을 조회합니다. 일반적으로 createParser() 매개변수 설정에 필요한 파서 유형 목록을 사용자에게 표시하기
+	 * 위해 호출합니다.
+	 * 
+	 * @return 파서 유형 목록 개체의 리스트를 반환합니다.
+	 */
 	@SuppressWarnings("unchecked")
 	public List<ParserFactoryInfo> listParserFactories() throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -766,6 +1049,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return parsers;
 	}
 
+	/**
+	 * 설정 명세 목록이 포함된 파서 유형 정보를 조회합니다. 지정된 이름의 파서 유형이 존재하지 않는 경우 예외가 발생합니다.
+	 * 
+	 * @param name
+	 *            파서 유형 이름 (NULL 허용 안 함)
+	 * @return 지정된 이름의 파서 유형 정보 개체를 반환합니다.
+	 */
 	@SuppressWarnings("unchecked")
 	public ParserFactoryInfo getParserFactoryInfo(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -802,13 +1092,21 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * 파서 목록을 조회합니다.
+	 * 
 	 * @deprecated Use listParsers() instead
+	 * @return 파서 설정 개체의 리스트가 반환됩니다.
 	 */
 	@Deprecated
 	public List<ParserInfo> getParsers() throws IOException {
 		return listParsers();
 	}
 
+	/**
+	 * 파서 목록을 조회합니다.
+	 * 
+	 * @return 파서 설정 개체의 리스트가 반환됩니다.
+	 */
 	@SuppressWarnings("unchecked")
 	public List<ParserInfo> listParsers() throws IOException {
 		Message resp = rpc("com.logpresso.core.msgbus.ParserPlugin.getParsers");
@@ -822,6 +1120,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return parsers;
 	}
 
+	/**
+	 * 지정된 이름의 파서 정보를 조회합니다.
+	 * 
+	 * @param name
+	 *            파서 이름 (NULL 허용 안 함)
+	 * @return 지정된 이름의 파서 정보 개체를 반환합니다. 지정된 이름의 파서가 존재하지 않는 경우 NULL이 반환됩니다.
+	 */
 	public ParserInfo getParser(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
@@ -851,6 +1156,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return p;
 	}
 
+	/**
+	 * 새 파서를 생성합니다. 파서 유형이 존재하지 않는 경우, 필수적인 파서 설정이 누락된 경우, 파서 이름이 중복된 경우 예외가
+	 * 발생합니다.
+	 * 
+	 * @param parser
+	 *            새 파서 설정 (NULL 허용 안 함)
+	 */
 	public void createParser(ParserInfo parser) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", parser.getName());
@@ -860,6 +1172,12 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("com.logpresso.core.msgbus.ParserPlugin.createParser", params);
 	}
 
+	/**
+	 * 파서를 삭제합니다. 지정된 이름의 파서가 존재하지 않는 경우 예외가 발생합니다.
+	 * 
+	 * @param name
+	 *            삭제할 파서 이름 (NULL 허용 안 함)
+	 */
 	public void removeParser(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
@@ -867,6 +1185,15 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * 특정한 파서의 동작을 시험합니다. 지정된 파서가 존재하지 않거나 파싱이 실패하는 경우 예외가 발생합니다.
+	 * 
+	 * @param parserName
+	 *            파서 이름 (NULL 허용 안 함)
+	 * @param data
+	 *            원본 데이터 키/값 쌍 (NULL 허용 안 함), 일반적으로 텍스트 파일에서 수집되는 데이터 혹은 시스로그의
+	 *            경우 line 키/값 쌍으로 표현됩니다.
+	 * @return 파싱된 키/값 쌍의 리스트가 반환됩니다. 대부분(V1 파서)은 데이터 원본과 파싱된 결과가 1:1로 대응되지만,
+	 *         넷플로우처럼 다수의 레코드가 단일 패킷에 팩킹된 경우 (V2 파서) 다수의 파싱 결과를 얻을 수 있습니다.
 	 * @since 0.8.1
 	 */
 	@SuppressWarnings("unchecked")
@@ -879,6 +1206,12 @@ public class LogDbClient implements TrapListener, Closeable {
 		return (List<Map<String, Object>>) resp.get("rows");
 	}
 
+	/**
+	 * 트랜스포머 유형 목록을 조회합니다. 일반적으로 createTransformer()를 호출하기 전에 사용자에게 가능한 트랜스포머 유형
+	 * 목록을 표시하기 위해 호출합니다.
+	 * 
+	 * @return 트랜스포머 유형 개체의 리스트가 반환됩니다.
+	 */
 	@SuppressWarnings("unchecked")
 	public List<TransformerFactoryInfo> listTransformerFactories() throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -902,6 +1235,14 @@ public class LogDbClient implements TrapListener, Closeable {
 		return factories;
 	}
 
+	/**
+	 * 지정된 이름의 트랜스포머 유형 정보를 조회합니다. 트랜스포머 설정 명세 목록을 조회하는데 사용합니다. 지정된 이름의 트랜스포머 유형
+	 * 이름이 존재하지 않으면 예외가 발생합니다.
+	 * 
+	 * @param name
+	 *            트랜스포머 유형 이름 (NULL 허용 안 함)
+	 * @return 지정된 이름의 트랜스포머 유형 정보 개체
+	 */
 	@SuppressWarnings("unchecked")
 	public TransformerFactoryInfo getTransformerFactoryInfo(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -920,6 +1261,9 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * 트랜스포머 목록을 조회합니다.
+	 * 
+	 * @return 트랜스포머 개체의 리스트를 반환합니다.
 	 * @deprecated Use listTransformers() instead.
 	 */
 	@Deprecated
@@ -927,6 +1271,11 @@ public class LogDbClient implements TrapListener, Closeable {
 		return listTransformers();
 	}
 
+	/**
+	 * 트랜스포머 목록을 조회합니다.
+	 * 
+	 * @return 트랜스포머 개체의 리스트를 반환합니다.
+	 */
 	@SuppressWarnings("unchecked")
 	public List<TransformerInfo> listTransformers() throws IOException {
 		Message resp = rpc("com.logpresso.core.msgbus.TransformerPlugin.getTransformers");
@@ -940,6 +1289,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return transformers;
 	}
 
+	/**
+	 * 지정된 이름의 트랜스포머 설정을 조회합니다. 지정된 이름의 트랜스포머가 존재하지 않는 경우 예외가 발생합니다.
+	 * 
+	 * @param name
+	 *            트랜스포머 이름 (NULL 허용 안 함)
+	 * @return 트랜스포머 설정 정보 개체
+	 */
 	public TransformerInfo getTransformer(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
@@ -959,6 +1315,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return p;
 	}
 
+	/**
+	 * 새 트랜스포머 설정을 추가합니다. 트랜스포머 이름이 중복되거나, 트랜스포머 유형이 존재하지 않거나, 필수적인 설정이 누락된 경우
+	 * 예외가 발생합니다.
+	 * 
+	 * @param transformer
+	 *            새 트랜스포머 설정 (NULL 허용 안 함)
+	 */
 	public void createTransformer(TransformerInfo transformer) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", transformer.getName());
@@ -968,16 +1331,34 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("com.logpresso.core.msgbus.TransformerPlugin.createTransformer", params);
 	}
 
+	/**
+	 * 트랜스포머를 삭제합니다. 지정된 이름의 트랜스포머가 존재하지 않는 경우 예외가 발생합니다.
+	 * 
+	 * @param name
+	 *            삭제할 트랜스포머 이름 (NULL 허용 안 함)
+	 */
 	public void removeTransformer(String name) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", name);
 		rpc("com.logpresso.core.msgbus.TransformerPlugin.removeTransformer", params);
 	}
 
+	/**
+	 * 로그 수집기 목록을 반환합니다.
+	 * 
+	 * @return 로그 수집기 정보 개체 리스트를 반환합니다.
+	 */
 	public List<LoggerInfo> listLoggers() throws IOException {
 		return listLoggers(null);
 	}
 
+	/**
+	 * 로그 수집기 목록을 반환합니다.
+	 * 
+	 * @param loggerNames
+	 *            정보를 조회할 로거 이름 목록
+	 * @return 로그 수집기 정보 개체 리스트를 반환합니다.
+	 */
 	@SuppressWarnings("unchecked")
 	public List<LoggerInfo> listLoggers(List<String> loggerNames) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -997,9 +1378,12 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
-	 * Retrieve specific logger information with config using RPC call. States
-	 * will not returned because logger states' size can be very large.
+	 * 특정한 로그 수집기 정보를 조회합니다. 이 때 로그 수집기의 수집상태 정보는 포함되지 않습니다. Retrieve specific
+	 * logger information with config using RPC call. States will not returned
+	 * because logger states' size can be very large.
 	 * 
+	 * @param loggerName
+	 *            새 로그 수집기 생성에 필요한 설정 (NULL 허용 안 함)
 	 * @since 0.8.6
 	 */
 	public LoggerInfo getLogger(String loggerName) throws IOException {
@@ -1007,6 +1391,12 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * 특정한 로그 수집기 정보를 조회합니다.
+	 * 
+	 * @param loggerName
+	 *            조회 대상 로그 수집기 이름
+	 * @param includeStates
+	 *            로거 수집상태 정보 포함 여부
 	 * @since 0.8.6
 	 */
 	@SuppressWarnings("unchecked")
@@ -1064,6 +1454,14 @@ public class LogDbClient implements TrapListener, Closeable {
 		}
 	}
 
+	/**
+	 * 새 로그 수집기를 생성합니다. 로그 수집기 이름이 중복되거나, 로그 수집기 유형의 설정 명세에서 필수로 표시된 설정이 입력되지 않은
+	 * 경우 예외가 발생합니다.
+	 * 
+	 * @param logger
+	 *            새 로그 수집기 생성에 필요한 설정 (NULL 허용 안 함)
+	 * @throws IOException
+	 */
 	public void createLogger(LoggerInfo logger) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("factory", logger.getFactoryName());
@@ -1075,12 +1473,26 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.log.api.msgbus.LoggerPlugin.createLogger", params);
 	}
 
+	/**
+	 * 로그 수집기를 삭제합니다. 로그 수집기가 존재하지 않거나 아직 실행 중인 경우 예외가 발생합니다.
+	 * 
+	 * @param fullName
+	 *            이름공간\이름 형식의 로그 수집기 이름 (NULL 허용 안 함)
+	 */
 	public void removeLogger(String fullName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", fullName);
 		rpc("org.araqne.log.api.msgbus.LoggerPlugin.removeLogger", params);
 	}
 
+	/**
+	 * 로그 수집기를 시작합니다. 패시브 속성의 로그 수집기인 경우 수집 주기를 무시합니다. 로거가 이미 시작된 경우 예외가 발생합니다.
+	 * 
+	 * @param fullName
+	 *            이름공간\이름 형식의 로그 수집기 이름 (NULL 허용 안 함)
+	 * @param interval
+	 *            밀리세컨드 단위의 로그 수집 주기, 패시브 로그 수집기인 경우 무시됨.
+	 */
 	public void startLogger(String fullName, int interval) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", fullName);
@@ -1088,6 +1500,14 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.log.api.msgbus.LoggerPlugin.startLogger", params);
 	}
 
+	/**
+	 * 로그 수집기를 정지합니다. 패시브 속성의 로그 수집기인 경우 최대 대기 시간을 무시합니다.
+	 * 
+	 * @param fullName
+	 *            이름공간\이름 형식의 로그 수집기 이름 (NULL 허용 안 함)
+	 * @param waitTime
+	 *            액티브 로그 수집기의 정지를 기다리는 밀리세컨드 단위의 최대 대기 시간
+	 */
 	public void stopLogger(String fullName, int waitTime) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("logger", fullName);
@@ -1095,6 +1515,12 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.log.api.msgbus.LoggerPlugin.stopLogger", params);
 	}
 
+	/**
+	 * 기존의 JDBC 프로파일 설정 목록을 조회합니다. DB 관리자 권한이 없는 경우 예외가 발생합니다. 프로파일 정보 조회 시 암호
+	 * 문자열은 반환하지 않습니다.
+	 * 
+	 * @return JDBC 프로파일 설정 목록
+	 */
 	@SuppressWarnings("unchecked")
 	public List<JdbcProfileInfo> listJdbcProfiles() throws IOException {
 		List<JdbcProfileInfo> l = new ArrayList<JdbcProfileInfo>();
@@ -1116,6 +1542,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		return l;
 	}
 
+	/**
+	 * 새 JDBC 프로파일을 생성합니다. 이미 동일한 이름의 JDBC 프로파일이 존재하거나, DB 관리자 권한이 없는 경우 예외가
+	 * 발생합니다.
+	 * 
+	 * @param profile
+	 *            새 JDBC 프로파일 설정 (NULL 허용 안 함)
+	 */
 	public void createJdbcProfile(JdbcProfileInfo profile) throws IOException {
 		checkNotNull("profile", profile);
 		checkNotNull("profile.name", profile.getName());
@@ -1132,6 +1565,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.logpresso.jdbc.JdbcProfilePlugin.createProfile", params);
 	}
 
+	/**
+	 * 기존의 JDBC 프로파일을 삭제합니다. 지정된 이름의 JDBC 프로파일이 존재하지 않거나, DB 관리자 권한이 없는 경우 예외가
+	 * 발생합니다.
+	 * 
+	 * @param name
+	 *            삭제할 대상 JDBC 프로파일 이름
+	 */
 	public void removeJdbcProfile(String name) throws IOException {
 		checkNotNull("name", name);
 
@@ -1141,6 +1581,17 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.logpresso.jdbc.JdbcProfilePlugin.removeProfile", params);
 	}
 
+	/**
+	 * 쿼리 실행 결과를 커서 개체로 반환합니다. 쿼리 실행이 완전히 끝날 때까지 스레드가 차단(blocking)되며, 커서를 모두
+	 * 순회하거나 닫기 전까지 쿼리가 유지됩니다. 권한이 없거나, 쿼리 문법이 틀린 경우 예외가 발생합니다. 스레드를 차단하지 않고 쿼리
+	 * 실행 상태를 폴링하면서 부분적인 쿼리 결과를 최대한 빨리 가져오고 싶은 경우(pipelining)에는 아래에 설명되는
+	 * createQuery(), startQuery(), stopQuery(), removeQuery(), getResult() 메소드
+	 * 조합을 사용하십시오.
+	 * 
+	 * @param queryString
+	 *            쿼리 문자열 (NULL 허용 안 함)
+	 * @return 쿼리 결과를 조회할 수 있는 커서가 반환됩니다.
+	 */
 	public LogCursor query(String queryString) throws IOException {
 		int id = createQuery(queryString);
 		startQuery(id);
@@ -1231,10 +1682,231 @@ public class LogDbClient implements TrapListener, Closeable {
 		}
 	}
 
+	/**
+	 * 스트림 쿼리 목록을 조회합니다.
+	 * 
+	 * @since 0.9.5
+	 */
+	public List<StreamQueryStatus> listStreamQueries() throws IOException {
+		Message resp = rpc("com.logpresso.query.msgbus.StreamQueryPlugin.getStreamQueries");
+
+		@SuppressWarnings("unchecked")
+		List<Object> l = (List<Object>) resp.get("stream_queries");
+		List<StreamQueryStatus> statuses = new ArrayList<StreamQueryStatus>();
+
+		for (Object o : l) {
+			StreamQueryStatus status = parseStreamQueryStatus(o);
+			statuses.add(status);
+		}
+
+		return statuses;
+	}
+
+	/**
+	 * @since 0.9.5
+	 */
+	@SuppressWarnings("unchecked")
+	public StreamQueryStatus getStreamQuery(String name) throws IOException {
+		checkNotNull("name", name);
+
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", name);
+
+		Message resp = rpc("com.logpresso.query.msgbus.StreamQueryPlugin.getStreamQuery", params);
+		Map<String, Object> o = (Map<String, Object>) resp.get("stream_query");
+		if (o == null)
+			return null;
+
+		return parseStreamQueryStatus(o);
+	}
+
+	@SuppressWarnings("unchecked")
+	private StreamQueryStatus parseStreamQueryStatus(Object o) {
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+		StreamQueryStatus status = new StreamQueryStatus();
+
+		Map<String, Object> m = (Map<String, Object>) o;
+		Map<String, Object> c = (Map<String, Object>) m.get("config");
+
+		StreamQueryInfo query = new StreamQueryInfo();
+		query.setName((String) c.get("name"));
+		query.setDescription((String) c.get("description"));
+		query.setInterval((Integer) c.get("interval"));
+		query.setQueryString((String) c.get("query"));
+		query.setOwner((String) c.get("owner"));
+		query.setSourceType((String) c.get("source_type"));
+		query.setEnabled((Boolean) c.get("is_enabled"));
+		query.setCreated(df.parse((String) c.get("created"), new ParsePosition(0)));
+		query.setModified(df.parse((String) c.get("modified"), new ParsePosition(0)));
+
+		status.setStreamQuery(query);
+		status.setInputCount(Long.parseLong(m.get("input_count").toString()));
+		status.setLastRefresh(df.parse((String) m.get("last_refresh"), new ParsePosition(0)));
+		status.setRunning((Boolean) m.get("is_running"));
+		return status;
+	}
+
+	/**
+	 * 스트림 쿼리를 생성합니다. 스트림 쿼리 이름이 중복되는 경우 예외가 발생합니다. logger, table, stream 이외의
+	 * 데이터 원본 타입이 지정된 경우 예외가 발생합니다. 새로고침 주기가 음수인 경우 예외가 발생합니다.
+	 * 
+	 * @since 0.9.5
+	 */
+	public void createStreamQuery(StreamQueryInfo query) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", query.getName());
+		params.put("description", query.getDescription());
+		params.put("interval", query.getInterval());
+		params.put("source_type", query.getSourceType());
+		params.put("sources", query.getSources());
+		params.put("query", query.getQueryString());
+
+		rpc("com.logpresso.query.msgbus.StreamQueryPlugin.createStreamQuery", params);
+	}
+
+	/**
+	 * 지정된 이름의 스트림 쿼리를 삭제합니다. 지정된 스트림 쿼리가 존재하지 않거나, 소유자가 아닌 경우 예외가 발생합니다.
+	 * 
+	 * @param name
+	 *            스트림 쿼리 이름
+	 * @since 0.9.5
+	 */
+	public void removeStreamQuery(String name) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", name);
+
+		rpc("com.logpresso.query.msgbus.StreamQueryPlugin.removeStreamQuery", params);
+	}
+
+	/**
+	 * 예약된 쿼리 목록을 조회합니다. 자신이 설정한 예약된 쿼리 목록만 조회됩니다.
+	 * 
+	 * @since 0.9.5
+	 */
+	public List<ScheduledQueryInfo> listScheduledQueries() throws IOException {
+		Message resp = rpc("com.logpresso.core.msgbus.ScheduledQueryPlugin.getScheduledQueries");
+
+		@SuppressWarnings("unchecked")
+		List<Object> l = (List<Object>) resp.get("scheduled_queries");
+
+		List<ScheduledQueryInfo> queries = new ArrayList<ScheduledQueryInfo>();
+		for (Object o : l) {
+			queries.add(parseScheduledQuery(o));
+		}
+
+		return queries;
+	}
+
+	/**
+	 * 지정된 GUID를 가진 예약된 쿼리 설정을 조회합니다. 예약된 쿼리가 존재하지 않거나 조회 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @since 0.9.5
+	 */
+	public ScheduledQueryInfo getScheduledQuery(String guid) throws IOException {
+		checkNotNull("guid", guid);
+
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("guid", guid);
+		Message resp = rpc("com.logpresso.core.msgbus.ScheduledQueryPlugin.getScheduledQuery", params);
+
+		return parseScheduledQuery(resp.get("scheduled_query"));
+	}
+
+	private ScheduledQueryInfo parseScheduledQuery(Object o) {
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+
+		@SuppressWarnings("unchecked")
+		Map<String, Object> m = (Map<String, Object>) o;
+
+		ScheduledQueryInfo query = new ScheduledQueryInfo();
+		query.setGuid((String) m.get("guid"));
+		query.setTitle((String) m.get("title"));
+		query.setCronSchedule((String) m.get("cron_schedule"));
+		query.setOwner((String) m.get("owner"));
+		query.setQueryString((String) m.get("query_string"));
+		query.setSaveResult((Boolean) m.get("use_save_result"));
+		query.setUseAlert((Boolean) m.get("use_alert"));
+		query.setAlertQuery((String) m.get("alert_query"));
+		query.setSuppressInterval((Integer) m.get("suppress_interval"));
+		query.setMailProfile((String) m.get("mail_profile"));
+		query.setMailFrom((String) m.get("mail_from"));
+		query.setMailTo((String) m.get("mail_to"));
+		query.setMailSubject((String) m.get("mail_subject"));
+		query.setEnabled((Boolean) m.get("is_enabled"));
+		query.setCreated(df.parse((String) m.get("created_at"), new ParsePosition(0)));
+
+		return query;
+	}
+
+	/**
+	 * 예약된 쿼리를 생성합니다. 예약된 쿼리의 GUID가 중복되는 경우 예외가 발생합니다.
+	 * 
+	 * @since 0.9.5
+	 */
+	public void createScheduledQuery(ScheduledQueryInfo query) throws IOException {
+		Map<String, Object> params = buildScheduledQueryParams(query);
+		rpc("com.logpresso.core.msgbus.ScheduledQueryPlugin.createScheduledQuery", params);
+	}
+
+	/**
+	 * 예약된 쿼리를 수정합니다. 지정된 GUID의 예약된 쿼리가 존재하지 않으면 예외가 발생합니다.
+	 * 
+	 * @since 0.9.5
+	 */
+	public void updateScheduledQuery(ScheduledQueryInfo query) throws IOException {
+		Map<String, Object> params = buildScheduledQueryParams(query);
+		rpc("com.logpresso.core.msgbus.ScheduledQueryPlugin.updateScheduledQuery", params);
+	}
+
+	private Map<String, Object> buildScheduledQueryParams(ScheduledQueryInfo query) {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("title", query.getTitle());
+		params.put("cron_schedule", query.getCronSchedule());
+		params.put("query", query.getQueryString());
+		params.put("save_result", query.isSaveResult());
+		params.put("use_alert", query.isUseAlert());
+		params.put("alert_query", query.getAlertQuery());
+		params.put("suppress_interval", query.getSuppressInterval());
+		params.put("mail_profile", query.getMailProfile());
+		params.put("mail_from", query.getMailFrom());
+		params.put("mail_to", query.getMailTo());
+		params.put("mail_subject", query.getMailSubject());
+		params.put("is_enabled", query.isEnabled());
+		return params;
+	}
+
+	/**
+	 * 예약된 쿼리를 삭제합니다. 지정된 GUID의 예약된 쿼리가 존재하지 않으면 예외가 발생합니다.
+	 * 
+	 * @since 0.9.5
+	 */
+	public void removeScheduledQuery(String guid) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("guid", guid);
+		rpc("com.logpresso.core.msgbus.ScheduledQueryPlugin.removeScheduledQuery", params);
+	}
+
+	/**
+	 * 주어진 쿼리 문자열을 사용하여 쿼리를 생성합니다. 권한이 없거나 문법이 틀린 경우 예외가 발생합니다.
+	 * 
+	 * @param queryString
+	 *            쿼리 문자열 (NULL 허용 안 함)
+	 * @return 새로 생성된 쿼리 ID가 반환됩니다.
+	 */
 	public int createQuery(String queryString) throws IOException {
 		return createQuery(queryString, null);
 	}
 
+	/**
+	 * 주어진 쿼리 문자열을 사용하여 스트리밍 쿼리를 생성합니다. 권한이 없거나 문법이 틀린 경우 예외가 발생합니다.
+	 * 
+	 * @param queryString
+	 *            쿼리 문자열 (NULL 허용 안 함)
+	 * @param rs
+	 *            쿼리 결과 스트리밍에 사용할 콜백 인스턴스, NULL인 경우 스트리밍 모드로 전환되지 않습니다.
+	 * @return 새로 생성된 쿼리 ID가 반환됩니다.
+	 * @since 0.9.1
+	 */
 	public int createQuery(String queryString, StreamingResultSet rs) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("query", queryString);
@@ -1253,25 +1925,29 @@ public class LogDbClient implements TrapListener, Closeable {
 		return id;
 	}
 
+	/**
+	 * 지정된 쿼리를 시작시킵니다. 주어진 ID에 대응하는 쿼리가 없거나 액세스 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @param id
+	 *            쿼리 ID
+	 */
 	public void startQuery(int id) throws IOException {
-		startQuery(id, 10, null);
-	}
-
-	public void startQuery(int id, int pageSize, Integer timelineSize) throws IOException {
 		verifyQueryId(id);
 
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("id", id);
-		params.put("offset", 0);
-		params.put("limit", pageSize);
-
-		// timeline may degrade little performance
-		params.put("timeline_limit", timelineSize);
 		params.put("streaming", streamCallbacks.containsKey(id));
 
 		rpc("org.araqne.logdb.msgbus.LogQueryPlugin.startQuery", params);
 	}
 
+	/**
+	 * 지정된 쿼리를 정지(취소)시킵니다. 주어진 ID에 대응하는 쿼리가 없거나 액세스 권한이 없는 경우 예외가 발생합니다. 정지되기 직전
+	 * 시점까지의 쿼리 결과는 removeQuery()를 호출하기 전까지 getResult()를 사용하여 조회할 수 있습니다.
+	 * 
+	 * @param id
+	 *            쿼리 ID
+	 */
 	public void stopQuery(int id) throws IOException {
 		verifyQueryId(id);
 
@@ -1281,6 +1957,13 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.logdb.msgbus.LogQueryPlugin.stopQuery", params);
 	}
 
+	/**
+	 * 지정된 쿼리를 삭제합니다. 서버의 임시 쿼리 결과 파일이 삭제됩니다. 이후에는 getResult()를 사용하여 쿼리 결과를 조회할
+	 * 수 없습니다. 주어진 ID에 대응하는 쿼리가 없거나 액세스 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @param id
+	 *            쿼리 ID
+	 */
 	public void removeQuery(int id) throws IOException {
 		verifyQueryId(id);
 
@@ -1306,13 +1989,22 @@ public class LogDbClient implements TrapListener, Closeable {
 		failureListeners.remove(listener);
 	}
 
+	/**
+	 * 지정된 테이블에 행을 입력합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름
+	 * @param rows
+	 *            행 목록
+	 * @since 0.9.5
+	 */
 	public void insert(String tableName, List<Row> rows) {
 
-		for(Row row : rows){
+		for (Row row : rows) {
 			if (row.get("_time") == null || !(row.get("_time") instanceof Date))
 				row.put("_time", new Date());
 		}
-		
+
 		// buffering
 		synchronized (flushBuffers) {
 			flushBuffers.put(tableName, rows);
@@ -1324,12 +2016,21 @@ public class LogDbClient implements TrapListener, Closeable {
 			timer.schedule(new FlushTask(), indexFlushInterval, indexFlushInterval);
 		}
 		// count over -> flush
-		if (counter >= insertFetchSize) {
+		if (counter >= insertBatchSize) {
 			flush();
 		}
 
 	}
-	
+
+	/**
+	 * 지정된 테이블에 행을 입력합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름
+	 * @param row
+	 *            입력할 행
+	 * @since 0.9.5
+	 */
 	public void insert(String tableName, Row row) {
 		if (row.get("_time") == null || !(row.get("_time") instanceof Date))
 			row.put("_time", new Date());
@@ -1344,13 +2045,14 @@ public class LogDbClient implements TrapListener, Closeable {
 			flushBuffers.put(tableName, rows);
 			counter++;
 		}
+
 		// timer thread
 		if (timer == null) {
 			timer = new Timer("Insert Flush Timer");
 			timer.schedule(new FlushTask(), indexFlushInterval, indexFlushInterval);
 		}
 		// count over -> flush
-		if (counter >= insertFetchSize) {
+		if (counter >= insertBatchSize) {
 			flush();
 		}
 	}
@@ -1363,6 +2065,11 @@ public class LogDbClient implements TrapListener, Closeable {
 		}
 	}
 
+	/**
+	 * 현재 대기 중인 쓰기 버퍼를 비우고 RPC 통신을 통해 로그프레소 테이블에 기록합니다.
+	 * 
+	 * @since 0.9.5
+	 */
 	public void flush() {
 		if (counter == 0)
 			return;
@@ -1401,11 +2108,37 @@ public class LogDbClient implements TrapListener, Closeable {
 		}
 	}
 
+	/**
+	 * 특정 쿼리에 대해서 주어진 쿼리 결과 갯수가 조회 가능할 때까지 현재 스레드를 대기(blocking) 합니다. 주어진 쿼리 결과
+	 * 갯수를 채우지 못하더라도 쿼리가 완료 혹은 취소되면 스레드 대기 상태가 풀립니다. 이 메소드를 이용하면 매번 getQuery()를
+	 * 사용하여 서버에 폴링하지 않더라도 원하는 시점까지 대기할 수 있으며 서버 부하도 감소합니다.
+	 * 
+	 * @param id
+	 *            쿼리 ID
+	 * @param count
+	 *            쿼리 결과 행 갯수, null을 넘기는 경우 쿼리 완료 혹은 취소 시까지 대기합니다.
+	 */
 	public void waitUntil(int id, Long count) {
 		verifyQueryId(id);
 		queries.get(id).waitUntil(count);
 	}
 
+	/**
+	 * 쿼리 결과를 조회합니다. 주어진 offset 갯수만큼 건너뛰고, 최대 limit 갯수만큼 쿼리 결과를 조회합니다. 쿼리가 존재하지
+	 * 않거나 액세스 권한이 없는 경우 예외가 발생합니다.
+	 * 
+	 * @param id
+	 *            쿼리 ID
+	 * @param offset
+	 *            건너뛸 결과 행 갯수
+	 * @param limit
+	 *            가져올 최대 행 갯수. 너무 큰 값을 넘기면 서버나 클라이언트에서 메모리 고갈이 발생할 수 있습니다. 일반적으로
+	 *            10000 내외의 값을 사용하여 페이징 조회합니다.
+	 * @return Map 타입으로 아래와 같은 항목들을 반환합니다. result: Map 타입의 결과 행의 List, count: 전체
+	 *         쿼리 결과 행 갯수, 쿼리가 실행 중인 경우 getResult() 호출 시점까지의 쿼리 결과 행 갯수를 반환하며 쿼리
+	 *         완료 시까지 계속 증가할 수 있습니다. fields: 쿼리 문자열에 fields 쿼리 커맨드를 사용한 경우, 출력
+	 *         필드 순서를 정렬하는데 사용할 수 있도록 필드 이름 목록을 반환합니다.
+	 */
 	public Map<String, Object> getResult(int id, long offset, int limit) throws IOException {
 		verifyQueryId(id);
 
@@ -1460,6 +2193,9 @@ public class LogDbClient implements TrapListener, Closeable {
 			throw new MessageException("query-not-found", "query [" + id + "] does not exist", null);
 	}
 
+	/**
+	 * 접속을 끊고 할당된 자원을 정리합니다.
+	 */
 	public void close() throws IOException {
 
 		if (counter > 0)

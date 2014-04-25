@@ -47,6 +47,12 @@ import org.araqne.logdb.client.http.impl.TrapListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * HTTP 롱 폴링 기술을 이용한 코멧 클라이언트를 구현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * @deprecated
+ */
 public class CometClient implements TrapListener {
 	private final Logger logger = LoggerFactory.getLogger(CometClient.class);
 	private CometSession session;

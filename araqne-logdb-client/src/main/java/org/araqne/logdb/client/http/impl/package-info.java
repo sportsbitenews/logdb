@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Eediom Inc.
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.client;
-
 /**
- * 테이블 접근 권한 유형을 표현합니다.
- * 
- * @author xeraph@eediom.com
- * 
+ * 이 패키지는 아라크네 메시지버스 RPC를 수행하는데 필요한 전문 해석, 비동기적 서버 푸시 수신, 블록킹 구현을 포함합니다.
+ *  
+ * @author xeraph
+ *
  */
-public enum Permission {
-	READ
-}
+package org.araqne.logdb.client.http.impl;
