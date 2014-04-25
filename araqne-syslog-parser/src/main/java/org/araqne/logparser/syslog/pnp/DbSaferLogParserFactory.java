@@ -26,7 +26,7 @@ import org.araqne.log.api.LogParser;
 /**
  * @author kyun
  */
-@Component(name = "dbsafer-parser-factory")
+@Component(name = "pnp-dbsafer-parser-factory")
 @Provides
 public class DbSaferLogParserFactory extends AbstractLogParserFactory {
 
@@ -46,7 +46,7 @@ public class DbSaferLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "피엔피시큐어 디비세이퍼의 로그를 파싱합니다.";
-		return "Parse Pnp secure's DBSAFER logs.";
+		return "Parse Pnp secure DBSAFER logs.";
 	}
 
 	@Override

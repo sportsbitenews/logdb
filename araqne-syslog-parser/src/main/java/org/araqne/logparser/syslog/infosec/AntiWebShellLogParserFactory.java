@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Future Systems
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,9 +27,7 @@ import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.AbstractLogParserFactory;
 
 /**
- * 
- * @author xeraph
- * @since 1.4.0
+ * @author kyun
  */
 @Component(name = "infosec-anti-web-shell-log-parser-factory")
 @Provides

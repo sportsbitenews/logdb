@@ -58,7 +58,7 @@ public class GateOneLogParser extends V1LogParser {
 			return m;
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
-				slog.debug("araqne syslog parser: GateOne parse error - [{}]", line);
+				slog.debug("araqne syslog parser: modoosone gateone parse error - [" + line + "]", t);
 			return log;
 		}
 	}

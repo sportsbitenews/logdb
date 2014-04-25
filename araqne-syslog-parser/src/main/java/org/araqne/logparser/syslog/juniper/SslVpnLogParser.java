@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 /**
  * @author kyun
  */
-
 public class SslVpnLogParser extends V1LogParser {
 	private final Logger slog = LoggerFactory.getLogger(SslVpnLogParser.class.getName());
 
@@ -50,17 +49,10 @@ public class SslVpnLogParser extends V1LogParser {
 		if (line == null)
 			return log;
 
-	//	int i = 0;
 		Map<String, Object> m = new HashMap<String, Object>();
 
 		try {
-			//line = line.rmHD(m,line);
-			//line = line.replaceAll(" ","_");
-			//StringTokenizer tok = new StringTokenizer(line,"_-_");
-
-			//Juniper: 2014-03-19 15:55:56 - SSLVPN_1 - [210.223.123.41] pp32462(Partner)[TOKTOK_NC, Common_NC, SKT_Common_NC] - Host Checker policy 'Cache Cleaner policy' passed on host 210.223.123.41  for user 'pp32462'.
-
-			
+	
 			int i =4;// Keys.length;
 			String[] tokens = new String[i];
 			
@@ -71,18 +63,11 @@ public class SslVpnLogParser extends V1LogParser {
 			}
 			
 			tokens[i-1] = line;
-			
-			
-			
+	
 			 i = 0;
 			for (String s : tokens) {
 				
-				
-				
 				String token = s.trim();
-				
-				//System.out.println(token);
-
 				if(token.equals("")) { 
 					i++;
 					continue; 
@@ -117,51 +102,10 @@ public class SslVpnLogParser extends V1LogParser {
 			
 			}
 			
-			
-			
-		//	while (tok.hasMoreTokens()) {
-				
-//				System.out.println(tok.nextToken().trim());
-//				if (i >= 4)
-//					break;
-//
-//				String token = tok.nextToken().trim();
-//
-//				if(token.equals("")) { 
-//					i++;
-//					continue; 
-//				}
-//
-//				String key = Keys[i];
-//				FieldType type = Types[i++];
-//
-//				if(i == 0){
-//					String vendor = token.substring(0, token.indexOf(':'));
-//					m.put("vendor", vendor);
-//
-//					String date = token.substring(token.indexOf(':') + 1).trim();
-//					m.put("date", format.parse(date));
-//
-//				}else if(i == 2){
-//					String ip = token.substring(token.indexOf('[') + 1, token.indexOf(']'));
-//					m.put("ip", ip);
-//
-//					String user = token.substring(token.indexOf(']') + 1).trim();
-//					m.put("user", user);
-//
-//				}else {				
-//					if (type == FieldType.Integer)
-//						m.put(key, Integer.valueOf(token));
-//					else if (type == FieldType.Date)
-//						m.put(key, format.parse(token));
-//					else
-//						m.put(key, token);
-//				}
-//			}
 			return m;
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
-				slog.debug("araqne syslog parser : junifer ssl parse error - [{}]", line);
+				slog.debug("araqne syslog parser : junifer ssl parse error -[" + line + "]", t);
 			return log;
 		}
 	}

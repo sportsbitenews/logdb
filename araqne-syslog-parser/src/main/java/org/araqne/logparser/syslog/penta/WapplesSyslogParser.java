@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014 Eediom Inc
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,7 +69,7 @@ public class WapplesSyslogParser extends V1LogParser {
 
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
-				slog.debug("araqne syslog parser: wapples syslog parse error - [{}]", line);
+				slog.debug("araqne syslog parser: penta security wapples syslog parse error - [" + line + "]", t);
 			return log;
 		}
 

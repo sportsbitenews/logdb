@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @author kyun
- * @since 1.4.0
  */
 public class TippingPointIpsLogParser extends V1LogParser {
 	private final Logger slog = LoggerFactory.getLogger(TippingPointIpsLogParser.class);
@@ -75,7 +74,7 @@ public class TippingPointIpsLogParser extends V1LogParser {
 			return m;
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
-				slog.debug("araqne syslog parser: tippingpoint ips parse error - [" + line + "]", t);
+				slog.debug("araqne syslog parser: hp tippingpoint ips parse error - [" + line + "]", t);
 			return log;
 		}
 	}

@@ -26,7 +26,7 @@ import org.araqne.log.api.LogParser;
 /**
  * @author kyun
  */
-@Component(name = "webfront-factory")
+@Component(name = "piolink-webfront-factory")
 @Provides
 public class WebFrontLogParserFactory extends AbstractLogParserFactory {
 
@@ -46,7 +46,7 @@ public class WebFrontLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "파이오링크 웹프론트의 로그를 파싱합니다.";
-		return "Parse Piolink's WebFront logs.";
+		return "Parse Piolink WebFront logs.";
 	}
 
 	@Override

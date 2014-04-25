@@ -76,7 +76,7 @@ public class RioreyDdosLogParser extends V1LogParser {
 
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
-				slog.debug("araqne syslog parser:  riorey ddos parse error - [" + line + "]", t);
+				slog.debug("araqne syslog parser: riorey ddos parse error - [" + line + "]", t);
 			return log;
 		}
 	}

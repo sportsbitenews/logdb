@@ -47,7 +47,7 @@ public class RioreySyslogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "리오레이 디도스 방어 솔루션의 시스 로그를 파싱합니다.";
-		return "Riorey's Riorey Syslog parser";
+		return "Parse Riorey Riorey Syslogs.";
 	}
 
 	@Override
