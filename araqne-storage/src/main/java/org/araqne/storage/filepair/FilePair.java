@@ -16,7 +16,6 @@
 package org.araqne.storage.filepair;
 
 import java.io.ByteArrayInputStream;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
@@ -30,6 +29,7 @@ import java.util.List;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
 import org.araqne.storage.api.StorageOutputStream;
+import org.araqne.storage.api.StorageUtil;
 import org.araqne.storage.localfile.LocalFileOutputStream;
 
 public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlock<RDB>> {
@@ -49,6 +49,34 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		return dfile;
 	}
 
+	public void ensureIndexFileHeader() throws IOException {
+		if (ifile.isNotEmpty())
+			return;
+		
+		ifile.getParentFilePath().mkdirs();
+		StorageOutputStream stream = null;
+		try {
+			 stream = ifile.newOutputStream(false);
+			 writeIndexFileHeader(stream);
+		} finally {
+			StorageUtil.ensureClose(stream);
+		}
+	}
+	
+	public void ensureDataFileHeader() throws IOException {
+		if (dfile.isNotEmpty())
+			return;
+		
+		dfile.getParentFilePath().mkdirs();
+		StorageOutputStream stream = null;
+		try {
+			 stream = dfile.newOutputStream(false);
+			 writeIndexFileHeader(stream);
+		} finally {
+			StorageUtil.ensureClose(stream);
+		}
+	}
+	
 	public abstract void writeIndexFileHeader(OutputStream os) throws IOException;
 
 	public abstract void writeDataFileHeader(OutputStream os) throws IOException;
@@ -72,6 +100,9 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		StorageOutputStream indexStream = null;
 		StorageOutputStream dataStream = null;
 		try {
+			ensureIndexFileHeader();
+			ensureDataFileHeader();
+			
 			indexStream = ifile.newOutputStream(true);
 			dataStream = dfile.newOutputStream(true);
 
@@ -90,8 +121,8 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 				throw new UnsupportedOperationException("the operation for non-local file is not supported yet");
 			}
 		} finally {
-			ensureClose(indexStream);
-			ensureClose(dataStream);
+			StorageUtil.ensureClose(indexStream);
+			StorageUtil.ensureClose(dataStream);
 		}
 	}
 
@@ -122,8 +153,8 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 			}
 
 		} finally {
-			ensureClose(dataStream);
-			ensureClose(indexStream);
+			StorageUtil.ensureClose(dataStream);
+			StorageUtil.ensureClose(indexStream);
 		}
 
 	}
@@ -135,6 +166,9 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		StorageOutputStream dataStream = null;
 		StorageOutputStream indexStream = null;
 		try {
+			ensureIndexFileHeader();
+			ensureDataFileHeader();
+			
 			dataStream = dfile.newOutputStream(false);
 			indexStream = ifile.newOutputStream(false);
 
@@ -154,8 +188,8 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 			}
 
 		} finally {
-			ensureClose(dataStream);
-			ensureClose(indexStream);
+			StorageUtil.ensureClose(dataStream);
+			StorageUtil.ensureClose(indexStream);
 		}
 
 	}
@@ -184,14 +218,6 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		}
 	}
 
-	public static void ensureClose(Closeable stream) {
-		try {
-			if (stream != null)
-				stream.close();
-		} catch (IOException e) {
-		}
-	}
-	
 	private class IndexBlockEnumeration implements CloseableEnumeration<IB> {
 		private StorageInputStream stream;
 		private long fileLength;
@@ -285,8 +311,7 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 
 		@Override
 		public void close() throws IOException {
-			if (this.stream != null)
-				ensureClose(this.stream);
+			StorageUtil.ensureClose(this.stream);
 			this.stream = null;
 		}
 	}
