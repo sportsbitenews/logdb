@@ -32,8 +32,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -42,16 +45,21 @@ import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.EncodingRule;
 import org.araqne.logdb.client.http.WebSocketTransport;
 import org.araqne.logdb.client.http.impl.StreamingResultDecoder;
+import org.araqne.logdb.client.http.impl.StreamingResultEncoder;
 import org.araqne.logdb.client.http.impl.TrapListener;
 import org.araqne.websocket.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>쿼리 실행, 로그 수집 설정, 트랜스포머 설정, 테이블, 인덱스, 스트림 쿼리 설정, 예약된 쿼리 설정, 계정 관리 등 로그프레소를
- * 원격으로 제어하는데 필요한 모든 기능을 제공합니다.</p>
+ * <p>
+ * 쿼리 실행, 로그 수집 설정, 트랜스포머 설정, 테이블, 인덱스, 스트림 쿼리 설정, 예약된 쿼리 설정, 계정 관리 등 로그프레소를
+ * 원격으로 제어하는데 필요한 모든 기능을 제공합니다.
+ * </p>
  * 
- * <p>아래는 접속과 쿼리를 수행하는 간단한 예시입니다:</p>
+ * <p>
+ * 아래는 접속과 쿼리를 수행하는 간단한 예시입니다:
+ * </p>
  * 
  * <pre>
  * {@link LogDbClient} client = null;
@@ -88,6 +96,19 @@ public class LogDbClient implements TrapListener, Closeable {
 	private Locale locale = Locale.getDefault();
 	private StreamingResultDecoder streamingDecoder;
 
+	private Timer timer;
+	private StreamingResultEncoder streamingEncoder;
+	private int counter = 0;
+
+	private int insertBatchSize = 5000;
+
+	// milliseconds
+	private int indexFlushInterval = 1000;
+
+	// table name to row list mappings
+	private Map<String, List<Row>> flushBuffers = new HashMap<String, List<Row>>();
+	private CopyOnWriteArraySet<FailureListener> failureListeners = new CopyOnWriteArraySet<FailureListener>();
+
 	public LogDbClient() {
 		this(new WebSocketTransport());
 	}
@@ -96,10 +117,12 @@ public class LogDbClient implements TrapListener, Closeable {
 		this.transport = transport;
 		int poolSize = Math.min(8, Runtime.getRuntime().availableProcessors());
 		this.streamingDecoder = new StreamingResultDecoder("Streaming Result Decoder", poolSize);
+		this.streamingEncoder = new StreamingResultEncoder("Streaming Result Incoder", poolSize);
 	}
 
 	public Locale getLocale() {
 		return locale;
+
 	}
 
 	public void setLocale(Locale locale) {
@@ -136,6 +159,33 @@ public class LogDbClient implements TrapListener, Closeable {
 	 */
 	public void setFetchSize(int fetchSize) {
 		this.fetchSize = fetchSize;
+	}
+
+	public int getInsertFetchSize() {
+		return insertBatchSize;
+	}
+
+	public void setInserFetchSize(int insertFetchSize) {
+		if (insertFetchSize < 0 || insertFetchSize > 200000)
+			throw new IllegalArgumentException("InsertFetchSize should be > 0 and < 200000");
+		this.insertBatchSize = insertFetchSize;
+	}
+
+	// index flush interval (ms)
+	public int getIndexFlushInterval() {
+		return indexFlushInterval;
+	}
+
+	public void setIndexFlushInterval(int millisec) {
+		if (millisec < 0)
+			throw new IllegalArgumentException("Index flush interval should be greater than 0");
+		this.indexFlushInterval = millisec;
+		if (timer != null) {
+			timer.cancel();
+			timer = null;
+			timer = new Timer("Insert Flush Timer");
+			timer.schedule(new FlushTask(), indexFlushInterval, indexFlushInterval);
+		}
 	}
 
 	/**
@@ -1931,6 +1981,133 @@ public class LogDbClient implements TrapListener, Closeable {
 		queries.remove(id);
 	}
 
+	public void addFailureListener(FailureListener listener) {
+		failureListeners.add(listener);
+	}
+
+	public void removeFailureListener(FailureListener listener) {
+		failureListeners.remove(listener);
+	}
+
+	/**
+	 * 지정된 테이블에 행을 입력합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름
+	 * @param rows
+	 *            행 목록
+	 * @since 0.9.5
+	 */
+	public void insert(String tableName, List<Row> rows) {
+
+		for (Row row : rows) {
+			if (row.get("_time") == null || !(row.get("_time") instanceof Date))
+				row.put("_time", new Date());
+		}
+
+		// buffering
+		synchronized (flushBuffers) {
+			flushBuffers.put(tableName, rows);
+			counter += rows.size();
+		}
+		// timer thread
+		if (timer == null) {
+			timer = new Timer("Insert Flush Timer");
+			timer.schedule(new FlushTask(), indexFlushInterval, indexFlushInterval);
+		}
+		// count over -> flush
+		if (counter >= insertBatchSize) {
+			flush();
+		}
+
+	}
+
+	/**
+	 * 지정된 테이블에 행을 입력합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름
+	 * @param row
+	 *            입력할 행
+	 * @since 0.9.5
+	 */
+	public void insert(String tableName, Row row) {
+		if (row.get("_time") == null || !(row.get("_time") instanceof Date))
+			row.put("_time", new Date());
+
+		// buffering
+		List<Row> rows = new ArrayList<Row>();
+		synchronized (flushBuffers) {
+			if (flushBuffers.containsKey(tableName))
+				rows = flushBuffers.get(tableName);
+
+			rows.add(row);
+			flushBuffers.put(tableName, rows);
+			counter++;
+		}
+
+		// timer thread
+		if (timer == null) {
+			timer = new Timer("Insert Flush Timer");
+			timer.schedule(new FlushTask(), indexFlushInterval, indexFlushInterval);
+		}
+		// count over -> flush
+		if (counter >= insertBatchSize) {
+			flush();
+		}
+	}
+
+	private class FlushTask extends TimerTask {
+		@Override
+		public void run() {
+			if (counter > 0)
+				flush();
+		}
+	}
+
+	/**
+	 * 현재 대기 중인 쓰기 버퍼를 비우고 RPC 통신을 통해 로그프레소 테이블에 기록합니다.
+	 * 
+	 * @since 0.9.5
+	 */
+	public void flush() {
+		if (counter == 0)
+			return;
+
+		Map<String, List<Row>> binsMap = null;
+		synchronized (flushBuffers) {
+			binsMap = new HashMap<String, List<Row>>(flushBuffers);
+			flushBuffers.clear();
+			counter = 0;
+		}
+
+		for (Map.Entry<String, List<Row>> entry : binsMap.entrySet()) {
+			String tableName = entry.getKey();
+			List<Row> rows = entry.getValue();
+			try {
+				List<Object> l = new ArrayList<Object>(rows.size());
+				for (Row row : rows)
+					l.add(row.map());
+
+				List<Map<String, Object>> bins = streamingEncoder.encode(l, false);
+				Map<String, Object> params = new HashMap<String, Object>();
+				params.put("table", entry.getKey());
+				params.put("bins", bins);
+				rpc("org.araqne.logdb.msgbus.LogQueryPlugin.insertBatch", params);
+			} catch (Throwable t) {
+				logger.debug("araqne logdb client: cannot insert data", t);
+
+				for (FailureListener c : failureListeners) {
+					try {
+						c.onInsertFailure(tableName, rows, t);
+					} catch (Throwable t2) {
+						logger.debug("araqne logdb client: insert failure callback should not throw any exception", t2);
+					}
+				}
+			}
+		}
+	}
+
 	/**
 	 * 특정 쿼리에 대해서 주어진 쿼리 결과 갯수가 조회 가능할 때까지 현재 스레드를 대기(blocking) 합니다. 주어진 쿼리 결과
 	 * 갯수를 채우지 못하더라도 쿼리가 완료 혹은 취소되면 스레드 대기 상태가 풀립니다. 이 메소드를 이용하면 매번 getQuery()를
@@ -2020,12 +2197,24 @@ public class LogDbClient implements TrapListener, Closeable {
 	 * 접속을 끊고 할당된 자원을 정리합니다.
 	 */
 	public void close() throws IOException {
+
+		if (counter > 0)
+			flush();
+
 		if (session != null)
 			session.close();
 
 		if (streamingDecoder != null) {
 			streamingDecoder.close();
 			streamingDecoder = null;
+		}
+
+		if (timer != null)
+			timer.cancel();
+
+		if (streamingEncoder != null) {
+			streamingEncoder.close();
+			streamingEncoder = null;
 		}
 	}
 

@@ -23,6 +23,9 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
+/**
+ * @author kyun
+ */
 @Component(name = "wapples-syslog-parser-factory")
 @Provides
 public class WapplesSyslogParserFactory extends AbstractLogParserFactory {
@@ -34,7 +37,7 @@ public class WapplesSyslogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "와플 시스로그";
 		return "Wapples syslog";
 	}
@@ -43,7 +46,7 @@ public class WapplesSyslogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "펜타 시큐리티 와플 시스로그를 파싱합니다.";
-		return "Parse penta security's wapples web firewall logs.";
+		return "Parse penta security wapples web firewall logs.";
 	}
 
 	@Override

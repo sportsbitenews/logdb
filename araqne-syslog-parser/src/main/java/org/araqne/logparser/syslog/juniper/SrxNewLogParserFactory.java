@@ -25,13 +25,16 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
+/**
+ * @author kyun
+ */
 @Component(name = "srx-new-log-parser-factory")
 @Provides
 public class SrxNewLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
-		return "srxnew";
+		return "srx3400";
 	}
 
 	@Override
@@ -41,9 +44,9 @@ public class SrxNewLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
-			return "SRX 서비스 게이트웨이(뉴)";
-		return "New SRX Series Service Gateway";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "SRX3400 서비스 게이트웨이";
+		return "SRX3400 Series Service Gateway";
 	}
 
 	@Override
@@ -53,9 +56,9 @@ public class SrxNewLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
-			return "주니퍼 SRX 시리즈(뉴) 서비스 게이트웨이 로그를 파싱합니다.";
-		return "New Juniper SRX Series Service Gateway";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "주니퍼 SRX 시리즈(ID:3400) 서비스 게이트웨이 로그를 파싱합니다.";
+		return "Parse Juniper SRX(ID:3400) Series Service Gateway logs.";
 	}
 
 	@Override

@@ -20,9 +20,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -80,11 +82,14 @@ public class LogQueryPlugin {
 	private SavedResultManager savedResultManager;
 
 	private StreamingResultEncoder streamingEncoder;
+	private StreamingResultDecoder streamingDecoder;
+
 
 	@Validate
 	public void start() {
 		int poolSize = Math.min(8, Runtime.getRuntime().availableProcessors());
 		streamingEncoder = new StreamingResultEncoder("Streaming Result Encoder", poolSize);
+		streamingDecoder = new StreamingResultDecoder("Streaming Result Decoder", poolSize);
 	}
 
 	@Invalidate
@@ -92,6 +97,11 @@ public class LogQueryPlugin {
 		if (streamingEncoder != null) {
 			streamingEncoder.close();
 			streamingEncoder = null;
+		}
+		
+		if (streamingDecoder != null) {
+			streamingDecoder.close();
+			streamingDecoder = null;
 		}
 	}
 
@@ -206,7 +216,36 @@ public class LogQueryPlugin {
 			throw new MsgbusException("logdb", "query-not-found", params);
 		}
 	}
+	
+	@MsgbusMethod
+	public void insertBatch(Request req, Response resp){
+		// isAdmin
+		org.araqne.logdb.Session dbSession = getDbSession(req);
+		if (!dbSession.isAdmin())
+			throw new IllegalStateException("no permission");
 
+		//decode
+		if(!req.has("bins") || !req.has("table"))
+			throw new IllegalStateException("no data");
+		try {
+			String tableName = req.getString("table");
+			List<Map<String, Object>> chunk =(List<Map<String, Object>>)req.get("bins"); 		
+			List<Object> l = streamingDecoder.decode(chunk);
+
+			for(Object  m : l)
+			{
+				Map<String, Object> data =( Map<String, Object>)m;
+				Date date = (Date)data.get("_time");
+				Log log = new Log(tableName, date, data);
+				//storage.writeBatch(log);
+				storage.write(log);
+			
+			}
+		} catch (ExecutionException e) {
+			logger.error("araqne logdb : cannot insert data", e);
+		}
+	}
+	
 	@MsgbusMethod
 	public void getResult(Request req, Response resp) throws IOException {
 		int id = req.getInteger("id", true);

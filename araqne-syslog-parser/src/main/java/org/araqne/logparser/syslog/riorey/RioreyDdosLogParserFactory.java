@@ -47,7 +47,7 @@ public class RioreyDdosLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "리오레이 디도스 방어 솔루션의 로그를 파싱합니다.";
-		return "Parse Riorey's Riorey-DDoS logs.";
+		return "Parse Riorey Riorey-DDoS logs.";
 	}
 
 	@Override

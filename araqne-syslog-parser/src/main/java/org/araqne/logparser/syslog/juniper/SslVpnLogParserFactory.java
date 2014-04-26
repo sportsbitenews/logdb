@@ -25,6 +25,10 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
+
+/**
+ * @author kyun
+ */
 @Component(name = "juniper-sslvpn-log-parser-factory")
 @Provides
 public class SslVpnLogParserFactory extends AbstractLogParserFactory {
@@ -41,7 +45,7 @@ public class SslVpnLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "주니퍼 SSLVPN";
 		return "Juniper SA Series";
 	}
@@ -53,9 +57,9 @@ public class SslVpnLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
-			return "주니퍼 SRX 시리즈(뉴) 서비스 게이트웨이 로그를 파싱합니다.";
-		return "New Juniper SRX Series Service Gateway";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "주니퍼 SSL VPN 시스로그를 파싱합니다.";
+		return "Parse Juniper SSL VPN Syslogs.";
 	}
 
 	@Override

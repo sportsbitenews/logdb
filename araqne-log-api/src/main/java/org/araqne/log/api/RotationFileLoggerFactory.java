@@ -81,6 +81,9 @@ public class RotationFileLoggerFactory extends AbstractLoggerFactory {
 		LoggerConfigOption charset = new StringConfigType("charset", t("Charset", "문자 집합", "文字セット"), t("Charset",
 				"문자 집합. 기본값 UTF-8", "文字セット。基本値はutf-8"), false, t("utf-8"));
 
+		LoggerConfigOption timezone = new StringConfigType("timezone", t("Time zone", "시간대","時間帯"), t("time zone, e.g. EST or America/New_york ",
+				"시간대, 예를 들면 KST 또는 Asia/Seoul","時間帯。例えばJSTまたはAsia/Tokyo"), false);
+		
 		LoggerConfigOption logBeginRegex = new StringConfigType("begin_regex", t("Log begin regex", "로그 시작 구분 정규식", "ログ始め正規表現"),
 				t("Regular expression to determine whether the line is start of new log."
 						+ "(if a line does not matches, the line will be merged to prev line.).",
@@ -91,7 +94,7 @@ public class RotationFileLoggerFactory extends AbstractLoggerFactory {
 						+ "(if a line does not matches, the line will be merged to prev line.).",
 				"로그의 끝을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "ログの終わりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)"), false);
 
-		return Arrays.asList(filePath, charset, datePattern, dateFormat, dateLocale, logBeginRegex, logEndRegex);
+		return Arrays.asList(filePath, charset, datePattern, dateFormat, dateLocale, timezone, logBeginRegex, logEndRegex);
 	}
 
 	private Map<Locale, String> t(String text) {

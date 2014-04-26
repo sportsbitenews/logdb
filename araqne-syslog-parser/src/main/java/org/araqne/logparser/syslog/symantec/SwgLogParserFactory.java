@@ -46,7 +46,7 @@ public class SwgLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "시만텍 웹 게이트웨이의 로그를 파싱합니다.";
-		return "Parse Symantec's Symantec Web Gateway logs.";
+		return "Parse Symantec Symantec Web Gateway logs.";
 	}
 
 	@Override

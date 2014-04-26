@@ -23,7 +23,10 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
-@Component(name = "gateone-parser-factory")
+/**
+ * @author kyun
+ */
+@Component(name = "modoos-gateone-parser-factory")
 @Provides
 public class GateOneLogParserFactory extends AbstractLogParserFactory {
 
@@ -43,7 +46,7 @@ public class GateOneLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "모두스원 게이트원의 로그를 파싱합니다.";
-		return "Parse Modoosone's GateOne logs.";
+		return "Parse Modoosone GateOne logs.";
 	}
 
 	@Override

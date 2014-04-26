@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Future Systems
+ * Copyright 2014 Eediom Inc
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,23 +24,10 @@ import java.util.Map;
 
 import org.junit.Test;
 
+/**
+ * @author kyun
+ */
 public class SSLLogParserTest {
-
-	@Test
-	public void testBench(){
-		
-		long start = System.currentTimeMillis();
-		
-		int COUNT = 1000000;
-		
-		for(int i = 0; i < COUNT; i++)
-			testParser();
-		
-		long period = System.currentTimeMillis() - start;
-		
-		System.out.println(COUNT*1000/period+  "row/s");
-		
-	}
 	
 	@Test
 	public void testParser() {
@@ -51,6 +38,7 @@ public class SSLLogParserTest {
 						+ "for user 'pp32462'."));
 				
 		assertEquals("Juniper", m.get("vendor"));
+		assertEquals("SSLVPN_1", m.get("hostname"));
 		
 		Date time = (Date) m.get("logtime");
 		Calendar c = Calendar.getInstance();

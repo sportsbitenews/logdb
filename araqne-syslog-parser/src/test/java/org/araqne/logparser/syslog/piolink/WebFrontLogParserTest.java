@@ -169,24 +169,6 @@ public class WebFrontLogParserTest {
 		
 	}
 	
-//	@Test
-//	public void testParser7() {
-//		String line = "(warn) kernel: [WEBFRONT/0x00D01001] Evidence (log_id=\"8777\",app_name=\"9_ennavi_co_kr\",app_id=\"9\",id=\"3977\","
-//				+ "data=\"0000 00 00 00 00 0c 07 ac 05 00 10 db ff 21 60 81 00 ........ ....!`..^I0010 00 0a 08 00 45 00 02 f7 4d 1e 40 00 75 06 56 e4 ....E... M.@.u.V.^I0020 00 00 00 00 0c 07 ac 0a 00 0c db a5 8d 00 81 00 ........ ........^I0030 00 14 08 00 45 00 00 a1 28 9a 40 00 34 06 61 f2 ....E... (.@.4.a.^I0040 d3 37 05 12 d3 c8 0f b9 fd cf 00 50 93 0c f9 a8 .7...... ...P....^I0050 39 c0 9f 8b 50 18 16 d0 22 2c 00 00 47 45 54 20 9...P... \",..GET ^I0060 2f 69 6e 63 6c 75 64 65 2f 63 73 73 2f 62 6f 61 /include /css/boa^I0070 72 64 2e 63 73 73 20 48 54 54 50 2f 31 2e 30 0d rd.css H TTP/1.0.^I\")";
-//		
-//	
-//		
-//		WebFrontLogParser parser = new WebFrontLogParser();
-//		Map<String, Object> m = parser.parse(line(line));
-//
-//		assertEquals("warn", m.get("level"));
-//		assertEquals("0x0072F001", m.get("event_id"));
-//		assertEquals("Violated Web Attack Tool Prevention - the request isn't allowed.", m.get("event_str"));
-//		assertEquals("7774", m.get("log_id"));
-//		
-//	}
-//	
-	
 	
 	private Map<String, Object> line(String line) {
 		Map<String, Object> m = new HashMap<String, Object>();

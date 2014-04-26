@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,24 +43,24 @@ public class RioreyDdosLogParserTest {
 		assertEquals(0, m.get("victim_port"));
 		assertEquals("TCP_SESSION", m.get("protocol_info"));
 
-//		Date time = (Date) m.get("start_time");
-//		Calendar c = Calendar.getInstance();
-//		c.setTime(time);
-//		assertEquals(2014, c.get(Calendar.YEAR));
-//		assertEquals(2, c.get(Calendar.MONTH));
-//		assertEquals(9, c.get(Calendar.DAY_OF_MONTH));
-//		assertEquals(6, c.get(Calendar.HOUR_OF_DAY));
-//		assertEquals(44, c.get(Calendar.MINUTE));
-//		assertEquals(31, c.get(Calendar.SECOND));
-//
-//		time = (Date) m.get("expiry_time");
-//		c.setTime(time);
-//		assertEquals(2014, c.get(Calendar.YEAR));
-//		assertEquals(2, c.get(Calendar.MONTH));
-//		assertEquals(19, c.get(Calendar.DAY_OF_MONTH));
-//		assertEquals(17, c.get(Calendar.HOUR_OF_DAY));
-//		assertEquals(9, c.get(Calendar.MINUTE));
-//		assertEquals(48, c.get(Calendar.SECOND));
+		Date time = (Date) m.get("start_time");
+		Calendar c = Calendar.getInstance();
+		c.setTime(time);
+		assertEquals(2014, c.get(Calendar.YEAR));
+		assertEquals(2, c.get(Calendar.MONTH));
+		assertEquals(9, c.get(Calendar.DAY_OF_MONTH));
+		assertEquals(6, c.get(Calendar.HOUR_OF_DAY));
+		assertEquals(44, c.get(Calendar.MINUTE));
+		assertEquals(31, c.get(Calendar.SECOND));
+
+		time = (Date) m.get("expiry_time");
+		c.setTime(time);
+		assertEquals(2014, c.get(Calendar.YEAR));
+		assertEquals(2, c.get(Calendar.MONTH));
+		assertEquals(19, c.get(Calendar.DAY_OF_MONTH));
+		assertEquals(17, c.get(Calendar.HOUR_OF_DAY));
+		assertEquals(9, c.get(Calendar.MINUTE));
+		assertEquals(48, c.get(Calendar.SECOND));
 
 		assertEquals(0, m.get("packet_length"));
 		assertEquals(null, m.get("fragment_offset"));

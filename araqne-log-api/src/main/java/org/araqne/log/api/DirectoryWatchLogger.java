@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,7 +50,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		fileNamePattern = Pattern.compile(fileNameRegex);
 
 		extractor = new MultilineLogExtractor(this, receiver);
-
+	
 		// optional
 		String dateExtractRegex = getConfigs().get("date_pattern");
 		if (dateExtractRegex != null)
@@ -59,12 +60,13 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		String dateLocale = getConfigs().get("date_locale");
 		if (dateLocale == null)
 			dateLocale = "en";
-
+		
 		// optional
 		String dateFormatString = getConfigs().get("date_format");
+		String timeZone = getConfigs().get("timezone");
 		if (dateFormatString != null)
-			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)));
-
+			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
+				
 		// optional
 		String newlogRegex = getConfigs().get("newlog_designator");
 		if (newlogRegex != null)
@@ -80,7 +82,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			charset = "utf-8";
 
 		extractor.setCharset(charset);
-
+		
 		// try migration at boot
 		File oldLastFile = getLastLogFile();
 		if (oldLastFile.exists()) {
@@ -88,7 +90,6 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			setStates(LastPositionHelper.serialize(lastPositions));
 			oldLastFile.renameTo(new File(oldLastFile.getAbsolutePath() + ".migrated"));
 		}
-
 	}
 
 	@Override
@@ -161,7 +162,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			}
 		}
 	}
-
+ 
 	protected File getLastLogFile() {
 		return new File(dataDir, "dirwatch-" + getName() + ".lastlog");
 	}

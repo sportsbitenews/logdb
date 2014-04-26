@@ -86,7 +86,7 @@ public class WebFrontLogParser extends V1LogParser {
 
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
-				slog.debug("araqne syslog parser: webfront parse error - [{}]", line);
+				slog.debug("araqne syslog parser: piolink webfront parse error - [" + line + "]", t);
 			return log;
 		}
 	}

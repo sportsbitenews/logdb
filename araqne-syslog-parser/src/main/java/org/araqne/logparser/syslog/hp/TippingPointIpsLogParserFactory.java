@@ -23,6 +23,9 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
+/**
+ * @author kyun
+ */
 @Component(name = "tippingpoint-ips-log-parser-factory")
 @Provides
 public class TippingPointIpsLogParserFactory extends AbstractLogParserFactory {
@@ -43,7 +46,7 @@ public class TippingPointIpsLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "HP 티핑포인트 아이피에스의 로그를 파싱합니다.";
-		return "HP's Tipping Point IPS log parser";
+		return "Parse HP Tipping Point IPS logs.";
 	}
 
 	@Override

@@ -107,7 +107,8 @@ public class DbSaferLogParser extends V1LogParser {
 			return m;
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
-				slog.debug("araqne syslog parser : db safer parse error - [{}]", line);
+				slog.debug("araqne syslog parser: pnp secure dbsafer parse error - [" + line + "]", t);
+		
 			return log;
 		}
 	}

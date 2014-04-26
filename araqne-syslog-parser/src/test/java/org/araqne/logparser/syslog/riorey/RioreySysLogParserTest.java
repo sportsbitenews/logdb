@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,24 +31,6 @@ import org.junit.Test;
 public class RioreySysLogParserTest {
 
 	@Test
-	public void testBench(){
-		
-		long s = System.currentTimeMillis();
-		
-		final int CNT = 1000000;
-		for(int i =0; i < CNT; i++){
-			testParser();
-			testParser2();
-			testParser3();
-			
-		}
-		long e = System.currentTimeMillis() - s;
-		
-		System.out.println(CNT * 1000 / e);
-		
-		
-	}
-	@Test
 	public void testParser() {
 
 		String line = "<systemEntry host=\"172.22.7.11\" serial=\"RRPXU211BB101964\" timestamp=\"2014-03-21T00:20:18Z\">"
@@ -72,9 +54,7 @@ public class RioreySysLogParserTest {
 		assertEquals(18, c.get(Calendar.SECOND));
 		
 	}
-	
-	//
-	
+		
 	@Test
 	public void testParser2() {
 

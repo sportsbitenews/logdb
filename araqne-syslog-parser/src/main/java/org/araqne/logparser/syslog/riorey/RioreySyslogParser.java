@@ -73,7 +73,7 @@ public class RioreySyslogParser extends V1LogParser {
 			return m;
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
-				slog.debug("araqne syslog parser :  rioresy sys parse error - [" + line + "]", t);
+				slog.debug("araqne syslog parser: rioresy sys parse error - [" + line + "]", t);
 			return log;
 		}
 	}

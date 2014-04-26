@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,6 +38,7 @@ public class WapplesSyslogParserTest {
 		WapplesSyslogParser parser = new WapplesSyslogParser();
 		Map<String, Object> m = parser.parse(line(line));
 
+		assertEquals("14/3/18 19:12:44", m.get("intrusion_detection_time"));
 		assertEquals("125.141.71.81", m.get("source_ip"));
 		assertEquals("/event/service/appAuthTocb/appAuthTocbMain.mocb|65806", m.get("uri"));
 		assertEquals("ExtensionFiltering", m.get("rule_name"));

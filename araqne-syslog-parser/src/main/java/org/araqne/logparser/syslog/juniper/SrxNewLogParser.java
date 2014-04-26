@@ -107,7 +107,7 @@ public class SrxNewLogParser extends V1LogParser {
 					return params;
 			}
 		} catch (Throwable t) {
-			logger.warn("araqne syslog parser: srx cannot parse log [" + line + "]", t);
+			logger.warn("araqne syslog parser: juniper srx3400 parse error [" + line + "]", t);
 			return params;
 		} finally {
 			s.close();
