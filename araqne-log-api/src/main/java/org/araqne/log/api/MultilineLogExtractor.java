@@ -95,6 +95,10 @@ public class MultilineLogExtractor {
 		return dateFormat;
 	}
 
+	public void setDateFormat(SimpleDateFormat dateFormat) {
+		setDateFormat(dateFormat, null);
+	}
+
 	public void setDateFormat(SimpleDateFormat dateFormat, String timeZone) {
 		this.dateFormat = dateFormat;
 		if (timeZone != null) {
