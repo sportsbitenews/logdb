@@ -214,7 +214,7 @@ public class RotationFileLogger extends AbstractLogger {
 		public static LastState deserialize(Map<String, Object> m) {
 			String firstLine = (String) m.get("first_line");
 			long lastPosition = Long.valueOf(m.get("last_position").toString());
-			long lastLength = (Long) m.get("last_length");
+			long lastLength = Long.valueOf(m.get("last_length").toString());
 			return new LastState(firstLine, lastPosition, lastLength);
 		}
 
