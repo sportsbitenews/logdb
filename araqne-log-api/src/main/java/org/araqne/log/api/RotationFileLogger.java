@@ -61,8 +61,8 @@ public class RotationFileLogger extends AbstractLogger {
 		String dateFormatString = getConfigs().get("date_format");
 		String timeZone = getConfigs().get("timezone");
 		if (dateFormatString != null)
-			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);		
-						
+			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
+
 		// optional
 		String beginRegex = configs.get("begin_regex");
 		if (beginRegex != null)
@@ -213,7 +213,7 @@ public class RotationFileLogger extends AbstractLogger {
 
 		public static LastState deserialize(Map<String, Object> m) {
 			String firstLine = (String) m.get("first_line");
-			long lastPosition = (Long) m.get("last_position");
+			long lastPosition = Long.valueOf(m.get("last_position").toString());
 			long lastLength = (Long) m.get("last_length");
 			return new LastState(firstLine, lastPosition, lastLength);
 		}
