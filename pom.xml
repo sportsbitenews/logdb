@@ -8,6 +8,7 @@
 	<name>Araqne LogDB POM</name>
 	<packaging>pom</packaging>
 
+	<!-- commented out while in branch
 	<repositories>
 		<repository>
 			<id>araqne</id>
@@ -19,6 +20,7 @@
 			</snapshots>
 		</repository>
 	</repositories>
+	-->
 
 	<licenses>
 		<license>
@@ -28,11 +30,13 @@
 	</licenses>
 
 	<distributionManagement>
+		<!-- commented out while in branch 
 		<repository>
 			<id>araqne</id>
 			<name>Araqne</name>
 			<url>scp://staging.araqne.org:2222/home/service/araqne/</url>
 		</repository>
+		-->
 	</distributionManagement>
 	<dependencyManagement>
 		<dependencies>
