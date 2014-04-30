@@ -15,7 +15,7 @@ public class LogFileV3Walker {
 		System.out.printf("%s blocks\n", reader.getBlockCount());
 		while (reader.hasNextBlock()) {
 			LogBlockV3 block = reader.nextBlock();
-			System.out.printf("logId : %s ~ %s\n", block.getMinId(), block.getMaxId());
+			System.out.printf("%s [%s ~ %s]\n", block.getIndexBlock().getId(), block.getMinId(), block.getMaxId());
 		}
 		
 		reader.close();

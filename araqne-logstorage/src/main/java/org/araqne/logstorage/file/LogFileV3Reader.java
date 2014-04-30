@@ -65,6 +65,14 @@ public class LogFileV3Reader implements Closeable {
 		private IndexBlockV3Header indexBlock;
 		private DataBlockV3 dataBlock;
 		
+		public IndexBlockV3Header getIndexBlock() {
+			return indexBlock;
+		}
+		
+		public DataBlockV3 getDataBlock() {
+			return dataBlock;
+		}
+		
 		public long getMinTime() {
 			return indexBlock.minTime;
 		}

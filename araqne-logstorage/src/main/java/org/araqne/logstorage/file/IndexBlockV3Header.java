@@ -119,7 +119,9 @@ public class IndexBlockV3Header extends IndexBlock<IndexBlockV3Header>{
 
 	@Override
 	public IndexBlockV3Header newReservedBlock() {
-		return new IndexBlockV3Header(id, dataFp, minTime, maxTime, logCount, firstId, true);
+		IndexBlockV3Header ret = new IndexBlockV3Header(id, dataFp, minTime, maxTime, logCount, firstId, true);
+		ret.setDataBlockLen(getDataBlockLen());
+		return ret;
 	}
 
 	@Override

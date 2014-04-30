@@ -71,7 +71,7 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		StorageOutputStream stream = null;
 		try {
 			 stream = dfile.newOutputStream(false);
-			 writeIndexFileHeader(stream);
+			 writeDataFileHeader(stream);
 		} finally {
 			StorageUtil.ensureClose(stream);
 		}
