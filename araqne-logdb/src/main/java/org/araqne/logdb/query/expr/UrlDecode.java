@@ -19,6 +19,7 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
 import org.slf4j.Logger;
@@ -34,7 +35,7 @@ public class UrlDecode implements Expression {
 	private Expression valueExpr;
 	private String charset;
 
-	public UrlDecode(List<Expression> exprs) {
+	public UrlDecode(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		charset = "utf-8";
 		if (exprs.size() > 1)

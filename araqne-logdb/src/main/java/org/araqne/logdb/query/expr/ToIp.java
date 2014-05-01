@@ -4,12 +4,13 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 public class ToIp implements Expression {
 	private Expression valueExpr;
 
-	public ToIp(List<Expression> exprs) {
+	public ToIp(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 	}
 

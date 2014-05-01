@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
@@ -27,7 +28,7 @@ public class Split implements Expression {
 	private Expression target;
 	private final String delimiters;
 
-	public Split(List<Expression> exprs) {
+	public Split(QueryContext ctx, List<Expression> exprs) {
 		if (exprs.size() < 2)
 			throw new QueryParseException("missing-split-args", -1);
 

@@ -20,16 +20,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.TimeUnit;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Timechart;
 
-public class TimechartParser implements QueryCommandParser {
+public class TimechartParser extends AbstractQueryCommandParser {
 	private static final String COMMAND = "timechart";
 	private static final String BY = " by ";
 
@@ -41,7 +41,8 @@ public class TimechartParser implements QueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		// timechart <options> <aggregation functions> by <clause>
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, COMMAND.length(), Arrays.asList("span"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, COMMAND.length(), Arrays.asList("span"),
+				getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -64,7 +65,7 @@ public class TimechartParser implements QueryCommandParser {
 		List<AggregationField> fields = new ArrayList<AggregationField>();
 
 		for (String aggTerm : aggTerms) {
-			AggregationField field = AggregationParser.parse(context, aggTerm);
+			AggregationField field = AggregationParser.parse(context, aggTerm, getFunctionRegistry());
 			fields.add(field);
 		}
 

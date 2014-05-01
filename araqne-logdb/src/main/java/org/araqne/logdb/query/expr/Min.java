@@ -17,6 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.Strings;
@@ -25,7 +26,7 @@ public class Min implements Expression {
 	private ObjectComparator cmp = new ObjectComparator();
 	private List<Expression> exprs;
 
-	public Min(List<Expression> exprs) {
+	public Min(QueryContext ctx, List<Expression> exprs) {
 		this.exprs = exprs;
 	}
 

@@ -16,12 +16,12 @@
 package org.araqne.logdb.query.parser;
 
 import org.araqne.log.api.LoggerRegistry;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Logger;
 
-public class LoggerParser implements QueryCommandParser {
+public class LoggerParser extends AbstractQueryCommandParser {
 
 	private LoggerRegistry loggerRegistry;
 

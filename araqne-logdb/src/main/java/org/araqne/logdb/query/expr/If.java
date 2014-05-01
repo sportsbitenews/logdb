@@ -17,12 +17,13 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 public class If implements Expression {
 	private List<Expression> exprs;
 
-	public If(List<Expression> exprs) {
+	public If(QueryContext ctx, List<Expression> exprs) {
 		this.exprs = exprs;
 	}
 

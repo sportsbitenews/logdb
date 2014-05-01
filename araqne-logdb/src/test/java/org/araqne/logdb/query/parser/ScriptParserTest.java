@@ -17,14 +17,28 @@ package org.araqne.logdb.query.parser;
 
 import org.araqne.logdb.BaseQueryScript;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryScriptRegistry;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.Script;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
+import org.junit.Before;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
+
 import static org.mockito.Mockito.*;
 import static org.junit.Assert.*;
 
 public class ScriptParserTest {
+	private QueryParserService queryParserService;
+
+	@Before
+	public void setup() {
+		QueryParserServiceImpl p = new QueryParserServiceImpl();
+		p.setFunctionRegistry(new FunctionRegistryImpl());
+		queryParserService = p;
+	}
+	
 	@Test
 	public void testSimpleQuery() {
 		MockQueryScript mockScript = new MockQueryScript();
@@ -34,6 +48,8 @@ public class ScriptParserTest {
 		when(scriptRegistry.newScript("localhost", "sample", null)).thenReturn(mockScript);
 
 		ScriptParser parser = new ScriptParser(bc, scriptRegistry);
+		parser.setQueryParserService(queryParserService);
+		
 		QueryContext context = new QueryContext(null);
 
 		Script script = (Script) parser.parse(context, "script sample");
@@ -51,6 +67,8 @@ public class ScriptParserTest {
 		when(scriptRegistry.newScript("localhost", "sample", null)).thenReturn(mockScript);
 
 		ScriptParser parser = new ScriptParser(bc, scriptRegistry);
+		parser.setQueryParserService(queryParserService);
+		
 		QueryContext context = new QueryContext(null);
 
 		Script script = (Script) parser.parse(context, "script key1=value1 key2=value2 sample");

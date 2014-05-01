@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
 
@@ -27,7 +28,7 @@ public class ToString implements Expression {
 	private Expression valueExpr;
 	private String format;
 
-	public ToString(List<Expression> exprs) {
+	public ToString(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		if (exprs.size() > 1) {
 			this.format = (String) exprs.get(1).eval(null);

@@ -22,11 +22,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.OutputJson;
 
 /**
@@ -34,7 +34,7 @@ import org.araqne.logdb.query.command.OutputJson;
  * @author darkluster
  * 
  */
-public class OutputJsonParser implements QueryCommandParser {
+public class OutputJsonParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -47,9 +47,8 @@ public class OutputJsonParser implements QueryCommandParser {
 		if (commandString.trim().endsWith(","))
 			throw new QueryParseException("missing-field", commandString.length());
 
-		ParseResult r = QueryTokenizer
-				.parseOptions(context, commandString, getCommandName().length(),
-						Arrays.asList("overwrite", "tmp", "partition", "encoding"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
+				Arrays.asList("overwrite", "tmp", "partition", "encoding"), getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
 		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
@@ -64,7 +63,7 @@ public class OutputJsonParser implements QueryCommandParser {
 			throw new QueryParseException("missing-field", tokens.size());
 
 		String filePath = tokens.string(0);
-		filePath = ExpressionParser.evalContextReference(context, filePath);
+		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
 
 		List<PartitionPlaceholder> holders = PartitionPlaceholder.parse(filePath);
 		if (!usePartition && holders.size() > 0)

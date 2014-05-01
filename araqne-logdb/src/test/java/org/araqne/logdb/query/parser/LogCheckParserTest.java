@@ -10,13 +10,25 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Session;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.LogCheck;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.araqne.logstorage.LogTableRegistry;
+import org.junit.Before;
 import org.junit.Test;
 
 public class LogCheckParserTest {
+	private QueryParserService queryParserService;
 
+	@Before
+	public void setup() {
+		QueryParserServiceImpl p = new QueryParserServiceImpl();
+		p.setFunctionRegistry(new FunctionRegistryImpl());
+		queryParserService = p;
+	}
+	
 	@Test
 	public void checkAll() {
 		String query = "logcheck";
@@ -90,6 +102,8 @@ public class LogCheckParserTest {
 		when(tableRegistry.getTableNames()).thenReturn(Arrays.asList("secure_log", "secure_event", "text_log"));
 
 		LogCheckParser parser = new LogCheckParser(tableRegistry, null, null);
+		parser.setQueryParserService(queryParserService);
+		
 		LogCheck c = (LogCheck) parser.parse(getContext(), query);
 		return c;
 	}

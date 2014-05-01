@@ -15,12 +15,12 @@
  */
 package org.araqne.logdb.query.parser;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Drop;
 
-public class DropParser implements QueryCommandParser {
+public class DropParser extends AbstractQueryCommandParser {
 	@Override
 	public String getCommandName() {
 		return "drop";

@@ -5,10 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.Json;
 import org.json.JSONArray;
@@ -16,7 +16,7 @@ import org.json.JSONConverter;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-public class JsonParser implements QueryCommandParser {
+public class JsonParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {

@@ -2,13 +2,14 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 public class Floor implements Expression {
 	private Expression expr;
 	private Expression digitExpr;
 
-	public Floor(List<Expression> exprs) {
+	public Floor(QueryContext ctx, List<Expression> exprs) {
 		this.expr = exprs.get(0);
 		if (exprs.size() > 1) {
 			this.digitExpr = exprs.get(1);

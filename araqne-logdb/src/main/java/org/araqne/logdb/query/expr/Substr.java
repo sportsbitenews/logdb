@@ -17,6 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
 
@@ -25,7 +26,7 @@ public class Substr implements Expression {
 	private int begin;
 	private int end = -1;
 
-	public Substr(List<Expression> exprs) {
+	public Substr(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		this.begin = Integer.parseInt(exprs.get(1).eval(null).toString());
 

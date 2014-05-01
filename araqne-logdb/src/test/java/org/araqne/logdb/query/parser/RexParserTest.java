@@ -23,11 +23,24 @@ import java.util.regex.Pattern;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.Rex;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
+import org.junit.Before;
 import org.junit.Test;
 
 public class RexParserTest {
+	private QueryParserService queryParserService;
+
+	@Before
+	public void setup() {
+		QueryParserServiceImpl p = new QueryParserServiceImpl();
+		p.setFunctionRegistry(new FunctionRegistryImpl());
+		queryParserService = p;
+	}
+	
 	@Test
 	public void testRexItself() {
 		Pattern p = Pattern.compile("From: (.*) To: (.*)");
@@ -72,6 +85,8 @@ public class RexParserTest {
 	@Test
 	public void testRexCommandParse() {
 		RexParser parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		
 		Rex rex = (Rex) parser.parse(null, "rex field=_raw \"From: (?<from>.*) To: (?<to>.*)\"");
 
 		assertEquals("_raw", rex.getInputField());
@@ -84,6 +99,8 @@ public class RexParserTest {
 	public void testRexQueryGeneration() {
 		String QUERY = "rex field=_raw \"From: (?<from>.*) To: (?<to>.*)\"";
 		RexParser parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		
 		Rex rex = (Rex) parser.parse(null, QUERY);
 		String query = rex.toString();
 		assertEquals(QUERY, query);
@@ -96,6 +113,8 @@ public class RexParserTest {
 		map.put("note", s);
 
 		RexParser parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		
 		Rex rex = (Rex) parser.parse(null, "rex field=note \"N(A|B)T\\[(?<nat>.*?)\\]  R\\[(?<r>.*?)\\]\"");
 		DummyOutput out = new DummyOutput();
 		rex.setOutput(new QueryCommandPipe(out));
@@ -111,6 +130,8 @@ public class RexParserTest {
 	public void testEscape() {
 		String s = "rex field=line \"(?<d>\\d+-\\d+-\\d+)\"";
 		RexParser parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		
 		Rex rex = (Rex) parser.parse(null, s);
 		assertEquals("(\\d+-\\d+-\\d+)", rex.getPattern().toString());
 	}
@@ -119,6 +140,8 @@ public class RexParserTest {
 	public void testEscapeQueryGeneration() {
 		String s = "rex field=line \"(?<d>\\d+-\\d+-\\d+)\" ";
 		RexParser parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		
 		Rex rex = (Rex) parser.parse(null, s);
 		String query = rex.toString();
 		assertEquals(s, query);
@@ -129,6 +152,8 @@ public class RexParserTest {
 	public void testNestedCapture() {
 		String s = "rex field=line \"(?<payload>cpu_usage=\\\"(?<cpu_usage>.*)\\\" mem_usage=\\\"(?<mem_usage>.*)\\\")\"";
 		RexParser parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		
 		Rex rex = (Rex) parser.parse(null, s);
 
 		DummyOutput out = new DummyOutput();
@@ -145,6 +170,8 @@ public class RexParserTest {
 		
 		s = "rex field=line \"((?<key>\\w+,\\w+))\"";
 		parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		
 		rex = (Rex) parser.parse(null, s);
 		
 		out = new DummyOutput();
@@ -159,6 +186,8 @@ public class RexParserTest {
 
 		s = "rex field=line \"\\((?<key>\\w+,\\w+)\\)\"";
 		parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		
 		rex = (Rex) parser.parse(null, s);
 		
 		out = new DummyOutput();
@@ -178,6 +207,8 @@ public class RexParserTest {
 	public void testIgnoreInnerKeyValueOptionPattern() {
 		String s = "rex field=line \"cpu_usage=\\\"(?<cpu_usage>.*)\\\" mem_usage=\\\"(?<mem_usage>.*)\\\"\"";
 		RexParser parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		
 		Rex rex = (Rex) parser.parse(null, s);
 
 		// Note that escape-quote sequence is preserved, it is intended result
@@ -205,6 +236,8 @@ public class RexParserTest {
 				+ "policy-name=\\\"(?<ext4>\\d+)\\\"+\\s+(?<xnote2>[-=\\w\\s\\\"].+?)\\s++(?<xnote3>[-=\\w\\s\\\"].+?)\\s+(session-id-32=\\\"(?<user_id>\\d+)\\\"\\s|\\s*)(?<xnote4>[-=\\w\\s\\\"].+)\\]\" ";
 
 		RexParser parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		
 		Rex rex = (Rex) parser.parse(null, s);
 		assertEquals("line", rex.getInputField());
 	}

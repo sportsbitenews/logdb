@@ -15,13 +15,13 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Rename;
 
-public class RenameParser implements QueryCommandParser {
+public class RenameParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {

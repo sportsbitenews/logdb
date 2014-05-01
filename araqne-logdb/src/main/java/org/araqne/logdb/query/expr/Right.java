@@ -17,6 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 public class Right implements Expression {
@@ -24,7 +25,7 @@ public class Right implements Expression {
 	private Expression valueExpr;
 	private int length;
 
-	public Right(List<Expression> exprs) {
+	public Right(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		this.length = Integer.parseInt(exprs.get(1).eval(null).toString());
 	}

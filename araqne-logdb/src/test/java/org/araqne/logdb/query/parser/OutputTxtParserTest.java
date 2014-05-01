@@ -6,8 +6,12 @@ import static org.junit.Assert.fail;
 import java.io.File;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.OutputTxt;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -16,6 +20,14 @@ import org.junit.Test;
  * 
  */
 public class OutputTxtParserTest {
+	private QueryParserService queryParserService;
+
+	@Before
+	public void setup() {
+		QueryParserServiceImpl p = new QueryParserServiceImpl();
+		p.setFunctionRegistry(new FunctionRegistryImpl());
+		queryParserService = p;
+	}
 
 	@Test
 	public void testNormalCase() {
@@ -23,6 +35,8 @@ public class OutputTxtParserTest {
 		OutputTxt txt = null;
 		try {
 			OutputTxtParser p = new OutputTxtParser();
+			p.setQueryParserService(queryParserService);
+			
 			txt = (OutputTxt) p.parse(null, "outputtxt logexport.txt sip, dip ");
 
 			File f = txt.getTxtFile();
@@ -45,6 +59,8 @@ public class OutputTxtParserTest {
 		OutputTxt txt = null;
 		try {
 			OutputTxtParser p = new OutputTxtParser();
+			p.setQueryParserService(queryParserService);
+			
 			txt = (OutputTxt) p.parse(null, "outputtxt delimiter=\"|\" logexport.txt sip, dip ");
 
 			assertEquals("|", txt.getDelimiter());
@@ -62,6 +78,8 @@ public class OutputTxtParserTest {
 		OutputTxt txt = null;
 		try {
 			OutputTxtParser p = new OutputTxtParser();
+			p.setQueryParserService(queryParserService);
+			
 			txt = (OutputTxt) p.parse(null, "outputtxt logexport.txt delimiter=\"|\" sip, dip ");
 
 			assertEquals("|", txt.getDelimiter());
@@ -78,6 +96,8 @@ public class OutputTxtParserTest {
 		new File("logexport.txt").delete();
 		try {
 			OutputTxtParser p = new OutputTxtParser();
+			p.setQueryParserService(queryParserService);
+			
 			p.parse(null, "outputtxt logexport.txt ");
 			fail();
 		} catch (QueryParseException e) {
@@ -93,6 +113,8 @@ public class OutputTxtParserTest {
 		new File("logexport.txt").delete();
 		try {
 			OutputTxtParser p = new OutputTxtParser();
+			p.setQueryParserService(queryParserService);
+			
 			p.parse(null, "outputtxt logexport.txt sip,");
 			fail();
 		} catch (QueryParseException e) {
@@ -108,6 +130,8 @@ public class OutputTxtParserTest {
 		new File("logexport.txt").delete();
 		try {
 			OutputTxtParser p = new OutputTxtParser();
+			p.setQueryParserService(queryParserService);
+			
 			p.parse(null, "outputtxt");
 			fail();
 		} catch (QueryParseException e) {

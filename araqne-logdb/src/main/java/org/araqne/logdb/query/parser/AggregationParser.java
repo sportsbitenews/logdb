@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.aggregator.AggregationField;
@@ -58,8 +59,9 @@ public class AggregationParser {
 		t.put("per_second", PerSecond.class);
 		t.put("range", Range.class);
 	}
-	
-	public static AggregationField parse(QueryContext context, String s, Map<String, Class<? extends AggregationFunction>> funcTable) {
+
+	public static AggregationField parse(QueryContext context, String s,
+			Map<String, Class<? extends AggregationFunction>> funcTable, FunctionRegistry functionRegistry) {
 		// find 'as' keyword
 		String funcPart = s.trim();
 		String alias = null;
@@ -70,7 +72,7 @@ public class AggregationParser {
 		}
 
 		// find aggregation function
-		AggregationFunction func = parseFunc(context, funcTable, funcPart);
+		AggregationFunction func = parseFunc(context, funcTable, funcPart, functionRegistry);
 
 		// build and return
 		AggregationField field = new AggregationField();
@@ -79,11 +81,12 @@ public class AggregationParser {
 		return field;
 	}
 
-	public static AggregationField parse(QueryContext context, String s) {
-		return parse(context, s, t);
+	public static AggregationField parse(QueryContext context, String s, FunctionRegistry functionRegistry) {
+		return parse(context, s, t, functionRegistry);
 	}
 
-	private static AggregationFunction parseFunc(QueryContext context, Map<String, Class<? extends AggregationFunction>> funcTable, String s) {
+	private static AggregationFunction parseFunc(QueryContext context,
+			Map<String, Class<? extends AggregationFunction>> funcTable, String s, FunctionRegistry functionRegistry) {
 		int p = s.indexOf('(');
 		String funcName = s;
 		String argsToken = "";
@@ -98,7 +101,7 @@ public class AggregationParser {
 		List<Expression> exprs = new ArrayList<Expression>();
 
 		for (String argToken : argTokens) {
-			Expression expr = ExpressionParser.parse(context, argToken);
+			Expression expr = ExpressionParser.parse(context, argToken, functionRegistry);
 			exprs.add(expr);
 		}
 

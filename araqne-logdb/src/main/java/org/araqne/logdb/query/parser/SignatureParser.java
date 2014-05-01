@@ -15,12 +15,12 @@
  */
 package org.araqne.logdb.query.parser;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Signature;
 
-public class SignatureParser implements QueryCommandParser {
+public class SignatureParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {

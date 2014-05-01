@@ -19,6 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
@@ -28,7 +29,7 @@ public class ToDate implements Expression {
 	private String format;
 	private Locale locale;
 
-	public ToDate(List<Expression> exprs) {
+	public ToDate(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		locale = Locale.ENGLISH;
 		if (exprs.size() > 2)
@@ -36,7 +37,9 @@ public class ToDate implements Expression {
 
 		try {
 			this.format = (String) exprs.get(1).eval(null);
-			SimpleDateFormat dateFormat = new SimpleDateFormat(format, locale);
+
+			// for argument validation
+			new SimpleDateFormat(format, locale);
 		} catch (IllegalArgumentException e) {
 			throw new QueryParseException("invalid-argument", -1, "invalid date format pattern");
 		}

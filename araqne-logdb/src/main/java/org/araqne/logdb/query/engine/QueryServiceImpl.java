@@ -37,8 +37,10 @@ import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerRegistry;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.DefaultQuery;
+import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryResultFactory;
 import org.araqne.logdb.QueryScriptRegistry;
 import org.araqne.logdb.QueryService;
@@ -119,6 +121,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	@Requires
 	private QueryResultFactory resultFactory;
 
+	@Requires
+	private FunctionRegistry functionRegistry;
+
 	private BundleContext bc;
 	private ConcurrentMap<Integer, Query> queries;
 
@@ -143,14 +148,14 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	private void prepareQueryParsers() {
 		@SuppressWarnings("unchecked")
-		List<Class<? extends QueryCommandParser>> parserClazzes = Arrays.asList(DropParser.class, SearchParser.class,
-				StatsParser.class, FieldsParser.class, SortParser.class, TimechartParser.class, RenameParser.class,
-				EvalParser.class, RexParser.class, JsonParser.class, SignatureParser.class, LimitParser.class, SetParser.class,
-				EvalcParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class, ExplodeParser.class,
-				ParseJsonParser.class);
+		List<Class<? extends AbstractQueryCommandParser>> parserClazzes = Arrays.asList(DropParser.class, EvalParser.class,
+				EvalcParser.class, SearchParser.class, StatsParser.class, FieldsParser.class, SortParser.class,
+				TimechartParser.class, RenameParser.class, RexParser.class, JsonParser.class, SignatureParser.class,
+				LimitParser.class, SetParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class,
+				ExplodeParser.class, ParseJsonParser.class);
 
 		List<QueryCommandParser> parsers = new ArrayList<QueryCommandParser>();
-		for (Class<? extends QueryCommandParser> clazz : parserClazzes) {
+		for (Class<? extends AbstractQueryCommandParser> clazz : parserClazzes) {
 			try {
 				parsers.add(clazz.newInstance());
 			} catch (Exception e) {

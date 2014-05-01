@@ -19,8 +19,8 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Mv;
@@ -30,7 +30,7 @@ import org.araqne.logdb.query.command.Mv;
  * @author darkluster
  * 
  */
-public class MvParser implements QueryCommandParser {
+public class MvParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -44,7 +44,7 @@ public class MvParser implements QueryCommandParser {
 			throw new QueryParseException("missing-field", commandString.length());
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("from", "to"));
+				Arrays.asList("from", "to"), getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		if (!options.containsKey("from") || !options.containsKey("to"))
 			throw new QueryParseException("missing-field", commandString.length());
