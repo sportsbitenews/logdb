@@ -107,6 +107,7 @@ public class EvtCtxAddCommand extends QueryCommand {
 
 			EventContext ctx = new EventContext(eventKey, created, expireTime, timeoutTime, threshold, maxRows, (String) host);
 			ctx = storage.addContext(ctx);
+			ctx.getCounter().incrementAndGet();
 
 			// extend timeout
 			ctx.setTimeoutTime(timeoutTime);
