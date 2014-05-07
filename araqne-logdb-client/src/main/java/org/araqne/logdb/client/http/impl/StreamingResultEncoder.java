@@ -37,7 +37,7 @@ public class StreamingResultEncoder {
 		this.executor = new ThreadPoolExecutor(poolSize, poolSize, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(
 				poolSize), new NamedThreadFactory(name), new CallerRunsPolicy());
 
-		slog.info("araqne logdb: created encoder thread pool [{}]", poolSize);
+		slog.debug("araqne logdb: created encoder thread pool [{}]", poolSize);
 	}
 
 	public List<Map<String, Object>> encode(List<Object> rows, boolean useGzip) throws InterruptedException, ExecutionException {
@@ -82,7 +82,7 @@ public class StreamingResultEncoder {
 
 	public void close() {
 		executor.shutdown();
-		slog.info("araqne logdb: closed encoder thread pool [{}]", poolSize);
+		slog.debug("araqne logdb: closed encoder thread pool [{}]", poolSize);
 	}
 
 	private class Encoder extends FunctorBase<Map<String, Object>> {
