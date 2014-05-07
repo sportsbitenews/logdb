@@ -48,7 +48,7 @@ public class IndexBlockV3Header extends IndexBlock<IndexBlockV3Header>{
 	}
 	
 	public IndexBlockV3Header(int id, long datafp, long minTime, long maxTime, int logCount, long firstId) {
-		this(id, datafp, minTime, maxTime, logCount, firstId, false);
+		this(id, datafp, minTime, maxTime, logCount, firstId, datafp < 0);
 	}
 	
 	public IndexBlockV3Header(int id, long datafp, long minTime, long maxTime, int logCount, long firstId, boolean isReserved) {
