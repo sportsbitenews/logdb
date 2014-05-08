@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 public class KvJoin implements Expression {
@@ -31,7 +32,7 @@ public class KvJoin implements Expression {
 	private Pattern p;
 	private Matcher matcher;
 
-	public KvJoin(List<Expression> exprs) {
+	public KvJoin(QueryContext ctx, List<Expression> exprs) {
 		kvDelim = exprs.get(0);
 		pairDelim = exprs.get(1);
 

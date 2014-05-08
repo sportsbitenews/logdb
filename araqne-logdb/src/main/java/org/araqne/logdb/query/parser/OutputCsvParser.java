@@ -22,14 +22,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.OutputCsv;
 
-public class OutputCsvParser implements QueryCommandParser {
+public class OutputCsvParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -43,7 +43,7 @@ public class OutputCsvParser implements QueryCommandParser {
 			throw new QueryParseException("missing-field", commandString.length());
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("overwrite", "encoding", "bom", "tab", "tmp", "partition"));
+				Arrays.asList("overwrite", "encoding", "bom", "tab", "tmp", "partition"), getFunctionRegistry());
 
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
@@ -60,7 +60,7 @@ public class OutputCsvParser implements QueryCommandParser {
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
 		List<String> fields = new ArrayList<String>();
 		String originalCsvPath = tokens.string(0);
-		String csvPath = ExpressionParser.evalContextReference(context, originalCsvPath);
+		String csvPath = ExpressionParser.evalContextReference(context, originalCsvPath, getFunctionRegistry());
 
 		List<PartitionPlaceholder> holders = PartitionPlaceholder.parse(csvPath);
 		if (!usePartition && holders.size() > 0)

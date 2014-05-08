@@ -15,8 +15,10 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.List;
 import java.util.UUID;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 /**
@@ -25,6 +27,9 @@ import org.araqne.logdb.Row;
  *
  */
 public class Guid implements Expression {
+	
+	public Guid(QueryContext ctx, List<Expression> exprs) {
+	}
 
 	@Override
 	public Object eval(Row map) {

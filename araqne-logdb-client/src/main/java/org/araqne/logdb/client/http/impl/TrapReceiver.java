@@ -32,6 +32,12 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 로그프레소 서버에서 전송되는 비동기적 트랩 전문을 수신합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class TrapReceiver extends Thread {
 	private final Logger logger = LoggerFactory.getLogger(TrapReceiver.class);
 	private boolean doStop;

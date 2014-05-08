@@ -18,6 +18,7 @@ package org.araqne.logdb.query.parser;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
@@ -25,7 +26,7 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.BoxPlot;
 import org.araqne.logdb.query.expr.Expression;
 
-public class BoxPlotParser implements QueryCommandParser {
+public class BoxPlotParser extends AbstractQueryCommandParser {
 	private final String COMMAND = "boxplot";
 	private static final String BY = " by ";
 
@@ -56,7 +57,7 @@ public class BoxPlotParser implements QueryCommandParser {
 		if (exprToken.trim().isEmpty())
 			throw new QueryParseException("missing-expr", -1);
 
-		Expression expr = ExpressionParser.parse(context, exprToken);
+		Expression expr = ExpressionParser.parse(context, exprToken, getFunctionRegistry());
 		return new BoxPlot(expr, clauses);
 	}
 

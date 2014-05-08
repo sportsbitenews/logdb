@@ -19,25 +19,49 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * 서브 쿼리 상태를 표현합니다.
+ * 
  * @since 0.9.1
- * @author xeraph
+ * @author xeraph@eediom.com
  */
 public class SubQuery {
 	private int id;
 	private List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 
+	/**
+	 * 서브 쿼리 식별자를 반환합니다.
+	 * 
+	 * @return 서브 쿼리 식별자
+	 */
 	public int getId() {
 		return id;
 	}
 
+	/**
+	 * 서브 쿼리 식별자를 설정합니다.
+	 * 
+	 * @param id
+	 *            서브 쿼리 식별자
+	 */
 	public void setId(int id) {
 		this.id = id;
 	}
 
+	/**
+	 * 서브 쿼리의 커맨드 목록을 반환합니다.
+	 * 
+	 * @return 쿼리 커맨드 목록
+	 */
 	public List<LogQueryCommand> getCommands() {
 		return commands;
 	}
 
+	/**
+	 * 서브 쿼리의 커맨드 목록을 설정합니다.
+	 * 
+	 * @param commands
+	 *            쿼리 커맨드 목록
+	 */
 	public void setCommands(List<LogQueryCommand> commands) {
 		this.commands = commands;
 	}

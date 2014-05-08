@@ -19,14 +19,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Sort;
 import org.araqne.logdb.query.command.Sort.SortField;
 
-public class SortParser implements QueryCommandParser {
+public class SortParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -36,7 +36,8 @@ public class SortParser implements QueryCommandParser {
 	@Override
 	@SuppressWarnings("unchecked")
 	public QueryCommand parse(QueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "sort".length(), Arrays.asList("limit"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "sort".length(), Arrays.asList("limit"),
+				getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		Integer count = null;

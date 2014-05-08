@@ -22,14 +22,13 @@ import java.util.Map;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.JsonFile;
-import org.araqne.logdb.query.command.TextFile;
 
-public class JsonFileParser implements QueryCommandParser {
+public class JsonFileParser extends AbstractQueryCommandParser {
 
 	private LogParserFactoryRegistry parserFactoryRegistry;
 
@@ -44,7 +43,8 @@ public class JsonFileParser implements QueryCommandParser {
 
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>());
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>(),
+				getFunctionRegistry());
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 		String filePath = commandString.substring(r.next).trim();
@@ -58,7 +58,7 @@ public class JsonFileParser implements QueryCommandParser {
 			int limit = 0;
 			if (options.containsKey("limit"))
 				limit = Integer.valueOf(options.get("limit"));
-			
+
 			if (options.containsKey("overlay")) {
 				String o = options.get("overlay");
 				overlay = o.equals("t") || o.equals("1") || o.equals("true");
@@ -77,7 +77,7 @@ public class JsonFileParser implements QueryCommandParser {
 
 				parser = factory.createParser(options);
 			}
-			
+
 			String parseTarget = options.get("parsetarget");
 
 			return new JsonFile(filePath, parser, parseTarget, overlay, offset, limit);

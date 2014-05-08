@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logdb-crawler</artifactId>
-	<version>0.1.0</version>
+	<version>0.1.1</version>
 	<packaging>bundle</packaging>
 	<name>Araqne LogDB Crawler</name>
 	<build>
@@ -28,7 +28,8 @@
 							org.araqne.logdb.cralwer.script
 						</Private-Package>
 						<Import-Package>
-							org.araqne.log.api;version="3.0.0",
+							org.araqne.log.api;version="3.0.1",
+							org.araqne.logdb;version="2.2.10",
 							*
 						</Import-Package>
 					</instructions>
@@ -49,6 +50,14 @@
 				<groupId>pl.project13.maven</groupId>
 				<artifactId>git-commit-id-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+			</plugin>
 		</plugins>
 	</build>
 	<dependencies>
@@ -60,12 +69,12 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logdb</artifactId>
-			<version>2.1.9</version>
+			<version>2.2.10</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.0.0</version>
+			<version>3.0.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jsoup</groupId>

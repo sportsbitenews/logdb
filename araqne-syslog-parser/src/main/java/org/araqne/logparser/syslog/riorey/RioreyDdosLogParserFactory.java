@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +39,7 @@ public class RioreyDdosLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "리오레이 디도스 방어";
+			return "리오레이 DDoS";
 		return "Riorey DDoS";
 	}
 
@@ -47,7 +47,7 @@ public class RioreyDdosLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "리오레이 디도스 방어 솔루션의 로그를 파싱합니다.";
-		return "Riorey's Riorey-DDoS log parser";
+		return "Parse Riorey Riorey-DDoS logs.";
 	}
 
 	@Override

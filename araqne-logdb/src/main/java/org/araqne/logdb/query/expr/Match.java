@@ -18,6 +18,7 @@ package org.araqne.logdb.query.expr;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 public class Match implements Expression {
@@ -26,7 +27,7 @@ public class Match implements Expression {
 	private String pattern;
 	private Pattern p;
 
-	public Match(List<Expression> exprs) {
+	public Match(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		this.pattern = (String) exprs.get(1).eval(null);
 		p = Pattern.compile(pattern);

@@ -19,6 +19,12 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * SHA1 해시를 간편하게 수행할 수 있도록 구현한 도움 클래스입니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class Sha1 {
 	public static String hashPassword(String salt, String password) {
 		if (password == null)

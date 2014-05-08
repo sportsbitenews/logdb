@@ -18,6 +18,12 @@ package org.araqne.logdb.client;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 테이블의 단위 데이터 항목을 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class Row {
 	private final Map<String, Object> map;
 
@@ -29,22 +35,56 @@ public class Row {
 		this.map = map;
 	}
 
+	/**
+	 * 지정한 필드의 값을 반환합니다.
+	 * 
+	 * @param key
+	 *            필드 이름
+	 * @return 필드 값
+	 */
 	public Object get(String key) {
 		return map.get(key);
 	}
 
+	/**
+	 * 필드를 할당합니다.
+	 * 
+	 * @param key
+	 *            필드 이름
+	 * @param value
+	 *            필드 값
+	 */
 	public void put(String key, Object value) {
 		map.put(key, value);
 	}
 
+	/**
+	 * 필드를 삭제합니다.
+	 * 
+	 * @param key
+	 *            필드 이름
+	 * @return 필드 삭제 여부
+	 */
 	public Object remove(String key) {
 		return map.remove(key);
 	}
 
+	/**
+	 * 필드 포함 여부를 반환합니다.
+	 * 
+	 * @param key
+	 *            필드 이름
+	 * @return 필드 포함 여부
+	 */
 	public boolean containsKey(String key) {
 		return map.containsKey(key);
 	}
 
+	/**
+	 * 전체 필드 키/값 쌍을 반환합니다.
+	 * 
+	 * @return 필드 키/값 쌍
+	 */
 	public Map<String, Object> map() {
 		return map;
 	}

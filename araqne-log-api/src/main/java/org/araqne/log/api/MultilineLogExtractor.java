@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 
@@ -95,9 +96,23 @@ public class MultilineLogExtractor {
 	}
 
 	public void setDateFormat(SimpleDateFormat dateFormat) {
+		setDateFormat(dateFormat, null);
+	}
+
+	public void setDateFormat(SimpleDateFormat dateFormat, String timeZone) {
 		this.dateFormat = dateFormat;
-		if (dateFormat != null && !dateFormat.toPattern().contains("yyyy"))
+		if (timeZone != null) {
+			if (TimeZoneMappings.getTimeZone(timeZone) != null)
+				timeZone = (String) TimeZoneMappings.getTimeZone(timeZone);
+
+			dateFormat.setTimeZone(TimeZone.getTimeZone(timeZone));
+		}
+
+		if (dateFormat != null && !dateFormat.toPattern().contains("yyyy")) {
 			yearModifier = Calendar.getInstance();
+			if (timeZone != null)
+				yearModifier.setTimeZone(TimeZone.getTimeZone(timeZone));
+		}
 	}
 
 	public void extract(InputStream is, AtomicLong lastPosition) throws IOException {
@@ -152,6 +167,7 @@ public class MultilineLogExtractor {
 			log = log.trim();
 			if (log.length() > 0) {
 				Date d = parseDate(log, dateFromFileName);
+
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("line", log);
 
@@ -258,6 +274,7 @@ public class MultilineLogExtractor {
 	}
 
 	protected Date parseDate(String line, String dateFromFileName) {
+
 		if (dateMatcher == null || dateFormat == null)
 			return new Date();
 

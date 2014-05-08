@@ -30,14 +30,27 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.StorageObjectName;
 import org.araqne.logdb.query.command.Table;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TableParserTest {
+	private QueryParserService queryParserService;
+
+	@Before
+	public void setup() {
+		QueryParserServiceImpl p = new QueryParserServiceImpl();
+		p.setFunctionRegistry(new FunctionRegistryImpl());
+		queryParserService = p;
+	}
+	
 	@Test
 	public void testSimpleCase() {
 		String query = "table iis";
@@ -220,6 +233,8 @@ public class TableParserTest {
 		when(mockAccount.checkPermission(null, "xtm", Permission.READ)).thenReturn(true);
 
 		TableParser parser = new TableParser(mockAccount, mockStorage, mockTableRegistry, mockParserFactoryRegistry, mockParserRegistry);
+		parser.setQueryParserService(queryParserService);
+		
 		Table table = (Table) parser.parse(new QueryContext(null), query);
 		return table;
 	}

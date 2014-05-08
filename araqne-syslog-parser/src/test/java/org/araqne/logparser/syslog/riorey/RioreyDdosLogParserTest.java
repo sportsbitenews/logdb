@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,8 @@ public class RioreyDdosLogParserTest {
 
 	@Test
 	public void testParser() {
-		String line = "175.223.12.223, 0, 0.0.0.0, 0, TCP_SESSION, 2014-3-19 6:44:31, 2014-3-19 17:9:48, 0, , TCP, A, AFA, Agent Filtered IP: Dropped packets: 0 Dropped bytes: 0";
+
+		String line = "175.223.12.223, 0, 0.0.0.0, 0, TCP_SESSION, 2014-3-9 6:44:31, 2014-3-19 17:9:48, 0, , TCP, A, AFA, Agent Filtered IP: Dropped packets: 0 Dropped bytes: 0";
 		RioreyDdosLogParser parser = new RioreyDdosLogParser();
 
 		Map<String, Object> m = parser.parse(line(line));
@@ -47,7 +48,7 @@ public class RioreyDdosLogParserTest {
 		c.setTime(time);
 		assertEquals(2014, c.get(Calendar.YEAR));
 		assertEquals(2, c.get(Calendar.MONTH));
-		assertEquals(19, c.get(Calendar.DAY_OF_MONTH));
+		assertEquals(9, c.get(Calendar.DAY_OF_MONTH));
 		assertEquals(6, c.get(Calendar.HOUR_OF_DAY));
 		assertEquals(44, c.get(Calendar.MINUTE));
 		assertEquals(31, c.get(Calendar.SECOND));

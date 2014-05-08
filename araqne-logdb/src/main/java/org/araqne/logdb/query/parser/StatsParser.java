@@ -18,14 +18,14 @@ package org.araqne.logdb.query.parser;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Stats;
 
-public class StatsParser implements QueryCommandParser {
+public class StatsParser extends AbstractQueryCommandParser {
 	private static final String COMMAND = "stats";
 	private static final String BY = " by ";
 
@@ -52,7 +52,7 @@ public class StatsParser implements QueryCommandParser {
 		List<AggregationField> fields = new ArrayList<AggregationField>();
 
 		for (String aggTerm : pr.aggTerms) {
-			AggregationField field = AggregationParser.parse(context, aggTerm);
+			AggregationField field = AggregationParser.parse(context, aggTerm, getFunctionRegistry());
 			fields.add(field);
 		}
 

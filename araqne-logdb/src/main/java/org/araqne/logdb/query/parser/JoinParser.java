@@ -4,20 +4,20 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
+import org.araqne.logdb.DefaultQuery;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
-import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.DefaultQuery;
-import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryResultFactory;
 import org.araqne.logdb.query.command.Join;
 import org.araqne.logdb.query.command.Join.JoinType;
 import org.araqne.logdb.query.command.Sort;
 import org.araqne.logdb.query.command.Sort.SortField;
 
-public class JoinParser implements QueryCommandParser {
+public class JoinParser extends AbstractQueryCommandParser {
 
 	private QueryParserService parserService;
 	private QueryResultFactory resultFactory;
@@ -47,7 +47,7 @@ public class JoinParser implements QueryCommandParser {
 		for (QueryCommand command : subCommands)
 			command.onStart();
 
-		ParseResult r = QueryTokenizer.parseOptions(context, fieldToken, 0, Arrays.asList("type"));
+		ParseResult r = QueryTokenizer.parseOptions(context, fieldToken, 0, Arrays.asList("type"), getFunctionRegistry());
 		@SuppressWarnings("unchecked")
 		Map<String, Object> options = (Map<String, Object>) r.value;
 

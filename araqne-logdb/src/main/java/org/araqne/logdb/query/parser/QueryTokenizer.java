@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Stack;
 import java.util.StringTokenizer;
 
+import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 
@@ -32,15 +33,11 @@ public class QueryTokenizer {
 	private QueryTokenizer() {
 	}
 
-	@Deprecated
-	public static ParseResult parseOptions(String s, int offset, List<String> validKeys) {
-		return parseOptions(null, s, offset, validKeys);
-	}
-
 	/**
 	 * @since 1.7.5
 	 */
-	public static ParseResult parseOptions(QueryContext context, String s, int offset, List<String> validKeys) {
+	public static ParseResult parseOptions(QueryContext context, String s, int offset, List<String> validKeys,
+			FunctionRegistry functionRegistry) {
 		HashMap<String, Object> options = new HashMap<String, Object>();
 		int next = offset;
 		while (true) {
@@ -77,7 +74,7 @@ public class QueryTokenizer {
 					throw new QueryParseException("string-quote-mismatch", s.length());
 
 				String quotedValue = s.substring(p + 2, closingQuote);
-				quotedValue = ExpressionParser.evalContextReference(context, quotedValue);
+				quotedValue = ExpressionParser.evalContextReference(context, quotedValue, functionRegistry);
 				options.put(key, quotedValue);
 				next = closingQuote + 1;
 			} else {
@@ -88,11 +85,11 @@ public class QueryTokenizer {
 					next = e;
 
 					String value = s.substring(p + 1);
-					value = ExpressionParser.evalContextReference(context, value);
+					value = ExpressionParser.evalContextReference(context, value, functionRegistry);
 					options.put(key, value);
 				} else {
 					String value = s.substring(p + 1, e);
-					value = ExpressionParser.evalContextReference(context, value);
+					value = ExpressionParser.evalContextReference(context, value, functionRegistry);
 					options.put(key, value);
 					next = e + 1;
 				}

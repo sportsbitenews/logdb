@@ -15,8 +15,8 @@
  */
 package org.araqne.logdb.msgbus;
 
-import java.security.Provider;
-import java.security.Security;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -52,6 +52,7 @@ import org.araqne.msgbus.handler.MsgbusPlugin;
 @Component(name = "logdb-management-msgbus")
 @MsgbusPlugin
 public class ManagementPlugin {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(ManagementPlugin.class.getName());
 
 	@Requires
 	private AccountService accountService;
@@ -67,6 +68,8 @@ public class ManagementPlugin {
 
 	@Requires
 	private LogCryptoProfileRegistry logCryptoProfileRegistry;
+
+	private UploadDataHandler uploadDataHandler = new UploadDataHandler();
 
 	@AllowGuestAccess
 	@MsgbusMethod
@@ -372,14 +375,14 @@ public class ManagementPlugin {
 		String tableName = req.getString("table", true);
 		storage.dropTable(tableName);
 	}
-	
+
 	@MsgbusMethod
 	public void dropTables(Request req, Response resp) {
 		ensureAdminSession(req);
 		@SuppressWarnings("unchecked")
 		List<String> tableNames = (List<String>) req.get("tables", true);
-		
-		for(String name :  tableNames) 
+
+		for (String name : tableNames)
 			storage.dropTable(name);
 	}
 
@@ -494,4 +497,10 @@ public class ManagementPlugin {
 
 		resp.put("cipher_transformers", l);
 	}
+
+	@MsgbusMethod
+	public void loadTextFile(Request req, Response resp) throws IOException {
+		uploadDataHandler.loadTextFile(storage, req, resp);
+	}
+
 }

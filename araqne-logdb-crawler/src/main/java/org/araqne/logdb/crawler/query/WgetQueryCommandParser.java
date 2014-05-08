@@ -22,8 +22,8 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.query.parser.ParseResult;
@@ -33,7 +33,7 @@ import org.araqne.logdb.query.parser.QueryTokenizer;
  * @author xeraph@eediom.com
  */
 @Component(name = "wget-query-command-parser")
-public class WgetQueryCommandParser implements QueryCommandParser {
+public class WgetQueryCommandParser extends AbstractQueryCommandParser {
 	@Requires
 	private QueryParserService parserService;
 
@@ -56,7 +56,7 @@ public class WgetQueryCommandParser implements QueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("selector", "timeout", "method", "encoding", "url"));
+				Arrays.asList("selector", "timeout", "method", "encoding", "url"), getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;

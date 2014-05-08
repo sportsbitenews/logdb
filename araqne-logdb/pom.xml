@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logdb</artifactId>
-	<version>2.2.4</version>
+	<version>2.2.10</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log DB</name>
 	<build>
@@ -28,15 +28,15 @@
 							org.araqne.logdb.query.aggregator;version=${project.version},
 							org.araqne.logdb.query.expr;version=${project.version},
 							org.araqne.logdb.sort;version=${project.version},
-							org.araqne.logdb.query.command;version=${project.version}
+							org.araqne.logdb.query.command;version=${project.version},
+							org.araqne.logdb.metadata;version=${project.version},
+							org.araqne.logdb.writer;version=${project.version}
 						</Export-Package>
 						<Private-Package>
 							org.araqne.logdb.impl,
 							org.araqne.logdb.query.engine,
 							org.araqne.logdb.msgbus,
-							org.araqne.logdb.metadata,
-							org.araqne.logdb.logapi,
-							org.araqne.logdb.writer
+							org.araqne.logdb.logapi
 						</Private-Package>
 						<Import-Package>
 							!org.junit,
@@ -122,7 +122,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.0.0</version>
+			<version>3.0.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>

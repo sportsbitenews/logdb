@@ -19,10 +19,10 @@ import java.util.Arrays;
 import java.util.Map;
 
 import org.araqne.log.api.LogParserRegistry;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Parse;
 
 /**
@@ -30,7 +30,7 @@ import org.araqne.logdb.query.command.Parse;
  * @author xeraph
  * 
  */
-public class ParseParser implements QueryCommandParser {
+public class ParseParser extends AbstractQueryCommandParser {
 
 	private LogParserRegistry registry;
 
@@ -46,7 +46,8 @@ public class ParseParser implements QueryCommandParser {
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overlay"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overlay"),
+				getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overlay = CommandOptions.parseBoolean(options.get("overlay"));
 

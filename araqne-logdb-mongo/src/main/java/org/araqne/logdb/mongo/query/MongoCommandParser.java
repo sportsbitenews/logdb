@@ -19,8 +19,8 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
@@ -30,7 +30,7 @@ import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.araqne.logdb.query.parser.QueryTokens;
 
 @Component(name = "mongo-query-parser")
-public class MongoCommandParser implements QueryCommandParser {
+public class MongoCommandParser extends AbstractQueryCommandParser {
 	@Requires
 	private QueryParserService queryParserService;
 

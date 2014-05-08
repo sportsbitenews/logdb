@@ -17,6 +17,12 @@ package org.araqne.logdb.client;
 
 import java.util.Map;
 
+/**
+ * 아라크네 메시지버스 RPC 예외를 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class MessageException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
 
@@ -30,18 +36,36 @@ public class MessageException extends RuntimeException {
 		this.parameters = parameters;
 	}
 
+	/**
+	 * RPC 예외 오류 코드를 반환합니다.
+	 * 
+	 * @return RPC 예외의 오류 코드
+	 */
 	public String getCode() {
 		return code;
 	}
 
+	/**
+	 * RPC 예외 메시지를 반환합니다.
+	 * 
+	 * @return RPC 예외 메시지
+	 */
 	public String getMsg() {
 		return msg;
 	}
 
+	/**
+	 * RPC 예외와 관련된 부수적인 정보들을 반환합니다.
+	 * 
+	 * @return 예외 매개변수 목록
+	 */
 	public Map<String, Object> getParameters() {
 		return parameters;
 	}
 
+	/**
+	 * 출력시 사용할 예외 메시지 문자열을 반환합니다.
+	 */
 	@Override
 	public String getMessage() {
 		if (msg != null)

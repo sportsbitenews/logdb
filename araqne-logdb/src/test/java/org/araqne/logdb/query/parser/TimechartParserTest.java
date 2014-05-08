@@ -22,18 +22,24 @@ import java.util.Calendar;
 import java.util.Date;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.TimeUnit;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Timechart;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.araqne.logdb.query.expr.Expression;
 import org.junit.Test;
 
 public class TimechartParserTest {
+	private QueryParserService queryParserService = new QueryParserServiceImpl();
+	
 	@Test
 	public void testInsufficientCommand() {
 		TimechartParser p = new TimechartParser();
+		p.setQueryParserService(queryParserService);
+		
 		try {
 			p.parse(null, "timechart");
 			fail();
@@ -45,6 +51,8 @@ public class TimechartParserTest {
 	@Test
 	public void testMostSimpleCase() {
 		TimechartParser p = new TimechartParser();
+		p.setQueryParserService(queryParserService);
+		
 		Timechart tc = (Timechart) p.parse(null, "timechart count");
 
 		assertEquals(1, tc.getAggregationFields().size());
@@ -57,6 +65,8 @@ public class TimechartParserTest {
 	@Test
 	public void testCount() {
 		TimechartParser p = new TimechartParser();
+		p.setQueryParserService(queryParserService);
+		
 		Timechart tc = (Timechart) p.parse(null, "timechart span=1d count");
 
 		assertEquals(1, tc.getAggregationFields().size());
@@ -69,6 +79,8 @@ public class TimechartParserTest {
 	@Test
 	public void testCountWithClause() {
 		TimechartParser p = new TimechartParser();
+		p.setQueryParserService(queryParserService);
+		
 		Timechart tc = (Timechart) p.parse(null, "timechart span=1d count by sip");
 
 		assertEquals(1, tc.getAggregationFields().size());
@@ -82,6 +94,8 @@ public class TimechartParserTest {
 	@Test
 	public void testNestedSum() {
 		TimechartParser p = new TimechartParser();
+		p.setQueryParserService(queryParserService);
+		
 		Timechart tc = (Timechart) p.parse(null, "timechart span=1m sum(sport / 2)");
 
 		AggregationField agg = tc.getAggregationFields().get(0);

@@ -58,7 +58,10 @@ public class QueryLogTransformer extends QueryCommand implements LogTransformer 
 
 	@Override
 	public Log transform(Log log) {
-		first.onPush(new Row(Row.clone(log.getParams())));
+		Map<String, Object> c = Row.clone(log.getParams());
+		c.put("_time", log.getDate());
+		
+		first.onPush(new Row(c));
 		Map<String, Object> m = last;
 		last = null;
 		return new SimpleLog(log.getDate(), log.getLoggerName(), m);

@@ -22,13 +22,13 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Rex;
 
-public class RexParser implements QueryCommandParser {
+public class RexParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -41,7 +41,8 @@ public class RexParser implements QueryCommandParser {
 		// extract field names and remove placeholder
 		List<String> names = new ArrayList<String>();
 
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "rex".length(), Arrays.asList("field"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "rex".length(), Arrays.asList("field"),
+				getFunctionRegistry());
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 
@@ -61,8 +62,9 @@ public class RexParser implements QueryCommandParser {
 		regexToken = toNonCapturingGroup(regexToken);
 
 		Matcher matcher = placeholder.matcher(regexToken);
-		while (matcher.find())
+		while (matcher.find()) {
 			names.add(matcher.group(1));
+		}
 
 		while (true) {
 			matcher = placeholder.matcher(regexToken);

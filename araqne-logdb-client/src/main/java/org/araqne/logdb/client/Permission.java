@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,12 @@
  */
 package org.araqne.logdb.client;
 
+/**
+ * 테이블 접근 권한 유형을 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public enum Permission {
 	READ
 }

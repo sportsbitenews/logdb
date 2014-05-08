@@ -17,6 +17,21 @@ package org.araqne.logdb.client;
 
 import java.util.List;
 
+/**
+ * 이 인터페이스는 쿼리 결과를 실시간 스트리밍하는데 필요한 명세를 제공합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public interface StreamingResultSet {
+	/**
+	 * 
+	 * @param query
+	 *            연관된 쿼리 개체
+	 * @param rows
+	 *            부분적인 쿼리 결과 행 목록
+	 * @param last
+	 *            마지막 콜백 호출 여부
+	 */
 	void onRows(LogQuery query, List<Row> rows, boolean last);
 }

@@ -15,14 +15,14 @@
  */
 package org.araqne.logdb.query.parser;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Eval;
 import org.araqne.logdb.query.expr.Expression;
 
-public class EvalParser implements QueryCommandParser {
+public class EvalParser extends AbstractQueryCommandParser {
 
 	private static final String COMMAND = "eval";
 
@@ -47,7 +47,7 @@ public class EvalParser implements QueryCommandParser {
 		if (exprToken.isEmpty())
 			throw new QueryParseException("expression-not-found", commandString.length());
 
-		Expression expr = ExpressionParser.parse(context, exprToken);
+		Expression expr = ExpressionParser.parse(context, exprToken, getFunctionRegistry());
 		return new Eval(field, expr);
 	}
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014 Eediom Inc
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,7 +46,7 @@ public class SwgLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "시만텍 웹 게이트웨이의 로그를 파싱합니다.";
-		return "Symantec's Symantec Web Gateway log parser";
+		return "Parse Symantec Symantec Web Gateway logs.";
 	}
 
 	@Override
