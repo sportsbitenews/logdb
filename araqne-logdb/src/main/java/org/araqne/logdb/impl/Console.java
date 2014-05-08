@@ -15,7 +15,11 @@
  */
 package org.araqne.logdb.impl;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -114,6 +118,11 @@ public class Console {
 					context.println("Usage: passwd [login name]");
 				else
 					changePassword(args[1]);
+			} else if (command.equals("exec")) {
+				if (args.length < 2)
+					context.println("Usage: exec [file path]");
+				else
+					fileQuery(args[1]);
 			} else if (command.equals("queries")) {
 				queries(args.length > 1 ? args[1] : null);
 			} else if (command.equals("query")) {
@@ -268,6 +277,46 @@ public class Console {
 
 		accountService.changePassword(session, loginName, rePassword);
 		context.println("password changed");
+	}
+
+	private void fileQuery(String filePath) throws IOException {
+		File f = new File(filePath);
+		if (!f.exists()) {
+			context.println("query file not found: " + f.getAbsolutePath());
+			return;
+		}
+
+		if (!f.canRead()) {
+			context.println("check query file permission: " + f.getAbsolutePath());
+			return;
+		}
+
+		BufferedReader br = null;
+		FileInputStream is = null;
+		StringBuilder sb = new StringBuilder();
+		try {
+			is = new FileInputStream(f);
+			br = new BufferedReader(new InputStreamReader(is, "utf-8"));
+
+			while (true) {
+				String line = br.readLine();
+				if (line == null)
+					break;
+
+				if (!line.trim().startsWith("#"))
+					sb.append(" " + line);
+			}
+		} finally {
+			if (is != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+				}
+			}
+		}
+		String query = sb.toString();
+
+		query(query);
 	}
 
 	private void queries(String queryFilter) {
