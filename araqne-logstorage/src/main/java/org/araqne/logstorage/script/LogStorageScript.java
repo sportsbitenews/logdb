@@ -670,18 +670,6 @@ public class LogStorageScript implements Script {
 
 	}
 
-	public static void main(String[] args) {
-		String s = "/hdd/hhsonbo/*/*.log";
-
-		StorageManager storageManager = new LocalStorageManager();
-
-		List<FilePath> files = getMatchingFiles(storageManager, s, null);
-
-		for (FilePath f : files) {
-			System.out.println(f.getAbsolutePath());
-		}
-	}
-
 	private static List<FilePath> getMatchingFiles(StorageManager storageManager, String s, FilePath workingDir) {
 		FilePath root = getListRoot(storageManager, s);
 
