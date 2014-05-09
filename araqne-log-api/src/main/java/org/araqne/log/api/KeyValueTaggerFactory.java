@@ -35,44 +35,49 @@ public class KeyValueTaggerFactory implements LogTransformerFactory {
 
 	@Override
 	public List<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "키/밸류 태그";
-		if (locale.equals(Locale.JAPANESE))
+		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "キー・バリュータグ";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "键/值标记";
 		return "key/value tagger";
 	}
 
 	@Override
 	public List<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "모든 로그에 키/밸류 태그를 추가 합니다.";
-		if (locale.equals(Locale.JAPANESE))
+		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "すべてのログにキー・バリュータグを追加します。";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "向所有日志添加键/值标记。";
 		return "add key/value tag to every logs";
 	}
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption tags = new StringConfigType("tags", t("tags", "태그 목록", "タグリスト"), t("comma separated key=value pairs",
-				"쉼표로 구분된 키=값 목록", "コンマで区分されているキー＝バリュリスト"), true);
+		LoggerConfigOption tags = new StringConfigType("tags", t("tags", "태그 목록", "タグリスト", "标记列表"), t("comma separated key=value pairs",
+				"쉼표로 구분된 키=값 목록", "コンマで区分されているキー＝バリュリスト", "以逗号分隔的键=值列表"), true);
 		return Arrays.asList(tags);
 	}
 
-	private Map<Locale, String> t(String enText, String koText, String jpText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
 		m.put(Locale.JAPANESE, jpText);
+		m.put(Locale.CHINESE, cnText);
 		return m;
 	}
 

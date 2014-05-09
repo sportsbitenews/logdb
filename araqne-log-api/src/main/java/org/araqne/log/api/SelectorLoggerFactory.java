@@ -41,46 +41,51 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "로그 선택자";
-		if (locale.equals(Locale.JAPANESE))
+		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "ログセレクター";
+		if(locale != null && locale.equals(Locale.CHINESE))
+			return "日志选择器";
 		return "Log Selector";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "다른 로거로부터 패턴 매칭되는 특정 로그들만 수집합니다.";
-		if (locale.equals(Locale.JAPANESE))
+		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "他のロガーからパターンマッチングされる特定ログだけ収集します。";
+		if(locale != null && locale.equals(Locale.CHINESE))
+			return "从其他Logger采集符合指定特征的日志。";
 		return "select logs from logger using text matching";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름", "元ロガー名"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名"), true);
-		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Text pattern", "텍스트 패턴", "テキストパターン"), t(
-				"Text pattern to match", "매칭할 대상 문자열", "マッチングする対象文字列"), true);
+		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름", "元ロガー名", "原始Logger名称"), t(
+				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的原始Logger名称"), true);
+		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Text pattern", "텍스트 패턴", "テキストパターン", "文本模式"), t(
+				"Text pattern to match", "매칭할 대상 문자열", "マッチングする対象文字列", "要匹配的字符串"), true);
 		return Arrays.asList(loggerName, pattern);
 	}
 
-	private Map<Locale, String> t(String enText, String koText, String jpText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
 		m.put(Locale.JAPANESE, jpText);
+		m.put(Locale.CHINESE, cnText);
 		return m;
 	}
 

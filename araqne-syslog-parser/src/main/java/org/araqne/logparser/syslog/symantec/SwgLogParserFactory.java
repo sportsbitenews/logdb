@@ -15,6 +15,8 @@
  */
 package org.araqne.logparser.syslog.symantec;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 
@@ -34,11 +36,24 @@ public class SwgLogParserFactory extends AbstractLogParserFactory {
 	public String getName() {
 		return "symantec-web-gw";
 	}
+	
+
+	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
+
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "시만텍 웹 게이트웨이";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "赛门铁克Web网关";
 		return "Symantec Web Gateway";
 	}
 
@@ -46,6 +61,8 @@ public class SwgLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "시만텍 웹 게이트웨이의 로그를 파싱합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "解析赛门铁克Web网关日志。";
 		return "Parse Symantec Symantec Web Gateway logs.";
 	}
 

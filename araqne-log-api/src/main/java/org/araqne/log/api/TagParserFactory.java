@@ -35,44 +35,50 @@ public class TagParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "태그";
-		if (locale.equals(Locale.JAPANESE))
+		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "タグ";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "标记";
 		return "Tag";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "지정된 태그를 추가합니다.";
-		if (locale.equals(Locale.JAPANESE))
+		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "指定したタグを追加します。";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "添加指定的标记。";
 		return "add specified tags";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption tags = new StringConfigType("tags", t("tag list", "태그 목록", "タグリスト"), t(
-				"comma separated key=value tags", "쉼표로 구분된 키=값 형태의 태그 목록", "コンマで区分されているキー＝バリュー形のタグリスト"), true);
+		LoggerConfigOption tags = new StringConfigType("tags", t("tag list", "태그 목록", "タグリスト", "标记列表"), t(
+				"comma separated key=value tags", "쉼표로 구분된 키=값 형태의 태그 목록", 
+				"コンマで区分されているキー＝バリュー形のタグリスト", "以逗号分隔的键=值格式的标记列表"), true);
 		return Arrays.asList(tags);
 	}
 
-	private Map<Locale, String> t(String enText, String koText, String jpText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
 		m.put(Locale.JAPANESE, jpText);
+		m.put(Locale.CHINESE, cnText);
 		return m;
 	}
 
