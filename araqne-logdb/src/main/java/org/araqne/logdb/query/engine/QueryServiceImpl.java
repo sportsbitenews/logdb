@@ -83,9 +83,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	private AccountService accountService;
 
 	@Requires
-	private LogStorage logStorage;
-
-	@Requires
 	private LogTableRegistry tableRegistry;
 
 	@Requires
@@ -133,6 +130,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	private List<QueryPlanner> planners;
 
+	private boolean allowQueryPurge = false;
+
 	public QueryServiceImpl(BundleContext bc) {
 		this.bc = bc;
 		this.queries = new ConcurrentHashMap<Integer, Query>();
@@ -142,6 +141,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		// ensure directory
 		File dir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query");
 		dir.mkdirs();
+
+		allowQueryPurge = Boolean.parseBoolean(System.getProperty("araqne.logdb.allowpurge"));
 
 		prepareQueryParsers();
 	}
@@ -164,7 +165,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		}
 
 		// add table and lookup (need some constructor injection)
-		parsers.add(new TableParser(accountService, logStorage, tableRegistry, parserFactoryRegistry, parserRegistry));
+		parsers.add(new TableParser(accountService, storage, tableRegistry, parserFactoryRegistry, parserRegistry));
 		parsers.add(new LookupParser(lookupRegistry));
 		parsers.add(new ScriptParser(bc, scriptRegistry));
 		parsers.add(new TextFileParser(parserFactoryRegistry));
@@ -174,14 +175,16 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new OutputJsonParser());
 		parsers.add(new OutputTxtParser());
 		parsers.add(new LogdbParser(metadataService));
-		parsers.add(new LogCheckParser(tableRegistry, logStorage, fileServiceRegistry));
+		parsers.add(new LogCheckParser(tableRegistry, storage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService, resultFactory));
-		parsers.add(new ImportParser(tableRegistry, logStorage));
+		parsers.add(new ImportParser(tableRegistry, storage));
 		parsers.add(new ParseParser(parserRegistry));
 		parsers.add(new LoadParser(savedResultManager));
 		parsers.add(new LoggerParser(loggerRegistry));
 		parsers.add(new MvParser());
 		parsers.add(new ConfdbParser(conf));
+		if (allowQueryPurge)
+			parsers.add(new PurgeParser(storage, tableRegistry));
 
 		this.queryParsers = parsers;
 	}
