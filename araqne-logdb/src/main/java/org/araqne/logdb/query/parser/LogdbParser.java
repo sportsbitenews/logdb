@@ -1,12 +1,12 @@
 package org.araqne.logdb.query.parser;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Logdb;
 
-public class LogdbParser implements QueryCommandParser {
+public class LogdbParser extends AbstractQueryCommandParser {
 	private MetadataService metadataService;
 
 	public LogdbParser(MetadataService metadataService) {

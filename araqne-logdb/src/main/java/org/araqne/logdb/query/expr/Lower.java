@@ -17,13 +17,14 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 public class Lower implements Expression {
 
 	private Expression valueExpr;
 
-	public Lower(List<Expression> exprs) {
+	public Lower(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 	}
 

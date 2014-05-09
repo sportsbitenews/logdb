@@ -22,8 +22,8 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.cep.EventContextService;
@@ -34,7 +34,7 @@ import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 
 @Component(name = "evtctxdel-parser")
-public class EvtCtxDelParser implements QueryCommandParser {
+public class EvtCtxDelParser extends AbstractQueryCommandParser {
 	@Requires
 	private QueryParserService queryParserService;
 
@@ -60,7 +60,7 @@ public class EvtCtxDelParser implements QueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("topic", "key", "logtick"));
+				Arrays.asList("topic", "key", "logtick"), getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -68,7 +68,7 @@ public class EvtCtxDelParser implements QueryCommandParser {
 		String keyField = options.get("key");
 		String hostField = options.get("logtick");
 
-		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next));
+		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next), getFunctionRegistry());
 
 		EventContextStorage storage = eventContextService.getStorage("mem");
 		return new EvtCtxDelCommand(storage, topic, keyField, matcher, hostField);

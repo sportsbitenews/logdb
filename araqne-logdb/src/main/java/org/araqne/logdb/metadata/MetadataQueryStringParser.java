@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.Privilege;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
@@ -21,13 +22,14 @@ import org.araqne.logstorage.LogTableRegistry;
 public class MetadataQueryStringParser {
 
 	public static TableScanOption getTableNames(QueryContext context, LogTableRegistry tableRegistry,
-			AccountService accountService, String token) {
+			AccountService accountService, FunctionRegistry functionRegistry, String token) {
 		token = token.trim();
 
 		Date from = null;
 		Date to = null;
 
-		ParseResult r = QueryTokenizer.parseOptions(context, token, 0, Arrays.asList("duration", "from", "to", "diskonly"));
+		ParseResult r = QueryTokenizer.parseOptions(context, token, 0, Arrays.asList("duration", "from", "to", "diskonly"),
+				functionRegistry);
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> optionTokens = (Map<String, String>) r.value;

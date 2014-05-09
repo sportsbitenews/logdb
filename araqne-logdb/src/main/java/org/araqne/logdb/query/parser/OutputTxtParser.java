@@ -21,11 +21,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
+
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.OutputTxt;
 
 /**
@@ -33,7 +34,7 @@ import org.araqne.logdb.query.command.OutputTxt;
  * @author darkluster
  * 
  */
-public class OutputTxtParser implements QueryCommandParser {
+public class OutputTxtParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -46,7 +47,7 @@ public class OutputTxtParser implements QueryCommandParser {
 			throw new QueryParseException("missing-field", commandString.length());
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(),
-				Arrays.asList("delimiter", "overwrite", "gz", "encoding", "partition", "tmp"));
+				Arrays.asList("delimiter", "overwrite", "gz", "encoding", "partition", "tmp"), getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -82,7 +83,7 @@ public class OutputTxtParser implements QueryCommandParser {
 			throw new QueryParseException("missing-field", tokens.size());
 
 		String filePath = tokens.token(0).token;
-		filePath = ExpressionParser.evalContextReference(context, filePath);
+		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
 
 		List<PartitionPlaceholder> holders = PartitionPlaceholder.parse(filePath);
 		if (!usePartition && holders.size() > 0)
@@ -112,7 +113,6 @@ public class OutputTxtParser implements QueryCommandParser {
 		if (!usePartition && txtFile.getParentFile() != null)
 			txtFile.getParentFile().mkdirs();
 
-		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding,
-				usePartition, holders);
+		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders);
 	}
 }

@@ -22,8 +22,8 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
@@ -36,7 +36,7 @@ import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 
 @Component(name = "evtctxadd-parser")
-public class EvtCtxAddParser implements QueryCommandParser {
+public class EvtCtxAddParser extends AbstractQueryCommandParser {
 
 	@Requires
 	private QueryParserService queryParserService;
@@ -63,7 +63,7 @@ public class EvtCtxAddParser implements QueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("topic", "key", "expire", "timeout", "threshold", "maxrows", "logtick"));
+				Arrays.asList("topic", "key", "expire", "timeout", "threshold", "maxrows", "logtick"), getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -91,7 +91,7 @@ public class EvtCtxAddParser implements QueryCommandParser {
 
 		String hostField = options.get("logtick");
 
-		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next));
+		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next), getFunctionRegistry());
 
 		EventContextStorage storage = eventContextService.getStorage("mem");
 		return new EvtCtxAddCommand(storage, topic, keyField, expire, timeout, threshold, maxRows, matcher, hostField);

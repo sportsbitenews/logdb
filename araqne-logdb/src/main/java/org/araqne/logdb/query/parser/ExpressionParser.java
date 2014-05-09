@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
+import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.expr.Expression;
@@ -35,9 +36,9 @@ public class ExpressionParser {
 	/**
 	 * @since 1.7.5
 	 */
-	public static String evalContextReference(QueryContext context, String s) {
+	public static String evalContextReference(QueryContext context, String s, FunctionRegistry functionRegistry) {
 		if (ExpressionParser.isContextReference(s)) {
-			Expression contextReference = ExpressionParser.parse(context, s);
+			Expression contextReference = ExpressionParser.parse(context, s, functionRegistry);
 			Object o = contextReference.eval(null);
 			if (o == null)
 				return "";
@@ -45,11 +46,6 @@ public class ExpressionParser {
 		}
 
 		return s;
-	}
-
-	@Deprecated
-	public static Expression parse(String s, ParsingRule r) {
-		return parse(null, s, r);
 	}
 
 	public static Expression parse(QueryContext context, String s, ParsingRule r) {
@@ -86,18 +82,12 @@ public class ExpressionParser {
 		return exprStack.pop();
 	}
 
-	private static ParsingRule evalRule = new ParsingRule(EvalOpTerm.NOP, new EvalOpEmitterFactory(), new EvalFuncEmitterFactory(),
-			new EvalTermEmitterFactory());
-
-	@Deprecated
-	public static Expression parse(String s) {
-		return parse(null, s);
-	}
-
 	/**
 	 * @since 1.7.3
 	 */
-	public static Expression parse(QueryContext context, String s) {
+	public static Expression parse(QueryContext context, String s, FunctionRegistry functionRegistry) {
+		ParsingRule evalRule = new ParsingRule(EvalOpTerm.NOP, new EvalOpEmitterFactory(), new EvalFuncEmitterFactory(
+				functionRegistry), new EvalTermEmitterFactory());
 		return parse(context, s, evalRule);
 	}
 
@@ -152,7 +142,8 @@ public class ExpressionParser {
 					}
 
 					// postprocess comma term
-					// Being closed by parenthesis means the comma list is ended.
+					// Being closed by parenthesis means the comma list is
+					// ended.
 					if (!output.isEmpty()) {
 						Term recent = output.get(output.size() - 1);
 						if (recent instanceof OpTerm) {
@@ -238,7 +229,7 @@ public class ExpressionParser {
 			String token = (String) r.value;
 			if (token.isEmpty())
 				continue;
-			
+
 			// read function call (including nested one)
 			if (token.equals("(") && lastToken != null && !isOperator(lastToken, rule)) {
 				// remove last term and add function term instead
@@ -350,7 +341,7 @@ public class ExpressionParser {
 					t.pop();
 			}
 		}
-		
+
 		return start - 1;
 	}
 
@@ -429,7 +420,8 @@ public class ExpressionParser {
 		}
 
 		// check white spaces
-		// tabs are removed by ExpressionParser.parse, so it processes space only.
+		// tabs are removed by ExpressionParser.parse, so it processes space
+		// only.
 		min(r, " ", s.indexOf(' ', begin), end);
 		return r;
 	}

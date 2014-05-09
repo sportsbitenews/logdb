@@ -18,6 +18,7 @@ package org.araqne.logdb.query.expr;
 import java.util.Date;
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 /**
@@ -27,7 +28,7 @@ import org.araqne.logdb.Row;
  */
 public class Now implements Expression {
 
-	public Now(List<Expression> exprs) {
+	public Now(QueryContext ctx, List<Expression> exprs) {
 	}
 
 	@Override

@@ -15,10 +15,10 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Evalc;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -27,7 +27,7 @@ import org.araqne.logdb.query.expr.Expression;
  * @author xeraph
  * 
  */
-public class EvalcParser implements QueryCommandParser {
+public class EvalcParser extends AbstractQueryCommandParser {
 
 	private static final String COMMAND = "evalc";
 
@@ -52,7 +52,7 @@ public class EvalcParser implements QueryCommandParser {
 		if (exprToken.isEmpty())
 			throw new QueryParseException("expression-not-found", commandString.length());
 
-		Expression expr = ExpressionParser.parse(context, exprToken);
+		Expression expr = ExpressionParser.parse(context, exprToken, getFunctionRegistry());
 		return new Evalc(context, constantName, expr);
 	}
 

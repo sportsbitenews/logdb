@@ -23,14 +23,29 @@ import java.util.Map;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.ParseKv;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
+import org.junit.Before;
 import org.junit.Test;
 
 public class ParseKvParserTest {
+	private QueryParserService queryParserService;
+
+	@Before
+	public void setup() {
+		QueryParserServiceImpl p = new QueryParserServiceImpl();
+		p.setFunctionRegistry(new FunctionRegistryImpl());
+		queryParserService = p;
+	}
+	
 	@Test
 	public void testQuery() {
 		ParseKvParser parser = new ParseKvParser();
+		parser.setQueryParserService(queryParserService);
+		
 		ParseKv kv = (ParseKv) parser.parse(null, "parsekv");
 		DummyOutput out = new DummyOutput();
 		kv.setOutput(new QueryCommandPipe(out));

@@ -15,18 +15,34 @@
  */
 package org.araqne.logdb.query.parser;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.Sort;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 
 import static org.junit.Assert.*;
 
 public class SortParserTest {
+	private QueryParserService queryParserService;
+
+	@Before
+	public void setup() {
+		QueryParserServiceImpl p = new QueryParserServiceImpl();
+		p.setFunctionRegistry(new FunctionRegistryImpl());
+		queryParserService = p;
+	}
+	
 	@Test
 	public void testSingleColumn() {
 		String command = "sort field1";
 
-		Sort sort = (Sort) new SortParser().parse(null, command);
+		SortParser p = new SortParser();
+		p.setQueryParserService(queryParserService);
+		
+		Sort sort = (Sort) p.parse(null, command);
 		assertEquals(1, sort.getFields().length);
 		assertEquals("field1", sort.getFields()[0].getName());
 		assertEquals(true, sort.getFields()[0].isAsc());
@@ -38,7 +54,10 @@ public class SortParserTest {
 	public void testMultiColumns() {
 		String command = "sort field1,field2, field3";
 
-		Sort sort = (Sort) new SortParser().parse(null, command);
+		SortParser p = new SortParser();
+		p.setQueryParserService(queryParserService);
+		
+		Sort sort = (Sort) p.parse(null, command);
 		assertEquals(3, sort.getFields().length);
 		assertEquals("field1", sort.getFields()[0].getName());
 		assertEquals(true, sort.getFields()[0].isAsc());
@@ -54,7 +73,10 @@ public class SortParserTest {
 	public void testOrder() {
 		String command = "sort -field1,+field2, field3";
 
-		Sort sort = (Sort) new SortParser().parse(null, command);
+		SortParser p = new SortParser();
+		p.setQueryParserService(queryParserService);
+		
+		Sort sort = (Sort) p.parse(null, command);
 		assertEquals(3, sort.getFields().length);
 		assertEquals("field1", sort.getFields()[0].getName());
 		assertEquals(false, sort.getFields()[0].isAsc());
@@ -70,7 +92,10 @@ public class SortParserTest {
 	public void testLimitAndSingleColumn() {
 		String command = "sort limit=10 -field1";
 
-		Sort sort = (Sort) new SortParser().parse(null, command);
+		SortParser p = new SortParser();
+		p.setQueryParserService(queryParserService);
+		
+		Sort sort = (Sort) p.parse(null, command);
 		assertEquals(1, sort.getFields().length);
 		assertEquals("field1", sort.getFields()[0].getName());
 		assertEquals(false, sort.getFields()[0].isAsc());
@@ -82,7 +107,10 @@ public class SortParserTest {
 	public void testComplexCase() {
 		String command = "sort limit=20 field1, +field2,-field3";
 
-		Sort sort = (Sort) new SortParser().parse(null, command);
+		SortParser p = new SortParser();
+		p.setQueryParserService(queryParserService);
+		
+		Sort sort = (Sort) p.parse(null, command);
 		assertEquals(3, sort.getFields().length);
 
 		assertEquals("field1", sort.getFields()[0].getName());
@@ -103,7 +131,10 @@ public class SortParserTest {
 		String command = "sort limit=20";
 
 		try {
-			new SortParser().parse(null, command);
+			SortParser p = new SortParser();
+			p.setQueryParserService(queryParserService);
+			
+			p.parse(null, command);
 			fail();
 		} catch (QueryParseException e) {
 			assertEquals("need-column", e.getType());
@@ -116,7 +147,9 @@ public class SortParserTest {
 		String command = "sort ";
 
 		try {
-			new SortParser().parse(null, command);
+			SortParser p = new SortParser();
+			p.setQueryParserService(queryParserService);
+			p.parse(null, command);
 			fail();
 		} catch (QueryParseException e) {
 			assertEquals("need-column", e.getType());

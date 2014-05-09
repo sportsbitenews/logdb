@@ -24,19 +24,35 @@ import static org.junit.Assert.fail;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.Search;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.araqne.logdb.query.expr.Expression;
+import org.junit.Before;
 import org.junit.Test;
 
 public class SearchParserTest {
+
+	private QueryParserService queryParserService;
+
+	@Before
+	public void setup() {
+		QueryParserServiceImpl p = new QueryParserServiceImpl();
+		p.setFunctionRegistry(new FunctionRegistryImpl());
+		queryParserService = p;
+	}
+
 	@Test
 	public void testWildSearch() {
 		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+		
 		Search search = (Search) p.parse(null, "search sip == \"10.1.*\" ");
 		Expression expr = search.getExpression();
 
@@ -56,6 +72,8 @@ public class SearchParserTest {
 	@Test
 	public void testWhitespace() {
 		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+		
 		Search search = (Search) p.parse(null,
 				"search sip == \"74.86.*\"  \tor     sip  ==   \"211.*\"      or\tsip == \"110.221.*\"");
 		Expression expr = search.getExpression();
@@ -82,6 +100,8 @@ public class SearchParserTest {
 	@Test
 	public void testInExact() {
 		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+
 		Search search = (Search) p.parse(null, "search in(sip, \"192.168.0.1\", \"211.123.1.1\", \"10.2.2.2\")");
 		Expression expr = search.getExpression();
 
@@ -107,6 +127,8 @@ public class SearchParserTest {
 	@Test
 	public void testInPattern() {
 		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+
 		Search search = (Search) p.parse(null, "search in(sip, \"192.*.1\", \"*123*\", \"10*\", \"*255\")");
 		Expression expr = search.getExpression();
 
@@ -142,6 +164,8 @@ public class SearchParserTest {
 	@Test
 	public void testInMixed() {
 		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+
 		Search search = (Search) p.parse(null,
 				"search in(sip, \"127.255.2.1\", \"192.*.1\", \"*123*\", \"127.10.2.1\", \"10*\", \"*255\")");
 		Expression expr = search.getExpression();
@@ -178,6 +202,8 @@ public class SearchParserTest {
 	@Test
 	public void testLimit() {
 		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+
 		Search search = (Search) p.parse(null, "search limit=10 port > 1024");
 		Expression expr = search.getExpression();
 
@@ -195,6 +221,8 @@ public class SearchParserTest {
 	@Test
 	public void testLimitOnly() {
 		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+
 		Search search = (Search) p.parse(null, "search limit=10");
 		assertEquals(10, (long) search.getLimit());
 		assertEquals("search limit=10", search.toString());
@@ -205,6 +233,8 @@ public class SearchParserTest {
 		try {
 			String query = "search limit=10 category == \"E002\" and ((method == \"<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>\"))";
 			SearchParser p = new SearchParser();
+			p.setQueryParserService(queryParserService);
+
 			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
@@ -216,6 +246,8 @@ public class SearchParserTest {
 	public void testEscape() {
 		String query = "search limit=10 category == \"E002\" and ((method == \"<iframe src=\\\"http://www.w3schools.com\\\">,,,,,,\\\"\\\",,\\\"<\\\"<<<\\\"<,,</iframe>\"))";
 		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+
 		Search search = (Search) p.parse(null, query);
 		Output output = new Output();
 		search.setOutput(new QueryCommandPipe(output));
@@ -232,6 +264,8 @@ public class SearchParserTest {
 	public void testEscape2() {
 		String query = "search in (method,\"<iframe src=\\\"http://www.w3schools.com\\\">,,,,,,\\\"\\\",,\\\"<\\\"<<<\\\"<,,</iframe>\") and d_port == \"21\"";
 		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+
 		Search search = (Search) p.parse(null, query);
 		Output output = new Output();
 		search.setOutput(new QueryCommandPipe(output));
@@ -279,6 +313,8 @@ public class SearchParserTest {
 
 	private Object compare(String query, Object value) {
 		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+
 		Search search = (Search) p.parse(null, query);
 		Output output = new Output();
 		search.setOutput(new QueryCommandPipe(output));

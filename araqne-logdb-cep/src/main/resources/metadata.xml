@@ -6,4 +6,5 @@
 	<instance component="evtctxadd-parser" />
 	<instance component="evtctxdel-parser" />
 	<instance component="cep-script-factory" />
+	<instance component="cep-function-factory" />
 </ipojo>

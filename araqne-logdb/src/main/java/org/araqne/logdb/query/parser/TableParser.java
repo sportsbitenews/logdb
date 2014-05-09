@@ -24,10 +24,10 @@ import java.util.Stack;
 
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
@@ -43,7 +43,7 @@ import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
 
-public class TableParser implements QueryCommandParser {
+public class TableParser extends AbstractQueryCommandParser {
 	private AccountService accountService;
 	private LogStorage logStorage;
 	private LogTableRegistry tableRegistry;
@@ -71,7 +71,7 @@ public class TableParser implements QueryCommandParser {
 			throw new QueryParseException("archive-not-opened", -1);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order", "window"));
+				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order", "window"), getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		String tableTokens = commandString.substring(r.next);
 		List<TableSpec> tableNames = parseTableNames(context, tableTokens);

@@ -19,6 +19,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
 
@@ -35,7 +36,7 @@ public class DateAdd implements Expression {
 	private int delta;
 
 	// dateadd(field, descriptor, delta)
-	public DateAdd(List<Expression> exprs) {
+	public DateAdd(QueryContext ctx, List<Expression> exprs) {
 		this.exprs = exprs;
 		c = Calendar.getInstance();
 		if (exprs.size() != 3)

@@ -6,8 +6,13 @@ import static org.junit.Assert.fail;
 import java.io.File;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.OutputJson;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -16,12 +21,24 @@ import org.junit.Test;
  * 
  */
 public class OutputJsonParserTest {
+	
+	private QueryParserService queryParserService;
+
+	@Before
+	public void setup() {
+		QueryParserServiceImpl p = new QueryParserServiceImpl();
+		p.setFunctionRegistry(new FunctionRegistryImpl());
+		queryParserService = p;
+	}
+	
 	@Test
 	public void testNormalCase() {
 		new File("logexport.json").delete();
 		OutputJson json = null;
 		try {
 			OutputJsonParser p = new OutputJsonParser();
+			p.setQueryParserService(queryParserService);
+			
 			json = (OutputJson) p.parse(null, "outputjson logexport.json sip, dip ");
 
 			File f = json.getTxtFile();
@@ -42,6 +59,8 @@ public class OutputJsonParserTest {
 		new File("logexport.json").delete();
 		try {
 			OutputJsonParser p = new OutputJsonParser();
+			p.setQueryParserService(queryParserService);
+			
 			p.parse(null, "outputjson");
 			fail();
 		} catch (QueryParseException e) {
@@ -56,6 +75,8 @@ public class OutputJsonParserTest {
 		new File("logexport.json").delete();
 		try {
 			OutputJsonParser p = new OutputJsonParser();
+			p.setQueryParserService(queryParserService);
+			
 			p.parse(null, "outputjson logexport.json sip,");
 			fail();
 		} catch (QueryParseException e) {

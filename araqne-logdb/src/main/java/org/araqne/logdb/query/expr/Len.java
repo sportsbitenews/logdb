@@ -17,12 +17,13 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 public class Len implements Expression {
 	private Expression valueExpr;
 
-	public Len(List<Expression> exprs) {
+	public Len(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 	}
 

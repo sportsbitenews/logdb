@@ -96,7 +96,7 @@ public class UploadDataHandler {
 				dateLocale = "en";
 
 			if (dateFormat != null)
-				extractor.setDateFormat(new SimpleDateFormat(dateFormat, new Locale(dateLocale)));
+				extractor.setDateFormat(new SimpleDateFormat(dateFormat, new Locale(dateLocale)), null);
 
 			if (beginRegex != null)
 				extractor.setBeginMatcher(Pattern.compile(beginRegex).matcher(""));

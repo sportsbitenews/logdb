@@ -5,13 +5,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.command.Transaction;
 
-public class TransactionParser implements QueryCommandParser {
+public class TransactionParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -20,8 +20,10 @@ public class TransactionParser implements QueryCommandParser {
 
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("maxspan", "maxpause", "maxevents", "startswith", "endswith", "keeporphans"));
+		ParseResult r = QueryTokenizer
+				.parseOptions(context, commandString, getCommandName().length(),
+						Arrays.asList("maxspan", "maxpause", "maxevents", "startswith", "endswith", "keeporphans"),
+						getFunctionRegistry());
 
 		// parse options
 		Transaction.TransactionOptions txOptions = new Transaction.TransactionOptions();

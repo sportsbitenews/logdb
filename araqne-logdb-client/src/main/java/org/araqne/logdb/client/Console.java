@@ -195,7 +195,7 @@ public class Console {
 					break;
 
 				if (!line.trim().startsWith("#"))
-					sb.append(line);
+					sb.append(" " + line);
 			}
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
