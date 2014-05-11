@@ -15,6 +15,7 @@
  */
 package org.araqne.logstorage;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +33,8 @@ public interface LogFileService {
 	 * @return log count
 	 */
 	long count(FilePath f);
+	
+	List<Date> getPartitions(String tableName);
 
 	LogFileWriter newWriter(Map<String, Object> options);
 

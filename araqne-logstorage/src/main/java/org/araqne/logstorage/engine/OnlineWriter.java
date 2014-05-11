@@ -70,16 +70,15 @@ public class OnlineWriter {
 
 	private volatile boolean closeReserved;
 
-	public OnlineWriter(StorageManager storageManager, LogFileService logFileService, TableSchema schema, Date day, 
-			CallbackSet callbackSet)
-			throws IOException {
+	public OnlineWriter(StorageManager storageManager, LogFileService logFileService, TableSchema schema, Date day,
+			CallbackSet callbackSet, FilePath logDir) throws IOException {
 		this.logFileService = logFileService;
 		this.tableId = schema.getId();
 		this.day = day;
 		this.closeReserved = new Boolean(false);
-		
+
 		String basePathString = schema.getPrimaryStorage().getBasePath();
-		FilePath basePath = null;
+		FilePath basePath = logDir;
 		if (basePathString != null)
 			basePath = storageManager.resolveFilePath(basePathString);
 
@@ -96,11 +95,12 @@ public class OnlineWriter {
 			writerOptions.putAll(schema.getMetadata());
 			writerOptions.put("tableName", schema.getName());
 			writerOptions.put("day", day);
+			writerOptions.put("basePath", basePath);
 			writerOptions.put("indexPath", indexPath);
 			writerOptions.put("dataPath", dataPath);
 			writerOptions.put("keyPath", keyPath);
 			writerOptions.put("callbackSet", callbackSet);
-			
+
 			for (TableConfig c : schema.getPrimaryStorage().getConfigs()) {
 				writerOptions.put(c.getKey(), c.getValues().size() > 1 ? c.getValues() : c.getValue());
 			}
@@ -138,11 +138,18 @@ public class OnlineWriter {
 	public Date getLastAccess() {
 		return lastAccess;
 	}
+	
+	/**
+	 * @since 2.7.0
+	 */
+	public LogFileWriter getWriter() {
+		return writer;
+	}
 
 	public Date getLastFlush() {
 		return writer.getLastFlush();
 	}
-	
+
 	public void write(Log log) throws IOException {
 		synchronized (this) {
 			if (writer == null)

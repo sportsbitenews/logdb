@@ -125,7 +125,7 @@ public class LogCheck extends QueryCommand {
 			LogFileReader reader = null;
 			LogBlockCursor cursor = null;
 			try {
-				reader = fileServiceRegistry.newReader(tableName, type, new LogFileServiceV2.Option(metadata, tableName,
+				reader = fileServiceRegistry.newReader(tableName, type, new LogFileServiceV2.Option(metadata, tableName, dir,
 						indexPath, dataPath, keyPath));
 				cursor = reader.getBlockCursor();
 
