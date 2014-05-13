@@ -113,8 +113,8 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 				for (IB block : addedBlocks) {
 					IB reservedBlock = block.newReservedBlock();
 
-					lDataStream.setLength(dflen + reservedBlock.getDataBlockLen());
-					dflen += reservedBlock.getDataBlockLen();
+					dflen = Math.max(dflen, reservedBlock.getPosOnData()) + reservedBlock.getDataBlockLen();
+					lDataStream.setLength(dflen);
 					reservedBlock.serialize(indexStream);
 				}
 			} else {
