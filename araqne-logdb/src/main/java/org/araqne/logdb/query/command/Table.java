@@ -27,13 +27,12 @@ import java.util.Map;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
-import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
 import org.araqne.log.api.LogParserRegistry;
-import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.DefaultLogParserBuilder;
 import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.QueryStopReason;
@@ -48,8 +47,6 @@ import org.araqne.logstorage.LogCallback;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogTraverseCallback;
-import org.araqne.logstorage.TableNotFoundException;
-import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.WrongTimeTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,7 +111,7 @@ public class Table extends DriverQueryCommand {
 			boolean isSuppressedBugAlert = false;
 
 			for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
-				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
+				LogParserBuilder builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
 						tableName.getTable());
 				if (isSuppressedBugAlert)
 					builder.suppressBugAlert();
@@ -221,72 +218,6 @@ public class Table extends DriverQueryCommand {
 			logger.debug("araqne logdb: stopping table scan, query [{}] reason [{}]", getQuery().getId(), reason);
 
 		stopped = true;
-	}
-
-	private class TableLogParserBuilder implements LogParserBuilder {
-		LogParserRegistry parserRegistry;
-
-		String tableParserName = null;
-		String tableParserFactoryName = null;
-
-		LogParserFactory tableParserFactory = null;
-		Map<String, String> parserProperty = null;
-
-		boolean bugAlertSuppressFlag = false;
-
-		public TableLogParserBuilder(LogParserRegistry parserRegistry, LogParserFactoryRegistry parserFactoryRegistry,
-				LogTableRegistry tableRegistry, String tableName) {
-			this.parserRegistry = parserRegistry;
-
-			if (tableName != null) {
-				TableSchema schema = tableRegistry.getTableSchema(tableName, true);
-				this.tableParserName = schema.getMetadata().get("parser");
-				this.tableParserFactoryName = schema.getMetadata().get("logparser");
-
-				if (tableParserFactoryName != null) {
-					this.tableParserFactory = parserFactoryRegistry.get(tableParserFactoryName);
-					if (tableParserFactory != null) {
-						parserProperty = new HashMap<String, String>();
-						for (LoggerConfigOption configOption : tableParserFactory.getConfigOptions()) {
-							String optionName = configOption.getName();
-							String optionValue = schema.getMetadata().get(optionName);
-							if (configOption.isRequired() && optionValue == null)
-								throw new IllegalArgumentException("require table metadata " + optionName);
-							parserProperty.put(optionName, optionValue);
-						}
-					}
-				}
-			}
-		}
-
-		@Override
-		public LogParser build() {
-			LogParser parser = null;
-
-			if (tableParserName != null && parserRegistry.getProfile(tableParserName) != null) {
-				try {
-					parser = parserRegistry.newParser(tableParserName);
-				} catch (IllegalStateException e) {
-					if (logger.isDebugEnabled())
-						logger.debug("logpresso index: parser profile not found [{}]", tableParserName);
-				}
-			}
-
-			if (parser == null && tableParserFactory != null) {
-				parser = tableParserFactory.createParser(parserProperty);
-			}
-			return parser;
-		}
-
-		@Override
-		public boolean isBugAlertSuppressed() {
-			return bugAlertSuppressFlag;
-		}
-
-		@Override
-		public void suppressBugAlert() {
-			bugAlertSuppressFlag = true;
-		}
 	}
 
 	private List<StorageObjectName> expandTableNames(List<TableSpec> tableNames) {
@@ -483,7 +414,7 @@ public class Table extends DriverQueryCommand {
 		public RealtimeReceiver() {
 
 			for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
-				LogParserBuilder builder = new TableLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
+				LogParserBuilder builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
 						tableName.getTable());
 				parsers.put(tableName.table, builder.build());
 				tableFilters.add(tableName.table);

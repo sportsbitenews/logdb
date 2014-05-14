@@ -22,4 +22,6 @@ public interface LogParserBuilder {
 	boolean isBugAlertSuppressed();
 	
 	void suppressBugAlert();
+	
+	String getTableName();
 }
