@@ -39,7 +39,7 @@ public class WelfParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE	, Locale.CHINESE);
 	}
 
 	@Override
@@ -48,12 +48,14 @@ public class WelfParserFactory extends AbstractLogParserFactory {
 			return "WELF 포맷";
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "WELFフォーマット";
-		return "WELF Format";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "CPU使用率";
+		return "WELF格式";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE	, Locale.CHINESE);
 	}
 
 	@Override
@@ -62,6 +64,8 @@ public class WelfParserFactory extends AbstractLogParserFactory {
 			return "웹트렌드 로그 포맷";
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "ウェブトレンドログフォーマット";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "WebTrend日志格式";
 		return "WebTrends Enhanced Log Format";
 	}
 

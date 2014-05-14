@@ -16,6 +16,8 @@
 
 package org.araqne.logparser.syslog.riorey;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 
@@ -37,9 +39,21 @@ public class RioreySyslogParserFactory extends AbstractLogParserFactory {
 	}
 
 	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
+
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
+	
+	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "리오레이 시스 로그";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "Riorey SYS";
 		return "Riorey SYS";
 	}
 
@@ -47,6 +61,8 @@ public class RioreySyslogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "리오레이 디도스 방어 솔루션의 시스 로그를 파싱합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "解析riorey DDoS防御产品的Syslog。";
 		return "Parse Riorey Riorey Syslogs.";
 	}
 

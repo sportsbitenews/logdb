@@ -46,19 +46,20 @@ public class ApacheWebLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption s = new StringConfigType("log_format", text("Log Format", "로그 포맷"), text("Apache Log Format",
-				"아파리 로그 포맷"), true, text("%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\""));
+		LoggerConfigOption s = new StringConfigType("log_format", text("Log Format", "로그 포맷", "日志格式"), text("Apache Log Format",
+				"아파리 로그 포맷", "Apache日志格式"), true, text("%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\""));
 		return Arrays.asList(s);
 	}
 
 	private Map<Locale, String> text(String en) {
-		return text(en, en);
+		return text(en, en, en);
 	}
 
-	private Map<Locale, String> text(String en, String ko) {
+	private Map<Locale, String> text(String en, String ko, String cn) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, en);
 		m.put(Locale.KOREAN, ko);
+		m.put(Locale.CHINESE, cn);
 		return m;
 	}
 
@@ -66,24 +67,28 @@ public class ApacheWebLogParserFactory implements LogParserFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "아파치 웹 로그";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "Apache Web日志";
 		return "Apache Web Log";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "아파치 웹 로그 포맷 지시자의 조합을 이용한 아파치 웹 로그 파싱을 지원합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "解析Apache Web日志。";
 		return "Create apache httpd log parser with log format option";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 }

@@ -16,6 +16,7 @@
 package org.araqne.logparser.syslog.infosec;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
@@ -42,9 +43,21 @@ public class AntiWebShellLogParserFactory extends AbstractLogParserFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "웹쉘 탐지";
+		if(locale != null && locale.equals(Locale.CHINESE))
+			return "检测Webshell";
 		return "SK Infosec Anti Webshell";
 	}
+	
+	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
 
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+	}
+	
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
@@ -52,6 +65,7 @@ public class AntiWebShellLogParserFactory extends AbstractLogParserFactory {
 		return "Parse SK Infosec Anti Webshell logs.";
 	}
 
+	
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		return new ArrayList<LoggerConfigOption>();

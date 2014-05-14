@@ -93,26 +93,42 @@ public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implem
 
 	@Override
 	public String getDisplayName(Locale locale) {
+
 		return "jython logger";
+	}
+	
+	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "jython logger脚本";
 		return "jython logger script";
+	}
+	
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.CHINESE);
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption scriptName = new StringConfigType("logger_script", map("logger script name"),
-				map("jython logger script class name"), true);
+		LoggerConfigOption scriptName = new StringConfigType("logger_script", map("logger script name", "logger脚本名称"),
+				map("jython logger script class name", "jython logger脚本类名称"), true);
 		return Arrays.asList(scriptName);
 	}
 
-	private Map<Locale, String> map(String value) {
+	private Map<Locale, String> map(String value, String cn) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, value);
+		m.put(Locale.CHINESE, cn);
 		return m;
 	}
+	
+
 
 	@Override
 	protected Logger createLogger(LoggerSpecification spec) {

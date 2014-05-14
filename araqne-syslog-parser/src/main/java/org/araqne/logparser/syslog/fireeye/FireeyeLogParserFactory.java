@@ -15,6 +15,8 @@
  */
 package org.araqne.logparser.syslog.fireeye;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 
@@ -31,11 +33,23 @@ public class FireeyeLogParserFactory extends AbstractLogParserFactory {
 	public String getName() {
 		return "fireeye";
 	}
+	
+	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
+
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "파이어아이";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "FireEye";
 		return "FireEye";
 	}
 
@@ -43,6 +57,8 @@ public class FireeyeLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "파이어아이 로그를 파싱합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "解析FireEye产品日志。";
 		return "Parse fireeye logs";
 	}
 

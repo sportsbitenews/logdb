@@ -43,25 +43,29 @@ public class TippingPointSmsLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "HP 티핑포인트";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "HP TippingPoint";
 		return "HP TippingPoint";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "HP 티핑포인트 로그를 파싱합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "解析HP Tippingpoint日志。";
 		return "Parse HP TippingPoint logs";
 	}
 

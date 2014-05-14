@@ -35,7 +35,7 @@ public class FortigateLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
@@ -47,13 +47,15 @@ public class FortigateLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "WELF 형식으로 된 포티게이트 로그를 파싱합니다.";
+		if(locale != null && locale.equals(Locale.CHINESE))
+			return "用于解析WELF格式的FortiGate日志。";
 		return "Create fortigate log parser";
 	}
 

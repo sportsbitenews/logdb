@@ -16,6 +16,8 @@
 
 package org.araqne.logparser.syslog.riorey;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 
@@ -35,11 +37,24 @@ public class RioreyDdosLogParserFactory extends AbstractLogParserFactory {
 	public String getName() {
 		return "riorey-ddos";
 	}
+	
+
+	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
+
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "리오레이 DDoS";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "Riorey DDoS";
 		return "Riorey DDoS";
 	}
 
@@ -47,6 +62,8 @@ public class RioreyDdosLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "리오레이 디도스 방어 솔루션의 로그를 파싱합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "解析riorey DDoS防御产品日志。";
 		return "Parse Riorey Riorey-DDoS logs.";
 	}
 

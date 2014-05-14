@@ -30,52 +30,57 @@ public class TimeRollingLogWriterFactory extends AbstractLoggerFactory implement
 
 	@Override
 	public List<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "시간별 롤링 로그 파일";
-		if (locale.equals(Locale.JAPANESE))
+		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "時間別ローリングログファイル";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "时间段轮询日志文件";
 		return "Time Rolling Log File";
 	}
 
 	@Override
 	public List<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "실시간으로 시간대별 롤링 로그 파일을 생성합니다.";
-		if (locale.equals(Locale.JAPANESE))
+		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "実時間で時間別のローリングログファイルを作ります。";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "实时生成各时间段轮询日志文件。";
 		return "write time rolling log file";
 	}
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "元ロガー名"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名"), true);
+		LoggerConfigOption loggerName = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "元ロガー名", "原始Logger名称"), t(
+				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的原始Logger名称"), true);
 
-		LoggerConfigOption filePath = new StringConfigType("file_path", t("file path", "파일 경로", "ファイル経路"), t("rolling file path",
-				"롤링되는 파일 경로", "ローリングされるファイル経路"), true);
-		LoggerConfigOption rotateInterval = new StringConfigType("rotate_interval", t("rotate interval", "파일 교체 주기", "ファイル交代周期"),
-				t("hour or day", "시간 (hour) 혹은 일자 (day)", "時間(hour)か日(day)"), true);
-		LoggerConfigOption charsetName = new StringConfigType("charset", t("charset", "문자집합", "文字セット"), t("utf-8 by default",
-				"기본값은 utf-8", "基本値はutf-8"), false);
+		LoggerConfigOption filePath = new StringConfigType("file_path", t("file path", "파일 경로", "ファイル経路", "文件路径"), t("rolling file path",
+				"롤링되는 파일 경로", "ローリングされるファイル経路", "轮询文件路径"), true);
+		LoggerConfigOption rotateInterval = new StringConfigType("rotate_interval", t("rotate interval", "파일 교체 주기", "ファイル交代周期", "文件替换周期"),
+				t("hour or day", "시간 (hour) 혹은 일자 (day)", "時間(hour)か日(day)", "时(hour)或者日期(day)"), true);
+		LoggerConfigOption charsetName = new StringConfigType("charset", t("charset", "문자집합", "文字セット", "字符集"), t("utf-8 by default",
+				"기본값은 utf-8", "基本値はutf-8", "默认值为utf-8"), false);
 
 		return Arrays.asList(loggerName, filePath, rotateInterval, charsetName);
 	}
 
-	private Map<Locale, String> t(String enText, String koText, String jpText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
 		m.put(Locale.JAPANESE, jpText);
+		m.put(Locale.CHINESE, cnText);
 		return m;
 	}
 
