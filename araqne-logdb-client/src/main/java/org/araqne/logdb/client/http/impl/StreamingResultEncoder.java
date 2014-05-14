@@ -67,12 +67,6 @@ public class StreamingResultEncoder {
 				Map<String, Object> chunk = f.get();
 				if (chunk != null) {
 					chunks.add(chunk);
-
-					if (slog.isDebugEnabled()) {
-						int original = (Integer) chunk.get("size");
-						int compressed = ((byte[]) chunk.get("bin")).length;
-						slog.debug("araqne logdb: compressed chunk size [{}] original size [{}]", compressed, original);
-					}
 				}
 			} while (!f.isDone());
 		}

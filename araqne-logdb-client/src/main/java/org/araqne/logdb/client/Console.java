@@ -26,7 +26,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -57,55 +56,18 @@ public class Console {
 	 * 콘솔 클라이언트 진입점
 	 */
 	public static void main(String[] args) throws IOException {
-		// ConsoleAppender ca = new ConsoleAppender(new PatternLayout());
-		// ca.setThreshold(Level.INFO);
-		// org.apache.log4j.BasicConfigurator.configure(ca);
-		//
-		// Map<String, String> opts = getOpts(args);
-		// if (opts.containsKey("-e")) {
-		// oneShotQuery(opts);
-		// return;
-		// }
-		//
-		// new Console().run();
-		//
+		ConsoleAppender ca = new ConsoleAppender(new PatternLayout());
+		ca.setThreshold(Level.INFO);
+		org.apache.log4j.BasicConfigurator.configure(ca);
 
-		LogDbClient client = null;
-		int MAX_COUNT = 50000;
-		long begin = System.currentTimeMillis();
-		try {
-			client = new LogDbClient();
-			client.addFailureListener(new FailureListenerPrint());
-
-			// 순서대로 접속 호스트 주소, 포트, 계정, 암호
-			client.connect("localhost", 8889, "araqne", "");
-
-			List<Row> r = new ArrayList<Row>();
-
-			for (int i = 0; i < MAX_COUNT; i++) {
-				Map<String, Object> data = new HashMap<String, Object>();
-				//if ( i% 10000 == 0)
-				//	System.out.println("#" + i + " passed");
-				data.put("_time", new Date());
-				data.put("_line", "#" + i + ",  Software: Microsoft Internet Information Services 6.0");
-				r.add(new Row(data));
-				//client.insert("insertTest", new Row(data));
-			}
-				
-			for(int i = 0 ; i < 100000; i++)
-				client.insert("insertTest", r);
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			System.out.println(e);
-		} finally {
-
-			if (client != null)
-				client.close();
+		Map<String, String> opts = getOpts(args);
+		if (opts.containsKey("-e")) {
+			oneShotQuery(opts);
+			return;
 		}
 
-		long end = System.currentTimeMillis();
-		System.out.println("elapsed " + (MAX_COUNT* 100000 * 1000  / (end - begin)) + "logs/sec");
+		new Console().run();
+
 	}
 
 	private static void oneShotQuery(Map<String, String> opts) throws IOException {
@@ -249,7 +211,7 @@ public class Console {
 	 * 콘솔 명령 루프를 실행합니다.
 	 */
 	public void run() throws IOException {
-		w("Araqne LogDB Console 0.8.2 (2013-10-13)");
+		w("Araqne LogDB Console 0.9.5 (2014-05-15)");
 		w("Type \"help\" for more information");
 
 		br = new BufferedReader(new InputStreamReader(System.in));
