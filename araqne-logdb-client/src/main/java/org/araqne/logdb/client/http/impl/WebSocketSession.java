@@ -47,9 +47,14 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 	private final Timer timer;
 
 	public WebSocketSession(String host, int port) throws IOException {
+		this(host, port, false);
+	}
+
+	public WebSocketSession(String host, int port, boolean secure) throws IOException {
 		URI uri = null;
 		try {
-			uri = new URI("http://" + host + ":" + port + "/websocket");
+			String scheme = secure ? "wss://" : "ws://";
+			uri = new URI(scheme + host + ":" + port + "/websocket");
 			this.websocket = new WebSocket(uri);
 			websocket.addListener(this);
 		} catch (URISyntaxException e) {
