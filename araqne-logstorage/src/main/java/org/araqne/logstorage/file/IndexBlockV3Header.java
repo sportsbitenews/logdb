@@ -107,9 +107,13 @@ public class IndexBlockV3Header extends IndexBlock<IndexBlockV3Header>{
 	public IndexBlockV3Header unserialize(int blockId, InputStream is) throws IOException {
 		ByteBuffer bb = ByteBuffer.allocate(IndexBlockV3Header.ITEM_SIZE);
 		StorageUtil.readFully(is, bb);
-		long dataFp = bb.getLong();
+		return unserialize(blockId, bb);
+	}
+	
+	public IndexBlockV3Header unserialize(int blockId, ByteBuffer buf) {
+		long dataFp = buf.getLong();
 		boolean isReserved = dataFp < 0;
-		return new IndexBlockV3Header(blockId, Math.abs(dataFp), bb.getLong(), bb.getLong(), bb.getInt(), -1, isReserved);
+		return new IndexBlockV3Header(blockId, Math.abs(dataFp), buf.getLong(), buf.getLong(), buf.getInt(), -1, isReserved);
 	}
 
 	@Override
