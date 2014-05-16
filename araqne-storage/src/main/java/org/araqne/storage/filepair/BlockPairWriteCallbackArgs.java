@@ -8,16 +8,18 @@ public class BlockPairWriteCallbackArgs {
 	private String service;
 	private String tableName;
 	private Date day;
+	private int id;
 	private long indexBlockPos;
 	private long dataBlockPos;
 	private byte[] indexBlock;
 	private byte[] dataBlock;
 
 	public BlockPairWriteCallbackArgs(String service, String tableName, Date day,
-			long indexBlockPos, byte[] indexBlock, long dataBlockPos, byte[] dataBlock) {
+			int blockId, long indexBlockPos, byte[] indexBlock, long dataBlockPos, byte[] dataBlock) {
 		this.service = service;
 		this.tableName = tableName;
 		this.day = day;
+		this.id = blockId;
 		this.indexBlockPos = indexBlockPos;
 		this.indexBlock = indexBlock;
 		this.dataBlockPos = dataBlockPos;
@@ -46,6 +48,10 @@ public class BlockPairWriteCallbackArgs {
 
 	public Date getDay() {
 		return day;
+	}
+	
+	public int getId() {
+		return id;
 	}
 
 	public long getIndexBlockPos() {
