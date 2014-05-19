@@ -28,4 +28,5 @@
 	<instance component="piolink-webfront-factory" />	
 	<instance component="srx-new-log-parser-factory" />
 	<instance component="juniper-sslvpn-log-parser-factory" />	
+	<instance component="proventia-ids-log-parser-factory" />	
 </ipojo>
