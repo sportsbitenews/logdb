@@ -161,7 +161,7 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 	
 	public void addBlock(IB indexBlock, RDB rawDataBlock) throws IOException {
 		if (indexBlock.getId() != getIndexBlockCount())
-			throw new CannotAppendBlockException("unexpected block id");
+			throw new CannotAppendBlockException("unexpected block id - " + indexBlock.getId() + " (total: " + getIndexBlockCount() + ")");
 		
 		StorageOutputStream dataStream = null;
 		StorageOutputStream indexStream = null;
@@ -170,11 +170,11 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 			ensureDataFileHeader();
 			
 			if (indexBlock.getPosOnData() != dfile.length())
-				throw new CannotAppendBlockException("unexpected data block position");
+				throw new CannotAppendBlockException("unexpected data block position " + indexBlock.getPosOnData() + " (expected: " + dfile.length() + ")");
 			
 			long indexPos = getIndexFileHeaderLength() + indexBlock.getBlockSize() * indexBlock.getId();
 			if (indexPos != ifile.length())
-				throw new CannotAppendBlockException("unexpected index block position");
+				throw new CannotAppendBlockException("unexpected index block position" + indexPos + " (expected: " + ifile.length() + ")");
 
 			dataStream = dfile.newOutputStream(false);
 			indexStream = ifile.newOutputStream(false);

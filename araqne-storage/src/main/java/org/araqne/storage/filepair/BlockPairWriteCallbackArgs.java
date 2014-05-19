@@ -28,10 +28,11 @@ public class BlockPairWriteCallbackArgs {
 
 	@Override
 	public String toString() {
-		return String.format("BlockPairWriteCallbackArgs [svc=%s, tname=%s, day=%s, iblkpos=%d, iblk=%x, dblkpos=%d, dblk=%x]",
+		return String.format("BlockPairWriteCallbackArgs [svc=%s, tname=%s, day=%s, id=%d, iblkpos=%d, iblk=%x, dblkpos=%d, dblk=%x]",
 				service,
 				tableName,
 				day,
+				id,
 				indexBlockPos,
 				new BigInteger(1, Arrays.copyOf(indexBlock, 10)),
 				dataBlockPos,
