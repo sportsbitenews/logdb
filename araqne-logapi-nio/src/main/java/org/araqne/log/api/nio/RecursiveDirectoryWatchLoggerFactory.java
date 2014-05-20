@@ -1,0 +1,136 @@
+/*
+ * Copyright 2014 Eediom Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.araqne.log.api.nio;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
+import org.apache.felix.ipojo.annotations.Component;
+import org.apache.felix.ipojo.annotations.Provides;
+import org.araqne.log.api.AbstractLoggerFactory;
+import org.araqne.log.api.Logger;
+import org.araqne.log.api.LoggerConfigOption;
+import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.StringConfigType;
+
+@Component(name = "recursive-directory-watch-logger-factory")
+@Provides
+public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
+	@Override
+	public String getName() {
+		return "recursive-dirwatch";
+	}
+
+	@Override
+	public String getDisplayName(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "리커시브 디렉터리 와처";
+		if (locale.equals(Locale.JAPANESE))
+			return "再帰ディレクトリウォッチャー";
+		return "Recursive Directory Watcher";
+	}
+
+	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+	}
+
+	@Override
+	public String getDescription(Locale locale) {
+		if (locale.equals(Locale.KOREAN))
+			return "지정된 디렉터리에서 파일이름 패턴과 일치하는 모든 텍스트 로그 파일을 수집합니다.";
+		if (locale.equals(Locale.JAPANESE))
+			return "指定されたディレクトリでファイル名パータンと一致するすべてのテキストログファイルを収集します。";
+		return "collect all text log files in specified directory";
+	}
+
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+	}
+
+	@Override
+	public Collection<LoggerConfigOption> getConfigOptions() {
+		LoggerConfigOption basePath = new StringConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路"), t(
+				"Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路"), true);
+
+		LoggerConfigOption fileNamePattern = new StringConfigType("filename_pattern", t("Filename pattern", "파일이름 패턴",
+				"ファイルなパータン"), t("Regular expression to match log file name", "대상 로그 파일을 선택하는데 사용할 정규표현식", "対象ログファイルを選ぶとき使う正規表現"),
+				true);
+
+		LoggerConfigOption datePattern = new StringConfigType("date_pattern", t("Date pattern", "날짜 정규표현식", "日付正規表現"), t(
+				"Regular expression to match date and time strings", "날짜 및 시각을 추출하는데 사용할 정규표현식", "日付と時刻を解析する正規表現"), false);
+
+		LoggerConfigOption dateFormat = new StringConfigType("date_format", t("Date format", "날짜 포맷", "日付フォーマット"), t(
+				"date format to parse date and time strings. e.g. yyyy-MM-dd HH:mm:ss",
+				"날짜 및 시각 문자열을 파싱하는데 사용할 포맷. 예) yyyy-MM-dd HH:mm:ss", "日付と時刻を解析するフォーマット。例) yyyy-MM-dd HH:mm:ss"), false);
+
+		LoggerConfigOption dateLocale = new StringConfigType("date_locale", t("Date locale", "날짜 로케일", "日付ロケール"), t(
+				"date locale, e.g. en", "날짜 로케일, 예를 들면 ko", "日付ロケール。例えばjp"), false);
+
+		LoggerConfigOption timezone = new StringConfigType("timezone", t("Time zone", "시간대", "時間帯"), t(
+				"time zone, e.g. EST or America/New_york ", "시간대, 예를 들면 KST 또는 Asia/Seoul", "時間帯。例えばJSTまたはAsia/Tokyo"), false);
+
+		LoggerConfigOption newlogRegex = new StringConfigType("newlog_designator", t("Regex for first line", "로그 시작 정규식",
+				"ログ始め正規表現"), t("Regular expression to determine whether the line is start of new log."
+				+ "(if a line does not matches, the line will be merged to prev line.).",
+				"새 로그의 시작을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "新しいログの始まりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)"), false);
+
+		LoggerConfigOption newlogEndRegex = new StringConfigType("newlog_end_designator", t("Regex for last line", "로그 끝 정규식",
+				"ログ終わり正規表現"), t("Regular expression to determine whether the line is end of new log."
+				+ "(if a line does not matches, the line will be merged to prev line.).",
+				"로그의 끝을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "ログの終わりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)"), false);
+
+		LoggerConfigOption charset = new StringConfigType("charset", t("Charset", "문자 집합", "文字セット"), t("charset encoding",
+				"텍스트 파일의 문자 인코딩 방식", "テキストファイルの文字エンコーディング方式"), false);
+
+		LoggerConfigOption recursive = new StringConfigType("recursive", t("Recursive", "하위 디렉터리 포함", "再帰"), t(
+				"Include sub-directories. default is false", "하위 디렉터리 포함 여부, 기본값 false", "下位ディレクトリを含む。基本値はfalse"), false);
+
+		LoggerConfigOption fileTag = new StringConfigType("file_tag", t("Filename Tag", "파일네임 태그", "ファイル名タグ"), t(
+				"Field name for filename tagging", "파일명을 태깅할 필드 이름", "ファイル名をタギングするフィールド名"), false);
+
+		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, timezone, newlogRegex,
+				newlogEndRegex, charset, recursive, fileTag);
+	}
+
+	private Map<Locale, String> t(String enText, String koText, String jpText) {
+		Map<Locale, String> m = new HashMap<Locale, String>();
+		m.put(Locale.ENGLISH, enText);
+		m.put(Locale.KOREAN, koText);
+		m.put(Locale.JAPANESE, jpText);
+		return m;
+	}
+
+	@Override
+	protected Logger createLogger(LoggerSpecification spec) {
+		return new RecursiveDirectoryWatchLogger(spec, this);
+	}
+
+	@Override
+	public void deleteLogger(String namespace, String name) {
+		super.deleteLogger(namespace, name);
+
+		// delete lastpos file
+		File dataDir = new File(System.getProperty("araqne.data.dir"), "araqne-logapi-nio");
+		File f = new File(dataDir, "recursive-dirwatch-" + name + ".lastlog");
+		f.delete();
+	}
+}
