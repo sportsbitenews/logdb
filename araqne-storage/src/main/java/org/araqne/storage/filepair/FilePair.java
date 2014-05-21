@@ -176,22 +176,11 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 			if (indexPos != ifile.length())
 				throw new CannotAppendBlockException("unexpected index block position" + indexPos + " (expected: " + ifile.length() + ")");
 
-			dataStream = dfile.newOutputStream(false);
-			indexStream = ifile.newOutputStream(false);
+			dataStream = dfile.newOutputStream(true);
+			rawDataBlock.serialize(dataStream);
 
-			if (dataStream instanceof LocalFileOutputStream && indexStream instanceof LocalFileOutputStream) {
-				LocalFileOutputStream lDataStream = (LocalFileOutputStream) dataStream;
-				LocalFileOutputStream lIndexStream = (LocalFileOutputStream) indexStream;
-
-				lDataStream.seek(indexBlock.getPosOnData());
-				rawDataBlock.serialize(lDataStream);
-
-				lIndexStream.seek(getIndexFileHeaderLength() + indexBlock.getBlockSize() * indexBlock.getId());
-				indexBlock.serialize(lIndexStream);
-			} else {
-				throw new UnsupportedOperationException("the operation for non-local file is not supported yet");
-			}
-
+			indexStream = ifile.newOutputStream(true);
+			indexBlock.serialize(indexStream);
 		} finally {
 			StorageUtil.ensureClose(dataStream);
 			StorageUtil.ensureClose(indexStream);
