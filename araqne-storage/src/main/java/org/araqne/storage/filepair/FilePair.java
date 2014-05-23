@@ -88,6 +88,9 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 	
 	public abstract int getIndexBlockCount() throws IOException;
 	
+	// assume index block size is fixed
+	public abstract int getIndexBlockSize();
+	
 	public abstract IB getIndexBlock(int id) throws IOException;
 
 	public CloseableEnumeration<IB> getIndexBlocks(Class<IB> ibClass) throws IOException {
@@ -185,7 +188,41 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 			StorageUtil.ensureClose(dataStream);
 			StorageUtil.ensureClose(indexStream);
 		}
+	}
+	
+	public void truncate(int remainingBlockCount) throws IOException {
+		if (remainingBlockCount < 0)
+			throw new IllegalArgumentException("block count cannot be negative");
+		
+		if (getIndexBlockCount() == 0)
+			return;
+		
+		long ilen = getIndexFileHeaderLength() + getIndexBlockSize() * remainingBlockCount;
+		if (ifile.length() <= ilen)
+			return;
+		
+		IB firstRemoveBlock = getIndexBlock(remainingBlockCount);
+		long dlen = firstRemoveBlock.getPosOnData();
 
+		StorageOutputStream dataStream = null;
+		StorageOutputStream indexStream = null;
+		try {
+			dataStream = dfile.newOutputStream(false);
+			indexStream = ifile.newOutputStream(false);
+
+			if (dataStream instanceof LocalFileOutputStream && indexStream instanceof LocalFileOutputStream) {
+				LocalFileOutputStream lDataStream = (LocalFileOutputStream) dataStream;
+				LocalFileOutputStream lIndexStream = (LocalFileOutputStream) indexStream;
+				lIndexStream.setLength(ilen);
+				lDataStream.setLength(dlen);
+			} else {
+				throw new UnsupportedOperationException("the operation for non-local file is not supported yet");
+			}
+
+		} finally {
+			StorageUtil.ensureClose(dataStream);
+			StorageUtil.ensureClose(indexStream);
+		}
 	}
 	
 	public static String calcHash(ByteBuffer bb) {
