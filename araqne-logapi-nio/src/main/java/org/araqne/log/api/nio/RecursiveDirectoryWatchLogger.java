@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,21 +19,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchEvent.Kind;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,11 +39,8 @@ import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.MultilineLogExtractor;
 
 public class RecursiveDirectoryWatchLogger extends AbstractLogger {
-	private static final Kind<?>[] EVENTS = new Kind[] { StandardWatchEventKinds.ENTRY_CREATE,
-			StandardWatchEventKinds.ENTRY_MODIFY };
 
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RecursiveDirectoryWatchLogger.class.getName());
-	protected File dataDir;
 	protected String basePath;
 	protected Pattern fileNamePattern;
 	private Receiver receiver = new Receiver();
@@ -61,15 +48,10 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 	private String fileTag;
 
 	private MultilineLogExtractor extractor;
-	private FileSystem fs;
-	private Path root;
-	private WatchService ws;
 
 	public RecursiveDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
 
-		dataDir = new File(System.getProperty("araqne.data.dir"), "araqne-logapi-nio");
-		dataDir.mkdirs();
 		basePath = getConfigs().get("base_path");
 
 		String fileNameRegex = getConfigs().get("filename_pattern");
@@ -116,44 +98,12 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 		extractor.setCharset(charset);
 
-		try {
-			this.fs = FileSystems.getDefault();
-			this.root = fs.getPath(dataDir.getAbsolutePath());
-			this.ws = fs.newWatchService();
-			Files.walkFileTree(root, new DirectoryRegister());
-		} catch (IOException e) {
-			throw new IllegalStateException("araqne-logapi-nio: cannot create logger [" + getFullName() + "]", e);
-		}
 	}
 
 	@Override
 	protected void runOnce() {
 		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
-		WatchKey wk = null;
-		while ((wk = ws.poll()) != null) {
-			for (WatchEvent<?> evt : wk.pollEvents()) {
-				Path p = fs.getPath(wk.watchable().toString(), evt.context().toString());
-				File f = p.toFile();
 
-				if (evt.kind().equals(StandardWatchEventKinds.ENTRY_CREATE)) {
-					if (f.isDirectory()) {
-						try {
-							logger.info("araqne-logapi-nio: logger [" + getFullName() + "] watching directory ["
-									+ f.getAbsolutePath() + "]");
-							p.register(ws, EVENTS);
-						} catch (IOException e) {
-							logger.error("araqne-logapi-nio: logger [" + getFullName() + "] failed to watching directory ["
-									+ f.getAbsolutePath() + "]");
-						}
-					}
-				} else if (evt.kind().equals(StandardWatchEventKinds.ENTRY_MODIFY)) {
-					if (f.isFile() && fileNamePattern.matcher(f.getName()).matches()) {
-						processFile(lastPositions, f);
-					}
-				}
-			}
-			wk.reset();
-		}
 		setStates(LastPositionHelper.serialize(lastPositions));
 	}
 
@@ -167,7 +117,7 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 			if (fileNameDateMatcher.find()) {
 				int fileNameGroupCount = fileNameDateMatcher.groupCount();
 				if (fileNameGroupCount > 0) {
-					StringBuffer sb = new StringBuffer();
+					StringBuilder sb = new StringBuilder();
 					for (int i = 1; i <= fileNameGroupCount; ++i) {
 						sb.append(fileNameDateMatcher.group(i));
 					}
@@ -228,37 +178,34 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 		@Override
 		public void onLogBatch(Logger logger, Log[] logs) {
-			for (Log log : logs) {
-				if (fileTag != null)
+			if (fileTag != null) {
+				for (Log log : logs) {
 					log.getParams().put(fileTag, filename);
+				}
 			}
 			writeBatch(logs);
 		}
 	}
 
-	private class DirectoryRegister implements FileVisitor<Path> {
+	private class ChangeDetector implements FileEventListener {
+
+		private Set<File> changedFiles = new HashSet<File>();
+		private Set<File> deletedFiles = new HashSet<File>();
+
 		@Override
-		public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-			return FileVisitResult.CONTINUE;
+		public void onCreate(File file) {
+			changedFiles.add(file);
 		}
 
 		@Override
-		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-			if (!recursive && !dir.equals(root))
-				return FileVisitResult.SKIP_SUBTREE;
-			logger.info("araqne-logapi-nio: logger [" + getFullName() + "] watching directory [" + dir.toString() + "]");
-			dir.register(ws, EVENTS);
-			return FileVisitResult.CONTINUE;
+		public void onDelete(File file) {
+			changedFiles.remove(file);
+			deletedFiles.add(file);
 		}
 
 		@Override
-		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-			return FileVisitResult.CONTINUE;
-		}
-
-		@Override
-		public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-			return FileVisitResult.CONTINUE;
+		public void onModify(File file) {
+			changedFiles.add(file);
 		}
 	}
 }

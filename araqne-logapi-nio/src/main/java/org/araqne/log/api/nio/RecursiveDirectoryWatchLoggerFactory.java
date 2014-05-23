@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,6 @@
  */
 package org.araqne.log.api.nio;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -122,15 +121,5 @@ public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory 
 	@Override
 	protected Logger createLogger(LoggerSpecification spec) {
 		return new RecursiveDirectoryWatchLogger(spec, this);
-	}
-
-	@Override
-	public void deleteLogger(String namespace, String name) {
-		super.deleteLogger(namespace, name);
-
-		// delete lastpos file
-		File dataDir = new File(System.getProperty("araqne.data.dir"), "araqne-logapi-nio");
-		File f = new File(dataDir, "recursive-dirwatch-" + name + ".lastlog");
-		f.delete();
 	}
 }
