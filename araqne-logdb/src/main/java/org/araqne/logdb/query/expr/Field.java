@@ -21,6 +21,11 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
+/**
+ * @since 2.2.12
+ * @author xeraph
+ *
+ */
 public class Field implements Expression {
 
 	private Expression expr;
