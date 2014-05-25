@@ -114,8 +114,12 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		callbackSet = new CallbackSet();
 		tableNameCache = new ConcurrentHashMap<String, Integer>();
 
-		logDir = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
-		logDir = storageManager.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, logDir.getAbsolutePath()));
+		logDir =
+				storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath(
+						"araqne-logstorage/log");
+		logDir =
+				storageManager.resolveFilePath(getStringParameter(
+						Constants.LogStorageDirectory, logDir.getAbsolutePath()));
 		logDir.mkdirs();
 		DatapathUtil.setLogDir(logDir);
 
@@ -208,7 +212,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		}
 
 		writerSweeper.doStop = true;
-		synchronized(writerSweeper) {
+		synchronized (writerSweeper) {
 			writerSweeper.notifyAll();
 		}
 
@@ -547,9 +551,21 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 	@Override
 	public void purge(String tableName, Date day) {
+		purge(tableName, day, false);
+	}
+
+	@Override
+	public void purge(String tableName, Date day, boolean skipArgCheck) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 		FilePath dir = getTableDirectory(tableName);
+
+		if (!skipArgCheck) {
+			ReplicaStorageConfig config = ReplicaStorageConfig.parseTableSchema(schema);
+			if (config != null && config.mode() != ReplicationMode.ACTIVE)
+				throw new IllegalArgumentException(
+						"specified table has replica storage config and cannot purge non-active table");
+		}
 
 		// evict online buffer and close
 		OnlineWriter writer = onlineWriters.remove(new OnlineWriterKey(tableName, day, schema.getId()));
@@ -574,7 +590,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T> CopyOnWriteArraySet<T> getCallbacks(ConcurrentMap<Class<?>, CopyOnWriteArraySet<?>> callbackSets, Class<T> class1) {
+	public static <T> CopyOnWriteArraySet<T> getCallbacks(
+			ConcurrentMap<Class<?>, CopyOnWriteArraySet<?>> callbackSets, Class<T> class1) {
 		CopyOnWriteArraySet<?> result = callbackSets.get(class1);
 		if (result == null) {
 			result = new CopyOnWriteArraySet<T>();
@@ -672,8 +689,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
 		String logFileType = schema.getPrimaryStorage().getType();
-		LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getMetadata(), tableName, indexPath, dataPath,
-				keyPath);
+		LogFileServiceV2.Option options =
+				new LogFileServiceV2.Option(schema.getMetadata(), tableName, indexPath, dataPath,
+						keyPath);
 		options.put("day", day);
 		LogFileReader reader = newReader(onlineWriter, tableName, logFileType, options);
 
@@ -791,7 +809,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 	@Override
 	public void flush() {
-		synchronized(writerSweeper) {
+		synchronized (writerSweeper) {
 			writerSweeper.setFlushAll(true);
 			writerSweeper.notifyAll();
 		}
@@ -886,7 +904,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 						if (doStop)
 							break;
 
-						synchronized(this) {
+						synchronized (this) {
 							this.wait(checkInterval);
 						}
 						sweep();
@@ -911,7 +929,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				// periodic log flush
 				for (OnlineWriterKey key : onlineWriters.keySet()) {
 					OnlineWriter writer = onlineWriters.get(key);
-					boolean doFlush = writer.isCloseReserved() || ((now - writer.getLastFlush().getTime()) > flushInterval);
+					boolean doFlush =
+							writer.isCloseReserved() || ((now - writer.getLastFlush().getTime()) > flushInterval);
 					doFlush = flushAll ? true : doFlush;
 					if (doFlush) {
 						try {
@@ -1140,7 +1159,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 					while (li.hasPrevious()) {
 						Log logData = li.previous();
 						onlineMinId = logData.getId(); // reversed traversing
-						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
+						if ((from == null || !logData.getDate().before(from))
+								&& (to == null || logData.getDate().before(to))
 								&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
 							List<Log> result = null;
 							try {
@@ -1160,8 +1180,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			}
 
 			String logFileType = schema.getPrimaryStorage().getType();
-			LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getMetadata(), tableName, indexPath, dataPath,
-					keyPath);
+			LogFileServiceV2.Option options =
+					new LogFileServiceV2.Option(schema.getMetadata(), tableName, indexPath, dataPath,
+							keyPath);
 			options.put("day", day);
 			reader = newReader(onlineWriter, tableName, logFileType, options);
 
@@ -1198,7 +1219,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		return !c.isEof();
 	}
 
-	private LogFileReader newReader(OnlineWriter onlineWriter, String tableName, String logFileType, Map<String, Object> options) {
+	private LogFileReader newReader(
+			OnlineWriter onlineWriter, String tableName, String logFileType, Map<String, Object> options) {
 		if (onlineWriter != null) {
 			try {
 				onlineWriter.sync();
@@ -1261,7 +1283,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				monitors.add(monitor);
 			}
 		}
-		synchronized(writerSweeper) {
+		synchronized (writerSweeper) {
 			writerSweeper.notifyAll();
 		}
 		try {

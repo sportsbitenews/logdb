@@ -154,4 +154,6 @@ public interface LogStorage {
 	boolean tryWrite(List<Log> log, long timeout, TimeUnit unit);
 
 	LockStatus lockStatus(LockKey storageLockKey);
+
+	void purge(String tableName, Date day, boolean skipArgCheck);
 }
