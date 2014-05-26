@@ -56,6 +56,9 @@ public class StatsParser extends AbstractQueryCommandParser {
 			fields.add(field);
 		}
 
+		if (fields.isEmpty())
+			throw new QueryParseException("missing-stats-function", -1);
+
 		return new Stats(fields, pr.clauses);
 	}
 

@@ -1,7 +1,6 @@
 package org.araqne.logdb.impl;
 
 import java.lang.reflect.Constructor;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,6 +25,7 @@ import org.araqne.logdb.query.expr.DateDiff;
 import org.araqne.logdb.query.expr.DateTrunc;
 import org.araqne.logdb.query.expr.Epoch;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.Field;
 import org.araqne.logdb.query.expr.Floor;
 import org.araqne.logdb.query.expr.Guid;
 import org.araqne.logdb.query.expr.If;
@@ -145,6 +145,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("ip2long", Ip2Long.class);
 			define("long2ip", Long2Ip.class);
 			define("round", Round.class);
+			define("field", Field.class);
 			define("floor", Floor.class);
 			define("ceil", Ceil.class);
 			define("split", Split.class);

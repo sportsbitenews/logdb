@@ -177,6 +177,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new LogdbParser(metadataService));
 		parsers.add(new LogCheckParser(tableRegistry, storage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService, resultFactory));
+		parsers.add(new UnionParser(queryParserService));
 		parsers.add(new ImportParser(tableRegistry, storage));
 		parsers.add(new ParseParser(parserRegistry));
 		parsers.add(new LoadParser(savedResultManager));
@@ -282,24 +283,42 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
-		setJoinDependencies(query.getCommands());
+		setJoinAndUnionDependencies(query.getCommands());
 
 		new Thread(query, "Query " + id).start();
 		invokeCallbacks(query, QueryStatus.STARTED);
 	}
 
-	private void setJoinDependencies(List<QueryCommand> commands) {
+	private void setJoinAndUnionDependencies(List<QueryCommand> commands) {
 		List<QueryCommand> joinCmds = new ArrayList<QueryCommand>();
+		List<QueryCommand> unionCmds = new ArrayList<QueryCommand>();
 
-		for (QueryCommand cmd : commands)
+		for (QueryCommand cmd : commands) {
 			if (cmd.getName().equals("join"))
 				joinCmds.add(cmd);
+
+			if (cmd.getName().equals("union"))
+				unionCmds.add(cmd);
+		}
 
 		for (QueryCommand cmd : commands) {
 			if (cmd.isDriver() && !cmd.getName().equals("join") && cmd.getMainTask() != null) {
 				for (QueryCommand join : joinCmds)
 					cmd.getMainTask().addDependency(join.getMainTask());
 			}
+
+			if (cmd.isDriver() && !cmd.getName().equals("join") && !cmd.getName().equals("union") && cmd.getMainTask() != null) {
+				for (QueryCommand union : unionCmds)
+					union.getMainTask().addDependency(cmd.getMainTask());
+			}
+		}
+
+		QueryCommand prevUnion = null;
+		for (QueryCommand union : unionCmds) {
+			if (prevUnion != null)
+				union.getMainTask().addDependency(prevUnion.getMainTask());
+
+			prevUnion = union;
 		}
 	}
 
