@@ -25,7 +25,7 @@ public class GzipDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "GZIP ディレクトリウォッチャー";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "GZIP目录监控器";
+			return "GZIP目录监控";
 		return "GZIP Directory Watcher";
 	}
 

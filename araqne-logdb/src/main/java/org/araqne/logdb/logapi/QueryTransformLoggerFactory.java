@@ -80,7 +80,7 @@ public class QueryTransformLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "원본 로거에서 수집되는 로그를 대상으로 쿼리를 평가한 결과를 로그로 발생시킵니다.";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "基于原始Logger采集的日志分析结果产生日志。";
+			return "基于原始数据采集器采集的数据分析结果产生数据。";
 		return "Generate log using logdb query evaluation per log";
 	}
 
@@ -91,8 +91,8 @@ public class QueryTransformLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption sourceLogger = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "原始Logger名称"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름","包含命名空间的原始Looger名称"), true);
+		LoggerConfigOption sourceLogger = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "原始数据采集器名称"), t(
+				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름","包含命名空间的原始数据采集器名称"), true);
 
 		LoggerConfigOption querystring = new StringConfigType("querystring", t("Query string", "쿼리 문자열", "查询字符串"), t(
 				"Configure query string to evaluating and transforming input log data",

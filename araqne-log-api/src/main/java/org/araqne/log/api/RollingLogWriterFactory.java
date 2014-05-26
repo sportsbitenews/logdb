@@ -71,7 +71,7 @@ public class RollingLogWriterFactory extends AbstractLoggerFactory implements Ru
 		if (locale.equals(Locale.JAPANESE))
 			return "実時間でローリングログファイルを作ります。";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "实时生成轮询日志文件。";
+			return "包含名字空间的原始数据采集器名称";
 		return "write rolling log file";
 	}
 

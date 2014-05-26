@@ -63,7 +63,7 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "他のロガーから正規表現がマッチングされるログだけ収集します。";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "从其他日志筛选采集符合正则表达式特征的日志。";
+			return "从其他日志筛选采集符合正则表达式特征的数据。";
 		return "select logs from logger using regular expression pattern matching";
 	}
 
@@ -74,8 +74,8 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름", "元ロガー名","原始Logger名称"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名","包含命名空间的原始Logger名称"), true);
+		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름", "元ロガー名","原始数据采集器名称"), t(
+				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名","包含命名空间的原始数据采集器名称"), true);
 		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Regex pattern", "정규표현식 패턴", "正規表現パターン","正则表达式模式"), t(
 				"Regex pattern to match", "매칭할 정규표현식", "マッチングする正規表現", "要匹配的正则表达式"), true);
 		LoggerConfigOption invert = new StringConfigType(OPT_INVERT, t("Invert match", "매칭 결과 반전", "結果反転","返回匹配结果"), t(

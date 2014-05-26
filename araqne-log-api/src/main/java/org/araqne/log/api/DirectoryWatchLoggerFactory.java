@@ -41,7 +41,7 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "ディレクトリウォッチャー";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "目录监控器";
+			return "目录监控";
 
 		return "Directory Watcher";
 	}

@@ -46,7 +46,7 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "ログセレクター";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "日志选择器";
+			return "数据选择器";
 		return "Log Selector";
 	}
 
@@ -62,7 +62,7 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "他のロガーからパターンマッチングされる特定ログだけ収集します。";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "从其他Logger采集符合指定特征的日志。";
+			return "包含名字空间的原始数据采集器名称";
 		return "select logs from logger using text matching";
 	}
 
