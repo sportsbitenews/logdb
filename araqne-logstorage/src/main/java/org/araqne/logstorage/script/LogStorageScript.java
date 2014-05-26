@@ -1113,7 +1113,7 @@ public class LogStorageScript implements Script {
 	public void _lockStatus(String[] args) {
 		LockStatus status = storage.lockStatus(new LockKey("script", args[0], null));
 		if(status.isLocked()) 
-			context.printf("locked(owner: %s)\n", status.getOwner());
+			context.printf("locked(owner: %s, reentrant_cnt: %d)\n", status.getOwner(), status.getReentrantCount());
 		else
 			context.printf("unlocked\n");
 	}

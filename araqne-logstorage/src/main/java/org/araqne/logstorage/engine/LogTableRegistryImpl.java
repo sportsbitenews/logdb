@@ -431,7 +431,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 		if (tableLock != null) {
 			String owner = tableLock.getOwner();
 			if (owner != null)
-				return new LockStatus(owner, tableLock.availableShared());
+				return new LockStatus(owner, tableLock.availableShared(), tableLock.getReentrantCount());
 			else
 				return new LockStatus(tableLock.availableShared());
 		} else {

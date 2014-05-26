@@ -52,7 +52,7 @@ public class TableLockTest {
 			@Override
 			public LockStatus answer(InvocationOnMock inv) throws Throwable {
 				LockKey key = (LockKey) inv.getArguments()[0];
-				return new LockStatus(lock.getOwner(), lock.availableShared());
+				return new LockStatus(lock.getOwner(), lock.availableShared(), lock.getReentrantCount());
 			}
 		});
 		

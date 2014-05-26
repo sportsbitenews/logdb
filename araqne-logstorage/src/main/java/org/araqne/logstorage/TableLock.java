@@ -219,4 +219,8 @@ public class TableLock {
 		return owner;
 	}
 
+	public int getReentrantCount() {
+		return holdCount;
+	}
+
 }

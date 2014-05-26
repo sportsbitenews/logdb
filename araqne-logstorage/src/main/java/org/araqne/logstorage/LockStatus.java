@@ -4,19 +4,22 @@ public class LockStatus {
 	boolean locked;
 	String owner;
 	int availableShared;
+	int reentrantCount;
 	
-	public LockStatus(String owner, int availableShared) {
+	public LockStatus(String owner, int availableShared, int reentrantCount) {
 		this.locked = true;
 		this.owner = owner;
 		this.availableShared = availableShared;
+		this.reentrantCount = reentrantCount;
 	}
 	
-	public LockStatus(int availableShared) {
+	public LockStatus(int availabledShared) {
 		this.locked = false;
 		this.owner = null;
-		this.availableShared = availableShared;
+		this.availableShared = availabledShared;
+		this.reentrantCount = 0;
 	}
-
+	
 	public boolean isLocked() {
 		return locked;
 	}
@@ -27,6 +30,10 @@ public class LockStatus {
 	
 	public int getAvailableShared() {
 		return availableShared;
+	}
+	
+	public int getReentrantCount() {
+		return reentrantCount;
 	}
 
 }
