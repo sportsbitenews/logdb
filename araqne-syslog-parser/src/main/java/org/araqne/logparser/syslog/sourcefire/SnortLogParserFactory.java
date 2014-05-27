@@ -35,25 +35,29 @@ public class SnortLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "스노트";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "Snort";
 		return "Snort";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "스노트 로그에서 출발지, 목적지, 프로토콜, 룰, 메시지를 추출합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "提取Snort日志中的源地址、目的地址、协议、规则及消息。";
 		return "Create snort log parser";
 	}
 

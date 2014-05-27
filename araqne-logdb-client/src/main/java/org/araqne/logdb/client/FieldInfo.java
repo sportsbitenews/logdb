@@ -15,7 +15,14 @@
  */
 package org.araqne.logdb.client;
 
+/**
+ * 테이블 스키마를 구성하는 개별 필드의 정보를 표현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class FieldInfo {
+
 	private String name;
 	private String type;
 
@@ -35,26 +42,59 @@ public class FieldInfo {
 		this.length = length;
 	}
 
+	/**
+	 * 필드 이름을 반환합니다.
+	 * 
+	 * @return 필드 이름
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * 필드 이름을 설정합니다.
+	 * 
+	 * @param name
+	 *            필드 이름
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}
 
+	/**
+	 * 필드 타입을 반환합니다.
+	 * 
+	 * @return 필드 타입
+	 */
 	public String getType() {
 		return type;
 	}
 
+	/**
+	 * 필드 타입을 설정합니다.
+	 * 
+	 * @param type
+	 *            필드 타입
+	 */
 	public void setType(String type) {
 		this.type = type;
 	}
 
+	/**
+	 * 필드 길이를 반환합니다.
+	 * 
+	 * @return 필드 길이
+	 */
 	public int getLength() {
 		return length;
 	}
 
+	/**
+	 * 필드 길이를 설정합니다.
+	 * 
+	 * @param length
+	 *            필드 길이
+	 */
 	public void setLength(int length) {
 		this.length = length;
 	}

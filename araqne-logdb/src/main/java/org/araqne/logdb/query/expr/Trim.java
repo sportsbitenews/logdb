@@ -17,12 +17,13 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 public class Trim implements Expression {
 	private Expression expr;
 
-	public Trim(List<Expression> exprs) {
+	public Trim(QueryContext ctx, List<Expression> exprs) {
 		this.expr = exprs.get(0);
 	}
 

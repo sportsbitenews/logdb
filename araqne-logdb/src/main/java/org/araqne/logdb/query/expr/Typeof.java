@@ -6,12 +6,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 public class Typeof implements Expression {
 	private Expression expr;
 
-	public Typeof(List<Expression> exprs) {
+	public Typeof(QueryContext ctx, List<Expression> exprs) {
 		expr = exprs.get(0);
 	}
 

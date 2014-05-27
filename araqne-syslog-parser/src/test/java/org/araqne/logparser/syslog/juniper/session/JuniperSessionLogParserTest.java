@@ -42,14 +42,14 @@ public class JuniperSessionLogParserTest {
 				{"policy_id","45"},
 				{"service","icmp"},
 				{"proto","1"},
-				{"src zone","Untrust"},
-				{"dst zone","Trust"},
+				{"src_zone","Untrust"},
+				{"dst_zone","Trust"},
 				{"action","Deny"},
 				{"sent","0"},
 				{"rcvd","0"},
 				{"src","58.72.190.250"},
 				{"dst","210.99.53.197"},
-				{"icmp type","8"},
+				{"icmp_type","8"},
 				{"session_id","0"}
 		};
 		
@@ -76,20 +76,21 @@ public class JuniperSessionLogParserTest {
 				{"policy_id","45"},
 				{"service","icmp"},
 				{"proto","1"},
-				{"src zone","Untrust"},
-				{"dst zone","Trust"},
+				{"src_zone","Untrust"},
+				{"dst_zone","Trust"},
 				{"action","Deny"},
 				{"sent","0"},
 				{"rcvd","0"},
 				{"src","164.92.250.21"},
 				{"dst","210.99.49.40"},
-				{"icmp type","8"},
+				{"icmp_type","8"},
 				{"session_id","0"}
 		};
 
 		for(String[] keyValue: expectedKeyValues) {
 			expected.put(keyValue[0], keyValue[1]);
 		}
+
 		
 		assertEquals(expected, map);
 	}
@@ -112,8 +113,8 @@ public class JuniperSessionLogParserTest {
 				{"policy_id","80"},
 				{"service","http"},
 				{"proto","6"},
-				{"src zone","Untrust"},
-				{"dst zone","Trust"},
+				{"src_zone","Untrust"},
+				{"dst_zone","Trust"},
 				{"action","Deny"},
 				{"sent","0"},
 				{"rcvd","0"},
@@ -148,8 +149,8 @@ public class JuniperSessionLogParserTest {
 				{"policy_id","11"},
 				{"service","http"},
 				{"proto","6"},
-				{"src zone","Untrust"},
-				{"dst zone","Trust"},
+				{"src_zone","Untrust"},
+				{"dst_zone","Trust"},
 				{"action","Permit"},
 				{"sent","178"},
 				{"rcvd","84"},
@@ -157,10 +158,10 @@ public class JuniperSessionLogParserTest {
 				{"dst","210.99.50.44"},
 				{"src_port","43826"},
 				{"dst_port","80"},
-				{"src-xlated ip","115.89.244.226"},
-				{"src-xlated port","43826"},
-				{"dst-xlated ip","210.99.50.44"},
-				{"dst-xlated port","80"},
+				{"src_xlated_ip","115.89.244.226"},
+				{"src_xlated_port","43826"},
+				{"dst_xlated_ip","210.99.50.44"},
+				{"dst_xlated_port","80"},
 				{"session_id","245093"},
 				{"reason","Close - TCP FIN"}
 		};
@@ -188,8 +189,8 @@ public class JuniperSessionLogParserTest {
 				{"policy_id","10"},
 				{"service","tcp/port:9007"},
 				{"proto","6"},
-				{"src zone","Untrust"},
-				{"dst zone","Trust"},
+				{"src_zone","Untrust"},
+				{"dst_zone","Trust"},
 				{"action","Permit"},
 				{"sent","1745"},
 				{"rcvd","2100"},
@@ -197,10 +198,10 @@ public class JuniperSessionLogParserTest {
 				{"dst","210.99.48.136"},
 				{"src_port","53229"},
 				{"dst_port","9007"},
-				{"src-xlated ip","210.103.83.39"},
-				{"src-xlated port","53229"},
-				{"dst-xlated ip","210.99.48.136"},
-				{"dst-xlated port","9007"},
+				{"src_xlated_ip","210.103.83.39"},
+				{"src_xlated_port","53229"},
+				{"dst_xlated_ip","210.99.48.136"},
+				{"dst_xlated_port","9007"},
 				{"session_id","253584"},
 				{"reason","Close - TCP FIN"}
 		};

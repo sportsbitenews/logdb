@@ -23,11 +23,13 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
-import org.araqne.logdb.QueryParseException;
+import org.apache.felix.ipojo.annotations.Requires;
+import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryCommandPipe;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.query.parser.QueryTokenizer;
@@ -39,6 +41,14 @@ import org.slf4j.LoggerFactory;
 public class QueryParserServiceImpl implements QueryParserService {
 	private final Logger slog = LoggerFactory.getLogger(QueryParserServiceImpl.class);
 	private ConcurrentMap<String, QueryCommandParser> commandParsers = new ConcurrentHashMap<String, QueryCommandParser>();
+
+	@Requires
+	private FunctionRegistry functionRegistry;
+
+	// support unit test
+	public void setFunctionRegistry(FunctionRegistry functionRegistry) {
+		this.functionRegistry = functionRegistry;
+	}
 
 	@Override
 	public QueryCommandParser getCommandParser(String name) {
@@ -104,6 +114,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 
 	@Override
 	public void addCommandParser(QueryCommandParser parser) {
+		parser.setQueryParserService(this);
 		commandParsers.putIfAbsent(parser.getCommandName(), parser);
 	}
 
@@ -111,4 +122,10 @@ public class QueryParserServiceImpl implements QueryParserService {
 	public void removeCommandParser(QueryCommandParser parser) {
 		commandParsers.remove(parser.getCommandName(), parser);
 	}
+
+	@Override
+	public FunctionRegistry getFunctionRegistry() {
+		return functionRegistry;
+	}
+
 }

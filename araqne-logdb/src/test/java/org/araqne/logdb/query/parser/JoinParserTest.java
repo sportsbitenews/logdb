@@ -11,15 +11,18 @@ import java.util.Arrays;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryResultFactory;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.Join;
 import org.araqne.logdb.query.command.Join.JoinType;
 import org.araqne.logdb.query.command.Table;
 import org.araqne.logdb.query.command.Table.TableParams;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.araqne.logdb.query.engine.QueryResultFactoryImpl;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
 import org.araqne.storage.api.URIResolver;
 import org.araqne.storage.localfile.LocalFilePath;
+import org.junit.Before;
 import org.junit.Test;
 
 public class JoinParserTest {
@@ -49,6 +52,15 @@ public class JoinParserTest {
 
 	}
 
+	private QueryParserService queryParserService;
+
+	@Before
+	public void setup() {
+		QueryParserServiceImpl p = new QueryParserServiceImpl();
+		p.setFunctionRegistry(new FunctionRegistryImpl());
+		queryParserService = p;
+	}
+	
 	@Test
 	public void testParse() {
 		String joinCommand = "join ip [ table users ]";
@@ -57,7 +69,10 @@ public class JoinParserTest {
 		QueryResultFactory resultFactory = new QueryResultFactoryImpl(storageManager);
 		resultFactory.start();
 
-		Join join = (Join) new JoinParser(p, resultFactory).parse(null, joinCommand);
+		JoinParser parser = new JoinParser(p, resultFactory);
+		parser.setQueryParserService(p);
+		
+		Join join = (Join) parser.parse(null, joinCommand);
 		assertEquals(JoinType.Inner, join.getType());
 		assertEquals(1, join.getSortFields().length);
 		assertEquals("ip", join.getSortFields()[0].getName());
@@ -69,10 +84,13 @@ public class JoinParserTest {
 	@Test
 	public void testLeftJoinType() {
 		QueryParserService p = prepareMockQueryParser();
+
 		StorageManager storageManager = new LocalStorageManager();
 		QueryResultFactory resultFactory = new QueryResultFactoryImpl(storageManager);
 		resultFactory.start();
-		Join join = (Join) new JoinParser(p, resultFactory).parse(null, "join type=left ip [ table users ]");
+		JoinParser parser = new JoinParser(p, resultFactory);
+		parser.setQueryParserService(p);
+		Join join = (Join) parser.parse(null, "join type=left ip [ table users ]");
 
 		assertEquals(JoinType.Left, join.getType());
 		assertEquals(1, join.getSortFields().length);

@@ -15,10 +15,10 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Limit;
 
 /**
@@ -26,7 +26,7 @@ import org.araqne.logdb.query.command.Limit;
  * @author xeraph
  * 
  */
-public class LimitParser implements QueryCommandParser {
+public class LimitParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {

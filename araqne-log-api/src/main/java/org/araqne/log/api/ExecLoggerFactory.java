@@ -27,7 +27,7 @@ import org.apache.felix.ipojo.annotations.Provides;
 /**
  * @since 2.4.6
  * @author xeraph
- *
+ * 
  */
 @Component(name = "exec-logger-factory")
 @Provides
@@ -40,39 +40,52 @@ public class ExecLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "외부프로그램";
+		if (locale != null && locale.equals(Locale.JAPANESE))
+			return "外部プログラム";
+		if(locale != null && locale.equals(Locale.CHINESE))
+			return "外部程序";
 		return "External Program";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "외부 프로그램의 표준 출력을 로그로 수집합니다.";
+		if (locale != null && locale.equals(Locale.JAPANESE))
+			return "外部プログラムの標準出力をログとして収集します。";
+		if(locale != null && locale.equals(Locale.CHINESE))
+			return "采集外部程序的标准输出内容。";
 		return "Collect standard output of external program";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption command = new StringConfigType("command", t("command", "명령어"), t("command to execute in shell",
-				"쉘에서 실행할 명령어"), true);
+		LoggerConfigOption command = new StringConfigType("command", 
+				t("command", "명령어", "コマンド","命令"), 
+				t("command to execute in shell", "쉘에서 실행할 명령어", 
+						"シェルで実行するコマンド","命令行命令"), true);
+	
 		return Arrays.asList(command);
 	}
 
-	private Map<Locale, String> t(String enText, String koText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
+		m.put(Locale.JAPANESE, jpText);
+		m.put(Locale.CHINESE, cnText);
 		return m;
 	}
 

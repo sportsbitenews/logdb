@@ -28,4 +28,6 @@ public interface QueryParserService {
 	void addCommandParser(QueryCommandParser parser);
 
 	void removeCommandParser(QueryCommandParser parser);
+	
+	FunctionRegistry getFunctionRegistry();
 }

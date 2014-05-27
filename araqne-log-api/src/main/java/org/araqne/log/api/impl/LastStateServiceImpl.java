@@ -110,7 +110,7 @@ public class LastStateServiceImpl implements LastStateService {
 				LastState s = readStateFile(f);
 				states.put(s.getLoggerName(), s);
 			} catch (IOException e) {
-				slog.error("araqne log api: cannot load last state file [{}]", f.getAbsolutePath());
+				slog.error("araqne log api: cannot load last state file [" + f.getAbsolutePath() + "]", e);
 			}
 		}
 	}
@@ -340,7 +340,7 @@ public class LastStateServiceImpl implements LastStateService {
 
 			return PrimitiveConverter.parse(LastState.class, m);
 		} catch (JSONException e) {
-			throw new IOException("invalid json file " + f.getAbsolutePath(), e);
+			throw new IOException("invalid json file [" + f.getAbsolutePath() + "] content [" + json + "]", e);
 		} finally {
 			ensureClose(fis);
 		}

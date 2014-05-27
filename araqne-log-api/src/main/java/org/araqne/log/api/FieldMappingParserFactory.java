@@ -35,39 +35,49 @@ public class FieldMappingParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "필드 이름 변경";
+		if (locale != null && locale.equals(Locale.JAPANESE))
+			return "フィルド名変更";
+		if(locale != null && locale.equals(Locale.CHINESE))
+			return "修改字段名称";
 		return "field mapper";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "필드 이름을 변경합니다.";
+		if (locale != null && locale.equals(Locale.JAPANESE))
+			return "フィルドの名前を変更します。";
+		if(locale != null && locale.equals(Locale.CHINESE))
+			return "修改字段名称。";
 		return "Replace original field name by specified name";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption mappings = new StringConfigType("mappings", t("field mappings", "필드 이름 변환 목록"), t(
-				"comma separated from=to field mappings", "쉼표로 구분되는 원본필드=변경필드 이름 목록"), true);
+		LoggerConfigOption mappings = new StringConfigType("mappings", t("field mappings", "필드 이름 변환 목록", "フィルド名変更リスト", "字段名称转换列表"), t(
+				"comma separated from=to field mappings", "쉼표로 구분되는 원본필드=변경필드 이름 목록", "コンマで区分される元＝変更フィルド名リスト", "以逗号分隔的原始字段=变更字段名称列表"), true);
 		return Arrays.asList(mappings);
 	}
 
-	private Map<Locale, String> t(String enText, String koText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
+		m.put(Locale.JAPANESE, jpText);
+		m.put(Locale.CHINESE, cnText);
 		return m;
 	}
 

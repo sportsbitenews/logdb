@@ -179,6 +179,9 @@ public class CsvLookupRegistryImpl implements CsvLookupRegistry {
 				for (int i = 1; i < nextLine.length; i++)
 					valueFieldNames.add(nextLine[i]);
 
+				if (logger.isDebugEnabled())
+					logger.debug("araqne logdb: key field [{}] value fields [{}]", keyFieldName, valueFieldNames);
+
 				while ((nextLine = reader.readNext()) != null) {
 					Map<String, String> values = new HashMap<String, String>();
 					for (int i = 1; i < nextLine.length; i++) {

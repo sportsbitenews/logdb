@@ -35,19 +35,21 @@ public class DefenseProLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "라드웨어 디펜스프로 로그를 파싱합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "用于解析Radware Defense Pro日志。";
 		return "Radware Defense Pro Log Parser";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "라드웨어 디펜스프로";
 		return "Radware Defense Pro";
 	}

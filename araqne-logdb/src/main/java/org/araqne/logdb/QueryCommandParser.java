@@ -18,5 +18,9 @@ package org.araqne.logdb;
 public interface QueryCommandParser {
 	String getCommandName();
 
+	QueryParserService getQueryParserService();
+
+	void setQueryParserService(QueryParserService queryParserService);
+
 	QueryCommand parse(QueryContext context, String commandString);
 }

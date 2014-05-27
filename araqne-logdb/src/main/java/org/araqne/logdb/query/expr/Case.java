@@ -17,6 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
 
@@ -24,7 +25,7 @@ public class Case implements Expression {
 	private List<Expression> exprs;
 	private Expression defaultExpr;
 
-	public Case(List<Expression> exprs) {
+	public Case(QueryContext ctx, List<Expression> exprs) {
 		this.exprs = exprs;
 		defaultExpr = null;
 		if (exprs.size() % 2 == 1) {

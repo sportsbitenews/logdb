@@ -9,17 +9,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Strings;
 import org.araqne.logdb.query.command.LogCheck;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 
-public class LogCheckParser implements QueryCommandParser {
+public class LogCheckParser extends AbstractQueryCommandParser {
 
 	private LogTableRegistry tableRegistry;
 
@@ -44,7 +44,7 @@ public class LogCheckParser implements QueryCommandParser {
 			throw new QueryParseException("no-permission", -1);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("from", "to"));
+				Arrays.asList("from", "to"), getFunctionRegistry());
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 

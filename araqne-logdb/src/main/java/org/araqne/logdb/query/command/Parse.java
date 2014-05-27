@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 public class Parse extends QueryCommand implements ThreadSafe {
 	private final Logger logger = LoggerFactory.getLogger(Parse.class);
 	private final int parserVersion;
-	private final LogParserInput input = new LogParserInput();
 	private final String parserName;
 	private final LogParser parser;
 	private final boolean overlay;
@@ -107,6 +106,8 @@ public class Parse extends QueryCommand implements ThreadSafe {
 	@Override
 	public void onPush(Row m) {
 		try {
+			LogParserInput input = new LogParserInput();
+
 			if (parserVersion == 2) {
 				Object table = m.get("_table");
 				Object time = m.get("_time");

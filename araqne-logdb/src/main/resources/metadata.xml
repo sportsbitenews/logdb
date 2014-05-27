@@ -15,6 +15,7 @@
 	<instance component="logdb-logcount-metadata" />
 	<instance component="logdb-table-metadata" />
 	<instance component="logdb-logblock-metadata" />
+	<instance component="logdb-logger-metadata" />
 	<instance component="csv-import-script-factory" />
 	<instance component="query-log-parser-factory" />
 	<instance component="saved-result-manager" />
@@ -22,4 +23,5 @@
 	<instance component="query-log-transformer-factory" />
 	<instance component="logdb-query-status-notifier" />
 	<instance component="logdb-query-result-factory" />
+	<instance component="logdb-function-registry" />
 </ipojo>

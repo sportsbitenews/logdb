@@ -18,13 +18,13 @@ package org.araqne.logdb.query.parser;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Fields;
 
-public class FieldsParser implements QueryCommandParser {
+public class FieldsParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {

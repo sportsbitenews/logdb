@@ -22,14 +22,36 @@ import org.araqne.logdb.client.LogDbTransport;
 import org.araqne.logdb.client.http.impl.WebSocketSession;
 
 /**
+ * 메시지버스 RPC 웹 소켓 전송 계층을 구현합니다.
+ * 
  * @since 0.5.0
- * @author xeraph
+ * @author xeraph@eediom.com
  * 
  */
 public class WebSocketTransport implements LogDbTransport {
 
+	private boolean secure;
+
+	/**
+	 * 평문 통신을 수행하는 웹소켓 전송 계층을 생성합니다.
+	 */
+	public WebSocketTransport() {
+		this(false);
+	}
+
+	/**
+	 * 암호화 채널을 통하여 접속하려는 경우 생성자 매개변수를 true로 전달합니다.
+	 * 
+	 * @param secure
+	 *            wss:// 스키마를 사용하는 경우 true
+	 * @since 0.9.7
+	 */
+	public WebSocketTransport(boolean secure) {
+		this.secure = secure;
+	}
+
 	@Override
 	public LogDbSession newSession(String host, int port) throws IOException {
-		return new WebSocketSession(host, port);
+		return new WebSocketSession(host, port, secure);
 	}
 }

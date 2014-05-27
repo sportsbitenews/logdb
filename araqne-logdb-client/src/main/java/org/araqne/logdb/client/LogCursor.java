@@ -19,6 +19,12 @@ import java.io.Closeable;
 import java.util.Iterator;
 import java.util.Map;
 
+/**
+ * 로그 커서는 쿼리 결과를 순회하는 인터페이스를 제공합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public interface LogCursor extends Iterator<Map<String, Object>>, Closeable {
 
 }

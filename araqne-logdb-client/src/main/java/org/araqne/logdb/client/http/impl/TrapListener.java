@@ -17,6 +17,12 @@ package org.araqne.logdb.client.http.impl;
 
 import org.araqne.logdb.client.Message;
 
+/**
+ * 트랩 수신기 인터페이스를 정의합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public interface TrapListener {
 	void onTrap(Message msg);
 

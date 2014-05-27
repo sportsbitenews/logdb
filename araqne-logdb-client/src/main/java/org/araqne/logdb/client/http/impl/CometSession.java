@@ -27,6 +27,12 @@ import org.araqne.logdb.client.MessageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * HTTP 롱 폴링을 이용하여 아라크네 메시지버스 RPC 통신을 구현합니다.
+ * 
+ * @author xeraph@eediom.com
+ * @deprecated
+ */
 public class CometSession extends AbstractLogDbSession implements TrapListener {
 	private final Logger logger = LoggerFactory.getLogger(CometSession.class);
 	private String host;

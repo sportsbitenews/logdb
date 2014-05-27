@@ -15,13 +15,20 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.List;
+
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class Abs implements Expression {
 	private Expression expr;
 
-	public Abs(Expression expr) {
-		this.expr = expr;
+	public Abs(QueryContext ctx, List<Expression> exprs) {
+		if (exprs.size() != 1)
+			throw new QueryParseException("invalid-abs-args", -1);
+
+		this.expr = exprs.get(0);
 	}
 
 	@Override

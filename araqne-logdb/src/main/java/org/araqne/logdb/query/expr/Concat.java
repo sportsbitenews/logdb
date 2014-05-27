@@ -17,13 +17,14 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
 
 public class Concat implements Expression {
 	private List<Expression> exprs;
 
-	public Concat(List<Expression> exprs) {
+	public Concat(QueryContext ctx, List<Expression> exprs) {
 		this.exprs = exprs;
 	}
 

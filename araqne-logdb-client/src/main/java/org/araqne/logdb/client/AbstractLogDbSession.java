@@ -23,8 +23,10 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import org.araqne.logdb.client.http.impl.TrapListener;
 
 /**
+ * 이 추상 클래스는 공통적인 로그 DB 세션의 기능을 구현합니다.
+ * 
  * @since 0.5.0
- * @author xeraph
+ * @author xeraph@eediom.com
  * 
  */
 public abstract class AbstractLogDbSession implements LogDbSession {

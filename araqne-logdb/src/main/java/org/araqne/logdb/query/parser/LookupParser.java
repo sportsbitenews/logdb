@@ -17,14 +17,14 @@ package org.araqne.logdb.query.parser;
 
 import java.util.List;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Lookup;
 
-public class LookupParser implements QueryCommandParser {
+public class LookupParser extends AbstractQueryCommandParser {
 	private LookupHandlerRegistry registry;
 
 	public LookupParser(LookupHandlerRegistry registry) {

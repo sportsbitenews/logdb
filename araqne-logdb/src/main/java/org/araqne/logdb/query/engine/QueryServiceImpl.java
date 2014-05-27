@@ -37,8 +37,13 @@ import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerRegistry;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.DefaultQuery;
+import org.araqne.logdb.FunctionRegistry;
+import org.araqne.logdb.QueryResultFactory;
+import org.araqne.logdb.QueryScriptRegistry;
+import org.araqne.logdb.QueryService;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.Query;
@@ -83,9 +88,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	private AccountService accountService;
 
 	@Requires
-	private LogStorage logStorage;
-
-	@Requires
 	private LogTableRegistry tableRegistry;
 
 	@Requires
@@ -121,6 +123,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	@Requires
 	private QueryResultFactory resultFactory;
 
+	@Requires
+	private FunctionRegistry functionRegistry;
+
 	private BundleContext bc;
 	private ConcurrentMap<Integer, Query> queries;
 
@@ -129,6 +134,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	private List<QueryCommandParser> queryParsers;
 
 	private List<QueryPlanner> planners;
+
+	private boolean allowQueryPurge = false;
 
 	public QueryServiceImpl(BundleContext bc) {
 		this.bc = bc;
@@ -140,19 +147,21 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		File dir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query");
 		dir.mkdirs();
 
+		allowQueryPurge = Boolean.parseBoolean(System.getProperty("araqne.logdb.allowpurge"));
+
 		prepareQueryParsers();
 	}
 
 	private void prepareQueryParsers() {
 		@SuppressWarnings("unchecked")
-		List<Class<? extends QueryCommandParser>> parserClazzes = Arrays.asList(DropParser.class, SearchParser.class,
-				StatsParser.class, FieldsParser.class, SortParser.class, TimechartParser.class, RenameParser.class,
-				EvalParser.class, RexParser.class, JsonParser.class, SignatureParser.class, LimitParser.class, SetParser.class,
-				EvalcParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class, ExplodeParser.class,
-				ParseJsonParser.class);
+		List<Class<? extends AbstractQueryCommandParser>> parserClazzes = Arrays.asList(DropParser.class, EvalParser.class,
+				EvalcParser.class, SearchParser.class, StatsParser.class, FieldsParser.class, SortParser.class,
+				TimechartParser.class, RenameParser.class, RexParser.class, JsonParser.class, SignatureParser.class,
+				LimitParser.class, SetParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class,
+				ExplodeParser.class, ParseJsonParser.class);
 
 		List<QueryCommandParser> parsers = new ArrayList<QueryCommandParser>();
-		for (Class<? extends QueryCommandParser> clazz : parserClazzes) {
+		for (Class<? extends AbstractQueryCommandParser> clazz : parserClazzes) {
 			try {
 				parsers.add(clazz.newInstance());
 			} catch (Exception e) {
@@ -161,7 +170,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		}
 
 		// add table and lookup (need some constructor injection)
-		parsers.add(new TableParser(accountService, logStorage, tableRegistry, parserFactoryRegistry, parserRegistry));
+		parsers.add(new TableParser(accountService, storage, tableRegistry, parserFactoryRegistry, parserRegistry));
 		parsers.add(new LookupParser(lookupRegistry));
 		parsers.add(new ScriptParser(bc, scriptRegistry));
 		parsers.add(new TextFileParser(parserFactoryRegistry));
@@ -171,14 +180,17 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new OutputJsonParser());
 		parsers.add(new OutputTxtParser());
 		parsers.add(new LogdbParser(metadataService));
-		parsers.add(new LogCheckParser(tableRegistry, logStorage, fileServiceRegistry));
+		parsers.add(new LogCheckParser(tableRegistry, storage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService, resultFactory));
-		parsers.add(new ImportParser(tableRegistry, logStorage));
+		parsers.add(new UnionParser(queryParserService));
+		parsers.add(new ImportParser(tableRegistry, storage));
 		parsers.add(new ParseParser(parserRegistry));
 		parsers.add(new LoadParser(savedResultManager));
 		parsers.add(new LoggerParser(loggerRegistry));
 		parsers.add(new MvParser());
 		parsers.add(new ConfdbParser(conf));
+		if (allowQueryPurge)
+			parsers.add(new PurgeParser(storage, tableRegistry));
 
 		this.queryParsers = parsers;
 	}
@@ -276,24 +288,42 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
-		setJoinDependencies(query.getCommands());
+		setJoinAndUnionDependencies(query.getCommands());
 
 		new Thread(query, "Query " + id).start();
 		invokeCallbacks(query, QueryStatus.STARTED);
 	}
 
-	private void setJoinDependencies(List<QueryCommand> commands) {
+	private void setJoinAndUnionDependencies(List<QueryCommand> commands) {
 		List<QueryCommand> joinCmds = new ArrayList<QueryCommand>();
+		List<QueryCommand> unionCmds = new ArrayList<QueryCommand>();
 
-		for (QueryCommand cmd : commands)
+		for (QueryCommand cmd : commands) {
 			if (cmd.getName().equals("join"))
 				joinCmds.add(cmd);
+
+			if (cmd.getName().equals("union"))
+				unionCmds.add(cmd);
+		}
 
 		for (QueryCommand cmd : commands) {
 			if (cmd.isDriver() && !cmd.getName().equals("join") && cmd.getMainTask() != null) {
 				for (QueryCommand join : joinCmds)
 					cmd.getMainTask().addDependency(join.getMainTask());
 			}
+
+			if (cmd.isDriver() && !cmd.getName().equals("join") && !cmd.getName().equals("union") && cmd.getMainTask() != null) {
+				for (QueryCommand union : unionCmds)
+					union.getMainTask().addDependency(cmd.getMainTask());
+			}
+		}
+
+		QueryCommand prevUnion = null;
+		for (QueryCommand union : unionCmds) {
+			if (prevUnion != null)
+				union.getMainTask().addDependency(prevUnion.getMainTask());
+
+			prevUnion = union;
 		}
 	}
 

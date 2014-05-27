@@ -46,37 +46,42 @@ public class GroovyParserFactory extends AbstractLogParserFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "그루비";
+		if(locale != null && locale.equals(Locale.CHINESE))
+			return "Groovy";
 		return "Groovy";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "그루비 파서 스크립트";
+		if(locale != null && locale.equals(Locale.CHINESE))
+			return "Groovy Parser脚本";
 		return "Groovy parser script";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption scriptName = new StringConfigType("script_name", t("Script Name", "스크립트 이름"), t(
-				"Script file name except .groovy extension", ".groovy 확장자를 제외한 스크립트 파일 이름"), true);
+		LoggerConfigOption scriptName = new StringConfigType("script_name", t("Script Name", "스크립트 이름", "脚本名称"), t(
+				"Script file name except .groovy extension", ".groovy 확장자를 제외한 스크립트 파일 이름", "除.groovy扩展名之外的脚本文件名"), true);
 		return Arrays.asList(scriptName);
 	}
 
-	private Map<Locale, String> t(String en, String ko) {
+	private Map<Locale, String> t(String en, String ko, String cn) {
 		HashMap<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, en);
 		m.put(Locale.KOREAN, ko);
+		m.put(Locale.CHINESE, cn);
 		return m;
 	}
 

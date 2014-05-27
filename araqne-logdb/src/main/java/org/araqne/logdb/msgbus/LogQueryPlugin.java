@@ -20,9 +20,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -30,7 +32,6 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
 import org.araqne.logdb.Query;
@@ -81,11 +82,13 @@ public class LogQueryPlugin {
 	private SavedResultManager savedResultManager;
 
 	private StreamingResultEncoder streamingEncoder;
+	private StreamingResultDecoder streamingDecoder;
 
 	@Validate
 	public void start() {
 		int poolSize = Math.min(8, Runtime.getRuntime().availableProcessors());
 		streamingEncoder = new StreamingResultEncoder("Streaming Result Encoder", poolSize);
+		streamingDecoder = new StreamingResultDecoder("Streaming Result Decoder", poolSize);
 	}
 
 	@Invalidate
@@ -93,6 +96,11 @@ public class LogQueryPlugin {
 		if (streamingEncoder != null) {
 			streamingEncoder.close();
 			streamingEncoder = null;
+		}
+
+		if (streamingDecoder != null) {
+			streamingDecoder.close();
+			streamingDecoder = null;
 		}
 	}
 
@@ -209,6 +217,39 @@ public class LogQueryPlugin {
 	}
 
 	@MsgbusMethod
+	public void insertBatch(Request req, Response resp) {
+		// isAdmin
+		org.araqne.logdb.Session dbSession = getDbSession(req);
+		if (!dbSession.isAdmin())
+			throw new IllegalStateException("no permission");
+
+		// decode
+		if (!req.has("bins") || !req.has("table"))
+			throw new IllegalStateException("no data");
+		try {
+			String tableName = req.getString("table");
+			List<Map<String, Object>> chunk = (List<Map<String, Object>>) req.get("bins");
+			List<Object> l = streamingDecoder.decode(chunk);
+
+			for (Object m : l)
+			{
+				Map<String, Object> data = (Map<String, Object>) m;
+				Date date = (Date) data.get("_time");
+				Log log = new Log(tableName, date, data);
+				// storage.writeBatch(log);
+				try {
+					storage.write(log);
+				} catch (InterruptedException e) {
+					logger.warn("storage.write interrupted", e);
+				}
+
+			}
+		} catch (ExecutionException e) {
+			logger.error("araqne logdb : cannot insert data", e);
+		}
+	}
+
+	@MsgbusMethod
 	public void getResult(Request req, Response resp) throws IOException {
 		int id = req.getInteger("id", true);
 		int offset = req.getInteger("offset", true);
@@ -305,8 +346,57 @@ public class LogQueryPlugin {
 	public void getSavedResults(Request req, Response resp) {
 		org.araqne.logdb.Session dbSession = getDbSession(req);
 
+		Integer offset = req.getInteger("offset");
+		Integer limit = req.getInteger("limit");
+
 		List<SavedResult> l = savedResultManager.getResultList(dbSession.getLoginName());
-		resp.put("saved_results", PrimitiveConverter.serialize(l));
+
+		// make sublist for offset and limit
+		List<SavedResult> subList = subList(l, offset, limit);
+
+		List<Object> savedResults = new ArrayList<Object>();
+		for (SavedResult s : subList) {
+			Map<String, Object> m = new HashMap<String, Object>();
+			m.put("guid", s.getGuid());
+			m.put("title", s.getTitle());
+			m.put("file_size", s.getFileSize());
+			m.put("created", s.getCreated());
+			m.put("owner", s.getOwner());
+			m.put("row_count", s.getRowCount());
+			m.put("storage", s.getStorageName());
+			m.put("index_path", s.getIndexPath());
+			m.put("data_path", s.getDataPath());
+			savedResults.add(m);
+		}
+		resp.put("total", l.size());
+		resp.put("saved_results", savedResults);
+	}
+
+	public static <T> List<T> subList(List<T> list, int offset, int limit) {
+		if (offset < 0)
+			throw new IllegalArgumentException("Offset must be more than 0");
+
+		if (limit < -1)
+			throw new IllegalArgumentException("Limit must be more than -1");
+
+		if (offset > 0) {
+			if (offset >= list.size()) {
+				// return empty.
+				return list.subList(0, 0);
+			}
+			if (limit > -1) {
+				// apply offset and limit
+				return list.subList(offset, Math.min(offset + limit, list.size()));
+			} else {
+				// apply just offset
+				return list.subList(offset, list.size());
+			}
+		} else if (limit > -1) {
+			// apply just limit
+			return list.subList(0, Math.min(limit, list.size()));
+		} else {
+			return list.subList(0, list.size());
+		}
 	}
 
 	/**

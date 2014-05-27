@@ -21,11 +21,11 @@ import java.util.Map;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 
-public class ZipFileParser implements QueryCommandParser {
+public class ZipFileParser extends AbstractQueryCommandParser {
 	private LogParserFactoryRegistry parserFactoryRegistry;
 
 	public ZipFileParser(LogParserFactoryRegistry parserFactoryRegistry) {

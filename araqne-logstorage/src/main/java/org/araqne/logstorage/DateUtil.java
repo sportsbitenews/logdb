@@ -17,7 +17,6 @@ package org.araqne.logstorage;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -49,7 +48,6 @@ public class DateUtil {
 		else
 			return new Date(time - ((time + timeZone.getRawOffset()) % 86400000L));
 	}
-
 	public static List<Date> filt(Collection<Date> dates, Date from, Date to) {
 		List<Date> filtered = new ArrayList<Date>();
 		// canonicalize

@@ -19,6 +19,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
 
@@ -40,7 +41,7 @@ public class DateDiff implements Expression {
 	private static final long MIN_DIV = 60000L;
 	private static final long SEC_DIV = 1000L;
 
-	public DateDiff(List<Expression> exprs) {
+	public DateDiff(QueryContext ctx, List<Expression> exprs) {
 		this.exprs = exprs;
 
 		if (exprs.size() != 3)

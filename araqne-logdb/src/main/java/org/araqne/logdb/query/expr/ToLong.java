@@ -17,6 +17,7 @@ package org.araqne.logdb.query.expr;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
 
@@ -26,7 +27,7 @@ public class ToLong implements Expression {
 	// 10 for decimal (reserved extension)
 	private int radix;
 
-	public ToLong(List<Expression> exprs) {
+	public ToLong(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		this.radix = 10;
 		if (exprs.size() > 1)

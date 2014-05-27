@@ -16,8 +16,8 @@
 package org.araqne.logdb.query.parser;
 
 import org.araqne.confdb.ConfigService;
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Confdb;
@@ -29,7 +29,7 @@ import org.araqne.logdb.query.command.Confdb.Op;
  * @author xeraph
  * 
  */
-public class ConfdbParser implements QueryCommandParser {
+public class ConfdbParser extends AbstractQueryCommandParser {
 
 	private ConfigService conf;
 

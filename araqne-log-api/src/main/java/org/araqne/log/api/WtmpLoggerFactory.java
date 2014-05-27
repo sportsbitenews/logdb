@@ -40,22 +40,34 @@ public class WtmpLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
+	}
+
+	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "터미널 로그인, 로그아웃 기록을 수집합니다.";
+		if (locale != null && locale.equals(Locale.JAPANESE))
+			return "ターミナルのログインとログアウト記録を収集します。";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "采集终端登录、退出记录。";
 		return "collect wtmp log file";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption path = new StringConfigType("path", t("Path", "파일 경로"), t("wtmp file path", "wtmp 파일 경로"), true);
+		LoggerConfigOption path = new StringConfigType("path", t("Path", "파일 경로", "ファイル経路", "文件路径"), t("wtmp file path", "wtmp 파일 경로",
+				"wtmpファイル経路", "wtmp文件路径"), true);
 		return Arrays.asList(path);
 	}
 
-	private Map<Locale, String> t(String en, String ko) {
+	private Map<Locale, String> t(String en, String ko, String jp,String cn) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, en);
 		m.put(Locale.KOREAN, ko);
+		m.put(Locale.JAPANESE, jp);
+		m.put(Locale.CHINESE, cn);
 		return m;
 	}
 

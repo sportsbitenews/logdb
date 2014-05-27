@@ -56,39 +56,45 @@ public class QueryLogTransformerFactory extends AbstractLogTransformerFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "쿼리 기반 원본 가공";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "基于查询加工原始日志";
 		return "Query";
 	}
 
 	@Override
 	public List<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "로그 쿼리를 이용하여 원본 데이터를 가공합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "利用日志查询加工原始数据。";
 		return "Transform data using logdb query";
 	}
 
 	@Override
 	public List<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption querystring = new StringConfigType("querystring", t("Query string", "쿼리 문자열"), t(
+		LoggerConfigOption querystring = new StringConfigType("querystring", t("Query string", "쿼리 문자열", "查询字符串"), t(
 				"Configure query string to evaluating and transforming input log data",
-				"입력 로그를 변환하여 출력하는데 사용할 쿼리 문자열을 설정합니다. 그룹 함수 사용은 허용되지 않습니다."), true);
+				"입력 로그를 변환하여 출력하는데 사용할 쿼리 문자열을 설정합니다. 그룹 함수 사용은 허용되지 않습니다.", 
+				"用于设置转换输入日志并输出的查询字符串。不支持组函数。"), true);
 
 		return Arrays.asList(querystring);
 	}
 
-	private Map<Locale, String> t(String en, String ko) {
+	private Map<Locale, String> t(String en, String ko, String cn) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, en);
 		m.put(Locale.KOREAN, ko);
+		m.put(Locale.CHINESE, cn);
 		return m;
 	}
 

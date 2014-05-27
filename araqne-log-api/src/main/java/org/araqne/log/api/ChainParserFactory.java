@@ -41,39 +41,49 @@ public class ChainParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "파서 체인";
+		if (locale != null && locale.equals(Locale.JAPANESE))
+			return "パーサーチェイン";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "组合Parser";
 		return "parser chain";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "여러개 파서를 조합하여 만든 체인을 이용하여 파싱합니다.";
+		if (locale != null && locale.equals(Locale.JAPANESE))
+			return "複数のパーサーを組み合わせて作ったチェインを使って解析します。";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "将多个Parser组合起来进行解析。";
 		return "parse log using mutli parser chain";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption parsers = new StringConfigType("parsers", t("parser names", "파서 이름 목록"), t(
-				"comma separated parser names", "쉼표로 구분된 파서 이름 목록"), true);
+		LoggerConfigOption parsers = new StringConfigType("parsers", t("parser names", "파서 이름 목록", "パーサー名リスト", "Parser名称列表"), t(
+				"comma separated parser names", "쉼표로 구분된 파서 이름 목록", "読点で分けているパーサー名リスト", "以逗号分隔的Parser名称列表"), true);
 		return Arrays.asList(parsers);
 	}
 
-	private Map<Locale, String> t(String enText, String koText) {
+	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, enText);
 		m.put(Locale.KOREAN, koText);
+		m.put(Locale.JAPANESE, jpText);
+		m.put(Locale.CHINESE, cnText);
 		return m;
 	}
 

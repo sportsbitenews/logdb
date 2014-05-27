@@ -1,7 +1,7 @@
 package org.araqne.logdb.query.parser;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.SavedResult;
@@ -11,7 +11,7 @@ import org.araqne.logstorage.LogCursor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LoadParser implements QueryCommandParser {
+public class LoadParser extends AbstractQueryCommandParser {
 	private final Logger logger = LoggerFactory.getLogger(LoadParser.class);
 	private SavedResultManager savedResultManager;
 

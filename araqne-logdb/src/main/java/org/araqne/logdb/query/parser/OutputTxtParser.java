@@ -16,21 +16,17 @@
 package org.araqne.logdb.query.parser;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.PartitionPlaceholder.Source;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.OutputTxt;
 
 /**
@@ -38,7 +34,7 @@ import org.araqne.logdb.query.command.OutputTxt;
  * @author darkluster
  * 
  */
-public class OutputTxtParser implements QueryCommandParser {
+public class OutputTxtParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -51,7 +47,7 @@ public class OutputTxtParser implements QueryCommandParser {
 			throw new QueryParseException("missing-field", commandString.length());
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(),
-				Arrays.asList("delimiter", "overwrite", "gz", "encoding", "partition", "tmp"));
+				Arrays.asList("delimiter", "overwrite", "gz", "encoding", "partition", "tmp"), getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -67,7 +63,7 @@ public class OutputTxtParser implements QueryCommandParser {
 		String tmpPath = options.get("tmp");
 
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
-		boolean useCompression = CommandOptions.parseBoolean(options.get("gz"));
+		boolean useGzip = CommandOptions.parseBoolean(options.get("gz"));
 		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
 
 		File tmpFile = null;
@@ -87,7 +83,7 @@ public class OutputTxtParser implements QueryCommandParser {
 			throw new QueryParseException("missing-field", tokens.size());
 
 		String filePath = tokens.token(0).token;
-		filePath = ExpressionParser.evalContextReference(context, filePath);
+		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
 
 		List<PartitionPlaceholder> holders = PartitionPlaceholder.parse(filePath);
 		if (!usePartition && holders.size() > 0)
@@ -114,14 +110,9 @@ public class OutputTxtParser implements QueryCommandParser {
 		if (txtFile.exists() && !overwrite)
 			throw new IllegalStateException("txt file exists: " + txtFile.getAbsolutePath());
 
-		try {
-			if (!usePartition && txtFile.getParentFile() != null)
-				txtFile.getParentFile().mkdirs();
+		if (!usePartition && txtFile.getParentFile() != null)
+			txtFile.getParentFile().mkdirs();
 
-			return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useCompression, encoding,
-					usePartition, holders);
-		} catch (IOException e) {
-			throw new QueryParseException("io-error", -1, e.getMessage());
-		}
+		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders);
 	}
 }

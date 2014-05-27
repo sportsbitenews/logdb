@@ -39,6 +39,12 @@ import org.apache.log4j.PatternLayout;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
+/**
+ * 커맨드라인을 통해 로그프레소 서버에 접속하여 명령을 실행할 수 있도록 지원합니다.
+ * 
+ * @author xeraph@eediom.com
+ * 
+ */
 public class Console {
 	private BufferedReader br;
 	private LogDbClient client;
@@ -46,6 +52,9 @@ public class Console {
 	private String loginName;
 	private String password;
 
+	/**
+	 * 콘솔 클라이언트 진입점
+	 */
 	public static void main(String[] args) throws IOException {
 		ConsoleAppender ca = new ConsoleAppender(new PatternLayout());
 		ca.setThreshold(Level.INFO);
@@ -58,6 +67,7 @@ public class Console {
 		}
 
 		new Console().run();
+
 	}
 
 	private static void oneShotQuery(Map<String, String> opts) throws IOException {
@@ -147,7 +157,7 @@ public class Console {
 					break;
 
 				if (!line.trim().startsWith("#"))
-					sb.append(line);
+					sb.append(" " + line);
 			}
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
@@ -197,8 +207,11 @@ public class Console {
 		return opts;
 	}
 
+	/**
+	 * 콘솔 명령 루프를 실행합니다.
+	 */
 	public void run() throws IOException {
-		w("Araqne LogDB Console 0.8.2 (2013-10-13)");
+		w("Araqne LogDB Console 0.9.5 (2014-05-15)");
 		w("Type \"help\" for more information");
 
 		br = new BufferedReader(new InputStreamReader(System.in));
@@ -1518,7 +1531,7 @@ public class Console {
 		System.out.println(s);
 	}
 
-	public static String[] tokenize(String line) {
+	private static String[] tokenize(String line) {
 		StringBuilder sb = new StringBuilder();
 		List<String> args = new ArrayList<String>();
 

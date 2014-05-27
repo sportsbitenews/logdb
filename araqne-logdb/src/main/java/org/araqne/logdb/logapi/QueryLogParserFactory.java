@@ -49,39 +49,46 @@ public class QueryLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "쿼리 기반 파서";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "基于查询的Parser";
+
 		return "Query based parser";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "쿼리를 이용하여 파싱을 수행합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "基于查询进行解析。";
+
 		return "Parse log using query";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption query = new StringConfigType("query", t("Query string", "쿼리문자열"), t("Query string for log parsing",
-				"로그 파싱에 사용할 쿼리문자열"), true);
+		LoggerConfigOption query = new StringConfigType("query", t("Query string", "쿼리문자열", "查询字符串"), t("Query string for log parsing",
+				"로그 파싱에 사용할 쿼리문자열", "用于日志解析的查询字符串"), true);
 		return Arrays.asList(query);
 	}
 
-	private Map<Locale, String> t(String en, String ko) {
+	private Map<Locale, String> t(String en, String ko, String cn) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, en);
 		m.put(Locale.KOREAN, ko);
+		m.put(Locale.CHINESE, cn);
 		return m;
 	}
 

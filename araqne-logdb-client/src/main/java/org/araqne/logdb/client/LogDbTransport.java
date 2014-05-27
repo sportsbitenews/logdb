@@ -18,10 +18,21 @@ package org.araqne.logdb.client;
 import java.io.IOException;
 
 /**
+ * 로그 DB 트랜스포트는 주어진 접속 정보로 새로운 로그프레소 세션 개체를 생성합니다.
+ * 
  * @since 0.5.0
- * @author xeraph
- *
+ * @author xeraph@eediom.com
+ * 
  */
 public interface LogDbTransport {
+	/**
+	 * 새 세션을 생성합니다.
+	 * 
+	 * @param host
+	 *            접속할 로그프레소 서버의 IP 주소 혹은 도메인 주소
+	 * @param port
+	 *            접속할 로그프레소 서버의 웹 포트 번호
+	 * @return 새 세션 개체
+	 */
 	LogDbSession newSession(String host, int port) throws IOException;
 }

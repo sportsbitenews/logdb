@@ -93,24 +93,44 @@ public class JythonLoggerScriptRegistryImpl extends AbstractLoggerFactory implem
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		return "jython logger";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "Jython数据采集器";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "자이썬 수집기";
+		return "Jython Logger";
+	}
+
+	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		return "jython logger script";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "Jython数据采集器脚本";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "자이썬 수집 스크립트";
+		return "Jython Logger Script";
+	}
+
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.CHINESE);
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption scriptName = new StringConfigType("logger_script", map("logger script name"),
-				map("jython logger script class name"), true);
+		LoggerConfigOption scriptName = new StringConfigType("logger_script", map("logger script name", "스크립트 이름", "数据采集器脚本名称"),
+				map("jython logger script class name", "스크립트 클래스 이름", "数据采集器脚本类名称"), true);
 		return Arrays.asList(scriptName);
 	}
 
-	private Map<Locale, String> map(String value) {
+	private Map<Locale, String> map(String value, String ko, String cn) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, value);
+		m.put(Locale.KOREAN, ko);
+		m.put(Locale.CHINESE, cn);
 		return m;
 	}
 

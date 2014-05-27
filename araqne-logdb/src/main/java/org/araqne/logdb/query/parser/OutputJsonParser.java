@@ -22,10 +22,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.AbstractQueryCommandParser;
+import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.OutputJson;
 
 /**
@@ -33,7 +34,7 @@ import org.araqne.logdb.query.command.OutputJson;
  * @author darkluster
  * 
  */
-public class OutputJsonParser implements QueryCommandParser {
+public class OutputJsonParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {
@@ -46,17 +47,27 @@ public class OutputJsonParser implements QueryCommandParser {
 		if (commandString.trim().endsWith(","))
 			throw new QueryParseException("missing-field", commandString.length());
 
-		ParseResult r = QueryTokenizer
-				.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overwrite"));
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
+				Arrays.asList("overwrite", "tmp", "partition", "encoding"), getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
+		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
+
+		String encoding = options.get("encoding");
+		if (encoding == null)
+			encoding = "utf-8";
+		String tmpPath = options.get("tmp");
 
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
 		if (tokens.size() < 1)
 			throw new QueryParseException("missing-field", tokens.size());
 
 		String filePath = tokens.string(0);
-		filePath = ExpressionParser.evalContextReference(context, filePath);
+		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
+
+		List<PartitionPlaceholder> holders = PartitionPlaceholder.parse(filePath);
+		if (!usePartition && holders.size() > 0)
+			throw new QueryParseException("use-partition-option", -1, holders.size() + " partition holders");
 
 		List<String> fields = new ArrayList<String>();
 
@@ -76,8 +87,8 @@ public class OutputJsonParser implements QueryCommandParser {
 		if (jsonFile.exists() && !overwrite)
 			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
 
-		if (jsonFile.getParentFile() != null)
+		if (!usePartition && jsonFile.getParentFile() != null)
 			jsonFile.getParentFile().mkdirs();
-		return new OutputJson(jsonFile, filePath, overwrite, fields);
+		return new OutputJson(jsonFile, filePath, overwrite, fields, encoding, usePartition, tmpPath, holders);
 	}
 }

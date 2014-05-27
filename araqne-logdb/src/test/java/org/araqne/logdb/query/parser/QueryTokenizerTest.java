@@ -22,10 +22,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.junit.Test;
 
 public class QueryTokenizerTest {
+	private FunctionRegistry functionRegistry = new FunctionRegistryImpl();
+
 	@Test
 	public void testParseSubQuery() {
 		String q = "table iis | join ip [ table users | fields user_id, ip ]";
@@ -52,7 +56,8 @@ public class QueryTokenizerTest {
 	public void testOptions() {
 		String query = "textfile offset=1 limit=10 sample.log";
 
-		ParseResult r = QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("offset", "limit"));
+		ParseResult r = QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("offset", "limit"),
+				functionRegistry);
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		assertEquals("1", options.get("offset"));
@@ -64,7 +69,8 @@ public class QueryTokenizerTest {
 	public void testOptions2() {
 		String query = "search offset=1 limit=10 1 == 1";
 
-		ParseResult r = QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"));
+		ParseResult r = QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"),
+				functionRegistry);
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		assertEquals("1", options.get("offset"));
@@ -76,7 +82,8 @@ public class QueryTokenizerTest {
 	public void testOptions3() {
 		String query = "search offset=1 limit=10 in(field,\"?&key=value\")";
 
-		ParseResult r = QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"));
+		ParseResult r = QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"),
+				functionRegistry);
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		assertEquals("1", options.get("offset"));
@@ -88,7 +95,8 @@ public class QueryTokenizerTest {
 	public void testOptions4() {
 		String query = "search in(field,\"?&key=value\")";
 
-		ParseResult r = QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"));
+		ParseResult r = QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"),
+				functionRegistry);
 		Map<String, String> options = (Map<String, String>) r.value;
 		assertEquals(0, options.size());
 	}
@@ -98,7 +106,8 @@ public class QueryTokenizerTest {
 	public void testOptions5() {
 		String query = "search offset=1 limit=10";
 
-		ParseResult r = QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"));
+		ParseResult r = QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"),
+				functionRegistry);
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		assertEquals("1", options.get("offset"));
@@ -110,7 +119,7 @@ public class QueryTokenizerTest {
 		String query = "search offset = 1  limit=10 ";
 
 		try {
-			QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"));
+			QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"), functionRegistry);
 			fail();
 		} catch (QueryParseException e) {
 			assertEquals("option-space-not-allowed", e.getType());
@@ -122,7 +131,7 @@ public class QueryTokenizerTest {
 	public void testOptions7() {
 		String query = "textfile parser=\"<key = value>\" foo.txt";
 
-		ParseResult r = QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("parser"));
+		ParseResult r = QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("parser"), functionRegistry);
 		Map<String, String> options = (Map<String, String>) r.value;
 		assertEquals("<key = value>", options.get("parser"));
 	}
@@ -132,7 +141,7 @@ public class QueryTokenizerTest {
 		String query = "textfile \"parser\"=\"<key = value>\" foo.txt";
 
 		try {
-			QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("parser"));
+			QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("parser"), functionRegistry);
 			fail();
 		} catch (QueryParseException e) {
 			assertEquals("invalid-option", e.getType());

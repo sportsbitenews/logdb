@@ -29,6 +29,9 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.FunctionRegistry;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
@@ -59,6 +62,9 @@ public class LogCountMetadataProvider implements MetadataProvider {
 	@Requires
 	private MetadataService metadataService;
 
+	@Requires
+	private FunctionRegistry functionRegistry;
+
 	@Validate
 	public void start() {
 		metadataService.addProvider(this);
@@ -77,12 +83,13 @@ public class LogCountMetadataProvider implements MetadataProvider {
 
 	@Override
 	public void verify(QueryContext context, String queryString) {
-		MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, queryString);
+		MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, functionRegistry, queryString);
 	}
 
 	@Override
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
-		TableScanOption opt = MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, queryString);
+		TableScanOption opt = MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, functionRegistry,
+				queryString);
 		List<LogWriterStatus> memoryBuffers = new ArrayList<LogWriterStatus>();
 		if (!opt.isDiskOnly())
 			memoryBuffers = storage.getWriterStatuses();

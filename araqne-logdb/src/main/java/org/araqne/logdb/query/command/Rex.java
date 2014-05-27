@@ -77,8 +77,11 @@ public class Rex extends QueryCommand implements ThreadSafe {
 		Matcher matcher = localMatcher.get();
 		matcher.reset(s);
 		if (matcher.find())
-			for (int i = 0; i < matcher.groupCount(); i++)
-				m.put(names[i], matcher.group(i + 1));
+			for (int i = 0; i < matcher.groupCount(); i++) {
+				String value = matcher.group(i + 1);
+				if (value != null)
+					m.put(names[i], value);
+			}
 
 		pushPipe(m);
 	}
@@ -98,9 +101,13 @@ public class Rex extends QueryCommand implements ThreadSafe {
 				String s = o.toString();
 
 				matcher.reset(s);
-				if (matcher.find())
-					for (int g = 0; g < matcher.groupCount(); g++)
-						row.put(names[g], matcher.group(g + 1));
+				if (matcher.find()) {
+					for (int g = 0; g < matcher.groupCount(); g++) {
+						String value = matcher.group(g + 1);
+						if (value != null)
+							row.put(names[g], value);
+					}
+				}
 			}
 		} else {
 			for (Row row : rowBatch.rows) {
@@ -111,9 +118,13 @@ public class Rex extends QueryCommand implements ThreadSafe {
 				String s = o.toString();
 
 				matcher.reset(s);
-				if (matcher.find())
-					for (int g = 0; g < matcher.groupCount(); g++)
-						row.put(names[g], matcher.group(g + 1));
+				if (matcher.find()) {
+					for (int g = 0; g < matcher.groupCount(); g++) {
+						String value = matcher.group(g + 1);
+						if (value != null)
+							row.put(names[g], value);
+					}
+				}
 			}
 		}
 

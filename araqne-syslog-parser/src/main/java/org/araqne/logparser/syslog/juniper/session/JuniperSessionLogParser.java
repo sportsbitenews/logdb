@@ -66,10 +66,11 @@ public class JuniperSessionLogParser {
 			} else if ("service".equals(key)) {
 				limit = line.indexOf("proto", limit) - 1;
 			}
-
 			String value = line.substring(pos, limit);
 			// System.out.println(key+"="+value);
 			oldKey = key;
+			key = key.replace(' ','_');
+			key = key.replace('-','_');
 			map.put(key, value);
 		}
 

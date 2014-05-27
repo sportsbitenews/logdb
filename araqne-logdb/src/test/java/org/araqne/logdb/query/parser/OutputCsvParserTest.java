@@ -17,21 +17,36 @@ package org.araqne.logdb.query.parser;
 
 import java.io.File;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.OutputCsv;
+import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 
 public class OutputCsvParserTest {
+	private QueryParserService queryParserService;
+
+	@Before
+	public void setup() {
+		QueryParserServiceImpl p = new QueryParserServiceImpl();
+		p.setFunctionRegistry(new FunctionRegistryImpl());
+		queryParserService = p;
+	}
+	
 	@Test
 	public void testNormalCase() {
 		new File("logexport.csv").delete();
 		OutputCsv csv = null;
 		try {
 			OutputCsvParser p = new OutputCsvParser();
+			p.setQueryParserService(queryParserService);
+			
 			csv = (OutputCsv) p.parse(null, "outputcsv logexport.csv sip, dip ");
 
 			File f = csv.getCsvFile();
@@ -53,6 +68,8 @@ public class OutputCsvParserTest {
 		OutputCsv csv = null;
 		try {
 			OutputCsvParser p = new OutputCsvParser();
+			p.setQueryParserService(queryParserService);
+			
 			csv = (OutputCsv) p.parse(null, "outputcsv overwrite=true logexport.csv sip, dip ");
 
 			File f = csv.getCsvFile();
@@ -67,7 +84,7 @@ public class OutputCsvParserTest {
 			new File("logexport.csv").delete();
 		}
 
-		assertEquals("outputcsv overwrite=true logexport.csv sip, dip", csv.toString());
+		assertEquals("outputcsv overwrite=true encoding=utf-8 logexport.csv sip, dip", csv.toString());
 	}
 
 	@Test
@@ -75,6 +92,8 @@ public class OutputCsvParserTest {
 		new File("logexport.csv").delete();
 		try {
 			OutputCsvParser p = new OutputCsvParser();
+			p.setQueryParserService(queryParserService);
+			
 			p.parse(null, "outputcsv logexport.csv ");
 			fail();
 		} catch (QueryParseException e) {
@@ -90,6 +109,8 @@ public class OutputCsvParserTest {
 		new File("logexport.csv").delete();
 		try {
 			OutputCsvParser p = new OutputCsvParser();
+			p.setQueryParserService(queryParserService);
+			
 			p.parse(null, "outputcsv logexport.csv sip,");
 			fail();
 		} catch (QueryParseException e) {

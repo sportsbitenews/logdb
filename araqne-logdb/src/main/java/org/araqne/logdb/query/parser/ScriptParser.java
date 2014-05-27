@@ -18,15 +18,15 @@ package org.araqne.logdb.query.parser;
 import java.util.ArrayList;
 import java.util.Map;
 
+import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryScript;
 import org.araqne.logdb.QueryScriptRegistry;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Script;
 import org.osgi.framework.BundleContext;
 
-public class ScriptParser implements QueryCommandParser {
+public class ScriptParser extends AbstractQueryCommandParser {
 	private BundleContext bc;
 	private QueryScriptRegistry scriptRegistry;
 
@@ -43,7 +43,8 @@ public class ScriptParser implements QueryCommandParser {
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>());
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>(),
+				getFunctionRegistry());
 		String name = commandString.substring(r.next);
 
 		QueryScript script = scriptRegistry.newScript("localhost", name, null);

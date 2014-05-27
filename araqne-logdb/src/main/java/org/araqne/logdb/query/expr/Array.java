@@ -18,6 +18,7 @@ package org.araqne.logdb.query.expr;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
 
@@ -25,7 +26,7 @@ public class Array implements Expression {
 	private List<Expression> exprs;
 	private final int count;
 
-	public Array(List<Expression> exprs) {
+	public Array(QueryContext ctx, List<Expression> exprs) {
 		this.exprs = exprs;
 		this.count = exprs.size();
 	}

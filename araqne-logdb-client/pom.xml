@@ -12,6 +12,9 @@
 	<version>0.9.10</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log DB Client</name>
+	<organization>
+		<name>Eediom, Inc</name>
+	</organization>
 	<build>
 		<plugins>
 			<plugin>
@@ -115,7 +118,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-websocket</artifactId>
-			<version>0.1.5</version>
+			<version>0.1.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
