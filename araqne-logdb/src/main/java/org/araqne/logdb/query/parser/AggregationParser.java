@@ -38,6 +38,7 @@ import org.araqne.logdb.query.aggregator.PerSecond;
 import org.araqne.logdb.query.aggregator.Range;
 import org.araqne.logdb.query.aggregator.Sum;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.Values;
 
 public class AggregationParser {
 	private static final String AS = " as ";
@@ -58,6 +59,7 @@ public class AggregationParser {
 		t.put("per_minute", PerMinute.class);
 		t.put("per_second", PerSecond.class);
 		t.put("range", Range.class);
+		t.put("values", Values.class);
 	}
 
 	public static AggregationField parse(QueryContext context, String s,
