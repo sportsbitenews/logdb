@@ -35,25 +35,29 @@ public class SpectraGuardLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
-			return "스펙트라가드 엔터프라이즈";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "스펙트라가드 엔터프라이즈";	
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "SpectraGuard";	
 		return "SpectraGuard Enterprise";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "에어타이트 스펙트라가드 엔터프라이즈 WIPS 로그를 파싱합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "解析AirTight WIPS日志。";
 		return "AirTight SpectraGuard Enterprise";
 	}
 

@@ -52,7 +52,7 @@ public class DelimiterParserFactory extends AbstractLogParserFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "区切り文字";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "定界符";
+			return "分隔符";
 		return "Delimiter";
 	}
 
@@ -68,14 +68,14 @@ public class DelimiterParserFactory extends AbstractLogParserFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "区切り文字で分けている各トークンに設定されたフィールド名を順番に適用し解析します。";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "对以定界符分隔的各Token以设置的字段名称顺序进行解析。";
+			return "对以分隔符分隔的各关键字以设置的字段名称顺序进行解析。";
 		return "devide a string into tokens based on the given delimiter and column names";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		List<LoggerConfigOption> options = new ArrayList<LoggerConfigOption>();
-		options.add(new StringConfigType(DELIMITER, t(DELIMITER, "구분자", "区切り文字", "定界符"), t(
+		options.add(new StringConfigType(DELIMITER, t(DELIMITER, "구분자", "区切り文字", "分隔符"), t(
 				"one delimiter character or 4-digit unicode escape sequence (e.g. \u0007)",
 				"하나의 아스키 구분자 혹은 4자리 유니코드 이스케이프 시퀀스 (예: \u0007)", 
 				"一つのアスキー区切り文字もしくは４桁のユニコードエスケープシーケンス(例: \u0007)",
@@ -84,8 +84,8 @@ public class DelimiterParserFactory extends AbstractLogParserFactory {
 				t("separated by comma",
 				"쉼표로 구분된 필드 이름들", "コンマで分けているフィールドな", "以逗号分隔的字段名称"), false));
 		options.add(new StringConfigType(DELIMITER_TARGET, t("delimiter target field", "대상 필드", "対象フィールド", "目标字段"), t(
-				"delimiter target field name", "구분자로 파싱할 대상 필드 이름", "区切り文字で解析するフィールドな", "需要以定界符解析的目标字段名称"), false));
-		options.add(new StringConfigType(INCLUDE_DELIMITER_TARGET, t("include delimiter target", "원본 값 포함 여부", "原本含み可否", "是否包含原始值"), t(
+				"delimiter target field name", "구분자로 파싱할 대상 필드 이름", "区切り文字で解析するフィールドな", "需要以分隔符解析的目标字段名称"), false));
+		options.add(new StringConfigType(INCLUDE_DELIMITER_TARGET, t("include delimiter target", "원본 값 포함 여부", "原本含み可否", "是否包含原始字段"), t(
 				"return also delimiter target field (true or false)", "구분자로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false",
 				"区切り文字で解析した結果に原本フィールドを含むか設定します。trueまたはfalse", "以逗号分隔的原始字段=变更字段名称列表"), false));
 

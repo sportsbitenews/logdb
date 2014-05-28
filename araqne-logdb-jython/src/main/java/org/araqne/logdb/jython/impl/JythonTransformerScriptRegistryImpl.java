@@ -114,8 +114,8 @@ public class JythonTransformerScriptRegistryImpl implements JythonTransformerScr
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption scriptName = new StringConfigType("transformer_script", map("transformer script name", "transformer脚本名称"),
-				map("jython transformer script class name", "jython transformer脚本类名称"), true);
+		LoggerConfigOption scriptName = new StringConfigType("transformer_script", map("transformer script name", "转换器脚本名称"),
+				map("jython transformer script class name", "jython转换器脚本类名称"), true);
 		return Arrays.asList(scriptName);
 	}
 
