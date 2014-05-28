@@ -94,12 +94,12 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 		LoggerConfigOption dateLocale = new StringConfigType("date_locale", 
 				t("Date locale", "날짜 로케일", "日付ロケール", "日期区域"), 
 				t("date locale, e.g. en", "날짜 로케일, 예를 들면 ko", 
-						"日付ロケール。例えばjp", "日期区域， 例如 cn"), false);
+						"日付ロケール。例えばjp", "日期区域， 例如 zh"), false);
 
 		LoggerConfigOption timezone = new StringConfigType("timezone", 
 				t("Time zone", "시간대","時間帯","时区"), 
-				t("time zone, e.g. EST or America/New_york ", "시간대, 예를 들면 KST 또는 Asia/Seoul",
-						"時間帯。例えばJSTまたはAsia/Tokyo","时区， 例如 CST或者Asia/Beijing"), false);
+				t("time zone, e.g. America/New_york ", "시간대, 예를 들면 KST 또는 Asia/Seoul",
+						"時間帯。例えばJSTまたはAsia/Tokyo","时区，例如 Asia/Beijing"), false);
 
 		LoggerConfigOption newlogRegex = new StringConfigType("newlog_designator",
 				t("Regex for first line", "로그 시작 정규식", "ログ始め正規表現","日志起始正则表达式"), 

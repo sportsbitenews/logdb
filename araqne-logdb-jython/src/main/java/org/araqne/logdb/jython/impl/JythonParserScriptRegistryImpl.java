@@ -88,21 +88,27 @@ public class JythonParserScriptRegistryImpl implements JythonParserScriptRegistr
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "jython脚本解析器";
 		return "jython parser";
+		
+		
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "jython脚本解析器";
 		return "jython parser script factory";
 	}
 

@@ -73,7 +73,7 @@ public class RegexFilterTransformerFactory implements LogTransformerFactory {
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
 		LoggerConfigOption pattern = new StringConfigType("pattern", t("regex", "정규식", "正規表現", "正则表达式"), t("regex for regex filtering",
-				"로그를 필터링하는데 사용할 정규표현식", "ログのフィルタリングに使う正規表現", "用于过滤日志的正则表达式"), true);
+				"로그를 필터링하는데 사용할 정규표현식", "ログのフィルタリングに使う正規表現", "通过正则表达式过滤数据。"), true);
 		LoggerConfigOption inverse = new StringConfigType("inverse", t("inverse match", "매칭결과 반전", "結果反転", "返回匹配结果"), t(
 				"inverse regex match result, false by default", "정규표현식 매칭 결과를 반전합니다. 기본값은 false 입니다.",
 				"マッチング結果を反転します。基本値はfalseです。", "返回正则表达式匹配结果，默认为false。"), false);
