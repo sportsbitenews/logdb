@@ -49,6 +49,7 @@ import org.araqne.logdb.query.expr.Right;
 import org.araqne.logdb.query.expr.Round;
 import org.araqne.logdb.query.expr.Seq;
 import org.araqne.logdb.query.expr.Split;
+import org.araqne.logdb.query.expr.StrJoin;
 import org.araqne.logdb.query.expr.Substr;
 import org.araqne.logdb.query.expr.ToDate;
 import org.araqne.logdb.query.expr.ToDouble;
@@ -153,6 +154,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("kvjoin", KvJoin.class);
 			define("valueof", ValueOf.class);
 			define("datetrunc", DateTrunc.class);
+			define("strjoin", StrJoin.class);
 		}
 
 		private void define(String name, Class<?> clazz) {
