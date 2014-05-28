@@ -13,6 +13,9 @@ public class TimeZoneMappings {
 
 		else if (alias.equals("UTC"))
 			return "GMT";
+		
+		else if (alias.equals("Asia/Beijing"))
+			return "Asia/Shanghai";
 
 		return null;
 	}
