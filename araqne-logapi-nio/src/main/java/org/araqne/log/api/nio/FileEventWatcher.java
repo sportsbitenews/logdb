@@ -59,35 +59,7 @@ public class FileEventWatcher {
 	private Path root;
 
 	private Map<String, WatchItem> watchPaths = new HashMap<String, WatchItem>();
-
 	private Set<FileEventListener> listeners = new HashSet<FileEventListener>();
-
-	public static void main(String[] args) throws IOException, InterruptedException {
-		FileEventWatcher watcher = new FileEventWatcher("d:/recur", null, false);
-
-		watcher.addListener(new FileEventListener() {
-
-			@Override
-			public void onDelete(File file) {
-				System.out.println("remove " + file);
-			}
-
-			@Override
-			public void onCreate(File file) {
-				System.out.println("added " + file);
-			}
-
-			@Override
-			public void onModify(File file) {
-				System.out.println("changed " + file);
-			}
-		});
-
-		System.out.println(watcher);
-		while (true) {
-			watcher.poll(100);
-		}
-	}
 
 	public FileEventWatcher(String basePath, Pattern fileNamePattern, boolean recursive) throws IOException {
 		this.basePath = basePath;
@@ -99,9 +71,10 @@ public class FileEventWatcher {
 
 		if (fileNamePattern != null)
 			fileNameMatcher = fileNamePattern.matcher("");
+		Files.walkFileTree(root, new DirectoryRegister());
 	}
 
-	public void poll(int millis) throws IOException, InterruptedException {
+	public void poll(int millis) throws IOException {
 		// base directory is removed and can be regenerated
 		if (!watchPaths.containsKey(root.toFile().getAbsolutePath())) {
 			try {
@@ -114,79 +87,83 @@ public class FileEventWatcher {
 		}
 
 		WatchKey wk = null;
-		while ((wk = ws.poll(millis, TimeUnit.MILLISECONDS)) != null) {
-			for (WatchEvent<?> evt : wk.pollEvents()) {
-				if (slog.isDebugEnabled())
-					slog.debug("araqne-logapi-nio: watchable [{}] context [{}] kind [{}] valid [{}]",
-							new Object[] { wk.watchable(), evt.context(), evt.kind(), wk.isValid() });
+		try {
+			while ((wk = ws.poll(millis, TimeUnit.MILLISECONDS)) != null) {
+				for (WatchEvent<?> evt : wk.pollEvents()) {
+					if (slog.isDebugEnabled())
+						slog.debug("araqne-logapi-nio: watchable [{}] context [{}] kind [{}] valid [{}]",
+								new Object[] { wk.watchable(), evt.context(), evt.kind(), wk.isValid() });
 
-				Path p = fs.getPath(wk.watchable().toString(), evt.context().toString());
-				File f = p.toFile();
+					Path p = fs.getPath(wk.watchable().toString(), evt.context().toString());
+					File f = p.toFile();
 
-				if (evt.kind().equals(StandardWatchEventKinds.ENTRY_CREATE)) {
-					if (Files.isDirectory(p)) {
-						try {
-							WatchKey newKey = p.register(ws, EVENTS);
-							watchPaths.put(f.getAbsolutePath(), new WatchItem(newKey));
-							slog.debug("araqne-logapi-nio: adding watch path [{}]", f.getAbsolutePath());
-
-						} catch (IOException e) {
-							slog.error("araqne-logapi-nio: failed to watching directory [{}]", f.getAbsolutePath());
+					if (evt.kind().equals(StandardWatchEventKinds.ENTRY_CREATE)) {
+						if (Files.isDirectory(p)) {
+							try {
+								WatchKey newKey = p.register(ws, EVENTS);
+								watchPaths.put(f.getAbsolutePath(), new WatchItem(newKey));
+								slog.debug("araqne-logapi-nio: adding watch path [{}]", f.getAbsolutePath());
+							} catch (IOException e) {
+								slog.error("araqne-logapi-nio: failed to watching directory [{}]", f.getAbsolutePath());
+							}
+						} else {
+							if (slog.isDebugEnabled())
+								slog.debug("araqne-logapi-nio: path [{}] is not directory", f.getAbsolutePath());
 						}
-					} else {
+
+						if (isTargetFile(f)) {
+							WatchItem item = watchPaths.get(f.getParent());
+							item.files.add(f.getName());
+
+							for (FileEventListener listener : listeners) {
+								try {
+									listener.onCreate(f);
+								} catch (Throwable t) {
+									slog.warn("araqne-logapi-nio: file event listener should not throw any exception", t);
+								}
+							}
+						}
+					} else if (evt.kind().equals(StandardWatchEventKinds.ENTRY_MODIFY)) {
 						if (slog.isDebugEnabled())
-							slog.debug("araqne-logapi-nio: path [{}] is not directory", f.getAbsolutePath());
-					}
+							slog.debug("araqne-logapi-nio: modified path [{}]", f.getAbsolutePath());
 
-					if (isTargetFile(f)) {
-						WatchItem item = watchPaths.get(f.getParent());
-						item.files.add(f.getName());
-
-						for (FileEventListener listener : listeners) {
-							try {
-								listener.onCreate(f);
-							} catch (Throwable t) {
-								slog.warn("araqne-logapi-nio: file event listener should not throw any exception", t);
+						if (isTargetFile(f)) {
+							for (FileEventListener listener : listeners) {
+								try {
+									listener.onModify(f);
+								} catch (Throwable t) {
+									slog.warn("araqne-logapi-nio: file event listener should not throw any exception", t);
+								}
 							}
 						}
-					}
-				} else if (evt.kind().equals(StandardWatchEventKinds.ENTRY_MODIFY)) {
-					slog.debug("araqne-logapi-nio: modified path [{}]", f.getAbsolutePath());
-
-					if (isTargetFile(f)) {
-						for (FileEventListener listener : listeners) {
-							try {
-								listener.onModify(f);
-							} catch (Throwable t) {
-								slog.warn("araqne-logapi-nio: file event listener should not throw any exception", t);
-							}
-						}
-					}
-				} else if (evt.kind().equals(StandardWatchEventKinds.ENTRY_DELETE)) {
-					slog.debug("araqne-logapi-nio: checking remove target path [{}]", f.getAbsolutePath());
-
-					if (watchPaths.containsKey(f.getAbsolutePath())) {
-						invokeUnregisterRecursively(f.getAbsolutePath());
-					} else if (isTargetFile(f, true)) {
+					} else if (evt.kind().equals(StandardWatchEventKinds.ENTRY_DELETE)) {
 						slog.debug("araqne-logapi-nio: checking remove target path [{}]", f.getAbsolutePath());
-						WatchItem item = watchPaths.get(f.getParent());
-						if (item != null)
-							item.files.remove(f.getName());
-						else
-							slog.debug("araqne-logapi-nio: item not found for [{}]", f.getAbsolutePath());
 
-						for (FileEventListener listener : listeners) {
-							try {
-								listener.onDelete(f);
-							} catch (Throwable t) {
-								slog.warn("araqne-logapi-nio: file event listener should not throw any exception", t);
+						if (watchPaths.containsKey(f.getAbsolutePath())) {
+							invokeUnregisterRecursively(f.getAbsolutePath());
+						} else if (isTargetFile(f, true)) {
+							slog.debug("araqne-logapi-nio: checking remove target path [{}]", f.getAbsolutePath());
+							WatchItem item = watchPaths.get(f.getParent());
+							if (item != null) {
+								item.files.remove(f.getName());
+							} else {
+								slog.debug("araqne-logapi-nio: item not found for [{}]", f.getAbsolutePath());
+							}
+
+							for (FileEventListener listener : listeners) {
+								try {
+									listener.onDelete(f);
+								} catch (Throwable t) {
+									slog.warn("araqne-logapi-nio: file event listener should not throw any exception", t);
+								}
 							}
 						}
 					}
 				}
-			}
 
-			wk.reset();
+				wk.reset();
+			}
+		} catch (InterruptedException e) {
 		}
 	}
 
@@ -261,21 +238,20 @@ public class FileEventWatcher {
 
 			WatchKey wk = dir.register(ws, EVENTS);
 			watchPaths.put(dir.toFile().getAbsolutePath(), new WatchItem(wk));
-			// System.out.println("adding watch path " +
-			// dir.toFile().getAbsolutePath());
 
 			return FileVisitResult.CONTINUE;
 		}
 
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-			if (isTargetFile(file.toFile())) {
-				WatchItem item = watchPaths.get(file.toFile().getParent());
-				item.files.add(file.toFile().getName());
+			File f = file.toFile();
+			if (isTargetFile(f)) {
+				WatchItem item = watchPaths.get(f.getParent());
+				item.files.add(f.getName());
 
 				for (FileEventListener listener : listeners) {
 					try {
-						listener.onCreate(file.toFile());
+						listener.onCreate(f);
 					} catch (Throwable t) {
 						slog.warn("araqne-logapi-nio: file event listener should not throw any exception", t);
 					}

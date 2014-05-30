@@ -19,7 +19,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
@@ -39,7 +46,6 @@ import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.MultilineLogExtractor;
 
 public class RecursiveDirectoryWatchLogger extends AbstractLogger {
-
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RecursiveDirectoryWatchLogger.class.getName());
 	protected String basePath;
 	protected Pattern fileNamePattern;
@@ -47,6 +53,8 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 	private boolean recursive;
 	private String fileTag;
 
+	private FileEventWatcher evtWatcher;
+	private ChangeDetector detector = new ChangeDetector();
 	private MultilineLogExtractor extractor;
 
 	public RecursiveDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
@@ -98,13 +106,55 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 		extractor.setCharset(charset);
 
+		try {
+			this.evtWatcher = new FileEventWatcher(basePath, fileNamePattern, this.recursive);
+			evtWatcher.addListener(detector);
+		} catch (IOException e) {
+			throw new IllegalArgumentException("araqne-logapi-nio: failed to create file event watcher. logger [" + getName()
+					+ "]", e);
+		}
+
+		try {
+			Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
+			Path root = FileSystems.getDefault().getPath(basePath);
+			Files.walkFileTree(root, new InitialRunner(root, lastPositions));
+			setStates(LastPositionHelper.serialize(lastPositions));
+		} catch (IOException e) {
+			logger.error("araqne-logapi-nio: failed to initial run", e);
+		}
 	}
 
 	@Override
 	protected void runOnce() {
-		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
+		try {
+			evtWatcher.poll(1000);
+			Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
 
-		setStates(LastPositionHelper.serialize(lastPositions));
+			for (File f : detector.changedFiles) {
+				processFile(lastPositions, f);
+			}
+			detector.changedFiles.clear();
+
+			for (File f : detector.deletedFiles) {
+				String path = f.getAbsolutePath();
+				LastPosition lp = lastPositions.get(path);
+				if (lp == null)
+					continue;
+				if (lp.getLastSeen() == null)
+					lp.setLastSeen(new Date());
+				else {
+					long limitTime = lp.getLastSeen().getTime() + 3600000L;
+					if (limitTime <= System.currentTimeMillis()) {
+						lastPositions.remove(path);
+					}
+				}
+			}
+			detector.deletedFiles.clear();
+
+			setStates(LastPositionHelper.serialize(lastPositions));
+		} catch (IOException e) {
+			logger.error("araqne-logapi-nio: logger [" + getFullName() + "] io error", e);
+		}
 	}
 
 	protected void processFile(Map<String, LastPosition> lastPositions, File file) {
@@ -187,8 +237,42 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 		}
 	}
 
-	private class ChangeDetector implements FileEventListener {
+	private class InitialRunner implements FileVisitor<Path> {
+		private Path root;
+		private Map<String, LastPosition> lastPositions;
 
+		public InitialRunner(Path root, Map<String, LastPosition> lastPositions) {
+			this.root = root;
+			this.lastPositions = lastPositions;
+		}
+
+		@Override
+		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+			if (!recursive && !dir.equals(root))
+				return FileVisitResult.SKIP_SUBTREE;
+			return FileVisitResult.CONTINUE;
+		}
+
+		@Override
+		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+			File f = file.toFile();
+			if (fileNamePattern.matcher(f.getName()).find())
+				processFile(lastPositions, f);
+			return FileVisitResult.CONTINUE;
+		}
+
+		@Override
+		public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+			return FileVisitResult.CONTINUE;
+		}
+
+		@Override
+		public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+			return FileVisitResult.CONTINUE;
+		}
+	}
+
+	private class ChangeDetector implements FileEventListener {
 		private Set<File> changedFiles = new HashSet<File>();
 		private Set<File> deletedFiles = new HashSet<File>();
 
