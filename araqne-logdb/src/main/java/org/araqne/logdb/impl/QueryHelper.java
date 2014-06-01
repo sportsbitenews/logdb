@@ -45,8 +45,12 @@ public class QueryHelper {
 
 	public static Map<String, Object> getQuery(Query q) {
 		Long msec = null;
-		if (q.isStarted())
-			msec = System.currentTimeMillis() - q.getStartTime();
+		if (q.isStarted()) {
+			if (q.isFinished())
+				msec = q.getFinishTime() - q.getStartTime();
+			else
+				msec = System.currentTimeMillis() - q.getStartTime();
+		}
 
 		List<Object> commands = new ArrayList<Object>();
 
@@ -54,7 +58,7 @@ public class QueryHelper {
 			for (QueryCommand cmd : q.getCommands()) {
 				Map<String, Object> c = new HashMap<String, Object>();
 				c.put("command", cmd.toString());
-				c.put("status", cmd.getStatus());
+				c.put("status", cmd.getStatus().toString());
 				c.put("push_count", cmd.getOutputCount());
 				commands.add(c);
 			}
