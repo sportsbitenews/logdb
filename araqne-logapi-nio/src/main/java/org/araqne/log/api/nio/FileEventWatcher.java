@@ -216,12 +216,12 @@ public class FileEventWatcher {
 	public void close() {
 		try {
 			ws.close();
-		} catch (IOException e) {
+		} catch (Throwable t) {
 		}
 
 		try {
 			fs.close();
-		} catch (IOException e) {
+		} catch (Throwable t) {
 		}
 	}
 

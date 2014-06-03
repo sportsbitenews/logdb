@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
@@ -43,19 +44,26 @@ import org.araqne.log.api.Log;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.MultilineLogExtractor;
 
 public class RecursiveDirectoryWatchLogger extends AbstractLogger {
-	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RecursiveDirectoryWatchLogger.class.getName());
-	protected String basePath;
-	protected Pattern fileNamePattern;
-	private Receiver receiver = new Receiver();
-	private boolean recursive;
-	private String fileTag;
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(RecursiveDirectoryWatchLogger.class.getName());
+	private final String basePath;
+	private final Pattern fileNamePattern;
+	private final boolean recursive;
+	private final String fileTag;
 
-	private FileEventWatcher evtWatcher;
-	private ChangeDetector detector = new ChangeDetector();
+	private Receiver receiver = new Receiver();
+
+	/**
+	 * NOTE: must be separate thread for accurate event processing
+	 */
+	private ChangeDetector detector;
+
 	private MultilineLogExtractor extractor;
+
+	private boolean walkTreeRequired = true;
 
 	public RecursiveDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
@@ -105,55 +113,76 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 		this.fileTag = getConfigs().get("file_tag");
 
 		extractor.setCharset(charset);
+	}
 
-		try {
-			this.evtWatcher = new FileEventWatcher(basePath, fileNamePattern, this.recursive);
-			evtWatcher.addListener(detector);
-		} catch (IOException e) {
-			throw new IllegalArgumentException("araqne-logapi-nio: failed to create file event watcher. logger [" + getName()
-					+ "]", e);
-		}
+	@Override
+	protected void onStart() {
+		detector = new ChangeDetector();
+		detector.start();
+	}
 
-		try {
-			Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
-			Path root = FileSystems.getDefault().getPath(basePath);
-			Files.walkFileTree(root, new InitialRunner(root, lastPositions));
-			setStates(LastPositionHelper.serialize(lastPositions));
-		} catch (IOException e) {
-			logger.error("araqne-logapi-nio: failed to initial run", e);
-		}
+	@Override
+	protected void onStop(LoggerStopReason reason) {
+		detector.close();
+		walkTreeRequired = true;
 	}
 
 	@Override
 	protected void runOnce() {
-		try {
-			evtWatcher.poll(1000);
-			Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
+		if (detector.deadThread)
+			throw new IllegalStateException("dead file watcher, logger[ [" + getFullName() + "]");
 
-			for (File f : detector.changedFiles) {
-				processFile(lastPositions, f);
-			}
-			detector.changedFiles.clear();
+		if (walkTreeRequired) {
+			try {
+				Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
+				Path root = FileSystems.getDefault().getPath(basePath);
+				Files.walkFileTree(root, new InitialRunner(root, lastPositions));
 
-			for (File f : detector.deletedFiles) {
-				String path = f.getAbsolutePath();
-				LastPosition lp = lastPositions.get(path);
-				if (lp == null)
-					continue;
-				if (lp.getLastSeen() == null)
-					lp.setLastSeen(new Date());
-				else {
-					long limitTime = lp.getLastSeen().getTime() + 3600000L;
-					if (limitTime <= System.currentTimeMillis()) {
-						lastPositions.remove(path);
-					}
+				// mark deleted files
+				for (String path : new ArrayList<String>(lastPositions.keySet())) {
+					markDeletedFile(lastPositions, new File(path));
 				}
-			}
-			detector.deletedFiles.clear();
 
-			setStates(LastPositionHelper.serialize(lastPositions));
-		} catch (IOException e) {
-			logger.error("araqne-logapi-nio: logger [" + getFullName() + "] io error", e);
+				setStates(LastPositionHelper.serialize(lastPositions));
+				walkTreeRequired = false;
+			} catch (IOException e) {
+				throw new IllegalStateException("failed to initial run, logger [" + getFullName() + "]", e);
+			}
+		}
+
+		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
+
+		for (File f : detector.changedFiles) {
+			processFile(lastPositions, f);
+		}
+		detector.changedFiles.clear();
+
+		for (File f : detector.deletedFiles) {
+			markDeletedFile(lastPositions, f);
+		}
+		detector.deletedFiles.clear();
+
+		setStates(LastPositionHelper.serialize(lastPositions));
+	}
+
+	private void markDeletedFile(Map<String, LastPosition> lastPositions, File f) {
+		if (f.exists())
+			return;
+
+		String path = f.getAbsolutePath();
+		LastPosition lp = lastPositions.get(path);
+		if (lp == null)
+			return;
+		if (lp.getLastSeen() == null) {
+			lp.setLastSeen(new Date());
+			slog.debug("araqne-logapi-nio: logger [{}] marked deleted file [{}] state", getFullName(), f.getAbsolutePath());
+		} else {
+			long limitTime = lp.getLastSeen().getTime() + 3600000L;
+			if (limitTime <= System.currentTimeMillis()) {
+				lastPositions.remove(path);
+				slog.debug("araqne-logapi-nio: logger [{}] removed deleted file [{}] from states", getFullName(),
+						f.getAbsolutePath());
+			}
 		}
 	}
 
@@ -180,7 +209,7 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 			if (lastPositions.containsKey(path)) {
 				LastPosition inform = lastPositions.get(path);
 				offset = inform.getPosition();
-				logger.trace("araqne-logapi-nio: target file [{}] skip offset [{}]", path, offset);
+				slog.trace("araqne-logapi-nio: target file [{}] skip offset [{}]", path, offset);
 			}
 
 			AtomicLong lastPosition = new AtomicLong(offset);
@@ -193,7 +222,7 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 			extractor.extract(is, lastPosition, dateFromFileName);
 
-			logger.debug("araqne-logapi-nio: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
+			slog.debug("araqne-logapi-nio: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
 					offset, lastPosition.get() });
 			LastPosition inform = lastPositions.get(path);
 			if (inform == null) {
@@ -202,10 +231,10 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 			inform.setPosition(lastPosition.get());
 			lastPositions.put(path, inform);
 		} catch (FileNotFoundException e) {
-			if (logger.isTraceEnabled())
-				logger.trace("araqne-logapi-nio: logger [" + getFullName() + "] read failure: file not found: {}", e.getMessage());
+			if (slog.isTraceEnabled())
+				slog.trace("araqne-logapi-nio: logger [" + getFullName() + "] read failure: file not found: {}", e.getMessage());
 		} catch (Throwable e) {
-			logger.error("araqne-logapi-nio: logger [" + getFullName() + "] read error", e);
+			slog.error("araqne-logapi-nio: logger [" + getFullName() + "] read error", e);
 		} finally {
 			if (is != null) {
 				try {
@@ -256,7 +285,7 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 			File f = file.toFile();
-			if (fileNamePattern.matcher(f.getName()).find())
+			if (fileNamePattern.matcher(f.getName()).matches())
 				processFile(lastPositions, f);
 			return FileVisitResult.CONTINUE;
 		}
@@ -272,24 +301,63 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 		}
 	}
 
-	private class ChangeDetector implements FileEventListener {
+	private class ChangeDetector extends Thread implements FileEventListener {
+		private FileEventWatcher evtWatcher;
 		private Set<File> changedFiles = new HashSet<File>();
 		private Set<File> deletedFiles = new HashSet<File>();
+		private volatile boolean doStop;
+		private volatile boolean deadThread;
+
+		public ChangeDetector() {
+			super("File Watcher [" + getFullName() + "]");
+		}
+
+		@Override
+		public void run() {
+			try {
+				slog.info("araqne-logapi-nio: starting file watcher for logger [{}]", getFullName());
+				this.evtWatcher = new FileEventWatcher(basePath, fileNamePattern, recursive);
+				evtWatcher.addListener(detector);
+
+				while (!doStop) {
+					evtWatcher.poll(100);
+				}
+			} catch (IOException e) {
+				slog.error("araqne-logapi-nio: cannot poll file event for logger [" + getFullName() + "]", e);
+			} finally {
+				evtWatcher.removeListener(this);
+				evtWatcher.close();
+				slog.info("araqne-logapi-nio: stopping file watcher for logger [{}]", getFullName());
+				deadThread = true;
+			}
+		}
+
+		public void close() {
+			doStop = true;
+			slog.debug("araqne-logapi-nio: closing change detector of logger [{}]", getFullName());
+		}
 
 		@Override
 		public void onCreate(File file) {
 			changedFiles.add(file);
+			if (slog.isDebugEnabled())
+				slog.debug("araqne-logapi-nio: logger [{}] detect created file [{}]", getFullName(), file.getAbsolutePath());
 		}
 
 		@Override
 		public void onDelete(File file) {
 			changedFiles.remove(file);
 			deletedFiles.add(file);
+
+			if (slog.isDebugEnabled())
+				slog.debug("araqne-logapi-nio: logger [{}] detect deleted file [{}]", getFullName(), file.getAbsolutePath());
 		}
 
 		@Override
 		public void onModify(File file) {
 			changedFiles.add(file);
+			if (slog.isDebugEnabled())
+				slog.debug("araqne-logapi-nio: logger [{}] detect modified file [{}]", getFullName(), file.getAbsolutePath());
 		}
 	}
 }
