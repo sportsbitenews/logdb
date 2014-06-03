@@ -244,6 +244,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		status = LoggerStatus.Starting;
 		this.interval = interval;
+		
+		invokeStartCallback();
 
 		if (getExecutor() == null) {
 			t = new Thread(this, "Logger [" + fullName + "]");
@@ -254,7 +256,6 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		}
 
 		pending = false;
-		invokeStartCallback();
 	}
 
 	private void verifyTransformer() {
