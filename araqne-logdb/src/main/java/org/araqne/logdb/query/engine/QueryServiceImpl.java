@@ -184,6 +184,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new LoggerParser(loggerRegistry));
 		parsers.add(new MvParser());
 		parsers.add(new ConfdbParser(conf));
+		parsers.add(new InsertParser(storage));
 		if (allowQueryPurge)
 			parsers.add(new PurgeParser(storage, tableRegistry));
 
