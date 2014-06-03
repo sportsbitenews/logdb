@@ -235,6 +235,13 @@ public class LogStorageScript implements Script {
 			context.println("Data path: " + storage.getTableDirectory(tableName).getAbsolutePath());
 			NumberFormat nf = NumberFormat.getNumberInstance();
 			context.println("Consumption: " + nf.format(total) + " bytes");
+
+			LockStatus status = storage.lockStatus(new LockKey("script", args[0], null));
+			if(status.isLocked()) 
+				context.printf("Lock status: locked (owner: %s, reentrant_cnt: %d)\n", status.getOwner(), status.getReentrantCount());
+			else
+				context.printf("Lock status: unlocked\n");
+
 			context.println("");
 		} else if (args.length == 2) {
 			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
@@ -1110,8 +1117,8 @@ public class LogStorageScript implements Script {
 		}
 	}
 	
-	public void _lockStatus(String[] args) {
-		LockStatus status = storage.lockStatus(new LockKey("script", args[0], null));
+	private void _lockStatus(String tableName) {
+		LockStatus status = storage.lockStatus(new LockKey("script", tableName, null));
 		if(status.isLocked()) 
 			context.printf("locked(owner: %s, reentrant_cnt: %d)\n", status.getOwner(), status.getReentrantCount());
 		else
@@ -1124,7 +1131,7 @@ public class LogStorageScript implements Script {
 			context.println("locked");
 		else {
 			context.println("failed");
-			_lockStatus(args);
+			_lockStatus(args[0]);
 		}
 	}
 	
