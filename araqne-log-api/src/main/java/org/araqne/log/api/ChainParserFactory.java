@@ -51,7 +51,7 @@ public class ChainParserFactory extends AbstractLogParserFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "パーサーチェイン";
 		if (locale != null && locale.equals(Locale.CHINESE))
-			return "组合Parser";
+			return "复合解析器r";
 		return "parser chain";
 	}
 
@@ -67,14 +67,14 @@ public class ChainParserFactory extends AbstractLogParserFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "複数のパーサーを組み合わせて作ったチェインを使って解析します。";
 		if (locale != null && locale.equals(Locale.CHINESE))
-			return "将多个Parser组合起来进行解析。";
+			return "将多个解析器组合起来进行解析。";
 		return "parse log using mutli parser chain";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption parsers = new StringConfigType("parsers", t("parser names", "파서 이름 목록", "パーサー名リスト", "Parser名称列表"), t(
-				"comma separated parser names", "쉼표로 구분된 파서 이름 목록", "読点で分けているパーサー名リスト", "以逗号分隔的Parser名称列表"), true);
+		LoggerConfigOption parsers = new StringConfigType("parsers", t("parser names", "파서 이름 목록", "パーサー名リスト", "接卸器名称列表"), t(
+				"comma separated parser names", "쉼표로 구분된 파서 이름 목록", "読点で分けているパーサー名リスト", "以逗号分隔的解析器名称列表"), true);
 		return Arrays.asList(parsers);
 	}
 

@@ -53,7 +53,7 @@ public class RexParser extends AbstractQueryCommandParser {
 		Pattern placeholder = Pattern.compile("\\(\\?<(.*?)>");
 		String regexToken = commandString.substring(r.next);
 		if (!QueryTokenizer.isQuoted(regexToken.trim()))
-			throw new QueryParseException("invalid-regex", commandString.length());
+			throw new QueryParseException("invalid-regex", commandString.length(), regexToken);
 
 		// for later toString convenience
 		String originalRegexToken = regexToken;

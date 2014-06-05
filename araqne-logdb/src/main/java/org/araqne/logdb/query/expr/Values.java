@@ -16,9 +16,10 @@
 package org.araqne.logdb.query.expr;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
+import java.util.TreeSet;
 
+import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
@@ -26,18 +27,18 @@ import org.araqne.logdb.query.aggregator.AggregationFunction;
 /**
  * @since 2.2.14
  * @author xeraph
- *
+ * 
  */
 public class Values implements AggregationFunction {
 	private List<Expression> exprs;
-	private HashSet<Object> set;
+	private TreeSet<Object> set;
 
 	public Values(List<Expression> exprs) {
 		if (exprs.isEmpty())
 			throw new QueryParseException("missing-values-arg", -1);
 
 		this.exprs = exprs;
-		this.set = new HashSet<Object>();
+		this.set = new TreeSet<Object>(new ObjectComparator());
 	}
 
 	@Override
@@ -66,7 +67,7 @@ public class Values implements AggregationFunction {
 	@Override
 	public AggregationFunction clone() {
 		Values v = new Values(exprs);
-		v.set = new HashSet<Object>(set);
+		v.set = new TreeSet<Object>(set);
 		return v;
 	}
 

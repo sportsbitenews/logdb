@@ -22,6 +22,17 @@ public class Strings {
 	private Strings() {
 	}
 
+	public static String join(Object[] tokens, String sep) {
+		StringBuilder sb = new StringBuilder();
+		int i = 0;
+		for (Object s : tokens) {
+			if (i++ != 0)
+				sb.append(sep);
+			sb.append(s);
+		}
+		return sb.toString();
+	}
+
 	public static String join(Collection<?> tokens, String sep) {
 		StringBuilder sb = new StringBuilder();
 		int i = 0;

@@ -55,12 +55,12 @@ public class Import extends QueryCommand implements ThreadSafe {
 	public void onStart() {
 		if (create) {
 			try {
-				storage.createTable(new TableSchema(tableName, new StorageConfig("v3p")));
+				storage.ensureTable(new TableSchema(tableName, new StorageConfig("v3p")));
 			} catch (Throwable t) {
 			}
 
 			try {
-				storage.createTable(new TableSchema(tableName, new StorageConfig("v2")));
+				storage.ensureTable(new TableSchema(tableName, new StorageConfig("v2")));
 			} catch (Throwable t) {
 			}
 		}

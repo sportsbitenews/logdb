@@ -47,7 +47,7 @@ public class GroovyParserFactory extends AbstractLogParserFactory {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "그루비";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "Groovy";
+			return "Groovy脚本解析器";
 		return "Groovy";
 	}
 
@@ -61,7 +61,7 @@ public class GroovyParserFactory extends AbstractLogParserFactory {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "그루비 파서 스크립트";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "Groovy Parser脚本";
+			return "通过Groovy脚本实现解析器。";
 		return "Groovy parser script";
 	}
 

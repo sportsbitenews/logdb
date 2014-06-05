@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.cep;
+package org.araqne.log.api.nio;
 
-public enum EventCause {
-	EXPIRE, TIMEOUT, REMOVAL
+import java.io.File;
+
+/**
+ * @author xeraph
+ */
+public interface FileEventListener {
+	void onCreate(File file);
+
+	void onDelete(File file);
+
+	void onModify(File file);
 }

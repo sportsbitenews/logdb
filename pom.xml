@@ -253,5 +253,6 @@
 		<module>araqne-logdb-cep</module>
 		<!--<module>araqne-logdb-mongo</module>-->
 		<module>araqne-logdb-crawler</module>
+		<module>araqne-logapi-nio</module>
 	</modules>
 </project>
