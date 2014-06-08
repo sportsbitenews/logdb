@@ -39,7 +39,17 @@ public interface Query extends Runnable {
 
 	void postRun();
 
+	QueryStopReason getStopReason();
+
+	/**
+	 * @since 2.2.17
+	 * @return the cause exception of query failure
+	 */
+	Throwable getCause();
+
 	void stop(QueryStopReason reason);
+
+	void stop(Throwable cause);
 
 	void purge();
 
