@@ -365,21 +365,27 @@ public class Console {
 			}
 		} while (!lq.isFinished());
 
-		long count = 0;
-		QueryResultSet rs = null;
-		try {
-			rs = lq.getResultSet();
-			while (rs.hasNext()) {
-				printMap(rs.next());
-				count++;
+		if (lq.getCause() != null) {
+			context.println("query failure: " + lq.getCause().getMessage());
+		} else {
+			long count = 0;
+			QueryResultSet rs = null;
+			try {
+				rs = lq.getResultSet();
+				while (rs.hasNext()) {
+					printMap(rs.next());
+					count++;
+				}
+			} finally {
+				if (rs != null)
+					rs.close();
 			}
-		} finally {
-			if (rs != null)
-				rs.close();
+
+			context.println(String.format("total %d rows, elapsed %.1fs", count, (System.currentTimeMillis() - begin)
+					/ (double) 1000));
 		}
 
 		queryService.removeQuery(lq.getId());
-		context.println(String.format("total %d rows, elapsed %.1fs", count, (System.currentTimeMillis() - begin) / (double) 1000));
 	}
 
 	private void createQuery(String queryString) {

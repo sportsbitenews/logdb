@@ -65,6 +65,7 @@ import org.slf4j.LoggerFactory;
 @MsgbusPlugin
 public class LogQueryPlugin {
 	private final Logger logger = LoggerFactory.getLogger(LogQueryPlugin.class.getName());
+	private static final int GENERAL_QUERY_FAILURE_CODE = 1;
 
 	@Requires
 	private QueryService service;
@@ -231,8 +232,7 @@ public class LogQueryPlugin {
 			List<Map<String, Object>> chunk = (List<Map<String, Object>>) req.get("bins");
 			List<Object> l = streamingDecoder.decode(chunk);
 
-			for (Object m : l)
-			{
+			for (Object m : l) {
 				Map<String, Object> data = (Map<String, Object>) m;
 				Date date = (Date) data.get("_time");
 				Log log = new Log(tableName, date, data);
@@ -497,6 +497,14 @@ public class LogQueryPlugin {
 					m.put("type", "eof");
 					m.put("total_count", query.getResultCount());
 					m.put("stamp", query.getNextStamp());
+
+					// @since 2.2.17
+					if (query.getCause() != null) {
+						m.put("error_code", GENERAL_QUERY_FAILURE_CODE);
+						m.put("error_detail", query.getCause().getMessage() != null ? query.getCause().getMessage() : query
+								.getCause().getClass().getName());
+					}
+
 					pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
 					pushApi.push(orgDomain, "logstorage-query-" + query.getId(), m); // deprecated
 

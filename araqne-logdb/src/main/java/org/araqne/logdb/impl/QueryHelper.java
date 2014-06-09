@@ -32,6 +32,8 @@ import org.araqne.logdb.Session;
 import org.araqne.logdb.query.command.Fields;
 
 public class QueryHelper {
+	private static final int GENERAL_QUERY_FAILURE_CODE = 1;
+
 	private QueryHelper() {
 	}
 
@@ -83,6 +85,12 @@ public class QueryHelper {
 		m.put("commands", commands);
 		m.put("sub_queries", subQueries);
 		m.put("stamp", q.getNextStamp());
+
+		// @since 2.2.17
+		if (q.getCause() != null) {
+			m.put("error_code", GENERAL_QUERY_FAILURE_CODE);
+			m.put("error_detail", q.getCause().getMessage() != null ? q.getCause().getMessage() : q.getCause().getClass().getName());
+		}
 
 		return m;
 	}

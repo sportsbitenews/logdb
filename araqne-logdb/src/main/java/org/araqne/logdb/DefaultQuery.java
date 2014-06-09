@@ -40,6 +40,8 @@ public class DefaultQuery implements Query {
 	private QueryResult result;
 
 	private QueryStopReason stopReason;
+	private Throwable cause;
+
 	private RunMode runMode = RunMode.FOREGROUND;
 	private QueryCallbacks callbacks = new QueryCallbacks();
 
@@ -183,6 +185,16 @@ public class DefaultQuery implements Query {
 	}
 
 	@Override
+	public QueryStopReason getStopReason() {
+		return stopReason;
+	}
+
+	@Override
+	public Throwable getCause() {
+		return cause;
+	}
+
+	@Override
 	public void stop(QueryStopReason reason) {
 		if (stopReason != null)
 			return;
@@ -212,6 +224,15 @@ public class DefaultQuery implements Query {
 		} catch (Throwable t) {
 			logger.error("araqne logdb: cannot close query result", t);
 		}
+	}
+
+	@Override
+	public void stop(Throwable cause) {
+		if (stopReason != null)
+			return;
+
+		this.cause = cause;
+		stop(QueryStopReason.CommandFailure);
 	}
 
 	@Override
