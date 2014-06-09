@@ -385,7 +385,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	}
 
 	@Override
-	public void write(Log log) {
+	public boolean tryWrite(Log log, long waitFor, TimeUnit tu) throws InterruptedException {
 		// inlined verify() for fast-path performance
 		if (status != LogStorageStatus.Open)
 			throw new IllegalStateException("archive not opened");
@@ -397,9 +397,14 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			Lock lock = null;
 			try {
 				lock = tableRegistry.getSharedTableLock(tableName);
-				OnlineWriter writer = getOnlineWriter(tableName, log.getDate());
-				writer.write(log);
-				break;
+				boolean locked = lock.tryLock(waitFor, tu);
+				if (locked) {
+					OnlineWriter writer = getOnlineWriter(tableName, log.getDate());
+					writer.write(log);
+					break;
+				} else {
+					return false;
+				}
 			} catch (IOException e) {
 				if (e.getMessage().contains("closed")) {
 					logger.info("closed online writer: trying one more time");
@@ -426,10 +431,12 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				logger.warn("araqne logstorage: log callback should not throw any exception", e);
 			}
 		}
+
+		return true;
 	}
 
 	@Override
-	public void write(List<Log> logs) throws InterruptedException {
+	public boolean tryWrite(List<Log> logs, long waitFor, TimeUnit tu) throws InterruptedException {
 		// inlined verify() for fast-path performance
 		if (status != LogStorageStatus.Open)
 			throw new IllegalStateException("archive not opened");
@@ -451,42 +458,53 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			l.add(log);
 		}
 
-		// write data
-		for (Entry<OnlineWriterKey, List<Log>> e : keyLogs.entrySet()) {
-			OnlineWriterKey writerKey = e.getKey();
-			String tableName = writerKey.getTableName();
-			List<Log> l = e.getValue();
+		HashMap<OnlineWriterKey, Lock> locks = new HashMap<OnlineWriterKey, Lock>();
 
-			for (int i = 0; i < 2; i++) {
-				Lock lock = null;
-				try {
-					lock = tableRegistry.getSharedTableLock(writerKey.getTableName());
-					lock.lockInterruptibly();
-					OnlineWriter writer = getOnlineWriter(writerKey.getTableName(), writerKey.getDay());
-					writer.write(l);
-					break;
-				} catch (IOException ex) {
-					if (ex.getMessage().contains("closed")) {
-						logger.info("araqne logstorage: closed online writer, trying one more time");
-						continue;
+		try {
+			for (OnlineWriterKey k : keyLogs.keySet()) {
+				Lock lock = tableRegistry.getSharedTableLock(k.getTableName());
+				if (lock.tryLock(waitFor, tu))
+					locks.put(k, lock);
+				else
+					return false;
+			}
+			// write data
+			for (Entry<OnlineWriterKey, List<Log>> e : keyLogs.entrySet()) {
+				OnlineWriterKey writerKey = e.getKey();
+				String tableName = writerKey.getTableName();
+				List<Log> l = e.getValue();
+
+				for (int i = 0; i < 2; i++) {
+					try {
+						OnlineWriter writer = getOnlineWriter(writerKey.getTableName(), writerKey.getDay());
+						writer.write(l);
+						break;
+					} catch (IOException ex) {
+						if (ex.getMessage().contains("closed")) {
+							logger.info("araqne logstorage: closed online writer, trying one more time");
+							continue;
+						}
+
+						throw new IllegalStateException("cannot write [" + l.size() + "] logs to table [" + tableName
+								+ "]");
 					}
+				}
 
-					throw new IllegalStateException("cannot write [" + l.size() + "] logs to table [" + tableName + "]");
-				} finally {
-					if (lock != null)
-						lock.unlock();
+				// invoke log callbacks
+				for (LogCallback callback : callbacks) {
+					try {
+						callback.onLogBatch(writerKey.getTableName(), l);
+					} catch (Exception ex) {
+						logger.warn("araqne logstorage: log callback should not throw any exception", ex);
+					}
 				}
 			}
-
-			// invoke log callbacks
-			for (LogCallback callback : callbacks) {
-				try {
-					callback.onLogBatch(writerKey.getTableName(), l);
-				} catch (Exception ex) {
-					logger.warn("araqne logstorage: log callback should not throw any exception", ex);
-				}
+		} finally {
+			for (Lock l: locks.values()) {
+				l.unlock();
 			}
 		}
+		return true;
 	}
 
 	@Override
@@ -1300,25 +1318,29 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 	@Override
 	public boolean tryWrite(Log log) {
-		// TODO Auto-generated method stub
-		return false;
+		try {
+			return tryWrite(log, 0, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			return false;
+		}
 	}
 
 	@Override
-	public boolean tryWrite(Log log, long timeout, TimeUnit unit) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean tryWrite(List<Log> logs) {
+		try {
+			return tryWrite(logs, 0, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			return false;
+		}
 	}
 
 	@Override
-	public boolean tryWrite(List<Log> log) {
-		// TODO Auto-generated method stub
-		return false;
+	public void write(Log log) throws InterruptedException {
+		tryWrite(log, Long.MAX_VALUE, TimeUnit.SECONDS);
 	}
 
 	@Override
-	public boolean tryWrite(List<Log> log, long timeout, TimeUnit unit) {
-		// TODO Auto-generated method stub
-		return false;
+	public void write(List<Log> logs) throws InterruptedException {
+		tryWrite(logs, Long.MAX_VALUE, TimeUnit.SECONDS);
 	}
 }

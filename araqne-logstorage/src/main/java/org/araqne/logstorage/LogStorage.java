@@ -147,11 +147,11 @@ public interface LogStorage {
 	
 	boolean tryWrite(Log log);
 	
-	boolean tryWrite(Log log, long timeout, TimeUnit unit);
+	boolean tryWrite(Log log, long timeout, TimeUnit unit) throws InterruptedException;
 
 	boolean tryWrite(List<Log> log);
 	
-	boolean tryWrite(List<Log> log, long timeout, TimeUnit unit);
+	boolean tryWrite(List<Log> log, long timeout, TimeUnit unit) throws InterruptedException;
 
 	LockStatus lockStatus(LockKey storageLockKey);
 
