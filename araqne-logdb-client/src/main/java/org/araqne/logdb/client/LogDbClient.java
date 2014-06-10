@@ -1860,6 +1860,7 @@ public class LogDbClient implements TrapListener, Closeable {
 
 	private Map<String, Object> buildScheduledQueryParams(ScheduledQueryInfo query) {
 		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("guid", query.getGuid());
 		params.put("title", query.getTitle());
 		params.put("cron_schedule", query.getCronSchedule());
 		params.put("query", query.getQueryString());
