@@ -500,7 +500,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				}
 			}
 		} finally {
-			for (Lock l: locks.values()) {
+			for (Lock l : locks.values()) {
 				l.unlock();
 			}
 		}
@@ -1295,25 +1295,32 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 	@Override
 	public void flush(String tableName) {
-		List<CountDownLatch> monitors = new ArrayList<CountDownLatch>();
+		HashMap<OnlineWriterKey, CountDownLatch> monitors = new HashMap<OnlineWriterKey, CountDownLatch>();
 		for (OnlineWriterKey key : onlineWriters.keySet()) {
 			if (key.getTableName().equals(tableName)) {
 				OnlineWriter ow = onlineWriters.get(key);
 				CountDownLatch monitor = ow.reserveClose();
-				monitors.add(monitor);
+				monitors.put(key, monitor);
 			}
 		}
 		synchronized (writerSweeper) {
 			writerSweeper.notifyAll();
 		}
+		for (Map.Entry<OnlineWriterKey, CountDownLatch> e: monitors.entrySet()) {
+			waitForClose(e.getKey(), e.getValue());
+		}
+	}
+
+	private void waitForClose(OnlineWriterKey key, CountDownLatch monitor) {
 		try {
-			for (CountDownLatch monitor : monitors) {
+			boolean closed = monitor.await(1, TimeUnit.MINUTES);
+			if (!closed) {
+				logger.info("wait for closing Table: {}", key.getTableName());
 				monitor.await();
 			}
 		} catch (InterruptedException e) {
 			logger.warn(this + ": wait for flush interrupted");
 		}
-
 	}
 
 	@Override
