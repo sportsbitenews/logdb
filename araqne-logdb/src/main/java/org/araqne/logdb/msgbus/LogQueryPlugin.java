@@ -65,6 +65,7 @@ import org.slf4j.LoggerFactory;
 @MsgbusPlugin
 public class LogQueryPlugin {
 	private final Logger logger = LoggerFactory.getLogger(LogQueryPlugin.class.getName());
+	private static final int GENERAL_QUERY_FAILURE_CODE = 1;
 
 	@Requires
 	private QueryService service;
@@ -84,7 +85,6 @@ public class LogQueryPlugin {
 	private StreamingResultEncoder streamingEncoder;
 	private StreamingResultDecoder streamingDecoder;
 
-
 	@Validate
 	public void start() {
 		int poolSize = Math.min(8, Runtime.getRuntime().availableProcessors());
@@ -98,7 +98,7 @@ public class LogQueryPlugin {
 			streamingEncoder.close();
 			streamingEncoder = null;
 		}
-		
+
 		if (streamingDecoder != null) {
 			streamingDecoder.close();
 			streamingDecoder = null;
@@ -216,36 +216,35 @@ public class LogQueryPlugin {
 			throw new MsgbusException("logdb", "query-not-found", params);
 		}
 	}
-	
+
 	@MsgbusMethod
-	public void insertBatch(Request req, Response resp){
+	public void insertBatch(Request req, Response resp) {
 		// isAdmin
 		org.araqne.logdb.Session dbSession = getDbSession(req);
 		if (!dbSession.isAdmin())
 			throw new IllegalStateException("no permission");
 
-		//decode
-		if(!req.has("bins") || !req.has("table"))
+		// decode
+		if (!req.has("bins") || !req.has("table"))
 			throw new IllegalStateException("no data");
 		try {
 			String tableName = req.getString("table");
-			List<Map<String, Object>> chunk =(List<Map<String, Object>>)req.get("bins"); 		
+			List<Map<String, Object>> chunk = (List<Map<String, Object>>) req.get("bins");
 			List<Object> l = streamingDecoder.decode(chunk);
 
-			for(Object  m : l)
-			{
-				Map<String, Object> data =( Map<String, Object>)m;
-				Date date = (Date)data.get("_time");
+			for (Object m : l) {
+				Map<String, Object> data = (Map<String, Object>) m;
+				Date date = (Date) data.get("_time");
 				Log log = new Log(tableName, date, data);
-				//storage.writeBatch(log);
+				// storage.writeBatch(log);
 				storage.write(log);
-			
+
 			}
 		} catch (ExecutionException e) {
 			logger.error("araqne logdb : cannot insert data", e);
 		}
 	}
-	
+
 	@MsgbusMethod
 	public void getResult(Request req, Response resp) throws IOException {
 		int id = req.getInteger("id", true);
@@ -347,10 +346,10 @@ public class LogQueryPlugin {
 		Integer limit = req.getInteger("limit");
 
 		List<SavedResult> l = savedResultManager.getResultList(dbSession.getLoginName());
-		
+
 		// make sublist for offset and limit
 		List<SavedResult> subList = subList(l, offset, limit);
-		
+
 		List<Object> savedResults = new ArrayList<Object>();
 		for (SavedResult s : subList) {
 			Map<String, Object> m = new HashMap<String, Object>();
@@ -494,6 +493,14 @@ public class LogQueryPlugin {
 					m.put("type", "eof");
 					m.put("total_count", query.getResultCount());
 					m.put("stamp", query.getNextStamp());
+
+					// @since 2.2.17
+					if (query.getCause() != null) {
+						m.put("error_code", GENERAL_QUERY_FAILURE_CODE);
+						m.put("error_detail", query.getCause().getMessage() != null ? query.getCause().getMessage() : query
+								.getCause().getClass().getName());
+					}
+
 					pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
 					pushApi.push(orgDomain, "logstorage-query-" + query.getId(), m); // deprecated
 
