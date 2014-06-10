@@ -211,11 +211,6 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				throw e;
 		}
 
-		writerSweeper.doStop = true;
-		synchronized (writerSweeper) {
-			writerSweeper.notifyAll();
-		}
-
 		// wait writer sweeper stop
 		try {
 			for (int i = 0; i < 25; i++) {
@@ -236,6 +231,11 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			} catch (Throwable t) {
 				logger.warn("exception caught", t);
 			}
+		}
+
+		writerSweeper.doStop = true;
+		synchronized (writerSweeper) {
+			writerSweeper.notifyAll();
 		}
 
 		onlineWriters.clear();
@@ -1319,7 +1319,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				monitor.await();
 			}
 		} catch (InterruptedException e) {
-			logger.warn(this + ": wait for flush interrupted");
+			logger.warn("wait for closing interrupted: {}", key.getTableName());
 		}
 	}
 
