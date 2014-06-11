@@ -50,7 +50,7 @@ public class RegexFilterTransformerFactory implements LogTransformerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "正規表現フィルター";
 		if (locale != null && locale != null && locale.equals(Locale.CHINESE))
-			return "正则表达式过滤器";
+			return "正则表达式";
 		return "regex filter";
 	}
 
@@ -66,7 +66,7 @@ public class RegexFilterTransformerFactory implements LogTransformerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "設定した正規表現パータンを含むログだけ保存します。";
 		if (locale != null && locale.equals(Locale.CHINESE))
-			return "只保存符合设置的正则表达式特征的日志。";
+			return "只保存包含所指定正则表达式特征的数据。";
 		return "pass or drop logs by regex match result";
 	}
 

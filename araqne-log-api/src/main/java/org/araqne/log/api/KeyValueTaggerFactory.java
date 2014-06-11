@@ -61,14 +61,14 @@ public class KeyValueTaggerFactory implements LogTransformerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "すべてのログにキー・バリュータグを追加します。";
 		if (locale != null && locale.equals(Locale.CHINESE))
-			return "向所有日志添加键/值标记。";
+			return "向所有数据添加键/值标记。";
 		return "add key/value tag to every logs";
 	}
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
 		LoggerConfigOption tags = new StringConfigType("tags", t("tags", "태그 목록", "タグリスト", "标记列表"), t("comma separated key=value pairs",
-				"쉼표로 구분된 키=값 목록", "コンマで区分されているキー＝バリュリスト", "以逗号分隔的键=值列表"), true);
+				"쉼표로 구분된 키=값 목록", "コンマで区分されているキー＝バリュリスト", "通过正则表达式过滤数据。"), true);
 		return Arrays.asList(tags);
 	}
 

@@ -47,7 +47,7 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "正規表現ログセレクター";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "正则表达式日志选择器";
+			return "正则表达式筛选器";
 		return "Regex Selector";
 	}
 

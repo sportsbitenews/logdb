@@ -68,7 +68,7 @@ public class FieldMappingParserFactory extends AbstractLogParserFactory {
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		LoggerConfigOption mappings = new StringConfigType("mappings", t("field mappings", "필드 이름 변환 목록", "フィルド名変更リスト", "字段名称转换列表"), t(
-				"comma separated from=to field mappings", "쉼표로 구분되는 원본필드=변경필드 이름 목록", "コンマで区分される元＝変更フィルド名リスト", "以逗号分隔的原始字段=变更字段名称列表"), true);
+				"comma separated from=to field mappings", "쉼표로 구분되는 원본필드=변경필드 이름 목록", "コンマで区分される元＝変更フィルド名リスト", "格式：原始字段名称1=变更字段名称1,原始字段名称2=变更字段名称2,…"), true);
 		return Arrays.asList(mappings);
 	}
 

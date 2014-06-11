@@ -41,7 +41,7 @@ public class RotationFileLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "ローテーションログファイル";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "Rotation日志文件";
+			return "回滚日志文件";
 		return "Rotation Log File";
 	}
 

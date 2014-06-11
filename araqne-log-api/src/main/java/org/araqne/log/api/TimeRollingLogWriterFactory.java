@@ -40,7 +40,7 @@ public class TimeRollingLogWriterFactory extends AbstractLoggerFactory implement
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "時間別ローリングログファイル";
 		if (locale != null && locale.equals(Locale.CHINESE))
-			return "时间段轮询日志文件";
+			return "写入滚动文件(时间)";
 		return "Time Rolling Log File";
 	}
 
@@ -56,19 +56,19 @@ public class TimeRollingLogWriterFactory extends AbstractLoggerFactory implement
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "実時間で時間別のローリングログファイルを作ります。";
 		if (locale != null && locale.equals(Locale.CHINESE))
-			return "实时生成各时间段轮询日志文件。";
+			return "写入基于指定时间滚动的文件。";
 		return "write time rolling log file";
 	}
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "元ロガー名", "原始Logger名称"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的原始Logger名称"), true);
+		LoggerConfigOption loggerName = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "元ロガー名", "源数据采集器"), t(
+				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的源数据采集器名称"), true);
 
 		LoggerConfigOption filePath = new StringConfigType("file_path", t("file path", "파일 경로", "ファイル経路", "文件路径"), t("rolling file path",
-				"롤링되는 파일 경로", "ローリングされるファイル経路", "轮询文件路径"), true);
-		LoggerConfigOption rotateInterval = new StringConfigType("rotate_interval", t("rotate interval", "파일 교체 주기", "ファイル交代周期", "文件替换周期"),
-				t("hour or day", "시간 (hour) 혹은 일자 (day)", "時間(hour)か日(day)", "时(hour)或者日期(day)"), true);
+				"롤링되는 파일 경로", "ローリングされるファイル経路", "滚动文件路径"), true);
+		LoggerConfigOption rotateInterval = new StringConfigType("rotate_interval", t("rotate interval", "파일 교체 주기", "ファイル交代周期", "滚动周期"),
+				t("hour or day", "시간 (hour) 혹은 일자 (day)", "時間(hour)か日(day)", "1小时(输入hour)或者1天(输入day)"), true);
 		LoggerConfigOption charsetName = new StringConfigType("charset", t("charset", "문자집합", "文字セット", "字符集"), t("utf-8 by default",
 				"기본값은 utf-8", "基本値はutf-8", "默认值为utf-8"), false);
 

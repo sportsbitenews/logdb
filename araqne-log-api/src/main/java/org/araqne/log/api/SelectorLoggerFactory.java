@@ -46,7 +46,7 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "ログセレクター";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "数据选择器";
+			return "数据筛选器";
 		return "Log Selector";
 	}
 
@@ -62,7 +62,7 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "他のロガーからパターンマッチングされる特定ログだけ収集します。";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "包含名字空间的原始数据采集器名称";
+			return "从其他数据采集器提取符合指定特征的数据。";
 		return "select logs from logger using text matching";
 	}
 
@@ -73,8 +73,8 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름", "元ロガー名", "原始Logger名称"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的原始Logger名称"), true);
+		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름", "元ロガー名", "源数据采集器"), t(
+				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的源数据采集器名称"), true);
 		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Text pattern", "텍스트 패턴", "テキストパターン", "文本模式"), t(
 				"Text pattern to match", "매칭할 대상 문자열", "マッチングする対象文字列", "要匹配的字符串"), true);
 		return Arrays.asList(loggerName, pattern);

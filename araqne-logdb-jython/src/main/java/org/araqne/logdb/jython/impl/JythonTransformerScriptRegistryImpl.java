@@ -92,6 +92,8 @@ public class JythonTransformerScriptRegistryImpl implements JythonTransformerScr
 	@Override
 	public String getDisplayName(Locale locale) {
 		
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "jython数据采集器";
 		return "jython logger";
 	}
 
@@ -104,7 +106,7 @@ public class JythonTransformerScriptRegistryImpl implements JythonTransformerScr
 
 	@Override
 	public List<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return Arrays.asList(Locale.ENGLISH, Locale.CHINESE);
 	}
 
 	@Override
@@ -114,8 +116,8 @@ public class JythonTransformerScriptRegistryImpl implements JythonTransformerScr
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption scriptName = new StringConfigType("transformer_script", map("transformer script name", "转换器脚本名称"),
-				map("jython transformer script class name", "jython转换器脚本类名称"), true);
+		LoggerConfigOption scriptName = new StringConfigType("transformer_script", map("transformer script name", "数据变换器脚本名称"),
+				map("jython transformer script class name", "jython数据变换器脚本类名称"), true);
 		return Arrays.asList(scriptName);
 	}
 

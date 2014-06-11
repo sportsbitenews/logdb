@@ -55,7 +55,7 @@ public class RollingLogWriterFactory extends AbstractLoggerFactory implements Ru
 		if (locale.equals(Locale.JAPANESE))
 			return "ローリングログファイル";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "轮询日志文件";
+			return "写入滚动文件(大小)";
 		return "Rolling Log File";
 	}
 
@@ -71,13 +71,13 @@ public class RollingLogWriterFactory extends AbstractLoggerFactory implements Ru
 		if (locale.equals(Locale.JAPANESE))
 			return "実時間でローリングログファイルを作ります。";
 		if(locale != null && locale.equals(Locale.CHINESE))
-			return "包含名字空间的原始数据采集器名称";
+			return "写入基于指定大小滚动的文件。";
 		return "write rolling log file";
 	}
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "元ロガー名", "原始Logger名称"), t(
+		LoggerConfigOption loggerName = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "元ロガー名", "原始数据采集器"), t(
 				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的原始Logger名称"), true);
 		LoggerConfigOption filePath = new StringConfigType("file_path", t("file path", "파일 경로", "ファイル経路","文件路径"), t("rolling file path",
 				"롤링되는 파일 경로", "ローリングされるファイル経路","轮询的文件路径"), true);
