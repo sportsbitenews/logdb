@@ -8,4 +8,6 @@ public interface QueryResultFactory {
 	void registerStorage(QueryResultStorage storage);
 
 	void unregisterStorage(QueryResultStorage storage);
+	
+	void start();
 }

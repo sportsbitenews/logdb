@@ -11,6 +11,7 @@ import java.security.cert.Certificate;
 import org.araqne.api.FieldOption;
 import org.araqne.confdb.CollectionName;
 
+// TODO : uri handling
 @CollectionName("crypto_profiles")
 public class LogCryptoProfile {
 	/**

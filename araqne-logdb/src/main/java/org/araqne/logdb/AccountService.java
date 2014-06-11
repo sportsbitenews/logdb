@@ -95,4 +95,12 @@ public interface AccountService {
 	 * @since 0.17.0
 	 */
 	void removeListener(SessionEventListener listener);
+	
+	/**
+	 * @since add-storage-layer
+	 */
+	String getInstanceGuid();
+
+	void setInstanceGuid(String guid);
+
 }

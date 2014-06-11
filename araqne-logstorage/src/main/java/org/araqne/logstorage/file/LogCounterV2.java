@@ -15,10 +15,9 @@
  */
 package org.araqne.logstorage.file;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 
+import org.araqne.storage.api.FilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,25 +32,25 @@ public class LogCounterV2 {
 	private LogCounterV2() {
 	}
 
-	public static long count(File idxFile) {
+	public static long count(FilePath idxFile) {
 		Logger logger = LoggerFactory.getLogger(LogCounterV2.class);
-		RandomAccessFile raf = null;
+		BufferedStorageInputStream is = null;
 		try {
-			raf = new RandomAccessFile(idxFile, "r");
+			is = new BufferedStorageInputStream(idxFile);
 
-			LogFileHeader indexFileHeader = LogFileHeader.extractHeader(raf, idxFile);
+			LogFileHeader indexFileHeader = LogFileHeader.extractHeader(is);
 			if (indexFileHeader.version() != 2) {
 				logger.error("araqne logstorage: invalid v2 .idx file version, " + idxFile.getAbsolutePath());
 				return 0;
 			}
 
 			long totalCount = 0;
-			long length = raf.length();
+			long length = is.length();
 			long pos = indexFileHeader.size();
 
 			while (pos < length) {
-				raf.seek(pos);
-				long count = raf.readInt();
+				is.seek(pos);
+				long count = is.readInt();
 				totalCount += count;
 				pos += 4 + count * INDEX_ITEM_SIZE;
 			}
@@ -60,9 +59,9 @@ public class LogCounterV2 {
 			logger.error("araqne logstorage: cannot count v2 .idx file, " + idxFile.getAbsolutePath(), e);
 			return 0;
 		} finally {
-			if (raf != null) {
+			if (is != null) {
 				try {
-					raf.close();
+					is.close();
 				} catch (IOException e) {
 				}
 			}

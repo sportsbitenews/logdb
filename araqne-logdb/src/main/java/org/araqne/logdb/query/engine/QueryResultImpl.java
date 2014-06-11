@@ -38,6 +38,7 @@ import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.file.LogRecord;
 import org.araqne.logstorage.file.LogRecordCursor;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -255,6 +256,7 @@ public class QueryResultImpl implements QueryResult {
 		private LogRecordCursor cursor;
 		private long count;
 
+		// assume result is stored in local storage
 		public LogResultSetImpl(String storageName, LogFileReader reader, long count) throws IOException {
 			this.storageName = storageName;
 			this.reader = reader;
@@ -269,12 +271,12 @@ public class QueryResultImpl implements QueryResult {
 
 		@Override
 		public File getIndexPath() {
-			return reader.getIndexPath();
+			return ((LocalFilePath)reader.getIndexPath()).getFile();
 		}
 
 		@Override
 		public File getDataPath() {
-			return reader.getDataPath();
+			return ((LocalFilePath)reader.getDataPath()).getFile();
 		}
 
 		@Override

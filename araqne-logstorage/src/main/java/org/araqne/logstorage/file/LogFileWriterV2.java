@@ -16,22 +16,25 @@
 package org.araqne.logstorage.file;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.zip.Deflater;
 
 import org.araqne.codec.FastEncodingRule;
+import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFlushCallback;
 import org.araqne.logstorage.LogFlushCallbackArgs;
+import org.araqne.logstorage.LogStorageEventArgs;
+import org.araqne.logstorage.LogStorageEventListener;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageInputStream;
+import org.araqne.storage.api.StorageOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +51,8 @@ public class LogFileWriterV2 extends LogFileWriter {
 	public static final int DEFAULT_BLOCK_SIZE = 640 * 1024; // 640KB
 	public static final int DEFAULT_LEVEL = 3;
 
-	private RandomAccessFile indexFile;
-	private RandomAccessFile dataFile;
+	private StorageOutputStream indexOutStream;
+	private StorageOutputStream dataOutStream;
 	private long count;
 	private byte[] intbuf = new byte[4];
 	private byte[] longbuf = new byte[8];
@@ -66,40 +69,43 @@ public class LogFileWriterV2 extends LogFileWriter {
 	private Deflater compresser;
 	private int compressLevel;
 
-	private File indexPath;
-	private File dataPath;
+	private FilePath indexPath;
+	private FilePath dataPath;
 	private volatile Date lastFlush = new Date();
 
 	private List<Log> buffer = new ArrayList<Log>();
 
-	public LogFileWriterV2(File indexPath, File dataPath, Set<LogFlushCallback> fcb, LogFlushCallbackArgs fcbArgs) throws IOException,
-			InvalidLogFileHeaderException {
-		this(indexPath, dataPath, DEFAULT_BLOCK_SIZE, fcb, fcbArgs);
+	private LogFlushCallbackArgs flushCallbackArgs;
+	private LogStorageEventArgs closeCallbackArgs;
+
+	private CallbackSet callbackSet;
+
+	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, CallbackSet cbSet, String tableName, Date day) throws IOException, InvalidLogFileHeaderException {
+		this(indexPath, dataPath, DEFAULT_BLOCK_SIZE, cbSet, tableName, day);
 	}
 
 	// TODO: block size modification does not work
-	private LogFileWriterV2(File indexPath, File dataPath, int blockSize, Set<LogFlushCallback> fcb, LogFlushCallbackArgs fcbArgs)
-			throws IOException, InvalidLogFileHeaderException {
-		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL, fcb, fcbArgs);
+	private LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, CallbackSet cbSet, String tableName, Date day) throws IOException, InvalidLogFileHeaderException {
+		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL, cbSet, tableName, day);
 	}
 
-	public LogFileWriterV2(File indexPath, File dataPath, int blockSize, int level, Set<LogFlushCallback> fcb, LogFlushCallbackArgs fcbArgs)
-			throws IOException,
+	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, int level, CallbackSet cbSet, String tableName, Date day) throws IOException,
 			InvalidLogFileHeaderException {
 		// level 0 will not use compression (no zip metadata overhead)
 		try {
 			if (level < 0 || level > 9)
 				throw new IllegalArgumentException("compression level should be between 0 and 9");
 
-			boolean indexExists = indexPath.exists();
-			boolean dataExists = dataPath.exists();
+			boolean indexExists = indexPath.isNotEmpty();
+			boolean dataExists = dataPath.isNotEmpty();
 
-			this.flushCallbacks = fcb;
-			this.flushCallbackArgs = fcbArgs;
+			if (cbSet != null) {
+				this.callbackSet = cbSet;
+				this.flushCallbackArgs = new LogFlushCallbackArgs(tableName);
+				this.closeCallbackArgs = new LogStorageEventArgs(tableName, day);
+			}
 			this.indexPath = indexPath;
 			this.dataPath = dataPath;
-			this.indexFile = new RandomAccessFile(indexPath, "rw");
-			this.dataFile = new RandomAccessFile(dataPath, "rw");
 
 			// 1/64 alloc, if block size = 640KB, index can contain 10240 items
 			this.indexBuffer = ByteBuffer.allocate(blockSize >> 6);
@@ -109,19 +115,64 @@ public class LogFileWriterV2 extends LogFileWriter {
 			this.compresser = new Deflater(level);
 			this.compressLevel = level;
 
-			// get index file header
 			LogFileHeader indexFileHeader = null;
-			if (indexExists && indexFile.length() > 0) {
-				indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
+			if (indexExists) {
+				StorageInputStream indexInputStream = null;
+				try {
+					// get index file header
+					indexInputStream = indexPath.newInputStream();
+					indexFileHeader = LogFileHeader.extractHeader(indexInputStream);
+					
+					// read last key
+					long length = indexInputStream.length();
+					long pos = indexFileHeader.size();
+					while (pos < length) {
+						indexInputStream.seek(pos);
+						int logCount = indexInputStream.readInt();
+						count += logCount;
+						pos += 4 + INDEX_ITEM_SIZE * logCount;
+					}
+					lastKey = count;
+					
+				} finally {
+					ensureClose(indexInputStream);
+				}
+				
+				indexOutStream = indexPath.newOutputStream(true);
+				
 			} else {
 				indexFileHeader = new LogFileHeader((short) 2, LogFileHeader.MAGIC_STRING_INDEX);
-				indexFile.write(indexFileHeader.serialize());
+				indexOutStream = indexPath.newOutputStream(indexPath.exists());
+				indexOutStream.write(indexFileHeader.serialize());
 			}
 
-			// get data file header
 			LogFileHeader dataFileHeader = null;
-			if (dataExists && dataFile.length() > 0) {
-				dataFileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
+			if (dataExists) {
+				StorageInputStream dataInputStream = null;
+				try {
+					// get data file header
+					dataInputStream = dataPath.newInputStream();
+					dataFileHeader = LogFileHeader.extractHeader(dataInputStream);
+
+					// read last time
+					long length = dataInputStream.length();
+					long pos = dataFileHeader.size();
+					while (pos < length) {
+						// jump to end date position
+						dataInputStream.seek(pos + 8);
+						long endTime = dataInputStream.readLong();
+						dataInputStream.readInt();
+						int compressedLength = dataInputStream.readInt();
+						lastTime = (lastTime < endTime) ? endTime : lastTime;
+						pos += 24 + compressedLength;
+					}
+					
+				} finally {
+					ensureClose(dataInputStream);
+				}
+				
+				dataOutStream = dataPath.newOutputStream(true);
+				
 			} else {
 				dataFileHeader = new LogFileHeader((short) 2, LogFileHeader.MAGIC_STRING_DATA);
 				byte[] ext = new byte[4];
@@ -134,47 +185,21 @@ public class LogFileWriterV2 extends LogFileWriter {
 				}
 
 				dataFileHeader.setExtraData(ext);
-				dataFile.write(dataFileHeader.serialize());
+				dataOutStream = dataPath.newOutputStream(dataPath.exists());
+				dataOutStream.write(dataFileHeader.serialize());
 			}
 
-			// read last key
-			long length = indexFile.length();
-			long pos = indexFileHeader.size();
-			while (pos < length) {
-				indexFile.seek(pos);
-				int logCount = indexFile.readInt();
-				count += logCount;
-				pos += 4 + INDEX_ITEM_SIZE * logCount;
-			}
-			lastKey = count;
-
-			// read last time
-			length = dataFile.length();
-			pos = dataFileHeader.size();
-			while (pos < length) {
-				// jump to end date position
-				dataFile.seek(pos + 8);
-				long endTime = dataFile.readLong();
-				dataFile.readInt();
-				int compressedLength = dataFile.readInt();
-				lastTime = (lastTime < endTime) ? endTime : lastTime;
-				pos += 24 + compressedLength;
-			}
-
-			// move to end
-			indexFile.seek(indexFile.length());
-			dataFile.seek(dataFile.length());
 		} catch (Throwable t) {
-			ensureClose(indexFile);
-			ensureClose(dataFile);
+			ensureClose(indexOutStream);
+			ensureClose(dataOutStream);
 			throw new IllegalStateException(t);
 		}
 	}
 
 	@Override
 	public boolean isLowDisk() {
-		File dir = indexPath.getParentFile();
-		return dir != null && dir.getFreeSpace() == 0;
+		FilePath dir = indexPath.getAbsoluteFilePath().getParentFilePath();
+		return dir != null && dir.getUsableSpace() == 0;
 	}
 
 	@Override
@@ -287,7 +312,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 	@Override
 	public boolean flush(boolean sweep) throws IOException {
 		// check if writer is closed
-		if (indexFile == null || dataFile == null)
+		if (indexOutStream == null || dataOutStream == null)
 			return false;
 
 		if (indexBuffer.position() == 0)
@@ -296,8 +321,8 @@ public class LogFileWriterV2 extends LogFileWriter {
 		if (logger.isTraceEnabled())
 			logger.trace("araqne logstorage: flush idx [{}], dat [{}] files", indexPath, dataPath);
 
-		if (flushCallbacks != null && flushCallbackArgs != null)
-			for (LogFlushCallback c : flushCallbacks) {
+		if (callbackSet != null && flushCallbackArgs != null)
+			for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
 				try {
 					LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
 					arg.setLogs(buffer);
@@ -313,16 +338,16 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 			// write start date
 			prepareLong(blockStartLogTime, longbuf);
-			dataFile.write(longbuf);
+			dataOutStream.write(longbuf);
 
 			// write end date
 			prepareLong(blockEndLogTime, longbuf);
-			dataFile.write(longbuf);
+			dataOutStream.write(longbuf);
 
 			// write original size
 			dataBuffer.flip();
 			prepareInt(dataBuffer.limit(), intbuf);
-			dataFile.write(intbuf);
+			dataOutStream.write(intbuf);
 
 			// compress data
 			byte[] output = null;
@@ -342,10 +367,10 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 			// write compressed size
 			prepareInt(outputSize, intbuf);
-			dataFile.write(intbuf);
+			dataOutStream.write(intbuf);
 
 			// write compressed logs
-			dataFile.write(output, 0, outputSize);
+			dataOutStream.write(output, 0, outputSize);
 
 			dataBuffer.clear();
 			compresser.reset();
@@ -353,11 +378,11 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 			// write log count
 			prepareInt(blockLogCount, intbuf);
-			indexFile.write(intbuf);
+			indexOutStream.write(intbuf);
 
 			// write log indexes
 			indexBuffer.flip();
-			indexFile.write(indexBuffer.array(), 0, indexBuffer.limit());
+			indexOutStream.write(indexBuffer.array(), 0, indexBuffer.limit());
 			indexBuffer.clear();
 			// indexFile.getFD().sync();
 
@@ -365,8 +390,8 @@ public class LogFileWriterV2 extends LogFileWriter {
 			blockEndLogTime = null;
 			blockLogCount = 0;
 
-			if (flushCallbacks != null && flushCallbackArgs != null)
-				for (LogFlushCallback c : flushCallbacks) {
+			if (callbackSet != null && flushCallbackArgs != null)
+				for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
 					try {
 						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
 						arg.setLogs(buffer);
@@ -380,8 +405,8 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 			return true;
 		} catch (Throwable t) {
-			if (flushCallbacks != null && flushCallbackArgs != null)
-				for (LogFlushCallback c : flushCallbacks) {
+			if (callbackSet != null && flushCallbackArgs != null)
+				for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
 					try {
 						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
 						arg.setLogs(buffer);
@@ -397,11 +422,11 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 	@Override
 	public void sync() throws IOException {
-		if (indexFile == null || dataFile == null)
+		if (indexOutStream == null || dataOutStream == null)
 			return;
 
-		dataFile.getFD().sync();
-		indexFile.getFD().sync();
+		dataOutStream.sync();
+		indexOutStream.sync();
 	}
 
 	private void prepareInt(int l, byte[] b) {
@@ -431,19 +456,31 @@ public class LogFileWriterV2 extends LogFileWriter {
 	public void close() throws IOException {
 		flush(true);
 
-		if (indexFile != null) {
-			indexFile.close();
-			indexFile = null;
+		if (indexOutStream != null) {
+			indexOutStream.close();
+			indexOutStream = null;
 		}
-		if (dataFile != null) {
-			dataFile.close();
-			dataFile = null;
+		if (dataOutStream != null) {
+			dataOutStream.close();
+			dataOutStream = null;
+		}
+		
+		invokeCloseCallback();
+	}
+
+	private void invokeCloseCallback() {
+		if (callbackSet != null && closeCallbackArgs != null) {
+			Set<LogStorageEventListener> callbacks = callbackSet.get(LogStorageEventListener.class);
+
+			for (LogStorageEventListener cb : callbacks) {
+				cb.onClose(closeCallbackArgs.tableName, closeCallbackArgs.day);
+			}
 		}
 	}
 
 	@Override
 	public boolean isClosed() {
-		return dataFile == null;
+		return dataOutStream == null;
 	}
 
 	/**
@@ -452,12 +489,10 @@ public class LogFileWriterV2 extends LogFileWriter {
 	@Override
 	public void purge() {
 		boolean result = indexPath.delete();
-		logger.debug("araqne logstorage: delete [{}] file => {}", indexPath, result);
+		logger.debug("araqne logstorage: delete [{}] file => {}", indexPath.getAbsolutePath(), result);
 
 		result = dataPath.delete();
-		logger.debug("araqne logstorage: delete [{}] file => {}", dataPath, result);
+		logger.debug("araqne logstorage: delete [{}] file => {}", dataPath.getAbsolutePath(), result);
 	}
 
-	private Set<LogFlushCallback> flushCallbacks = new CopyOnWriteArraySet<LogFlushCallback>();
-	private LogFlushCallbackArgs flushCallbackArgs;
 }

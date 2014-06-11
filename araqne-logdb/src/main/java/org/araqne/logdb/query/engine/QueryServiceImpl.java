@@ -53,6 +53,9 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryEventListener;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryPlanner;
+import org.araqne.logdb.QueryResultFactory;
+import org.araqne.logdb.QueryScriptRegistry;
+import org.araqne.logdb.QueryService;
 import org.araqne.logdb.QueryStatus;
 import org.araqne.logdb.QueryStatusCallback;
 import org.araqne.logdb.QueryStopReason;
@@ -65,6 +68,8 @@ import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.StorageConfig;
+import org.araqne.logstorage.TableSchema;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -199,7 +204,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		accountService.addListener(this);
 
 		// receive log table event and register it to data source registry
-		storage.ensureTable(QUERY_LOG_TABLE, "v2");
+		storage.ensureTable(new TableSchema(QUERY_LOG_TABLE, new StorageConfig("v2")));
 
 		// delete all temporary query files
 		File queryResultDir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query/");
@@ -497,7 +502,11 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			else
 				m.put("duration", 0);
 
-			storage.write(new Log(QUERY_LOG_TABLE, now, m));
+			try {
+				storage.write(new Log(QUERY_LOG_TABLE, now, m));
+			} catch (InterruptedException e) {
+				logger.warn("writing query log is interrupted: {}", m);
+			}
 
 			invokeCallbacks(query, QueryStatus.EOF);
 		}

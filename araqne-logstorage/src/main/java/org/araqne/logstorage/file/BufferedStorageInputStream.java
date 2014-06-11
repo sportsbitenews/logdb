@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Future Systems
+ * Copyright 2013 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,17 +19,16 @@ import java.io.Closeable;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.EOFException;
-import java.io.File;
-import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 
-public class BufferedRandomAccessFileReader implements DataInput, Closeable {
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageInputStream;
+
+public class BufferedStorageInputStream implements DataInput, Closeable {
 	private static final int BUFFER_SIZE = 8192 * 2;
-	private final RandomAccessFile file;
+	private final StorageInputStream storageInputStream;
 	private ByteBuffer buf;
 	private DataInputStream dataInputStream;
 
@@ -39,19 +38,19 @@ public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 	private boolean isClosed = false;
 	private int bufSize;
 	
-	public BufferedRandomAccessFileReader(File path) throws IOException {
+	public BufferedStorageInputStream(FilePath path) throws IOException {
 		this(path, BUFFER_SIZE);
 	}
 	
-	public BufferedRandomAccessFileReader(File path, int bufSize) throws IOException {
-		file = new RandomAccessFile(path, "r");
+	public BufferedStorageInputStream(FilePath path, int bufSize) throws IOException {
+		storageInputStream = path.newInputStream();
 		this.bufSize = bufSize;
 		buf = ByteBuffer.allocate(bufSize);
 		dataInputStream = new DataInputStream(new InputStream() {
 			@Override
 			public synchronized int read() throws IOException {
 				if (!buf.hasRemaining()) {
-					if (file.length() - (bufStartPos + buf.position()) < 1)
+					if (storageInputStream.length() - (bufStartPos + buf.position()) < 1)
 						return -1;
 					else
 						syncBuffer();
@@ -66,12 +65,17 @@ public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 					bufStartPos += buf.position() + len;
 					buf.position(0);
 					isInvalidated = true;
-					file.seek(seekpos);
-					return file.read(bytes, off, len);
+					storageInputStream.seek(seekpos);
+					return storageInputStream.read(bytes, off, len);
 				} else if (len > buf.remaining()) {
 					bufStartPos += buf.position();
 					buf.position(0);
+
+					if (bufStartPos >= storageInputStream.length())
+						return -1;
+
 					syncBuffer();
+					len = Math.min(len, buf.remaining());
 					buf.get(bytes, off, len);
 					return len;
 				} else {
@@ -96,6 +100,7 @@ public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 		if (isInvalidated) {
 			syncBuffer();
 		}
+		
 		dataInputStream.readFully(b, off, len);
 	}
 
@@ -217,13 +222,13 @@ public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 			if (seekPos < 0)
 				seekPos = 0;
 			bufStartPos = seekPos;
-			file.seek(bufStartPos);
+			storageInputStream.seek(bufStartPos);
 			buf.clear();
 			if (buf.capacity() < bufSize * 2) {
 				buf = ByteBuffer.allocate(bufSize * 2);
 			}
 
-			int read = file.read(buf.array());
+			int read = storageInputStream.read(buf.array());
 			if (read != -1) {
 				buf.limit(read);
 				if (seekPos == 0) {
@@ -240,26 +245,7 @@ public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 	}
 
 	public long length() throws IOException {
-		return file.length();
-	}
-
-	public long getFilePointer() throws IOException {
-		invalidateBuffer();
-		return file.getFilePointer();
-	}
-
-	public FileDescriptor getFD() throws IOException {
-		invalidateBuffer();
-		return file.getFD();
-	}
-
-	public FileChannel getChannel() {
-		invalidateBuffer();
-		return file.getChannel();
-	}
-
-	private void invalidateBuffer() {
-		isInvalidated = true;
+		return storageInputStream.length();
 	}
 
 	private void syncBuffer() throws IOException {
@@ -268,9 +254,9 @@ public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 
 	private void syncBuffer(int bufSize) throws IOException {
 		long nextSeekPos = bufStartPos + buf.position();
-		if (nextSeekPos >= file.length())
+		if (nextSeekPos >= storageInputStream.length())
 			throw new EOFException();
-		file.seek(nextSeekPos);
+		storageInputStream.seek(nextSeekPos);
 		bufStartPos = nextSeekPos;
 		buf.clear();
 		if (buf.capacity() < bufSize) {
@@ -278,20 +264,40 @@ public class BufferedRandomAccessFileReader implements DataInput, Closeable {
 				buf = ByteBuffer.allocate(bufSize);
 			}
 		}
-		int read = file.read(buf.array());
+		int read = storageInputStream.read(buf.array());
 		if (read != -1) {
 			buf.limit(read);
 		}
 		isInvalidated = false;
 	}
 
-	public void close() {
+	public void close() throws IOException {
 		if (isClosed)
 			return;
 		try {
-			file.close();
+			storageInputStream.close();
 		} catch (IOException e) {
 		}
 		isClosed = true;
+	}
+	
+	public FilePath getPath() {
+		return storageInputStream.getPath();
+	}
+
+	public int read(byte[] b) throws IOException {
+		if (isInvalidated) {
+			syncBuffer();
+		}
+		
+		return dataInputStream.read(b);
+	}
+
+	public int read(byte[] b, int off, int len) throws IOException {
+		if (isInvalidated) {
+			syncBuffer();
+		}
+		
+		return dataInputStream.read(b, off, len);
 	}
 }

@@ -15,27 +15,28 @@
  */
 package org.araqne.logstorage;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.araqne.log.api.LogParserBuilder;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageManager;
 
 public interface LogStorage {
 	/**
 	 * @return the storage directory
 	 */
-	File getDirectory();
+	FilePath getDirectory();
 
 	/**
 	 * @param tableName
 	 *            the table name
 	 * @return the directory path which contains table files
 	 */
-	File getTableDirectory(String tableName);
+	FilePath getTableDirectory(String tableName);
 
 	/**
 	 * set storage directory
@@ -43,7 +44,7 @@ public interface LogStorage {
 	 * @param f
 	 *            the storage directory path
 	 */
-	void setDirectory(File f);
+	void setDirectory(FilePath f);
 
 	LogStorageStatus getStatus();
 
@@ -51,11 +52,11 @@ public interface LogStorage {
 
 	void stop();
 
-	void createTable(String tableName, String type);
+	void createTable(TableSchema schema);
 
-	void ensureTable(String tableName, String type);
+	void ensureTable(TableSchema schema);
 
-	void createTable(String tableName, String type, Map<String, String> tableMetadata);
+	void alterTable(String tableName, TableSchema schema);
 
 	void dropTable(String tableName);
 
@@ -80,10 +81,10 @@ public interface LogStorage {
 	void purge(String tableName, Date fromDay, Date toDay);
 
 	Collection<Date> getLogDates(String tableName);
-	
-	void write(Log log);
 
-	void write(List<Log> logs);
+	void write(Log log) throws InterruptedException;
+
+	void write(List<Log> logs) throws InterruptedException;
 
 	Collection<Log> getLogs(String tableName, Date from, Date to, int limit);
 
@@ -91,20 +92,7 @@ public interface LogStorage {
 
 	CachedRandomSeeker openCachedRandomSeeker();
 
-	Log getLog(LogKey logKey);
-
-	Log getLog(String tableName, Date date, int id);
-
 	LogCursor openCursor(String tableName, Date day, boolean ascending) throws IOException;
-
-	long search(Date from, Date to, long limit, LogSearchCallback callback) throws InterruptedException;
-
-	long search(Date from, Date to, long offset, long limit, LogSearchCallback callback) throws InterruptedException;
-
-	long search(String tableName, Date from, Date to, long limit, LogSearchCallback callback) throws InterruptedException;
-
-	long search(String tableName, Date from, Date to, long offset, long limit, LogSearchCallback callback)
-			throws InterruptedException;
 
 	void addLogListener(LogCallback callback);
 
@@ -124,18 +112,6 @@ public interface LogStorage {
 
 	/**
 	 * 
-	 * @since 2.0.3
-	 */
-	@Deprecated
-	long searchTablet(String tableName, Date day, long minId, long maxId, LogMatchCallback c, boolean doParallel)
-			throws InterruptedException;
-
-	@Deprecated
-	long searchTablet(String tableName, Date day, Date from, Date to, long minId, LogMatchCallback c, boolean doParallel)
-			throws InterruptedException;
-
-	/**
-	 * 
 	 * @since 2.3.1
 	 */
 	boolean search(String tableName, Date from, Date to, LogParserBuilder builder, LogTraverseCallback c)
@@ -151,16 +127,33 @@ public interface LogStorage {
 	 * @since 2.5.3
 	 */
 	<T> void addEventListener(Class<T> clazz, T callback);
-	
+
 	<T> void removeEventListener(Class<T> clazz, T callback);
 
 	/*
 	 * @since 2.5.5
 	 */
-	void lock(LockKey storageLockKey);
+	boolean lock(LockKey storageLockKey, long timeout, TimeUnit unit) throws InterruptedException;
 
 	void unlock(LockKey storageLockKey);
 
 	void flush(String tableName);
 
+	/**
+	 * 
+	 * @since 2.5.10-SNAPSHOT
+	 */
+	StorageManager getStorageManager();
+	
+	boolean tryWrite(Log log);
+	
+	boolean tryWrite(Log log, long timeout, TimeUnit unit) throws InterruptedException;
+
+	boolean tryWrite(List<Log> log);
+	
+	boolean tryWrite(List<Log> log, long timeout, TimeUnit unit) throws InterruptedException;
+
+	LockStatus lockStatus(LockKey storageLockKey);
+
+	void purge(String tableName, Date day, boolean skipArgCheck);
 }

@@ -157,5 +157,11 @@ public class UnionParser extends AbstractQueryCommandParser {
 		@Override
 		public void unregisterStorage(QueryResultStorage storage) {
 		}
+
+		@Override
+		public void start() {
+			// TODO Auto-generated method stub
+			
+		}
 	}
 }

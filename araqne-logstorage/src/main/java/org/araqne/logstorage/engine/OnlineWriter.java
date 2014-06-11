@@ -15,7 +15,6 @@
  */
 package org.araqne.logstorage.engine;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -23,19 +22,18 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileService;
-import org.araqne.logstorage.LogFlushCallback;
+import org.araqne.logstorage.TableConfig;
+import org.araqne.logstorage.TableSchema;
+import org.araqne.logstorage.file.DatapathUtil;
 import org.araqne.logstorage.file.LogFileWriter;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,39 +68,44 @@ public class OnlineWriter {
 
 	private final LogFileService logFileService;
 
-	private CopyOnWriteArraySet<LogFlushCallback> flushCallbacks;
-
-	private String tableName;
-
 	private volatile boolean closeReserved;
 
-	public OnlineWriter(LogFileService logFileService, String tableName, int tableId, Date day, 
-			Map<String, String> tableMetadata, CopyOnWriteArraySet<LogFlushCallback> flushCallbacks)
+	public OnlineWriter(StorageManager storageManager, LogFileService logFileService, TableSchema schema, Date day, 
+			CallbackSet callbackSet)
 			throws IOException {
 		this.logFileService = logFileService;
-		this.tableName = tableName;
-		this.tableId = tableId;
+		this.tableId = schema.getId();
 		this.day = day;
-		this.flushCallbacks = flushCallbacks;
 		this.closeReserved = new Boolean(false);
+		
+		String basePathString = schema.getPrimaryStorage().getBasePath();
+		FilePath basePath = null;
+		if (basePathString != null)
+			basePath = storageManager.resolveFilePath(basePathString);
 
-		String basePath = tableMetadata.get("base_path");
-		File indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
-		File dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
-		File keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
+		FilePath indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
+		FilePath dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
+		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
-		indexPath.getParentFile().mkdirs();
-		dataPath.getParentFile().mkdirs();
+		indexPath.getParentFilePath().mkdirs();
+		dataPath.getParentFilePath().mkdirs();
 
 		try {
 			// options including table metadata
-			Map<String, Object> writerConfig = new HashMap<String, Object>(tableMetadata);
-			writerConfig.put("tableName", tableName);
-			writerConfig.put("indexPath", indexPath);
-			writerConfig.put("dataPath", dataPath);
-			writerConfig.put("keyPath", keyPath);
-			writerConfig.put("flushCallbacks", flushCallbacks);
-			writer = this.logFileService.newWriter(writerConfig);
+			Map<String, Object> writerOptions = new HashMap<String, Object>();
+			writerOptions.putAll(schema.getMetadata());
+			writerOptions.put("tableName", schema.getName());
+			writerOptions.put("day", day);
+			writerOptions.put("indexPath", indexPath);
+			writerOptions.put("dataPath", dataPath);
+			writerOptions.put("keyPath", keyPath);
+			writerOptions.put("callbackSet", callbackSet);
+			
+			for (TableConfig c : schema.getPrimaryStorage().getConfigs()) {
+				writerOptions.put(c.getKey(), c.getValues().size() > 1 ? c.getValues() : c.getValue());
+			}
+
+			writer = this.logFileService.newWriter(writerOptions);
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (Throwable t) {
@@ -139,7 +142,7 @@ public class OnlineWriter {
 	public Date getLastFlush() {
 		return writer.getLastFlush();
 	}
-
+	
 	public void write(Log log) throws IOException {
 		synchronized (this) {
 			if (writer == null)
@@ -174,19 +177,19 @@ public class OnlineWriter {
 	public List<Log> getBuffer() {
 		// all log file writer should have lock free implementation
 		return writer.getBuffer();
-//		synchronized (this) {
-//			// return new ArrayList<LogRecord>(writer.getBuffer());
-//			List<Log> buffers = writer.getBuffer();
-//			int bufSize = 0;
-//			for (List<Log> buffer : buffers) {
-//				bufSize += buffer.size();
-//			}
-//			List<Log> merged = new ArrayList<Log>(bufSize);
-//			for (List<Log> buffer : buffers) {
-//				merged.addAll(buffer);
-//			}
-//			return merged;
-//		}
+		// synchronized (this) {
+		// // return new ArrayList<LogRecord>(writer.getBuffer());
+		// List<Log> buffers = writer.getBuffer();
+		// int bufSize = 0;
+		// for (List<Log> buffer : buffers) {
+		// bufSize += buffer.size();
+		// }
+		// List<Log> merged = new ArrayList<Log>(bufSize);
+		// for (List<Log> buffer : buffers) {
+		// merged.addAll(buffer);
+		// }
+		// return merged;
+		// }
 	}
 
 	public void flush() throws IOException {
@@ -228,9 +231,9 @@ public class OnlineWriter {
 	public String getFileServiceType() {
 		return logFileService.getType();
 	}
-	
+
 	CountDownLatch closeMonitor = null;
-	
+
 	public CountDownLatch reserveClose() {
 		synchronized (this) {
 			closeReserved = true;

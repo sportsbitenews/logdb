@@ -18,10 +18,40 @@ import org.araqne.logdb.query.command.Table;
 import org.araqne.logdb.query.command.Table.TableParams;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.araqne.logdb.query.engine.QueryResultFactoryImpl;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageManager;
+import org.araqne.storage.api.URIResolver;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.junit.Before;
 import org.junit.Test;
 
 public class JoinParserTest {
+	static {
+		System.setProperty("araqne.data.dir", ".");
+	}
+
+	public static class LocalStorageManager implements StorageManager {
+
+		@Override
+		public FilePath resolveFilePath(String path) {
+			return new LocalFilePath(path);
+		}
+
+		@Override
+		public void start() {
+		}
+
+		@Override
+		public void stop() {
+		}
+
+		@Override
+		public void addURIResolver(URIResolver r) {
+			throw new UnsupportedOperationException();
+		}
+
+	}
+
 	private QueryParserService queryParserService;
 
 	@Before
@@ -33,10 +63,11 @@ public class JoinParserTest {
 	
 	@Test
 	public void testParse() {
-		System.setProperty("araqne.data.dir", ".");
 		String joinCommand = "join ip [ table users ]";
 		QueryParserService p = prepareMockQueryParser();
-		QueryResultFactory resultFactory = new QueryResultFactoryImpl();
+		StorageManager storageManager = new LocalStorageManager();
+		QueryResultFactory resultFactory = new QueryResultFactoryImpl(storageManager);
+		resultFactory.start();
 
 		JoinParser parser = new JoinParser(p, resultFactory);
 		parser.setQueryParserService(p);
@@ -53,10 +84,12 @@ public class JoinParserTest {
 	@Test
 	public void testLeftJoinType() {
 		QueryParserService p = prepareMockQueryParser();
-		QueryResultFactory resultFactory = new QueryResultFactoryImpl();
+
+		StorageManager storageManager = new LocalStorageManager();
+		QueryResultFactory resultFactory = new QueryResultFactoryImpl(storageManager);
+		resultFactory.start();
 		JoinParser parser = new JoinParser(p, resultFactory);
 		parser.setQueryParserService(p);
-		
 		Join join = (Join) parser.parse(null, "join type=left ip [ table users ]");
 
 		assertEquals(JoinType.Left, join.getType());
@@ -70,7 +103,7 @@ public class JoinParserTest {
 	private QueryParserService prepareMockQueryParser() {
 		QueryParserService p = mock(QueryParserService.class);
 		TableParams params = new TableParams();
-		params.setTableSpecs(Arrays.<TableSpec>asList(new WildcardTableSpec("users")));
+		params.setTableSpecs(Arrays.<TableSpec> asList(new WildcardTableSpec("users")));
 		QueryCommand table = new Table(params);
 
 		ArrayList<QueryCommand> commands = new ArrayList<QueryCommand>();

@@ -16,10 +16,9 @@
 package org.araqne.logstorage.file;
 
 import java.io.Closeable;
+import java.io.DataInput;
 import java.io.EOFException;
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -33,8 +32,9 @@ import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
-import org.araqne.logstorage.LogMatchCallback;
 import org.araqne.logstorage.LogTraverseCallback;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,10 +45,10 @@ public class LogFileReaderV2 extends LogFileReader {
 
 	private String tableName;
 
-	private File indexPath;
-	private File dataPath;
-	private RandomAccessFile indexFile;
-	private RandomAccessFile dataFile;
+	private FilePath indexPath;
+	private FilePath dataPath;
+	private StorageInputStream indexStream;
+	private StorageInputStream dataStream;
 
 	private List<IndexBlockHeader> indexBlockHeaders = new ArrayList<IndexBlockHeader>();
 	private List<DataBlockHeader> dataBlockHeaders = new ArrayList<DataBlockHeader>();
@@ -61,21 +61,21 @@ public class LogFileReaderV2 extends LogFileReader {
 	private long totalCount;
 	private boolean useDeflater;
 
-	public LogFileReaderV2(String tableName, File indexPath, File dataPath) throws IOException, InvalidLogFileHeaderException {
+	public LogFileReaderV2(String tableName, FilePath indexPath, FilePath dataPath) throws IOException, InvalidLogFileHeaderException {
 		try {
 			this.tableName = tableName;
 			this.indexPath = indexPath;
 			this.dataPath = dataPath;
-			this.indexFile = new RandomAccessFile(indexPath, "r");
-			LogFileHeader indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
+			this.indexStream = indexPath.newInputStream();
+			LogFileHeader indexFileHeader = LogFileHeader.extractHeader(indexStream);
 			if (indexFileHeader.version() != 2)
 				throw new InvalidLogFileHeaderException("version not match, index file " + indexPath.getAbsolutePath());
 
-			long length = indexFile.length() - 4;
+			long length = indexStream.length() - 4;
 			long pos = indexFileHeader.size();
 			while (pos < length) {
-				indexFile.seek(pos);
-				IndexBlockHeader header = new IndexBlockHeader(indexFile);
+				indexStream.seek(pos);
+				IndexBlockHeader header = new IndexBlockHeader(indexStream);
 				header.fp = pos;
 				header.ascLogCount = totalCount;
 				totalCount += header.logCount;
@@ -93,8 +93,8 @@ public class LogFileReaderV2 extends LogFileReader {
 			logger.trace("araqne logstorage: {} has {} blocks, {} logs.",
 					new Object[] { indexPath.getName(), indexBlockHeaders.size(), totalCount });
 
-			this.dataFile = new RandomAccessFile(dataPath, "r");
-			LogFileHeader dataFileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
+			this.dataStream = dataPath.newInputStream();
+			LogFileHeader dataFileHeader = LogFileHeader.extractHeader(dataStream);
 			if (dataFileHeader.version() != 2)
 				throw new InvalidLogFileHeaderException("version not match");
 
@@ -106,7 +106,7 @@ public class LogFileReaderV2 extends LogFileReader {
 			if (new String(ext, 4, ext.length - 4).trim().equals("deflater"))
 				useDeflater = true;
 
-			length = dataFile.length();
+			length = dataStream.length();
 			pos = dataFileHeader.size();
 			while (pos < length) {
 				if (pos < 0)
@@ -118,8 +118,8 @@ public class LogFileReaderV2 extends LogFileReader {
 					break;
 
 				try {
-					dataFile.seek(pos);
-					DataBlockHeader header = new DataBlockHeader(dataFile);
+					dataStream.seek(pos);
+					DataBlockHeader header = new DataBlockHeader(dataStream);
 					header.fp = pos;
 					dataBlockHeaders.add(header);
 					pos += 24 + header.compressedLength;
@@ -135,23 +135,23 @@ public class LogFileReaderV2 extends LogFileReader {
 			if (indexBlockHeaders.size() > dataBlockHeaders.size())
 				throw new IOException("invalid log file, index file: " + indexPath + ", data file: " + dataPath);
 		} catch (IOException t) {
-			ensureClose(indexFile, indexPath);
-			ensureClose(dataFile, dataPath);
+			ensureClose(indexStream, indexPath);
+			ensureClose(dataStream, dataPath);
 			throw t;
 		} catch (RuntimeException t) {
-			ensureClose(indexFile, indexPath);
-			ensureClose(dataFile, dataPath);
+			ensureClose(indexStream, indexPath);
+			ensureClose(dataStream, dataPath);
 			throw t;
 		}
 	}
 
 	@Override
-	public File getIndexPath() {
+	public FilePath getIndexPath() {
 		return indexPath;
 	}
 
 	@Override
-	public File getDataPath() {
+	public FilePath getDataPath() {
 		return dataPath;
 	}
 
@@ -166,134 +166,6 @@ public class LogFileReaderV2 extends LogFileReader {
 
 	public long count() {
 		return totalCount;
-	}
-
-	@Override
-	public LogRecord find(long id) throws IOException {
-		if (id <= 0)
-			return null;
-
-		int l = 0;
-		int r = indexBlockHeaders.size() - 1;
-		while (r >= l) {
-			int m = (l + r) / 2;
-			IndexBlockHeader header = indexBlockHeaders.get(m);
-
-			if (id < header.firstId)
-				r = m - 1;
-			else if (header.firstId + header.logCount <= id)
-				l = m + 1;
-			else {
-				indexFile.seek(header.fp + (id - header.firstId + 1) * INDEX_ITEM_SIZE);
-				int offset = indexFile.readInt();
-				return getLogRecord(dataBlockHeaders.get(m), offset);
-			}
-		}
-
-		return null;
-	}
-
-	@Override
-	public List<LogRecord> find(List<Long> ids) throws IOException {
-		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
-
-		for (long id : ids) {
-			LogRecord result = find(id);
-			if (result != null)
-				ret.add(result);
-		}
-
-		return ret;
-	}
-
-	@Override
-	public void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException {
-		traverse(0, limit, callback);
-	}
-
-	@Override
-	public void traverse(long offset, long limit, LogMatchCallback callback) throws IOException, InterruptedException {
-		traverse(null, null, offset, limit, callback);
-	}
-
-	@Override
-	public void traverse(Date from, Date to, long limit, LogMatchCallback callback) throws IOException, InterruptedException {
-		traverse(from, to, 0, limit, callback);
-	}
-
-	@Override
-	public void traverse(Date from, Date to, long offset, long limit, LogMatchCallback callback) throws IOException,
-			InterruptedException {
-		traverse(from, to, -1, offset, limit, callback);
-	}
-
-	@Override
-	public void traverse(Date from, Date to, long minId, long offset, long limit, LogMatchCallback callback) throws IOException,
-			InterruptedException {
-		traverse(from, to, minId, -1, offset, limit, callback, false);
-
-	}
-
-	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback,
-			boolean doParallel) throws IOException, InterruptedException {
-		for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
-			IndexBlockHeader index = indexBlockHeaders.get(i);
-
-			if ((maxId >= 0 && index.firstId > maxId) || (minId >= 0 && index.firstId + index.logCount <= minId))
-				continue;
-
-			DataBlockHeader data = dataBlockHeaders.get(i);
-			Long fromTime = (from == null) ? null : from.getTime();
-			Long toTime = (to == null) ? null : to.getTime();
-			if ((fromTime == null || data.endDate >= fromTime) && (toTime == null || data.startDate < toTime)) {
-				long matched = readBlock(index, data, fromTime, toTime, minId, maxId, offset, limit, callback);
-				if (matched < offset)
-					offset -= matched;
-				else {
-					matched -= offset;
-					offset = 0;
-					limit -= matched;
-				}
-
-				if (limit == 0)
-					return;
-			}
-		}
-	}
-
-	private long readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long minId, long maxId, long offset,
-			long limit, LogMatchCallback callback) throws IOException, InterruptedException {
-		List<Integer> offsets = new ArrayList<Integer>();
-		long matched = 0;
-
-		indexFile.seek(index.fp + 4);
-		ByteBuffer indexBuffer = ByteBuffer.allocate(index.logCount * 4);
-		indexFile.read(indexBuffer.array());
-		for (int i = 0; i < index.logCount; i++)
-			offsets.add(indexBuffer.getInt());
-
-		// reverse order
-		for (int i = offsets.size() - 1; i >= 0; i--) {
-			long date = getLogRecordDate(data, offsets.get(i));
-			if (from != null && date < from)
-				continue;
-			if (to != null && date >= to)
-				continue;
-
-			if (offset > matched) {
-				matched++;
-				continue;
-			}
-
-			LogRecord record = getLogRecord(data, offsets.get(i));
-			if (callback.match(record) && callback.onLog(LogMarshaler.convert(tableName, record))) {
-				if (++matched == offset + limit)
-					return matched;
-			}
-		}
-
-		return matched;
 	}
 
 	private long getLogRecordDate(DataBlockHeader data, int offset) throws IOException {
@@ -320,12 +192,12 @@ public class LogFileReaderV2 extends LogFileReader {
 			nowDataBlock = header;
 
 			dataBuffer.clear();
-			dataFile.seek(header.fp + 24L);
+			dataStream.seek(header.fp + 24L);
 
 			// assume deflate if original length != compress length for backward
 			// compatibility
 			if (useDeflater || header.origLength != header.compressedLength) {
-				dataFile.readFully(buf, 0, header.compressedLength);
+				dataStream.readFully(buf, 0, header.compressedLength);
 				decompresser.setInput(buf, 0, header.compressedLength);
 				try {
 					dataBuffer.limit(header.origLength);
@@ -335,7 +207,7 @@ public class LogFileReaderV2 extends LogFileReader {
 					throw new IOException(e);
 				}
 			} else {
-				dataFile.readFully(dataBuffer.array(), 0, header.origLength);
+				dataStream.readFully(dataBuffer.array(), 0, header.origLength);
 			}
 		}
 	}
@@ -344,16 +216,16 @@ public class LogFileReaderV2 extends LogFileReader {
 	public void close() {
 		decompresser.end();
 
-		ensureClose(indexFile, indexPath);
-		ensureClose(dataFile, dataPath);
+		ensureClose(indexStream, indexPath);
+		ensureClose(dataStream, dataPath);
 	}
 
-	private void ensureClose(Closeable stream, File f) {
+	private void ensureClose(Closeable stream, FilePath path) {
 		try {
 			if (stream != null)
 				stream.close();
 		} catch (IOException e) {
-			logger.error("araqne logstorage: cannot close file - " + f.getAbsolutePath(), e);
+			logger.error("araqne logstorage: cannot close file - " + path.getAbsolutePath(), e);
 		}
 	}
 
@@ -368,7 +240,7 @@ public class LogFileReaderV2 extends LogFileReader {
 		private long ascLogCount;
 		private long dscLogCount;
 
-		private IndexBlockHeader(RandomAccessFile f) throws IOException {
+		private IndexBlockHeader(DataInput f) throws IOException {
 			try {
 				this.logCount = f.readInt();
 			} catch (IOException e) {
@@ -395,7 +267,7 @@ public class LogFileReaderV2 extends LogFileReader {
 		private int origLength;
 		private int compressedLength;
 
-		private DataBlockHeader(RandomAccessFile f) throws IOException {
+		private DataBlockHeader(DataInput f) throws IOException {
 			try {
 				f.readFully(dataBlockHeader.array());
 			} catch (IOException e) {
@@ -491,8 +363,8 @@ public class LogFileReaderV2 extends LogFileReader {
 			// read log data offsets from index block
 			try {
 				ByteBuffer indexBuffer = ByteBuffer.allocate(currentIndexHeader.logCount * 4);
-				indexFile.seek(currentIndexHeader.fp + 4);
-				indexFile.read(indexBuffer.array());
+				indexStream.seek(currentIndexHeader.fp + 4);
+				indexStream.read(indexBuffer.array());
 				currentOffsets = new ArrayList<Integer>(currentIndexHeader.logCount + 2);
 				for (int i = 0; i < currentIndexHeader.logCount; i++)
 					currentOffsets.add(indexBuffer.getInt());
@@ -608,8 +480,8 @@ public class LogFileReaderV2 extends LogFileReader {
 					else if (header.firstId + header.logCount <= id)
 						l = m + 1;
 					else {
-						indexFile.seek(header.fp + (id - header.firstId + 1) * INDEX_ITEM_SIZE);
-						int offset = indexFile.readInt();
+						indexStream.seek(header.fp + (id - header.firstId + 1) * INDEX_ITEM_SIZE);
+						int offset = indexStream.readInt();
 						record = getLogRecord(dataBlockHeaders.get(m), offset);
 						break;
 					}
@@ -677,9 +549,9 @@ public class LogFileReaderV2 extends LogFileReader {
 		List<Integer> offsets = new ArrayList<Integer>();
 		boolean suppressBugAlert = false;
 
-		indexFile.seek(index.fp + 4);
+		indexStream.seek(index.fp + 4);
 		ByteBuffer indexBuffer = ByteBuffer.allocate(index.logCount * 4);
-		indexFile.read(indexBuffer.array());
+		indexStream.read(indexBuffer.array());
 		for (int i = 0; i < index.logCount; i++)
 			offsets.add(indexBuffer.getInt());
 

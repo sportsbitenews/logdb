@@ -38,6 +38,7 @@ import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.TableSchema;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -179,11 +180,18 @@ public class TableParserTest {
 		assertEquals("meta(\"logparser==trusguard\", *:s2)", table.getTableSpecs().get(1).toString());
 		assertEquals("meta(\"logparser==trusguard\", s3)", table.getTableSpecs().get(2).toString());
 		assertEquals("iis", table.getTableSpecs().get(3).toString());
-		
+
 		assertEquals("n1", table.getTableSpecs().get(0).getNamespace());
 		assertEquals("*", table.getTableSpecs().get(1).getNamespace());
 		assertEquals(null, table.getTableSpecs().get(2).getNamespace());
 		assertEquals(null, table.getTableSpecs().get(3).getNamespace());
+	}
+
+	private TableSchema mockSchema(String tableName, String logParser) {
+		TableSchema mock = new TableSchema();
+		mock.setName(tableName);
+		mock.getMetadata().put("logparser", logParser);
+		return mock;
 	}
 
 	@Test
@@ -191,7 +199,7 @@ public class TableParserTest {
 		LogTableRegistry mockTableRegistry = mock(LogTableRegistry.class);
 		when(mockTableRegistry.exists("xtm")).thenReturn(true);
 		when(mockTableRegistry.getTableNames()).thenReturn(Arrays.asList("xtm"));
-		when(mockTableRegistry.getTableMetadata("xtm", "logparser")).thenReturn("trusguard");
+		when(mockTableRegistry.getTableSchema("xtm", true)).thenReturn(mockSchema("xtm", "trusguard"));
 
 		String query = "table duration=1d meta(\"logparser==trusguard\"), iis?";
 		Table table = parse(query);
@@ -210,8 +218,8 @@ public class TableParserTest {
 		when(mockTableRegistry.exists("xtm")).thenReturn(true);
 		when(mockTableRegistry.exists("iis")).thenReturn(true);
 		when(mockTableRegistry.getTableNames()).thenReturn(Arrays.asList("iis", "xtm"));
-		when(mockTableRegistry.getTableMetadata("xtm", "logparser")).thenReturn("trusguard");
-		when(mockTableRegistry.getTableMetadata("xtm", "logparser")).thenReturn("trusguar");
+		when(mockTableRegistry.getTableSchema("iis", true)).thenReturn(mockSchema("iis", null));
+		when(mockTableRegistry.getTableSchema("xtm", true)).thenReturn(mockSchema("xtm", "trusguard"));
 		{
 			List<StorageObjectName> names = new ArrayList<StorageObjectName>();
 			for (TableSpec spec : table.getTableSpecs()) {
@@ -234,7 +242,6 @@ public class TableParserTest {
 
 		TableParser parser = new TableParser(mockAccount, mockStorage, mockTableRegistry, mockParserFactoryRegistry, mockParserRegistry);
 		parser.setQueryParserService(queryParserService);
-		
 		Table table = (Table) parser.parse(new QueryContext(null), query);
 		return table;
 	}
@@ -244,8 +251,9 @@ public class TableParserTest {
 		when(mockTableRegistry.exists("iis")).thenReturn(true);
 		when(mockTableRegistry.exists("xtm")).thenReturn(true);
 		when(mockTableRegistry.getTableNames()).thenReturn(Arrays.asList("iis", "xtm"));
-		when(mockTableRegistry.getTableMetadata("iis", "logparser")).thenReturn(null);
-		when(mockTableRegistry.getTableMetadata("xtm", "logparser")).thenReturn("trusguard");
+
+		when(mockTableRegistry.getTableSchema("iis", true)).thenReturn(mockSchema("iis", null));
+		when(mockTableRegistry.getTableSchema("xtm", true)).thenReturn(mockSchema("xtm", "trusguard"));
 
 		return parse(query, mockTableRegistry);
 	}

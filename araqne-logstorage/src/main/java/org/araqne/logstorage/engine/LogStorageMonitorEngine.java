@@ -15,7 +15,6 @@
  */
 package org.araqne.logstorage.engine;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,6 +39,7 @@ import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.storage.api.FilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -140,7 +140,7 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 		checkRetentions(true);
 	}
 
-	private boolean isDiskLack(File dir) {
+	private boolean isDiskLack(FilePath dir) {
 		if (!dir.exists())
 			return false;
 
@@ -210,10 +210,10 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 
 	private void checkDiskLack() {
 		// categorize by partition path
-		Map<File, List<String>> partitionTables = new HashMap<File, List<String>>();
+		Map<FilePath, List<String>> partitionTables = new HashMap<FilePath, List<String>>();
 
 		for (String tableName : tableRegistry.getTableNames()) {
-			File dir = storage.getTableDirectory(tableName).getParentFile();
+			FilePath dir = storage.getTableDirectory(tableName).getAbsoluteFilePath().getParentFilePath();
 
 			List<String> tables = partitionTables.get(dir);
 			if (tables == null) {
@@ -225,7 +225,7 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 		}
 
 		boolean lowDisk = false;
-		for (File dir : partitionTables.keySet()) {
+		for (FilePath dir : partitionTables.keySet()) {
 			lowDisk |= checkDiskPartitions(dir, partitionTables.get(dir));
 		}
 
@@ -244,7 +244,7 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 		}
 	}
 
-	private boolean checkDiskPartitions(File partitionPath, List<String> tableNames) {
+	private boolean checkDiskPartitions(FilePath partitionPath, List<String> tableNames) {
 		if (isDiskLack(partitionPath)) {
 			logger.trace("araqne logstorage: not enough disk space, current minimum free space config [{}] {}", minFreeSpaceValue,
 					(minFreeSpaceType == DiskSpaceType.Percentage ? "%" : "MB"));
@@ -288,7 +288,7 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 		stopByLowDisk = false;
 	}
 
-	private void stopStorage(File partitionPath) {
+	private void stopStorage(FilePath partitionPath) {
 		logger.error("araqne logstorage: [{}] not enough space, stop logging", partitionPath.getAbsolutePath());
 		storage.stop();
 		stopByLowDisk = true;

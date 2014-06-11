@@ -2307,4 +2307,13 @@ public class LogDbClient implements TrapListener, Closeable {
 			throw new IOException("not connected yet, use connect()");
 		return session.rpc(method, params);
 	}
+
+	@SuppressWarnings("unused")
+	public String getInstanceGuid() throws IOException {
+		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.getInstanceGuid");
+		List<AccountInfo> accounts = new ArrayList<AccountInfo>();
+		String l = (String) resp.get("instance_guid");
+
+		return l;
+	}
 }

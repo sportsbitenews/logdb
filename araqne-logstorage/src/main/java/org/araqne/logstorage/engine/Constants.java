@@ -16,7 +16,7 @@
 package org.araqne.logstorage.engine;
 
 public enum Constants {
-	LogStorageDirectory("log_storage_dir"),
+	LogStorageDirectory("log_storage_dir", "string"),
 	LogCheckInterval("log_check_interval"),
 	LogMaxIdleTime("log_max_idle_time"), 
 	LogFlushInterval("log_flush_interval"), 

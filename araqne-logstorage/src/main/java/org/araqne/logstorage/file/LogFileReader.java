@@ -15,9 +15,7 @@
  */
 package org.araqne.logstorage.file;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -35,20 +33,21 @@ import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogMatchCallback;
 import org.araqne.logstorage.LogTraverseCallback;
 import org.araqne.logstorage.WrongTimeTypeException;
+import org.araqne.storage.api.FilePath;
 
 public abstract class LogFileReader {
 	@Deprecated
-	public static LogFileReader getLogFileReader(String tableName, File indexPath, File dataPath)
-			throws InvalidLogFileHeaderException, IOException {
+	public static LogFileReader getLogFileReader(String tableName, FilePath indexPath, FilePath dataPath) 
+            throws InvalidLogFileHeaderException, IOException {
 		LogFileReader reader = null;
-		RandomAccessFile indexHeaderReader = null;
-		RandomAccessFile dataHeaderReader = null;
+		BufferedStorageInputStream indexHeaderReader = null;
+		BufferedStorageInputStream dataHeaderReader = null;
 
 		try {
-			indexHeaderReader = new RandomAccessFile(indexPath, "r");
-			dataHeaderReader = new RandomAccessFile(dataPath, "r");
-			LogFileHeader indexHeader = LogFileHeader.extractHeader(indexHeaderReader, indexPath);
-			LogFileHeader dataHeader = LogFileHeader.extractHeader(dataHeaderReader, dataPath);
+			indexHeaderReader = new BufferedStorageInputStream(indexPath);
+			dataHeaderReader = new BufferedStorageInputStream(dataPath);
+			LogFileHeader indexHeader = LogFileHeader.extractHeader(indexHeaderReader);
+			LogFileHeader dataHeader = LogFileHeader.extractHeader(dataHeaderReader);
 
 			if (indexHeader.version() != dataHeader.version())
 				throw new InvalidLogFileHeaderException("different log version index and data file");
@@ -179,29 +178,6 @@ public abstract class LogFileReader {
 
 	public abstract List<Log> find(Date from, Date to, List<Long> ids, LogParserBuilder builder);
 
-	@Deprecated
-	public abstract LogRecord find(long id) throws IOException;
-
-	@Deprecated
-	public abstract List<LogRecord> find(List<Long> ids) throws IOException;
-
-	public abstract void traverse(long limit, LogMatchCallback callback) throws IOException, InterruptedException;
-
-	public abstract void traverse(long offset, long limit, LogMatchCallback callback) throws IOException, InterruptedException;
-
-	public abstract void traverse(Date from, Date to, long limit, LogMatchCallback callback) throws IOException,
-			InterruptedException;
-
-	public abstract void traverse(Date from, Date to, long offset, long limit, LogMatchCallback callback) throws IOException,
-			InterruptedException;
-
-	public abstract void traverse(Date from, Date to, long minId, long offset, long limit, LogMatchCallback callback)
-			throws IOException, InterruptedException;
-
-	// maxId is inclusive
-	public abstract void traverse(Date from, Date to, long minId, long maxId, long offset, long limit, LogMatchCallback callback,
-			boolean doParallel) throws IOException, InterruptedException;
-
 	public abstract void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
 			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException;
 
@@ -215,14 +191,14 @@ public abstract class LogFileReader {
 	public abstract LogBlockCursor getBlockCursor() throws IOException;
 
 	/**
-	 * @since 2.2.4
+	 * @since 2.x
 	 */
-	public abstract File getIndexPath();
+	public abstract FilePath getIndexPath();
 
 	/**
-	 * @since 2.2.4
+	 * @since 2.x
 	 */
-	public abstract File getDataPath();
+	public abstract FilePath getDataPath();
 
 	public abstract void close();
 }

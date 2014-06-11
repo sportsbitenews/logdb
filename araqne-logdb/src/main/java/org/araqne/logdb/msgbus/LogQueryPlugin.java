@@ -237,7 +237,11 @@ public class LogQueryPlugin {
 				Date date = (Date) data.get("_time");
 				Log log = new Log(tableName, date, data);
 				// storage.writeBatch(log);
-				storage.write(log);
+				try {
+					storage.write(log);
+				} catch (InterruptedException e) {
+					logger.warn("storage.write interrupted", e);
+				}
 
 			}
 		} catch (ExecutionException e) {

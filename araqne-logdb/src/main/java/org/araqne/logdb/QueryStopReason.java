@@ -16,5 +16,5 @@
 package org.araqne.logdb;
 
 public enum QueryStopReason {
-	End, UserRequest, PartialFetch, CommandFailure, LowDisk, NetworkFailure;
+	End, UserRequest, PartialFetch, CommandFailure, LowDisk, NetworkFailure, Interrupted;
 }

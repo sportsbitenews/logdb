@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 NCHOVY
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logstorage;
+package org.araqne.logstorage.file;
 
-public class LogTableNotFoundException extends RuntimeException {
-	private static final long serialVersionUID = 1L;
-	private String tableName;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageInputStream;
 
-	public LogTableNotFoundException(String tableName) {
-		super("table " + tableName + " not found");
-		this.tableName = tableName;
-	}
-
-	public String getTableName() {
-		return tableName;
-	}
-
+public class DataBlockV3Params {
+	public IndexBlockV3Header indexHeader;
+	public StorageInputStream dataStream;
+	public FilePath dataPath;
+	public String compressionMethod;
+	public String cipher;
+	public String digest;
+	public byte[] cipherKey;
+	public byte[] digestKey;
 }

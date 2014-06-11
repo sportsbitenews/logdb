@@ -258,4 +258,12 @@ public class LogDBScript implements Script {
 
 		context.println("total " + savedResults.size() + " results");
 	}
+	
+	public void instanceGuid(String[] args) {
+		context.println(accountService.getInstanceGuid());
+	}
+	
+	public void setInstanceGuid(String[] args) {
+		accountService.setInstanceGuid(args[0]);
+	}
 }

@@ -17,6 +17,8 @@ package org.araqne.logstorage.engine;
 
 import java.util.Date;
 
+import org.araqne.logstorage.DateUtil;
+
 public class TabletKey implements Comparable<TabletKey> {
 	private int tableId;
 	private Date day;

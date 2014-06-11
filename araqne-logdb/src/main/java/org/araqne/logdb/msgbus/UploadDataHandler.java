@@ -22,7 +22,7 @@ import org.araqne.msgbus.Request;
 import org.araqne.msgbus.Response;
 
 public class UploadDataHandler {
-	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(UploadDataHandler.class);
+	private static final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(UploadDataHandler.class);
 
 	private ConcurrentMap<String, UploadState> states = new ConcurrentHashMap<String, UploadState>();
 
@@ -81,8 +81,9 @@ public class UploadDataHandler {
 
 			DummyLogger logger = new DummyLogger();
 			UploadPipe pipe = new UploadPipe(storage, tableName);
-			this.extractor = newMultilineExtractor(datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset, logger,
-					pipe);
+			this.extractor =
+					newMultilineExtractor(datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset, logger,
+							pipe);
 		}
 
 		private MultilineLogExtractor newMultilineExtractor(String datePattern, String dateFormat, String dateLocale,
@@ -127,7 +128,11 @@ public class UploadDataHandler {
 				return;
 
 			Log tableLog = new Log(tableName, log.getDate(), log.getParams());
-			storage.write(tableLog);
+			try {
+				storage.write(tableLog);
+			} catch (InterruptedException e) {
+				slog.warn("storage.write interrupted", e);
+			}
 		}
 
 		@Override
@@ -143,7 +148,11 @@ public class UploadDataHandler {
 			}
 
 			if (!tableLogs.isEmpty())
-				storage.write(tableLogs);
+				try {
+					storage.write(tableLogs);
+				} catch (InterruptedException e) {
+					slog.warn("storage.write interrupted", e);
+				}
 		}
 	}
 }

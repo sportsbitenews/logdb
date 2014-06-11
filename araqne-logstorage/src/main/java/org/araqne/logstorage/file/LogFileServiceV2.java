@@ -15,20 +15,22 @@
  */
 package org.araqne.logstorage.file;
 
-import java.io.File;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
-import org.araqne.logstorage.LogFlushCallback;
-import org.araqne.logstorage.LogFlushCallbackArgs;
+import org.araqne.logstorage.TableConfigSpec;
+import org.araqne.storage.api.FilePath;
 
 @Component(name = "logstorage-log-file-service-v2")
 public class LogFileServiceV2 implements LogFileService {
@@ -36,15 +38,16 @@ public class LogFileServiceV2 implements LogFileService {
 	private LogFileServiceRegistry registry;
 
 	private static final String OPT_TABLE_NAME = "tableName";
+	private static final String OPT_DAY = "day";
 	private static final String OPT_INDEX_PATH = "indexPath";
 	private static final String OPT_DATA_PATH = "dataPath";
 	private static final String OPT_KEY_PATH = "keyPath";
-	private static final String OPT_FLUSH_CALLBACKS = "flushCallbacks";
+	private static final Object OPT_CALLBACK_SET = "callbackSet";
 
 	public static class Option extends TreeMap<String, Object> {
 		private static final long serialVersionUID = 1L;
 
-		public Option(Map<String, String> tableMetadata, String tableName, File indexPath, File dataPath, File keyPath) {
+		public Option(Map<String, String> tableMetadata, String tableName, FilePath indexPath, FilePath dataPath, FilePath keyPath) {
 			this.putAll(tableMetadata);
 			this.put(OPT_TABLE_NAME, tableName);
 			this.put(OPT_INDEX_PATH, indexPath);
@@ -70,7 +73,7 @@ public class LogFileServiceV2 implements LogFileService {
 	}
 
 	@Override
-	public long count(File f) {
+	public long count(FilePath f) {
 		return LogCounterV2.count(f);
 	}
 
@@ -78,11 +81,12 @@ public class LogFileServiceV2 implements LogFileService {
 	public LogFileWriter newWriter(Map<String, Object> options) {
 		checkOption(options);
 		String tableName = (String) options.get(OPT_TABLE_NAME);
-		File indexPath = (File) options.get(OPT_INDEX_PATH);
-		File dataPath = (File) options.get(OPT_DATA_PATH);
-		Set<LogFlushCallback> flushCallbacks = (Set<LogFlushCallback>) options.get(OPT_FLUSH_CALLBACKS);
+		Date day = (Date) options.get(OPT_DAY);
+		FilePath indexPath = (FilePath) options.get(OPT_INDEX_PATH);
+		FilePath dataPath = (FilePath) options.get(OPT_DATA_PATH);
+		CallbackSet cbSet = (CallbackSet) options.get(OPT_CALLBACK_SET);
 		try {
-			return new LogFileWriterV2(indexPath, dataPath, flushCallbacks, new LogFlushCallbackArgs(tableName));
+			return new LogFileWriterV2(indexPath, dataPath, cbSet, tableName, day);
 		} catch (Throwable t) {
 			throw new IllegalStateException("cannot open writer v2: data file - " + dataPath.getAbsolutePath(), t);
 		}
@@ -98,13 +102,18 @@ public class LogFileServiceV2 implements LogFileService {
 	@Override
 	public LogFileReader newReader(String tableName, Map<String, Object> options) {
 		checkOption(options);
-		File indexPath = (File) options.get(OPT_INDEX_PATH);
-		File dataPath = (File) options.get(OPT_DATA_PATH);
+		FilePath indexPath = (FilePath) options.get(OPT_INDEX_PATH);
+		FilePath dataPath = (FilePath) options.get(OPT_DATA_PATH);
 		try {
 			return new LogFileReaderV2(tableName, indexPath, dataPath);
 		} catch (Throwable t) {
 			throw new IllegalStateException("cannot open reader v2: data file - " + dataPath.getAbsolutePath());
 		}
+	}
+
+	@Override
+	public List<TableConfigSpec> getConfigSpecs() {
+		return Arrays.asList();
 	}
 
 	@Override
@@ -118,6 +127,16 @@ public class LogFileServiceV2 implements LogFileService {
 
 	@Override
 	public void unsetConfig(String key) {
+	}
+
+	@Override
+	public List<TableConfigSpec> getReplicaConfigSpecs() {
+		return Arrays.asList();
+	}
+
+	@Override
+	public List<TableConfigSpec> getSecondaryConfigSpecs() {
+		return Arrays.asList();
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Future Systems
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
  */
 package org.araqne.logstorage;
 
-import java.util.Map;
+public interface TableEventListener {
+	void onCreate(TableSchema schema);
 
-public interface LogTableEventListener {
-	void onCreate(String tableName, Map<String, String> tableMetadata);
+	void onAlter(TableSchema oldSchema, TableSchema newSchema);
 
-	void onDrop(String tableName);
+	void onDrop(TableSchema schema);
 }

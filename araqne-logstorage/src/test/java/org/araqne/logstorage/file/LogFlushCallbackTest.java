@@ -7,15 +7,21 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFlushCallback;
 import org.araqne.logstorage.LogFlushCallbackArgs;
 import org.araqne.logstorage.LogMarshaler;
-import org.araqne.logstorage.LogMatchCallback;
+import org.araqne.logstorage.LogTraverseCallback.Sink;
+import org.araqne.logstorage.LogUtil;
+import org.araqne.logstorage.SimpleLogTraverseCallback;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.junit.Test;
 
 public class LogFlushCallbackTest {
@@ -23,31 +29,31 @@ public class LogFlushCallbackTest {
 	public void testv2() throws InvalidLogFileHeaderException, IOException {
 		final AtomicInteger fcnt = new AtomicInteger(0);
 		final AtomicInteger cmplcnt = new AtomicInteger(0);
-		Set<LogFlushCallback> flushCallbacks = new HashSet<LogFlushCallback>();
-		flushCallbacks.add(new LogFlushCallback() {
-			@Override
-			public void onFlushException(LogFlushCallbackArgs arg, Throwable t) {
+		CallbackSet cbSet = new CallbackSet();
+		cbSet.get(LogFlushCallback.class).add(
+				new LogFlushCallback() {
+					@Override
+					public void onFlushException(LogFlushCallbackArgs arg, Throwable t) {
 
-			}
+					}
 
-			@Override
-			public void onFlushCompleted(LogFlushCallbackArgs args) {
-				cmplcnt.incrementAndGet();
-			}
+					@Override
+					public void onFlushCompleted(LogFlushCallbackArgs args) {
+						cmplcnt.incrementAndGet();
+					}
 
-			@Override
-			public void onFlush(LogFlushCallbackArgs arg) {
-				fcnt.incrementAndGet();
-			}
-		});
-		File indexPath = new File("lfctestv2.idx");
-		File dataPath = new File("lfctestv2.dat");
+					@Override
+					public void onFlush(LogFlushCallbackArgs arg) {
+						fcnt.incrementAndGet();
+					}
+				});
+		FilePath indexPath = new LocalFilePath("lfctestv2.idx");
+		FilePath dataPath = new LocalFilePath("lfctestv2.dat");
 
 		indexPath.deleteOnExit();
 		dataPath.deleteOnExit();
 
-		LogFileWriterV2 writer = new LogFileWriterV2(indexPath, dataPath, flushCallbacks,
-				new LogFlushCallbackArgs("test"));
+		LogFileWriterV2 writer = new LogFileWriterV2(indexPath, dataPath, cbSet, "test", LogUtil.getDay(new Date()));
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < 100; ++i) {
@@ -114,14 +120,13 @@ public class LogFlushCallbackTest {
 				fcnt.incrementAndGet();
 			}
 		});
-		File indexPath = new File("lfctestv1.idx");
-		File dataPath = new File("lfctestv1.dat");
+		File indexFile = new File("lfctestv1.idx");
+		File dataFile = new File("lfctestv1.dat");
 
-		indexPath.deleteOnExit();
-		dataPath.deleteOnExit();
+		indexFile.deleteOnExit();
+		dataFile.deleteOnExit();
 
-		LogFileWriterV1 writer = new LogFileWriterV1(indexPath, dataPath, flushCallbacks,
-				new LogFlushCallbackArgs("test"));
+		LogFileWriterV1 writer = new LogFileWriterV1(indexFile, dataFile, flushCallbacks, new LogFlushCallbackArgs("test"));
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < 100; ++i) {
@@ -148,28 +153,19 @@ public class LogFlushCallbackTest {
 
 		LogFileReaderV1 reader = null;
 		try {
+			FilePath indexPath = new LocalFilePath("lfctestv1.idx");
+			FilePath dataPath = new LocalFilePath("lfctestv1.dat");
+
 			reader = new LogFileReaderV1("test", indexPath, dataPath);
 
 			final AtomicInteger logcnt = new AtomicInteger();
 
-			reader.traverse(0, new LogMatchCallback() {
-				
+			reader.traverse(null, null, -1, -1, null, new SimpleLogTraverseCallback(new Sink(0, 0) {
 				@Override
-				public boolean onLog(Log log) throws InterruptedException {
-					logcnt.incrementAndGet();
-					return true;
+				protected void processLogs(List<Log> logs) {
+					logcnt.addAndGet(logs.size());
 				}
-				
-				@Override
-				public boolean match(LogRecord record) {
-					return true;
-				}
-				
-				@Override
-				public long getMatchedCount() {
-					return 0;
-				}
-			});
+			}), false);
 			assertEquals(testcnt, logcnt.get());
 
 			reader.close();

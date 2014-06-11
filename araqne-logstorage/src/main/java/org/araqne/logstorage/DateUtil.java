@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logstorage.engine;
+package org.araqne.logstorage;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -34,21 +34,20 @@ public class DateUtil {
 	}
 
 	private static ThreadLocal<TimeZone> timeZoneCache = new ThreadLocal<TimeZone>() {
-        @Override
-        protected TimeZone initialValue() {
-            return TimeZone.getDefault();
-        }
-    };
+		@Override
+		protected TimeZone initialValue() {
+			return TimeZone.getDefault();
+		}
+	};
 
-    public static Date getDay(Date date) {
-        long time = date.getTime();
-        TimeZone timeZone = timeZoneCache.get();
-        if (timeZone.inDaylightTime(date))
-            return new Date(time - ((time + timeZone.getRawOffset() + 3600000) % 86400000L));
-        else
-            return new Date(time - ((time + timeZone.getRawOffset()) % 86400000L));
-    }
-    
+	public static Date getDay(Date date) {
+		long time = date.getTime();
+		TimeZone timeZone = timeZoneCache.get();
+		if (timeZone.inDaylightTime(date))
+			return new Date(time - ((time + timeZone.getRawOffset() + 3600000) % 86400000L));
+		else
+			return new Date(time - ((time + timeZone.getRawOffset()) % 86400000L));
+	}
 	public static List<Date> filt(Collection<Date> dates, Date from, Date to) {
 		List<Date> filtered = new ArrayList<Date>();
 		// canonicalize

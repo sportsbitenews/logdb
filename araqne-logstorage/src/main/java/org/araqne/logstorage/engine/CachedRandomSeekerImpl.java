@@ -16,7 +16,6 @@
 package org.araqne.logstorage.engine;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
-import org.araqne.codec.FastEncodingRule;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
@@ -34,7 +32,6 @@ import org.araqne.logstorage.CachedRandomSeeker;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
-import org.araqne.logstorage.file.LogRecord;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -60,27 +57,6 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		this.onlineWriters = onlineWriters;
 		this.onlineBuffers = new HashMap<OnlineWriterKey, List<Log>>();
 		this.cachedReaders = new HashMap<TabletKey, LogFileReader>();
-	}
-
-	private Log getLogFromOnlineWriter(String tableName, int tableId, Date day, long id) {
-		OnlineWriterKey onlineKey = new OnlineWriterKey(tableName, day, tableId);
-		List<Log> buffer = onlineBuffers.get(onlineKey);
-		if (buffer == null) {
-			// try load on demand
-			OnlineWriter writer = onlineWriters.get(onlineKey);
-			if (writer != null) {
-				buffer = writer.getBuffer();
-				onlineBuffers.put(onlineKey, buffer);
-			}
-		}
-
-		if (buffer != null) {
-			for (Log r : buffer)
-				if (r.getId() == id) {
-					return r;
-				}
-		}
-		return null;
 	}
 
 	private List<Log> getLogsFromOnlineWriter(String tableName, int tableId, Date day, List<Long> ids, LogParserBuilder builder) {
@@ -132,14 +108,6 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		}
 	}
 
-	// TODO : remove duplicated method convert (LogStorageEngine.convert())
-	private LogRecord convert(Log log) {
-		ByteBuffer bb = new FastEncodingRule().encode(log.getData());
-		LogRecord logdata = new LogRecord(log.getDate(), log.getId(), bb);
-		log.setBinaryLength(bb.remaining());
-		return logdata;
-	}
-
 	private LogFileReader getReader(String tableName, int tableId, Date day) throws IOException {
 		TabletKey key = new TabletKey(tableId, day);
 		LogFileReader reader = cachedReaders.get(key);
@@ -148,23 +116,6 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 			cachedReaders.put(key, reader);
 		}
 		return reader;
-	}
-
-	@Override
-	public LogRecord getLogRecord(String tableName, Date day, long id) throws IOException {
-		if (closed)
-			throw new IllegalStateException("already closed");
-
-		int tableId = tableRegistry.getTableId(tableName);
-
-		// check memory buffer (flush waiting)
-		Log bufferedLog = getLogFromOnlineWriter(tableName, tableId, day, id);
-		if (bufferedLog != null) {
-			return convert(bufferedLog);
-		}
-
-		LogFileReader reader = getReader(tableName, tableId, day);
-		return reader.find(id);
 	}
 
 	private List<Long> getFileLogIds(List<Log> onlineLogs, List<Long> ids) {
@@ -185,46 +136,6 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 
 		if (ret.size() != retCnt) {
 			throw new IllegalStateException("log ids are wrong");
-		}
-
-		return ret;
-	}
-
-	@Override
-	public List<LogRecord> getLogRecords(String tableName, Date day, List<Long> ids) {
-		if (closed)
-			throw new IllegalStateException("already closed");
-
-		int tableId = tableRegistry.getTableId(tableName);
-
-		List<LogRecord> ret = new ArrayList<LogRecord>(ids.size());
-		List<Log> onlineLogs = getLogsFromOnlineWriter(tableName, tableId, day, ids, null);
-		List<Long> fileLogIds = getFileLogIds(onlineLogs, ids);
-		List<LogRecord> fileLogRecords = null;
-
-		try {
-			LogFileReader reader = getReader(tableName, tableId, day);
-			fileLogRecords = reader.find(fileLogIds);
-		} catch (IOException e) {
-		}
-
-		// merge online log and file log
-		int i = 0;
-		int j = 0;
-		for (long id : ids) {
-			if (i < onlineLogs.size()) {
-				Log l = onlineLogs.get(i);
-				if (l.getId() == id) {
-					ret.add(convert(l));
-					++i;
-				}
-			} else if (fileLogRecords != null && j < fileLogRecords.size()) {
-				LogRecord r = fileLogRecords.get(j);
-				if (r.getId() == id) {
-					ret.add(r);
-					++j;
-				}
-			}
 		}
 
 		return ret;
@@ -262,7 +173,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		if (closed)
 			throw new IllegalStateException("already closed");
 
-		int tableId = tableRegistry.getTableId(tableName);
+		int tableId = tableRegistry.getTableSchema(tableName, true).getId();
 
 		List<Log> ret = new ArrayList<Log>(ids.size());
 		List<Log> onlineLogs = getLogsFromOnlineWriter(tableName, tableId, day, ids, builder);

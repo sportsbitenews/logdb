@@ -1,6 +1,5 @@
 package org.araqne.logdb.metadata;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
@@ -12,17 +11,20 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.Row;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.file.LogBlock;
 import org.araqne.logstorage.file.LogBlockCursor;
 import org.araqne.logstorage.file.LogFileReader;
+import org.araqne.logstorage.file.LogFileServiceV2;
+import org.araqne.storage.api.FilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,34 +68,27 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
 		String[] tokens = queryString.split(" ");
 		String tableName = tokens[1];
-		String type = tableRegistry.getTableMetadata(tableName, LogTableRegistry.LogFileTypeKey);
 
-		Map<String, String> tableMetadata = new HashMap<String, String>();
-		for (String key : tableRegistry.getTableMetadataKeys(tableName))
-			tableMetadata.put(key, tableRegistry.getTableMetadata(tableName, key));
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		String type = schema.getPrimaryStorage().getType();
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 		Date day = df.parse(tokens[2], new ParsePosition(0));
 
-		File dir = storage.getTableDirectory(tableName);
+		FilePath dir = storage.getTableDirectory(tableName);
 
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		String dateText = dateFormat.format(day);
 
-		File indexPath = new File(dir, dateText + ".idx");
-		File dataPath = new File(dir, dateText + ".dat");
-		File keyPath = new File(dir, dateText + ".key");
-
-		Map<String, Object> options = new HashMap<String, Object>(tableMetadata);
-		options.put("tableName", tableName);
-		options.put("indexPath", indexPath);
-		options.put("dataPath", dataPath);
-		options.put("keyPath", keyPath);
+		FilePath indexPath = dir.newFilePath(dateText + ".idx");
+		FilePath dataPath = dir.newFilePath(dateText + ".dat");
+		FilePath keyPath = dir.newFilePath(dateText + ".key");
 
 		LogFileReader reader = null;
 		LogBlockCursor cursor = null;
 		try {
-			reader = logFileServiceRegistry.newReader(tableName, type, options);
+			reader = logFileServiceRegistry.newReader(tableName, type, new LogFileServiceV2.Option(schema.getMetadata(),
+					tableName, indexPath, dataPath, keyPath));
 			cursor = reader.getBlockCursor();
 
 			while (cursor.hasNext()) {

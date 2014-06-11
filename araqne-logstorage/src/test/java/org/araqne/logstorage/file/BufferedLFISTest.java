@@ -9,9 +9,10 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.araqne.storage.localfile.LocalFilePath;
 import org.junit.Test;
 
-public class BufferedRAFTest {
+public class BufferedLFISTest {
 	@Test
 	public void readSizeTest() throws IOException {
 		File file = new File("braf_test.dat");
@@ -29,10 +30,10 @@ public class BufferedRAFTest {
 			byte[] diffsrc = new byte[BUFSIZE * 100];
 			new Random(1).nextBytes(diffsrc);
 
-			BufferedRandomAccessFileReader reader = new BufferedRandomAccessFileReader(file);
-			assertArrayEquals(subarray(diffsrc, 0, 1024), readRAF(reader, 0, 1024));
-			assertArrayEquals(subarray(diffsrc, 0, 8192 * 4), readRAF(reader, 0, 8192 * 4));
-			assertArrayEquals(subarray(diffsrc, 8192 * 15, 8192 * 4), readRAF(reader, 8192 * 15, 8192 * 4));
+			BufferedStorageInputStream stream = new BufferedStorageInputStream(new LocalFilePath(file));
+			assertArrayEquals(subarray(diffsrc, 0, 1024), readLFIS(stream, 0, 1024));
+			assertArrayEquals(subarray(diffsrc, 0, 8192 * 4), readLFIS(stream, 0, 8192 * 4));
+			assertArrayEquals(subarray(diffsrc, 8192 * 15, 8192 * 4), readLFIS(stream, 8192 * 15, 8192 * 4));
 
 		} finally {
 			file.delete();
@@ -44,10 +45,10 @@ public class BufferedRAFTest {
 		return Arrays.copyOfRange(diffsrc, offset, offset + length);
 	}
 
-	private byte[] readRAF(BufferedRandomAccessFileReader reader, int seekpos, int length) throws IOException {
+	private byte[] readLFIS(BufferedStorageInputStream stream, int seekpos, int length) throws IOException {
 		byte[] ret = new byte[length];
-		reader.seek(seekpos);
-		reader.readFully(ret);
+		stream.seek(seekpos);
+		stream.readFully(ret);
 		return ret;
 	}
 }

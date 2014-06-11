@@ -15,52 +15,34 @@
  */
 package org.araqne.logstorage;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.araqne.log.api.FieldDefinition;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 
 public interface LogTableRegistry {
-	public static final String LogFileTypeKey = "_filetype";
-
 	boolean exists(String tableName);
 
-	Collection<String> getTableNames();
+	List<String> getTableNames();
 
-	int getTableId(String tableName);
+	List<TableSchema> getTableSchemas();
 
-	String getTableName(int tableId);
+	TableSchema getTableSchema(String tableName);
 
-	void createTable(String tableName, String type, Map<String, String> tableMetadata);
+	TableSchema getTableSchema(String tableName, boolean required);
 
-	void renameTable(String currentName, String newName);
+	void createTable(TableSchema schema);
+
+	void alterTable(String tableName, TableSchema schema);
 
 	void dropTable(String tableName);
 
-	List<FieldDefinition> getTableFields(String tableName);
+	void addListener(TableEventListener listener);
 
-	/**
-	 * update table field definitions
-	 * 
-	 * @param tableName
-	 *            existing table name
-	 * @param fields
-	 *            field definitions or null
-	 * @since 2.5.1
-	 */
-	void setTableFields(String tableName, List<FieldDefinition> fields);
+	void removeListener(TableEventListener listener);
 
-	Set<String> getTableMetadataKeys(String tableName);
+	Lock getExclusiveTableLock(String tableName, String owner);
 
-	String getTableMetadata(String tableName, String key);
+	Lock getSharedTableLock(String tableName);
 
-	void setTableMetadata(String tableName, String key, String value);
-
-	void unsetTableMetadata(String tableName, String key);
-
-	void addListener(LogTableEventListener listener);
-
-	void removeListener(LogTableEventListener listener);
+	LockStatus getTableLockStatus(String tableName);
 }

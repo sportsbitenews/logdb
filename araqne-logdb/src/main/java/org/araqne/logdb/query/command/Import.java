@@ -18,10 +18,13 @@ package org.araqne.logdb.query.command;
 import java.util.Date;
 
 import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.ThreadSafe;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.StorageConfig;
+import org.araqne.logstorage.TableSchema;
 
 /**
  * @since 1.6.6
@@ -52,12 +55,12 @@ public class Import extends QueryCommand implements ThreadSafe {
 	public void onStart() {
 		if (create) {
 			try {
-				storage.ensureTable(tableName, "v3p");
+				storage.ensureTable(new TableSchema(tableName, new StorageConfig("v3p")));
 			} catch (Throwable t) {
 			}
 
 			try {
-				storage.ensureTable(tableName, "v2");
+				storage.ensureTable(new TableSchema(tableName, new StorageConfig("v2")));
 			} catch (Throwable t) {
 			}
 		}
@@ -80,8 +83,12 @@ public class Import extends QueryCommand implements ThreadSafe {
 		else
 			date = new Date();
 
-		storage.write(new Log(tableName, date, row.map()));
-		pushPipe(row);
+		try {
+			storage.write(new Log(tableName, date, row.map()));
+			pushPipe(row);
+		} catch (InterruptedException e) {
+			getQuery().stop(QueryStopReason.Interrupted);
+		}
 	}
 
 	@Override

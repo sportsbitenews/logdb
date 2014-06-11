@@ -8,6 +8,8 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.ThreadSafe;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.StorageConfig;
+import org.araqne.logstorage.TableSchema;
 
 public class Insert extends QueryCommand implements ThreadSafe {
 	private final LogStorage storage;
@@ -34,12 +36,12 @@ public class Insert extends QueryCommand implements ThreadSafe {
 
 		if (create) {
 			try {
-				storage.ensureTable(tableName, "v3p");
+				storage.ensureTable(new TableSchema(tableName, new StorageConfig("v3p")));
 			} catch (Throwable t) {
 			}
 
 			try {
-				storage.ensureTable(tableName, "v2");
+				storage.ensureTable(new TableSchema(tableName, new StorageConfig("v2")));
 			} catch (Throwable t) {
 			}
 		}
@@ -53,8 +55,12 @@ public class Insert extends QueryCommand implements ThreadSafe {
 		else
 			date = new Date();
 
-		storage.write(new Log(tableName, date, log));
-		pushPipe(row);
+		try {
+			storage.write(new Log(tableName, date, log));
+			pushPipe(row);
+		} catch (InterruptedException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	@Override

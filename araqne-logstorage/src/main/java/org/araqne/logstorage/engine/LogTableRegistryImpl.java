@@ -16,7 +16,8 @@
 package org.araqne.logstorage.engine;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
@@ -35,13 +37,7 @@ import org.araqne.confdb.ConfigIterator;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.ConfigTransaction;
 import org.araqne.confdb.Predicates;
-import org.araqne.log.api.FieldDefinition;
-import org.araqne.logstorage.LogFileServiceRegistry;
-import org.araqne.logstorage.LogTableEventListener;
-import org.araqne.logstorage.LogTableNotFoundException;
-import org.araqne.logstorage.LogTableRegistry;
-import org.araqne.logstorage.LogTableSchema;
-import org.araqne.logstorage.UnsupportedLogFileTypeException;
+import org.araqne.logstorage.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,26 +66,68 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	/**
 	 * table name to schema mappings
 	 */
-	private ConcurrentMap<String, LogTableSchema> tableSchemas;
+	private ConcurrentMap<String, TableSchema> tableSchemas;
 
-	private CopyOnWriteArraySet<LogTableEventListener> callbacks;
+	private CopyOnWriteArraySet<TableEventListener> callbacks;
 
 	public LogTableRegistryImpl() {
-		tableSchemas = new ConcurrentHashMap<String, LogTableSchema>();
+		tableSchemas = new ConcurrentHashMap<String, TableSchema>();
 		tableNames = new ConcurrentHashMap<Integer, String>();
-		callbacks = new CopyOnWriteArraySet<LogTableEventListener>();
+		callbacks = new CopyOnWriteArraySet<TableEventListener>();
+
+		// migrate _filetype metadata to configs
+		migrateMetadata();
 
 		// load table id mappings
 		loadTableMappings();
+	}
+
+	private void migrateMetadata() {
+		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
+
+		ConfigIterator it = null;
+		try {
+			it = db.findAll(TableSchema.class);
+			while (it.hasNext()) {
+				Config c = it.next();
+				TableSchema schema = c.getDocument(TableSchema.class);
+				if (schema.getPrimaryStorage() != null)
+					continue;
+
+				// do not remove _filetype immediately
+				String fileType = schema.getMetadata().get("_filetype");
+				if (fileType == null)
+					fileType = "v2";
+
+				StorageConfig primaryStorage = new StorageConfig(fileType, schema.getMetadata().get("base_path"));
+
+				String compression = schema.getMetadata().get("compression");
+				if (compression != null)
+					primaryStorage.getConfigs().add(new TableConfig("compression", compression));
+
+				String crypto = schema.getMetadata().get("crypto");
+				if (crypto != null)
+					primaryStorage.getConfigs().add(new TableConfig("crypto", crypto));
+
+				schema.setPrimaryStorage(primaryStorage);
+
+				db.update(c, schema);
+				logger.info("araqne logstorage: migrated table [{}] _filetype [{}] metadata to schema", schema.getName(),
+						fileType);
+			}
+		} finally {
+			if (it != null)
+				it.close();
+		}
 	}
 
 	private void loadTableMappings() {
 		int maxId = 0;
 
 		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
-		ConfigCollection col = db.getCollection(LogTableSchema.class);
+		ConfigCollection col = db.getCollection(TableSchema.class);
 		if (col == null) {
-			col = db.ensureCollection(LogTableSchema.class);
+			col = db.ensureCollection(TableSchema.class);
 			ConfigCollection before = db.getCollection("org.araqne.logstorage.engine.LogTableSchema");
 			if (before != null) {
 				ConfigTransaction xact = db.beginTransaction();
@@ -107,9 +145,10 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 		}
 
 		ConfigIterator it = col.findAll();
-		for (LogTableSchema t : it.getDocuments(LogTableSchema.class)) {
+		for (TableSchema t : it.getDocuments(TableSchema.class)) {
 			tableNames.put(t.getId(), t.getName());
 			tableSchemas.put(t.getName(), t);
+			tableLocks.put(t.getName(), new TableLock());
 			if (maxId < t.getId())
 				maxId = t.getId();
 		}
@@ -123,55 +162,42 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	}
 
 	@Override
-	public Collection<String> getTableNames() {
+	public List<String> getTableNames() {
 		return new ArrayList<String>(tableSchemas.keySet());
 	}
 
 	@Override
-	public int getTableId(String tableName) {
-		LogTableSchema table = getTableSchema(tableName);
-		return table.getId();
+	public List<TableSchema> getTableSchemas() {
+		List<TableSchema> l = new ArrayList<TableSchema>();
+		for (TableSchema s : tableSchemas.values())
+			l.add(s.clone());
+		return l;
 	}
 
 	@Override
-	public String getTableName(int tableId) {
-		return tableNames.get(tableId);
-	}
+	public void createTable(TableSchema schema) {
+		if (tableSchemas.containsKey(schema.getName()))
+			throw new IllegalStateException("table already exists: " + schema.getName());
 
-	@Override
-	public void createTable(String tableName, String type, Map<String, String> tableMetadata) {
-		if (tableSchemas.containsKey(tableName))
-			throw new IllegalStateException("table already exists: " + tableName);
+		verifyInputSchema(schema);
+		String tableName = schema.getName();
 
-		if (lfsRegistry != null) {
-			String[] installedTypes = lfsRegistry.getInstalledTypes();
-			boolean installed = false;
-			for (String t : installedTypes) {
-				if (t.equals(type)) {
-					installed = true;
-					;
-				}
-			}
-			if (!installed)
-				throw new UnsupportedLogFileTypeException(type);
-		}
-
+		// set unique id
 		int newId = nextTableId.incrementAndGet();
-		LogTableSchema table = new LogTableSchema(newId, tableName);
-		table.getMetadata().put(LogFileTypeKey, type);
-		if (tableMetadata != null)
-			table.getMetadata().putAll(tableMetadata);
+		TableSchema newSchema = schema.clone();
+		newSchema.setId(newId);
 
 		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
-		db.add(table, "araqne-logstorage", "created " + tableName + " table");
+		db.add(newSchema, "araqne-logstorage", "created " + tableName + " table");
 
-		tableNames.put(table.getId(), table.getName());
-		tableSchemas.put(tableName, table);
+		tableNames.put(newSchema.getId(), tableName);
+		tableSchemas.put(tableName, newSchema);
+		tableLocks.put(tableName, new TableLock());
 
 		// invoke callbacks
-		for (LogTableEventListener callback : callbacks) {
+		for (TableEventListener callback : callbacks) {
 			try {
-				callback.onCreate(tableName, tableMetadata);
+				callback.onCreate(newSchema.clone());
 			} catch (Exception e) {
 				logger.warn("araqne logstorage: table event listener should not throw any exception", e);
 			}
@@ -179,118 +205,238 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	}
 
 	@Override
-	public void renameTable(String currentName, String newName) {
-		// check duplicated name first
-		if (tableSchemas.containsKey(newName))
-			throw new IllegalStateException("table already exists: " + newName);
+	public void alterTable(String tableName, TableSchema schema) {
+		schema = schema.clone();
 
-		// change renamed table metadata
+		TableSchema oldSchema = tableSchemas.get(tableName);
+		if (oldSchema == null)
+			throw new TableNotFoundException(tableName);
+
+		// validates all options
+		verifyInputSchema(schema);
+
+		if (!oldSchema.getName().equals(schema.getName()))
+			throw new IllegalArgumentException("rename is not supported: " + tableName + " => " + schema.getName());
+
+		LogFileService lfs = lfsRegistry.getLogFileService(schema.getPrimaryStorage().getType());
+		List<TableConfigSpec> specs = lfs.getConfigSpecs();
+
+		// check add, update, delete is accepted
+		Map<String, TableConfig> oldConfigs = toMap(oldSchema.getPrimaryStorage().getConfigs());
+		Map<String, TableConfig> newConfigs = toMap(schema.getPrimaryStorage().getConfigs());
+
+		Set<String> deleted = new HashSet<String>(oldConfigs.keySet());
+		deleted.removeAll(newConfigs.keySet());
+
+		Set<String> added = new HashSet<String>(newConfigs.keySet());
+		added.removeAll(oldConfigs.keySet());
+
+		Set<String> updated = new HashSet<String>();
+		for (String key : oldConfigs.keySet()) {
+			if (!newConfigs.containsKey(key))
+				continue;
+
+			updated.add(key);
+		}
+
+		for (String key : added) {
+			TableConfigSpec spec = find(specs, key);
+			TableConfig newConfig = newConfigs.get(key);
+
+			if (!spec.isOptional())
+				throw new IllegalArgumentException("table config [" + spec.getKey() + "] cannot be added, required config");
+
+			logger.debug("araqne logstorage: alter table [{}] added {}={}", new Object[] { tableName, key, newConfig });
+		}
+
+		for (String key : updated) {
+			TableConfigSpec spec = find(specs, key);
+			TableConfig oldConfig = oldConfigs.get(key);
+			TableConfig newConfig = newConfigs.get(key);
+
+			if (!spec.isUpdatable() && !oldConfig.equals(newConfig))
+				throw new IllegalArgumentException("table config [" + spec.getKey() + "] is not updatable");
+
+			logger.debug("araqne logstorage: alter table [{}] updated key [{}] value [{} -> {}]", new Object[] { tableName, key,
+					oldConfig, newConfig });
+		}
+
+		for (String key : deleted) {
+			TableConfigSpec spec = find(specs, key);
+
+			if (!spec.isUpdatable())
+				throw new IllegalArgumentException("table config [" + spec.getKey() + "] is not updatable");
+		}
+
+		// update schema
 		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
-		Config c = db.findOne(LogTableSchema.class, Predicates.field("name", currentName));
+
+		Config c = db.findOne(TableSchema.class, Predicates.field("name", tableName));
 		if (c == null)
-			throw new IllegalStateException("table not found: " + currentName);
+			throw new TableNotFoundException(tableName);
 
-		LogTableSchema schema = c.getDocument(LogTableSchema.class);
-		schema.setName(newName);
-		db.update(c, schema);
+		db.update(c, schema, true, "araqne-logstorage", "altered " + tableName + " table");
 
-		// rename table in memory
-		tableSchemas.remove(currentName);
-		tableSchemas.putIfAbsent(newName, schema);
-		tableNames.put(schema.getId(), newName);
+		tableSchemas.put(tableName, schema);
+
+		// invoke callbacks
+		for (TableEventListener callback : callbacks) {
+			try {
+				callback.onAlter(oldSchema.clone(), schema.clone());
+			} catch (Exception e) {
+				logger.warn("araqne logstorage: table event listener should not throw any exception", e);
+			}
+		}
+	}
+
+	private TableConfigSpec find(List<TableConfigSpec> specs, String key) {
+		for (TableConfigSpec spec : specs)
+			if (spec.getKey().equals(key))
+				return spec;
+
+		throw new IllegalStateException("unsupported storage config: " + key);
+	}
+
+	/**
+	 * verifier for both create and alter table
+	 */
+	private void verifyInputSchema(TableSchema schema) {
+		verifyNotNull(schema.getName(), "table name is missing");
+		verifyNotNull(schema.getPrimaryStorage(), "file type is missing");
+
+		// verify file service readiness
+		verifyFileService(schema.getPrimaryStorage());
+
+		if (schema.getReplicaStorage() != null)
+			verifyFileService(schema.getReplicaStorage());
+
+		// config validation
+		LogFileService lfs = lfsRegistry.getLogFileService(schema.getPrimaryStorage().getType());
+		Map<String, TableConfig> configMap = toMap(schema.getPrimaryStorage().getConfigs());
+		validateTableConfigs(lfs.getConfigSpecs(), configMap);
+	}
+
+	private void validateTableConfigs(List<TableConfigSpec> specs, Map<String, TableConfig> configs) {
+		for (TableConfigSpec spec : specs) {
+			TableConfig c = configs.get(spec.getKey());
+			if (c == null && !spec.isOptional())
+				throw new IllegalArgumentException(spec.getKey() + " is missing");
+
+			if (c != null && spec.getValidator() != null)
+				spec.getValidator().validate(spec.getKey(), c.getValues());
+		}
+	}
+
+	private Map<String, TableConfig> toMap(List<TableConfig> l) {
+		Map<String, TableConfig> m = new HashMap<String, TableConfig>();
+		for (TableConfig c : l)
+			m.put(c.getKey(), c);
+		return m;
+	}
+
+	private void verifyNotNull(Object value, String msg) {
+		if (value == null)
+			throw new IllegalStateException(msg);
+	}
+
+	private void verifyFileService(StorageConfig storage) {
+		if (storage == null)
+			throw new IllegalArgumentException("storage engine is missing");
+
+		String[] installedTypes = lfsRegistry.getInstalledTypes();
+		for (String t : installedTypes)
+			if (t.equals(storage.getType()))
+				return;
+
+		throw new UnsupportedLogFileTypeException(storage.getType());
 	}
 
 	@Override
 	public void dropTable(String tableName) {
 		// check if table exists
-		getTableSchema(tableName);
+		TableSchema schema = getTableSchema(tableName, true);
 
 		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
-		Config c = db.findOne(LogTableSchema.class, Predicates.field("name", tableName));
+		Config c = db.findOne(TableSchema.class, Predicates.field("name", tableName));
 		if (c == null)
 			return;
 		db.remove(c);
 
 		// invoke callbacks
-		for (LogTableEventListener callback : callbacks) {
+		for (TableEventListener callback : callbacks) {
 			try {
-				callback.onDrop(tableName);
+				callback.onDrop(schema.clone());
 			} catch (Exception e) {
 				logger.warn("araqne logstorage: table event listener should not throw any exception", e);
 			}
 		}
 
-		LogTableSchema t = tableSchemas.remove(tableName);
+		TableLock tableLock = tableLocks.remove(tableName);
+		// XXX : maybe we should invalidate lock.
+		TableSchema t = tableSchemas.remove(tableName);
 		if (t != null)
 			tableNames.remove(t.getId());
 	}
 
 	@Override
-	public List<FieldDefinition> getTableFields(String tableName) {
-		LogTableSchema schema = getTableSchema(tableName);
-		if (schema.getFieldDefinitions() == null)
+	public TableSchema getTableSchema(String tableName) {
+		TableSchema schema = tableSchemas.get(tableName);
+		if (schema == null)
 			return null;
-		return new ArrayList<FieldDefinition>(schema.getFieldDefinitions());
+		return schema.clone();
 	}
 
 	@Override
-	public void setTableFields(String tableName, List<FieldDefinition> fields) {
-		LogTableSchema schema = getTableSchema(tableName);
-		schema.setFieldDefinitions(fields);
+	public TableSchema getTableSchema(String tableName, boolean required) {
+		TableSchema schema = getTableSchema(tableName);
+		if (required && schema == null)
+			throw new TableNotFoundException(tableName);
 
-		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
-		Config c = db.findOne(LogTableSchema.class, Predicates.field("name", tableName));
-		if (c != null) {
-			db.update(c, schema);
-		} else {
-			throw new LogTableNotFoundException(tableName);
-		}
+		return schema;
 	}
 
 	@Override
-	public Set<String> getTableMetadataKeys(String tableName) {
-		LogTableSchema t = getTableSchema(tableName);
-		return t.getMetadata().keySet();
-	}
-
-	@Override
-	public String getTableMetadata(String tableName, String key) {
-		LogTableSchema t = getTableSchema(tableName);
-		return (String) t.getMetadata().get(key);
-	}
-
-	@Override
-	public void setTableMetadata(String tableName, String key, String value) {
-		LogTableSchema t = getTableSchema(tableName);
-		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
-		Config c = db.findOne(LogTableSchema.class, Predicates.field("name", tableName));
-		t.getMetadata().put(key, value);
-		db.update(c, t, false, "araqne-logstorage", "set table [" + tableName + "] metadata " + key + " to " + value);
-	}
-
-	@Override
-	public void unsetTableMetadata(String tableName, String key) {
-		LogTableSchema t = getTableSchema(tableName);
-		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
-		Config c = db.findOne(LogTableSchema.class, Predicates.field("name", tableName));
-		t.getMetadata().remove(key);
-		db.update(c, t, false, "araqne-logstorage", "unset table [" + tableName + "] metadata " + key);
-	}
-
-	private LogTableSchema getTableSchema(String tableName) {
-		LogTableSchema t = tableSchemas.get(tableName);
-		if (t == null)
-			throw new LogTableNotFoundException(tableName);
-		return t;
-	}
-
-	@Override
-	public void addListener(LogTableEventListener listener) {
+	public void addListener(TableEventListener listener) {
 		callbacks.add(listener);
 	}
 
 	@Override
-	public void removeListener(LogTableEventListener listener) {
+	public void removeListener(TableEventListener listener) {
 		callbacks.remove(listener);
 	}
+
+	@Override
+	public Lock getExclusiveTableLock(String tableName, String owner) {
+		TableLock tableLock = tableLocks.get(tableName);
+		if (tableLock == null)
+			throw new TableNotFoundException(tableName);
+
+		return tableLock.writeLock(owner);
+	}
+
+	@Override
+	public Lock getSharedTableLock(String tableName) {
+		TableLock tableLock = tableLocks.get(tableName);
+		if (tableLock == null)
+			throw new TableNotFoundException(tableName);
+
+		return tableLock.readLock();
+	}
+
+	private ConcurrentHashMap<String, TableLock> tableLocks = new ConcurrentHashMap<String, TableLock>();
+
+	@Override
+	public LockStatus getTableLockStatus(String tableName) {
+		TableLock tableLock = tableLocks.get(tableName);
+		if (tableLock != null) {
+			String owner = tableLock.getOwner();
+			if (owner != null)
+				return new LockStatus(owner, tableLock.availableShared(), tableLock.getReentrantCount());
+			else
+				return new LockStatus(tableLock.availableShared());
+		} else {
+			return new LockStatus(-1);
+		}
+	}
+
 }

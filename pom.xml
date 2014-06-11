@@ -246,6 +246,8 @@
 		<module>araqne-logdb-jython</module>
 		<module>araqne-regex-tester</module>
 		<module>araqne-logdb-jmx</module>
+		<module>araqne-storage</module>
+		<module>araqne-storage-hdfs</module>
 		<module>araqne-logstorage-exporter</module>
 		<module>araqne-logdb-groovy</module>
 		<module>araqne-logdb-cep</module>
