@@ -82,7 +82,7 @@ public class OutputCsvParser extends AbstractQueryCommandParser {
 
 		if (!usePartition && csvFile.getParentFile() != null)
 			csvFile.getParentFile().mkdirs();
-		return new OutputCsv(originalCsvPath, csvFile, tmpPath, overwrite, fields, encoding, useBom, useTab, usePartition,
+		return new OutputCsv(csvPath, csvFile, tmpPath, overwrite, fields, encoding, useBom, useTab, usePartition,
 				holders);
 	}
 }

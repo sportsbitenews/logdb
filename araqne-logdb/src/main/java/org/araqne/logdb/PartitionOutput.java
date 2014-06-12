@@ -89,7 +89,7 @@ public class PartitionOutput {
 				convertedPath += target.getTime();
 			else {
 				SimpleDateFormat sdf = new SimpleDateFormat(format);
-				convertedPath += sdf.format(day);
+				convertedPath += sdf.format(target);
 			}
 		}
 
