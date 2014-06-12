@@ -27,8 +27,6 @@ public abstract class QueryCommand {
 	private boolean cancelled = false;
 
 	protected RowPipe output;
-	private boolean invokeTimelineCallback;
-
 	private long outputCount;
 	protected volatile Status status = Status.Waiting;
 
@@ -132,14 +130,6 @@ public abstract class QueryCommand {
 
 	public boolean isReducer() {
 		return false;
-	}
-
-	public boolean isInvokeTimelineCallback() {
-		return invokeTimelineCallback;
-	}
-
-	public void setInvokeTimelineCallback(boolean invokeTimelineCallback) {
-		this.invokeTimelineCallback = invokeTimelineCallback;
 	}
 
 	public List<QueryCommand> getNestedCommands() {
