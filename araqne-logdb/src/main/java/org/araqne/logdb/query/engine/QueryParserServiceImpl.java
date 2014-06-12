@@ -84,19 +84,11 @@ public class QueryParserServiceImpl implements QueryParserService {
 		if (commands.isEmpty())
 			throw new IllegalArgumentException("empty query");
 
-		boolean setReducer = false;
 		for (int i = 0; i < commands.size(); i++) {
 			QueryCommand command = commands.get(i);
 			if (i < commands.size() - 1)
 				command.setOutput(new QueryCommandPipe(commands.get(i + 1)));
-			if (command.isReducer() && !setReducer && i > 0) {
-				setReducer = true;
-				commands.get(i - 1).setInvokeTimelineCallback(true);
-			}
 		}
-
-		if (!setReducer)
-			commands.get(commands.size() - 1).setInvokeTimelineCallback(true);
 
 		return commands;
 	}
