@@ -81,7 +81,8 @@ public class TableSchema {
 		c.setSecondaryStorages(l);
 
 		c.setFieldDefinitions(cloneFieldDefinitions(fieldDefinitions));
-		c.setMetadata(new HashMap<String, String>(metadata));
+		if (metadata != null)
+			c.setMetadata(new HashMap<String, String>(metadata));
 
 		return c;
 	}
