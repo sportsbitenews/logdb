@@ -78,7 +78,8 @@ public class PurgeParser extends AbstractQueryCommandParser {
 			Date from = sdf.parse(fromString);
 			Date to = sdf.parse(toString);
 
-			String tableName = commandString.substring(r.next).trim();
+			String tableName = ExpressionParser.evalContextReference(context, commandString.substring(r.next).trim(),
+					getFunctionRegistry());
 
 			return new Purge(storage, expandTableNames(tableName), from, to);
 		} catch (ParseException e) {
