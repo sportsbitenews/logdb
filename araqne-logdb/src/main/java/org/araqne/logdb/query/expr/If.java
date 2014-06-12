@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.Strings;
 
 public class If implements Expression {
 	private List<Expression> exprs;
@@ -45,7 +46,7 @@ public class If implements Expression {
 
 	@Override
 	public String toString() {
-		return "if(" + exprs + ")";
+		return "if(" + Strings.join(exprs, ", ") + ")";
 	}
 
 }
