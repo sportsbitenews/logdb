@@ -15,6 +15,7 @@
  */
 package org.araqne.logstorage.file;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -31,6 +32,7 @@ import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.storage.api.FilePath;
+import org.araqne.storage.localfile.LocalFilePath;
 
 @Component(name = "logstorage-log-file-service-v2")
 public class LogFileServiceV2 implements LogFileService {
@@ -82,8 +84,8 @@ public class LogFileServiceV2 implements LogFileService {
 		checkOption(options);
 		String tableName = (String) options.get(OPT_TABLE_NAME);
 		Date day = (Date) options.get(OPT_DAY);
-		FilePath indexPath = (FilePath) options.get(OPT_INDEX_PATH);
-		FilePath dataPath = (FilePath) options.get(OPT_DATA_PATH);
+		FilePath indexPath = getFilePath(options, OPT_INDEX_PATH);
+		FilePath dataPath = getFilePath(options, OPT_DATA_PATH);
 		CallbackSet cbSet = (CallbackSet) options.get(OPT_CALLBACK_SET);
 		try {
 			return new LogFileWriterV2(indexPath, dataPath, cbSet, tableName, day);
@@ -99,11 +101,22 @@ public class LogFileServiceV2 implements LogFileService {
 		}
 	}
 
+	private FilePath getFilePath(Map<String, Object> options, String optName) {
+		Object obj = options.get(optName);
+		if (obj == null)
+			return (FilePath) obj;
+		else if (obj instanceof File) {
+			return new LocalFilePath((File) obj);
+		} else {
+			return (FilePath) obj;
+		}
+	}
+
 	@Override
 	public LogFileReader newReader(String tableName, Map<String, Object> options) {
 		checkOption(options);
-		FilePath indexPath = (FilePath) options.get(OPT_INDEX_PATH);
-		FilePath dataPath = (FilePath) options.get(OPT_DATA_PATH);
+		FilePath indexPath = getFilePath(options, OPT_INDEX_PATH);
+		FilePath dataPath = getFilePath(options, OPT_DATA_PATH);
 		try {
 			return new LogFileReaderV2(tableName, indexPath, dataPath);
 		} catch (Throwable t) {

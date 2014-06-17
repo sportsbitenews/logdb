@@ -1,9 +1,8 @@
 package org.araqne.logdb.impl;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,6 +29,12 @@ import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogRecord;
 import org.araqne.logstorage.file.LogRecordCursor;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageInputStream;
+import org.araqne.storage.api.StorageOutputStream;
+import org.araqne.storage.localfile.LocalFileInputStream;
+import org.araqne.storage.localfile.LocalFileOutputStream;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,11 +49,11 @@ public class SavedResultManagerImpl implements SavedResultManager {
 	@Requires
 	private LogFileServiceRegistry fileServiceRegistry;
 
-	private File baseDir;
+	private FilePath baseDir;
 
 	@Validate
 	public void start() {
-		baseDir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/saved");
+		baseDir = new LocalFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logdb/saved");
 		baseDir.mkdirs();
 	}
 
@@ -80,11 +85,11 @@ public class SavedResultManagerImpl implements SavedResultManager {
 		if (c != null)
 			throw new IllegalStateException("duplicated guid of saved result: " + result.getGuid());
 
-		File fromIndexPath = new File(result.getIndexPath());
-		File toIndexPath = new File(baseDir, result.getGuid() + ".idx");
+		FilePath fromIndexPath = new LocalFilePath(result.getIndexPath());
+		FilePath toIndexPath = baseDir.newFilePath(result.getGuid() + ".idx");
 
-		File fromDataPath = new File(result.getDataPath());
-		File toDataPath = new File(baseDir, result.getGuid() + ".dat");
+		FilePath fromDataPath = new LocalFilePath(result.getDataPath());
+		FilePath toDataPath = baseDir.newFilePath(result.getGuid() + ".dat");
 
 		try {
 			copy(fromIndexPath, toIndexPath);
@@ -97,17 +102,27 @@ public class SavedResultManagerImpl implements SavedResultManager {
 		}
 	}
 
-	private void copy(File from, File to) throws IOException {
-		FileInputStream src = null;
-		FileOutputStream dst = null;
+	private void copy(FilePath from, FilePath to) throws IOException {
+		StorageInputStream src = null;
+		StorageOutputStream dst = null;
 		try {
-			src = new FileInputStream(from);
-			dst = new FileOutputStream(to);
+			src = from.newInputStream();
+			dst = to.newOutputStream(false);
 
-			FileChannel srcChannel = src.getChannel();
-			FileChannel dstChannel = dst.getChannel();
-			long size = srcChannel.size();
-			srcChannel.transferTo(0, size, dstChannel);
+			long length = src.length();
+			long copied = 0;
+			ByteBuffer bb = ByteBuffer.allocate(8192);
+			while (true) {
+				int read = src.read(bb.array(), 0, bb.limit());
+				dst.write(bb.array(), 0, read);
+				copied += read;
+				if (read != bb.capacity())
+					// eof
+					break;
+			}
+			
+			if (copied != length)
+				throw new IOException("copied size is not equal with length of source file");
 		} finally {
 			if (src != null) {
 				try {
@@ -134,8 +149,8 @@ public class SavedResultManagerImpl implements SavedResultManager {
 
 		c.remove();
 
-		File indexPath = new File(baseDir, guid + ".idx");
-		File dataPath = new File(baseDir, guid + ".dat");
+		FilePath indexPath = baseDir.newFilePath(guid + ".idx");
+		FilePath dataPath = baseDir.newFilePath(guid + ".dat");
 
 		if (!indexPath.delete())
 			logger.error("araqne logdb: cannot delete saved result [{}]", indexPath.getAbsolutePath());
@@ -151,8 +166,8 @@ public class SavedResultManagerImpl implements SavedResultManager {
 
 		LogFileService lfs = fileServiceRegistry.getLogFileService(sr.getStorageName());
 		Map<String, Object> options = new HashMap<String, Object>();
-		options.put("indexPath", new File(baseDir, guid + ".idx"));
-		options.put("dataPath", new File(baseDir, guid + ".dat"));
+		options.put("indexPath", baseDir.newFilePath(guid + ".idx"));
+		options.put("dataPath", baseDir.newFilePath(guid + ".dat"));
 
 		LogFileReader reader = lfs.newReader("result-" + guid, options);
 		return new LogCursorImpl(sr, reader);
