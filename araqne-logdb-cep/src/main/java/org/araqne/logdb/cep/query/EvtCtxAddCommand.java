@@ -73,20 +73,20 @@ public class EvtCtxAddCommand extends QueryCommand {
 			matched = false;
 
 		// extract host for log tick
-		String host = null;
+		String clockHost = null;
 		Object h = null;
 
 		if (hostField != null)
 			h = row.get(hostField);
 
 		if (h != null)
-			host = h.toString();
+			clockHost = h.toString();
 
 		// extract log time
 		long created = 0;
 		Date logTime = null;
 		Object t = row.get("_time");
-		if (t instanceof Date) {
+		if (clockHost != null && t instanceof Date) {
 			logTime = (Date) t;
 			created = logTime.getTime();
 		} else {
@@ -105,7 +105,7 @@ public class EvtCtxAddCommand extends QueryCommand {
 			if (timeout != null)
 				timeoutTime = created + timeout.unit.getMillis() * timeout.amount;
 
-			EventContext ctx = new EventContext(eventKey, created, expireTime, timeoutTime, threshold, maxRows, (String) host);
+			EventContext ctx = new EventContext(eventKey, created, expireTime, timeoutTime, threshold, maxRows, (String) clockHost);
 			ctx = storage.addContext(ctx);
 			ctx.getCounter().incrementAndGet();
 
@@ -114,10 +114,10 @@ public class EvtCtxAddCommand extends QueryCommand {
 			ctx.addRow(row);
 		}
 
-		if (host != null && logTime != null) {
+		if (clockHost != null && logTime != null) {
 			Object date = row.get("_time");
 			if (date instanceof Date)
-				storage.advanceTime(host, logTime.getTime());
+				storage.advanceTime(clockHost, logTime.getTime());
 		}
 
 		pushPipe(row);
