@@ -53,6 +53,8 @@ public class ExpressionParser {
 			throw new IllegalArgumentException("expression string should not be null");
 
 		s = s.replaceAll("\t", "    ");
+		s = s.replaceAll("\n", " ");
+		s = s.replaceAll("\r", " ");
 		List<Term> terms = tokenize(s, r);
 		List<Term> output = convertToPostfix(terms, r);
 		Stack<Expression> exprStack = new Stack<Expression>();
@@ -314,7 +316,7 @@ public class ExpressionParser {
 			// check whitespace
 			String token = (String) r.value;
 			if (token.trim().isEmpty())
-				return nextToken(s, skipSpaces(s, begin), end, rule);
+				return nextToken(s, skipWhitespaces(s, begin), end, rule);
 
 			// return operator
 			int len = token.length();
@@ -395,12 +397,20 @@ public class ExpressionParser {
 		return -1;
 	}
 
+	private static boolean[] wsflags = new boolean[128];
+	static {
+		wsflags[' '] = true;
+		wsflags['\t'] = true;
+		wsflags['\r'] = true;
+		wsflags['\n'] = true;
+		
+	}
 	private static boolean isAllWhitespaces(String s, int begin, int end) {
 		if (end < begin)
 			return true;
 
 		for (int i = begin; i <= end; i++)
-			if (s.charAt(i) != ' ' && s.charAt(i) != '\t')
+			if (!wsflags[s.charAt(i)])
 				return false;
 
 		return true;
@@ -494,10 +504,10 @@ public class ExpressionParser {
 		}
 	}
 
-	public static int skipSpaces(String text, int position) {
+	public static int skipWhitespaces(String text, int position) {
 		int i = position;
 
-		while (i < text.length() && text.charAt(i) == ' ')
+		while (i < text.length() && wsflags[text.charAt(i)])
 			i++;
 
 		return i;

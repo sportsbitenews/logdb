@@ -231,7 +231,7 @@ public class SearchParserTest {
 	@Test
 	public void testMissingEscape() {
 		try {
-			String query = "search limit=10 category == \"E002\" and ((method == \"<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>\"))";
+			String query = "search limit=10 category == \"E002\"\n and ((method == \"<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>\"))";
 			SearchParser p = new SearchParser();
 			p.setQueryParserService(queryParserService);
 
@@ -258,6 +258,16 @@ public class SearchParserTest {
 		search.onPush(m);
 		assertEquals(m, output.m);
 
+	}
+	
+	@Test
+	public void testNewLineChar() {
+		String query = "search in(host, \"www.2424.net\", \"2424.net\",\"www.24mall.co.kr\",\"m.24mall.co.kr\",\"www.gs24mall.com\",\"www.interparkhomestory.com\",\"m.interparkhomestory.com\",\"www.kbstar24.com\", \"www.kgbnet.net\",\"m.kgbnet.net\",\"www.kgyellowcap24.com\",\"m.kgyellowcap24.com\",\"www.mcygclean.com\",\"m.mcygclean.com\",\"www.paran24.co.kr\",\"paran24.co.kr\",\"www.yes2404.com\",\"m.yes2404.com\",\"m.yes2424.com\"\n" + 
+				")"; // | fields ctn, _time, host | import iptv_ctn_urls";
+		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+		
+		p.parse(null, query);
 	}
 
 	@Test
