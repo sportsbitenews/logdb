@@ -254,8 +254,10 @@ public class BufferedStorageInputStream implements DataInput, Closeable {
 
 	private void syncBuffer(int bufSize) throws IOException {
 		long nextSeekPos = bufStartPos + buf.position();
-		if (nextSeekPos >= storageInputStream.length())
-			throw new EOFException();
+		long currLength = storageInputStream.length();
+		if (nextSeekPos >= currLength)
+			throw new EOFException("expected pos " + nextSeekPos + " of " + getPath() + " but actual length is " + currLength);
+		
 		storageInputStream.seek(nextSeekPos);
 		bufStartPos = nextSeekPos;
 		buf.clear();
