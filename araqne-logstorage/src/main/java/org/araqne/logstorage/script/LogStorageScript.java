@@ -31,6 +31,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+
 import org.araqne.api.Script;
 import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
@@ -259,9 +262,15 @@ public class LogStorageScript implements Script {
 	@ScriptUsage(description = "list tables", arguments = { @ScriptArgument(name = "filter", type = "string", description = "table name filter", optional = true) })
 	public void tables(String[] args) {
 		String filter = null;
-		if (args.length > 0)
-			filter = args[0];
-
+		OptionParser parser = new OptionParser();
+		parser.accepts("lock");
+		parser.accepts("replica");
+		OptionSet options = parser.parse(args);
+		
+		List<?> argl = options.nonOptionArguments();
+		if (argl.size() > 0)
+			filter = (String) argl.get(0);
+		
 		context.println("Tables");
 		context.println("--------");
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -278,8 +287,15 @@ public class LogStorageScript implements Script {
 			if (it.hasNext())
 				lastDay = it.next();
 
-			String lastRecord = lastDay != null ? dateFormat.format(lastDay) : "none";
-			tables.add(new TableInfo(tableId, "[" + tableId + "] " + tableName + ": " + lastRecord));
+			String desc;
+			if (options.has("lock"))
+				desc = lockStatusStr(tableName);
+			else if (options.has("replica"))
+				desc = replicaConfigStr(schema);
+			else
+				desc = lastDay != null ? dateFormat.format(lastDay) : "none";
+
+			tables.add(new TableInfo(tableId, "[" + tableId + "] " + tableName + ": " + desc));
 		}
 
 		// sort by id and print all
@@ -292,6 +308,39 @@ public class LogStorageScript implements Script {
 
 		for (TableInfo t : tables)
 			context.println(t.info);
+	}
+
+	private String replicaConfigStr(TableSchema schema) {
+		StorageConfig primaryStorage = schema.getPrimaryStorage();
+		LogFileService lfs = lfsRegistry.getLogFileService(primaryStorage.getType());
+
+		StorageConfig replicaStorage = schema.getReplicaStorage();
+		if (replicaStorage != null) {
+			StringBuffer buf = new StringBuffer();
+			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
+				TableConfig c = replicaStorage.getConfig(spec.getKey());
+				String config = null;
+				if (c != null && c.getValues().size() > 1)
+					config = c.getValues().toString();
+				else if (c != null)
+					config = c.getValue();
+
+				if (buf.length() != 0)
+					buf.append(", ");
+				buf.append(config);
+			}
+			return buf.toString();
+		} else {
+			return "n/a";
+		}
+	}
+
+	private String lockStatusStr(String tableName) {
+		LockStatus status = storage.lockStatus(new LockKey("script", tableName, null));
+		if(status.isLocked()) 
+			return String.format("locked(owner: %s, reentrant_cnt: %d)\n", status.getOwner(), status.getReentrantCount());
+		else
+			return "unlocked";
 	}
 
 	private class TableInfo {
@@ -1117,21 +1166,12 @@ public class LogStorageScript implements Script {
 		}
 	}
 	
-	private void _lockStatus(String tableName) {
-		LockStatus status = storage.lockStatus(new LockKey("script", tableName, null));
-		if(status.isLocked()) 
-			context.printf("locked(owner: %s, reentrant_cnt: %d)\n", status.getOwner(), status.getReentrantCount());
-		else
-			context.printf("unlocked\n");
-	}
-	
 	public void _lock(String[] args) throws InterruptedException {
 		boolean lock = storage.lock(new LockKey("script", args[0], null), 5, TimeUnit.SECONDS);
 		if (lock)
 			context.println("locked");
 		else {
-			context.println("failed");
-			_lockStatus(args[0]);
+			context.printf("failed: %s\n", lockStatusStr(args[0]));
 		}
 	}
 	
