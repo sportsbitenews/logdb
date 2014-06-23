@@ -152,15 +152,13 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
 
-		for (File f : detector.changedFiles) {
+		for (File f : detector.getChangedFiles()) {
 			processFile(lastPositions, f);
 		}
-		detector.changedFiles.clear();
 
-		for (File f : detector.deletedFiles) {
+		for (File f : detector.getDeletedFiles()) {
 			markDeletedFile(lastPositions, f);
 		}
-		detector.deletedFiles.clear();
 
 		setStates(LastPositionHelper.serialize(lastPositions));
 	}
@@ -307,9 +305,27 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 		private Set<File> deletedFiles = new HashSet<File>();
 		private volatile boolean doStop;
 		private volatile boolean deadThread;
+		private Object changedLock = new Object();
+		private Object deletedLock = new Object();
 
 		public ChangeDetector() {
 			super("File Watcher [" + getFullName() + "]");
+		}
+
+		public Set<File> getChangedFiles() {
+			synchronized (changedLock) {
+				Set<File> copied = new HashSet<File>(changedFiles);
+				changedFiles.clear();
+				return copied;
+			}
+		}
+
+		public Set<File> getDeletedFiles() {
+			synchronized (deletedLock) {
+				Set<File> copied = new HashSet<File>(deletedFiles);
+				deletedFiles.clear();
+				return copied;
+			}
 		}
 
 		@Override
@@ -339,15 +355,23 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 		@Override
 		public void onCreate(File file) {
-			changedFiles.add(file);
+			synchronized (changedLock) {
+				changedFiles.add(file);
+			}
+
 			if (slog.isDebugEnabled())
 				slog.debug("araqne-logapi-nio: logger [{}] detect created file [{}]", getFullName(), file.getAbsolutePath());
 		}
 
 		@Override
 		public void onDelete(File file) {
-			changedFiles.remove(file);
-			deletedFiles.add(file);
+			synchronized (changedLock) {
+				changedFiles.remove(file);
+			}
+
+			synchronized (deletedLock) {
+				deletedFiles.add(file);
+			}
 
 			if (slog.isDebugEnabled())
 				slog.debug("araqne-logapi-nio: logger [{}] detect deleted file [{}]", getFullName(), file.getAbsolutePath());
@@ -355,7 +379,10 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 		@Override
 		public void onModify(File file) {
-			changedFiles.add(file);
+			synchronized (changedLock) {
+				changedFiles.add(file);
+			}
+
 			if (slog.isDebugEnabled())
 				slog.debug("araqne-logapi-nio: logger [{}] detect modified file [{}]", getFullName(), file.getAbsolutePath());
 		}
