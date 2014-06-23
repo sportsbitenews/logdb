@@ -58,8 +58,11 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	@Validate
 	public void start() throws IOException {
 		File f = getEngineListFile();
-		if (!f.exists())
+		if (!f.exists()) {
+			availableEngines.put("v1", new WaitEvent("v1"));
+			availableEngines.put("v2", new WaitEvent("v2"));
 			return;
+		}
 
 		// load file engine list
 		FileInputStream is = null;
@@ -74,7 +77,7 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 					break;
 
 				String type = line.trim();
-				availableEngines.put(type, new WaitEvent(type));
+				availableEngines.putIfAbsent(type, new WaitEvent(type));
 			}
 		} finally {
 			ensureClose(br);
