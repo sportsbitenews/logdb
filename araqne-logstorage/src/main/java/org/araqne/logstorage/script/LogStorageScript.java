@@ -338,7 +338,7 @@ public class LogStorageScript implements Script {
 	private String lockStatusStr(String tableName) {
 		LockStatus status = storage.lockStatus(new LockKey("script", tableName, null));
 		if(status.isLocked()) 
-			return String.format("locked(owner: %s, reentrant_cnt: %d)\n", status.getOwner(), status.getReentrantCount());
+			return String.format("locked(owner: %s, reentrant_cnt: %d)", status.getOwner(), status.getReentrantCount());
 		else
 			return "unlocked";
 	}
