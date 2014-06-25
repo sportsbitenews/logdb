@@ -57,12 +57,24 @@ public class WtmpLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption path = new StringConfigType("path", t("Path", "파일 경로", "ファイル経路", "文件路径"), t("wtmp file path", "wtmp 파일 경로",
-				"wtmpファイル経路", "wtmp文件路径"), true);
-		return Arrays.asList(path);
+		LoggerConfigOption path = new StringConfigType("path", t("Path", "파일 경로", "ファイル経路", "文件路径"), t("wtmp file path",
+				"wtmp 파일 경로", "wtmpファイル経路", "wtmp文件路径"), true);
+
+		LoggerConfigOption server = new StringConfigType("server", t("OS type", "운영체제 유형"), t(
+				"OS type, linux (default), solaris, aix, hpux",
+				"운영체제 유형, linux (기본값), solaris, aix, hpux 중 하나"), false);
+
+		return Arrays.asList(path, server);
 	}
 
-	private Map<Locale, String> t(String en, String ko, String jp,String cn) {
+	private Map<Locale, String> t(String en, String ko) {
+		Map<Locale, String> m = new HashMap<Locale, String>();
+		m.put(Locale.ENGLISH, en);
+		m.put(Locale.KOREAN, ko);
+		return m;
+	}
+
+	private Map<Locale, String> t(String en, String ko, String jp, String cn) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, en);
 		m.put(Locale.KOREAN, ko);

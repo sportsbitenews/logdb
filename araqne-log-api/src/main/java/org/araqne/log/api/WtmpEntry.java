@@ -20,7 +20,7 @@ import java.util.Date;
 
 public class WtmpEntry {
 	public enum Type {
-		Unknown, RunLevel, BootTime, NewTime, OldTime, InitProcess, LoginProcess, UserProcess, DeadProcess, Accounting;
+		Unknown, RunLevel, BootTime, NewTime, OldTime, InitProcess, LoginProcess, UserProcess, DeadProcess, Accounting, Empty, DownTime;
 	}
 
 	private Type type;
