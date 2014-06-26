@@ -351,6 +351,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		FilePath baseDir = logDir;
 		if (schema.getPrimaryStorage().getBasePath() != null)
 			baseDir = storageManager.resolveFilePath(schema.getPrimaryStorage().getBasePath());
+		
+		if (baseDir == null)
+			return null;
 
 		return baseDir.newFilePath(Integer.toString(schema.getId()));
 	}
@@ -361,12 +364,15 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 
 		FilePath tableDir = getTableDirectory(schema);
-		FilePath[] files = tableDir.listFiles(new FilePathNameFilter() {
-			@Override
-			public boolean accept(FilePath dir, String name) {
-				return name.endsWith(".idx");
-			}
-		});
+		FilePath[] files = null;
+		if (tableDir != null) {
+			files = tableDir.listFiles(new FilePathNameFilter() {
+				@Override
+				public boolean accept(FilePath dir, String name) {
+					return name.endsWith(".idx");
+				}
+			});
+		}
 
 		List<Date> dates = new ArrayList<Date>();
 		if (files != null) {
