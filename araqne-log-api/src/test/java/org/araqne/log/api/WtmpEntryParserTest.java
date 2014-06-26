@@ -141,7 +141,7 @@ public class WtmpEntryParserTest {
 		WtmpEntryParser parser = parse;
 		int blockSize = parser.getBlockSize();
 		List<WtmpEntry> l = new ArrayList<WtmpEntry>();
-		String dir = "src\\test\\resources\\";
+		String dir = "src/test/resources/";
 
 		File wtmpFile = new File(dir + path);
 		if (!wtmpFile.exists()) {
