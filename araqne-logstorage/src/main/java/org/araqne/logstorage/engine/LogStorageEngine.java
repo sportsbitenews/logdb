@@ -1306,20 +1306,38 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		synchronized (writerSweeper) {
 			writerSweeper.notifyAll();
 		}
-		for (Map.Entry<OnlineWriterKey, CountDownLatch> e: monitors.entrySet()) {
+		for (Map.Entry<OnlineWriterKey, CountDownLatch> e : monitors.entrySet()) {
 			waitForClose(e.getKey(), e.getValue());
 		}
+	}
+	
+	@SuppressWarnings("serial")
+	private static class SweeperThreadStoppedException extends RuntimeException {
 	}
 
 	private void waitForClose(OnlineWriterKey key, CountDownLatch monitor) {
 		try {
-			boolean closed = monitor.await(1, TimeUnit.MINUTES);
-			if (!closed) {
-				logger.info("wait for closing Table: {}", key.getTableName());
-				monitor.await();
+			if (writerSweeperThread.isAlive()) {
+				boolean closed = monitor.await(1, TimeUnit.MINUTES);
+				if (!closed) {
+					logger.info("wait for closing Table: {}", key.getTableName());
+					if (writerSweeperThread.isAlive())
+					monitor.await();
+					else
+						throw new SweeperThreadStoppedException();
+				}
+			} else {
+				throw new SweeperThreadStoppedException();
 			}
+		} catch (SweeperThreadStoppedException e) {
+			OnlineWriter o = onlineWriters.get(key);
+			if (o != null)
+				o.close();
 		} catch (InterruptedException e) {
 			logger.warn("wait for closing interrupted: {}", key.getTableName());
+			OnlineWriter o = onlineWriters.get(key);
+			if (o != null)
+				o.close();
 		}
 	}
 
