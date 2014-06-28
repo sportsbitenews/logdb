@@ -59,7 +59,7 @@ public class ImportParser extends AbstractQueryCommandParser {
 
 		String tableName = commandString.substring(r.next).trim();
 		if (!tableRegistry.exists(tableName) && !create)
-			throw new QueryParseException("table-not-found", -1);
+			throw new QueryParseException("import-table-not-found", -1, tableName);
 
 		return new Import(storage, tableName, create);
 	}

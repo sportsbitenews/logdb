@@ -52,7 +52,7 @@ public class SearchParserTest {
 	public void testWildSearch() {
 		SearchParser p = new SearchParser();
 		p.setQueryParserService(queryParserService);
-		
+
 		Search search = (Search) p.parse(null, "search sip == \"10.1.*\" ");
 		Expression expr = search.getExpression();
 
@@ -73,7 +73,7 @@ public class SearchParserTest {
 	public void testWhitespace() {
 		SearchParser p = new SearchParser();
 		p.setQueryParserService(queryParserService);
-		
+
 		Search search = (Search) p.parse(null,
 				"search sip == \"74.86.*\"  \tor     sip  ==   \"211.*\"      or\tsip == \"110.221.*\"");
 		Expression expr = search.getExpression();
@@ -259,14 +259,14 @@ public class SearchParserTest {
 		assertEquals(m, output.m);
 
 	}
-	
+
 	@Test
 	public void testNewLineChar() {
-		String query = "search in(host, \"www.2424.net\", \"2424.net\",\"www.24mall.co.kr\",\"m.24mall.co.kr\",\"www.gs24mall.com\",\"www.interparkhomestory.com\",\"m.interparkhomestory.com\",\"www.kbstar24.com\", \"www.kgbnet.net\",\"m.kgbnet.net\",\"www.kgyellowcap24.com\",\"m.kgyellowcap24.com\",\"www.mcygclean.com\",\"m.mcygclean.com\",\"www.paran24.co.kr\",\"paran24.co.kr\",\"www.yes2404.com\",\"m.yes2404.com\",\"m.yes2424.com\"\n" + 
-				")"; // | fields ctn, _time, host | import iptv_ctn_urls";
+		String query = "search in(host, \"www.2424.net\", \"2424.net\",\"www.24mall.co.kr\",\"m.24mall.co.kr\",\"www.gs24mall.com\",\"www.interparkhomestory.com\",\"m.interparkhomestory.com\",\"www.kbstar24.com\", \"www.kgbnet.net\",\"m.kgbnet.net\",\"www.kgyellowcap24.com\",\"m.kgyellowcap24.com\",\"www.mcygclean.com\",\"m.mcygclean.com\",\"www.paran24.co.kr\",\"paran24.co.kr\",\"www.yes2404.com\",\"m.yes2404.com\",\"m.yes2424.com\"\n"
+				+ ")"; // | fields ctn, _time, host | import iptv_ctn_urls";
 		SearchParser p = new SearchParser();
 		p.setQueryParserService(queryParserService);
-		
+
 		p.parse(null, query);
 	}
 
@@ -319,6 +319,18 @@ public class SearchParserTest {
 		assertEquals(ip1, compare("search value > ip(\"1.2.3.3\") and value < ip(\"1.2.3.5\")", ip1));
 		assertNull(compare("search value > ip(\"1.2.3.3\") and value < ip(\"1.2.3.5\")", ip3));
 		assertNull(compare("search value > ip(\"1.2.3.3\")", null));
+	}
+
+	/**
+	 * bug caused by invalid whitespace detection (didn't consider entire char
+	 * range. e.g. unicode)
+	 */
+	@Test
+	public void testArrayIndexOutOfBoundBugPatch() {
+		String errorQuery = "search isnull(타입)";
+		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+		p.parse(null, errorQuery);
 	}
 
 	private Object compare(String query, Object value) {

@@ -95,16 +95,16 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public void run() {
-		lastStarted = new Date();
-		if (commands.isEmpty())
-			return;
-
-		preRun();
-
 		try {
+			lastStarted = new Date();
+			if (commands.isEmpty())
+				return;
+
+			preRun();
+
 			scheduler.run();
-		} catch (Exception e) {
-			logger.error("araqne logdb: query failed - " + this, e);
+		} catch (Throwable t) {
+			logger.error("araqne logdb: query failed - " + this, t);
 		}
 	}
 

@@ -397,20 +397,12 @@ public class ExpressionParser {
 		return -1;
 	}
 
-	private static boolean[] wsflags = new boolean[128];
-	static {
-		wsflags[' '] = true;
-		wsflags['\t'] = true;
-		wsflags['\r'] = true;
-		wsflags['\n'] = true;
-		
-	}
 	private static boolean isAllWhitespaces(String s, int begin, int end) {
 		if (end < begin)
 			return true;
 
 		for (int i = begin; i <= end; i++)
-			if (!wsflags[s.charAt(i)])
+			if (!Character.isWhitespace(s.charAt(i)))
 				return false;
 
 		return true;
@@ -507,7 +499,7 @@ public class ExpressionParser {
 	public static int skipWhitespaces(String text, int position) {
 		int i = position;
 
-		while (i < text.length() && wsflags[text.charAt(i)])
+		while (i < text.length() && Character.isWhitespace(text.charAt(i)))
 			i++;
 
 		return i;
