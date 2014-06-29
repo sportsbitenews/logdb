@@ -225,6 +225,22 @@ public class Sort extends QueryCommand {
 			return fields;
 		}
 
+		public static String serialize(SortField[] sortFields) {
+			StringBuilder sb = new StringBuilder();
+			int i = 0;
+			for (SortField f : sortFields) {
+				if (i++ != 0)
+					sb.append(", ");
+
+				if (!f.isAsc())
+					sb.append("-");
+
+				sb.append(f.getName());
+			}
+
+			return sb.toString();
+		}
+
 		public SortField(String name) {
 			this(name, true);
 		}

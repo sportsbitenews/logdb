@@ -62,8 +62,9 @@ public class DefaultQuery implements Query {
 		if (resultFactory != null)
 			openResult(resultFactory);
 
+		// sub query is built in reversed order 
 		if (context != null)
-			context.getQueries().add(this);
+			context.getQueries().add(0, this);
 	}
 
 	private void openResult(QueryResultFactory resultFactory) {

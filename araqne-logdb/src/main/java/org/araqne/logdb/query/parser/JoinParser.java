@@ -21,7 +21,6 @@ public class JoinParser extends AbstractQueryCommandParser {
 
 	private QueryParserService parserService;
 	private QueryResultFactory resultFactory;
-	private List<QueryCommand> subCommands;
 
 	public JoinParser(QueryParserService parserService, QueryResultFactory resultFactory) {
 		this.parserService = parserService;
@@ -42,10 +41,6 @@ public class JoinParser extends AbstractQueryCommandParser {
 		int cmdLen = getCommandName().length();
 		String fieldToken = commandString.substring(cmdLen, b);
 		String subQueryString = commandString.substring(b + 1, e).trim();
-
-		subCommands = parserService.parseCommands(context, subQueryString);
-		for (QueryCommand command : subCommands)
-			command.onStart();
 
 		ParseResult r = QueryTokenizer.parseOptions(context, fieldToken, 0, Arrays.asList("type"), getFunctionRegistry());
 		@SuppressWarnings("unchecked")
@@ -70,6 +65,7 @@ public class JoinParser extends AbstractQueryCommandParser {
 		Sort sort = new Sort(null, sortFieldArray);
 		sort.onStart();
 
+		List<QueryCommand> subCommands = parserService.parseCommands(context, subQueryString);
 		QueryCommand lastCmd = subCommands.get(subCommands.size() - 1);
 		lastCmd.setOutput(new QueryCommandPipe(sort));
 		subCommands.add(sort);

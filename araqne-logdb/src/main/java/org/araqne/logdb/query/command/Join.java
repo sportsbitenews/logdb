@@ -169,6 +169,15 @@ public class Join extends QueryCommand {
 		return subQuery;
 	}
 
+	@Override
+	public String toString() {
+		String typeOpt = "";
+		if (joinType == JoinType.Left)
+			typeOpt = " type=left";
+
+		return "join" + typeOpt + " " + SortField.serialize(sortFields) + " [ " + subQuery.getQueryString() + " ] ";
+	}
+
 	// bulid hash table or sort
 	private class SubQueryTask extends QueryTask {
 		private static final int HASH_JOIN_THRESHOLD = 100000;
