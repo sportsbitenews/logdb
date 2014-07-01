@@ -16,6 +16,7 @@
 package org.araqne.storage.filepair;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
@@ -31,11 +32,12 @@ import org.araqne.storage.api.StorageInputStream;
 import org.araqne.storage.api.StorageOutputStream;
 import org.araqne.storage.api.StorageUtil;
 import org.araqne.storage.localfile.LocalFileOutputStream;
+import org.araqne.storage.localfile.LocalFilePath;
 
 public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlock<RDB>> {
 	protected FilePath ifile;
 	protected FilePath dfile;
-	
+
 	public FilePair(FilePath indexFile, FilePath dataFile) {
 		this.ifile = indexFile;
 		this.dfile = dataFile;
@@ -49,48 +51,96 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		return dfile;
 	}
 
+	public static void main(String[] args) {
+		FilePath a =
+				new LocalFilePath("/works/araqne/latest_cache/data/araqne-logstorage/index/13/1/2014-06-27.1.bpos");
+		System.out.println(getPathPart(
+				"/works/araqne/latest_cache/data/araqne-logstorage/index/13/1/2014-06-27.1.bpos", 3));
+		System.out.println(getPathPart("/araqne/latest_cache/data/araqne-logstorage/index/13/1/2014-06-27.1.bpos", 3));
+		System.out.println(getPathPart("/latest_cache/data/araqne-logstorage/index/13/1/2014-06-27.1.bpos", 3));
+		System.out.println(getPathPart("/data/araqne-logstorage/index/13/1/2014-06-27.1.bpos", 3));
+		System.out.println(getPathPart("/araqne-logstorage/index/13/1/2014-06-27.1.bpos", 3));
+		System.out.println(getPathPart("/index/13/1/2014-06-27.1.bpos", 3));
+		System.out.println(getPathPart("/13/1/2014-06-27.1.bpos", 3));
+		System.out.println(getPathPart("/1/2014-06-27.1.bpos", 3));
+		System.out.println(getPathPart("/2014-06-27.1.bpos", 3));
+		System.out.println(getPathPart("2014-06-27.1.bpos", 3));
+		System.out.println(getPathPart("", 3));
+		System.out.println(getPathPart("/", 3));
+		System.out.println(getPathPart("//", 3));
+		System.out.println(getPathPart("///", 3));
+		System.out.println(getPathPart("/1/2014-06-27.1.bpos", 2));
+		System.out.println(getPathPart("/1/2014-06-27.1.bpos/", 2));
+	}
+
+	private static String getPathPart(String absPath, int depth) {
+		char ps = File.separatorChar;
+		int startPos = absPath.length();
+		for (int i = 0; i < depth; ++i) {
+			int lastIndexOf = absPath.lastIndexOf(ps, startPos - 1);
+			if (lastIndexOf == -1) {
+				startPos = -1;
+				break;
+			} else {
+				startPos = lastIndexOf;
+			}
+		}
+
+		if (absPath.length() > 0 && absPath.charAt(startPos + 1) == ps)
+			startPos += 1;
+
+		return absPath.substring(startPos + 1);
+	}
+
+	@Override
+	public String toString() {
+		return String.format(
+				"FilePair [ifile=%s, dfile=%s]", getPathPart(ifile.getAbsolutePath(), 3),
+				getPathPart(dfile.getAbsolutePath(), 3));
+	}
+
 	public void ensureIndexFileHeader() throws IOException {
 		if (ifile.isNotEmpty())
 			return;
-		
+
 		ifile.getParentFilePath().mkdirs();
 		StorageOutputStream stream = null;
 		try {
-			 stream = ifile.newOutputStream(false);
-			 writeIndexFileHeader(stream);
+			stream = ifile.newOutputStream(false);
+			writeIndexFileHeader(stream);
 		} finally {
 			StorageUtil.ensureClose(stream);
 		}
 	}
-	
+
 	public void ensureDataFileHeader() throws IOException {
 		if (dfile.isNotEmpty())
 			return;
-		
+
 		dfile.getParentFilePath().mkdirs();
 		StorageOutputStream stream = null;
 		try {
-			 stream = dfile.newOutputStream(false);
-			 writeDataFileHeader(stream);
+			stream = dfile.newOutputStream(false);
+			writeDataFileHeader(stream);
 		} finally {
 			StorageUtil.ensureClose(stream);
 		}
 	}
-	
+
 	public abstract void writeIndexFileHeader(OutputStream os) throws IOException;
 
 	public abstract void writeDataFileHeader(OutputStream os) throws IOException;
-	
+
 	// may be same with body offset
 	public abstract long getIndexFileHeaderLength() throws IOException;
-	
+
 	public abstract long getDataFileHeaderLength() throws IOException;
-	
+
 	public abstract int getIndexBlockCount() throws IOException;
-	
+
 	// assume index block size is fixed
 	public abstract int getIndexBlockSize();
-	
+
 	public abstract IB getIndexBlock(int id) throws IOException;
 
 	public CloseableEnumeration<IB> getIndexBlocks(Class<IB> ibClass) throws IOException {
@@ -105,7 +155,7 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		try {
 			ensureIndexFileHeader();
 			ensureDataFileHeader();
-			
+
 			indexStream = ifile.newOutputStream(true);
 			dataStream = dfile.newOutputStream(true);
 
@@ -133,7 +183,7 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		IB reservedIndexBlock = getIndexBlock(indexBlock.getId());
 		if (!reservedIndexBlock.isReserved())
 			throw new IllegalArgumentException("the block is not reserved block");
-		
+
 		if (reservedIndexBlock.getPosOnData() != indexBlock.getPosOnData())
 			throw new IllegalArgumentException("pos on data file is different");
 
@@ -161,23 +211,26 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		}
 
 	}
-	
+
 	public void addBlock(IB indexBlock, RDB rawDataBlock) throws IOException {
 		if (indexBlock.getId() != getIndexBlockCount())
-			throw new CannotAppendBlockException("unexpected block id - " + indexBlock.getId() + " (total: " + getIndexBlockCount() + ")");
-		
+			throw new CannotAppendBlockException(this + ": unexpected block id - " + indexBlock.getId() + " (total: "
+					+ getIndexBlockCount() + ")");
+
 		StorageOutputStream dataStream = null;
 		StorageOutputStream indexStream = null;
 		try {
 			ensureIndexFileHeader();
 			ensureDataFileHeader();
-			
+
 			if (indexBlock.getPosOnData() != dfile.length())
-				throw new CannotAppendBlockException("unexpected data block position " + indexBlock.getPosOnData() + " (expected: " + dfile.length() + ")");
-			
+				throw new CannotAppendBlockException(this + ": unexpected data block position " + indexBlock.getPosOnData()
+						+ " (expected: " + dfile.length() + ")");
+
 			long indexPos = getIndexFileHeaderLength() + indexBlock.getBlockSize() * indexBlock.getId();
 			if (indexPos != ifile.length())
-				throw new CannotAppendBlockException("unexpected index block position" + indexPos + " (expected: " + ifile.length() + ")");
+				throw new CannotAppendBlockException(this + ": unexpected index block position" + indexPos + " (expected: "
+						+ ifile.length() + ")");
 
 			dataStream = dfile.newOutputStream(true);
 			rawDataBlock.serialize(dataStream);
@@ -189,18 +242,18 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 			StorageUtil.ensureClose(indexStream);
 		}
 	}
-	
+
 	public void truncate(int remainingBlockCount) throws IOException {
 		if (remainingBlockCount < 0)
-			throw new IllegalArgumentException("block count cannot be negative");
-		
+			throw new IllegalArgumentException(this + ": block count cannot be negative");
+
 		if (getIndexBlockCount() == 0)
 			return;
-		
+
 		long ilen = getIndexFileHeaderLength() + getIndexBlockSize() * remainingBlockCount;
 		if (ifile.length() <= ilen)
 			return;
-		
+
 		IB firstRemoveBlock = getIndexBlock(remainingBlockCount);
 		long dlen = firstRemoveBlock.getPosOnData();
 
@@ -224,7 +277,7 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 			StorageUtil.ensureClose(indexStream);
 		}
 	}
-	
+
 	public static String calcHash(ByteBuffer bb) {
 		ByteBuffer buf = bb.asReadOnlyBuffer();
 		try {
@@ -269,7 +322,7 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 
 				if (!ifile.exists() || ifile.length() == 0)
 					return;
-				
+
 				this.stream = ifile.newInputStream();
 				this.dataStreamLength = dfile.length();
 				this.fileLength = stream.length();
@@ -294,12 +347,12 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 
 			if (currentSegId == segCount)
 				return false;
-			
+
 			try {
 				if (currentSegId == 0) {
 					ByteBuffer b = ByteBuffer.allocate(ib.getBlockSize());
 					readIndexBlock(b);
-					
+
 					IB newInstance = (IB) ibClass.newInstance();
 					next = newInstance.unserialize(currentSegId, new ByteArrayInputStream(b.array()));
 				} else {
@@ -309,7 +362,8 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 				if (currentSegId < segCount - 1) {
 					ByteBuffer b = ByteBuffer.allocate(ib.getBlockSize());
 					readIndexBlock(b);
-					prefetched = ibClass.newInstance().unserialize(currentSegId + 1, new ByteArrayInputStream(b.array()));
+					prefetched =
+							ibClass.newInstance().unserialize(currentSegId + 1, new ByteArrayInputStream(b.array()));
 					next.setDataBlockLen(prefetched.getPosOnData() - next.getPosOnData());
 				} else {
 					next.setDataBlockLen(dataStreamLength - next.getPosOnData());
