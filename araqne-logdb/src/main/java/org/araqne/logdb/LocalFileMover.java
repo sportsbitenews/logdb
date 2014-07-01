@@ -19,10 +19,10 @@ public class LocalFileMover implements FileMover {
 		File toFile = new File(to);
 
 		if (!fromFile.exists())
-			throw new IllegalStateException("file not found: " + from);
+			throw new IOException("file not found: " + from);
 
 		if (toFile.exists())
-			throw new IllegalStateException("file already exist: " + to);
+			throw new IOException("file already exist: " + to);
 
 		boolean moved = fromFile.renameTo(toFile);
 		boolean copied = false;
