@@ -1,5 +1,5 @@
 # Auto detect text files and perform LF normalization
-* text=cr-at-eol
+* text eol=auto
 * filemode=false
 
 # Custom for Visual Studio
