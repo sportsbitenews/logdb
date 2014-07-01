@@ -22,6 +22,7 @@ import java.util.Stack;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Strings;
 import org.araqne.logdb.query.expr.Expression;
 
 public class ExpressionParser {
@@ -299,7 +300,7 @@ public class ExpressionParser {
 					// String quoted = unveilEscape(s.substring(r.next));
 					// return new ParseResult(quoted, s.length());
 				} else {
-					String quoted = unveilEscape(s.substring(r.next, p + 1));
+					String quoted = Strings.unescape(s.substring(r.next, p + 1));
 					return new ParseResult(quoted, p + 1);
 				}
 			}
@@ -345,36 +346,6 @@ public class ExpressionParser {
 		}
 
 		return start - 1;
-	}
-
-	private static String unveilEscape(String s) {
-		StringBuilder sb = new StringBuilder();
-		boolean escape = false;
-
-		for (int i = 0; i < s.length(); i++) {
-			char c = s.charAt(i);
-
-			if (escape) {
-				if (c == '\\')
-					sb.append('\\');
-				else if (c == '"')
-					sb.append('"');
-				else if (c == 'n')
-					sb.append('\n');
-				else if (c == 't')
-					sb.append('\t');
-				else
-					throw new QueryParseException("invalid-escape-sequence", -1, "char=" + c);
-				escape = false;
-			} else {
-				if (c == '\\')
-					escape = true;
-				else
-					sb.append(c);
-			}
-		}
-
-		return sb.toString();
 	}
 
 	private static int findClosingQuote(String s, int offset) {

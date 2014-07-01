@@ -22,6 +22,36 @@ public class Strings {
 	private Strings() {
 	}
 
+	public static String unescape(String s) {
+		StringBuilder sb = new StringBuilder();
+		boolean escape = false;
+
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+
+			if (escape) {
+				if (c == '\\')
+					sb.append('\\');
+				else if (c == '"')
+					sb.append('"');
+				else if (c == 'n')
+					sb.append('\n');
+				else if (c == 't')
+					sb.append('\t');
+				else
+					throw new QueryParseException("invalid-escape-sequence", -1, "char=" + c);
+				escape = false;
+			} else {
+				if (c == '\\')
+					escape = true;
+				else
+					sb.append(c);
+			}
+		}
+
+		return sb.toString();
+	}
+
 	public static String join(Object[] tokens, String sep) {
 		StringBuilder sb = new StringBuilder();
 		int i = 0;
