@@ -111,6 +111,8 @@ public class Marshaler {
 				serializedObjects.add(marshal((LoggerFactory) obj, locale));
 			else if (obj instanceof LoggerConfigOption)
 				serializedObjects.add(marshal((LoggerConfigOption) obj, locale));
+			else
+				throw new UnsupportedOperationException("unsupported class: " + obj.getClass().getSimpleName());
 		}
 
 		return serializedObjects;

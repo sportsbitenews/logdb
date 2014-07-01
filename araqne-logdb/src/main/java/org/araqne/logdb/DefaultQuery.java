@@ -62,7 +62,7 @@ public class DefaultQuery implements Query {
 		if (resultFactory != null)
 			openResult(resultFactory);
 
-		// sub query is built in reversed order 
+		// sub query is built in reversed order
 		if (context != null)
 			context.getQueries().add(0, this);
 	}
@@ -106,6 +106,7 @@ public class DefaultQuery implements Query {
 			scheduler.run();
 		} catch (Throwable t) {
 			logger.error("araqne logdb: query failed - " + this, t);
+			stop(t);
 		}
 	}
 
@@ -167,7 +168,7 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public boolean isFinished() {
-		return scheduler.isFinished();
+		return scheduler.isFinished() || isCancelled();
 	}
 
 	@Override
