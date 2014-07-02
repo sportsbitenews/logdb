@@ -218,9 +218,7 @@ public class OnlineWriter {
 				closing = true;
 				writer.close();
 				notifyAll();
-				if (closeMonitor != null) {
-					closeMonitor.countDown();
-				}
+				closeMonitor.countDown();
 			}
 
 		} catch (IOException e) {
@@ -232,14 +230,11 @@ public class OnlineWriter {
 		return logFileService.getType();
 	}
 
-	CountDownLatch closeMonitor = null;
+	CountDownLatch closeMonitor = new CountDownLatch(1);
 
 	public CountDownLatch reserveClose() {
 		synchronized (this) {
 			closeReserved = true;
-			if (closeMonitor == null) {
-				closeMonitor = new CountDownLatch(1);
-			}
 			return closeMonitor;
 		}
 	}

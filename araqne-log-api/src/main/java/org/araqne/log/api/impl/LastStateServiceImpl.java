@@ -104,7 +104,7 @@ public class LastStateServiceImpl implements LastStateService {
 			// file name format is namespace$name.state or
 			// node$namespace$name.state
 			if (!f.getName().endsWith(".state") || !f.getName().contains("$"))
-				return;
+				continue;
 
 			try {
 				LastState s = readStateFile(f);

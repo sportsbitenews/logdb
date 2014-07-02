@@ -62,8 +62,9 @@ public class DefaultQuery implements Query {
 		if (resultFactory != null)
 			openResult(resultFactory);
 
+		// sub query is built in reversed order
 		if (context != null)
-			context.getQueries().add(this);
+			context.getQueries().add(0, this);
 	}
 
 	private void openResult(QueryResultFactory resultFactory) {
@@ -95,16 +96,17 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public void run() {
-		lastStarted = new Date();
-		if (commands.isEmpty())
-			return;
-
-		preRun();
-
 		try {
+			lastStarted = new Date();
+			if (commands.isEmpty())
+				return;
+
+			preRun();
+
 			scheduler.run();
-		} catch (Exception e) {
-			logger.error("araqne logdb: query failed - " + this, e);
+		} catch (Throwable t) {
+			logger.error("araqne logdb: query failed - " + this, t);
+			stop(t);
 		}
 	}
 
@@ -166,7 +168,7 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public boolean isFinished() {
-		return scheduler.isFinished();
+		return scheduler.isFinished() || isCancelled();
 	}
 
 	@Override

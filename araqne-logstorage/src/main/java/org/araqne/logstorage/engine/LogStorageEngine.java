@@ -351,6 +351,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		FilePath baseDir = logDir;
 		if (schema.getPrimaryStorage().getBasePath() != null)
 			baseDir = storageManager.resolveFilePath(schema.getPrimaryStorage().getBasePath());
+		
+		if (baseDir == null)
+			return null;
 
 		return baseDir.newFilePath(Integer.toString(schema.getId()));
 	}
@@ -361,12 +364,15 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 
 		FilePath tableDir = getTableDirectory(schema);
-		FilePath[] files = tableDir.listFiles(new FilePathNameFilter() {
-			@Override
-			public boolean accept(FilePath dir, String name) {
-				return name.endsWith(".idx");
-			}
-		});
+		FilePath[] files = null;
+		if (tableDir != null) {
+			files = tableDir.listFiles(new FilePathNameFilter() {
+				@Override
+				public boolean accept(FilePath dir, String name) {
+					return name.endsWith(".idx");
+				}
+			});
+		}
 
 		List<Date> dates = new ArrayList<Date>();
 		if (files != null) {
@@ -1306,20 +1312,38 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		synchronized (writerSweeper) {
 			writerSweeper.notifyAll();
 		}
-		for (Map.Entry<OnlineWriterKey, CountDownLatch> e: monitors.entrySet()) {
+		for (Map.Entry<OnlineWriterKey, CountDownLatch> e : monitors.entrySet()) {
 			waitForClose(e.getKey(), e.getValue());
 		}
+	}
+	
+	@SuppressWarnings("serial")
+	private static class SweeperThreadStoppedException extends RuntimeException {
 	}
 
 	private void waitForClose(OnlineWriterKey key, CountDownLatch monitor) {
 		try {
-			boolean closed = monitor.await(1, TimeUnit.MINUTES);
-			if (!closed) {
-				logger.info("wait for closing Table: {}", key.getTableName());
-				monitor.await();
+			if (writerSweeperThread.isAlive()) {
+				boolean closed = monitor.await(1, TimeUnit.MINUTES);
+				if (!closed) {
+					logger.info("wait for closing Table: {}", key.getTableName());
+					if (writerSweeperThread.isAlive())
+					monitor.await();
+					else
+						throw new SweeperThreadStoppedException();
+				}
+			} else {
+				throw new SweeperThreadStoppedException();
 			}
+		} catch (SweeperThreadStoppedException e) {
+			OnlineWriter o = onlineWriters.get(key);
+			if (o != null)
+				o.close();
 		} catch (InterruptedException e) {
 			logger.warn("wait for closing interrupted: {}", key.getTableName());
+			OnlineWriter o = onlineWriters.get(key);
+			if (o != null)
+				o.close();
 		}
 	}
 

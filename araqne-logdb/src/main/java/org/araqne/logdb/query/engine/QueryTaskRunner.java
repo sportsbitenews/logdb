@@ -61,8 +61,12 @@ public class QueryTaskRunner extends Thread {
 			task.setFailure(t);
 			scheduler.getQuery().stop(t);
 		} finally {
-			triggerCleanUpEvent(task, new QueryTaskEvent(task));
-			task.onCleanUp();
+			try {
+				triggerCleanUpEvent(task, new QueryTaskEvent(task));
+				task.onCleanUp();
+			} catch (Throwable t) {
+				logger.error("araqne logdb: query task [" + task + "] cleanup failure", t);
+			}
 		}
 	}
 

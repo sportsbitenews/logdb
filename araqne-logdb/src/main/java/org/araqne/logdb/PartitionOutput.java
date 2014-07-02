@@ -41,29 +41,39 @@ public class PartitionOutput {
 
 	public PartitionOutput(LineWriterFactory lineWriterFactory, String path, String tmpPath, Date day, String encoding)
 			throws IOException {
-		this.tmpPath = tmpPath;
-		this.path = convertPath(path, day);
+		try {
+			this.tmpPath = tmpPath;
+			this.path = convertPath(path, day);
 
-		if (tmpPath != null) {
-			File dir = new File(tmpPath);
-			this.f = new File(dir, UUID.randomUUID().toString() + ".part");
+			if (tmpPath != null) {
+				File dir = new File(tmpPath);
+				this.f = new File(dir, UUID.randomUUID().toString() + ".part");
 
-			if (logger.isDebugEnabled())
-				logger.debug("araqne logdb: created temp partition output file [{}] for path [{}], day [{}]",
-						new Object[] { f.getAbsolutePath(), path, day });
+				if (logger.isDebugEnabled())
+					logger.debug("araqne logdb: created temp partition output file [{}] for path [{}], day [{}]",
+							new Object[] { f.getAbsolutePath(), path, day });
 
-			this.tmpPath = f.getAbsolutePath();
-		} else {
-			this.f = new File(this.path);
+				this.tmpPath = f.getAbsolutePath();
+			} else {
+				this.f = new File(this.path);
+			}
+
+			f.getParentFile().mkdirs();
+
+			if (encoding == null)
+				encoding = "utf-8";
+
+			this.writer = lineWriterFactory.newWriter(f.getAbsolutePath());
+			mover = new LocalFileMover();
+		} catch (IOException e) {
+			logger.error("araqne logdb: cannot create partition output [" + f.getAbsolutePath() + "] tmp path [" + tmpPath + "]",
+					e);
+			throw e;
+		} catch (Throwable t) {
+			logger.error("araqne logdb: cannot create partition output [" + f.getAbsolutePath() + "] tmp path [" + tmpPath + "]",
+					t);
+			throw new IOException(t);
 		}
-
-		f.getParentFile().mkdirs();
-
-		if (encoding == null)
-			encoding = "utf-8";
-
-		this.writer = lineWriterFactory.newWriter(f.getAbsolutePath());
-		mover = new LocalFileMover();
 	}
 
 	public LineWriter getWriter() {
@@ -110,7 +120,7 @@ public class PartitionOutput {
 			writer.close();
 			if (tmpPath != null)
 				mover.move(tmpPath, path);
-		} catch (IOException e) {
+		} catch (Throwable e) {
 			logger.error("araqne logdb: cannot move file from [{}] to [{}] cause [{}]",
 					new Object[] { tmpPath, path, e.getMessage() });
 		}
