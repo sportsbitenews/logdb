@@ -74,7 +74,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.2.2</version>
+			<version>3.2.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jsoup</groupId>
