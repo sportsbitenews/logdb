@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -144,18 +145,15 @@ public class WtmpEntryParserTest {
 		String dir = "src\\test\\resources\\";
 
 		File wtmpFile = new File(dir + path);
-		if (!wtmpFile.exists()) {
-
-			assertEquals("no exist", dir + path);
-			return null;
-		}
-
-		if (!wtmpFile.canRead()) {
-			assertEquals("no permission", dir + path);
-			return null;
-		}
 		RandomAccessFile raf = null;
+		
 		try {
+			if (!wtmpFile.exists()) 
+				throw new FileNotFoundException();
+
+			if (!wtmpFile.canRead()) 
+				throw new SecurityException();
+			
 			raf = new RandomAccessFile(dir + path, "r");
 			raf.seek(0);
 			byte[] block = new byte[blockSize];
@@ -165,7 +163,7 @@ public class WtmpEntryParserTest {
 				l.add(parser.parseEntry(ByteBuffer.wrap(block)));
 			}
 		} catch (EOFException e) {
-		} catch (Throwable t) {
+		}catch (Throwable t) {
 			t.printStackTrace();
 		} finally {
 			if (raf != null) {

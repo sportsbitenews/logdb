@@ -15,9 +15,8 @@ public class WtmpEntryParserLinux extends WtmpEntryParser {
 
 	@Override
 	public WtmpEntry parseEntry(ByteBuffer bb) throws IOException {
-
 		int type = Short.reverseBytes(bb.getShort());
-		bb.getShort(); // padding
+		bb.getShort();
 		int pid = Integer.reverse(bb.getInt());
 		byte[] b = new byte[32];
 		bb.get(b);
@@ -27,16 +26,14 @@ public class WtmpEntryParserLinux extends WtmpEntryParser {
 		bb.get(user);
 		byte[] host = new byte[256];
 		bb.get(host);
-		bb.getInt(); // skip exit_status
-
+		bb.getInt(); 
 		int session = Integer.reverse(bb.getInt());
 		int seconds = Integer.reverse(bb.getInt());
-		bb.getInt(); // microseconds
-		bb.get(new byte[36]); // addr + unused padding
-
+		bb.getInt(); 
+		bb.get(new byte[36]); 
 		if(type == 2)
-		System.out.println(readString(user) +"\t"+ type + "\t"  + readString(b));
-		
+			System.out.println(readString(user) +"\t"+ type + "\t"  + readString(b));
+
 		return new WtmpEntry(Type.values()[type], new Date(seconds * 1000L) , pid, readString(user), readString(host), session);
 	}
 }
