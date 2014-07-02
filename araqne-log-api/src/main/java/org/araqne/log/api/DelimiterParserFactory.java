@@ -109,8 +109,12 @@ public class DelimiterParserFactory extends AbstractLogParserFactory {
 
 		String[] columnHeaders = null;
 		String h = config.get(COLUMN_HEADERS);
-		if (h != null)
+		if (h != null) {
 			columnHeaders = h.split(",");
+		
+			for (int i = 0; i < columnHeaders.length; i++)
+				columnHeaders[i] = columnHeaders[i].trim();
+		}
 
 		boolean includeDelimiterTarget = false;
 		if (config.containsKey(INCLUDE_DELIMITER_TARGET)) {
