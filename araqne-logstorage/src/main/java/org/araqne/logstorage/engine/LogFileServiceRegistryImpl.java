@@ -5,10 +5,12 @@ import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +22,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.felix.ipojo.annotations.Component;
+import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
@@ -27,6 +30,8 @@ import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceEventListener;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.file.LogFileReader;
+import org.araqne.logstorage.file.LogFileServiceV1;
+import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.repair.IntegrityChecker;
 import org.osgi.framework.BundleContext;
@@ -51,12 +56,27 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 
 	private Set<LogFileServiceEventListener> listeners = new CopyOnWriteArraySet<LogFileServiceEventListener>();
 
+	private LogFileServiceV1 v1 = new LogFileServiceV1();
+	private LogFileServiceV2 v2 = new LogFileServiceV2();
+
 	public LogFileServiceRegistryImpl(BundleContext bc) {
 		this.bc = bc;
 	}
 
 	@Validate
 	public void start() throws IOException {
+		loadEngineList();
+		register(v1);
+		register(v2);
+	}
+
+	@Invalidate
+	public void stop() {
+		register(v2);
+		register(v1);
+	}
+
+	private void loadEngineList() throws FileNotFoundException, UnsupportedEncodingException, IOException {
 		File f = getEngineListFile();
 		if (!f.exists()) {
 			availableEngines.put("v1", new WaitEvent("v1"));

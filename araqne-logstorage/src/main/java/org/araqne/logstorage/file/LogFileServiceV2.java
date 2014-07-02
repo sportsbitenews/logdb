@@ -23,22 +23,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.felix.ipojo.annotations.Component;
-import org.apache.felix.ipojo.annotations.Invalidate;
-import org.apache.felix.ipojo.annotations.Requires;
-import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.LogFileService;
-import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.localfile.LocalFilePath;
 
-@Component(name = "logstorage-log-file-service-v2")
 public class LogFileServiceV2 implements LogFileService {
-	@Requires
-	private LogFileServiceRegistry registry;
-
 	private static final String OPT_TABLE_NAME = "tableName";
 	private static final String OPT_DAY = "day";
 	private static final String OPT_INDEX_PATH = "indexPath";
@@ -56,17 +47,6 @@ public class LogFileServiceV2 implements LogFileService {
 			this.put(OPT_DATA_PATH, dataPath);
 			this.put(OPT_KEY_PATH, keyPath);
 		}
-	}
-
-	@Validate
-	public void start() {
-		registry.register(this);
-	}
-
-	@Invalidate
-	public void stop() {
-		if (registry != null)
-			registry.unregister(this);
 	}
 
 	@Override
