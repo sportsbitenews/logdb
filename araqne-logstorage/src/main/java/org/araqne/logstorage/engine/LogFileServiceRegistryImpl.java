@@ -72,8 +72,8 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 
 	@Invalidate
 	public void stop() {
-		register(v2);
-		register(v1);
+		unregister(v2);
+		unregister(v1);
 	}
 
 	private void loadEngineList() throws FileNotFoundException, UnsupportedEncodingException, IOException {
