@@ -32,7 +32,6 @@ import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.repair.IntegrityChecker;
-import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
@@ -51,7 +50,7 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 
 	@Requires
 	private ConfigService conf;
-	
+
 	@Requires
 	private StorageManager storageManager;
 
@@ -68,18 +67,7 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 
 	@Validate
 	public void start() throws IOException {
-		FilePath logDir = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
-		logDir = storageManager.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, logDir.getAbsolutePath()));
-		logDir.mkdirs();
-
 		loadEngineList();
-	}
-
-	private String getStringParameter(Constants key, String defaultValue) {
-		String value = ConfigUtil.get(conf, key);
-		if (value != null)
-			return value;
-		return defaultValue;
 	}
 
 	private void loadEngineList() throws FileNotFoundException, UnsupportedEncodingException, IOException {

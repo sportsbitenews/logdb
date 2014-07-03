@@ -31,6 +31,7 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.confdb.ConfigService;
 import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
@@ -38,6 +39,8 @@ import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.logstorage.TableSchema;
+import org.araqne.logstorage.engine.ConfigUtil;
+import org.araqne.logstorage.engine.Constants;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.FilePathNameFilter;
 import org.araqne.storage.api.StorageManager;
@@ -49,10 +52,6 @@ import org.slf4j.LoggerFactory;
 public class LogFileServiceV2 implements LogFileService {
 	private final Logger logger = LoggerFactory.getLogger(LogFileServiceV2.class);
 
-	private final LogTableRegistry tableRegistry;
-
-	private StorageManager storageManager;
-
 	private static final String OPT_STORAGE_CONFIG = "storageConfig";
 	private static final String OPT_TABLE_NAME = "tableName";
 	private static final String OPT_DAY = "day";
@@ -62,7 +61,7 @@ public class LogFileServiceV2 implements LogFileService {
 	private static final String OPT_KEY_PATH = "keyPath";
 	private static final Object OPT_CALLBACK_SET = "callbackSet";
 
-	private final FilePath logDir;
+	private FilePath logDir;
 
 	public static class Option extends TreeMap<String, Object> {
 		private static final long serialVersionUID = 1L;
@@ -80,17 +79,31 @@ public class LogFileServiceV2 implements LogFileService {
 	}
 
 	@Requires
+	private LogTableRegistry tableRegistry;
+
+	@Requires
 	private LogFileServiceRegistry registry;
 
-	public LogFileServiceV2(LogTableRegistry tableRegistry, StorageManager storageManager, FilePath logDir) {
-		this.tableRegistry = tableRegistry;
-		this.storageManager = storageManager;
-		this.logDir = logDir;
-	}
+	@Requires
+	private StorageManager storageManager;
+
+	@Requires
+	private ConfigService conf;
 
 	@Validate
 	public void start() {
+		logDir = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
+		logDir = storageManager.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, logDir.getAbsolutePath()));
+		logDir.mkdirs();
+
 		registry.register(this);
+	}
+
+	private String getStringParameter(Constants key, String defaultValue) {
+		String value = ConfigUtil.get(conf, key);
+		if (value != null)
+			return value;
+		return defaultValue;
 	}
 
 	@Invalidate
