@@ -35,20 +35,13 @@ import org.araqne.logparser.syslog.juniper.attack.JuniperAttackLogPattern;
 
 public class JuniperAttackLogParserTest {
 
-	JuniperAttackLogParser parser;
-	
-	@Before
-	public void setUp() throws FileNotFoundException, IOException {
-		File formatFile = new File("src/main/resources/org/araqne/logparser/syslog/juniper/attack/attack_log_format.txt");
-		parser = JuniperAttackLogParser.newInstance(new FileReader(formatFile));
-	}
-	
-//	@Ignore
+	JuniperAttackLogParser parser = JuniperAttackLogParser.newInstance();
+
 	@Test
 	public void testParse() {
-		
+
 		String line = "SYN flood! From 1.1.1.1:1111 to 22.22.22.22:22222, proto TCP (zone zone #1, int test interface). Occurred 100 times.";
-		
+
 		Map<String, Object> expected = new HashMap<String, Object>();
 		expected.put(JuniperAttackLogPattern.SEVERITY_KEY, "Emergency");
 		expected.put(JuniperAttackLogPattern.ID_KEY, "00005");
@@ -65,12 +58,12 @@ public class JuniperAttackLogParserTest {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		
-		
+
 		Map<String, Object> actual = parser.parse(line);
-		
-//		for(String key: expected.keySet()) System.out.println(expected.get(key)+"\t"+actual.get(key));
-		
+
+		// for(String key: expected.keySet())
+		// System.out.println(expected.get(key)+"\t"+actual.get(key));
+
 		assertEquals(expected, actual);
 	}
 
@@ -78,7 +71,7 @@ public class JuniperAttackLogParserTest {
 	public void testParse2() {
 
 		String line = "Teardrop attack! From 11.11.11.11 to 222.222.222.222, proto Unknown (zone Untrust, int #1004). Occurred 100 times.";
-		
+
 		Map<String, Object> expected = new HashMap<String, Object>();
 		expected.put(JuniperAttackLogPattern.SEVERITY_KEY, "Emergency");
 		expected.put(JuniperAttackLogPattern.ID_KEY, "00006");
@@ -94,51 +87,30 @@ public class JuniperAttackLogParserTest {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		
+
 		Map<String, Object> actual = parser.parse(line);
 		assertNotNull(actual);
-//		for(String key: actual.keySet()) System.out.println(expected.get(key)+"\t"+actual.get(key));
-		
+		// for(String key: actual.keySet())
+		// System.out.println(expected.get(key)+"\t"+actual.get(key));
+
 		assertEquals(expected, actual);
-		
+
 	}
 
 	@Test
 	public void testGetPatternMap() {
-		
-		Set<String> expected = new HashSet<String>(Arrays.asList(
-				"ActiveX control blocked! From ",
-				"Address sweep! From ",
-				"Bad IP option! From ", 
-				"Dst IP session limit! From ", 
-				"EXE file blocked! From ",
-				"FIN but no ACK bit! From ",
-				"Fragmented traffic! From ",
-				"ICMP flood! From ",
-				"ICMP fragment! From ",
-				"IP spoofing! From ",
-				"Java applet blocked! From ",
-				"Land attack! From ",
-				"Large ICMP packet! From ",
-				"Malicious URL! From ",
-				"No TCP flag! From ",
-				"Ping of Death! From ",
-				"Port scan! From ",
-				"SYN and FIN bits! From ",
-				"SYN flood! From ", 
-				"SYN fragment! From ", 
-				"SYN-ACK-ACK Proxy DoS! From ", 
-				"Source Route IP option! From ",
-				"Src IP session limit! From ", 
-				"Teardrop attack! From ", 
-				"UDP flood! From ", 
-				"Unknown protocol! From ", 
-				"WinNuke attack! From ", 
-				"ZIP file blocked! From "
-		));
-		
-//		for(String s: parser.getPatternKeySet()) System.out.println(s);
-		
+
+		Set<String> expected = new HashSet<String>(Arrays.asList("ActiveX control blocked! From ", "Address sweep! From ",
+				"Bad IP option! From ", "Dst IP session limit! From ", "EXE file blocked! From ", "FIN but no ACK bit! From ",
+				"Fragmented traffic! From ", "ICMP flood! From ", "ICMP fragment! From ", "IP spoofing! From ",
+				"Java applet blocked! From ", "Land attack! From ", "Large ICMP packet! From ", "Malicious URL! From ",
+				"No TCP flag! From ", "Ping of Death! From ", "Port scan! From ", "SYN and FIN bits! From ", "SYN flood! From ",
+				"SYN fragment! From ", "SYN-ACK-ACK Proxy DoS! From ", "Source Route IP option! From ",
+				"Src IP session limit! From ", "Teardrop attack! From ", "UDP flood! From ", "Unknown protocol! From ",
+				"WinNuke attack! From ", "ZIP file blocked! From "));
+
+		// for(String s: parser.getPatternKeySet()) System.out.println(s);
+
 		assertEquals(expected, parser.getPatternKeySet());
 	}
 }

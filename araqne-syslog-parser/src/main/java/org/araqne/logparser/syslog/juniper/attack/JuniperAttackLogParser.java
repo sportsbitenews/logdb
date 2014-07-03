@@ -15,10 +15,7 @@
  */
 package org.araqne.logparser.syslog.juniper.attack;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,12 +28,7 @@ public class JuniperAttackLogParser {
 	private PatternFinder<JuniperAttackLogPattern> patternMap;
 
 	public JuniperAttackLogParser() throws IOException {
-		patternMap = getPatternMapDataFromStream(new InputStreamReader(
-				JuniperAttackLogParser.class.getResourceAsStream("attack_log_format.txt")));
-	}
-
-	private JuniperAttackLogParser(PatternFinder<JuniperAttackLogPattern> patternMap) {
-		this.patternMap = patternMap;
+		patternMap = loadPatterns();
 	}
 
 	public static JuniperAttackLogParser newInstance() {
@@ -48,32 +40,94 @@ public class JuniperAttackLogParser {
 		}
 	}
 
-	public static JuniperAttackLogParser newInstance(Reader reader) throws IOException {
-		return new JuniperAttackLogParser(getPatternMapDataFromStream(reader));
+	private static PatternFinder<JuniperAttackLogPattern> loadPatterns() throws IOException {
+		PatternFinder<JuniperAttackLogPattern> m = PatternFinder.newInstance();
+
+		load(m,
+				"Emergency (00005)",
+				"SYN flood! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto TCP (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Emergency (00006)",
+				"Teardrop attack! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m, "Emergency (00007)",
+				"Ping of Death! From <src-ip> to <dst-ip>, proto 1 (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Alert (00004)",
+				"WinNuke attack! From <src-ip>:<src-port> to <dst-ip>:139, proto TCP (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Alert (00008)",
+				"IP spoofing! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Alert (00009)",
+				"Source Route IP option! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Alert (00010)",
+				"Land attack! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto TCP (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m, "Alert (00011)",
+				"ICMP flood! From <src-ip> to <dst-ip>, proto 1 (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Alert (00012)",
+				"UDP flood! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto UDP (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Alert (00016)",
+				"Port scan! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m, "Alert (00017)",
+				"Address sweep! From <src-ip> to <dst-ip>, proto 1 (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00032)",
+				"Malicious URL! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto TCP (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00033)",
+				"Src IP session limit! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00412)",
+				"SYN fragment! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto TCP (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00413)",
+				"No TCP flag! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00414)",
+				"Unknown protocol! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto <protocol> (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00415)",
+				"Bad IP option! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00430)",
+				"Dst IP session limit! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00431)",
+				"ZIP file blocked! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00432)",
+				"Java applet blocked! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00433)",
+				"EXE file blocked! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00434)",
+				"ActiveX control blocked! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m, "Critical (00435)",
+				"ICMP fragment! From <src-ip> to <dst-ip>, proto 1 (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m, "Critical (00436)",
+				"Large ICMP packet! From <src-ip> to <dst-ip>, proto 1 (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00437)",
+				"SYN and FIN bits! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto TCP (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00438)",
+				"FIN but no ACK bit! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto TCP (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00439)",
+				"SYN-ACK-ACK Proxy DoS! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto TCP (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		load(m,
+				"Critical (00440)",
+				"Fragmented traffic! From <src-ip>:<src-port> to <dst-ip>:<dst-port>, proto { TCP | UDP | <protocol> } (zone <zone-name>, int <interface-name>). Occurred <none> times.");
+		return m;
 	}
 
-	private static PatternFinder<JuniperAttackLogPattern> getPatternMapDataFromStream(Reader reader) throws IOException {
-		PatternFinder<JuniperAttackLogPattern> patternMap = PatternFinder.newInstance();
-
-		BufferedReader br = new BufferedReader(reader);
-
-		while (true) {
-			if (br.readLine() == null)
-				break;
-			String category = br.readLine();
-			if (category == null)
-				break;
-			if (br.readLine() == null)
-				break;
-			String patternString = br.readLine();
-			if (patternString == null)
-				break;
-			JuniperAttackLogPattern pattern = JuniperAttackLogPattern.from(category, patternString);
-			patternMap.register(pattern.getConstElements().get(0), pattern);
-			if (br.readLine() == null)
-				break;
-		}
-		return patternMap;
+	private static void load(PatternFinder<JuniperAttackLogPattern> m, String category, String patternString) {
+		JuniperAttackLogPattern pattern = JuniperAttackLogPattern.from(category, patternString);
+		m.register(pattern.getConstElements().get(0), pattern);
 	}
 
 	public Map<String, Object> parse(String line) {
