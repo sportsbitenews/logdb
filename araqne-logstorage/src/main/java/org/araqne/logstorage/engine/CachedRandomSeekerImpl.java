@@ -33,6 +33,7 @@ import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.storage.api.FilePath;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -42,6 +43,7 @@ import org.slf4j.LoggerFactory;
  * @since 0.9
  */
 public class CachedRandomSeekerImpl implements CachedRandomSeeker {
+	private final Logger slog = LoggerFactory.getLogger(CachedRandomSeeker.class);
 	private boolean closed;
 	private LogTableRegistry tableRegistry;
 	private LogFileFetcher fetcher;
@@ -77,7 +79,11 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 
 		LogParser parser = null;
 		if (builder != null) {
-			parser = builder.build();
+			try {
+				parser = builder.build();
+			} catch (Throwable t) {
+				slog.warn("araqne logstorage: cannot build parser", t);
+			}
 		}
 
 		List<Log> ret = new ArrayList<Log>();
