@@ -27,8 +27,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.felix.ipojo.annotations.Component;
+import org.apache.felix.ipojo.annotations.Invalidate;
+import org.apache.felix.ipojo.annotations.Requires;
+import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.TableConfigSpec;
@@ -40,6 +45,7 @@ import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Component(name = "logstorage-log-file-service-v2", immediate = true)
 public class LogFileServiceV2 implements LogFileService {
 	private final Logger logger = LoggerFactory.getLogger(LogFileServiceV2.class);
 
@@ -61,8 +67,8 @@ public class LogFileServiceV2 implements LogFileService {
 	public static class Option extends TreeMap<String, Object> {
 		private static final long serialVersionUID = 1L;
 
-		public Option(StorageConfig config, Map<String, String> tableMetadata, String tableName, FilePath basePath, FilePath indexPath,
-				FilePath dataPath, FilePath keyPath) {
+		public Option(StorageConfig config, Map<String, String> tableMetadata, String tableName, FilePath basePath,
+				FilePath indexPath, FilePath dataPath, FilePath keyPath) {
 			this.put(OPT_STORAGE_CONFIG, config);
 			this.putAll(tableMetadata);
 			this.put(OPT_TABLE_NAME, tableName);
@@ -73,12 +79,26 @@ public class LogFileServiceV2 implements LogFileService {
 		}
 	}
 
+	@Requires
+	private LogFileServiceRegistry registry;
+
 	public LogFileServiceV2(LogTableRegistry tableRegistry, StorageManager storageManager, FilePath logDir) {
 		this.tableRegistry = tableRegistry;
 		this.storageManager = storageManager;
 		this.logDir = logDir;
 	}
-	
+
+	@Validate
+	public void start() {
+		registry.register(this);
+	}
+
+	@Invalidate
+	public void stop() {
+		if (registry != null)
+			registry.unregister(this);
+	}
+
 	@Override
 	public String getType() {
 		return "v2";

@@ -27,7 +27,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.felix.ipojo.annotations.Component;
+import org.apache.felix.ipojo.annotations.Invalidate;
+import org.apache.felix.ipojo.annotations.Requires;
+import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogFlushCallback;
 import org.araqne.logstorage.LogFlushCallbackArgs;
 import org.araqne.logstorage.LogTableRegistry;
@@ -40,6 +45,7 @@ import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Component(name = "logstorage-log-file-service-v1", immediate = true)
 public class LogFileServiceV1 implements LogFileService {
 	private final Logger logger = LoggerFactory.getLogger(LogFileServiceV1.class);
 
@@ -62,10 +68,24 @@ public class LogFileServiceV1 implements LogFileService {
 		}
 	}
 
+	@Requires
+	private LogFileServiceRegistry registry;
+
 	public LogFileServiceV1(LogTableRegistry tableRegistry, StorageManager storageManager, FilePath logDir) {
 		this.tableRegistry = tableRegistry;
 		this.storageManager = storageManager;
 		this.logDir = logDir;
+	}
+
+	@Validate
+	public void start() {
+		registry.register(this);
+	}
+
+	@Invalidate
+	public void stop() {
+		if (registry != null)
+			registry.unregister(this);
 	}
 
 	@Override
@@ -119,6 +139,8 @@ public class LogFileServiceV1 implements LogFileService {
 		LocalFilePath indexPath = (LocalFilePath) options.get(OPT_INDEX_PATH);
 		LocalFilePath dataPath = (LocalFilePath) options.get(OPT_DATA_PATH);
 		String tableName = (String) options.get(OPT_TABLE_NAME);
+
+		@SuppressWarnings("unchecked")
 		Set<LogFlushCallback> flushCallbacks = (Set<LogFlushCallback>) options.get(OPT_FLUSH_CALLBACKS);
 		try {
 			return new LogFileWriterV1(indexPath.getFile(), dataPath.getFile(), flushCallbacks, new LogFlushCallbackArgs(

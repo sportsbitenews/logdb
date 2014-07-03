@@ -22,7 +22,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.felix.ipojo.annotations.Component;
-import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
@@ -30,10 +29,7 @@ import org.araqne.confdb.ConfigService;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceEventListener;
 import org.araqne.logstorage.LogFileServiceRegistry;
-import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
-import org.araqne.logstorage.file.LogFileServiceV1;
-import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.repair.IntegrityChecker;
 import org.araqne.storage.api.FilePath;
@@ -57,9 +53,6 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	private ConfigService conf;
 	
 	@Requires
-	private LogTableRegistry tableRegistry;
-	
-	@Requires
 	private StorageManager storageManager;
 
 	private BundleContext bc;
@@ -68,9 +61,6 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	private ConcurrentMap<String, LogFileService> services = new ConcurrentHashMap<String, LogFileService>();
 
 	private Set<LogFileServiceEventListener> listeners = new CopyOnWriteArraySet<LogFileServiceEventListener>();
-
-	private LogFileServiceV1 v1;
-	private LogFileServiceV2 v2;
 
 	public LogFileServiceRegistryImpl(BundleContext bc) {
 		this.bc = bc;
@@ -82,18 +72,7 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 		logDir = storageManager.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, logDir.getAbsolutePath()));
 		logDir.mkdirs();
 
-		v1 = new LogFileServiceV1(tableRegistry, storageManager, logDir);
-		v2 = new LogFileServiceV2(tableRegistry, storageManager, logDir);
-		
 		loadEngineList();
-		register(v1);
-		register(v2);
-	}
-
-	@Invalidate
-	public void stop() {
-		unregister(v2);
-		unregister(v1);
 	}
 
 	private String getStringParameter(Constants key, String defaultValue) {

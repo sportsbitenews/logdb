@@ -69,6 +69,7 @@ import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.StorageConfig;
+import org.araqne.logstorage.TableNotFoundException;
 import org.araqne.logstorage.TableSchema;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
@@ -203,9 +204,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			queryParserService.addCommandParser(p);
 
 		accountService.addListener(this);
-
-		// receive log table event and register it to data source registry
-		storage.ensureTable(new TableSchema(QUERY_LOG_TABLE, new StorageConfig("v2")));
 
 		// delete all temporary query files
 		File queryResultDir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query/");
@@ -507,6 +505,12 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 				storage.write(new Log(QUERY_LOG_TABLE, now, m));
 			} catch (InterruptedException e) {
 				logger.warn("writing query log is interrupted: {}", m);
+			} catch (TableNotFoundException e) {
+				storage.ensureTable(new TableSchema(QUERY_LOG_TABLE, new StorageConfig("v2")));
+				try {
+					storage.write(new Log(QUERY_LOG_TABLE, now, m));
+				} catch (InterruptedException e1) {
+				}
 			}
 
 			invokeCallbacks(query, QueryStatus.EOF);
