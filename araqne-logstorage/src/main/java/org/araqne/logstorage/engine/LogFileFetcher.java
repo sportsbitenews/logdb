@@ -63,8 +63,8 @@ class LogFileFetcher {
 		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
 		String logFileType = schema.getPrimaryStorage().getType();
-		LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getMetadata(), tableName, indexPath, dataPath,
-				keyPath);
+		LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getPrimaryStorage(), schema.getMetadata(),
+				tableName, indexPath, dataPath, keyPath);
 		options.put("day", day);
 		return lfsRegistry.newReader(tableName, logFileType, options);
 

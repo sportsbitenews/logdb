@@ -25,7 +25,9 @@ import java.util.TreeMap;
 
 import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableConfigSpec;
+import org.araqne.logstorage.TableSchema;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.localfile.LocalFilePath;
 
@@ -40,7 +42,9 @@ public class LogFileServiceV2 implements LogFileService {
 	public static class Option extends TreeMap<String, Object> {
 		private static final long serialVersionUID = 1L;
 
-		public Option(Map<String, String> tableMetadata, String tableName, FilePath indexPath, FilePath dataPath, FilePath keyPath) {
+		public Option(StorageConfig config, Map<String, String> tableMetadata, String tableName, FilePath indexPath,
+				FilePath dataPath, FilePath keyPath) {
+			this.put("storage_config", config);
 			this.putAll(tableMetadata);
 			this.put(OPT_TABLE_NAME, tableName);
 			this.put(OPT_INDEX_PATH, indexPath);

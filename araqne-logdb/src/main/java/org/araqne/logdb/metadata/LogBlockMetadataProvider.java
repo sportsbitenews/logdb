@@ -87,8 +87,8 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 		LogFileReader reader = null;
 		LogBlockCursor cursor = null;
 		try {
-			reader = logFileServiceRegistry.newReader(tableName, type, new LogFileServiceV2.Option(schema.getMetadata(),
-					tableName, indexPath, dataPath, keyPath));
+			reader = logFileServiceRegistry.newReader(tableName, type, new LogFileServiceV2.Option(schema.getPrimaryStorage(),
+					schema.getMetadata(), tableName, indexPath, dataPath, keyPath));
 			cursor = reader.getBlockCursor();
 
 			while (cursor.hasNext()) {
