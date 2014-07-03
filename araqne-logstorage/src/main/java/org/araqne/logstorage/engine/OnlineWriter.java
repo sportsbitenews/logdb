@@ -93,6 +93,7 @@ public class OnlineWriter {
 		try {
 			// options including table metadata
 			Map<String, Object> writerOptions = new HashMap<String, Object>();
+			writerOptions.put("storageConfig", schema.getPrimaryStorage());
 			writerOptions.putAll(schema.getMetadata());
 			writerOptions.put("tableName", schema.getName());
 			writerOptions.put("day", day);

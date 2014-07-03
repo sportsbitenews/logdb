@@ -27,7 +27,6 @@ import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableConfigSpec;
-import org.araqne.logstorage.TableSchema;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.localfile.LocalFilePath;
 
