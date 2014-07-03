@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.araqne.log.api.LogParserBuilder;
+import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
 
@@ -82,6 +83,8 @@ public interface LogStorage {
 
 	Collection<Date> getLogDates(String tableName);
 
+	Collection<Date> getLogDates(String tableName, Date from, Date to);
+
 	void write(Log log) throws InterruptedException;
 
 	void write(List<Log> logs) throws InterruptedException;
@@ -99,6 +102,11 @@ public interface LogStorage {
 	void removeLogListener(LogCallback callback);
 
 	List<LogWriterStatus> getWriterStatuses();
+
+	/**
+	 * @since 2.7.0
+	 */
+	LogFileWriter getOnlineWriter(String tableName, Date day);
 
 	/**
 	 * @since 1.18.0
@@ -144,13 +152,13 @@ public interface LogStorage {
 	 * @since 2.5.10-SNAPSHOT
 	 */
 	StorageManager getStorageManager();
-	
+
 	boolean tryWrite(Log log);
-	
+
 	boolean tryWrite(Log log, long timeout, TimeUnit unit) throws InterruptedException;
 
 	boolean tryWrite(List<Log> log);
-	
+
 	boolean tryWrite(List<Log> log, long timeout, TimeUnit unit) throws InterruptedException;
 
 	LockStatus lockStatus(LockKey storageLockKey);

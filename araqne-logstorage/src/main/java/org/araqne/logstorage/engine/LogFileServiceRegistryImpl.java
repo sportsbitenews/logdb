@@ -26,14 +26,18 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.confdb.ConfigService;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceEventListener;
 import org.araqne.logstorage.LogFileServiceRegistry;
+import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV1;
 import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.repair.IntegrityChecker;
+import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.StorageManager;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +53,15 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	@Requires
 	private IntegrityChecker consistencyChecker;
 
+	@Requires
+	private ConfigService conf;
+	
+	@Requires
+	private LogTableRegistry tableRegistry;
+	
+	@Requires
+	private StorageManager storageManager;
+
 	private BundleContext bc;
 	private ConcurrentHashMap<String, WaitEvent> availableEngines = new ConcurrentHashMap<String, WaitEvent>();
 
@@ -56,8 +69,8 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 
 	private Set<LogFileServiceEventListener> listeners = new CopyOnWriteArraySet<LogFileServiceEventListener>();
 
-	private LogFileServiceV1 v1 = new LogFileServiceV1();
-	private LogFileServiceV2 v2 = new LogFileServiceV2();
+	private LogFileServiceV1 v1;
+	private LogFileServiceV2 v2;
 
 	public LogFileServiceRegistryImpl(BundleContext bc) {
 		this.bc = bc;
@@ -65,6 +78,13 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 
 	@Validate
 	public void start() throws IOException {
+		FilePath logDir = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
+		logDir = storageManager.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, logDir.getAbsolutePath()));
+		logDir.mkdirs();
+
+		v1 = new LogFileServiceV1(tableRegistry, storageManager, logDir);
+		v2 = new LogFileServiceV2(tableRegistry, storageManager, logDir);
+		
 		loadEngineList();
 		register(v1);
 		register(v2);
@@ -74,6 +94,13 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	public void stop() {
 		unregister(v2);
 		unregister(v1);
+	}
+
+	private String getStringParameter(Constants key, String defaultValue) {
+		String value = ConfigUtil.get(conf, key);
+		if (value != null)
+			return value;
+		return defaultValue;
 	}
 
 	private void loadEngineList() throws FileNotFoundException, UnsupportedEncodingException, IOException {

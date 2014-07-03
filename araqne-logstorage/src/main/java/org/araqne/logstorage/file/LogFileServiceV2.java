@@ -16,7 +16,11 @@
 package org.araqne.logstorage.file;
 
 import java.io.File;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -26,33 +30,55 @@ import java.util.TreeMap;
 import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.StorageConfig;
+import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.logstorage.TableSchema;
 import org.araqne.storage.api.FilePath;
+import org.araqne.storage.api.FilePathNameFilter;
+import org.araqne.storage.api.StorageManager;
 import org.araqne.storage.localfile.LocalFilePath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LogFileServiceV2 implements LogFileService {
+	private final Logger logger = LoggerFactory.getLogger(LogFileServiceV2.class);
+
+	private final LogTableRegistry tableRegistry;
+
+	private StorageManager storageManager;
+
+	private static final String OPT_STORAGE_CONFIG = "storageConfig";
 	private static final String OPT_TABLE_NAME = "tableName";
 	private static final String OPT_DAY = "day";
+	private static final String OPT_BASE_PATH = "basePath";
 	private static final String OPT_INDEX_PATH = "indexPath";
 	private static final String OPT_DATA_PATH = "dataPath";
 	private static final String OPT_KEY_PATH = "keyPath";
 	private static final Object OPT_CALLBACK_SET = "callbackSet";
 
+	private final FilePath logDir;
+
 	public static class Option extends TreeMap<String, Object> {
 		private static final long serialVersionUID = 1L;
 
-		public Option(StorageConfig config, Map<String, String> tableMetadata, String tableName, FilePath indexPath,
+		public Option(StorageConfig config, Map<String, String> tableMetadata, String tableName, FilePath basePath, FilePath indexPath,
 				FilePath dataPath, FilePath keyPath) {
-			this.put("storage_config", config);
+			this.put(OPT_STORAGE_CONFIG, config);
 			this.putAll(tableMetadata);
 			this.put(OPT_TABLE_NAME, tableName);
+			this.put(OPT_BASE_PATH, basePath);
 			this.put(OPT_INDEX_PATH, indexPath);
 			this.put(OPT_DATA_PATH, dataPath);
 			this.put(OPT_KEY_PATH, keyPath);
 		}
 	}
 
+	public LogFileServiceV2(LogTableRegistry tableRegistry, StorageManager storageManager, FilePath logDir) {
+		this.tableRegistry = tableRegistry;
+		this.storageManager = storageManager;
+		this.logDir = logDir;
+	}
+	
 	@Override
 	public String getType() {
 		return "v2";
@@ -61,6 +87,40 @@ public class LogFileServiceV2 implements LogFileService {
 	@Override
 	public long count(FilePath f) {
 		return LogCounterV2.count(f);
+	}
+
+	@Override
+	public List<Date> getPartitions(String tableName) {
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+
+		FilePath baseDir = logDir;
+		if (schema.getPrimaryStorage().getBasePath() != null)
+			baseDir = storageManager.resolveFilePath(schema.getPrimaryStorage().getBasePath());
+
+		FilePath tableDir = baseDir.newFilePath(Integer.toString(schema.getId()));
+
+		FilePath[] files = tableDir.listFiles(new FilePathNameFilter() {
+			@Override
+			public boolean accept(FilePath dir, String name) {
+				return name.endsWith(".idx");
+			}
+		});
+
+		List<Date> dates = new ArrayList<Date>();
+		if (files != null) {
+			for (FilePath file : files) {
+				try {
+					dates.add(dateFormat.parse(file.getName().split("\\.")[0]));
+				} catch (ParseException e) {
+					logger.error("araqne logstorage: invalid log filename, table {}, {}", tableName, file.getName());
+				}
+			}
+		}
+
+		Collections.sort(dates, Collections.reverseOrder());
+
+		return dates;
 	}
 
 	@Override

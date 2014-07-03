@@ -32,6 +32,7 @@ import org.araqne.logstorage.CachedRandomSeeker;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.file.LogFileReader;
+import org.araqne.storage.api.FilePath;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -48,15 +49,18 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 	private ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters;
 	private Map<OnlineWriterKey, List<Log>> onlineBuffers;
 	private Map<TabletKey, LogFileReader> cachedReaders;
+	private FilePath logDir;
+
 	private org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	public CachedRandomSeekerImpl(LogTableRegistry tableRegistry, LogFileFetcher fetcher,
-			ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters) {
+			ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters, FilePath logDir) {
 		this.tableRegistry = tableRegistry;
 		this.fetcher = fetcher;
 		this.onlineWriters = onlineWriters;
 		this.onlineBuffers = new HashMap<OnlineWriterKey, List<Log>>();
 		this.cachedReaders = new HashMap<TabletKey, LogFileReader>();
+		this.logDir = logDir;
 	}
 
 	private List<Log> getLogsFromOnlineWriter(String tableName, int tableId, Date day, List<Long> ids, LogParserBuilder builder) {
@@ -70,7 +74,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 				onlineBuffers.put(onlineKey, buffer);
 			}
 		}
-		
+
 		LogParser parser = null;
 		if (builder != null) {
 			parser = builder.build();
@@ -112,7 +116,7 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		TabletKey key = new TabletKey(tableId, day);
 		LogFileReader reader = cachedReaders.get(key);
 		if (reader == null) {
-			reader = fetcher.fetch(tableName, day);
+			reader = fetcher.fetch(tableName, day, logDir);
 			cachedReaders.put(key, reader);
 		}
 		return reader;

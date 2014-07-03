@@ -29,8 +29,6 @@ import org.araqne.log.api.LogParserBuilder;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
 import org.araqne.logstorage.Log;
-import org.araqne.logstorage.LogMarshaler;
-import org.araqne.logstorage.LogMatchCallback;
 import org.araqne.logstorage.LogTraverseCallback;
 import org.araqne.logstorage.WrongTimeTypeException;
 import org.araqne.storage.api.FilePath;
