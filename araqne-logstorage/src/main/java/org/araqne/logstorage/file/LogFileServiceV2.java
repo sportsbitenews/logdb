@@ -44,7 +44,7 @@ public class LogFileServiceV2 implements LogFileService {
 
 		public Option(StorageConfig config, Map<String, String> tableMetadata, String tableName, FilePath indexPath,
 				FilePath dataPath, FilePath keyPath) {
-			this.put("storage_config", config);
+			this.put("storageConfig", config);
 			this.putAll(tableMetadata);
 			this.put(OPT_TABLE_NAME, tableName);
 			this.put(OPT_INDEX_PATH, indexPath);
