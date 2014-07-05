@@ -1,6 +1,7 @@
 package org.araqne.logdb.impl;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.Field;
 import org.araqne.logdb.query.expr.Floor;
 import org.araqne.logdb.query.expr.Guid;
+import org.araqne.logdb.query.expr.Hash;
 import org.araqne.logdb.query.expr.If;
 import org.araqne.logdb.query.expr.In;
 import org.araqne.logdb.query.expr.Ip2Long;
@@ -51,6 +53,7 @@ import org.araqne.logdb.query.expr.Seq;
 import org.araqne.logdb.query.expr.Split;
 import org.araqne.logdb.query.expr.StrJoin;
 import org.araqne.logdb.query.expr.Substr;
+import org.araqne.logdb.query.expr.ToBinary;
 import org.araqne.logdb.query.expr.ToDate;
 import org.araqne.logdb.query.expr.ToDouble;
 import org.araqne.logdb.query.expr.ToInt;
@@ -155,6 +158,8 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("valueof", ValueOf.class);
 			define("datetrunc", DateTrunc.class);
 			define("strjoin", StrJoin.class);
+			define("hash", Hash.class);
+			define("binary", ToBinary.class);
 		}
 
 		private void define(String name, Class<?> clazz) {
@@ -177,6 +182,11 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 				throw new QueryParseException("unsupported-function", -1, name);
 			try {
 				return (Expression) c.newInstance(ctx, exprs);
+			} catch (InvocationTargetException e) {
+				if (e.getTargetException() instanceof QueryParseException)
+					throw (QueryParseException) e.getTargetException();
+				else
+					throw new QueryParseException("cannot create function instance", -1, e.getTargetException().toString());
 			} catch (Throwable t) {
 				throw new QueryParseException("cannot create function instance", -1, t.toString());
 			}
