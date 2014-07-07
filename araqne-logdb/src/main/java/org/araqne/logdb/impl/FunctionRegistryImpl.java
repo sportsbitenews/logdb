@@ -1,3 +1,18 @@
+/**
+ * Copyright 2014 Eediom Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.araqne.logdb.impl;
 
 import java.lang.reflect.Constructor;
@@ -20,6 +35,7 @@ import org.araqne.logdb.query.expr.Array;
 import org.araqne.logdb.query.expr.Case;
 import org.araqne.logdb.query.expr.Ceil;
 import org.araqne.logdb.query.expr.Concat;
+import org.araqne.logdb.query.expr.Contains;
 import org.araqne.logdb.query.expr.ContextReference;
 import org.araqne.logdb.query.expr.DateAdd;
 import org.araqne.logdb.query.expr.DateDiff;
@@ -32,6 +48,7 @@ import org.araqne.logdb.query.expr.Guid;
 import org.araqne.logdb.query.expr.Hash;
 import org.araqne.logdb.query.expr.If;
 import org.araqne.logdb.query.expr.In;
+import org.araqne.logdb.query.expr.IndexOf;
 import org.araqne.logdb.query.expr.Ip2Long;
 import org.araqne.logdb.query.expr.IsNotNull;
 import org.araqne.logdb.query.expr.IsNull;
@@ -160,6 +177,8 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("strjoin", StrJoin.class);
 			define("hash", Hash.class);
 			define("binary", ToBinary.class);
+			define("indexof", IndexOf.class);
+			define("contains", Contains.class);
 		}
 
 		private void define(String name, Class<?> clazz) {

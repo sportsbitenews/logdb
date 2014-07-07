@@ -24,4 +24,5 @@
 	<instance component="logdb-query-status-notifier" />
 	<instance component="logdb-query-result-factory" />
 	<instance component="logdb-function-registry" />
+	<instance component="logdb-procedure-registry" />
 </ipojo>

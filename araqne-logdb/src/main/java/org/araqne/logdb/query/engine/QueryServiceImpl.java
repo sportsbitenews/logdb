@@ -41,11 +41,9 @@ import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.DefaultQuery;
 import org.araqne.logdb.FunctionRegistry;
-import org.araqne.logdb.QueryResultFactory;
-import org.araqne.logdb.QueryScriptRegistry;
-import org.araqne.logdb.QueryService;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.MetadataService;
+import org.araqne.logdb.ProcedureRegistry;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
@@ -63,7 +61,48 @@ import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
-import org.araqne.logdb.query.parser.*;
+import org.araqne.logdb.query.parser.BoxPlotParser;
+import org.araqne.logdb.query.parser.ConfdbParser;
+import org.araqne.logdb.query.parser.DropParser;
+import org.araqne.logdb.query.parser.EvalParser;
+import org.araqne.logdb.query.parser.EvalcParser;
+import org.araqne.logdb.query.parser.ExplodeParser;
+import org.araqne.logdb.query.parser.FieldsParser;
+import org.araqne.logdb.query.parser.ImportParser;
+import org.araqne.logdb.query.parser.InsertParser;
+import org.araqne.logdb.query.parser.JoinParser;
+import org.araqne.logdb.query.parser.JsonFileParser;
+import org.araqne.logdb.query.parser.JsonParser;
+import org.araqne.logdb.query.parser.LimitParser;
+import org.araqne.logdb.query.parser.LoadParser;
+import org.araqne.logdb.query.parser.LogCheckParser;
+import org.araqne.logdb.query.parser.LogdbParser;
+import org.araqne.logdb.query.parser.LoggerParser;
+import org.araqne.logdb.query.parser.LookupParser;
+import org.araqne.logdb.query.parser.MvParser;
+import org.araqne.logdb.query.parser.OutputCsvParser;
+import org.araqne.logdb.query.parser.OutputJsonParser;
+import org.araqne.logdb.query.parser.OutputTxtParser;
+import org.araqne.logdb.query.parser.ParseCsvParser;
+import org.araqne.logdb.query.parser.ParseJsonParser;
+import org.araqne.logdb.query.parser.ParseKvParser;
+import org.araqne.logdb.query.parser.ParseParser;
+import org.araqne.logdb.query.parser.ProcParser;
+import org.araqne.logdb.query.parser.PurgeParser;
+import org.araqne.logdb.query.parser.RenameParser;
+import org.araqne.logdb.query.parser.RexParser;
+import org.araqne.logdb.query.parser.ScriptParser;
+import org.araqne.logdb.query.parser.SearchParser;
+import org.araqne.logdb.query.parser.SetParser;
+import org.araqne.logdb.query.parser.SignatureParser;
+import org.araqne.logdb.query.parser.SortParser;
+import org.araqne.logdb.query.parser.StatsParser;
+import org.araqne.logdb.query.parser.TableParser;
+import org.araqne.logdb.query.parser.TextFileParser;
+import org.araqne.logdb.query.parser.TimechartParser;
+import org.araqne.logdb.query.parser.TransactionParser;
+import org.araqne.logdb.query.parser.UnionParser;
+import org.araqne.logdb.query.parser.ZipFileParser;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
@@ -126,6 +165,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	@Requires
 	private FunctionRegistry functionRegistry;
+
+	@Requires
+	private ProcedureRegistry procedureRegistry;
 
 	private BundleContext bc;
 	private ConcurrentMap<Integer, Query> queries;
@@ -192,6 +234,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new ConfdbParser(conf));
 		parsers.add(new InsertParser(storage));
 		parsers.add(new ParseCsvParser());
+		parsers.add(new ProcParser(accountService, queryParserService, procedureRegistry));
 		if (allowQueryPurge)
 			parsers.add(new PurgeParser(storage, tableRegistry));
 

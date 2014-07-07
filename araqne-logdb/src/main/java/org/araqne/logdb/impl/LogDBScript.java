@@ -17,6 +17,7 @@ package org.araqne.logdb.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.api.PathAutoCompleter;
@@ -28,11 +29,14 @@ import org.araqne.logdb.Account;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.CsvLookupRegistry;
 import org.araqne.logdb.ExternalAuthService;
+import org.araqne.logdb.LookupHandlerRegistry;
+import org.araqne.logdb.Procedure;
+import org.araqne.logdb.ProcedureRegistry;
+import org.araqne.logdb.ProcedureVariable;
+import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryScriptFactory;
 import org.araqne.logdb.QueryScriptRegistry;
 import org.araqne.logdb.QueryService;
-import org.araqne.logdb.LookupHandlerRegistry;
-import org.araqne.logdb.Query;
 import org.araqne.logdb.SavedResult;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
@@ -45,15 +49,18 @@ public class LogDBScript implements Script {
 	private LookupHandlerRegistry lookup;
 	private AccountService accountService;
 	private SavedResultManager savedResultManager;
+	private ProcedureRegistry procedureRegistry;
 
 	public LogDBScript(QueryService qs, QueryScriptRegistry scriptRegistry, LookupHandlerRegistry lookup,
-			CsvLookupRegistry csvRegistry, AccountService accountService, SavedResultManager savedResultManager) {
+			CsvLookupRegistry csvRegistry, AccountService accountService, SavedResultManager savedResultManager,
+			ProcedureRegistry procedureRegistry) {
 		this.qs = qs;
 		this.scriptRegistry = scriptRegistry;
 		this.lookup = lookup;
 		this.csvRegistry = csvRegistry;
 		this.accountService = accountService;
 		this.savedResultManager = savedResultManager;
+		this.procedureRegistry = procedureRegistry;
 	}
 
 	@Override
@@ -258,12 +265,83 @@ public class LogDBScript implements Script {
 
 		context.println("total " + savedResults.size() + " results");
 	}
-	
+
 	public void instanceGuid(String[] args) {
 		context.println(accountService.getInstanceGuid());
 	}
-	
+
 	public void setInstanceGuid(String[] args) {
 		accountService.setInstanceGuid(args[0]);
+	}
+
+	public void procedures(String[] args) {
+		context.println("Procedures");
+		context.println("------------");
+
+		for (Procedure p : procedureRegistry.getProcedures()) {
+			context.println(p.getName() + ", owner=" + p.getOwner() + ", " + p.getVariables());
+		}
+	}
+
+	@ScriptUsage(description = "print procedure details", arguments = { @ScriptArgument(name = "name", type = "string", description = "procedure name") })
+	public void procedure(String[] args) {
+		Procedure p = procedureRegistry.getProcedure(args[0]);
+		if (p == null) {
+			context.println("procedure not found");
+			return;
+		}
+
+		context.println(p);
+	}
+
+	public void createProcedure(String[] args) {
+		try {
+			Procedure proc = new Procedure();
+
+			proc.setName(readLine("name"));
+			proc.setOwner(readLine("owner"));
+			proc.setQueryString(readLine("query"));
+
+			List<ProcedureVariable> variables = new ArrayList<ProcedureVariable>();
+			context.println("type variable definitions in \"type name\" format. e.g. \"string opt\"");
+			while (true) {
+				context.print("variable? ");
+				String line = context.readLine();
+				if (line.isEmpty())
+					break;
+
+				int p = line.indexOf(" ");
+				String type = line.substring(0, p).trim();
+				String key = line.substring(p + 1).trim();
+
+				variables.add(new ProcedureVariable(key, type));
+			}
+
+			proc.setVariables(variables);
+
+			procedureRegistry.createProcedure(proc);
+			context.println("created");
+		} catch (InterruptedException e) {
+			context.println("");
+			context.println("interrupted");
+		}
+	}
+
+	private String readLine(String prompt) throws InterruptedException {
+		context.print(prompt + "? ");
+		return context.readLine();
+	}
+
+	@ScriptUsage(description = "remove procedure", arguments = { @ScriptArgument(name = "procedure name", type = "string", description = "procedure name") })
+	public void removeProcedure(String[] args) {
+		String name = args[0];
+		Procedure p = procedureRegistry.getProcedure(name);
+		if (p == null) {
+			context.println("procedure not found: " + name);
+			return;
+		}
+
+		procedureRegistry.removeProcedure(name);
+		context.println("removed");
 	}
 }

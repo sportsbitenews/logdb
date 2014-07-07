@@ -18,11 +18,10 @@ package org.araqne.logdb.query.engine;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.QueryCancelException;
-import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.QueryTaskEvent;
 import org.araqne.logdb.QueryTaskListener;
-import org.araqne.logdb.QueryTask.TaskStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
