@@ -2,7 +2,7 @@ package org.araqne.logdb;
 
 import org.araqne.api.FieldOption;
 
-public class ProcedureVariable {
+public class ProcedureParameter {
 	@FieldOption(nullable = false)
 	private String key;
 
@@ -20,10 +20,10 @@ public class ProcedureVariable {
 	@FieldOption(nullable = true)
 	private String description;
 
-	public ProcedureVariable() {
+	public ProcedureParameter() {
 	}
 
-	public ProcedureVariable(String key, String type) {
+	public ProcedureParameter(String key, String type) {
 		this.key = key;
 		this.type = type;
 	}
@@ -62,7 +62,7 @@ public class ProcedureVariable {
 
 	@Override
 	public String toString() {
-		return "var " + type + " " + key;
+		return type + " " + key;
 	}
 
 }

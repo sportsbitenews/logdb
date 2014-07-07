@@ -28,7 +28,7 @@ import org.araqne.logdb.FunctionFactory;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.Procedure;
 import org.araqne.logdb.ProcedureRegistry;
-import org.araqne.logdb.ProcedureVariable;
+import org.araqne.logdb.ProcedureParameter;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
@@ -71,7 +71,7 @@ public class ProcParser extends AbstractQueryCommandParser {
 
 		// parameter validation
 		int i = 0;
-		for (ProcedureVariable var : procedure.getVariables()) {
+		for (ProcedureParameter var : procedure.getParameters()) {
 			Object param = params.get(i++);
 			if (var.getType().equals("string") && param != null && !(param instanceof String)) {
 				throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
@@ -91,12 +91,12 @@ public class ProcParser extends AbstractQueryCommandParser {
 
 		QueryContext procCtx = new QueryContext(new DummySession(account));
 
-		if (procedure.getVariables().size() != procFunc.exprs.size())
+		if (procedure.getParameters().size() != procFunc.exprs.size())
 			throw new QueryParseException("procedure-parameter-mismatch", -1);
 
 		i = 0;
 		for (Object param : params) {
-			ProcedureVariable v = procedure.getVariables().get(i++);
+			ProcedureParameter v = procedure.getParameters().get(i++);
 			procCtx.getConstants().put(v.getKey(), param);
 		}
 

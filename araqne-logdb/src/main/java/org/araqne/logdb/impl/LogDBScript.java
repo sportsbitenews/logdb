@@ -32,7 +32,7 @@ import org.araqne.logdb.ExternalAuthService;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.Procedure;
 import org.araqne.logdb.ProcedureRegistry;
-import org.araqne.logdb.ProcedureVariable;
+import org.araqne.logdb.ProcedureParameter;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryScriptFactory;
 import org.araqne.logdb.QueryScriptRegistry;
@@ -279,7 +279,16 @@ public class LogDBScript implements Script {
 		context.println("------------");
 
 		for (Procedure p : procedureRegistry.getProcedures()) {
-			context.println(p.getName() + ", owner=" + p.getOwner() + ", " + p.getVariables());
+			int i = 0;
+			String signature = p.getName() + "(";
+			for (ProcedureParameter param : p.getParameters()) {
+				if (i++ != 0)
+					signature += ", ";
+				signature += param;
+			}
+			signature += ")";
+
+			context.println(signature + ", owner=" + p.getOwner());
 		}
 	}
 
@@ -302,10 +311,10 @@ public class LogDBScript implements Script {
 			proc.setOwner(readLine("owner"));
 			proc.setQueryString(readLine("query"));
 
-			List<ProcedureVariable> variables = new ArrayList<ProcedureVariable>();
-			context.println("type variable definitions in \"type name\" format. e.g. \"string opt\"");
+			List<ProcedureParameter> parameters = new ArrayList<ProcedureParameter>();
+			context.println("Type parameter definitions in \"type name\" format. e.g. \"string opt\", press enter to end.");
 			while (true) {
-				context.print("variable? ");
+				context.print("parameter? ");
 				String line = context.readLine();
 				if (line.isEmpty())
 					break;
@@ -314,10 +323,10 @@ public class LogDBScript implements Script {
 				String type = line.substring(0, p).trim();
 				String key = line.substring(p + 1).trim();
 
-				variables.add(new ProcedureVariable(key, type));
+				parameters.add(new ProcedureParameter(key, type));
 			}
 
-			proc.setVariables(variables);
+			proc.setParameters(parameters);
 
 			procedureRegistry.createProcedure(proc);
 			context.println("created");

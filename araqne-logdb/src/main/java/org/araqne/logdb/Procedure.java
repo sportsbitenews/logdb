@@ -1,6 +1,7 @@
 package org.araqne.logdb;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -17,10 +18,10 @@ public class Procedure {
 	private String owner;
 
 	@CollectionTypeHint(String.class)
-	private List<String> grants;
+	private List<String> grants = new ArrayList<String>();
 
-	@CollectionTypeHint(ProcedureVariable.class)
-	private List<ProcedureVariable> variables;
+	@CollectionTypeHint(ProcedureParameter.class)
+	private List<ProcedureParameter> parameters = new ArrayList<ProcedureParameter>();
 
 	@FieldOption(nullable = false)
 	private String queryString;
@@ -55,12 +56,12 @@ public class Procedure {
 		this.grants = grants;
 	}
 
-	public List<ProcedureVariable> getVariables() {
-		return variables;
+	public List<ProcedureParameter> getParameters() {
+		return parameters;
 	}
 
-	public void setVariables(List<ProcedureVariable> variables) {
-		this.variables = variables;
+	public void setParameters(List<ProcedureParameter> parameters) {
+		this.parameters = parameters;
 	}
 
 	public String getQueryString() {
@@ -90,7 +91,7 @@ public class Procedure {
 	@Override
 	public String toString() {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		return "name=" + name + ", variables=" + variables + ", queryString=" + queryString + ", created=" + df.format(created)
+		return "name=" + name + ", parameters=" + parameters + ", query=" + queryString + ", created=" + df.format(created)
 				+ ", modified=" + df.format(modified) + ", owner=" + owner + ", grants=" + grants;
 	}
 
