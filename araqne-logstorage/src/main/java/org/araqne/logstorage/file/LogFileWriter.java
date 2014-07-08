@@ -20,8 +20,6 @@ import java.util.Date;
 import java.util.List;
 
 import org.araqne.logstorage.Log;
-import org.araqne.logstorage.LogFlushCallback;
-import org.araqne.logstorage.LogFlushCallbackArgs;
 
 public abstract class LogFileWriter {
 	/**

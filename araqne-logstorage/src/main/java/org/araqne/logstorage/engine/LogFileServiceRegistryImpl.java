@@ -73,7 +73,6 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	private void loadEngineList() throws FileNotFoundException, UnsupportedEncodingException, IOException {
 		File f = getEngineListFile();
 		if (!f.exists()) {
-			availableEngines.put("v1", new WaitEvent("v1"));
 			availableEngines.put("v2", new WaitEvent("v2"));
 			return;
 		}

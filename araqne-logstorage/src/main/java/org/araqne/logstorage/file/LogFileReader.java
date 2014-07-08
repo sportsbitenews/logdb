@@ -34,36 +34,53 @@ import org.araqne.logstorage.WrongTimeTypeException;
 import org.araqne.storage.api.FilePath;
 
 public abstract class LogFileReader {
-	@Deprecated
-	public static LogFileReader getLogFileReader(String tableName, FilePath indexPath, FilePath dataPath) 
-            throws InvalidLogFileHeaderException, IOException {
-		LogFileReader reader = null;
-		BufferedStorageInputStream indexHeaderReader = null;
-		BufferedStorageInputStream dataHeaderReader = null;
+	public abstract void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
+			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException;
 
-		try {
-			indexHeaderReader = new BufferedStorageInputStream(indexPath);
-			dataHeaderReader = new BufferedStorageInputStream(dataPath);
-			LogFileHeader indexHeader = LogFileHeader.extractHeader(indexHeaderReader);
-			LogFileHeader dataHeader = LogFileHeader.extractHeader(dataHeaderReader);
+	public abstract LogRecordCursor getCursor() throws IOException;
 
-			if (indexHeader.version() != dataHeader.version())
-				throw new InvalidLogFileHeaderException("different log version index and data file");
+	public abstract LogRecordCursor getCursor(boolean ascending) throws IOException;
 
-			if (indexHeader.version() == 1)
-				reader = new LogFileReaderV1(tableName, indexPath, dataPath);
-			else if (indexHeader.version() == 2)
-				reader = new LogFileReaderV2(tableName, indexPath, dataPath);
-			else
-				throw new InvalidLogFileHeaderException("unsupported log version");
-		} finally {
-			if (indexHeaderReader != null)
-				indexHeaderReader.close();
-			if (dataHeaderReader != null)
-				dataHeaderReader.close();
+	/**
+	 * @since 2.2.0
+	 */
+	public abstract LogBlockCursor getBlockCursor() throws IOException;
+
+	/**
+	 * @since 2.x
+	 */
+	public abstract FilePath getIndexPath();
+
+	/**
+	 * @since 2.x
+	 */
+	public abstract FilePath getDataPath();
+
+	public abstract List<Log> find(Date from, Date to, List<Long> ids, LogParserBuilder builder);
+
+	public abstract void close();
+
+	public static List<Log> parse(String tableName, LogParser parser, Log log) throws LogParserBugException {
+		if (parser != null) {
+			if (parser != null && parser.getVersion() == 2) {
+				return parseV2(parser, log);
+			} else {
+				List<Log> ret = new ArrayList<Log>(1);
+				ret.add(parseV1(parser, log));
+				return ret;
+			}
+		} else {
+			// can be unmodifiableMap when it comes from memory
+			// buffer.
+			Map<String, Object> m = new HashMap<String, Object>(log.getData());
+			m.put("_table", tableName);
+			m.put("_id", log.getId());
+			m.put("_time", log.getDate());
+
+			List<Log> ret = new ArrayList<Log>(1);
+			ret.add(new Log(tableName, log.getDate(), log.getDay(), log.getId(), m));
+			return ret;
 		}
-
-		return reader;
 	}
 
 	private static Log parseV1(LogParser parser, Log log) throws LogParserBugException {
@@ -150,53 +167,4 @@ public abstract class LogFileReader {
 		}
 
 	}
-
-	public static List<Log> parse(String tableName, LogParser parser, Log log) throws LogParserBugException {
-		if (parser != null) {
-			if (parser != null && parser.getVersion() == 2) {
-				return parseV2(parser, log);
-			} else {
-				List<Log> ret = new ArrayList<Log>(1);
-				ret.add(parseV1(parser, log));
-				return ret;
-			}
-		} else {
-			// can be unmodifiableMap when it comes from memory
-			// buffer.
-			Map<String, Object> m = new HashMap<String, Object>(log.getData());
-			m.put("_table", tableName);
-			m.put("_id", log.getId());
-			m.put("_time", log.getDate());
-
-			List<Log> ret = new ArrayList<Log>(1);
-			ret.add(new Log(tableName, log.getDate(), log.getDay(), log.getId(), m));
-			return ret;
-		}
-	}
-
-	public abstract List<Log> find(Date from, Date to, List<Long> ids, LogParserBuilder builder);
-
-	public abstract void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
-			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException;
-
-	public abstract LogRecordCursor getCursor() throws IOException;
-
-	public abstract LogRecordCursor getCursor(boolean ascending) throws IOException;
-
-	/**
-	 * @since 2.2.0
-	 */
-	public abstract LogBlockCursor getBlockCursor() throws IOException;
-
-	/**
-	 * @since 2.x
-	 */
-	public abstract FilePath getIndexPath();
-
-	/**
-	 * @since 2.x
-	 */
-	public abstract FilePath getDataPath();
-
-	public abstract void close();
 }
