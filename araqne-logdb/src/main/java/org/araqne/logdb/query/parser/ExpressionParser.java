@@ -15,7 +15,12 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
+import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Stack;
 
@@ -48,11 +53,146 @@ public class ExpressionParser {
 
 		return s;
 	}
+	
+	// http://lexsrv3.nlm.nih.gov/LexSysGroup/Projects/lvg/current/docs/designDoc/UDF/unicode/DefaultTables/symbolTable.html
+	private static String[] UniToAsciiMap;
+	static {
+		UniToAsciiMap = new String[65536];
+		String map = "\\u00AB	\"\n" + 
+				"\\u00AD	-\n" + 
+				"\\u00B4	'\n" + 
+				"\\u00BB	\"\n" + 
+				"\\u00F7	/\n" + 
+				"\\u01C0	|\n" + 
+				"\\u01C3	!\n" + 
+				"\\u02B9	'\n" + 
+				"\\u02BA	\"\n" + 
+				"\\u02BC	'\n" + 
+				"\\u02C4	^\n" + 
+				"\\u02C6	^\n" + 
+				"\\u02C8	'\n" + 
+				"\\u02CB	`\n" + 
+				"\\u02CD	_\n" + 
+				"\\u02DC	~\n" + 
+				"\\u0300	`\n" + 
+				"\\u0301	'\n" + 
+				"\\u0302	^\n" + 
+				"\\u0303	~\n" + 
+				"\\u030B	\"\n" + 
+				"\\u030E	\"\n" + 
+				"\\u0331	_\n" + 
+				"\\u0332	_\n" + 
+				"\\u0338	/\n" + 
+				"\\u0589	:\n" + 
+				"\\u05C0	|\n" + 
+				"\\u05C3	:\n" + 
+				"\\u066A	%\n" + 
+				"\\u066D	*\n" + 
+				"\\u200B	 \n" + 
+				"\\u2010	-\n" + 
+				"\\u2011	-\n" + 
+				"\\u2012	-\n" + 
+				"\\u2013	-\n" + 
+				"\\u2014	-\n" + 
+				"\\u2015	--\n" + 
+				"\\u2016	||\n" + 
+				"\\u2017	_\n" + 
+				"\\u2018	'\n" + 
+				"\\u2019	'\n" + 
+				"\\u201A	,\n" + 
+				"\\u201B	'\n" + 
+				"\\u201C	\"\n" + 
+				"\\u201D	\"\n" + 
+				"\\u201E	\"\n" + 
+				"\\u201F	\"\n" + 
+				"\\u2032	'\n" + 
+				"\\u2033	\"\n" + 
+				"\\u2034	'''\n" + 
+				"\\u2035	`\n" + 
+				"\\u2036	\"\n" + 
+				"\\u2037	'''\n" + 
+				"\\u2038	^\n" + 
+				"\\u2039	<\n" + 
+				"\\u203A	>\n" + 
+				"\\u203D	?\n" + 
+				"\\u2044	/\n" + 
+				"\\u204E	*\n" + 
+				"\\u2052	%\n" + 
+				"\\u2053	~\n" + 
+				"\\u2060	 \n" + 
+				"\\u20E5	\\\n" + 
+				"\\u2212	-\n" + 
+				"\\u2215	/\n" + 
+				"\\u2216	\\\n" + 
+				"\\u2217	*\n" + 
+				"\\u2223	|\n" + 
+				"\\u2236	:\n" + 
+				"\\u223C	~\n" + 
+				"\\u2264	<=\n" + 
+				"\\u2265	>=\n" + 
+				"\\u2266	<=\n" + 
+				"\\u2267	>=\n" + 
+				"\\u2303	^\n" + 
+				"\\u2329	<\n" + 
+				"\\u232A	>\n" + 
+				"\\u266F	#\n" + 
+				"\\u2731	*\n" + 
+				"\\u2758	|\n" + 
+				"\\u2762	!\n" + 
+				"\\u27E6	[\n" + 
+				"\\u27E8	<\n" + 
+				"\\u27E9	>\n" + 
+				"\\u2983	{\n" + 
+				"\\u2984	}\n" + 
+				"\\u3003	\"\n" + 
+				"\\u3008	<\n" + 
+				"\\u3009	>\n" + 
+				"\\u301B	]\n" + 
+				"\\u301C	~\n" + 
+				"\\u301D	\"\n" + 
+				"\\u301E	\"\n" + 
+				"\\uFEFF	 \n";
+		
+		BufferedReader reader = new BufferedReader(new StringReader(map));
+		String line = null;
+		try {
+			while ((line = reader.readLine()) != null) {
+				String[] split = line.split("\t");
+				char s1 = Character.valueOf((char) Integer.parseInt(split[0].substring(2), 16));
+				String s2 = split.length > 1 ? split[1] : " ";
+				UniToAsciiMap[s1] = s2;
+			}
+		} catch (IOException e) {
+			System.out.println(e);
+		}
+		
+		
+	}
+	
+	private static String normalizeQueryStr(String s) {
+		StringBuffer ret = new StringBuffer(s.length());
+		for (int i = 0; i < s.length(); ++i) {
+			char c = s.charAt(i);
+			if (c < 0x128 || c >= 0xffff)
+				ret.append(c);
+			else {
+				String replacement = UniToAsciiMap[c];
+				if (replacement == null)
+					ret.append(c);
+				else
+					ret.append(replacement);
+			}
+		}
+		return ret.toString();
+	}
+	
 
 	public static Expression parse(QueryContext context, String s, ParsingRule r) {
 		if (s == null)
 			throw new IllegalArgumentException("expression string should not be null");
 
+		s = Normalizer.normalize(s, Normalizer.Form.NFC);
+		s = normalizeQueryStr(s);
 		s = s.replaceAll("\t", "    ");
 		s = s.replaceAll("\n", " ");
 		s = s.replaceAll("\r", " ");
