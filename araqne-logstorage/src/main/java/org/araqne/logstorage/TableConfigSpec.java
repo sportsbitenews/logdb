@@ -32,6 +32,11 @@ public class TableConfigSpec {
 	private Map<Locale, String> descriptions;
 	private TableConfigValidator validator;
 
+	/**
+	 * @since 2.8.7
+	 */
+	private String enums;
+
 	public Type getType() {
 		return type;
 	}
@@ -86,6 +91,21 @@ public class TableConfigSpec {
 
 	public void setValidator(TableConfigValidator validator) {
 		this.validator = validator;
+	}
+
+	/**
+	 * @return available strings for ui combobox
+	 * @since 2.8.7
+	 */
+	public String getEnums() {
+		return enums;
+	}
+
+	/**
+	 * @since 2.8.7
+	 */
+	public void setEnums(String enums) {
+		this.enums = enums;
 	}
 
 	public static Map<Locale, String> locales(String en, String ko) {

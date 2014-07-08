@@ -16,7 +16,6 @@
 package org.araqne.logdb.msgbus;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -25,6 +24,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -36,11 +36,14 @@ import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
 import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.logstorage.LogCryptoProfileRegistry;
+import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.StorageConfig;
+import org.araqne.logstorage.TableConfig;
+import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.logstorage.TableSchema;
-import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.msgbus.MessageBus;
 import org.araqne.msgbus.MsgbusException;
 import org.araqne.msgbus.Request;
@@ -67,6 +70,9 @@ public class ManagementPlugin {
 
 	@Requires
 	private LogStorage storage;
+
+	@Requires
+	private LogFileServiceRegistry lfsRegistry;
 
 	@Requires
 	private LogCryptoProfileRegistry logCryptoProfileRegistry;
@@ -149,7 +155,7 @@ public class ManagementPlugin {
 	public void getInstanceGuid(Request req, Response resp) {
 		resp.put("instance_guid", accountService.getInstanceGuid());
 	}
-	
+
 	private List<Object> serialize(List<Privilege> privileges) {
 		List<Object> l = new ArrayList<Object>();
 		for (Privilege p : privileges)
@@ -376,22 +382,55 @@ public class ManagementPlugin {
 			throw new MsgbusException("logdb", "no-permission");
 	}
 
+	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void createTable(Request req, Response resp) {
 		ensureAdminSession(req);
 		String tableName = req.getString("table", true);
+		String engineType = req.getString("type", true);
+		String basePath = req.getString("base_path");
+		Map<String, String> primaryConfigs = (Map<String, String>) req.get("primary_configs");
+		if (primaryConfigs == null)
+			primaryConfigs = new HashMap<String, String>();
 
-		@SuppressWarnings("unchecked")
+		Map<String, String> replicaConfigs = (Map<String, String>) req.get("replica_configs");
+		if (replicaConfigs == null)
+			replicaConfigs = new HashMap<String, String>();
+		
 		Map<String, String> metadata = (Map<String, String>) req.get("metadata");
-		try {
-			TableSchema schema = new TableSchema(tableName, new StorageConfig("v3p"));
-			schema.setMetadata(metadata);
-			storage.createTable(schema);
-		} catch (UnsupportedLogFileTypeException e) {
-			TableSchema schema = new TableSchema(tableName, new StorageConfig("v2"));
-			schema.setMetadata(metadata);
-			storage.createTable(schema);
+
+		LogFileService lfs = lfsRegistry.getLogFileService(engineType);
+
+		StorageConfig primaryStorage = new StorageConfig(engineType, basePath);
+		for (TableConfigSpec spec : lfs.getConfigSpecs()) {
+			String value = primaryConfigs.get(spec.getKey());
+
+			if (value != null) {
+				if (spec.getValidator() != null)
+					spec.getValidator().validate(spec.getKey(), Arrays.asList(value));
+
+				primaryStorage.getConfigs().add(new TableConfig(spec.getKey(), value));
+			} else if (!spec.isOptional())
+				throw new MsgbusException("logdb", "table-config-missing");
 		}
+
+		// TODO check replica storage initiation
+		StorageConfig replicaStorage = primaryStorage.clone();
+		for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
+			String value = replicaConfigs.get(spec.getKey());
+
+			if (value != null) {
+				if (spec.getValidator() != null)
+					spec.getValidator().validate(spec.getKey(), Arrays.asList(value));
+
+				replicaStorage.getConfigs().add(new TableConfig(spec.getKey(), value));
+			} else if (!spec.isOptional())
+				throw new MsgbusException("logdb", "table-config-missing");
+		}
+
+		TableSchema schema = new TableSchema(tableName, new StorageConfig("v3p"));
+		schema.setMetadata(metadata);
+		storage.createTable(schema);
 	}
 
 	@MsgbusMethod
@@ -528,4 +567,60 @@ public class ManagementPlugin {
 		uploadDataHandler.loadTextFile(storage, req, resp);
 	}
 
+	@MsgbusMethod
+	public void getStorageEngines(Request req, Response resp) {
+		Locale locale = req.getSession().getLocale();
+		String s = req.getString("locale");
+		if (s != null)
+			locale = new Locale(s);
+
+		List<Object> engines = new ArrayList<Object>();
+
+		for (String type : lfsRegistry.getInstalledTypes()) {
+			// prevent hang
+			if (type.equals("v1"))
+				continue;
+				
+			LogFileService lfs = lfsRegistry.getLogFileService(type);
+
+			Map<String, Object> engine = new HashMap<String, Object>();
+			engine.put("type", type);
+
+			List<Object> primarySpecs = new ArrayList<Object>();
+			for (TableConfigSpec spec : lfs.getConfigSpecs())
+				primarySpecs.add(marshal(spec, locale));
+
+			List<Object> replicaSpecs = new ArrayList<Object>();
+			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs())
+				replicaSpecs.add(marshal(spec, locale));
+
+			engine.put("primary_config_specs", primarySpecs);
+			engine.put("replica_config_specs", replicaSpecs);
+
+			engines.add(engine);
+		}
+
+		resp.put("engines", engines);
+	}
+
+	private Map<String, Object> marshal(TableConfigSpec spec, Locale locale) {
+		String displayName = spec.getDisplayNames().get(locale);
+		if (displayName == null)
+			displayName = spec.getDisplayNames().get(Locale.ENGLISH);
+
+		String description = spec.getDescriptions().get(locale);
+		if (description == null)
+			description = spec.getDescriptions().get(Locale.ENGLISH);
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("type", spec.getType().toString().toLowerCase());
+		m.put("key", spec.getKey());
+		m.put("optional", spec.isOptional());
+		m.put("updatable", spec.isUpdatable());
+		m.put("display_name", displayName);
+		m.put("description", description);
+		m.put("enums", spec.getEnums());
+
+		return m;
+	}
 }
