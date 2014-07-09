@@ -90,7 +90,7 @@ public class GzipDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				"ログの終わりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)",
 				"用于识别日志结束位置地正则表达式(如没有匹配项，则合并到之前日志)"), false);
 
-		LoggerConfigOption charset = new StringConfigType("charset", t("Charset", "문자 집합", "文字セット", "日志结束正则表达式"),
+		LoggerConfigOption charset = new StringConfigType("charset", t("Charset", "문자 집합", "文字セット", "字符集"),
 				t("charset encoding",
 				"gzip 압축 해제된 텍스트 파일의 문자 인코딩 방식", 
 				"gzipから解凍されたテキストファイルの文字エンコーディング方式",

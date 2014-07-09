@@ -76,8 +76,8 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름", "元ロガー名","源数据采集器"), t(
 				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名","包含命名空间的源数据采集器名称"), true);
-		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Regex pattern", "정규표현식 패턴", "正規表現パターン","正则表达式模式"), t(
-				"Regex pattern to match", "매칭할 정규표현식", "マッチングする正規表現", "要匹配的正则表达式"), true);
+		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Regex pattern", "정규표현식 패턴", "正規表現パターン","正则表达式"), t(
+				"Regex pattern to match", "매칭할 정규표현식", "マッチングする正規表現", "输入用于匹配数据的正则表达式"), true);
 		LoggerConfigOption invert = new StringConfigType(OPT_INVERT, t("Invert match", "매칭 결과 반전", "結果反転","返回匹配结果"), t(
 				"Invert pattern match result", "정규표현식 매칭 결과 반전", "正規表現マッチング結果を反転します。", "返回正则表达式匹配结果"), false);
 		return Arrays.asList(loggerName, pattern, invert);

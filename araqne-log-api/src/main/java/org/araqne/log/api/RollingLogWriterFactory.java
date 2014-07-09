@@ -77,8 +77,8 @@ public class RollingLogWriterFactory extends AbstractLoggerFactory implements Ru
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "元ロガー名", "原始数据采集器"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的原始Logger名称"), true);
+		LoggerConfigOption loggerName = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "元ロガー名", "源数据采集器"), t(
+				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的源数据采集器名称"), true);
 		LoggerConfigOption filePath = new StringConfigType("file_path", t("file path", "파일 경로", "ファイル経路","文件路径"), t("rolling file path",
 				"롤링되는 파일 경로", "ローリングされるファイル経路","轮询的文件路径"), true);
 		LoggerConfigOption maxFileSize = new StringConfigType("max_file_size", t("max file size", "최대 파일 크기", "最大ファイルサイズ", "最大文件大小"), t(
