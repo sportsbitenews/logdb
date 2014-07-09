@@ -40,10 +40,14 @@ import org.araqne.logdb.query.expr.ContextReference;
 import org.araqne.logdb.query.expr.DateAdd;
 import org.araqne.logdb.query.expr.DateDiff;
 import org.araqne.logdb.query.expr.DateTrunc;
+import org.araqne.logdb.query.expr.Decode;
+import org.araqne.logdb.query.expr.Decrypt;
+import org.araqne.logdb.query.expr.Encrypt;
 import org.araqne.logdb.query.expr.Epoch;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.Field;
 import org.araqne.logdb.query.expr.Floor;
+import org.araqne.logdb.query.expr.FromBase64;
 import org.araqne.logdb.query.expr.Guid;
 import org.araqne.logdb.query.expr.Hash;
 import org.araqne.logdb.query.expr.If;
@@ -64,12 +68,15 @@ import org.araqne.logdb.query.expr.Max;
 import org.araqne.logdb.query.expr.Min;
 import org.araqne.logdb.query.expr.Network;
 import org.araqne.logdb.query.expr.Now;
+import org.araqne.logdb.query.expr.Rand;
+import org.araqne.logdb.query.expr.RandBytes;
 import org.araqne.logdb.query.expr.Right;
 import org.araqne.logdb.query.expr.Round;
 import org.araqne.logdb.query.expr.Seq;
 import org.araqne.logdb.query.expr.Split;
 import org.araqne.logdb.query.expr.StrJoin;
 import org.araqne.logdb.query.expr.Substr;
+import org.araqne.logdb.query.expr.ToBase64;
 import org.araqne.logdb.query.expr.ToBinary;
 import org.araqne.logdb.query.expr.ToDate;
 import org.araqne.logdb.query.expr.ToDouble;
@@ -177,8 +184,16 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("strjoin", StrJoin.class);
 			define("hash", Hash.class);
 			define("binary", ToBinary.class);
+			define("encode", ToBinary.class);
+			define("decode", Decode.class);
 			define("indexof", IndexOf.class);
 			define("contains", Contains.class);
+			define("rand", Rand.class);
+			define("randbytes", RandBytes.class);
+			define("frombase64", FromBase64.class);
+			define("tobase64", ToBase64.class);
+			define("encrypt", Encrypt.class);
+			define("decrypt", Decrypt.class);
 		}
 
 		private void define(String name, Class<?> clazz) {
