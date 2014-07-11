@@ -79,7 +79,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 						break;
 					long startedAt = System.currentTimeMillis();
 					runOnce();
-					updateConfig(config);
+					updateConfigs(config);
 					long elapsed = System.currentTimeMillis() - startedAt;
 					lastRunDate = new Date();
 					if (interval - elapsed < 0)
@@ -290,7 +290,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public void updateConfig(Map<String, String> config) {
+	public void updateConfigs(Map<String, String> config) {
 		for (LoggerEventListener callback : listeners) {
 			try {
 				callback.onUpdated(this, config);

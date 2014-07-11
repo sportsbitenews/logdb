@@ -51,6 +51,7 @@ import org.araqne.log.api.LoggerFactoryRegistry;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStopReason;
+import org.araqne.log.api.Mutable;
 import org.araqne.log.api.WildcardMatcher;
 
 import com.bethecoder.ascii_table.ASCIITable;
@@ -744,6 +745,37 @@ public class LogApiScript implements Script {
 		}
 	}
 
+	@ScriptUsage(description = "update logger config", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname", autocompletion = LoggerAutoCompleter.class) })
+	public void updateLogger(String[] args) {
+		try {
+			String loggerFullName = args[0];
+			Logger logger = loggerRegistry.getLogger(loggerFullName);
+			if (logger == null) {
+				context.println("logger not found");
+				return;
+			}
+
+			if (logger.isRunning()) {
+				context.println("logger is running");
+				return;
+			}
+
+			LoggerFactory loggerFactory = loggerFactoryRegistry.getLoggerFactory(logger.getFactoryName());
+			Map<String, String> configs = logger.getConfigs();
+			for (LoggerConfigOption type : loggerFactory.getConfigOptions()) {
+				if (type instanceof Mutable)
+					setOption(configs, type, configs.get(type.getName()));
+			}
+			logger.updateConfigs(configs);
+			context.println("logger updated: " + logger.toString());
+		} catch (InterruptedException e) {
+			context.println("interrupted");
+		} catch (Exception e) {
+			context.println(e.getMessage());
+			slog.error("araqne log api: cannot update logger config", e);
+		}
+	}
+
 	@ScriptUsage(description = "remove logger", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname", autocompletion = LoggerAutoCompleter.class) })
 	public void removeLogger(String[] args) {
 		try {
@@ -772,16 +804,20 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	private void setOption(Map<String, String> config, LoggerConfigOption type) throws InterruptedException {
+	private void setOption(Map<String, String> config, LoggerConfigOption type, String initialValue) throws InterruptedException {
 		String directive = type.isRequired() ? "(required)" : "(optional)";
 		context.print(type.getDisplayName(Locale.ENGLISH) + " " + directive + "? ");
-		String value = context.readLine();
+		String value = context.readLine(initialValue);
 		if (!value.isEmpty())
 			config.put(type.getName(), value);
 
 		if (value.isEmpty() && type.isRequired()) {
-			setOption(config, type);
+			setOption(config, type, initialValue);
 		}
+	}
+
+	private void setOption(Map<String, String> config, LoggerConfigOption type) throws InterruptedException {
+		setOption(config, type, null);
 	}
 
 	@ScriptUsage(description = "reset logger state", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format") })

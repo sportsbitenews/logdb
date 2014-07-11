@@ -32,9 +32,9 @@ public interface LoggerConfigOption {
 	String getType();
 
 	boolean isRequired();
-	
+
 	Collection<Locale> getDefaultValueLocales();
-	
+
 	String getDefaultValue(Locale locale);
 
 	void validate(Object value);

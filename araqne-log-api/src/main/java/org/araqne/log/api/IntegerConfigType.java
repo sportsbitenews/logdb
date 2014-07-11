@@ -18,7 +18,7 @@ package org.araqne.log.api;
 import java.util.Locale;
 import java.util.Map;
 
-public class IntegerConfigType extends AbstractConfigType {
+public class IntegerConfigType extends AbstractConfigType implements Mutable {
 	public IntegerConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
 			boolean isRequired) {
 		super(name, displayNames, descriptions, isRequired);
@@ -38,5 +38,4 @@ public class IntegerConfigType extends AbstractConfigType {
 	public Object parse(String value) {
 		return Integer.parseInt(value);
 	}
-
 }

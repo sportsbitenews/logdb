@@ -194,7 +194,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public void setManualStart(boolean manualStart) {
 		this.manualStart = manualStart;
-		updateConfig(config);
+		notifyConfigChange();
 	}
 
 	@Override
@@ -244,7 +244,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		status = LoggerStatus.Starting;
 		this.interval = interval;
-		
+
 		invokeStartCallback();
 
 		if (getExecutor() == null) {
@@ -395,7 +395,6 @@ public abstract class AbstractLogger implements Logger, Runnable {
 							break;
 						long startedAt = System.currentTimeMillis();
 						runOnce();
-						updateConfig(config);
 						long elapsed = System.currentTimeMillis() - startedAt;
 						lastRunDate = new Date();
 						if (interval - elapsed < 0)
@@ -438,7 +437,6 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			}
 
 			runOnce();
-			updateConfig(config);
 			lastRunDate = new Date();
 			ExecutorService executor = getExecutor();
 			if (executor != null)
@@ -550,7 +548,33 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public void updateConfig(Map<String, String> config) {
+	public void updateConfigs(Map<String, String> configs) {
+		if (!(this instanceof Reconfigurable))
+			throw new UnsupportedOperationException("logger is not reconfigurable: " + getFullName());
+
+		// clone old configs
+		Map<String, String> oldConfigs = new HashMap<String, String>(this.config);
+		Map<String, String> newConfigs = configs;
+
+		// validate new configs
+		for (LoggerConfigOption option : factory.getConfigOptions()) {
+			if (!(option instanceof Mutable)) {
+				String name = option.getName();
+				String oldValue = oldConfigs.get(name);
+				String newValue = newConfigs.get(name);
+				if ((oldValue == null && newValue != null) || (oldValue != null && newValue == null)
+						|| !oldValue.equals(newValue))
+					throw new IllegalArgumentException("option " + name + " is not mutable");
+			}
+		}
+
+		this.config = configs;
+
+		((Reconfigurable) this).onConfigChange(oldConfigs, newConfigs);
+		notifyConfigChange();
+	}
+
+	private void notifyConfigChange() {
 		for (LoggerEventListener callback : eventListeners) {
 			try {
 				callback.onUpdated(this, config);

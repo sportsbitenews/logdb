@@ -100,7 +100,7 @@ public interface Logger {
 
 	void clearEventListeners();
 
-	void updateConfig(Map<String, String> config);
+	void updateConfigs(Map<String, String> config);
 
 	/**
 	 * Use getConfigs() instead

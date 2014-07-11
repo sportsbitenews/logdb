@@ -169,7 +169,7 @@ class DummyLogger implements Logger {
 	}
 
 	@Override
-	public void updateConfig(Map<String, String> config) {
+	public void updateConfigs(Map<String, String> config) {
 	}
 
 	@Override

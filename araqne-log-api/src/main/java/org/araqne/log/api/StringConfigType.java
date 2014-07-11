@@ -19,14 +19,15 @@ import java.util.Locale;
 import java.util.Map;
 
 public class StringConfigType extends AbstractConfigType {
+
 	public StringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
-			boolean isRequired) {
-		super(name, displayNames, descriptions, isRequired);
+			boolean required) {
+		super(name, displayNames, descriptions, required);
 	}
 
 	public StringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
-			boolean isRequired, Map<Locale, String> defaultValues) {
-		super(name, displayNames, descriptions, isRequired, defaultValues);
+			boolean required, Map<Locale, String> defaultValues) {
+		super(name, displayNames, descriptions, required, defaultValues);
 	}
 
 	@Override
@@ -38,5 +39,4 @@ public class StringConfigType extends AbstractConfigType {
 	public Object parse(String value) {
 		return value;
 	}
-
 }
