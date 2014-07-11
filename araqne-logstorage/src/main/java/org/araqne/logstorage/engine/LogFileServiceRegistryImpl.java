@@ -225,7 +225,6 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 	@Override
 	public String[] getInstalledTypes() {
 		Set<String> types = new HashSet<String>(availableEngines.keySet());
-		types.add("v1");
 		types.add("v2");
 		return types.toArray(new String[0]);
 	}
