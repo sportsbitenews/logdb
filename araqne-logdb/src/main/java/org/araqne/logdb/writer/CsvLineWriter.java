@@ -48,12 +48,13 @@ public class CsvLineWriter implements LineWriter {
 		this.os = new FileOutputStream(new File(path));
 		this.writer = new CSVWriter(new OutputStreamWriter(os, Charset.forName(encoding)), separator);
 
-		if (!boms.containsKey(encoding))
-			throw new QueryParseException("unsuported-encoding: " + encoding, -1);
+		if (useBom) {
+			if (!boms.containsKey(encoding))
+				throw new QueryParseException("unsuported-encoding: " + encoding, -1);
 
-		if (useBom)
 			for (Integer bom : boms.get(encoding))
 				os.write(bom);
+		}
 
 		this.writer.writeNext(fields.toArray(new String[0]));
 		this.sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
