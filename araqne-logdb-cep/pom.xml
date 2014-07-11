@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logdb-cep</artifactId>
-	<version>0.2.6</version>
+	<version>0.2.8</version>
 	<packaging>bundle</packaging>
 	<name>Araqne LogDB CEP</name>
 	<build>
@@ -25,7 +25,8 @@
 						<Private-Package>
 							org.araqne.logdb.cep.query,
 							org.araqne.logdb.cep.engine,
-							org.araqne.logdb.cep.script
+							org.araqne.logdb.cep.script,
+							org.araqne.logdb.cep.logger
 						</Private-Package>
 						<Import-Package>
 							org.araqne.log.api;version="3.0.1",
