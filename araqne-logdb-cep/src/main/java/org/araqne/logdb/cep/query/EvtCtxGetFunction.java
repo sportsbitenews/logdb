@@ -16,6 +16,8 @@ import org.araqne.logdb.query.expr.Expression;
 public class EvtCtxGetFunction implements Expression {
 	private Expression topicExpr;
 	private Expression keyExpr;
+	private Expression fieldExpr;
+	private final String field;
 
 	// 1: counter, 2: created, 3: expire_at, 4: host, 5: timeout_at, 6: rows
 	private int fieldType;
@@ -31,9 +33,10 @@ public class EvtCtxGetFunction implements Expression {
 
 		this.topicExpr = exprs.get(0);
 		this.keyExpr = exprs.get(1);
+		this.fieldExpr = exprs.get(2);
 
 		try {
-			String field = exprs.get(2).eval(null).toString();
+			this.field = fieldExpr.eval(null).toString();
 			if (field.equals("counter")) {
 				fieldType = 1;
 			} else if (field.equals("created")) {
@@ -46,6 +49,7 @@ public class EvtCtxGetFunction implements Expression {
 				fieldType = 5;
 			}
 		} catch (Throwable t) {
+			throw new QueryParseException("invalid-evtctxget-field", -1);
 		}
 
 		if (fieldType == 0)
@@ -54,12 +58,7 @@ public class EvtCtxGetFunction implements Expression {
 
 	@Override
 	public Object eval(Row row) {
-		String topic = topicExpr.eval(row).toString();
-		String key = keyExpr.eval(row).toString();
-
-		EventContextStorage storage = eventContextService.getStorage("mem");
-
-		EventContext ctx = storage.getContext(new EventKey(topic, key));
+		EventContext ctx = EvtCtxGetFunction.findContext(eventContextService, topicExpr, keyExpr, row);
 		if (ctx == null)
 			return null;
 
@@ -86,5 +85,24 @@ public class EvtCtxGetFunction implements Expression {
 		}
 
 		return null;
+	}
+
+	@Override
+	public String toString() {
+		return "evtctxget(" + topicExpr + ", " + keyExpr + ", " + fieldExpr + ")";
+	}
+
+	public static EventContext findContext(EventContextService service, Expression topicExpr, Expression keyExpr, Row row) {
+		Object arg1 = topicExpr.eval(row);
+		Object arg2 = keyExpr.eval(row);
+
+		if (arg1 == null || arg2 == null)
+			return null;
+
+		String topic = arg1.toString();
+		String key = arg2.toString();
+
+		EventContextStorage storage = service.getStorage("mem");
+		return storage.getContext(new EventKey(topic, key));
 	}
 }

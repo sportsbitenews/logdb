@@ -16,8 +16,11 @@
 package org.araqne.logdb.cep;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -38,23 +41,21 @@ public class EventContext {
 	// 0 means infinite, extended when new row arrives
 	private long timeoutTime;
 
-	// 0 means infinite
-	private int threshold;
-
 	private int maxRows;
 
 	// host for external log tick
 	private String host;
 
+	private HashMap<String, Object> variables = new HashMap<String, Object>(1);
+
 	private CopyOnWriteArraySet<EventContextListener> listeners = new CopyOnWriteArraySet<EventContextListener>();
 
-	public EventContext(EventKey key, long created, long expireTime, long timeoutTime, int threshold, int maxRows, String host) {
+	public EventContext(EventKey key, long created, long expireTime, long timeoutTime, int maxRows, String host) {
 		this.key = key;
 		this.created = created;
 		this.rows = Collections.synchronizedList(new ArrayList<Row>());
 		this.expireTime = expireTime;
 		this.timeoutTime = timeoutTime;
-		this.threshold = threshold;
 		this.maxRows = maxRows;
 		this.host = host;
 	}
@@ -68,7 +69,7 @@ public class EventContext {
 	}
 
 	public List<Row> getRows() {
-		return Collections.unmodifiableList(rows);
+		return new ArrayList<Row>(rows);
 	}
 
 	public long getTimeoutTime() {
@@ -89,14 +90,6 @@ public class EventContext {
 
 	public void setExpireTime(long expireTime) {
 		this.expireTime = expireTime;
-	}
-
-	public int getThreshold() {
-		return threshold;
-	}
-
-	public void setThreshold(int threshold) {
-		this.threshold = threshold;
 	}
 
 	public AtomicInteger getCounter() {
@@ -133,6 +126,38 @@ public class EventContext {
 	public void removeRow(Row row) {
 		synchronized (rows) {
 			rows.remove(row);
+		}
+	}
+
+	public Map<String, Object> getVariables() {
+		return Row.clone(variables);
+	}
+
+	@SuppressWarnings("unchecked")
+	public Object getVariable(String key) {
+		synchronized (variables) {
+			Object o = variables.get(key);
+
+			// prevent input data corruption from outside
+			if (o instanceof Collection)
+				return Row.clone((Collection<Object>) o);
+			if (o instanceof Map)
+				return Row.clone((Map<String, Object>) o);
+
+			return o;
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public void setVariable(String key, Object value) {
+		// prevent input data corruption from outside
+		if (value instanceof Collection)
+			value = Row.clone((Collection<Object>) value);
+		if (value instanceof Map)
+			value = Row.clone((Map<String, Object>) value);
+
+		synchronized (variables) {
+			variables.put(key, value);
 		}
 	}
 

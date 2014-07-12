@@ -32,7 +32,6 @@ public class EvtCtxAddCommand extends QueryCommand {
 	private String keyField;
 	private TimeSpan expire;
 	private TimeSpan timeout;
-	private int threshold;
 	private int maxRows;
 	private Expression matcher;
 
@@ -40,13 +39,12 @@ public class EvtCtxAddCommand extends QueryCommand {
 	private String hostField;
 
 	public EvtCtxAddCommand(EventContextStorage storage, String topic, String keyField, TimeSpan expire, TimeSpan timeout,
-			int threshold, int maxRows, Expression matcher, String hostField) {
+			int maxRows, Expression matcher, String hostField) {
 		this.storage = storage;
 		this.topic = topic;
 		this.keyField = keyField;
 		this.expire = expire;
 		this.timeout = timeout;
-		this.threshold = threshold;
 		this.maxRows = maxRows;
 		this.matcher = matcher;
 		this.hostField = hostField;
@@ -105,7 +103,7 @@ public class EvtCtxAddCommand extends QueryCommand {
 			if (timeout != null)
 				timeoutTime = created + timeout.unit.getMillis() * timeout.amount;
 
-			EventContext ctx = new EventContext(eventKey, created, expireTime, timeoutTime, threshold, maxRows, (String) clockHost);
+			EventContext ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
 			ctx = storage.addContext(ctx);
 			ctx.getCounter().incrementAndGet();
 
@@ -126,9 +124,6 @@ public class EvtCtxAddCommand extends QueryCommand {
 	@Override
 	public String toString() {
 		String s = "evtctxadd topic=" + topic + " key=" + keyField;
-
-		if (threshold != 0)
-			s += " threshold=" + threshold;
 
 		if (expire != null)
 			s += " expire=" + expire;

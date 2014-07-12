@@ -60,7 +60,7 @@ public class Row {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static List<Object> clone(Collection<Object> c) {
+	public static List<Object> clone(Collection<Object> c) {
 		ArrayList<Object> l = new ArrayList<Object>(c.size());
 		for (Object o : c) {
 			if (o instanceof Map)

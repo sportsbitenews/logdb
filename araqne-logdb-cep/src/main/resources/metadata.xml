@@ -5,7 +5,10 @@
 	<instance component="mem-event-ctx-storage" />
 	<instance component="evtctxadd-parser" />
 	<instance component="evtctxdel-parser" />
+	<instance component="evtctxlist-parser" />
 	<instance component="cep-script-factory" />
 	<instance component="cep-function-factory" />
 	<instance component="cep-event-logger-registry" />
+	<instance component="cep-topic-meta-provider" />
+	<instance component="cep-clock-meta-provider" />
 </ipojo>

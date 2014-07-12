@@ -63,7 +63,7 @@ public class EvtCtxAddParser extends AbstractQueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("topic", "key", "expire", "timeout", "threshold", "maxrows", "logtick"), getFunctionRegistry());
+				Arrays.asList("topic", "key", "expire", "timeout", "maxrows", "logtick"), getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -85,15 +85,11 @@ public class EvtCtxAddParser extends AbstractQueryCommandParser {
 		if (options.get("timeout") != null)
 			timeout = TimeSpan.parse(options.get("timeout"));
 
-		int threshold = 0;
-		if (options.get("threshold") != null)
-			threshold = Integer.valueOf(options.get("threshold"));
-
 		String hostField = options.get("logtick");
 
 		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next), getFunctionRegistry());
 
 		EventContextStorage storage = eventContextService.getStorage("mem");
-		return new EvtCtxAddCommand(storage, topic, keyField, expire, timeout, threshold, maxRows, matcher, hostField);
+		return new EvtCtxAddCommand(storage, topic, keyField, expire, timeout, maxRows, matcher, hostField);
 	}
 }

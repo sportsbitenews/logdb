@@ -36,7 +36,7 @@ public class RandBytes implements Expression {
 			throw new QueryParseException("invalid-rand-argument", -1);
 
 		this.len = (Integer) n;
-		if (len <= 0)
+		if (len <= 0 || len > 1000000)
 			throw new QueryParseException("invalid-randbytes-len", -1);
 
 		this.rand = new Random();
