@@ -1753,6 +1753,22 @@ public class LogDbClient implements TrapListener, Closeable {
 	 * @since 0.9.5
 	 */
 	public void createStreamQuery(StreamQueryInfo query) throws IOException {
+		Map<String, Object> params = buildStreamQueryParams(query);
+		rpc("com.logpresso.query.msgbus.StreamQueryPlugin.createStreamQuery", params);
+	}
+
+	/**
+	 * 스트림 쿼리를 수정합니다. 스트림 쿼리가 존재하지 않는 경우 예외가 발생합니다. logger, table, stream 이외의
+	 * 데이터 원본 타입이 지정된 경우 예외가 발생합니다. 새로고침 주기가 음수인 경우 예외가 발생합니다.
+	 * 
+	 * @since 1.0.0
+	 */
+	public void updateStreamQuery(StreamQueryInfo query) throws IOException {
+		Map<String, Object> params = buildStreamQueryParams(query);
+		rpc("com.logpresso.query.msgbus.StreamQueryPlugin.updateStreamQuery", params);
+	}
+
+	private Map<String, Object> buildStreamQueryParams(StreamQueryInfo query) {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("name", query.getName());
 		params.put("description", query.getDescription());
@@ -1760,8 +1776,8 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("source_type", query.getSourceType());
 		params.put("sources", query.getSources());
 		params.put("query", query.getQueryString());
-
-		rpc("com.logpresso.query.msgbus.StreamQueryPlugin.createStreamQuery", params);
+		params.put("is_enabled", query.isEnabled());
+		return params;
 	}
 
 	/**
