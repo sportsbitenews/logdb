@@ -763,8 +763,9 @@ public class LogApiScript implements Script {
 			LoggerFactory loggerFactory = loggerFactoryRegistry.getLoggerFactory(logger.getFactoryName());
 			Map<String, String> configs = logger.getConfigs();
 			for (LoggerConfigOption type : loggerFactory.getConfigOptions()) {
-				if (type instanceof Mutable)
+				if (type instanceof Mutable) {
 					setOption(configs, type, configs.get(type.getName()));
+				}
 			}
 			logger.updateConfigs(configs);
 			context.println("logger updated: " + logger.toString());
@@ -804,6 +805,10 @@ public class LogApiScript implements Script {
 		}
 	}
 
+	private void setOption(Map<String, String> config, LoggerConfigOption type) throws InterruptedException {
+		setOption(config, type, null);
+	}
+
 	private void setOption(Map<String, String> config, LoggerConfigOption type, String initialValue) throws InterruptedException {
 		String directive = type.isRequired() ? "(required)" : "(optional)";
 		context.print(type.getDisplayName(Locale.ENGLISH) + " " + directive + "? ");
@@ -811,13 +816,12 @@ public class LogApiScript implements Script {
 		if (!value.isEmpty())
 			config.put(type.getName(), value);
 
-		if (value.isEmpty() && type.isRequired()) {
-			setOption(config, type, initialValue);
+		if (value.isEmpty()) {
+			if (type.isRequired())
+				setOption(config, type, initialValue);
+			else
+				config.put(type.getName(), null);
 		}
-	}
-
-	private void setOption(Map<String, String> config, LoggerConfigOption type) throws InterruptedException {
-		setOption(config, type, null);
 	}
 
 	@ScriptUsage(description = "reset logger state", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format") })
