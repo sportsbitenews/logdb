@@ -562,8 +562,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 				String name = option.getName();
 				String oldValue = oldConfigs.get(name);
 				String newValue = newConfigs.get(name);
-				if ((oldValue == null && newValue != null) || (oldValue != null && newValue == null)
-						|| !oldValue.equals(newValue))
+				if ((oldValue == null && newValue != null) || (oldValue != null && !oldValue.equals(newValue)))
 					throw new IllegalArgumentException("option " + name + " is not mutable");
 			}
 		}
@@ -585,17 +584,17 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	/**
-	 * Use getConfigss() instead
+	 * Use getConfigs() instead
 	 */
 	@Deprecated
 	@Override
 	public Map<String, String> getConfig() {
-		return config;
+		return new HashMap<String, String>(config);
 	}
 
 	@Override
 	public Map<String, String> getConfigs() {
-		return config;
+		return new HashMap<String, String>(config);
 	}
 
 	@Override
