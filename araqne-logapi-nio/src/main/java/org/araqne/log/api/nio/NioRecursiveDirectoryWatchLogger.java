@@ -27,8 +27,10 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -46,13 +48,15 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.MultilineLogExtractor;
+import org.araqne.log.api.Reconfigurable;
 
-public class RecursiveDirectoryWatchLogger extends AbstractLogger {
-	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(RecursiveDirectoryWatchLogger.class.getName());
-	private final String basePath;
-	private final Pattern fileNamePattern;
-	private final boolean recursive;
-	private final String fileTag;
+public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements Reconfigurable {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(NioRecursiveDirectoryWatchLogger.class.getName());
+	private String basePath;
+	private Pattern fileNamePattern;
+	private Pattern dirPathPattern;
+	private boolean recursive;
+	private String fileTag;
 
 	private Receiver receiver = new Receiver();
 
@@ -65,13 +69,25 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 	private boolean walkTreeRequired = true;
 
-	public RecursiveDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
+	public NioRecursiveDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
 
+		if (slog.isDebugEnabled())
+			slog.debug("araqne-logapi-nio: recursive dirwatcher used nio");
+
+		applyConfig();
+	}
+
+	private void applyConfig() {
 		basePath = getConfigs().get("base_path");
 
 		String fileNameRegex = getConfigs().get("filename_pattern");
 		fileNamePattern = Pattern.compile(fileNameRegex);
+
+		// optional
+		String dirNameRegex = getConfigs().get("dirpath_pattern");
+		if (dirNameRegex != null)
+			dirPathPattern = Pattern.compile(dirNameRegex);
 
 		extractor = new MultilineLogExtractor(this, receiver);
 
@@ -152,15 +168,21 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
 
-		for (File f : detector.getChangedFiles()) {
-			processFile(lastPositions, f);
-		}
+		try {
+			List<File> changedFiles = new ArrayList<File>(detector.getChangedFiles());
+			Collections.sort(changedFiles);
+			for (File f : changedFiles) {
+				processFile(lastPositions, f);
+			}
 
-		for (File f : detector.getDeletedFiles()) {
-			markDeletedFile(lastPositions, f);
+			List<File> deletedFiles = new ArrayList<File>(detector.getDeletedFiles());
+			Collections.sort(deletedFiles);
+			for (File f : deletedFiles) {
+				markDeletedFile(lastPositions, f);
+			}
+		} finally {
+			setStates(LastPositionHelper.serialize(lastPositions));
 		}
-
-		setStates(LastPositionHelper.serialize(lastPositions));
 	}
 
 	private void markDeletedFile(Map<String, LastPosition> lastPositions, File f) {
@@ -188,19 +210,7 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 		String path = file.getAbsolutePath();
 		FileInputStream is = null;
 		try {
-			// get date pattern-matched string from filename
-			String dateFromFileName = null;
-			Matcher fileNameDateMatcher = fileNamePattern.matcher(path);
-			if (fileNameDateMatcher.find()) {
-				int fileNameGroupCount = fileNameDateMatcher.groupCount();
-				if (fileNameGroupCount > 0) {
-					StringBuilder sb = new StringBuilder();
-					for (int i = 1; i <= fileNameGroupCount; ++i) {
-						sb.append(fileNameDateMatcher.group(i));
-					}
-					dateFromFileName = sb.toString();
-				}
-			}
+			String dateFromFileName = getDateString(file);
 
 			// skip previous read part
 			long offset = 0;
@@ -243,6 +253,35 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 		}
 	}
 
+	private String getDateString(File f) {
+		StringBuffer sb = new StringBuffer(f.getAbsolutePath().length());
+		String dirPath = f.getParentFile().getAbsolutePath();
+		if (dirPathPattern != null) {
+			Matcher dirNameDateMatcher = dirPathPattern.matcher(dirPath);
+			while (dirNameDateMatcher.find()) {
+				int dirNameGroupCount = dirNameDateMatcher.groupCount();
+				if (dirNameGroupCount > 0) {
+					for (int i = 1; i <= dirNameGroupCount; ++i) {
+						sb.append(dirNameDateMatcher.group(i));
+					}
+				}
+			}
+		}
+
+		String fileName = f.getName();
+		Matcher fileNameDateMatcher = fileNamePattern.matcher(fileName);
+		while (fileNameDateMatcher.find()) {
+			int fileNameGroupCount = fileNameDateMatcher.groupCount();
+			if (fileNameGroupCount > 0) {
+				for (int i = 1; i <= fileNameGroupCount; ++i) {
+					sb.append(fileNameDateMatcher.group(i));
+				}
+			}
+		}
+		String date = sb.toString();
+		return date.isEmpty() ? null : date;
+	}
+
 	private class Receiver extends AbstractLogPipe {
 		private String filename;
 
@@ -275,8 +314,13 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 		@Override
 		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-			if (!recursive && !dir.equals(root))
-				return FileVisitResult.SKIP_SUBTREE;
+			if (!dir.equals(root)) {
+				if (!recursive
+						|| (dirPathPattern != null && !dir.equals(root) && !dirPathPattern
+								.matcher(dir.toFile().getAbsolutePath()).find()))
+					return FileVisitResult.SKIP_SUBTREE;
+			}
+
 			return FileVisitResult.CONTINUE;
 		}
 
@@ -355,6 +399,9 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 		@Override
 		public void onCreate(File file) {
+			if (file.isFile() && dirPathPattern != null && !dirPathPattern.matcher(file.getParentFile().getAbsolutePath()).find())
+				return;
+
 			synchronized (changedLock) {
 				changedFiles.add(file);
 			}
@@ -379,6 +426,9 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 
 		@Override
 		public void onModify(File file) {
+			if (file.isFile() && dirPathPattern != null && !dirPathPattern.matcher(file.getParentFile().getAbsolutePath()).find())
+				return;
+
 			synchronized (changedLock) {
 				changedFiles.add(file);
 			}
@@ -386,5 +436,13 @@ public class RecursiveDirectoryWatchLogger extends AbstractLogger {
 			if (slog.isDebugEnabled())
 				slog.debug("araqne-logapi-nio: logger [{}] detect modified file [{}]", getFullName(), file.getAbsolutePath());
 		}
+	}
+
+	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		if (isRunning())
+			throw new IllegalStateException("logger is running");
+
+		applyConfig();
 	}
 }
