@@ -143,6 +143,7 @@ public class WtmpEntryParserTest {
 		int blockSize = parser.getBlockSize();
 		List<WtmpEntry> l = new ArrayList<WtmpEntry>();
 		String dir = "src/test/resources/";
+		
 
 		File wtmpFile = new File(dir + path);
 		RandomAccessFile raf = null;
