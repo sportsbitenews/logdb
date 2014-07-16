@@ -16,9 +16,12 @@
 package org.araqne.logdb.impl;
 
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -163,9 +166,15 @@ public class CsvLookupRegistryImpl implements CsvLookupRegistry {
 
 		public CsvLookupHandler(File f) throws IOException {
 			CSVReader reader = null;
+			FileInputStream is = null;
 
 			try {
-				reader = new CSVReader(new FileReader(f));
+				int skipBytes = getBomLength(f);
+
+				is = new FileInputStream(f);
+				is.skip(skipBytes);
+
+				reader = new CSVReader(new InputStreamReader(is, "utf-8"));
 
 				String[] nextLine = reader.readNext();
 				if (nextLine == null)
@@ -196,6 +205,32 @@ public class CsvLookupRegistryImpl implements CsvLookupRegistry {
 				if (reader != null)
 					reader.close();
 			}
+		}
+
+		// support utf8 BOM only
+		private int getBomLength(File f) throws IOException {
+			if (f.length() < 3)
+				return 0;
+
+			byte[] buf = new byte[3];
+			byte[] bom = new byte[] { (byte) 0xef, (byte) 0xbb, (byte) 0xbf };
+			RandomAccessFile raf = null;
+			try {
+				raf = new RandomAccessFile(f, "r");
+				raf.readFully(buf);
+
+				if (Arrays.equals(buf, bom))
+					return 3;
+			} finally {
+				if (raf != null) {
+					try {
+						raf.close();
+					} catch (IOException e) {
+					}
+				}
+			}
+
+			return 0;
 		}
 
 		@Override

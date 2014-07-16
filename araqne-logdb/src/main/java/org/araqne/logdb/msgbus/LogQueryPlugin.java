@@ -217,6 +217,7 @@ public class LogQueryPlugin {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void insertBatch(Request req, Response resp) {
 		// isAdmin

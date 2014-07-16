@@ -67,6 +67,7 @@ public class StreamingResultDecoder {
 			this.chunk = chunk;
 		}
 
+		@SuppressWarnings("unchecked")
 		@Override
 		protected List<Object> callSafely() throws Exception {
 			int originalSize = (Integer) chunk.get("size");
