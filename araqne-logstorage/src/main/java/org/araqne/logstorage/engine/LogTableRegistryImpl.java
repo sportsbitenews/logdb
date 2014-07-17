@@ -202,6 +202,8 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 				logger.warn("araqne logstorage: table event listener should not throw any exception", e);
 			}
 		}
+		
+		logger.info("araqne logstorage: created table [{}] ", tableName);
 	}
 
 	@Override

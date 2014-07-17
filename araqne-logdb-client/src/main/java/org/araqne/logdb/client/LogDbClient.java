@@ -1597,8 +1597,14 @@ public class LogDbClient implements TrapListener, Closeable {
 		startQuery(id);
 		LogQuery q = queries.get(id);
 		q.waitUntil(null);
-		if (q.getStatus().equals("Cancelled"))
-			throw new IllegalStateException("query cancelled, id [" + q.getId() + "] query string [" + queryString + "]");
+		if (q.getStatus().equals("Cancelled")) {
+			String errorMsg = "";
+			if (q.getErrorCode() != null)
+				errorMsg = String.format(", error LOGPRESSO-%05d [%s]", q.getErrorCode(), q.getErrorDetail());
+
+			throw new IllegalStateException("query cancelled, id [" + q.getId() + "] query string [" + queryString + "]"
+					+ errorMsg);
+		}
 
 		long total = q.getLoadedCount();
 
@@ -2256,7 +2262,14 @@ public class LogDbClient implements TrapListener, Closeable {
 			LogQuery q = queries.get(id);
 			if (msg.getString("type").equals("eof")) {
 				q.updateCount(msg.getLong("total_count"), stamp);
-				q.updateStatus("Ended", stamp);
+
+				if (msg.get("error_code") != null) {
+					q.setErrorCode((Integer) msg.get("error_code"));
+					q.setErrorDetail((String) msg.get("error_detail"));
+					q.updateStatus("Cancelled", stamp);
+				} else {
+					q.updateStatus("Ended", stamp);
+				}
 			} else if (msg.getString("type").equals("page_loaded")) {
 				q.updateCount(msg.getLong("count"), stamp);
 				q.updateStatus("Running", stamp);

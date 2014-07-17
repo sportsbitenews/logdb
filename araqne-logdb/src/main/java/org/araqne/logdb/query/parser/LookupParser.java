@@ -56,6 +56,8 @@ public class LookupParser extends AbstractQueryCommandParser {
 		List<String> outputTokens = tokens.substrings(outputOffset + 1);
 
 		String handlerName = tokens.firstArg();
+		if (registry != null && registry.getLookupHandler(handlerName) == null)
+			throw new QueryParseException("invalid-lookup-name", -1, handlerName);
 
 		LookupField src = parseLookupField(inputTokens);
 		LookupField dst = parseLookupField(outputTokens);

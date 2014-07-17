@@ -102,6 +102,18 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
+	public Set<EventKey> getContextKeys(String topic) {
+		HashSet<EventKey> keys = new HashSet<EventKey>();
+
+		for (EventKey key : contexts.keySet()) {
+			if (key.getTopic().equals(topic))
+				keys.add(key);
+		}
+
+		return keys;
+	}
+
+	@Override
 	public EventContext getContext(EventKey key) {
 		return contexts.get(key);
 	}

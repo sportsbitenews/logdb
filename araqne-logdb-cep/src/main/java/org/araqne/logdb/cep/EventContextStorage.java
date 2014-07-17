@@ -28,6 +28,8 @@ public interface EventContextStorage {
 	EventClock getClock(String host);
 
 	Set<EventKey> getContextKeys();
+	
+	Set<EventKey> getContextKeys(String topic);
 
 	EventContext getContext(EventKey key);
 

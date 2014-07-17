@@ -42,6 +42,10 @@ public class LogQuery {
 	// @since 0.9.0
 	private Date finishTime;
 
+	// @since 1.0.0
+	private Integer errorCode;
+	private String errorDetail;
+
 	private Long elapsed;
 	private List<LogQueryCommand> commands = new ArrayList<LogQueryCommand>();
 	private CopyOnWriteArrayList<WaitingCondition> waitingConditions;
@@ -317,6 +321,22 @@ public class LogQuery {
 	 */
 	public void setSubQueries(List<SubQuery> subQueries) {
 		this.subQueries = subQueries;
+	}
+
+	public Integer getErrorCode() {
+		return errorCode;
+	}
+
+	public void setErrorCode(Integer errorCode) {
+		this.errorCode = errorCode;
+	}
+
+	public String getErrorDetail() {
+		return errorDetail;
+	}
+
+	public void setErrorDetail(String errorDetail) {
+		this.errorDetail = errorDetail;
 	}
 
 	private class WaitingCondition {
