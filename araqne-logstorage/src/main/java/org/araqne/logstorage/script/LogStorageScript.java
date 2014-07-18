@@ -34,6 +34,7 @@ import java.util.zip.ZipFile;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
+import org.araqne.api.PathAutoCompleter;
 import org.araqne.api.Script;
 import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
@@ -774,7 +775,7 @@ public class LogStorageScript implements Script {
 
 	@ScriptUsage(description = "import text log file", arguments = {
 			@ScriptArgument(name = "table name", type = "string", description = "table name"),
-			@ScriptArgument(name = "file path", type = "string", description = "text log file path"),
+			@ScriptArgument(name = "file path", type = "string", description = "text log file path", autocompletion = PathAutoCompleter.class),
 			@ScriptArgument(name = "offset", type = "int", description = "skip offset", optional = true),
 			@ScriptArgument(name = "limit", type = "int", description = "load limit count", optional = true) })
 	public void importTextFile(String[] args) throws IOException {
@@ -825,7 +826,7 @@ public class LogStorageScript implements Script {
 
 	@ScriptUsage(description = "import zipped text log file", arguments = {
 			@ScriptArgument(name = "table name", type = "string", description = "table name"),
-			@ScriptArgument(name = "zip file path", type = "string", description = "zip file path"),
+			@ScriptArgument(name = "zip file path", type = "string", description = "zip file path", autocompletion = PathAutoCompleter.class),
 			@ScriptArgument(name = "entry path", type = "string", description = "zip entry of text log file path"),
 			@ScriptArgument(name = "offset", type = "int", description = "skip offset", optional = true),
 			@ScriptArgument(name = "limit", type = "int", description = "load limit count", optional = true) })
