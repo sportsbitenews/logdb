@@ -33,6 +33,22 @@ public class FileUtils {
 	private FileUtils() {
 	}
 
+	public static List<File> matches(String basePath, Pattern fileNamePattern) {
+		File[] files = new File(basePath).listFiles();
+
+		ArrayList<File> logFiles = new ArrayList<File>();
+		if (files != null) {
+			for (File f : files) {
+				if (f.isFile() && fileNamePattern.matcher(f.getName()).matches())
+					logFiles.add(f);
+			}
+		}
+
+		Collections.sort(logFiles);
+
+		return logFiles;
+	}
+
 	public static List<String> matchFiles(String basePath, Pattern fileNamePattern) {
 		File[] files = new File(basePath).listFiles();
 

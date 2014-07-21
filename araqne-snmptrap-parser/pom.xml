@@ -62,7 +62,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.2.5</version>
+			<version>3.2.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>

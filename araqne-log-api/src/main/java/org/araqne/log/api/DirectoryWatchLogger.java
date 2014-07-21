@@ -23,7 +23,6 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -50,7 +49,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		fileNamePattern = Pattern.compile(fileNameRegex);
 
 		extractor = new MultilineLogExtractor(this, receiver);
-	
+
 		// optional
 		String dateExtractRegex = getConfigs().get("date_pattern");
 		if (dateExtractRegex != null)
@@ -60,13 +59,13 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		String dateLocale = getConfigs().get("date_locale");
 		if (dateLocale == null)
 			dateLocale = "en";
-		
+
 		// optional
 		String dateFormatString = getConfigs().get("date_format");
 		String timeZone = getConfigs().get("timezone");
 		if (dateFormatString != null)
 			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
-				
+
 		// optional
 		String newlogRegex = getConfigs().get("newlog_designator");
 		if (newlogRegex != null)
@@ -82,7 +81,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			charset = "utf-8";
 
 		extractor.setCharset(charset);
-		
+
 		// try migration at boot
 		File oldLastFile = getLastLogFile();
 		if (oldLastFile.exists()) {
@@ -94,24 +93,24 @@ public class DirectoryWatchLogger extends AbstractLogger {
 
 	@Override
 	protected void runOnce() {
-		List<String> logFiles = FileUtils.matchFiles(basePath, fileNamePattern);
+		List<File> logFiles = FileUtils.matches(basePath, fileNamePattern);
 		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
 
-		for (String path : logFiles) {
-			processFile(lastPositions, path);
+		for (File f : logFiles) {
+			processFile(lastPositions, f);
 		}
 
 		setStates(LastPositionHelper.serialize(lastPositions));
 	}
 
-	protected void processFile(Map<String, LastPosition> lastPositions, String path) {
+	protected void processFile(Map<String, LastPosition> lastPositions, File f) {
 		FileInputStream is = null;
-
+		String path = f.getAbsolutePath();
 		try {
 			// get date pattern-matched string from filename
 			String dateFromFileName = null;
-			Matcher fileNameDateMatcher = fileNamePattern.matcher(path);
-			if (fileNameDateMatcher.find()) {
+			Matcher fileNameDateMatcher = fileNamePattern.matcher(f.getName());
+			while (fileNameDateMatcher.find()) {
 				int fileNameGroupCount = fileNameDateMatcher.groupCount();
 				if (fileNameGroupCount > 0) {
 					StringBuffer sb = new StringBuffer();
@@ -162,7 +161,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			}
 		}
 	}
- 
+
 	protected File getLastLogFile() {
 		return new File(dataDir, "dirwatch-" + getName() + ".lastlog");
 	}

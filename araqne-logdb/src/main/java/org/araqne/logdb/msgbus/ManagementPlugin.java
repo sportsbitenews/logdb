@@ -38,6 +38,7 @@ import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.logstorage.LogCryptoProfileRegistry;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
+import org.araqne.logstorage.LogRetentionPolicy;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.StorageConfig;
@@ -396,7 +397,7 @@ public class ManagementPlugin {
 		Map<String, String> replicaConfigs = (Map<String, String>) req.get("replica_configs");
 		if (replicaConfigs == null)
 			replicaConfigs = new HashMap<String, String>();
-		
+
 		Map<String, String> metadata = (Map<String, String>) req.get("metadata");
 
 		LogFileService lfs = lfsRegistry.getLogFileService(engineType);
@@ -580,7 +581,7 @@ public class ManagementPlugin {
 			// prevent hang
 			if (type.equals("v1"))
 				continue;
-				
+
 			LogFileService lfs = lfsRegistry.getLogFileService(type);
 
 			Map<String, Object> engine = new HashMap<String, Object>();
@@ -623,4 +624,24 @@ public class ManagementPlugin {
 
 		return m;
 	}
+
+	@MsgbusMethod
+	public void setRetention(Request req, Response resp) {
+		ensureAdminSession(req);
+
+		String tableName = req.getString("table", true);
+		int retention = req.getInteger("retention", true);
+
+		if (!tableRegistry.exists(tableName))
+			throw new MsgbusException("logdb", "table-not-found");
+
+		if (retention < 0)
+			throw new MsgbusException("logdb", "invalid-retention");
+
+		LogRetentionPolicy p = new LogRetentionPolicy();
+		p.setTableName(tableName);
+		p.setRetentionDays(retention);
+		storage.setRetentionPolicy(p);
+	}
+
 }
