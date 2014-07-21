@@ -576,6 +576,10 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		if (lastLogDay == null)
 			return null;
 
+		Date now = new Date();
+		if (lastLogDay.after(now))
+			lastLogDay = now;
+
 		return getBaseline(lastLogDay, p.getRetentionDays());
 	}
 
