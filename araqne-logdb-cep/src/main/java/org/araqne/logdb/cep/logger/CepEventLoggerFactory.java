@@ -37,6 +37,8 @@ public class CepEventLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "CEP 컨텍스트 이벤트를 수집합니다.";
 		return "Generate CEP context events";
 	}
 
