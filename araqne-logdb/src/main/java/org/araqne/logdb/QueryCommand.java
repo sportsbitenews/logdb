@@ -54,6 +54,7 @@ public abstract class QueryCommand {
 		this.output = output;
 	}
 
+	@Deprecated
 	public boolean isCancelled() {
 		return cancelled;
 	}
