@@ -80,17 +80,19 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 	private CallbackSet callbackSet;
 
-	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, CallbackSet cbSet, String tableName, Date day) throws IOException, InvalidLogFileHeaderException {
+	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, CallbackSet cbSet, String tableName, Date day)
+			throws IOException, InvalidLogFileHeaderException {
 		this(indexPath, dataPath, DEFAULT_BLOCK_SIZE, cbSet, tableName, day);
 	}
 
 	// TODO: block size modification does not work
-	private LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, CallbackSet cbSet, String tableName, Date day) throws IOException, InvalidLogFileHeaderException {
+	private LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, CallbackSet cbSet, String tableName, Date day)
+			throws IOException, InvalidLogFileHeaderException {
 		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL, cbSet, tableName, day);
 	}
 
-	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, int level, CallbackSet cbSet, String tableName, Date day) throws IOException,
-			InvalidLogFileHeaderException {
+	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, int level, CallbackSet cbSet, String tableName,
+			Date day) throws IOException, InvalidLogFileHeaderException {
 		// level 0 will not use compression (no zip metadata overhead)
 		try {
 			if (level < 0 || level > 9)
@@ -122,7 +124,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 					// get index file header
 					indexInputStream = indexPath.newInputStream();
 					indexFileHeader = LogFileHeader.extractHeader(indexInputStream);
-					
+
 					// read last key
 					long length = indexInputStream.length();
 					long pos = indexFileHeader.size();
@@ -133,13 +135,13 @@ public class LogFileWriterV2 extends LogFileWriter {
 						pos += 4 + INDEX_ITEM_SIZE * logCount;
 					}
 					lastKey = count;
-					
+
 				} finally {
 					ensureClose(indexInputStream);
 				}
-				
+
 				indexOutStream = indexPath.newOutputStream(true);
-				
+
 			} else {
 				indexFileHeader = new LogFileHeader((short) 2, LogFileHeader.MAGIC_STRING_INDEX);
 				indexOutStream = indexPath.newOutputStream(indexPath.exists());
@@ -166,13 +168,13 @@ public class LogFileWriterV2 extends LogFileWriter {
 						lastTime = (lastTime < endTime) ? endTime : lastTime;
 						pos += 24 + compressedLength;
 					}
-					
+
 				} finally {
 					ensureClose(dataInputStream);
 				}
-				
+
 				dataOutStream = dataPath.newOutputStream(true);
-				
+
 			} else {
 				dataFileHeader = new LogFileHeader((short) 2, LogFileHeader.MAGIC_STRING_DATA);
 				byte[] ext = new byte[4];
@@ -236,9 +238,15 @@ public class LogFileWriterV2 extends LogFileWriter {
 		if (newKey <= lastKey)
 			throw new IllegalArgumentException("invalid key: " + newKey + ", last key was " + lastKey);
 
+		int requiredBufferSize = 20 + data.getData().remaining();
 		if ((blockEndLogTime != null && blockEndLogTime > data.getDate().getTime()) || indexBuffer.remaining() < INDEX_ITEM_SIZE
-				|| dataBuffer.remaining() < 20 + data.getData().remaining())
+				|| dataBuffer.remaining() < requiredBufferSize)
 			flush(false);
+
+		// buffer capacity check
+		if (dataBuffer.remaining() < requiredBufferSize)
+			throw new IllegalArgumentException("unacceptable v2 data length " + requiredBufferSize + ", idx ["
+					+ indexPath.getAbsolutePath() + "], dat [" + dataPath.getAbsolutePath() + "], id [" + data.getId() + "]");
 
 		// add to index buffer
 		prepareInt(dataBuffer.position(), intbuf);
@@ -255,6 +263,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 		dataBuffer.put(longbuf);
 		prepareInt(data.getData().remaining(), intbuf);
 		dataBuffer.put(intbuf);
+
 		ByteBuffer b = data.getData();
 		if (b.remaining() == b.array().length) {
 			dataBuffer.put(b.array());
@@ -415,7 +424,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 						logger.warn("flush callback should not throw any exception", t2);
 					}
 				}
-			
+
 			return false;
 		}
 	}
@@ -464,7 +473,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 			dataOutStream.close();
 			dataOutStream = null;
 		}
-		
+
 		invokeCloseCallback();
 	}
 
