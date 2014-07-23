@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -35,8 +36,8 @@ import org.araqne.confdb.ConfigService;
 import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
-import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.engine.ConfigUtil;
@@ -60,6 +61,7 @@ public class LogFileServiceV2 implements LogFileService {
 	private static final String OPT_DATA_PATH = "dataPath";
 	private static final String OPT_KEY_PATH = "keyPath";
 	private static final Object OPT_CALLBACK_SET = "callbackSet";
+	private static final Object OPT_LASTKEY = "lastKey";
 
 	private FilePath logDir;
 
@@ -164,8 +166,9 @@ public class LogFileServiceV2 implements LogFileService {
 		FilePath indexPath = getFilePath(options, OPT_INDEX_PATH);
 		FilePath dataPath = getFilePath(options, OPT_DATA_PATH);
 		CallbackSet cbSet = (CallbackSet) options.get(OPT_CALLBACK_SET);
+		AtomicLong lastKey = (AtomicLong) options.get(OPT_LASTKEY);
 		try {
-			return new LogFileWriterV2(indexPath, dataPath, cbSet, tableName, day);
+			return new LogFileWriterV2(indexPath, dataPath, cbSet, tableName, day, lastKey);
 		} catch (Throwable t) {
 			throw new IllegalStateException("cannot open writer v2: data file - " + dataPath.getAbsolutePath(), t);
 		}

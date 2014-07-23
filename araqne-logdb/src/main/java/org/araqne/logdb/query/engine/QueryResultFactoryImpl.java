@@ -3,6 +3,7 @@ package org.araqne.logdb.query.engine;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
@@ -82,7 +83,7 @@ public class QueryResultFactoryImpl implements QueryResultFactory {
 			String filePrefix = getFileNamePrefix(config);
 			FilePath indexPath = BASE_DIR.newFilePath(filePrefix+".idx");
 			FilePath dataPath = BASE_DIR.newFilePath(filePrefix+".dat");
-			return new LogFileWriterV2(indexPath, dataPath, 1024 * 1024, 1, null, null, null);
+			return new LogFileWriterV2(indexPath, dataPath, 1024 * 1024, 1, null, null, null, new AtomicLong(-1));
 		}
 
 		@Override

@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.Log;
@@ -47,7 +48,8 @@ public class LogFlushCallbackTest {
 		indexPath.deleteOnExit();
 		dataPath.deleteOnExit();
 
-		LogFileWriterV2 writer = new LogFileWriterV2(indexPath, dataPath, cbSet, "test", LogUtil.getDay(new Date()));
+		LogFileWriterV2 writer =
+				new LogFileWriterV2(indexPath, dataPath, cbSet, "test", LogUtil.getDay(new Date()), new AtomicLong(-1));
 
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < 100; ++i) {

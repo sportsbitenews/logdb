@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.Deflater;
 
 import org.araqne.codec.FastEncodingRule;
@@ -56,7 +57,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 	private long count;
 	private byte[] intbuf = new byte[4];
 	private byte[] longbuf = new byte[8];
-	private long lastKey;
+	private AtomicLong lastKey;
 	private long lastTime;
 
 	private Long blockStartLogTime;
@@ -80,19 +81,20 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 	private CallbackSet callbackSet;
 
-	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, CallbackSet cbSet, String tableName, Date day)
-			throws IOException, InvalidLogFileHeaderException {
-		this(indexPath, dataPath, DEFAULT_BLOCK_SIZE, cbSet, tableName, day);
+	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, CallbackSet cbSet, String tableName, Date day,
+			AtomicLong lastKey2) throws IOException, InvalidLogFileHeaderException {
+		this(indexPath, dataPath, DEFAULT_BLOCK_SIZE, cbSet, tableName, day, lastKey2);
 	}
 
 	// TODO: block size modification does not work
-	private LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, CallbackSet cbSet, String tableName, Date day)
-			throws IOException, InvalidLogFileHeaderException {
-		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL, cbSet, tableName, day);
+	private LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, CallbackSet cbSet, String tableName,
+			Date day, AtomicLong lastKey2) throws IOException, InvalidLogFileHeaderException {
+		this(indexPath, dataPath, blockSize, DEFAULT_LEVEL, cbSet, tableName, day, lastKey2);
 	}
 
-	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, int level, CallbackSet cbSet, String tableName,
-			Date day) throws IOException, InvalidLogFileHeaderException {
+	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, int blockSize, int level, CallbackSet cbSet,
+			String tableName, Date day, AtomicLong lastKey) throws IOException,
+			InvalidLogFileHeaderException {
 		// level 0 will not use compression (no zip metadata overhead)
 		try {
 			if (level < 0 || level > 9)
@@ -116,8 +118,13 @@ public class LogFileWriterV2 extends LogFileWriter {
 			this.compressed = new byte[blockSize];
 			this.compresser = new Deflater(level);
 			this.compressLevel = level;
+			this.lastKey = lastKey;
 
 			LogFileHeader indexFileHeader = null;
+			
+			if (lastKey == null)
+				lastKey = new AtomicLong(-1);
+
 			if (indexExists) {
 				StorageInputStream indexInputStream = null;
 				try {
@@ -125,16 +132,18 @@ public class LogFileWriterV2 extends LogFileWriter {
 					indexInputStream = indexPath.newInputStream();
 					indexFileHeader = LogFileHeader.extractHeader(indexInputStream);
 
-					// read last key
-					long length = indexInputStream.length();
-					long pos = indexFileHeader.size();
-					while (pos < length) {
-						indexInputStream.seek(pos);
-						int logCount = indexInputStream.readInt();
-						count += logCount;
-						pos += 4 + INDEX_ITEM_SIZE * logCount;
+					if (lastKey.get() == -1) {
+						// read last key
+						long length = indexInputStream.length();
+						long pos = indexFileHeader.size();
+						while (pos < length) {
+							indexInputStream.seek(pos);
+							int logCount = indexInputStream.readInt();
+							count += logCount;
+							pos += 4 + INDEX_ITEM_SIZE * logCount;
+						}
+						lastKey.set(count);
 					}
-					lastKey = count;
 
 				} finally {
 					ensureClose(indexInputStream);
@@ -146,6 +155,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 				indexFileHeader = new LogFileHeader((short) 2, LogFileHeader.MAGIC_STRING_INDEX);
 				indexOutStream = indexPath.newOutputStream(indexPath.exists());
 				indexOutStream.write(indexFileHeader.serialize());
+				lastKey.set(0);
 			}
 
 			LogFileHeader dataFileHeader = null;
@@ -206,7 +216,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 	@Override
 	public long getLastKey() {
-		return lastKey;
+		return lastKey.get();
 	}
 
 	@Override
@@ -235,7 +245,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 
 		// check validity
 		long newKey = data.getId();
-		if (newKey <= lastKey)
+		if (newKey <= lastKey.get())
 			throw new IllegalArgumentException("invalid key: " + newKey + ", last key was " + lastKey);
 
 		int requiredBufferSize = 20 + data.getData().remaining();
@@ -276,7 +286,10 @@ public class LogFileWriterV2 extends LogFileWriter {
 		}
 
 		// update last key
-		lastKey = newKey;
+		long prevk = lastKey.getAndSet(newKey);
+		if (prevk > newKey) {
+			logger.warn("lastKey rewinded. {}->{}", prevk, newKey);
+		}
 		long time = data.getDate().getTime();
 		lastTime = (lastTime < time) ? time : lastTime;
 

@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -117,6 +118,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 	// online writers
 	private ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters;
+	private ConcurrentMap<OnlineWriterKey, AtomicLong> lastIds;
 
 	private CopyOnWriteArraySet<LogCallback> callbacks;
 
@@ -145,6 +147,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		int flushInterval = getIntParameter(Constants.LogFlushInterval, DEFAULT_LOG_FLUSH_INTERVAL);
 
 		onlineWriters = new ConcurrentHashMap<OnlineWriterKey, OnlineWriter>();
+		lastIds = new ConcurrentHashMap<OnlineWriterKey, AtomicLong>();
 		writerSweeper = new WriterSweeper(checkInterval, maxIdleTime, flushInterval);
 		callbacks = new CopyOnWriteArraySet<LogCallback>();
 		callbackSet = new CallbackSet();
@@ -271,6 +274,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		}
 
 		onlineWriters.clear();
+		lastIds.clear();
 
 		lfsRegistry.removeListener(this);
 
@@ -847,11 +851,18 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		Lock tableLock = tableRegistry.getSharedTableLock(tableName);
 		try {
 			tableLock.lock();
-
-			return new OnlineWriter(storageManager, lfs, schema, day, callbackSet, logDir);
+			
+			AtomicLong lastKey = getLastKey(new OnlineWriterKey(tableName, day, tableId));
+			return new OnlineWriter(storageManager, lfs, schema, day, callbackSet, logDir, lastKey);
 		} finally {
 			tableLock.unlock();
 		}
+	}
+
+	private AtomicLong getLastKey(OnlineWriterKey key) {
+		if (!lastIds.containsKey(key))
+			lastIds.putIfAbsent(key, new AtomicLong(-1));
+		return lastIds.get(key);
 	}
 
 	@Override

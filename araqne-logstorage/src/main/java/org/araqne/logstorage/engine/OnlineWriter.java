@@ -71,7 +71,7 @@ public class OnlineWriter {
 	private volatile boolean closeReserved;
 
 	public OnlineWriter(StorageManager storageManager, LogFileService logFileService, TableSchema schema, Date day,
-			CallbackSet callbackSet, FilePath logDir) throws IOException {
+			CallbackSet callbackSet, FilePath logDir, AtomicLong lastKey) throws IOException {
 		this.logFileService = logFileService;
 		this.tableId = schema.getId();
 		this.day = day;
@@ -101,6 +101,7 @@ public class OnlineWriter {
 			writerOptions.put("dataPath", dataPath);
 			writerOptions.put("keyPath", keyPath);
 			writerOptions.put("callbackSet", callbackSet);
+			writerOptions.put("lastKey", lastKey);
 
 			for (TableConfig c : schema.getPrimaryStorage().getConfigs()) {
 				writerOptions.put(c.getKey(), c.getValues().size() > 1 ? c.getValues() : c.getValue());
