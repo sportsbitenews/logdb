@@ -243,6 +243,14 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	@Validate
 	public void start() {
+		// NOTE: do not call ensureTable directly, it can cause iPOJO hang.
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				storage.ensureTable(new TableSchema(QUERY_LOG_TABLE, new StorageConfig("v2")));
+			}
+		}, "Araqne Query Log Table Creator").start();
+
 		for (QueryCommandParser p : queryParsers)
 			queryParserService.addCommandParser(p);
 
