@@ -429,7 +429,10 @@ public class ManagementPlugin {
 				throw new MsgbusException("logdb", "table-config-missing");
 		}
 
-		TableSchema schema = new TableSchema(tableName, new StorageConfig("v3p"));
+		TableSchema schema = new TableSchema();
+		schema.setName(tableName);
+		schema.setPrimaryStorage(primaryStorage);
+		schema.setReplicaStorage(replicaStorage);
 		schema.setMetadata(metadata);
 		storage.createTable(schema);
 	}
