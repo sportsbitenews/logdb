@@ -67,8 +67,9 @@ public class GroovyEventScriptRegistryImpl implements GroovyEventScriptRegistry,
 	// script name to script mappings
 	private ConcurrentHashMap<String, GroovyEventScript> scripts;
 
-	// topic to script mappings
-	private ConcurrentHashMap<String, List<GroovyEventScript>> topicScripts;
+	// topic to script name mappings. use script name instead of script itself
+	// to support one-script-to-many-topics and reload script scenario.
+	private ConcurrentHashMap<String, Set<String>> topicScripts;
 
 	public GroovyEventScriptRegistryImpl(BundleContext bc) {
 		this.bc = bc;
@@ -78,7 +79,7 @@ public class GroovyEventScriptRegistryImpl implements GroovyEventScriptRegistry,
 	public void start() throws IOException {
 		subscriptions = Collections.synchronizedSet(new HashSet<GroovyEventSubscription>());
 		scripts = new ConcurrentHashMap<String, GroovyEventScript>();
-		topicScripts = new ConcurrentHashMap<String, List<GroovyEventScript>>();
+		topicScripts = new ConcurrentHashMap<String, Set<String>>();
 
 		String path = ScriptPaths.getPath("event_scripts");
 		gse = new GroovyScriptEngine(path);
@@ -93,34 +94,40 @@ public class GroovyEventScriptRegistryImpl implements GroovyEventScriptRegistry,
 
 		ConfigIterator it = db.findAll(GroovyEventSubscription.class);
 		for (GroovyEventSubscription s : it.getDocuments(GroovyEventSubscription.class)) {
-			loadScript(s);
+			if (scripts.get(s.getScriptName()) == null) {
+				GroovyEventScript script = newScript(s.getScriptName());
+				scripts.put(s.getScriptName(), script);
+			}
+
+			subscribe(s);
 		}
 	}
 
-	private void loadScript(GroovyEventSubscription s) {
-		List<GroovyEventScript> handlers = Collections.synchronizedList(new ArrayList<GroovyEventScript>());
-		List<GroovyEventScript> oldHandlers = topicScripts.putIfAbsent(s.getTopic(), handlers);
+	private void subscribe(GroovyEventSubscription s) {
+		if (!subscriptions.add(s))
+			throw new IllegalStateException("duplicated event subscription, topic [" + s.getTopic() + "], script ["
+					+ s.getScriptName() + "]");
+
+		Set<String> handlers = Collections.synchronizedSet(new HashSet<String>());
+		Set<String> oldHandlers = topicScripts.putIfAbsent(s.getTopic(), handlers);
 		if (oldHandlers != null)
 			handlers = oldHandlers;
 
-		GroovyEventScript script = newScript(s.getScriptName());
-		handlers.add(script);
+		handlers.add(s.getScriptName());
 
-		scripts.put(s.getScriptName(), script);
-		subscriptions.add(s);
 		slog.info("araqne logdb groovy: subscribe topic [{}], event script [{}]", s.getTopic(), s.getScriptName());
 	}
 
-	private void unloadScript(GroovyEventSubscription s) {
-		List<GroovyEventScript> handlers = topicScripts.get(s.getTopic());
+	private void unsubscribe(GroovyEventSubscription s) {
+		if (!subscriptions.remove(s))
+			throw new IllegalStateException("event subscription not found, topic [" + s.getTopic() + "], script ["
+					+ s.getScriptName() + "]");
+
+		Set<String> handlers = topicScripts.get(s.getTopic());
 		if (handlers == null)
 			return;
 
-		GroovyEventScript script = scripts.remove(s.getScriptName());
-		if (script == null)
-			return;
-
-		handlers.remove(script);
+		handlers.remove(s.getScriptName());
 	}
 
 	@Invalidate
@@ -137,16 +144,20 @@ public class GroovyEventScriptRegistryImpl implements GroovyEventScriptRegistry,
 	@Override
 	public void onEvent(Event event) {
 		EventKey key = event.getKey();
-		List<GroovyEventScript> scripts = topicScripts.get(key.getTopic());
-		if (scripts == null) {
+		Set<String> scriptNames = topicScripts.get(key.getTopic());
+		if (scriptNames == null) {
 			if (slog.isDebugEnabled())
 				slog.debug("araqne logdb groovy: no matching event script, topic [{}] key [{}]", key.getTopic(), key.getKey());
 
 			return;
 		}
 
-		for (GroovyEventScript script : scripts) {
+		for (String scriptName : scriptNames) {
 			try {
+				GroovyEventScript script = scripts.get(scriptName);
+				if (script == null)
+					continue;
+
 				script.onEvent(event);
 			} catch (Throwable t) {
 				slog.warn("araqne logdb groovy: event script should not throw any exception", t);
@@ -169,11 +180,7 @@ public class GroovyEventScriptRegistryImpl implements GroovyEventScriptRegistry,
 
 	@Override
 	public void subscribeEvent(GroovyEventSubscription subscription) {
-		if (!subscriptions.add(subscription))
-			throw new IllegalStateException("duplicated event subscription, topic [" + subscription.getTopic() + "], script ["
-					+ subscription.getScriptName() + "]");
-
-		loadScript(subscription);
+		subscribe(subscription);
 
 		ConfigDatabase db = conf.ensureDatabase("araqne-logdb-groovy");
 		db.add(subscription, "araqne-logdb-groovy", "subscribe event");
@@ -181,11 +188,7 @@ public class GroovyEventScriptRegistryImpl implements GroovyEventScriptRegistry,
 
 	@Override
 	public void unsubscribeEvent(GroovyEventSubscription subscription) {
-		if (!subscriptions.remove(subscription))
-			throw new IllegalStateException("event subscription not found, topic [" + subscription.getTopic() + "], script ["
-					+ subscription.getScriptName() + "]");
-
-		unloadScript(subscription);
+		unsubscribe(subscription);
 
 		Map<String, Object> pred = new HashMap<String, Object>();
 		pred.put("topic", subscription.getTopic());
@@ -199,12 +202,7 @@ public class GroovyEventScriptRegistryImpl implements GroovyEventScriptRegistry,
 
 	@Override
 	public void reloadScript(String scriptName) {
-		for (GroovyEventSubscription s : getEventSubscriptions(null)) {
-			if (s.getScriptName().equals(scriptName)) {
-				unloadScript(s);
-				loadScript(s);
-			}
-		}
+		scripts.put(scriptName, newScript(scriptName));
 	}
 
 	@Override
