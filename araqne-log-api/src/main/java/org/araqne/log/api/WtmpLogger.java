@@ -79,6 +79,11 @@ public class WtmpLogger extends AbstractLogger {
 			return;
 		}
 
+		// log rotated case, reset read offset
+		if (wtmpFile.length() < pos) {
+			pos = 0;
+		}
+
 		WtmpEntryParser parser = buildParser(getConfigs().get("server"));
 		int blockSize = parser.getBlockSize();
 
