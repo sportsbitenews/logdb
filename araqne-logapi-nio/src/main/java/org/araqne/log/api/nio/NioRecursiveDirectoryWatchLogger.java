@@ -327,7 +327,8 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 			File f = file.toFile();
-			if (fileNamePattern.matcher(f.getName()).matches())
+			if (dirPathPattern.matcher(f.getParentFile().getAbsolutePath()).find()
+					&& fileNamePattern.matcher(f.getName()).matches())
 				processFile(lastPositions, f);
 			return FileVisitResult.CONTINUE;
 		}
