@@ -274,26 +274,21 @@ public class MultilineLogExtractor {
 	}
 
 	protected Date parseDate(String line, String dateFromFileName) {
-
-		if (dateMatcher == null || dateFormat == null)
+		if (dateFormat == null)
 			return new Date();
 
-		dateMatcher.reset(line);
+		String s = dateFromFileName;
 
-		if (!dateMatcher.find())
-			return new Date();
+		if (dateMatcher != null) {
+			dateMatcher.reset(line);
 
-		String s = null;
-		int count = dateMatcher.groupCount();
-		for (int i = 1; i <= count; i++) {
-			if (s == null)
-				s = dateMatcher.group(i);
-			else
-				s += dateMatcher.group(i);
-		}
-
-		if (dateFromFileName != null) {
-			s = dateFromFileName + s;
+			int count = dateMatcher.groupCount();
+			for (int i = 1; i <= count; i++) {
+				if (s == null)
+					s = dateMatcher.group(i);
+				else
+					s += dateMatcher.group(i);
+			}
 		}
 
 		if (s == null)
