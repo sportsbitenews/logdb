@@ -282,12 +282,14 @@ public class MultilineLogExtractor {
 		if (dateMatcher != null) {
 			dateMatcher.reset(line);
 
-			int count = dateMatcher.groupCount();
-			for (int i = 1; i <= count; i++) {
-				if (s == null)
-					s = dateMatcher.group(i);
-				else
-					s += dateMatcher.group(i);
+			if (dateMatcher.find()) {
+				int count = dateMatcher.groupCount();
+				for (int i = 1; i <= count; i++) {
+					if (s == null)
+						s = dateMatcher.group(i);
+					else
+						s += dateMatcher.group(i);
+				}
 			}
 		}
 
