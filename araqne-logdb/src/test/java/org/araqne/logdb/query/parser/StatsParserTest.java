@@ -103,6 +103,15 @@ public class StatsParserTest {
 			assertEquals("missing-clause", e.getType());
 			assertEquals(50, (int) e.getOffset());
 		}
+	}
 
+	@Test
+	public void testWhiteSpaceFieldNameBugFix() {
+		StatsParser p = new StatsParser();
+		p.setQueryParserService(queryParserService);
+		Stats stats = (Stats) p.parse(null, "stats first(a) as a , first(b) as b by c");
+		assertEquals("a", stats.getAggregationFields().get(0).getName());
+		assertEquals("b", stats.getAggregationFields().get(1).getName());
+		assertEquals("c", stats.getClauses().get(0));
 	}
 }

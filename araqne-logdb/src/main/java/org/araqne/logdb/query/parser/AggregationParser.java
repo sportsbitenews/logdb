@@ -70,7 +70,7 @@ public class AggregationParser {
 		int p = QueryTokenizer.findKeyword(s, AS);
 		if (p > 0) {
 			funcPart = s.substring(0, p).trim();
-			alias = s.substring(p + AS.length());
+			alias = s.substring(p + AS.length()).trim();
 		}
 
 		// find aggregation function
