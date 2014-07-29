@@ -207,6 +207,11 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	}
 
 	protected void processFile(Map<String, LastPosition> lastPositions, File file) {
+		if (!file.canRead()) {
+			slog.debug("araqne-api-nio: cannot read file [{}], logger [{}]", file.getAbsolutePath(), getFullName());
+			return;
+		}
+
 		String path = file.getAbsolutePath();
 		FileInputStream is = null;
 		try {
