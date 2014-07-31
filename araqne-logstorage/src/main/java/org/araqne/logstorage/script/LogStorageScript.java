@@ -193,7 +193,7 @@ public class LogStorageScript implements Script {
 					context.println(spec.getDisplayNames().get(locale) + ": " + config);
 				}
 			}
-			
+
 			// TODO : handle secondary storages
 
 			context.println("");
@@ -234,15 +234,22 @@ public class LogStorageScript implements Script {
 					total += f.length();
 			}
 
+			LogRetentionPolicy retentionPolicy = storage.getRetentionPolicy(tableName);
+			String retention = "None";
+			if (retentionPolicy != null && retentionPolicy.getRetentionDays() > 0)
+				retention = retentionPolicy.getRetentionDays() + "days";
+
 			context.println("Storage Information");
 			context.println("---------------------");
+			context.println("Retention Policy: " + retention);
 			context.println("Data path: " + storage.getTableDirectory(tableName).getAbsolutePath());
 			NumberFormat nf = NumberFormat.getNumberInstance();
 			context.println("Consumption: " + nf.format(total) + " bytes");
 
 			LockStatus status = storage.lockStatus(new LockKey("script", args[0], null));
-			if(status.isLocked()) 
-				context.printf("Lock status: locked (owner: %s, reentrant_cnt: %d)\n", status.getOwner(), status.getReentrantCount());
+			if (status.isLocked())
+				context.printf("Lock status: locked (owner: %s, reentrant_cnt: %d)\n", status.getOwner(),
+						status.getReentrantCount());
 			else
 				context.printf("Lock status: unlocked\n");
 
@@ -267,11 +274,11 @@ public class LogStorageScript implements Script {
 		parser.accepts("lock");
 		parser.accepts("replica");
 		OptionSet options = parser.parse(args);
-		
+
 		List<?> argl = options.nonOptionArguments();
 		if (argl.size() > 0)
 			filter = (String) argl.get(0);
-		
+
 		context.println("Tables");
 		context.println("--------");
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -338,7 +345,7 @@ public class LogStorageScript implements Script {
 
 	private String lockStatusStr(String tableName) {
 		LockStatus status = storage.lockStatus(new LockKey("script", tableName, null));
-		if(status.isLocked()) 
+		if (status.isLocked())
 			return String.format("locked(owner: %s, reentrant_cnt: %d)", status.getOwner(), status.getReentrantCount());
 		else
 			return "unlocked";
@@ -411,7 +418,8 @@ public class LogStorageScript implements Script {
 			}
 
 			// replica storage
-			StorageConfig replicaStorage = primaryStorage.clone(); // TODO check replica storage initiation
+			// TODO check replica storage initiation
+			StorageConfig replicaStorage = primaryStorage.clone();
 			schema.setReplicaStorage(replicaStorage);
 			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
 				while (true) {
@@ -433,7 +441,7 @@ public class LogStorageScript implements Script {
 						break;
 				}
 			}
-			
+
 			// TODO secondary storages
 
 			Map<String, String> metadata = new HashMap<String, String>();
@@ -525,7 +533,7 @@ public class LogStorageScript implements Script {
 					}
 				}
 			}
-			
+
 			// TODO secondary storage
 
 			storage.alterTable(args[0], schema);
@@ -863,7 +871,8 @@ public class LogStorageScript implements Script {
 		}
 	}
 
-	private void importFromStream(String tableName, InputStream fis, int offset, int limit) throws IOException, InterruptedException {
+	private void importFromStream(String tableName, InputStream fis, int offset, int limit) throws IOException,
+			InterruptedException {
 		Date begin = new Date();
 		long count = 0;
 		BufferedReader br = new BufferedReader(new InputStreamReader(fis), 16384 * 1024); // 16MB
@@ -1166,7 +1175,7 @@ public class LogStorageScript implements Script {
 		public void onClose(String tableName, Date day) {
 		}
 	}
-	
+
 	public void _lock(String[] args) throws InterruptedException {
 		boolean lock = storage.lock(new LockKey("script", args[0], null), 5, TimeUnit.SECONDS);
 		if (lock)
@@ -1175,7 +1184,7 @@ public class LogStorageScript implements Script {
 			context.printf("failed: %s\n", lockStatusStr(args[0]));
 		}
 	}
-	
+
 	public void _unlock(String[] args) {
 		storage.unlock(new LockKey("script", args[0], null));
 	}

@@ -119,6 +119,17 @@ public class LoggerPlugin {
 	}
 
 	@MsgbusMethod
+	@SuppressWarnings("unchecked")
+	public void resetLoggers(Request req, Response resp) {
+		List<String> loggerNames = (List<String>) req.get("logger_names", true);
+		for (String loggerName : loggerNames) {
+			Logger logger = loggerRegistry.getLogger(loggerName);
+			if (logger != null)
+				logger.resetStates();
+		}
+	}
+
+	@MsgbusMethod
 	public void getFactoryOptions(Request req, Response resp) {
 		String loggerFactoryName = req.getString("factory");
 		Locale locale = req.getSession().getLocale();
