@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 import org.araqne.log.api.impl.FileUtils;
 
 public class DirectoryWatchLogger extends AbstractLogger {
-	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DirectoryWatchLogger.class.getName());
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(DirectoryWatchLogger.class.getName());
 	protected File dataDir;
 	protected String basePath;
 	protected Pattern fileNamePattern;
@@ -104,6 +104,11 @@ public class DirectoryWatchLogger extends AbstractLogger {
 	}
 
 	protected void processFile(Map<String, LastPosition> lastPositions, File f) {
+		if (!f.canRead()) {
+			slog.debug("araqne log api: cannot read file [{}], logger [{}]", f.getAbsolutePath(), getFullName());
+			return;
+		}
+
 		FileInputStream is = null;
 		String path = f.getAbsolutePath();
 		try {
@@ -126,7 +131,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			if (lastPositions.containsKey(path)) {
 				LastPosition inform = lastPositions.get(path);
 				offset = inform.getPosition();
-				logger.trace("araqne log api: target file [{}] skip offset [{}]", path, offset);
+				slog.trace("araqne log api: target file [{}] skip offset [{}]", path, offset);
 			}
 
 			AtomicLong lastPosition = new AtomicLong(offset);
@@ -139,7 +144,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 
 			extractor.extract(is, lastPosition, dateFromFileName);
 
-			logger.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
+			slog.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
 					offset, lastPosition.get() });
 			LastPosition inform = lastPositions.get(path);
 			if (inform == null) {
@@ -148,10 +153,10 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			inform.setPosition(lastPosition.get());
 			lastPositions.put(path, inform);
 		} catch (FileNotFoundException e) {
-			if (logger.isTraceEnabled())
-				logger.trace("araqne log api: [" + getName() + "] logger read failure: file not found: {}", e.getMessage());
+			if (slog.isTraceEnabled())
+				slog.trace("araqne log api: [" + getName() + "] logger read failure: file not found: {}", e.getMessage());
 		} catch (Throwable e) {
-			logger.error("araqne log api: [" + getName() + "] logger read error", e);
+			slog.error("araqne log api: [" + getName() + "] logger read error", e);
 		} finally {
 			if (is != null) {
 				try {
