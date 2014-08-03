@@ -32,8 +32,6 @@ public class ThreadMetadataProvider implements MetadataProvider {
 	@Requires
 	private FunctionRegistry functionRegistry;
 
-	private boolean prettyStack;
-
 	@Validate
 	public void start() {
 		metadataService.addProvider(this);
@@ -63,6 +61,8 @@ public class ThreadMetadataProvider implements MetadataProvider {
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
 		ParseResult r = QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("prettystack"), functionRegistry);
 		Map<String, Object> options = (Map<String, Object>) r.value;
+		
+		boolean prettyStack = false;
 		if (options.get("prettystack") != null) {
 			prettyStack = CommandOptions.parseBoolean(options.get("prettystack").toString());
 		}

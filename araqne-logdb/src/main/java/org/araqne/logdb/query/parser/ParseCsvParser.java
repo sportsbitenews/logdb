@@ -21,7 +21,7 @@ public class ParseCsvParser extends AbstractQueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("field", "overlay", "useTab", "useDoubleQuote"), getFunctionRegistry());
+				Arrays.asList("field", "overlay", "tab"), getFunctionRegistry());
 
 		Map<String, String> options = (Map<String, String>) r.value;
 		String field = options.get("field");
@@ -29,8 +29,7 @@ public class ParseCsvParser extends AbstractQueryCommandParser {
 			field = "line";
 
 		boolean overlay = CommandOptions.parseBoolean(options.get("overlay"));
-		boolean useTab = CommandOptions.parseBoolean(options.get("useTab"));
-		boolean useDoubleQuote = CommandOptions.parseBoolean(options.get("useDoubleQuote"));
+		boolean useTab = CommandOptions.parseBoolean(options.get("tab"));
 
 		String nameField = commandString.substring(r.next).trim();
 		List<String> fieldNames = null;
@@ -40,6 +39,6 @@ public class ParseCsvParser extends AbstractQueryCommandParser {
 				fieldNames.add(fieldName.trim());
 			}
 		}
-		return new ParseCsv(field, overlay, useTab, useDoubleQuote, fieldNames);
+		return new ParseCsv(field, overlay, useTab, fieldNames);
 	}
 }

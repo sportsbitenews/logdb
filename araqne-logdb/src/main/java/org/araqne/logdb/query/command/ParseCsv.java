@@ -17,11 +17,11 @@ public class ParseCsv extends QueryCommand {
 	private List<String> fieldNames;
 	private CsvParser parser;
 
-	public ParseCsv(String field, boolean overlay, boolean useTab, boolean useDoubleQuote, List<String> fieldNames) {
+	public ParseCsv(String field, boolean overlay, boolean useTab, List<String> fieldNames) {
 		this.field = field;
 		this.overlay = overlay;
 		this.fieldNames = fieldNames;
-		parser = new CsvParser(useTab, useDoubleQuote, fieldNames == null ? null : fieldNames.toArray(new String[0]));
+		parser = new CsvParser(useTab, false, fieldNames == null ? null : fieldNames.toArray(new String[0]));
 	}
 
 	@Override
