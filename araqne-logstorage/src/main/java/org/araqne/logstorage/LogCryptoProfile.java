@@ -10,6 +10,8 @@ import java.security.cert.Certificate;
 
 import org.araqne.api.FieldOption;
 import org.araqne.confdb.CollectionName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // TODO : uri handling
 @CollectionName("crypto_profiles")
@@ -114,8 +116,14 @@ public class LogCryptoProfile {
 			is = new FileInputStream(new File(filePath));
 			pfx.load(is, password.toCharArray());
 			this.keystore = pfx;
-		} catch (Exception e) {
-			throw new IllegalStateException("cannot load pfx file [" + filePath + "] of crypto profile " + name, e);
+		} catch (Throwable t) {
+			// explicit logging for fast troubleshooting. query command may
+			// ignore this kinds of reader open failure and just skip.
+			String msg = "cannot load pfx file [" + filePath + "] of crypto profile [" + name + "]";
+			Logger slog = LoggerFactory.getLogger(LogCryptoProfile.class);
+			slog.error("araqne logstorage: " + msg, t);
+
+			throw new IllegalStateException(msg, t);
 		} finally {
 			if (is != null) {
 				try {
