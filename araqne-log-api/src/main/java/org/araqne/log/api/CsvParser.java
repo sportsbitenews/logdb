@@ -61,7 +61,7 @@ public class CsvParser {
 			} else if (c == delimiter) {
 				String value = line.substring(startIndex, endIndex);
 				if (containEscape) {
-					value = processEscape(value, escape);
+					value = removeEscape(value, escape);
 					containEscape = false;
 				}
 				values.add(value);
@@ -83,7 +83,7 @@ public class CsvParser {
 
 		String value = line.substring(startIndex, endIndex);
 		if (containEscape)
-			value = processEscape(value, escape);
+			value = removeEscape(value, escape);
 		values.add(value);
 
 		return toMap(values);
@@ -107,7 +107,7 @@ public class CsvParser {
 		return m;
 	}
 
-	private String processEscape(String value, char escape) {
+	private String removeEscape(String value, char escape) {
 		StringBuilder sb = new StringBuilder(value.length());
 		for (int i = 0; i < value.length(); i++) {
 			char c = value.charAt(i);
