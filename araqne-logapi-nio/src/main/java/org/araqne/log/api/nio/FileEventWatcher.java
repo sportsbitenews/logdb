@@ -103,6 +103,7 @@ public class FileEventWatcher {
 								WatchKey newKey = p.register(ws, EVENTS);
 								watchPaths.put(f.getAbsolutePath(), new WatchItem(newKey));
 								slog.debug("araqne-logapi-nio: adding watch path [{}]", f.getAbsolutePath());
+								Files.walkFileTree(p, new DirectoryRegister());
 							} catch (IOException e) {
 								slog.error("araqne-logapi-nio: failed to watching directory [{}]", f.getAbsolutePath());
 							}
