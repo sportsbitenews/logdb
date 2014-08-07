@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logstorage.CallbackSet;
@@ -48,7 +49,7 @@ public class OnlineWriter {
 	/**
 	 * is in closing state?
 	 */
-	private boolean closing;
+	private boolean closing = false;
 
 	/**
 	 * only yyyy-MM-dd (excluding hour, min, sec, milli)
@@ -68,14 +69,26 @@ public class OnlineWriter {
 
 	private final LogFileService logFileService;
 
+	private final TableSchema schema;
+	
+	private volatile boolean loadWriter = false;
 	private volatile boolean closeReserved;
 
-	public OnlineWriter(StorageManager storageManager, LogFileService logFileService, TableSchema schema, Date day,
-			CallbackSet callbackSet, FilePath logDir, AtomicLong lastKey) throws IOException {
+	private CountDownLatch writerMonitor = new CountDownLatch(1);
+
+	public OnlineWriter(LogFileService logFileService, TableSchema schema, Date day) {
 		this.logFileService = logFileService;
+		this.schema = schema;
 		this.tableId = schema.getId();
 		this.day = day;
-		this.closeReserved = new Boolean(false);
+		this.closeReserved = false;
+	}
+	
+	public synchronized void prepareWriter(StorageManager storageManager, CallbackSet callbackSet, FilePath logDir, AtomicLong lastKey) throws IOException {
+		if (closing)
+			return;
+		
+		loadWriter = true;
 
 		String basePathString = schema.getPrimaryStorage().getBasePath();
 		FilePath basePath = logDir;
@@ -113,7 +126,29 @@ public class OnlineWriter {
 		} catch (Throwable t) {
 			throw new IllegalStateException("araqne-logstorage: unexpected error", t);
 		}
+		
 		nextId = new AtomicLong(writer.getLastKey());
+		
+		writerMonitor.countDown();
+	}
+	
+	public boolean awaitWriterPreparation() {
+		try {
+			for (int i = 0; i < 3; ++i) {
+				if (writerMonitor.await(10, TimeUnit.SECONDS))
+					return true;
+
+				if (logger.isDebugEnabled())
+					logger.debug("araqne logstorage: awaiting for log writer preparation {}", tableId);
+			}
+
+		} catch (InterruptedException e) {
+			logger.info("araqne logstorage: interrupted during awaiting for log writer preparation", e);
+		}
+
+		logger.info("araqne logstorage: awaiting for log writer preparation {} timeout", tableId);
+		
+		return false;
 	}
 
 	public boolean isOpen() {
@@ -225,7 +260,12 @@ public class OnlineWriter {
 		try {
 			synchronized (this) {
 				closing = true;
-				writer.close();
+				// XXX: assume there is NO prepareWriter() hang
+				if (loadWriter) {
+					if (awaitWriterPreparation())
+						writer.close();
+				}
+
 				notifyAll();
 				closeMonitor.countDown();
 			}

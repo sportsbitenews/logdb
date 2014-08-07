@@ -771,7 +771,6 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			return online;
 
 		try {
-			int blockSize = getIntParameter(Constants.LogBlockSize, DEFAULT_BLOCK_SIZE);
 			OnlineWriter oldWriter = onlineWriters.get(key);
 
 			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
@@ -789,42 +788,18 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 						while (onlineWriters.get(key) == oldWriter) {
 							Thread.yield();
 						}
-						OnlineWriter newWriter = newOnlineWriter(tableName, tableId, day, blockSize, logFileType);
-						OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
-						if (consensus == null)
-							online = newWriter;
-						else {
-							online = consensus;
-							if (consensus != newWriter)
-								newWriter.close();
-						}
+						online = loadNewOnlineWriter(key, logFileType);
 					} else if (oldWriter.isClosed()) {
 						while (onlineWriters.get(key) == oldWriter) {
 							Thread.yield();
 						}
-						OnlineWriter newWriter = newOnlineWriter(tableName, tableId, day, blockSize, logFileType);
-						OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
-						if (consensus == null)
-							online = newWriter;
-						else {
-							online = consensus;
-							if (consensus != newWriter)
-								newWriter.close();
-						}
+						online = loadNewOnlineWriter(key, logFileType);
 					} else {
 						online = oldWriter;
 					}
 				}
 			} else {
-				OnlineWriter newWriter = newOnlineWriter(tableName, tableId, day, blockSize, logFileType);
-				OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
-				if (consensus == null)
-					online = newWriter;
-				else {
-					online = consensus;
-					if (consensus != newWriter)
-						newWriter.close();
-				}
+				online = loadNewOnlineWriter(key, logFileType);
 			}
 		} catch (UnsupportedLogFileTypeException e) {
 			throw new IllegalStateException("cannot open writer: " + tableName + ", date=" + day, e);
@@ -836,9 +811,31 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 		return online;
 	}
-
-	private OnlineWriter newOnlineWriter(String tableName, int tableId, Date day, int blockSize, String logFileType)
+	
+	private OnlineWriter loadNewOnlineWriter(OnlineWriterKey key, String logFileType) 
 			throws IOException, InterruptedException {
+		OnlineWriter online = null;
+		
+		OnlineWriter newWriter = newOnlineWriter(key.getTableName(), key.getDay(), logFileType);
+		OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
+		if (consensus == null) {
+			AtomicLong lastKey = getLastKey(key);
+			newWriter.prepareWriter(storageManager, callbackSet, logDir, lastKey);
+			online = newWriter;
+		} else {
+			if (!consensus.awaitWriterPreparation())
+				throw new IllegalStateException("awaiting for log writer preparation timeout - " + key);
+
+			online = consensus;
+			if (consensus != newWriter)
+				newWriter.close();
+		}
+		
+		return online;
+	}
+
+	private OnlineWriter newOnlineWriter(String tableName, Date day, String logFileType)
+			throws InterruptedException {
 		if (logFileType == null)
 			logFileType = DEFAULT_LOGFILETYPE;
 		LogFileService lfs = lfsRegistry.getLogFileService(logFileType);
@@ -852,8 +849,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		try {
 			tableLock.lock();
 			
-			AtomicLong lastKey = getLastKey(new OnlineWriterKey(tableName, day, tableId));
-			return new OnlineWriter(storageManager, lfs, schema, day, callbackSet, logDir, lastKey);
+			return new OnlineWriter(lfs, schema, day);
 		} finally {
 			tableLock.unlock();
 		}
