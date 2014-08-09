@@ -81,6 +81,16 @@ public class Row {
 		return map.get(key);
 	}
 
+	/**
+	 * @since 2.4.19
+	 */
+	public String getString(String key) {
+		Object o = map.get(key);
+		if (o == null)
+			return null;
+		return o.toString();
+	}
+
 	public void put(String key, Object value) {
 		if (key.equals("_time") && value instanceof Date)
 			d = (Date) value;
