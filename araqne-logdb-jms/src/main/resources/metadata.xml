@@ -5,4 +5,5 @@
 	<instance component="jms-script-factory" />
 	<instance component="jms-recv-parser" />
 	<instance component="jms-send-parser" />
+	<instance component="jms-logger-factory" />
 </ipojo>

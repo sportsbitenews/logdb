@@ -41,6 +41,7 @@
 						<Private-Package>
 							org.araqne.logdb.jms.query,
 							org.araqne.logdb.jms.impl,
+							org.araqne.logdb.jms.logger,
 							org.araqne.logdb.jms.script
 						</Private-Package>
 					</instructions>

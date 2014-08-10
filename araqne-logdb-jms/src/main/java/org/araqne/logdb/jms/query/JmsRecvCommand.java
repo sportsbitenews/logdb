@@ -15,26 +15,22 @@
  */
 package org.araqne.logdb.jms.query;
 
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.JMSException;
-import javax.jms.MapMessage;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
-import javax.jms.TextMessage;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.TimeSpan;
-import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.jms.JmsProfile;
+import org.araqne.logdb.jms.impl.JmsHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,73 +87,16 @@ public class JmsRecvCommand extends DriverQueryCommand {
 				if (message == null)
 					continue;
 
-				Row row = parse(message);
+				Map<String, Object> row = JmsHelper.parse(message);
 				if (row != null)
-					pushPipe(row);
+					pushPipe(new Row(row));
 
 				count++;
 			}
 		} catch (JMSException e) {
 			slog.error("araqne logdb jms: recv failure, profile=" + profile.getName(), e);
 		} finally {
-			closeAll(connection, session, consumer);
-		}
-	}
-
-	private Row parse(Message message) throws JMSException {
-		if (message instanceof TextMessage) {
-			TextMessage msg = (TextMessage) message;
-			String text = msg.getText();
-			Date date = msg.getJMSTimestamp() == 0 ? new Date() : new Date(msg.getJMSTimestamp());
-
-			Map<String, Object> m = new HashMap<String, Object>();
-			m.put("_time", date);
-			m.put("_msg_id", msg.getJMSMessageID());
-			m.put("line", text);
-
-			return new Row(m);
-		} else if (message instanceof MapMessage) {
-			MapMessage msg = (MapMessage) message;
-			Date date = msg.getJMSTimestamp() == 0 ? new Date() : new Date(msg.getJMSTimestamp());
-
-			Map<String, Object> m = new HashMap<String, Object>();
-			m.put("_time", date);
-			m.put("_msg_id", msg.getJMSMessageID());
-
-			@SuppressWarnings("unchecked")
-			Enumeration<String> e = msg.getPropertyNames();
-			while (e.hasMoreElements()) {
-				String key = e.nextElement();
-				Object val = msg.getObjectProperty(key);
-				m.put(key, val);
-			}
-
-			return new Row(m);
-		}
-
-		return null;
-	}
-
-	private void closeAll(Connection connection, Session session, MessageConsumer consumer) {
-		try {
-			if (consumer != null)
-				consumer.close();
-		} catch (JMSException e) {
-			slog.trace("araqne logdb jms: cannot close consumer", e);
-		}
-
-		try {
-			if (session != null)
-				session.close();
-		} catch (JMSException e) {
-			slog.trace("araqne logdb jms: cannot close session", e);
-		}
-
-		try {
-			if (connection != null)
-				connection.close();
-		} catch (JMSException e) {
-			slog.trace("araqne logdb jms: cannot close connection", e);
+			JmsHelper.closeAll(connection, session, consumer);
 		}
 	}
 }
