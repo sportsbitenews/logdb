@@ -46,6 +46,7 @@ public class LogCheck extends QueryCommand {
 	private Set<String> tableNames;
 	private Date from;
 	private Date to;
+	private boolean trace;
 
 	// for toString query generation
 	private String tableToken;
@@ -54,11 +55,12 @@ public class LogCheck extends QueryCommand {
 	private LogStorage storage;
 	private LogFileServiceRegistry fileServiceRegistry;
 
-	public LogCheck(Set<String> tableNames, Date from, Date to, String tableToken, LogTableRegistry tableRegistry,
+	public LogCheck(Set<String> tableNames, Date from, Date to, boolean trace, String tableToken, LogTableRegistry tableRegistry,
 			LogStorage storage, LogFileServiceRegistry fileSerivceRegistry) {
 		this.tableNames = tableNames;
 		this.from = from;
 		this.to = to;
+		this.trace = trace;
 		this.tableToken = tableToken;
 		this.tableRegistry = tableRegistry;
 		this.storage = storage;
@@ -124,6 +126,7 @@ public class LogCheck extends QueryCommand {
 
 			LogFileReader reader = null;
 			LogBlockCursor cursor = null;
+			int lastValidBlockId = 0;
 			try {
 				reader = fileServiceRegistry.newReader(tableName, type, new LogFileServiceV2.Option(schema.getPrimaryStorage(),
 						metadata, tableName, dir, indexPath, dataPath, keyPath));
@@ -148,7 +151,10 @@ public class LogCheck extends QueryCommand {
 					} catch (Exception e) {
 					}
 
-					if (hash != null && Arrays.equals(hash, signature))
+					lastValidBlockId = (Integer) data.get("block_id");
+
+					boolean valid = hash != null && Arrays.equals(hash, signature);
+					if (valid && !trace)
 						continue;
 
 					m.put("table", tableName);
@@ -156,10 +162,21 @@ public class LogCheck extends QueryCommand {
 					m.put("block_id", data.get("block_id"));
 					m.put("signature", signature);
 					m.put("hash", hash);
+
+					if (d == null)
+						m.put("msg", "corrupted");
+					else
+						m.put("msg", valid ? "valid" : "modified");
 					pushPipe(new Row(m));
 				}
 			} catch (IOException e) {
-				logger.error("araqne logdb: cannot read block metadata", e);
+				Map<String, Object> m = new HashMap<String, Object>();
+				m.put("table", tableName);
+				m.put("day", day);
+				m.put("last_block_id", lastValidBlockId);
+				m.put("msg", "corrupted");
+				pushPipe(new Row(m));
+				logger.trace("araqne logdb: cannot read block metadata", e);
 			} finally {
 				if (cursor != null) {
 					try {
@@ -179,6 +196,7 @@ public class LogCheck extends QueryCommand {
 	public String toString() {
 		String fromOption = "";
 		String toOption = "";
+		String traceOption = "";
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 		if (from != null)
@@ -187,11 +205,14 @@ public class LogCheck extends QueryCommand {
 		if (to != null)
 			toOption = " to=" + df.format(to);
 
+		if (trace)
+			traceOption = " trace=t";
+
 		String tables = tableToken;
 		if (!tables.isEmpty())
 			tables = " " + tables;
 
-		return "logcheck" + fromOption + toOption + tables;
+		return "logcheck" + fromOption + toOption + traceOption + tables;
 	}
 
 	private class IntegrityCheckTask extends QueryTask {

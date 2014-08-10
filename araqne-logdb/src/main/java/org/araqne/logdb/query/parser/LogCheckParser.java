@@ -44,7 +44,7 @@ public class LogCheckParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("no-permission", -1);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("from", "to"), getFunctionRegistry());
+				Arrays.asList("from", "to", "trace"), getFunctionRegistry());
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 
@@ -52,6 +52,7 @@ public class LogCheckParser extends AbstractQueryCommandParser {
 		Map<String, String> options = (Map<String, String>) r.value;
 		String fromToken = options.get("from");
 		String toToken = options.get("to");
+		boolean trace = CommandOptions.parseBoolean(options.get("trace"));
 
 		Date from = null;
 		if (fromToken != null) {
@@ -70,7 +71,7 @@ public class LogCheckParser extends AbstractQueryCommandParser {
 		String tableToken = commandString.substring(r.next).trim();
 
 		Set<String> tableNames = getFilteredTableNames(tableToken);
-		return new LogCheck(tableNames, from, to, tableToken, tableRegistry, storage, fileServiceRegistry);
+		return new LogCheck(tableNames, from, to, trace, tableToken, tableRegistry, storage, fileServiceRegistry);
 	}
 
 	private Set<String> getFilteredTableNames(String t) {
