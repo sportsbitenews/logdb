@@ -254,5 +254,6 @@
 		<!--<module>araqne-logdb-mongo</module>-->
 		<module>araqne-logdb-crawler</module>
 		<module>araqne-logapi-nio</module>
+		<module>araqne-logdb-jms</module>
 	</modules>
 </project>
