@@ -16,7 +16,6 @@
 package org.araqne.logdb.query.command;
 
 import java.io.IOException;
-import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -95,17 +94,9 @@ public class Timechart extends QueryCommand {
 		super.onStart();
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
 		this.buffer = new HashMap<TimechartKey, AggregationFunction[]>();
-		this.spanMillis = getSpanMillis();
+		this.spanMillis = timeSpan.getMillis();
 
 		logger.debug("araqne logdb: span millis [{}] for query [{}]", spanMillis, query);
-	}
-
-	private long getSpanMillis() {
-		Date d = new Date();
-		Calendar c = Calendar.getInstance();
-		c.setTime(d);
-		c.add(timeSpan.unit.getCalendarField(), timeSpan.amount);
-		return c.getTimeInMillis() - d.getTime();
 	}
 
 	@Override

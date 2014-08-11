@@ -42,6 +42,13 @@ public class TimeSpan {
 		return new TimeSpan(amount, unit);
 	}
 
+	/**
+	 * @since 2.4.20
+	 */
+	public long getMillis() {
+		return unit.getMillis() * amount;
+	}
+
 	@Override
 	public String toString() {
 		return amount + unit.toString();

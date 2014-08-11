@@ -86,7 +86,7 @@ public class Table extends DriverQueryCommand {
 			this.receiver = new RealtimeReceiver();
 			storage.addLogListener(receiver);
 
-			long expire = System.currentTimeMillis() + params.window.unit.getMillis() * params.window.amount;
+			long expire = System.currentTimeMillis() + params.window.getMillis();
 
 			while (true) {
 				if (System.currentTimeMillis() >= expire)
