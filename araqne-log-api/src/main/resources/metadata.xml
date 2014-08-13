@@ -19,9 +19,13 @@
 	<instance component="chain-parser-factory" />
 	<instance component="field-mapping-parser-factory" />
 	<instance component="tag-parser-factory" />
-	<instance component="rolling-log-writer-factory" />
 	<instance component="regex-filter-transformer-factory" />
+	
+	<!-- deprecated 
+	<instance component="rolling-log-writer-factory" />
 	<instance component="time-rolling-log-writer-factory" />
+	 -->
+	 
 	<instance component="rotation-file-logger-factory" />
 	<instance component="exec-logger-factory" />
 	<instance component="wtmp-logger-factory" />
