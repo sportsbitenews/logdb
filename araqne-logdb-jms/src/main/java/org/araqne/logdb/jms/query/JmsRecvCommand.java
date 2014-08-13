@@ -70,7 +70,7 @@ public class JmsRecvCommand extends DriverQueryCommand {
 			long begin = System.currentTimeMillis();
 			long limitTime = Long.MAX_VALUE;
 			if (window != null)
-				limitTime = begin + window.unit.getMillis() * window.amount;
+				limitTime = begin + window.getMillis();
 
 			while (true) {
 				if (task.getStatus() == TaskStatus.CANCELED)
