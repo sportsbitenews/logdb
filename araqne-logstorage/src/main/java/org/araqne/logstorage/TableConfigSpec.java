@@ -114,4 +114,12 @@ public class TableConfigSpec {
 		m.put(Locale.KOREAN, ko);
 		return m;
 	}
+
+	public static Map<Locale, String> locales(String en, String ko, String cn) {
+		Map<Locale, String> m = new HashMap<Locale, String>();
+		m.put(Locale.ENGLISH, en);
+		m.put(Locale.KOREAN, ko);
+		m.put(Locale.CHINESE, cn);
+		return m;
+	}
 }
