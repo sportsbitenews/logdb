@@ -100,7 +100,7 @@ public class Import extends QueryCommand implements ThreadSafe {
 	public String toString() {
 		String createOption = "";
 		if (create)
-			createOption = "create=true ";
+			createOption = "create=t ";
 
 		return "import " + createOption + tableName;
 	}

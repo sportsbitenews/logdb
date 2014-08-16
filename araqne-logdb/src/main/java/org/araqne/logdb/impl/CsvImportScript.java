@@ -22,6 +22,7 @@ import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -30,6 +31,8 @@ import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
 import org.araqne.api.ScriptUsage;
 import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogBatchPacker;
+import org.araqne.logstorage.LogCallback;
 import org.araqne.logstorage.LogStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,8 +57,7 @@ public class CsvImportScript implements Script {
 			@ScriptArgument(name = "table name", type = "string", description = "table name"),
 			@ScriptArgument(name = "file path", type = "string", description = "text log file path"),
 			@ScriptArgument(name = "parse date", type = "string", description = "true or false", optional = true),
-			@ScriptArgument(name = "charset", type = "string", description = "utf8 by default", optional = true),
-	})
+			@ScriptArgument(name = "charset", type = "string", description = "utf8 by default", optional = true), })
 	public void importCsvFile(String[] args) throws InterruptedException {
 
 		String table = args[0];
@@ -89,12 +91,22 @@ public class CsvImportScript implements Script {
 		InputStreamReader isr = null;
 		CSVReader reader = null;
 		String[] headers = null;
+		LogBatchPacker packer = null;
 
 		long count = 0;
 		try {
 			fis = new FileInputStream(path);
 			isr = new InputStreamReader(fis, charset);
 			reader = new CSVReader(isr);
+			packer = new LogBatchPacker(table, 2000, 100, new LogCallback() {
+				@Override
+				public void onLogBatch(String tableName, List<Log> logBatch) {
+					try {
+						storage.write(logBatch);
+					} catch (InterruptedException e) {
+					}
+				}
+			});
 
 			while (true) {
 				String[] line = reader.readNext();
@@ -113,7 +125,7 @@ public class CsvImportScript implements Script {
 
 				Date date = parseDate(data, dateColumns, dateFormat);
 				Log log = new Log(table, date, data);
-				storage.write(log);
+				packer.pack(log);
 				count++;
 			}
 
@@ -121,6 +133,7 @@ public class CsvImportScript implements Script {
 			long elapsed = end - begin;
 			long speed = count * 1000 / elapsed;
 
+			packer.flush();
 			context.println("loaded " + count + " logs in " + elapsed + "ms, " + speed + "logs/sec");
 		} catch (IOException e) {
 			context.println("failed to load csv -  " + e.getMessage());
@@ -146,6 +159,8 @@ public class CsvImportScript implements Script {
 				} catch (IOException e) {
 				}
 			}
+
+			packer.close();
 		}
 	}
 

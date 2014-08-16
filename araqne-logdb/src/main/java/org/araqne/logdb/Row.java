@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 public class Row {
-	// _time cache
-	private Date d;
 	private final Map<String, Object> map;
 
 	public Row() {
@@ -33,15 +31,11 @@ public class Row {
 	}
 
 	public Row(Map<String, Object> map) {
-		Object time = map.get("_time");
-		if (time != null && time instanceof Date)
-			d = (Date) time;
-
 		this.map = map;
 	}
 
 	public Row clone() {
-		return new Row(clone(map));
+		return new Row(new CopyOnWriteMap(map));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -74,7 +68,10 @@ public class Row {
 	}
 
 	public Date getDate() {
-		return d;
+		Object o = map.get("_time");
+		if (o instanceof Date)
+			return (Date) o;
+		return null;
 	}
 
 	public Object get(String key) {
@@ -92,8 +89,6 @@ public class Row {
 	}
 
 	public void put(String key, Object value) {
-		if (key.equals("_time") && value instanceof Date)
-			d = (Date) value;
 		map.put(key, value);
 	}
 
