@@ -79,6 +79,10 @@ public class EventContext {
 	public void setTimeoutTime(long timeoutTime) {
 		this.timeoutTime = timeoutTime;
 
+		// fast check and return
+		if (host == null)
+			return;
+
 		for (EventContextListener listener : listeners) {
 			listener.onUpdateTimeout(this);
 		}

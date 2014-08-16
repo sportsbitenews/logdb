@@ -7,6 +7,7 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextService;
+import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.query.expr.Expression;
 
 public class EvtCtxGetVarFunction implements Expression {
@@ -14,10 +15,10 @@ public class EvtCtxGetVarFunction implements Expression {
 	private Expression keyExpr;
 	private Expression varNameExpr;
 
-	private EventContextService eventContextService;
+	private EventContextStorage memStorage;
 
 	public EvtCtxGetVarFunction(QueryContext ctx, List<Expression> exprs, EventContextService eventContextService) {
-		this.eventContextService = eventContextService;
+		this.memStorage = eventContextService.getStorage("mem");
 
 		if (exprs.size() != 3)
 			throw new QueryParseException("invalid-evtctxgetvar-arguments", -1, "argument-count-mismatch");
@@ -29,7 +30,7 @@ public class EvtCtxGetVarFunction implements Expression {
 
 	@Override
 	public Object eval(Row row) {
-		EventContext ctx = EvtCtxGetFunction.findContext(eventContextService, topicExpr, keyExpr, row);
+		EventContext ctx = EvtCtxGetFunction.findContext(memStorage, topicExpr, keyExpr, row);
 		if (ctx == null)
 			return null;
 

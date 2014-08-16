@@ -103,8 +103,12 @@ public class EvtCtxAddCommand extends QueryCommand {
 			if (timeout != null)
 				timeoutTime = created + timeout.unit.getMillis() * timeout.amount;
 
-			EventContext ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
-			ctx = storage.addContext(ctx);
+			EventContext ctx = storage.getContext(eventKey);
+			if (ctx == null) {
+				ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
+				ctx = storage.addContext(ctx);
+			}
+
 			ctx.getCounter().incrementAndGet();
 
 			// extend timeout

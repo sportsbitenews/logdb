@@ -16,15 +16,18 @@
 package org.araqne.logdb.cep;
 
 public class EventKey {
-	private String topic;
-	private String key;
+	private final String topic;
+	private final String key;
 
 	// optional host value for log tick
 	private String host;
 
+	private final int hashCode;
+
 	public EventKey(String topic, String key) {
 		this.topic = topic;
 		this.key = key;
+		this.hashCode = topic.hashCode() ^ key.hashCode();
 	}
 
 	public String getTopic() {
@@ -45,11 +48,7 @@ public class EventKey {
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((key == null) ? 0 : key.hashCode());
-		result = prime * result + ((topic == null) ? 0 : topic.hashCode());
-		return result;
+		return hashCode;
 	}
 
 	@Override
@@ -58,20 +57,14 @@ public class EventKey {
 			return true;
 		if (obj == null)
 			return false;
+
+		// must be same class
 		if (getClass() != obj.getClass())
 			return false;
+
+		// topic and key is always not null
 		EventKey other = (EventKey) obj;
-		if (key == null) {
-			if (other.key != null)
-				return false;
-		} else if (!key.equals(other.key))
-			return false;
-		if (topic == null) {
-			if (other.topic != null)
-				return false;
-		} else if (!topic.equals(other.topic))
-			return false;
-		return true;
+		return key.equals(other.key) && topic.equals(other.topic);
 	}
 
 	@Override
