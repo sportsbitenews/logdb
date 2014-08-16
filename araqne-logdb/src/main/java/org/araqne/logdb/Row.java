@@ -42,13 +42,15 @@ public class Row {
 	public static Map<String, Object> clone(Map<String, Object> m) {
 		HashMap<String, Object> cloned = new HashMap<String, Object>();
 		for (Entry<String, Object> e : m.entrySet()) {
+			String key = e.getKey();
 			Object val = e.getValue();
+
 			if (val instanceof Map)
-				cloned.put(e.getKey(), clone((Map<String, Object>) val));
+				cloned.put(key, clone((Map<String, Object>) val));
 			else if (val instanceof Collection)
-				cloned.put(e.getKey(), clone((Collection<Object>) val));
+				cloned.put(key, clone((Collection<Object>) val));
 			else
-				cloned.put(e.getKey(), val);
+				cloned.put(key, val);
 		}
 		return cloned;
 	}
