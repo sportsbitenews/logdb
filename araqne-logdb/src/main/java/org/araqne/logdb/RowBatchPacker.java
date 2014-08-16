@@ -21,7 +21,7 @@ public class RowBatchPacker extends TimerTask {
 		this.timer.schedule(this, 0, flushInterval);
 	}
 
-	public void pushPipe(Row row) {
+	public void pack(Row row) {
 		synchronized (pack) {
 			pack.add(row);
 
