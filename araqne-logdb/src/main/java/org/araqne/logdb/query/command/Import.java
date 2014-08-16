@@ -15,11 +15,14 @@
  */
 package org.araqne.logdb.query.command;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
@@ -76,6 +79,39 @@ public class Import extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(Row row) {
+		Log log = convertToLog(row);
+
+		try {
+			storage.write(log);
+			pushPipe(row);
+		} catch (InterruptedException e) {
+			getQuery().stop(QueryStopReason.Interrupted);
+		}
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		List<Log> logs = new ArrayList<Log>(rowBatch.size);
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+				logs.add(convertToLog(row));
+			}
+		} else {
+			for (Row row : rowBatch.rows)
+				logs.add(convertToLog(row));
+		}
+
+		try {
+			storage.write(logs);
+			pushPipe(rowBatch);
+		} catch (InterruptedException e) {
+			getQuery().stop(QueryStopReason.Interrupted);
+		}
+	}
+
+	private Log convertToLog(Row row) {
 		Object o = row.get("_time");
 		Date date = null;
 		if (o != null && o instanceof Date)
@@ -83,12 +119,8 @@ public class Import extends QueryCommand implements ThreadSafe {
 		else
 			date = new Date();
 
-		try {
-			storage.write(new Log(tableName, date, row.map()));
-			pushPipe(row);
-		} catch (InterruptedException e) {
-			getQuery().stop(QueryStopReason.Interrupted);
-		}
+		Log log = new Log(tableName, date, Row.clone(row.map()));
+		return log;
 	}
 
 	@Override
