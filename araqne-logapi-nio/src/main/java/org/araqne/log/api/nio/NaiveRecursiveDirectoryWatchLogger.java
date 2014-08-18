@@ -130,6 +130,7 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 			if (file.length() <= offset)
 				return;
 
+			receiver.filename = file.getName();
 			is = new FileInputStream(file);
 			is.skip(offset);
 
