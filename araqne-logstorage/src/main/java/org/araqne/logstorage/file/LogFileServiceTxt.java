@@ -123,7 +123,7 @@ public class LogFileServiceTxt implements LogFileService {
 		FilePath[] files = tableDir.listFiles(new FilePathNameFilter() {
 			@Override
 			public boolean accept(FilePath dir, String name) {
-				return name.endsWith(".idx");
+				return name.endsWith(".dat");
 			}
 		});
 

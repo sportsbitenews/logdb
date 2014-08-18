@@ -2,10 +2,16 @@ package org.araqne.logstorage.file;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogTraverseCallback;
@@ -20,14 +26,14 @@ public class LogFileReaderTxt extends LogFileReader {
 
 	private FilePath indexPath;
 	private FilePath dataPath;
-	private StorageInputStream indexStream;
 	private StorageInputStream dataStream;
 
 	public LogFileReaderTxt(String tableName, FilePath indexPath, FilePath dataPath) throws IOException, InvalidLogFileHeaderException {
-			this.tableName = tableName;
-			this.indexPath = indexPath;
-			this.dataPath = dataPath;
+		this.tableName = tableName;
+		this.indexPath = indexPath;
+		this.dataPath = dataPath;
 
+		this.dataStream = dataPath.newInputStream();
 	}
 
 	@Override
@@ -42,7 +48,6 @@ public class LogFileReaderTxt extends LogFileReader {
 
 	@Override
 	public void close() {
-		ensureClose(indexStream, indexPath);
 		ensureClose(dataStream, dataPath);
 	}
 
@@ -54,7 +59,6 @@ public class LogFileReaderTxt extends LogFileReader {
 			logger.error("araqne logstorage: cannot close file - " + path.getAbsolutePath(), e);
 		}
 	}
-
 
 	@Override
 	public LogRecordCursor getCursor() throws IOException {
@@ -73,15 +77,58 @@ public class LogFileReaderTxt extends LogFileReader {
 
 	@Override
 	public List<Log> find(Date from, Date to, List<Long> ids, LogParserBuilder builder) {
-		List<Log> ret = new ArrayList<Log>(ids.size());
-
-		return ret;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback callback,
 			boolean doParallel) throws IOException, InterruptedException {
+		boolean suppressBugAlert = false;
+		LogParser parser = null;
+		if (builder != null)
+			parser = builder.build();
 
+		int _id = 1;
+		List<Log> logs = new ArrayList<Log>();
+
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		String fileName = dataPath.getName();
+		Date date = null;
+		try {
+			date = dateFormat.parse(fileName.substring(0, fileName.lastIndexOf(".dat")));
+		} catch (ParseException e1) {
+			logger.error("araqne log file reader txt: invalid log filename, table {}, {}", tableName, fileName);
+			return;
+		}
+
+		String line = null;
+		while ((line = dataStream.readLine()) != null) {
+			List<Log> result = null;
+
+			Map<String, Object> data = new HashMap<String, Object>();
+			data.put("_fileName", fileName);
+			data.put("line", line);
+
+			Log log = new Log(tableName, date, _id++, data);
+
+			try {
+				result = parse(tableName, parser, log);
+			} catch (LogParserBugException e) {
+				result = new ArrayList<Log>(1);
+				result.add(new Log(e.tableName, e.date, e.id, e.logMap));
+				if (!suppressBugAlert) {
+					logger.error("araqne logstorage: PARSER BUG! original log => table " + e.tableName + ", id " + e.id
+							+ ", data " + e.logMap, e.cause);
+					suppressBugAlert = true;
+				}
+			} finally {
+				if (result == null)
+					continue;
+
+				logs.addAll(result);
+			}
+		}
+		callback.writeLogs(logs);
 	}
 
 }
