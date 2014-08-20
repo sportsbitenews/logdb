@@ -89,6 +89,7 @@ import org.araqne.logdb.query.expr.Typeof;
 import org.araqne.logdb.query.expr.Upper;
 import org.araqne.logdb.query.expr.UrlDecode;
 import org.araqne.logdb.query.expr.ValueOf;
+import org.araqne.logdb.query.expr.Zip;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,6 +195,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("tobase64", ToBase64.class);
 			define("encrypt", Encrypt.class);
 			define("decrypt", Decrypt.class);
+			define("zip", Zip.class);
 		}
 
 		private void define(String name, Class<?> clazz) {

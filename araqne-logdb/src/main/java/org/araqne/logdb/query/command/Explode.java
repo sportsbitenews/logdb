@@ -38,9 +38,6 @@ public class Explode extends QueryCommand {
 	@Override
 	public void onPush(Row row) {
 		Object o = row.get(arrayFieldName);
-		if (o == null)
-			return;
-
 		if (o instanceof Collection) {
 			Collection<?> c = (Collection<?>) o;
 			ArrayList<Row> rows = new ArrayList<Row>(c.size());
