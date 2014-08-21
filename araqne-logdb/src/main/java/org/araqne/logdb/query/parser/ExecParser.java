@@ -28,6 +28,11 @@ import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.command.Exec;
 import org.araqne.logdb.query.expr.Expression;
 
+/**
+ * @since 2.4.24
+ * @author xeraph
+ * 
+ */
 public class ExecParser extends AbstractQueryCommandParser {
 
 	@Override
@@ -35,6 +40,7 @@ public class ExecParser extends AbstractQueryCommandParser {
 		return "exec";
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (context != null && !context.getSession().isAdmin())

@@ -46,6 +46,7 @@ import org.araqne.logdb.query.expr.Encrypt;
 import org.araqne.logdb.query.expr.Epoch;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.Field;
+import org.araqne.logdb.query.expr.Flatten;
 import org.araqne.logdb.query.expr.Floor;
 import org.araqne.logdb.query.expr.FromBase64;
 import org.araqne.logdb.query.expr.Guid;
@@ -86,6 +87,7 @@ import org.araqne.logdb.query.expr.ToLong;
 import org.araqne.logdb.query.expr.ToString;
 import org.araqne.logdb.query.expr.Trim;
 import org.araqne.logdb.query.expr.Typeof;
+import org.araqne.logdb.query.expr.Unique;
 import org.araqne.logdb.query.expr.Upper;
 import org.araqne.logdb.query.expr.UrlDecode;
 import org.araqne.logdb.query.expr.ValueOf;
@@ -196,6 +198,8 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("encrypt", Encrypt.class);
 			define("decrypt", Decrypt.class);
 			define("zip", Zip.class);
+			define("unique", Unique.class);
+			define("flatten", Flatten.class);
 		}
 
 		private void define(String name, Class<?> clazz) {

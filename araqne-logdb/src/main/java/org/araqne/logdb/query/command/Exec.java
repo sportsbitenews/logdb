@@ -26,6 +26,11 @@ import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.expr.Expression;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @since 2.4.24
+ * @author xeraph
+ * 
+ */
 public class Exec extends QueryCommand {
 	private final org.slf4j.Logger slog = LoggerFactory.getLogger(Exec.class);
 	private String command;

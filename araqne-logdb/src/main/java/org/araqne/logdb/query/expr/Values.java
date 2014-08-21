@@ -30,7 +30,8 @@ import org.araqne.logdb.query.aggregator.AggregationFunction;
  * 
  */
 public class Values implements AggregationFunction {
-	private List<Expression> exprs;
+	private final List<Expression> exprs;
+	private final Expression arg;
 	private TreeSet<Object> set;
 
 	public Values(List<Expression> exprs) {
@@ -38,6 +39,7 @@ public class Values implements AggregationFunction {
 			throw new QueryParseException("missing-values-arg", -1);
 
 		this.exprs = exprs;
+		this.arg = exprs.get(0);
 		this.set = new TreeSet<Object>(new ObjectComparator());
 	}
 
@@ -53,7 +55,7 @@ public class Values implements AggregationFunction {
 
 	@Override
 	public void apply(Row map) {
-		Object obj = exprs.get(0).eval(map);
+		Object obj = arg.eval(map);
 		if (obj != null && set.size() < 100) {
 			set.add(obj);
 		}
@@ -100,7 +102,6 @@ public class Values implements AggregationFunction {
 
 	@Override
 	public String toString() {
-		return "values(" + exprs.get(0) + ")";
+		return "values(" + arg + ")";
 	}
-
 }
