@@ -153,8 +153,12 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		callbackSet = new CallbackSet();
 		tableNameCache = new ConcurrentHashMap<String, Integer>();
 
-		logDir = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logstorage/log");
-		logDir = storageManager.resolveFilePath(getStringParameter(Constants.LogStorageDirectory, logDir.getAbsolutePath()));
+		logDir =
+				storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath(
+						"araqne-logstorage/log");
+		logDir =
+				storageManager.resolveFilePath(getStringParameter(
+						Constants.LogStorageDirectory, logDir.getAbsolutePath()));
 		logDir.mkdirs();
 		DatapathUtil.setLogDir(logDir);
 
@@ -525,7 +529,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 							continue;
 						}
 
-						throw new IllegalStateException("cannot write [" + l.size() + "] logs to table [" + tableName + "]");
+						throw new IllegalStateException("cannot write [" + l.size() + "] logs to table [" + tableName
+								+ "]");
 					}
 				}
 
@@ -624,7 +629,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		if (!skipArgCheck) {
 			ReplicaStorageConfig config = ReplicaStorageConfig.parseTableSchema(schema);
 			if (config != null && config.mode() != ReplicationMode.ACTIVE)
-				throw new IllegalArgumentException("specified table has replica storage config and cannot purge non-active table");
+				throw new IllegalArgumentException(
+						"specified table has replica storage config and cannot purge non-active table");
 		}
 
 		// evict online buffer and close
@@ -811,27 +817,36 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 		return online;
 	}
-	
-	private OnlineWriter loadNewOnlineWriter(OnlineWriterKey key, String logFileType) 
+
+	private OnlineWriter loadNewOnlineWriter(OnlineWriterKey key, String logFileType)
 			throws IOException, InterruptedException {
-		OnlineWriter online = null;
-		
 		OnlineWriter newWriter = newOnlineWriter(key.getTableName(), key.getDay(), logFileType);
 		OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
 		if (consensus == null) {
-			AtomicLong lastKey = getLastKey(key);
-			newWriter.prepareWriter(storageManager, callbackSet, logDir, lastKey);
-			online = newWriter;
+			try {
+				AtomicLong lastKey = getLastKey(key);
+				newWriter.prepareWriter(storageManager, callbackSet, logDir, lastKey);
+				return newWriter;
+			} catch (RuntimeException e) {
+				logger.error("loadNewOnlineWriter failed: " + key, e);
+				onlineWriters.remove(key, newWriter);
+				throw e;
+			}
 		} else {
-			if (!consensus.awaitWriterPreparation())
-				throw new IllegalStateException("awaiting for log writer preparation timeout - " + key);
+			try {
+				if (!consensus.awaitWriterPreparation())
+					throw new IllegalStateException("awaiting for log writer preparation timeout - " + key);
 
-			online = consensus;
-			if (consensus != newWriter)
-				newWriter.close();
+				if (!consensus.isOpen())
+					throw new IllegalStateException("log writer preparation failed - " + key);
+				else {
+					return consensus;
+				}
+			} finally {
+				if (consensus != newWriter)
+					newWriter.close();
+			}
 		}
-		
-		return online;
 	}
 
 	private OnlineWriter newOnlineWriter(String tableName, Date day, String logFileType)
@@ -848,7 +863,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		Lock tableLock = tableRegistry.getSharedTableLock(tableName);
 		try {
 			tableLock.lock();
-			
+
 			return new OnlineWriter(lfs, schema, day);
 		} finally {
 			tableLock.unlock();
@@ -1006,9 +1021,10 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				this.flushAll = false;
 				for (OnlineWriterKey key : onlineWriters.keySet()) {
 					OnlineWriter writer = onlineWriters.get(key);
-					if (writer == null)
+					if (writer == null || !writer.isOpen())
 						continue;
-					boolean doFlush = writer.isCloseReserved() || ((now - writer.getLastFlush().getTime()) > flushInterval);
+					boolean doFlush =
+							writer.isCloseReserved() || ((now - writer.getLastFlush().getTime()) > flushInterval);
 					doFlush = flushAll ? true : doFlush;
 					if (doFlush) {
 						try {
@@ -1237,7 +1253,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 					while (li.hasPrevious()) {
 						Log logData = li.previous();
 						onlineMinId = logData.getId(); // reversed traversing
-						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
+						if ((from == null || !logData.getDate().before(from))
+								&& (to == null || logData.getDate().before(to))
 								&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
 							List<Log> result = null;
 							try {
@@ -1257,8 +1274,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			}
 
 			String logFileType = schema.getPrimaryStorage().getType();
-			LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getPrimaryStorage(), schema.getMetadata(),
-					tableName, basePath, indexPath, dataPath, keyPath);
+			LogFileServiceV2.Option options =
+					new LogFileServiceV2.Option(schema.getPrimaryStorage(), schema.getMetadata(),
+							tableName, basePath, indexPath, dataPath, keyPath);
 			options.put("day", day);
 			reader = newReader(onlineWriter, tableName, logFileType, options);
 
@@ -1295,7 +1313,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		return !c.isEof();
 	}
 
-	private LogFileReader newReader(OnlineWriter onlineWriter, String tableName, String logFileType, Map<String, Object> options) {
+	private LogFileReader newReader(
+			OnlineWriter onlineWriter, String tableName, String logFileType, Map<String, Object> options) {
 		if (onlineWriter != null) {
 			try {
 				onlineWriter.sync();
