@@ -99,7 +99,7 @@ public class QueryTokenizer {
 		return new ParseResult(options, next);
 	}
 
-	// find next unescaped delimiter, except ==, !=
+	// find next unescaped delimiter, except ==, !=, <=, >=
 	private static int findNextSeparator(String s, int offset) {
 		boolean quote = false;
 		boolean escape = false;
@@ -134,9 +134,12 @@ public class QueryTokenizer {
 					continue;
 				}
 				
-				// skip != token
-				if (i > 0 && s.charAt(i - 1) == '!') 
-					continue;
+				// skip !=, <=, >= token
+				if (i > 0) {
+					 char before = s.charAt(i - 1);
+					 if (before == '!' || before == '<' || before == '>') 
+						 continue;
+				}
 
 				return i;
 			}
