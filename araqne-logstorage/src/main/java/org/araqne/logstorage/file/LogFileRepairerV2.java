@@ -32,8 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * check log .idx and .dat file metadata and block size, and truncate broken
- * data blocks or generate index blocks.
+ * check log .idx and .dat file metadata and block size, and truncate broken data blocks or generate index blocks.
  * 
  * @author xeraph
  * 
@@ -45,7 +44,7 @@ public class LogFileRepairerV2 implements LogFileRepairer {
 	public LogFileFixReport quickFix(File indexPath, File dataPath) throws IOException {
 		return fix(indexPath, dataPath);
 	}
-	
+
 	@Override
 	public LogFileFixReport fix(File indexPath, File dataPath) throws IOException {
 		RandomAccessFile indexFile = null;
@@ -77,7 +76,9 @@ public class LogFileRepairerV2 implements LogFileRepairer {
 			else
 				return truncate(indexPath, dataPath, indexFile, dataFile, indexBlocks, dataBlockHeaders);
 		} catch (UnexpectedLogCountException e) {
-			logger.warn("araqne logstorage: unexpected item count ({}:{}) - {}", new Object[] {indexPath.getAbsolutePath(), e.pos, e.count});
+			logger.warn(
+					"araqne logstorage: unexpected item count ({}:{}) - {}", new Object[] {
+							indexPath.getAbsolutePath(), e.pos, e.count });
 			if (indexFile != null) {
 				indexFile.close();
 				indexFile = null;
@@ -95,7 +96,8 @@ public class LogFileRepairerV2 implements LogFileRepairer {
 		}
 	}
 
-	private void truncateBrokenDataBlock(File dataPath, RandomAccessFile dataFile, List<LogDataBlockHeader> dataBlockHeaders)
+	private void truncateBrokenDataBlock(
+			File dataPath, RandomAccessFile dataFile, List<LogDataBlockHeader> dataBlockHeaders)
 			throws IOException {
 		if (dataBlockHeaders.size() == 0)
 			return;
@@ -106,9 +108,12 @@ public class LogFileRepairerV2 implements LogFileRepairer {
 		long dataOver = dataFile.length() - logicalEndOfData;
 		if (dataOver > 0) {
 			dataFile.setLength(logicalEndOfData);
-			logger.info("araqne logstorage: truncated immature last data block [{}], removed [{}] bytes", dataPath, dataOver);
+			logger.info(
+					"araqne logstorage: truncated immature last data block [{}], removed [{}] bytes", dataPath,
+					dataOver);
 		}
 	}
+
 	private LogFileFixReport remove(File indexPath, File dataPath) throws IOException {
 		long idxlen = indexPath.length();
 		long datlen = dataPath.length();
@@ -122,7 +127,8 @@ public class LogFileRepairerV2 implements LogFileRepairer {
 		return report;
 	}
 
-	private LogFileFixReport generate(File indexPath, File dataPath, RandomAccessFile indexFile, RandomAccessFile dataFile,
+	private LogFileFixReport generate(
+			File indexPath, File dataPath, RandomAccessFile indexFile, RandomAccessFile dataFile,
 			List<LogIndexBlock> indexBlocks, List<LogDataBlockHeader> dataBlockHeaders) throws IOException {
 		logger.trace("araqne logstorage: checking incomplete index block, file [{}]", indexPath);
 
@@ -176,8 +182,9 @@ public class LogFileRepairerV2 implements LogFileRepairer {
 				}
 
 				addedLogs += logOffsets.size();
-				logger.info("araqne logstorage: rewrite index block for {}, log count [{}], index file [{}]", new Object[] {
-						blockHeader, logOffsets.size(), indexPath });
+				logger.info(
+						"araqne logstorage: rewrite index block for {}, log count [{}], index file [{}]", new Object[] {
+								blockHeader, logOffsets.size(), indexPath });
 			}
 
 			LogFileFixReport report = new LogFileFixReport();
@@ -233,7 +240,8 @@ public class LogFileRepairerV2 implements LogFileRepairer {
 		return output;
 	}
 
-	private LogFileFixReport truncate(File indexPath, File dataPath, RandomAccessFile indexFile, RandomAccessFile dataFile,
+	private LogFileFixReport truncate(
+			File indexPath, File dataPath, RandomAccessFile indexFile, RandomAccessFile dataFile,
 			List<LogIndexBlock> indexBlocks, List<LogDataBlockHeader> dataBlockHeaders) throws IOException {
 		// truncate index file
 		int validLogCount = 0;
@@ -328,19 +336,20 @@ public class LogFileRepairerV2 implements LogFileRepairer {
 		private static final long serialVersionUID = 1L;
 		final long pos;
 		final int count;
+
 		public UnexpectedLogCountException(long pos, int count) {
 			this.pos = pos;
 			this.count = count;
 		}
 	}
-	
+
 	private LogIndexBlock readIndexBlock(RandomAccessFile indexFile) throws IOException {
 		long fp = indexFile.getFilePointer();
 		int count = indexFile.readInt();
 		if (count > 1000000 || count < 0) {
 			throw new UnexpectedLogCountException(fp, count);
 		}
-		
+
 		ByteBuffer bb = ByteBuffer.allocate(LogFileReaderV2.INDEX_ITEM_SIZE * count);
 		indexFile.read(bb.array());
 		int[] offsets = new int[count];
