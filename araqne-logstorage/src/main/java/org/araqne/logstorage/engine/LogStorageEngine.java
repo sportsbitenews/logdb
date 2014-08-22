@@ -827,6 +827,10 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				AtomicLong lastKey = getLastKey(key);
 				newWriter.prepareWriter(storageManager, callbackSet, logDir, lastKey);
 				return newWriter;
+			} catch (IOException e) {
+				logger.error("loadNewOnlineWriter failed: " + key, e);
+				onlineWriters.remove(key, newWriter);
+				throw e;
 			} catch (RuntimeException e) {
 				logger.error("loadNewOnlineWriter failed: " + key, e);
 				onlineWriters.remove(key, newWriter);
