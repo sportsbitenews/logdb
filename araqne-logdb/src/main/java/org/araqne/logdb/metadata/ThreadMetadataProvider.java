@@ -61,7 +61,7 @@ public class ThreadMetadataProvider implements MetadataProvider {
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
 		ParseResult r = QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("prettystack"), functionRegistry);
 		Map<String, Object> options = (Map<String, Object>) r.value;
-		
+
 		boolean prettyStack = false;
 		if (options.get("prettystack") != null) {
 			prettyStack = CommandOptions.parseBoolean(options.get("prettystack").toString());
@@ -77,7 +77,7 @@ public class ThreadMetadataProvider implements MetadataProvider {
 			Map<String, Object> m = new HashMap<String, Object>();
 			m.put("tid", t.getId());
 			m.put("name", t.getName());
-			m.put("group", t.getThreadGroup().getName());
+			m.put("group", t.getThreadGroup() != null ? t.getThreadGroup().getName() : null);
 			m.put("state", t.getState().toString());
 			m.put("priority", t.getPriority());
 			m.put("stacktrace", prettyStack ? mergeStackTrace(stacktrace) : convertStackTrace(stacktrace));
