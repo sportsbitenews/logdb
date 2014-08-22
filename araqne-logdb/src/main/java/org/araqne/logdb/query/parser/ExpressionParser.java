@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.text.Normalizer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Stack;
 
@@ -543,7 +542,7 @@ public class ExpressionParser {
 		if (p < 0)
 			return;
 
-		boolean change = p >= 0 && p <= end && (r.next == -1 || p < r.next);
+		boolean change = p >= 0 && p <= end && (r.next == -1 || p < r.next || (p == r.next && r.value instanceof String && symbol.length() > String.class.cast(r.value).length()));
 		if (change) {
 			r.value = symbol;
 			r.next = p;
