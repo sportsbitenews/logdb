@@ -108,7 +108,7 @@ public class LogParserFactoryRegistryImpl extends ServiceTracker implements LogP
 			}
 		}
 
-		logger.info("araqne-log-api: new parser factory added for [{}]", factory.getName());
+		logger.debug("araqne-log-api: new parser factory added for [{}]", factory.getName());
 	}
 
 	@Override
@@ -131,7 +131,7 @@ public class LogParserFactoryRegistryImpl extends ServiceTracker implements LogP
 			}
 		}
 
-		logger.info("araqne-log-api: parser factory removed for [{}]", factory.getName());
+		logger.debug("araqne-log-api: parser factory removed for [{}]", factory.getName());
 	}
 
 	private void verifyArgs(LogParserFactory factory) {
