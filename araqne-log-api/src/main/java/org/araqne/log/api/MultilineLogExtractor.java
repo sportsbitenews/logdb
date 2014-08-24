@@ -127,9 +127,11 @@ public class MultilineLogExtractor {
 		byte[] b = new byte[512 * 1024];
 
 		while (true) {
-			LoggerStatus status = logger.getStatus();
-			if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped)
-				break;
+			if (logger != null) {
+				LoggerStatus status = logger.getStatus();
+				if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped)
+					break;
+			}
 
 			int next = 0;
 			int len = is.read(b);
@@ -171,7 +173,7 @@ public class MultilineLogExtractor {
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("line", log);
 
-				output.add(new SimpleLog(d, logger.getFullName(), m));
+				output.add(new SimpleLog(d, logger == null ? null : logger.getFullName(), m));
 			}
 		}
 	}

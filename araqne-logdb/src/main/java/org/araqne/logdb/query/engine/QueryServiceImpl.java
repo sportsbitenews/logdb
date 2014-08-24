@@ -228,7 +228,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new OutputCsvParser());
 		parsers.add(new OutputJsonParser());
 		parsers.add(new OutputTxtParser());
-		parsers.add(new LogdbParser(metadataService));
+		parsers.add(new LogdbParser("logdb", metadataService));
+		parsers.add(new LogdbParser("system", metadataService));
 		parsers.add(new LogCheckParser(tableRegistry, storage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService, resultFactory));
 		parsers.add(new UnionParser(queryParserService));

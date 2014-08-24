@@ -7,15 +7,17 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Logdb;
 
 public class LogdbParser extends AbstractQueryCommandParser {
+	private String commandName;
 	private MetadataService metadataService;
 
-	public LogdbParser(MetadataService metadataService) {
+	public LogdbParser(String commandName, MetadataService metadataService) {
+		this.commandName = commandName;
 		this.metadataService = metadataService;
 	}
 
 	@Override
 	public String getCommandName() {
-		return "logdb";
+		return commandName;
 	}
 
 	@Override
