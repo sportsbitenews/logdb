@@ -2,13 +2,13 @@ package org.araqne.logstorage.file;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserBugException;
@@ -24,31 +24,44 @@ public class LogFileReaderTxt extends LogFileReader {
 	private Logger logger = LoggerFactory.getLogger(LogFileReaderTxt.class);
 	private String tableName;
 
-	private FilePath indexPath;
-	private FilePath dataPath;
-	private StorageInputStream dataStream;
+	private List<FilePath> dataPathList;
 
-	public LogFileReaderTxt(String tableName, FilePath indexPath, FilePath dataPath) throws IOException, InvalidLogFileHeaderException {
+	private Map<FilePath, StorageInputStream> dataStreamMap;
+
+	private Date date;
+
+	public LogFileReaderTxt(String tableName, List<FilePath> dataPathList, Date date) throws IOException, InvalidLogFileHeaderException {
 		this.tableName = tableName;
-		this.indexPath = indexPath;
-		this.dataPath = dataPath;
+		this.dataPathList = dataPathList;
+		
+		dataStreamMap = new TreeMap<FilePath, StorageInputStream>();
+		ListIterator<FilePath> dataPathListIterator = dataPathList.listIterator();
+		while (dataPathListIterator.hasNext()) {
+			FilePath datapath = (FilePath) dataPathListIterator.next();
+			dataStreamMap.put(datapath, datapath.newInputStream());
+		}
 
-		this.dataStream = dataPath.newInputStream();
+		this.date = date;
 	}
 
 	@Override
 	public FilePath getIndexPath() {
-		return indexPath;
+		return null;
 	}
 
 	@Override
 	public FilePath getDataPath() {
-		return dataPath;
+		return dataPathList.get(0);
 	}
 
 	@Override
 	public void close() {
-		ensureClose(dataStream, dataPath);
+		ListIterator<FilePath> dataPathIterator = dataPathList.listIterator();
+		while(dataPathIterator.hasNext()){
+			FilePath dataPath = dataPathIterator.next();
+			StorageInputStream dataStream = dataStreamMap.get(dataPath);
+			ensureClose(dataStream, dataPath);
+		}
 	}
 
 	private void ensureClose(Closeable stream, FilePath path) {
@@ -91,41 +104,39 @@ public class LogFileReaderTxt extends LogFileReader {
 		int _id = 1;
 		List<Log> logs = new ArrayList<Log>();
 
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-		String fileName = dataPath.getName();
-		Date date = null;
-		try {
-			date = dateFormat.parse(fileName.substring(0, fileName.lastIndexOf(".dat")));
-		} catch (ParseException e1) {
-			logger.error("araqne log file reader txt: invalid log filename, table {}, {}", tableName, fileName);
-			return;
-		}
+		ListIterator<FilePath> dataPathIterator = dataPathList.listIterator();
+		while(dataPathIterator.hasNext()){
+			FilePath dataPath = dataPathIterator.next();
+			StorageInputStream dataStream = dataStreamMap.get(dataPath);
 
-		String line = null;
-		while ((line = dataStream.readLine()) != null) {
-			List<Log> result = null;
+			String fileName = dataPath.getAbsolutePath();
 
-			Map<String, Object> data = new HashMap<String, Object>();
-			data.put("_fileName", fileName);
-			data.put("line", line);
+			String line = null;
+			while ((line = dataStream.readLine()) != null) {
+				List<Log> result = null;
 
-			Log log = new Log(tableName, date, _id++, data);
+				Map<String, Object> data = new HashMap<String, Object>();
+				data.put("_fileName", fileName);
+				data.put("line", line);
 
-			try {
-				result = parse(tableName, parser, log);
-			} catch (LogParserBugException e) {
-				result = new ArrayList<Log>(1);
-				result.add(new Log(e.tableName, e.date, e.id, e.logMap));
-				if (!suppressBugAlert) {
-					logger.error("araqne logstorage: PARSER BUG! original log => table " + e.tableName + ", id " + e.id
-							+ ", data " + e.logMap, e.cause);
-					suppressBugAlert = true;
+				Log log = new Log(tableName, date, _id++, data);
+
+				try {
+					result = parse(tableName, parser, log);
+				} catch (LogParserBugException e) {
+					result = new ArrayList<Log>(1);
+					result.add(new Log(e.tableName, e.date, e.id, e.logMap));
+					if (!suppressBugAlert) {
+						logger.error("araqne logstorage: PARSER BUG! original log => table " + e.tableName + ", id " + e.id
+								+ ", data " + e.logMap, e.cause);
+						suppressBugAlert = true;
+					}
+				} finally {
+					if (result == null)
+						continue;
+
+					logs.addAll(result);
 				}
-			} finally {
-				if (result == null)
-					continue;
-
-				logs.addAll(result);
 			}
 		}
 		callback.writeLogs(logs);
