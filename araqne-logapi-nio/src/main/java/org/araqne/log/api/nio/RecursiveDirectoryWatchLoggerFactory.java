@@ -91,8 +91,8 @@ public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory 
 						"Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true);
 
 		LoggerConfigOption dirPathPattern = new MutableStringConfigType("dirpath_pattern", t("Directory Path pattern",
-				"디렉토리 이름 패턴", "ディレクトリ経路パータン", null), t("Regular expression to match directory path",
-				"대상 로그 파일이 있는 디렉토리를 선택하는데 사용할 정규표현식", "対象ログファイルがあるディレクトリを選ぶとき使う正規表現", null), false);
+				"디렉토리 이름 패턴", "ディレクトリ経路パータン", "文件名模式"), t("Regular expression to match directory path",
+				"대상 로그 파일이 있는 디렉토리를 선택하는데 사용할 정규표현식", "対象ログファイルがあるディレクトリを選ぶとき使う正規表現", "表示要采集的文件所在目录的正则表达式"), false);
 
 		LoggerConfigOption fileNamePattern = new MutableStringConfigType("filename_pattern", t("Filename pattern", "파일이름 패턴",
 				"ファイル名パータン", "文件名模式"), t("Regular expression to match log file name", "대상 로그 파일을 선택하는데 사용할 정규표현식",
