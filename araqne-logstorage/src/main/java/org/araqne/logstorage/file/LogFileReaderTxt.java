@@ -1,7 +1,9 @@
 package org.araqne.logstorage.file;
 
+import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -25,12 +27,12 @@ public class LogFileReaderTxt extends LogFileReader {
 	private String tableName;
 
 	private List<FilePath> dataPathList;
-
 	private Map<FilePath, StorageInputStream> dataStreamMap;
+	private String charset;
 
 	private Date date;
 
-	public LogFileReaderTxt(String tableName, List<FilePath> dataPathList, Date date) throws IOException, InvalidLogFileHeaderException {
+	public LogFileReaderTxt(String tableName, List<FilePath> dataPathList, Date date, String charset) throws IOException, InvalidLogFileHeaderException {
 		this.tableName = tableName;
 		this.dataPathList = dataPathList;
 		
@@ -42,6 +44,7 @@ public class LogFileReaderTxt extends LogFileReader {
 		}
 
 		this.date = date;
+		this.charset = charset;
 	}
 
 	@Override
@@ -110,9 +113,11 @@ public class LogFileReaderTxt extends LogFileReader {
 			StorageInputStream dataStream = dataStreamMap.get(dataPath);
 
 			String fileName = dataPath.getAbsolutePath();
+			InputStreamReader dataStreamReader = new InputStreamReader(dataStream, charset);
+			BufferedReader dataStreamBufferedReader = new BufferedReader(dataStreamReader);
 
 			String line = null;
-			while ((line = dataStream.readLine()) != null) {
+			while ((line = dataStreamBufferedReader.readLine()) != null) {
 				List<Log> result = null;
 
 				Map<String, Object> data = new HashMap<String, Object>();
@@ -138,6 +143,8 @@ public class LogFileReaderTxt extends LogFileReader {
 					logs.addAll(result);
 				}
 			}
+			dataStreamBufferedReader.close();
+			dataStreamReader.close();
 		}
 		callback.writeLogs(logs);
 	}
