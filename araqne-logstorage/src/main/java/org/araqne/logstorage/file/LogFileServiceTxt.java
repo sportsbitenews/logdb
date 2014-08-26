@@ -115,44 +115,13 @@ public class LogFileServiceTxt implements LogFileService {
 		return 0;
 	}
 
-	private String retrieveFileNamePrefixConfig(StorageConfig primaryStorage) {
-		TableConfig fileNamePrefixConfig = primaryStorage.getConfig("filename_prefix");
-		String fileNamePrefix = "";
-		if (fileNamePrefixConfig != null)
-			fileNamePrefix = fileNamePrefixConfig.getValue();
+	private String retrieveConfig(StorageConfig primaryStorage, String configKey, String defaultValue) {
+		String configValue = defaultValue;
+		TableConfig config = primaryStorage.getConfig(configKey);
+		if (config != null)
+			configValue = config.getValue();
 
-		return fileNamePrefix;
-	}
-
-	private String retrieveFileNameSuffixConfig(StorageConfig primaryStorage) {
-		TableConfig fileNameSuffixConfig = primaryStorage.getConfig("filename_suffix");
-		String fileNameSuffix = "";
-		if (fileNameSuffixConfig != null)
-			fileNameSuffix = fileNameSuffixConfig.getValue();
-
-		return fileNameSuffix;
-	}
-
-	private String retrieveDateLocaleConfig(StorageConfig primaryStorage) {
-		TableConfig dateLocaleConf = primaryStorage.getConfig("date_locale");
-		String dateLocale = null;
-		if (dateLocaleConf == null)
-			dateLocale = "en";
-		else
-			dateLocale = dateLocaleConf.getValue();
-
-		return dateLocale;
-	}
-
-	private String retrieveTimeZoneConfig(StorageConfig primaryStorage) {
-		TableConfig timeZoneConf = primaryStorage.getConfig("timeZone");
-		String timeZone = null;
-		if (timeZoneConf != null) {
-			timeZone = timeZoneConf.getValue();
-			if (TimeZoneMappings.getTimeZone(timeZone) != null)
-				timeZone = (String) TimeZoneMappings.getTimeZone(timeZone);
-		}
-		return timeZone;
+		return configValue;
 	}
 
 	private String convertToRegex(String target) {
@@ -172,27 +141,20 @@ public class LogFileServiceTxt implements LogFileService {
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 		StorageConfig primaryStorage = schema.getPrimaryStorage();
 
-		String fileNamePrefix = retrieveFileNamePrefixConfig(primaryStorage);
-		String dateFormatString = primaryStorage.getConfig("date_format").getValue();
-		String fileNameSuffix = retrieveFileNameSuffixConfig(primaryStorage);
+		String fileNamePrefix = retrieveConfig(primaryStorage, "filename_prefix", "");
+		String dateFormatString = retrieveConfig(primaryStorage, "date_format", "");
+		String fileNameSuffix = retrieveConfig(primaryStorage, "filename_suffix", "");
 
 		fileNameSuffix = convertToRegex(fileNameSuffix);
 
-		String dateLocale = retrieveDateLocaleConfig(primaryStorage);
+		String dateLocale = retrieveConfig(primaryStorage, "date_locale", "en");
 		SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString, new Locale(dateLocale));
 
-		String timeZone = retrieveTimeZoneConfig(primaryStorage);
-		if (timeZone != null) {
+		String timeZone = retrieveConfig(primaryStorage, "timezone", "");
+		if (!timeZone.isEmpty()) {
+			if (TimeZoneMappings.getTimeZone(timeZone) != null)
+				timeZone = (String) TimeZoneMappings.getTimeZone(timeZone);
 			dateFormat.setTimeZone(TimeZone.getTimeZone(timeZone));
-		}
-
-		// assign current year to date
-		Calendar yearModifier = null;
-
-		if (dateFormat != null && !dateFormat.toPattern().contains("yyyy")) {
-			yearModifier = Calendar.getInstance();
-			if (timeZone != null)
-				yearModifier.setTimeZone(TimeZone.getTimeZone(timeZone));
 		}
 
 		FilePath baseDir = logDir.newFilePath(Integer.toString(schema.getId()));
@@ -202,16 +164,22 @@ public class LogFileServiceTxt implements LogFileService {
 		FilePath[] filesFilteredByPrefix = filterByPrefix(baseDir, fileNamePrefix);
 
 		String[] dateFormatsSplitedBySlash = dateFormatString.split("/");
+		SimpleDateFormat[] splitedDateFormatArr = new SimpleDateFormat[dateFormatsSplitedBySlash.length];
+		for (int i = 0; i < dateFormatsSplitedBySlash.length; i++) {
+			splitedDateFormatArr[i] = new SimpleDateFormat(dateFormatsSplitedBySlash[i], new Locale(dateLocale));
+			if (!timeZone.isEmpty())
+				splitedDateFormatArr[i].setTimeZone(TimeZone.getTimeZone(timeZone));
+		}
 		int reflectedPathCharCnt = baseDir.getAbsolutePath().length() + fileNamePrefix.length();
 		boolean isDateFormatEndWithSlash = dateFormatString.endsWith("/");
 
-		List<FilePath> filesFilteredByDateFormat = filterByDateFormat(filesFilteredByPrefix, dateFormatsSplitedBySlash, 0,
+		List<FilePath> filesFilteredByDateFormat = filterByDateFormat(filesFilteredByPrefix, splitedDateFormatArr, 0,
 				reflectedPathCharCnt, isDateFormatEndWithSlash);
 
 		List<Date> dates = new ArrayList<Date>();
 
-		int dateFormatOccurIdx = baseDir.getAbsolutePath().length() + fileNamePrefix.length() + 1;
-		dates = extractDatesFromFiles(filesFilteredByDateFormat, dateFormatOccurIdx, dateFormat, fileNameSuffix, yearModifier);
+		int dateFormatOccurIdx = reflectedPathCharCnt + 1;
+		dates = extractDatesFromFiles(filesFilteredByDateFormat, dateFormatOccurIdx, dateFormat, fileNameSuffix);
 
 		Collections.sort(dates, Collections.reverseOrder());
 
@@ -241,53 +209,62 @@ public class LogFileServiceTxt implements LogFileService {
 		return filesFilteredByPrefix;
 	}
 
-	private List<FilePath> filterByDateFormat(FilePath[] files, String[] dateFormatsSplitedBySlash, int splitedDateFormatIdx,
+	private List<FilePath> filterByDateFormat(FilePath[] files, SimpleDateFormat[] splitedDateFormatArr, int splitedDateFormatIdx,
 			int reflectedPathCharCnt, boolean isDateFormatEndWithSlash) {
 
-		List<FilePath> fileteredFiles = new ArrayList<FilePath>();
-		SimpleDateFormat curDateFormat = new SimpleDateFormat(dateFormatsSplitedBySlash[splitedDateFormatIdx]);
+		List<FilePath> filteredFiles = new ArrayList<FilePath>();
 
 		for (FilePath file : files) {
 
 			String targetName = file.getAbsolutePath().substring(reflectedPathCharCnt + 1);
 
-			if (dateFormatsSplitedBySlash.length == splitedDateFormatIdx + 1) {
-				try {
-					curDateFormat.parse(targetName);
+			Date dayForCompare;
+			try {
+				dayForCompare = splitedDateFormatArr[splitedDateFormatIdx].parse(targetName);
+				boolean isFullMatched = splitedDateFormatArr[splitedDateFormatIdx].format(dayForCompare).equals(targetName);
 
-					if (isDateFormatEndWithSlash)
-						fileteredFiles.addAll(Arrays.asList(file.listFiles()));
-					else
-						fileteredFiles.add(file);
+				if (splitedDateFormatArr.length == splitedDateFormatIdx + 1) {
+					if (!isDateFormatEndWithSlash) {
+						filteredFiles.add(file);
+					} else if (isFullMatched) {
+						filteredFiles.addAll(Arrays.asList(file.listFiles()));
+					} else {
+						logger.error("araqne logstorage: invalid log filename, {}", file.getAbsoluteFilePath());
+					}
 
-				} catch (ParseException e) {
-					logger.error("araqne logstorage: invalid log filename, {}", file.getAbsoluteFilePath());
-				}
-			} else if (file.isDirectory() && dateFormatsSplitedBySlash.length > splitedDateFormatIdx + 1) {
-				try {
-					curDateFormat.parse(targetName);
+				} else if (file.isDirectory() && splitedDateFormatArr.length > splitedDateFormatIdx + 1) {
+					if (!isFullMatched) {
+						logger.error("araqne logstorage: invalid log filename, {}", file.getAbsoluteFilePath());
+						continue;
+					}
 
 					int appendedLen = 1;
 					appendedLen += targetName.length();
 
-					fileteredFiles.addAll(filterByDateFormat(file.listFiles(), dateFormatsSplitedBySlash, splitedDateFormatIdx + 1,
+					filteredFiles.addAll(filterByDateFormat(file.listFiles(), splitedDateFormatArr, splitedDateFormatIdx + 1,
 							reflectedPathCharCnt + appendedLen,
 							isDateFormatEndWithSlash));
-				} catch (ParseException e) {
+				} else {
 					logger.error("araqne logstorage: invalid log filename, {}", file.getAbsoluteFilePath());
 				}
-			} else {
+			} catch (ParseException e1) {
 				logger.error("araqne logstorage: invalid log filename, {}", file.getAbsoluteFilePath());
 			}
-
 		}
-		return fileteredFiles;
+		return filteredFiles;
 	}
 
 	private List<Date> extractDatesFromFiles(List<FilePath> files, int dateFormatOccurIdx, SimpleDateFormat dateFormat,
-			String fileNameSuffix, Calendar yearModifier) {
+			String fileNameSuffix) {
 		List<Date> dates = new ArrayList<Date>();
 		String[] suffixSplitedBySlash = fileNameSuffix.split("/");
+
+		// assign current year to date
+		Calendar yearModifier = null;
+		if (!dateFormat.toPattern().contains("yyyy")) {
+			yearModifier = Calendar.getInstance();
+			yearModifier.setTimeZone(dateFormat.getTimeZone());
+		}
 
 		ListIterator<FilePath> li = files.listIterator();
 		while (li.hasNext()) {
@@ -395,17 +372,17 @@ public class LogFileServiceTxt implements LogFileService {
 
 		StorageConfig primaryStorage = schema.getPrimaryStorage();
 
-		String fileNamePrefix = retrieveFileNamePrefixConfig(primaryStorage);
-		String dateFormatString = primaryStorage.getConfig("date_format").getValue();
-		String fileNameSuffix = retrieveFileNameSuffixConfig(primaryStorage);
+		String fileNamePrefix = retrieveConfig(primaryStorage, "filename_prefix", "");
+		String dateFormatString = retrieveConfig(primaryStorage, "date_format", "");
+		String fileNameSuffix = retrieveConfig(primaryStorage, "filename_suffix", "");
 
-		// optional
-		String dateLocale = retrieveDateLocaleConfig(primaryStorage);
+		String dateLocale = retrieveConfig(primaryStorage, "date_locale", "en");
 		SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString, new Locale(dateLocale));
 
-		// optional
-		String timeZone = retrieveTimeZoneConfig(primaryStorage);
-		if (timeZone != null) {
+		String timeZone = retrieveConfig(primaryStorage, "timezone", "");
+		if (!timeZone.isEmpty()) {
+			if (TimeZoneMappings.getTimeZone(timeZone) != null)
+				timeZone = (String) TimeZoneMappings.getTimeZone(timeZone);
 			dateFormat.setTimeZone(TimeZone.getTimeZone(timeZone));
 		}
 
@@ -438,10 +415,7 @@ public class LogFileServiceTxt implements LogFileService {
 			}), suffixList, 0, parentPathStr.length()));
 		}
 
-		TableConfig fileNameSuffixConfig = primaryStorage.getConfig("charset");
-		String charset = "utf-8";
-		if (fileNameSuffixConfig != null)
-			charset = fileNameSuffixConfig.getValue();
+		String charset = retrieveConfig(primaryStorage, "charset", "utf-8");
 
 		try {
 			return new LogFileReaderTxt(tableName, dataPathList, day, charset);
@@ -450,20 +424,17 @@ public class LogFileServiceTxt implements LogFileService {
 		}
 	}
 
-	private List<FilePath> retrieveFilesFromDate(FilePath[] files, String[] suffixList, int idx, int recognizedCharCnt) {
+	private List<FilePath> retrieveFilesFromDate(FilePath[] files, String[] suffixList, int suffixListIdx, int recognizedCharCnt) {
 		List<FilePath> matchedWithSuffix = new ArrayList<FilePath>();
 
 		for (FilePath file : files) {
 			String targetString = file.getAbsolutePath().substring(recognizedCharCnt);
-			int lastSubStrIndex = targetString.indexOf("/");
-			if (lastSubStrIndex == -1)
-				lastSubStrIndex = targetString.length();
-			targetString = targetString.substring(0, lastSubStrIndex);
-			if (compareTargetAndSuffix(targetString, suffixList[idx])) {
-				if (suffixList.length == idx + 1) {
+
+			if (compareTargetAndSuffix(targetString, suffixList[suffixListIdx])) {
+				if (suffixList.length == suffixListIdx + 1) {
 					matchedWithSuffix.add(file);
 				} else {
-					matchedWithSuffix.addAll(retrieveFilesFromDate(file.listFiles(), suffixList, idx + 1,
+					matchedWithSuffix.addAll(retrieveFilesFromDate(file.listFiles(), suffixList, suffixListIdx + 1,
 							recognizedCharCnt + targetString.length() + 1));
 				}
 			}
