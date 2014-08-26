@@ -20,9 +20,13 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -100,7 +104,35 @@ public class DirectoryWatchLogger extends AbstractLogger {
 			processFile(lastPositions, f);
 		}
 
+		lastPositions = updateLastSeen(lastPositions, logFiles);
 		setStates(LastPositionHelper.serialize(lastPositions));
+	}
+
+	private Map<String, LastPosition> updateLastSeen(Map<String, LastPosition> lastPositions, List<File> logFiles) {
+		Map<String, LastPosition> updatedLastPositions = new HashMap<String, LastPosition>();
+		Set<String> filePaths = new HashSet<String>();
+		for (File f : logFiles)
+			filePaths.add(f.getAbsolutePath());
+
+		long currentTime = new Date().getTime();
+		for (String path : lastPositions.keySet()) {
+			LastPosition p = lastPositions.get(path);
+			if (p.getLastSeen() != null) {
+				long limitTime = p.getLastSeen().getTime() + 3600000L;
+				if (filePaths.contains(path)) {
+					p.setLastSeen(null);
+				} else if (limitTime <= currentTime) {
+					continue;
+				}
+			} else {
+				if (!filePaths.contains(path)) {
+					p.setLastSeen(new Date());
+				}
+			}
+
+			updatedLastPositions.put(path, p);
+		}
+		return updatedLastPositions;
 	}
 
 	protected void processFile(Map<String, LastPosition> lastPositions, File f) {
