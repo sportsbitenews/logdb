@@ -91,7 +91,7 @@ public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory 
 						"Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true);
 
 		LoggerConfigOption dirPathPattern = new MutableStringConfigType("dirpath_pattern", t("Directory Path pattern",
-				"디렉토리 이름 패턴", "ディレクトリ経路パータン", "文件名模式"), t("Regular expression to match directory path",
+				"디렉토리 이름 패턴", "ディレクトリ経路パータン", "目录名称模式"), t("Regular expression to match directory path",
 				"대상 로그 파일이 있는 디렉토리를 선택하는데 사용할 정규표현식", "対象ログファイルがあるディレクトリを選ぶとき使う正規表現", "表示要采集的文件所在目录的正则表达式"), false);
 
 		LoggerConfigOption fileNamePattern = new MutableStringConfigType("filename_pattern", t("Filename pattern", "파일이름 패턴",
@@ -129,11 +129,11 @@ public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory 
 		LoggerConfigOption charset = new MutableStringConfigType("charset", t("Charset", "문자 집합", "文字セット", "字符集"), t(
 				"charset encoding", "텍스트 파일의 문자 인코딩 방식", "テキストファイルの文字エンコーディング方式", "文本文件的字符编码方式"), false);
 
-		LoggerConfigOption recursive = new MutableStringConfigType("recursive", t("Recursive", "하위 디렉터리 포함", "再帰", "包括下级目录"), t(
+		LoggerConfigOption recursive = new MutableStringConfigType("recursive", t("Recursive", "하위 디렉터리 포함", "再帰", "采集子目录"), t(
 				"Include sub-directories. default is false", "하위 디렉터리 포함 여부, 기본값 false", "下位ディレクトリを含む。基本値はfalse",
-				"是否包换下级目录，默认值为false。"), false);
+				"true表示采集子目录，默认值为false。"), false);
 
-		LoggerConfigOption fileTag = new MutableStringConfigType("file_tag", t("Filename Tag", "파일네임 태그", "ファイル名タグ", "文件标记"), t(
+		LoggerConfigOption fileTag = new MutableStringConfigType("file_tag", t("Filename Tag", "파일네임 태그", "ファイル名タグ", "文件名标记"), t(
 				"Field name for filename tagging", "파일명을 태깅할 필드 이름", "ファイル名をタギングするフィールド名", "要进行文件名标记的字段"), false);
 
 		return Arrays.asList(basePath, dirPathPattern, fileNamePattern, datePattern, dateFormat, dateLocale, timezone,
