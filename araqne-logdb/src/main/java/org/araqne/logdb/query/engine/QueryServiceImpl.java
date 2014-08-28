@@ -185,6 +185,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	private List<QueryPlanner> planners;
 
 	private boolean allowQueryPurge = false;
+	private boolean useBom = false;
 
 	public QueryServiceImpl(BundleContext bc) {
 		this.bc = bc;
@@ -197,6 +198,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		dir.mkdirs();
 
 		allowQueryPurge = Boolean.parseBoolean(System.getProperty("araqne.logdb.allowpurge"));
+		useBom = Boolean.parseBoolean(System.getProperty("araqne.logdb.utf8bom"));
 
 		prepareQueryParsers();
 	}
@@ -225,7 +227,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new TextFileParser(parserFactoryRegistry));
 		parsers.add(new ZipFileParser(parserFactoryRegistry));
 		parsers.add(new JsonFileParser(parserFactoryRegistry));
-		parsers.add(new OutputCsvParser());
+		parsers.add(new OutputCsvParser(useBom));
 		parsers.add(new OutputJsonParser());
 		parsers.add(new OutputTxtParser());
 		parsers.add(new LogdbParser("logdb", metadataService));
