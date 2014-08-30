@@ -15,12 +15,13 @@
  */
 package org.araqne.log.api.impl;
 
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -45,6 +46,8 @@ import org.araqne.log.api.LastStateService;
 import org.json.JSONConverter;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
+import org.json.JSONWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -317,21 +320,10 @@ public class LastStateServiceImpl implements LastStateService {
 
 	private LastState readStateFile(File f) throws IOException {
 		FileInputStream fis = null;
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		String json = null;
 		try {
 			fis = new FileInputStream(f);
-			byte[] b = new byte[8096];
-			while (true) {
-				int len = fis.read(b);
-				if (len < 0)
-					break;
-
-				bos.write(b, 0, len);
-			}
-
-			json = new String(bos.toByteArray(), "utf-8");
-			Map<String, Object> m = JSONConverter.parse(new JSONObject(json));
+			JSONTokener tokener = new JSONTokener(new InputStreamReader(fis, "utf-8"));
+			Map<String, Object> m = JSONConverter.parse(new JSONObject(tokener));
 			if (m.get("last_log_date") != null) {
 				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 				Date d = df.parse((String) m.get("last_log_date"), new ParsePosition(0));
@@ -340,7 +332,7 @@ public class LastStateServiceImpl implements LastStateService {
 
 			return PrimitiveConverter.parse(LastState.class, m);
 		} catch (JSONException e) {
-			throw new IOException("invalid json file [" + f.getAbsolutePath() + "] content [" + json + "]", e);
+			throw new IOException("invalid json file [" + f.getAbsolutePath() + "]", e);
 		} finally {
 			ensureClose(fis);
 		}
@@ -350,12 +342,15 @@ public class LastStateServiceImpl implements LastStateService {
 		// write tmp file first, and rename it
 		File tmp = new File(f.getAbsolutePath() + ".tmp");
 		FileOutputStream fos = null;
+		JSONWriter writer = null;
+		OutputStreamWriter outputWriter = null;
 		boolean success = false;
 
 		try {
 			fos = new FileOutputStream(tmp);
-			String s = JSONConverter.jsonize(PrimitiveConverter.serialize(state));
-			fos.write(s.getBytes("utf-8"));
+			outputWriter = new OutputStreamWriter(fos, "utf-8");
+			writer = new JSONWriter(outputWriter);
+			JSONConverter.jsonize(PrimitiveConverter.serialize(state), writer);
 			success = true;
 		} catch (JSONException e) {
 			slog.error("araqne log api: cannot jsonize state [{}]", state.getLoggerName(), f.getAbsolutePath());
@@ -363,6 +358,7 @@ public class LastStateServiceImpl implements LastStateService {
 			slog.error(
 					"araqne log api: cannot write state [" + state.getLoggerName() + "] to file [" + f.getAbsolutePath() + "]", e);
 		} finally {
+			ensureClose(outputWriter);
 			ensureClose(fos);
 		}
 
