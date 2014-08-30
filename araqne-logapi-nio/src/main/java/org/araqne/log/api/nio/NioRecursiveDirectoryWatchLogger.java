@@ -319,21 +319,23 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 		@Override
 		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-			if (!dir.equals(root)) {
-				if (!recursive
-						|| (dirPathPattern != null && !dir.equals(root) && !dirPathPattern
-								.matcher(dir.toFile().getAbsolutePath()).find()))
-					return FileVisitResult.SKIP_SUBTREE;
-			}
+			slog.debug("araqne-logapi-nio: logger [{}] pre visit directory [{}]", getFullName(), dir.toFile().getAbsolutePath());
+
+			if (!recursive)
+				return FileVisitResult.SKIP_SUBTREE;
 
 			return FileVisitResult.CONTINUE;
 		}
 
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+			slog.debug("araqne-logapi-nio: logger [{}] visit file [{}]", getFullName(), file.toFile().getAbsolutePath());
+
 			File f = file.toFile();
-			if (dirPathPattern != null && !dirPathPattern.matcher(f.getParentFile().getAbsolutePath()).find())
+			if (dirPathPattern != null && !dirPathPattern.matcher(f.getParentFile().getAbsolutePath()).find()) {
+				slog.debug("araqne-logapi-nio: logger [{}] skip file [{}]", getFullName(), f.getAbsolutePath());
 				return FileVisitResult.CONTINUE;
+			}
 
 			if (fileNamePattern.matcher(f.getName()).matches())
 				processFile(lastPositions, f);
@@ -342,6 +344,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 		@Override
 		public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+			slog.debug("araqne-logapi-nio: logger [{}] visit file failed [{}]", getFullName(), exc.getMessage());
 			return FileVisitResult.CONTINUE;
 		}
 
