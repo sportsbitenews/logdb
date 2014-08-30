@@ -15,6 +15,8 @@
  */
 package org.araqne.log.api.impl;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -320,9 +322,11 @@ public class LastStateServiceImpl implements LastStateService {
 
 	private LastState readStateFile(File f) throws IOException {
 		FileInputStream fis = null;
+		BufferedInputStream bis = null;
 		try {
 			fis = new FileInputStream(f);
-			JSONTokener tokener = new JSONTokener(new InputStreamReader(fis, "utf-8"));
+			bis = new BufferedInputStream(fis);
+			JSONTokener tokener = new JSONTokener(new InputStreamReader(bis, "utf-8"));
 			Map<String, Object> m = JSONConverter.parse(new JSONObject(tokener));
 			if (m.get("last_log_date") != null) {
 				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
@@ -334,6 +338,7 @@ public class LastStateServiceImpl implements LastStateService {
 		} catch (JSONException e) {
 			throw new IOException("invalid json file [" + f.getAbsolutePath() + "]", e);
 		} finally {
+			ensureClose(bis);
 			ensureClose(fis);
 		}
 	}
@@ -343,13 +348,15 @@ public class LastStateServiceImpl implements LastStateService {
 		File tmp = new File(f.getAbsolutePath() + ".tmp");
 		FileOutputStream fos = null;
 		JSONWriter writer = null;
-		OutputStreamWriter outputWriter = null;
+		OutputStreamWriter ow = null;
+		BufferedWriter bw = null;
 		boolean success = false;
 
 		try {
 			fos = new FileOutputStream(tmp);
-			outputWriter = new OutputStreamWriter(fos, "utf-8");
-			writer = new JSONWriter(outputWriter);
+			ow = new OutputStreamWriter(fos, "utf-8");
+			bw = new BufferedWriter(ow);
+			writer = new JSONWriter(bw);
 			JSONConverter.jsonize(PrimitiveConverter.serialize(state), writer);
 			success = true;
 		} catch (JSONException e) {
@@ -358,7 +365,8 @@ public class LastStateServiceImpl implements LastStateService {
 			slog.error(
 					"araqne log api: cannot write state [" + state.getLoggerName() + "] to file [" + f.getAbsolutePath() + "]", e);
 		} finally {
-			ensureClose(outputWriter);
+			ensureClose(bw);
+			ensureClose(ow);
 			ensureClose(fos);
 		}
 
