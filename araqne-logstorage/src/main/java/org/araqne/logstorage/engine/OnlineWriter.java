@@ -24,7 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicStampedReference;
 
 import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.Log;
@@ -49,7 +51,7 @@ public class OnlineWriter {
 	/**
 	 * is in closing state?
 	 */
-	private boolean closing = false;
+	private volatile boolean closing = false;
 
 	/**
 	 * only yyyy-MM-dd (excluding hour, min, sec, milli)
@@ -70,7 +72,7 @@ public class OnlineWriter {
 	private final LogFileService logFileService;
 
 	private final TableSchema schema;
-	
+
 	private volatile boolean loadWriter = false;
 	private volatile boolean closeReserved;
 
@@ -83,80 +85,85 @@ public class OnlineWriter {
 		this.day = day;
 		this.closeReserved = false;
 	}
-	
-	public synchronized void prepareWriter(StorageManager storageManager, CallbackSet callbackSet, FilePath logDir, AtomicLong lastKey) throws IOException {
-		if (closing)
-			return;
-		
-		loadWriter = true;
 
-		String basePathString = schema.getPrimaryStorage().getBasePath();
-		FilePath basePath = logDir;
-		if (basePathString != null)
-			basePath = storageManager.resolveFilePath(basePathString);
-
-		FilePath indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
-		FilePath dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
-		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
-
-		indexPath.getParentFilePath().mkdirs();
-		dataPath.getParentFilePath().mkdirs();
-
+	public synchronized void prepareWriter(
+			StorageManager storageManager, CallbackSet callbackSet, FilePath logDir, AtomicLong lastKey)
+			throws IOException {
 		try {
-			// options including table metadata
-			Map<String, Object> writerOptions = new HashMap<String, Object>();
-			writerOptions.put("storageConfig", schema.getPrimaryStorage());
-			writerOptions.putAll(schema.getMetadata());
-			writerOptions.put("tableName", schema.getName());
-			writerOptions.put("day", day);
-			writerOptions.put("basePath", basePath);
-			writerOptions.put("indexPath", indexPath);
-			writerOptions.put("dataPath", dataPath);
-			writerOptions.put("keyPath", keyPath);
-			writerOptions.put("callbackSet", callbackSet);
-			writerOptions.put("lastKey", lastKey);
+			if (closing)
+				return;
 
-			for (TableConfig c : schema.getPrimaryStorage().getConfigs()) {
-				writerOptions.put(c.getKey(), c.getValues().size() > 1 ? c.getValues() : c.getValue());
+			loadWriter = true;
+
+			String basePathString = schema.getPrimaryStorage().getBasePath();
+			FilePath basePath = logDir;
+			if (basePathString != null)
+				basePath = storageManager.resolveFilePath(basePathString);
+
+			FilePath indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
+			FilePath dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
+			FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
+
+			indexPath.getParentFilePath().mkdirs();
+			dataPath.getParentFilePath().mkdirs();
+
+			try {
+				// options including table metadata
+				Map<String, Object> writerOptions = new HashMap<String, Object>();
+				writerOptions.put("storageConfig", schema.getPrimaryStorage());
+				writerOptions.putAll(schema.getMetadata());
+				writerOptions.put("tableName", schema.getName());
+				writerOptions.put("day", day);
+				writerOptions.put("basePath", basePath);
+				writerOptions.put("indexPath", indexPath);
+				writerOptions.put("dataPath", dataPath);
+				writerOptions.put("keyPath", keyPath);
+				writerOptions.put("callbackSet", callbackSet);
+				writerOptions.put("lastKey", lastKey);
+
+				for (TableConfig c : schema.getPrimaryStorage().getConfigs()) {
+					writerOptions.put(c.getKey(), c.getValues().size() > 1 ? c.getValues() : c.getValue());
+				}
+
+				writer = this.logFileService.newWriter(writerOptions);
+			} catch (IllegalArgumentException e) {
+				throw e;
+			} catch (Throwable t) {
+				throw new IllegalStateException("araqne-logstorage: unexpected error", t);
 			}
 
-			writer = this.logFileService.newWriter(writerOptions);
-		} catch (IllegalArgumentException e) {
-			throw e;
-		} catch (Throwable t) {
-			throw new IllegalStateException("araqne-logstorage: unexpected error", t);
+			nextId = new AtomicLong(writer.getLastKey());
+		} finally {
+			writerMonitor.countDown();
 		}
-		
-		nextId = new AtomicLong(writer.getLastKey());
-		
-		writerMonitor.countDown();
 	}
-	
-	public boolean awaitWriterPreparation() {
-		try {
-			for (int i = 0; i < 3; ++i) {
-				if (writerMonitor.await(10, TimeUnit.SECONDS))
-					return true;
 
-				if (logger.isDebugEnabled())
-					logger.debug("araqne logstorage: awaiting for log writer preparation {}", tableId);
+	public void awaitWriterPreparation() throws TimeoutException, InterruptedException, WriterPreparationException {
+		for (int i = 0; i < 3; ++i) {
+			if (writerMonitor.await(10, TimeUnit.SECONDS)) {
+				if (!isReady())
+					throw new WriterPreparationException("araqne logstorage: log writer preparation failed");
+				return;
 			}
-
-		} catch (InterruptedException e) {
-			logger.info("araqne logstorage: interrupted during awaiting for log writer preparation", e);
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logstorage: awaiting for log writer preparation {}", tableId);
 		}
 
 		logger.info("araqne logstorage: awaiting for log writer preparation {} timeout", tableId);
-		
-		return false;
+		throw new TimeoutException("araqne logstorage: awaiting for log writer preparation " + tableId + " timeout");
 	}
-
-	public boolean isOpen() {
-		return (writer != null && !writer.isClosed()) && closing == false;
+	
+	public boolean isReady() {
+		return writer != null;
 	}
 
 	public boolean isClosed() {
-		return closing == true && (writer.isClosed());
+		return closing == true;
+	}
+
+	// checking order is important
+	public boolean isCloseCompleted() {
+		return writer.isClosed() && closing == true;
 	}
 
 	public int getTableId() {
@@ -175,7 +182,7 @@ public class OnlineWriter {
 	public Date getLastAccess() {
 		return lastAccess;
 	}
-	
+
 	/**
 	 * @since 2.7.0
 	 */
@@ -197,14 +204,20 @@ public class OnlineWriter {
 			log.setId(nid);
 
 			// prevent external id modification
+			debugCounter.addAndGet(1);
+
 			writer.write(log.shallowCopy());
 			lastAccess = new Date();
 		}
 	}
+	
+	private AtomicLong debugCounter = new AtomicLong();
 
 	public void write(List<Log> logs) throws IOException {
-		if (writer == null)
+		if (isClosed())
 			throw new IllegalStateException("file closed");
+		if (writer == null)
+			throw new IllegalStateException("not ready");
 
 		synchronized (this) {
 			ArrayList<Log> copy = new ArrayList<Log>(logs.size());
@@ -212,6 +225,8 @@ public class OnlineWriter {
 				record.setId(nextId());
 				copy.add(record.shallowCopy());
 			}
+			
+			debugCounter.addAndGet(copy.size());
 
 			writer.write(copy);
 			lastAccess = new Date();
@@ -259,20 +274,32 @@ public class OnlineWriter {
 
 		try {
 			synchronized (this) {
-				closing = true;
-				// XXX: assume there is NO prepareWriter() hang
-				if (loadWriter) {
-					if (awaitWriterPreparation())
+				try {
+					closing = true;
+					// XXX: assume there is NO prepareWriter() hang
+					if (loadWriter) {
+						awaitWriterPreparation();
 						writer.close();
+					}
+				} catch (WriterPreparationException ex) {
+					// ignore
+				} finally {
+					notifyAll();
+					closeMonitor.countDown();
 				}
-
-				notifyAll();
-				closeMonitor.countDown();
 			}
-
+		} catch (InterruptedException e) {
+			logger.error("cannot close online log writer", e);
+		} catch (TimeoutException e) {
+			logger.error("cannot close online log writer", e);
 		} catch (IOException e) {
 			logger.error("cannot close online log writer", e);
 		}
+	}
+
+	@Override
+	public String toString() {
+		return String.format("OnlineWriter [tableId=%s, day=%s]", tableId, day);
 	}
 
 	public String getFileServiceType() {
