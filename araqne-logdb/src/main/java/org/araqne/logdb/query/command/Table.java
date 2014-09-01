@@ -286,7 +286,8 @@ public class Table extends DriverQueryCommand {
 		@Override
 		public boolean isInterrupted() {
 			if (task.getStatus() == QueryTask.TaskStatus.CANCELED) {
-				logger.debug("araqne logdb: table scan task canceled, [{}]", Table.this.toString());
+				if (logger.isDebugEnabled())
+					logger.debug("araqne logdb: table scan task canceled, [{}]", Table.this.toString());
 				return true;
 			}
 
