@@ -494,11 +494,11 @@ public abstract class AbstractLogger implements Logger, Runnable {
 					status = LoggerStatus.Stopping;
 					invokeStopCallback(LoggerStopReason.STOP_EXCEPTION);
 				}
-			} catch (Exception e) {
-				if (e.getMessage() != null && e.getMessage().startsWith("invalid time"))
-					this.log.warn("araqne-log-api: log pipe should not throw exception" + e.getMessage());
+			} catch (Throwable t) {
+				if (t.getMessage() != null && t.getMessage().startsWith("invalid time"))
+					this.log.warn("araqne-log-api: log pipe should not throw exception" + t.getMessage());
 				else
-					this.log.warn("araqne-log-api: log pipe should not throw exception", e);
+					this.log.warn("araqne-log-api: log pipe should not throw exception", t);
 			}
 		}
 	}

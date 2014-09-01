@@ -126,7 +126,7 @@ public class Sort extends QueryCommand {
 			// support sorter cache GC when query processing is ended
 			top = null;
 
-		} else {
+		} else if (sorter != null) {
 			// TODO: use LONG instead!
 			int count = limit != null ? limit : Integer.MAX_VALUE;
 
