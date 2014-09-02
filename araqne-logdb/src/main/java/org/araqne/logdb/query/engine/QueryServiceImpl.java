@@ -62,6 +62,7 @@ import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
+import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.parser.BoxPlotParser;
 import org.araqne.logdb.query.parser.ConfdbParser;
 import org.araqne.logdb.query.parser.DropParser;
@@ -349,43 +350,10 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
-		setJoinAndUnionDependencies(query.getCommands());
+		QueryHelper.setJoinAndUnionDependencies(query.getCommands());
 
 		new Thread(query, "Query " + id).start();
 		invokeCallbacks(query, QueryStatus.STARTED);
-	}
-
-	private void setJoinAndUnionDependencies(List<QueryCommand> commands) {
-		List<QueryCommand> joinCmds = new ArrayList<QueryCommand>();
-		List<QueryCommand> unionCmds = new ArrayList<QueryCommand>();
-
-		for (QueryCommand cmd : commands) {
-			if (cmd.getName().equals("join"))
-				joinCmds.add(cmd);
-
-			if (cmd.getName().equals("union"))
-				unionCmds.add(cmd);
-		}
-
-		for (QueryCommand cmd : commands) {
-			if (cmd.isDriver() && !cmd.getName().equals("join") && cmd.getMainTask() != null) {
-				for (QueryCommand join : joinCmds)
-					cmd.getMainTask().addDependency(join.getMainTask());
-			}
-
-			if (cmd.isDriver() && !cmd.getName().equals("join") && !cmd.getName().equals("union") && cmd.getMainTask() != null) {
-				for (QueryCommand union : unionCmds)
-					union.getMainTask().addDependency(cmd.getMainTask());
-			}
-		}
-
-		QueryCommand prevUnion = null;
-		for (QueryCommand union : unionCmds) {
-			if (prevUnion != null)
-				union.getMainTask().addDependency(prevUnion.getMainTask());
-
-			prevUnion = union;
-		}
 	}
 
 	@Override
