@@ -134,7 +134,7 @@ public class LocalFilePath implements FilePath {
 		if (!(o instanceof LocalFilePath))
 			return false;
 		LocalFilePath rhs = (LocalFilePath) o;
-		return path.equals(rhs);
+		return path.equals(rhs.path);
 	}
 
 	@Override
