@@ -15,7 +15,10 @@
  */
 package org.araqne.logdb.msgbus;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.KeyStore;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -521,11 +524,34 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void addCryptoProfile(Request req, Response resp) {
-		String name = req.getString("name");
+		String name = req.getString("name", true);
 		String cipher = req.getString("cipher");
 		String digest = req.getString("digest");
-		String filePath = req.getString("file_path");
+		String filePath = req.getString("file_path", true);
 		String password = req.getString("password");
+
+		FileInputStream is = null;
+		try {
+			File f = new File(filePath);
+			if (!f.exists())
+				throw new MsgbusException("logdb", "file-not-found");
+
+			is = new FileInputStream(f);
+			KeyStore ks = KeyStore.getInstance("PKCS12");
+			ks.load(is, password == null ? null : password.toCharArray());
+		} catch (MsgbusException e) {
+			throw e;
+		} catch (Throwable t) {
+			slog.error("araqne logdb: cannot add crypto profile [" + name + "]", t);
+			throw new MsgbusException("logdb", "check-password");
+		} finally {
+			if (is != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+				}
+			}
+		}
 
 		LogCryptoProfile p = new LogCryptoProfile();
 		p.setName(name);
