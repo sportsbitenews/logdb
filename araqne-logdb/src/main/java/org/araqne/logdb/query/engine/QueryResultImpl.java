@@ -98,6 +98,9 @@ public class QueryResultImpl implements QueryResult {
 		try {
 			if (!streaming) {
 				synchronized (writerLock) {
+					if (writerClosed)
+						throw new IllegalStateException("result writer is already closed");
+
 					writer.write(new Log("$Result$", new Date(), count, row.map()));
 				}
 			}
@@ -136,6 +139,9 @@ public class QueryResultImpl implements QueryResult {
 
 		try {
 			synchronized (writerLock) {
+				if (writerClosed)
+					throw new IllegalStateException("result writer is already closed");
+
 				if (rowBatch.selectedInUse) {
 					for (int i = 0; i < rowBatch.size; i++) {
 						Row row = rowBatch.rows[rowBatch.selected[i]];
@@ -271,12 +277,12 @@ public class QueryResultImpl implements QueryResult {
 
 		@Override
 		public File getIndexPath() {
-			return ((LocalFilePath)reader.getIndexPath()).getFile();
+			return ((LocalFilePath) reader.getIndexPath()).getFile();
 		}
 
 		@Override
 		public File getDataPath() {
-			return ((LocalFilePath)reader.getDataPath()).getFile();
+			return ((LocalFilePath) reader.getDataPath()).getFile();
 		}
 
 		@Override
