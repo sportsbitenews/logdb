@@ -1187,5 +1187,12 @@ public class LogStorageScript implements Script {
 
 	public void _unlock(String[] args) {
 		storage.unlock(new LockKey("script", args[0], null));
+		context.printf("unlocked: %s\n", lockStatusStr(args[0]));
 	}
+	
+	public void _unlockForce(String[] args) {
+		storage.unlock(new LockKey(args[0], args[1], null));
+		context.printf("unlocked: %s\n", lockStatusStr(args[1]));
+	}
+
 }
