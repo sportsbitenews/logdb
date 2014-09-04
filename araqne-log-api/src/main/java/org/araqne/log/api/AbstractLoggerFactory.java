@@ -237,8 +237,18 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			LogTransformer transformer = null;
 			if (transformerName != null) {
 				if (transformerRegistry.getProfile(transformerName) != null) {
-					transformer = transformerRegistry.newTransformer(transformerName);
-					logger.setTransformer(transformer);
+					try {
+						transformer = transformerRegistry.newTransformer(transformerName);
+						logger.setTransformer(transformer);
+					} catch (LogTransformerNotReadyException e) {
+						slog.debug(
+								"araqne log api: cannot load transformer [" + transformerName + "] for logger ["
+										+ logger.getFullName() + "]", e.getCause());
+					} catch (Throwable t) {
+						slog.warn(
+								"araqne log api: cannot load transformer [" + transformerName + "] for logger ["
+										+ logger.getFullName() + "]", t);
+					}
 				}
 			}
 		}

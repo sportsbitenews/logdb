@@ -26,8 +26,10 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.log.api.AbstractLogTransformerFactory;
 import org.araqne.log.api.LogTransformer;
+import org.araqne.log.api.LogTransformerNotReadyException;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.StringConfigType;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryService;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryParserService;
@@ -84,8 +86,7 @@ public class QueryLogTransformerFactory extends AbstractLogTransformerFactory {
 	public List<LoggerConfigOption> getConfigOptions() {
 		LoggerConfigOption querystring = new StringConfigType("querystring", t("Query string", "쿼리 문자열", "查询语句"), t(
 				"Configure query string to evaluating and transforming input log data",
-				"입력 로그를 변환하여 출력하는데 사용할 쿼리 문자열을 설정합니다. 그룹 함수 사용은 허용되지 않습니다.", 
-				"基于查询语句变换输入数据并输出(不支持组函数)。"), true);
+				"입력 로그를 변환하여 출력하는데 사용할 쿼리 문자열을 설정합니다. 그룹 함수 사용은 허용되지 않습니다.", "基于查询语句变换输入数据并输出(不支持组函数)。"), true);
 
 		return Arrays.asList(querystring);
 	}
@@ -100,10 +101,14 @@ public class QueryLogTransformerFactory extends AbstractLogTransformerFactory {
 
 	@Override
 	public LogTransformer newTransformer(Map<String, String> config) {
-		String queryString = config.get("querystring");
+		try {
+			String queryString = config.get("querystring");
 
-		List<QueryCommand> commands = queryParser.parseCommands(null, queryString);
-		return new QueryLogTransformer(this, commands);
+			List<QueryCommand> commands = queryParser.parseCommands(null, queryString);
+			return new QueryLogTransformer(this, commands);
+		} catch (QueryParseException e) {
+			throw new LogTransformerNotReadyException(e);
+		}
 	}
 
 	@Override

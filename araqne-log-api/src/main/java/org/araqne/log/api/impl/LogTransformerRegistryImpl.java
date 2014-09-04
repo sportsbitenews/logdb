@@ -17,6 +17,7 @@ package org.araqne.log.api.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -31,10 +32,13 @@ import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigIterator;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
+import org.araqne.cron.AbstractTickTimer;
+import org.araqne.cron.TickService;
 import org.araqne.log.api.LogTransformer;
 import org.araqne.log.api.LogTransformerFactory;
 import org.araqne.log.api.LogTransformerFactoryRegistry;
 import org.araqne.log.api.LogTransformerFactoryRegistryEventListener;
+import org.araqne.log.api.LogTransformerNotReadyException;
 import org.araqne.log.api.LogTransformerProfile;
 import org.araqne.log.api.LogTransformerRegistry;
 import org.araqne.log.api.LogTransformerRegistryEventListener;
@@ -43,7 +47,7 @@ import org.araqne.log.api.LoggerRegistry;
 
 @Component(name = "log-transformer-registry")
 @Provides
-public class LogTransformerRegistryImpl implements LogTransformerRegistry {
+public class LogTransformerRegistryImpl extends AbstractTickTimer implements LogTransformerRegistry {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(LogTransformerRegistryImpl.class);
 
 	@Requires
@@ -54,6 +58,9 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 
 	@Requires
 	private LoggerRegistry loggerRegistry;
+
+	@Requires
+	private TickService tickService;
 
 	private ConcurrentMap<String, ProfileStatus> profileStatuses;
 
@@ -74,10 +81,14 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 		}
 
 		factoryRegistry.addListener(updater);
+		tickService.addTimer(this);
 	}
 
 	@Invalidate
 	public void stop() {
+		if (tickService != null)
+			tickService.removeTimer(this);
+
 		if (factoryRegistry != null)
 			factoryRegistry.removeListener(updater);
 
@@ -86,10 +97,27 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 	}
 
 	@Override
+	public int getInterval() {
+		return 1000;
+	}
+
+	@Override
+	public void onTick() {
+		// try reload for non-ready and factory-loaded transformers
+		for (Entry<String, ProfileStatus> e : profileStatuses.entrySet()) {
+			ProfileStatus status = e.getValue();
+			if (!status.factoryLoaded || status.profile.isReady())
+				continue;
+
+			setTransformers(status.profile);
+		}
+	}
+
+	@Override
 	public List<LogTransformerProfile> getProfiles() {
 		ArrayList<LogTransformerProfile> profiles = new ArrayList<LogTransformerProfile>();
 		for (ProfileStatus status : profileStatuses.values()) {
-			if (status.valid)
+			if (status.factoryLoaded)
 				profiles.add(status.profile);
 		}
 
@@ -103,7 +131,7 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 		ProfileStatus s = profileStatuses.get(name);
 		if (s == null)
 			return null;
-		return s.valid ? s.profile : null;
+		return s.factoryLoaded ? s.profile : null;
 	}
 
 	@Override
@@ -149,7 +177,15 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 				try {
 					LogTransformer transformer = newTransformer(transformerName);
 					logger.setTransformer(transformer);
+					profile.setReady(true);
+					profile.setCause(null);
+					slog.debug("araqne log api: set transformer [{}] instance to logger [{}] ", profile.getName(),
+							logger.getFullName());
+				} catch (LogTransformerNotReadyException e) {
+					profile.setCause(e);
+					slog.debug("araqne log api: cannot start pending logger, " + logger.getFullName(), e.getCause());
 				} catch (Throwable t) {
+					profile.setCause(t);
 					slog.error("araqne log api: cannot start pending logger, " + logger.getFullName(), t);
 				}
 			}
@@ -212,11 +248,12 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 		public void factoryAdded(LogTransformerFactory factory) {
 			slog.debug("araqne log api: transformer factory [{}] added", factory.getName());
 			for (ProfileStatus s : profileStatuses.values()) {
-				if (s.profile.getFactoryName().equals(factory.getName())) {
-					slog.debug("araqne log api: validating transformer profile [{}]", s.profile.getName());
-					s.valid = true;
-					setTransformers(s.profile);
-				}
+				if (!s.profile.getFactoryName().equals(factory.getName()))
+					continue;
+
+				slog.debug("araqne log api: validating transformer profile [{}]", s.profile.getName());
+				s.factoryLoaded = true;
+				setTransformers(s.profile);
 			}
 		}
 
@@ -225,7 +262,9 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 			for (ProfileStatus s : profileStatuses.values()) {
 				if (s.profile.getFactoryName().equals(factory.getName())) {
 					slog.debug("araqne log api: invalidating transformer profile [{}]", s.profile.getName());
-					s.valid = false;
+					s.factoryLoaded = false;
+					s.profile.setReady(false);
+					s.profile.setCause(null);
 					unsetTransformers(s.profile.getName());
 				}
 			}
@@ -234,11 +273,11 @@ public class LogTransformerRegistryImpl implements LogTransformerRegistry {
 
 	private static class ProfileStatus {
 		public LogTransformerProfile profile;
-		public boolean valid;
+		public boolean factoryLoaded;
 
 		public ProfileStatus(LogTransformerProfile profile, boolean valid) {
 			this.profile = profile;
-			this.valid = valid;
+			this.factoryLoaded = valid;
 		}
 	}
 }
