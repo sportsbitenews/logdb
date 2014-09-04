@@ -560,7 +560,12 @@ public class ManagementPlugin {
 		p.setFilePath(filePath);
 		p.setPassword(password);
 
-		logCryptoProfileRegistry.addProfile(p);
+		
+		try {
+			logCryptoProfileRegistry.addProfile(p);
+		} catch (IllegalStateException e) {
+			throw new MsgbusException("logpresso", "duplicated-crypto-profile");
+		}
 
 	}
 
