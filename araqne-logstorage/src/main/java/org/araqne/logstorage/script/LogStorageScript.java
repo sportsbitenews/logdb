@@ -248,8 +248,8 @@ public class LogStorageScript implements Script {
 
 			LockStatus status = storage.lockStatus(new LockKey("script", args[0], null));
 			if (status.isLocked())
-				context.printf("Lock status: locked (owner: %s, reentrant_cnt: %d)\n", status.getOwner(),
-						status.getReentrantCount());
+				context.printf("Lock status: locked (owner: %s, purpose: %s, reentrant_cnt: %d)\n", status.getOwner(),
+						status.getPurposes(), status.getReentrantCount());
 			else
 				context.printf("Lock status: unlocked\n");
 
@@ -344,9 +344,10 @@ public class LogStorageScript implements Script {
 	}
 
 	private String lockStatusStr(String tableName) {
-		LockStatus status = storage.lockStatus(new LockKey("script", tableName, null));
-		if (status.isLocked())
-			return String.format("locked(owner: %s, reentrant_cnt: %d)", status.getOwner(), status.getReentrantCount());
+		LockStatus s = storage.lockStatus(new LockKey("script", tableName, null));
+		if (s.isLocked())
+			return String.format("locked(owner: %s, reentrant_cnt: %d, purpose(s): %s)", 
+					s.getOwner(), s.getReentrantCount(), Arrays.toString(s.getPurposes().toArray()));
 		else
 			return "unlocked";
 	}
@@ -1177,7 +1178,7 @@ public class LogStorageScript implements Script {
 	}
 
 	public void _lock(String[] args) throws InterruptedException {
-		boolean lock = storage.lock(new LockKey("script", args[0], null), 5, TimeUnit.SECONDS);
+		boolean lock = storage.lock(new LockKey("script", args[0], null), args[1], 5, TimeUnit.SECONDS);
 		if (lock)
 			context.println("locked");
 		else {
@@ -1186,12 +1187,12 @@ public class LogStorageScript implements Script {
 	}
 
 	public void _unlock(String[] args) {
-		storage.unlock(new LockKey("script", args[0], null));
+		storage.unlock(new LockKey("script", args[0], null), args[1]);
 		context.printf("unlocked: %s\n", lockStatusStr(args[0]));
 	}
 	
 	public void _unlockForce(String[] args) {
-		storage.unlock(new LockKey(args[0], args[1], null));
+		storage.unlock(new LockKey(args[0], args[1], null), args[2]);
 		context.printf("unlocked: %s\n", lockStatusStr(args[1]));
 	}
 

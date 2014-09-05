@@ -315,7 +315,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		if (c != null)
 			c.remove();
 
-		Lock tLock = tableRegistry.getExclusiveTableLock(tableName, "LogStorageEngine.dropTable");
+		Lock tLock = tableRegistry.getExclusiveTableLock(tableName, "engine", "dropTable");
 		try {
 			tLock.lock();
 			// drop table metadata
@@ -1395,11 +1395,11 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	}
 
 	@Override
-	public boolean lock(LockKey storageLockKey, long timeout, TimeUnit unit) throws InterruptedException {
-		Lock lock = tableRegistry.getExclusiveTableLock(storageLockKey.tableName, storageLockKey.owner);
+	public boolean lock(LockKey key, String purpose, long timeout, TimeUnit unit) throws InterruptedException {
+		Lock lock = tableRegistry.getExclusiveTableLock(key.tableName, key.owner, purpose);
 
 		if (lock.tryLock(timeout, unit)) {
-			flush(storageLockKey.tableName);
+			flush(key.tableName);
 			return true;
 		} else {
 			return false;
@@ -1407,8 +1407,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	}
 
 	@Override
-	public void unlock(LockKey storageLockKey) {
-		Lock lock = tableRegistry.getExclusiveTableLock(storageLockKey.tableName, storageLockKey.owner);
+	public void unlock(LockKey storageLockKey, String purpose) {
+		Lock lock = tableRegistry.getExclusiveTableLock(storageLockKey.tableName, storageLockKey.owner, purpose);
 
 		lock.unlock();
 	}

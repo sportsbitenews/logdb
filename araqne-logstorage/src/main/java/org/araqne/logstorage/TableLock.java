@@ -1,15 +1,36 @@
 package org.araqne.logstorage;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class TableLock {
-	final int EXCLUSIVE = 65535;
+	public static Logger logger = LoggerFactory.getLogger(TableLock.class);
+	static final int EXCLUSIVE = 65535;
 	Semaphore sem = new Semaphore(EXCLUSIVE, true);
+
 	String owner;
-	protected int holdCount = 0;
+	int holdCount;
+	List<String> purposes;
+
+	@Override
+	public String toString() {
+		return String.format("TableLock [owner=%s, holdCount=%s, purposes=%s]", owner, holdCount, purposes);
+	}
+
+	public TableLock() {
+		owner = null;
+		holdCount = 0;
+		purposes = new LinkedList<String>();
+	}
 
 	public void unlockForced() {
 		sem.release(EXCLUSIVE);
@@ -79,60 +100,56 @@ public class TableLock {
 
 	public class WriteLock implements Lock {
 		public String acquierer;
+		public String purpose;
 
-		public WriteLock(String owner) {
+		public WriteLock(String owner, String purpose) {
 			this.acquierer = owner;
+			this.purpose = purpose;
 		}
 
 		@Override
 		public void lock() {
 			try {
 				synchronized (TableLock.this) {
+					assert acquierer != null;
 					if (acquierer.equals(TableLock.this.owner)) {
-						TableLock.this.holdCount += 1;
+						onLockAcquired();
 						return;
 					}
-				}
-				sem.acquire(EXCLUSIVE);
-				try {
-					synchronized (TableLock.this) {
-						if (acquierer.equals(TableLock.this.owner)) {
-							TableLock.this.holdCount += 1;
-						} else {
-							TableLock.this.owner = acquierer;
-							TableLock.this.holdCount = 1;
-						}
+
+					sem.acquire(EXCLUSIVE);
+
+					if (acquierer.equals(TableLock.this.owner)) {
+						onLockAcquired();
+					} else {
+						TableLock.this.owner = acquierer;
+						onLockAcquired();
 					}
-				} catch (RuntimeException t) {
-					sem.release(EXCLUSIVE);
-					throw t;
 				}
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
 		}
 
+		private void onLockAcquired() {
+			TableLock.this.holdCount += 1;
+			TableLock.this.purposes.add(purpose);
+		}
+
 		@Override
 		public void lockInterruptibly() throws InterruptedException {
 			synchronized (TableLock.this) {
 				if (acquierer.equals(TableLock.this.owner)) {
-					TableLock.this.holdCount += 1;
+					onLockAcquired();
 					return;
 				}
-			}
-			sem.acquire(EXCLUSIVE);
-			try {
-				synchronized (TableLock.this) {
-					if (acquierer.equals(TableLock.this.owner)) {
-						TableLock.this.holdCount += 1;
-					} else {
-						TableLock.this.owner = acquierer;
-						TableLock.this.holdCount = 1;
-					}
+				sem.acquire(EXCLUSIVE);
+				if (acquierer.equals(TableLock.this.owner)) {
+					onLockAcquired();
+				} else {
+					TableLock.this.owner = acquierer;
+					onLockAcquired();
 				}
-			} catch (RuntimeException t) {
-				sem.release(EXCLUSIVE);
-				throw t;
 			}
 		}
 
@@ -140,55 +157,40 @@ public class TableLock {
 		public boolean tryLock() {
 			synchronized (TableLock.this) {
 				if (acquierer.equals(TableLock.this.owner)) {
-					TableLock.this.holdCount += 1;
+					onLockAcquired();
 					return true;
 				}
-			}
-			boolean locked = sem.tryAcquire(EXCLUSIVE);
-			if (locked) {
-				try {
-					synchronized (TableLock.this) {
-						if (acquierer.equals(TableLock.this.owner)) {
-							TableLock.this.holdCount += 1;
-						} else {
-							TableLock.this.owner = acquierer;
-							TableLock.this.holdCount = 1;
-						}
+				boolean locked = sem.tryAcquire(EXCLUSIVE);
+				if (locked) {
+					if (acquierer.equals(TableLock.this.owner)) {
+						onLockAcquired();
+					} else {
+						TableLock.this.owner = acquierer;
+						onLockAcquired();
 					}
-				} catch (RuntimeException t) {
-					sem.release(EXCLUSIVE);
-					throw t;
 				}
+				return locked;
 			}
-			return locked;
 		}
 
 		@Override
 		public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
 			synchronized (TableLock.this) {
 				if (acquierer.equals(TableLock.this.owner)) {
-					TableLock.this.holdCount += 1;
+					onLockAcquired();
 					return true;
 				}
-			}
-
-			boolean locked = sem.tryAcquire(EXCLUSIVE, time, unit);
-			if (locked) {
-				try {
-					synchronized (TableLock.this) {
-						if (acquierer.equals(TableLock.this.owner)) {
-							TableLock.this.holdCount += 1;
-						} else {
-							TableLock.this.owner = acquierer;
-							TableLock.this.holdCount = 1;
-						}
+				boolean locked = sem.tryAcquire(EXCLUSIVE, time, unit);
+				if (locked) {
+					if (acquierer.equals(TableLock.this.owner)) {
+						onLockAcquired();
+					} else {
+						TableLock.this.owner = acquierer;
+						onLockAcquired();
 					}
-				} catch (RuntimeException t) {
-					sem.release(EXCLUSIVE);
-					throw t;
 				}
+				return locked;
 			}
-			return locked;
 		}
 
 		@Override
@@ -201,13 +203,22 @@ public class TableLock {
 						throw new IllegalMonitorStateException(owner + " cannot unlock this lock now: "
 								+ TableLock.this.owner);
 					}
-					TableLock.this.holdCount -= 1;
+					onLockReleased();
 					if (TableLock.this.holdCount == 0) {
+						if (!TableLock.this.purposes.isEmpty())
+							logger.warn(
+									"purposes isn't managed correctly: {}: {}", TableLock.this, TableLock.this.purposes);
 						TableLock.this.owner = null;
+						TableLock.this.purposes.clear();
 						sem.release(EXCLUSIVE);
 					}
 				}
 			}
+		}
+
+		private void onLockReleased() {
+			TableLock.this.holdCount -= 1;
+			TableLock.this.purposes.remove(purpose);
 		}
 
 		@Override
@@ -216,10 +227,10 @@ public class TableLock {
 		}
 	}
 
-	public Lock writeLock(final String owner) {
+	public Lock writeLock(String owner, String purpose) {
 		if (owner == null)
 			throw new IllegalArgumentException("owner argument cannot be null");
-		return new WriteLock(owner);
+		return new WriteLock(owner, purpose);
 	}
 
 	public String getOwner() {
@@ -228,6 +239,10 @@ public class TableLock {
 
 	public int getReentrantCount() {
 		return holdCount;
+	}
+
+	public Collection<String> getPurposes() {
+		return Collections.unmodifiableCollection(purposes);
 	}
 
 }
