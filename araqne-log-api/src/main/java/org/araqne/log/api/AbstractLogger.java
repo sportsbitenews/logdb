@@ -291,10 +291,10 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			lastStopReason = reason;
 
 		if (isPassive()) {
+			invokeStopCallback(reason);
 			stopped = true;
 			status = LoggerStatus.Stopped;
 			this.pending = reason == LoggerStopReason.TRANSFORMER_DEPENDENCY;
-			invokeStopCallback(reason);
 		} else
 			stop(reason, INFINITE);
 	}
@@ -309,6 +309,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			return;
 		}
 
+		status = LoggerStatus.Stopping;
+		doStop = true;
+
 		if (t != null) {
 			if (!t.isAlive()) {
 				t = null;
@@ -318,10 +321,10 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			t = null;
 		}
 
-		status = LoggerStatus.Stopping;
+		// e.g. close socket at onStop() can unblock waiting connect() call
+		invokeStopCallback(reason);
 
 		if (getExecutor() == null) {
-			doStop = true;
 			long begin = new Date().getTime();
 			try {
 				while (true) {
@@ -344,7 +347,6 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		}
 
 		this.pending = pending;
-		invokeStopCallback(reason);
 	}
 
 	/**
@@ -407,8 +409,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 					} catch (InterruptedException e) {
 					}
 				}
-			} catch (Exception e) {
-				log.error("araqne log api: logger stopped", e);
+			} catch (Throwable t) {
+				log.error("araqne log api: logger [" + getFullName() + "] stopped", t);
 			} finally {
 				status = LoggerStatus.Stopped;
 				stopped = true;
