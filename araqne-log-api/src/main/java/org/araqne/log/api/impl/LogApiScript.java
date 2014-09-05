@@ -399,7 +399,7 @@ public class LogApiScript implements Script {
 		return m.find();
 	}
 
-	@ScriptUsage(description = "print logger configuration", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "logger fullname") })
+	@ScriptUsage(description = "print logger configuration", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "logger fullname", autocompletion = LoggerAutoCompleter.class) })
 	public void logger(String[] args) {
 		String fullName = args[0];
 		context.println("Logger [" + fullName + "]");
@@ -477,7 +477,7 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "trace logger output", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "logger fullname") })
+	@ScriptUsage(description = "trace logger output", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "logger fullname", autocompletion = LoggerAutoCompleter.class) })
 	public void trace(String[] args) {
 		Logger logger = loggerRegistry.getLogger(args[0]);
 		if (logger == null) {
@@ -824,7 +824,7 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "reset logger state", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format") })
+	@ScriptUsage(description = "reset logger state", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format", autocompletion = LoggerAutoCompleter.class) })
 	public void resetState(String[] args) {
 		Logger logger = loggerRegistry.getLogger(args[0]);
 		if (logger == null) {
