@@ -384,6 +384,10 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	protected void onStop(LoggerStopReason reason) {
 	}
 
+	// can be overridden
+	protected void onResetStates() {
+	}
+
 	@Override
 	public void run() {
 		if (getExecutor() == null) {
@@ -636,6 +640,12 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		dropCounter.set(0);
 		lastLogDate = null;
 		setStates(new HashMap<String, Object>());
+
+		try {
+			onResetStates();
+		} catch (Throwable t) {
+			log.warn("araqne log api: logger [" + getFullName() + "] throws exception at onResetStates()", t);
+		}
 	}
 
 	@Override

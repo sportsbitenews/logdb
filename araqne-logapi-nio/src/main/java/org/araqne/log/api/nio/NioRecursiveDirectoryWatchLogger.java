@@ -78,6 +78,12 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		applyConfig();
 	}
 
+	@Override
+	protected void onResetStates() {
+		walkTreeRequired = true;
+		slog.debug("araqne-logapi-nio: recursive-dirwatch [{}] will retraverse directories", getFullName());
+	}
+
 	private void applyConfig() {
 		basePath = getConfigs().get("base_path");
 
