@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logdb-cep</artifactId>
-	<version>0.2.10</version>
+	<version>0.2.11</version>
 	<packaging>bundle</packaging>
 	<name>Araqne LogDB CEP</name>
 	<build>
@@ -68,6 +68,11 @@
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
 			<version>3.2.13</version>
+		</dependency>
+		<dependency>
+			<groupId>org.araqne</groupId>
+			<artifactId>araqne-cron</artifactId>
+			<version>1.8.5</version>
 		</dependency>
 	</dependencies>
 </project>

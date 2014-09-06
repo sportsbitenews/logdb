@@ -17,8 +17,6 @@ package org.araqne.logdb.cep.engine;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -26,15 +24,17 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.cron.AbstractTickTimer;
+import org.araqne.cron.TickService;
 import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventCause;
+import org.araqne.logdb.cep.EventClock;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextListener;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.cep.EventSubscriber;
-import org.araqne.logdb.cep.EventClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +44,9 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Requires
 	private EventContextService eventContextService;
+
+	@Requires
+	private TickService tickService;
 
 	private ConcurrentHashMap<EventKey, EventContext> contexts;
 
@@ -55,7 +58,6 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	private EventClock realClock;
 
 	private RealClockTask realClockTask = new RealClockTask();
-	private Timer timer;
 
 	@Override
 	public String getName() {
@@ -69,9 +71,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		logClocks = new ConcurrentHashMap<String, EventClock>();
 		realClock = new EventClock(this, "real", System.currentTimeMillis(), 10000);
 
-		timer = new Timer("Event Real Clock", true);
-		timer.scheduleAtFixedRate(realClockTask, 0, 100);
-
+		tickService.addTimer(realClockTask);
 		eventContextService.registerStorage(this);
 	}
 
@@ -81,7 +81,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 			eventContextService.unregisterStorage(this);
 		}
 
-		realClockTask.cancel();
+		tickService.removeTimer(realClockTask);
 		contexts.clear();
 		subscribers.clear();
 	}
@@ -196,9 +196,14 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 			s.remove(subscriber);
 	}
 
-	private class RealClockTask extends TimerTask {
+	private class RealClockTask extends AbstractTickTimer {
 		@Override
-		public void run() {
+		public int getInterval() {
+			return 100;
+		}
+
+		@Override
+		public void onTick() {
 			realClock.setTime(System.currentTimeMillis(), false);
 		}
 	}
