@@ -32,10 +32,6 @@ public class TableLock {
 		purposes = new LinkedList<String>();
 	}
 
-	public void unlockForced() {
-		sem.release(EXCLUSIVE);
-	}
-
 	public int availableShared() {
 		return sem.availablePermits();
 	}
@@ -99,8 +95,8 @@ public class TableLock {
 	}
 
 	public class WriteLock implements Lock {
-		public String acquierer;
-		public String purpose;
+		final public String acquierer;
+		final public String purpose;
 
 		public WriteLock(String owner, String purpose) {
 			this.acquierer = owner;
@@ -110,86 +106,65 @@ public class TableLock {
 		@Override
 		public void lock() {
 			try {
-				synchronized (TableLock.this) {
-					assert acquierer != null;
-					if (acquierer.equals(TableLock.this.owner)) {
-						onLockAcquired();
-						return;
-					}
-
-					sem.acquire(EXCLUSIVE);
-
-					if (acquierer.equals(TableLock.this.owner)) {
-						onLockAcquired();
-					} else {
-						TableLock.this.owner = acquierer;
-						onLockAcquired();
-					}
+				assert acquierer != null;
+				if (checkReentrant()) {
+					return;
 				}
+				sem.acquire(EXCLUSIVE);
+				onLockAcquired();
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
 		}
 
 		private void onLockAcquired() {
+			if (!acquierer.equals(TableLock.this.owner)) {
+				TableLock.this.owner = acquierer;
+				TableLock.this.purposes.clear();
+			}
 			TableLock.this.holdCount += 1;
 			TableLock.this.purposes.add(purpose);
 		}
 
 		@Override
 		public void lockInterruptibly() throws InterruptedException {
-			synchronized (TableLock.this) {
-				if (acquierer.equals(TableLock.this.owner)) {
-					onLockAcquired();
-					return;
-				}
-				sem.acquire(EXCLUSIVE);
-				if (acquierer.equals(TableLock.this.owner)) {
-					onLockAcquired();
-				} else {
-					TableLock.this.owner = acquierer;
-					onLockAcquired();
-				}
+			if (checkReentrant()) {
+				return;
 			}
+			sem.acquire(EXCLUSIVE);
+			onLockAcquired();
 		}
 
 		@Override
 		public boolean tryLock() {
-			synchronized (TableLock.this) {
-				if (acquierer.equals(TableLock.this.owner)) {
-					onLockAcquired();
-					return true;
-				}
-				boolean locked = sem.tryAcquire(EXCLUSIVE);
-				if (locked) {
-					if (acquierer.equals(TableLock.this.owner)) {
-						onLockAcquired();
-					} else {
-						TableLock.this.owner = acquierer;
-						onLockAcquired();
-					}
-				}
-				return locked;
+			if (checkReentrant()) {
+				return true;
 			}
+			boolean locked = sem.tryAcquire(EXCLUSIVE);
+			if (locked) {
+				onLockAcquired();
+			}
+			return locked;
 		}
 
 		@Override
 		public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+			if (checkReentrant())
+				return true;
+			boolean locked = sem.tryAcquire(EXCLUSIVE, time, unit);
+			if (locked) {
+				onLockAcquired();
+			}
+			return locked;
+		}
+
+		private boolean checkReentrant() {
 			synchronized (TableLock.this) {
 				if (acquierer.equals(TableLock.this.owner)) {
 					onLockAcquired();
 					return true;
 				}
-				boolean locked = sem.tryAcquire(EXCLUSIVE, time, unit);
-				if (locked) {
-					if (acquierer.equals(TableLock.this.owner)) {
-						onLockAcquired();
-					} else {
-						TableLock.this.owner = acquierer;
-						onLockAcquired();
-					}
-				}
-				return locked;
+				return false;
 			}
 		}
 
@@ -198,27 +173,29 @@ public class TableLock {
 			if (TableLock.this.owner == null) {
 				return;
 			} else {
-				synchronized (TableLock.this) {
-					if (!acquierer.equals(TableLock.this.owner)) {
-						throw new IllegalMonitorStateException(owner + " cannot unlock this lock now: "
-								+ TableLock.this.owner);
-					}
-					onLockReleased();
-					if (TableLock.this.holdCount == 0) {
-						if (!TableLock.this.purposes.isEmpty())
-							logger.warn(
-									"purposes isn't managed correctly: {}: {}", TableLock.this, TableLock.this.purposes);
-						TableLock.this.owner = null;
-						TableLock.this.purposes.clear();
-						sem.release(EXCLUSIVE);
-					}
-				}
+				if (onLockReleased())
+					sem.release(EXCLUSIVE);
 			}
 		}
 
-		private void onLockReleased() {
-			TableLock.this.holdCount -= 1;
-			TableLock.this.purposes.remove(purpose);
+		private boolean onLockReleased() {
+			synchronized (TableLock.this) {
+				if (!acquierer.equals(TableLock.this.owner)) {
+					throw new IllegalMonitorStateException(owner + " cannot unlock this lock now: "
+							+ TableLock.this.owner);
+				}
+				TableLock.this.holdCount -= 1;
+				TableLock.this.purposes.remove(purpose);
+				if (TableLock.this.holdCount == 0) {
+					if (!TableLock.this.purposes.isEmpty())
+						logger.warn(
+								"purposes isn't managed correctly: {}: {}", TableLock.this, TableLock.this.purposes);
+					TableLock.this.owner = null;
+					TableLock.this.purposes.clear();
+					return true;
+				}
+				return false;
+			}
 		}
 
 		@Override
