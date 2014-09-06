@@ -419,6 +419,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 							break;
 						long startedAt = System.currentTimeMillis();
 						runOnce();
+						if (doStop)
+							break;
+						
 						long elapsed = System.currentTimeMillis() - startedAt;
 						lastRunDate = new Date();
 						if (interval - elapsed < 0)
