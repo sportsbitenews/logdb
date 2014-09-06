@@ -50,6 +50,7 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerFactoryRegistry;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.Mutable;
 import org.araqne.log.api.WildcardMatcher;
@@ -525,9 +526,9 @@ public class LogApiScript implements Script {
 			}
 
 			if (logger.isPassive())
-				logger.start();
+				logger.start(LoggerStartReason.USER_REQUEST);
 			else if (interval > 0)
-				logger.start(interval);
+				logger.start(LoggerStartReason.USER_REQUEST, interval);
 			else
 				throw new IllegalStateException("cannot start logger, interval is required");
 			context.println("logger started");
@@ -572,7 +573,7 @@ public class LogApiScript implements Script {
 					if (logger.isRunning()) {
 						context.println("logger [" + logger.getFullName() + "] is already started");
 					} else {
-						logger.start();
+						logger.start(LoggerStartReason.USER_REQUEST);
 						context.println("logger [" + logger.getFullName() + "] started");
 					}
 				}
@@ -593,7 +594,7 @@ public class LogApiScript implements Script {
 					if (logger.isRunning()) {
 						context.println("logger [" + logger.getFullName() + "] is already started");
 					} else {
-						logger.start(interval);
+						logger.start(LoggerStartReason.USER_REQUEST, interval);
 						context.println("logger [" + logger.getFullName() + "] started with interval " + interval + "ms");
 					}
 				}

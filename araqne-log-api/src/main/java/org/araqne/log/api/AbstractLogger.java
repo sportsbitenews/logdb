@@ -41,6 +41,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private Map<String, String> config;
 
 	private volatile LoggerStatus status = LoggerStatus.Stopped;
+	private volatile boolean enabled = false;
 	private volatile boolean doStop = false;
 	private volatile boolean stopped = true;
 	private volatile boolean pending = false;
@@ -173,6 +174,11 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	@Override
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	@Override
 	public boolean isRunning() {
 		return !stopped;
 	}
@@ -216,7 +222,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	 * start passive logger
 	 */
 	@Override
-	public void start() {
+	public void start(LoggerStartReason reason) {
 		verifyTransformer();
 
 		if (!isPassive())
@@ -224,18 +230,18 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		pending = false;
 		stopped = false;
-		invokeStartCallback();
+		invokeStartCallback(reason);
 	}
 
 	/**
 	 * start active logger
 	 */
 	@Override
-	public void start(int interval) {
+	public void start(LoggerStartReason reason, int interval) {
 		verifyTransformer();
 
 		if (isPassive()) {
-			start();
+			start(reason);
 			return;
 		}
 
@@ -245,7 +251,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		status = LoggerStatus.Starting;
 		this.interval = interval;
 
-		invokeStartCallback();
+		invokeStartCallback(reason);
 
 		if (getExecutor() == null) {
 			t = new Thread(this, "Logger [" + fullName + "]");
@@ -267,11 +273,14 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		return null;
 	}
 
-	private void invokeStartCallback() {
+	private void invokeStartCallback(LoggerStartReason reason) {
+		if (reason == LoggerStartReason.USER_REQUEST)
+			enabled = true;
+
 		lastStopReason = null;
 		stopCallbacked = false;
 
-		onStart();
+		onStart(reason);
 
 		lastStartDate = new Date();
 		status = LoggerStatus.Running;
@@ -312,6 +321,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		status = LoggerStatus.Stopping;
 		doStop = true;
 
+		// e.g. close socket at onStop() can unblock waiting connect() call
+		invokeStopCallback(reason);
+
 		if (t != null) {
 			if (!t.isAlive()) {
 				t = null;
@@ -320,9 +332,6 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			t.interrupt();
 			t = null;
 		}
-
-		// e.g. close socket at onStop() can unblock waiting connect() call
-		invokeStopCallback(reason);
 
 		if (getExecutor() == null) {
 			long begin = new Date().getTime();
@@ -361,6 +370,15 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		stopCallbacked = true;
 
+		if (reason == LoggerStopReason.USER_REQUEST) {
+			try {
+				throw new IllegalStateException("LOGGER STOP " + getFullName());
+			} catch (Throwable t) {
+				t.printStackTrace();
+			}
+			enabled = false;
+		}
+
 		try {
 			onStop(lastStopReason);
 		} catch (Exception e) {
@@ -379,7 +397,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	protected abstract void runOnce();
 
 	// can be overridden
-	protected void onStart() {
+	protected void onStart(LoggerStartReason reason) {
 	}
 
 	// can be overridden
@@ -415,15 +433,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 				status = LoggerStatus.Stopped;
 				stopped = true;
 				doStop = false;
-
-				try {
-					invokeStopCallback(LoggerStopReason.USER_REQUEST);
-				} catch (Exception e) {
-					log.warn("araqne log api: [" + fullName + "] stop callback should not throw any exception", e);
-				}
 			}
 		} else {
-			if (!isRunning())
+			if (!enabled)
 				return;
 
 			if (lastRunDate != null) {
@@ -629,6 +641,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		s.setDropCount(dropCounter.get());
 		s.setLastLogDate(lastLogDate);
 		s.setPending(pending);
+		s.setEnabled(enabled);
 		s.setRunning(status == LoggerStatus.Running);
 		s.setProperties(state);
 
@@ -658,6 +671,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		long lastDropCount = 0;
 
 		if (state != null) {
+			this.enabled = state.isEnabled();
 			lastLogCount = state.getLogCount();
 			lastDropCount = state.getDropCount();
 			lastLogDate = state.getLastLogDate();
@@ -677,8 +691,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		this.transformer = transformer;
 
 		if (isPending() && transformer != null)
-			start(getInterval());
-		if (isRunning() && config.get("transformer") != null && transformer == null) {
+			start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
+		if (enabled && config.get("transformer") != null && transformer == null) {
 			stop(LoggerStopReason.TRANSFORMER_DEPENDENCY, 5000);
 		}
 	}

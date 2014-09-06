@@ -9,6 +9,7 @@ import org.araqne.log.api.LogTransformer;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerEventListener;
 import org.araqne.log.api.LoggerFactory;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStatus;
 import org.araqne.log.api.LoggerStopReason;
 
@@ -100,6 +101,11 @@ class DummyLogger implements Logger {
 	}
 
 	@Override
+	public boolean isEnabled() {
+		return false;
+	}
+
+	@Override
 	public boolean isRunning() {
 		return false;
 	}
@@ -133,11 +139,11 @@ class DummyLogger implements Logger {
 	}
 
 	@Override
-	public void start() {
+	public void start(LoggerStartReason reason) {
 	}
 
 	@Override
-	public void start(int interval) {
+	public void start(LoggerStartReason reason, int interval) {
 	}
 
 	@Override

@@ -30,6 +30,7 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import org.araqne.log.api.AbstractLogger;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.SimpleLog;
 import org.araqne.logdb.jms.JmsProfile;
@@ -52,7 +53,7 @@ public class JmsLogger extends AbstractLogger implements MessageListener {
 	}
 
 	@Override
-	protected void onStart() {
+	protected void onStart(LoggerStartReason reason) {
 		JmsProfile profile = profileRegistry.getProfile(profileName);
 		if (profile == null)
 			throw new IllegalStateException("jms profile not found: " + profileName);

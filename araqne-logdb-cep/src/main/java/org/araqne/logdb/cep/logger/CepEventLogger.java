@@ -10,6 +10,7 @@ import org.araqne.log.api.AbstractLogger;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.SimpleLog;
 import org.araqne.logdb.Row;
@@ -40,7 +41,7 @@ public class CepEventLogger extends AbstractLogger implements EventSubscriber {
 	}
 
 	@Override
-	protected void onStart() {
+	protected void onStart(LoggerStartReason reason) {
 		String topics = getConfigs().get("topics");
 		for (String topic : topics.split(",")) {
 			topic = topic.trim();

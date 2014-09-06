@@ -31,7 +31,7 @@
 							org.araqne.log.api.nio;version=${project.version}
 						</Export-Package>
 						<Import-Package>
-							org.araqne.log.api;version="3.2.13",
+							org.araqne.log.api;version="3.4.0",
 							*
 						</Import-Package>
 					</instructions>
@@ -77,7 +77,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.2.13</version>
+			<version>3.4.0</version>
 		</dependency>
 	</dependencies>
 </project>

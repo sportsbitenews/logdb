@@ -169,6 +169,7 @@ public class LastStateServiceImpl implements LastStateService {
 		clone.setLogCount(old.getLogCount());
 		clone.setDropCount(old.getDropCount());
 		clone.setPending(old.isPending());
+		clone.setEnabled(old.isEnabled());
 		clone.setRunning(old.isRunning());
 		clone.setLastLogDate(old.getLastLogDate());
 		clone.setUpdateCount(old.getUpdateCount());

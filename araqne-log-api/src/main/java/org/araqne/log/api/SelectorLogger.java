@@ -43,7 +43,7 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	}
 
 	@Override
-	protected void onStart() {
+	protected void onStart(LoggerStartReason reason) {
 		loggerRegistry.addListener(this);
 		Logger logger = loggerRegistry.getLogger(loggerName);
 

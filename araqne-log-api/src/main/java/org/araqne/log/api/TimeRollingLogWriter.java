@@ -66,7 +66,7 @@ public class TimeRollingLogWriter extends AbstractLogger implements LoggerRegist
 	}
 
 	@Override
-	protected void onStart() {
+	protected void onStart(LoggerStartReason reason) {
 		String targetPath = filePath;
 		if (dateFormat != null)
 			targetPath += "." + dateFormat.format(new Date());

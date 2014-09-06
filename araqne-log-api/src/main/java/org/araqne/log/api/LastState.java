@@ -24,6 +24,14 @@ import org.araqne.api.MapTypeHint;
 public class LastState {
 	private String loggerName;
 	private int interval;
+
+	/**
+	 * started/stopped by user request
+	 * 
+	 * @since 3.2.14
+	 */
+	private boolean isEnabled;
+
 	private boolean isRunning;
 	private boolean isPending;
 	private long logCount;
@@ -52,6 +60,14 @@ public class LastState {
 
 	public void setInterval(int interval) {
 		this.interval = interval;
+	}
+
+	public boolean isEnabled() {
+		return isEnabled;
+	}
+
+	public void setEnabled(boolean isEnabled) {
+		this.isEnabled = isEnabled;
 	}
 
 	public boolean isRunning() {

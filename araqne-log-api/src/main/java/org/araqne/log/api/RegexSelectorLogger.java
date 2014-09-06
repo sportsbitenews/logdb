@@ -50,7 +50,7 @@ public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistr
 	}
 
 	@Override
-	protected void onStart() {
+	protected void onStart(LoggerStartReason reason) {
 		loggerRegistry.addListener(this);
 		Logger logger = loggerRegistry.getLogger(loggerName);
 

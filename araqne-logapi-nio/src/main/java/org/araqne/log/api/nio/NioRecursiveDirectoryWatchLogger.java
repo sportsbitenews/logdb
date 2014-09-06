@@ -46,6 +46,7 @@ import org.araqne.log.api.Log;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.MultilineLogExtractor;
 import org.araqne.log.api.Reconfigurable;
@@ -138,7 +139,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	}
 
 	@Override
-	protected void onStart() {
+	protected void onStart(LoggerStartReason reason) {
 		detector = new ChangeDetector();
 		detector.start();
 	}
@@ -325,11 +326,13 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 		@Override
 		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-			slog.debug("araqne-logapi-nio: logger [{}] pre visit directory [{}]", getFullName(), dir.toFile().getAbsolutePath());
 
-			if (!recursive)
+			if (!root.equals(dir) && !recursive) {
+				slog.debug("araqne-logapi-nio: logger [{}] skip directory [{}]", getFullName(), dir.toFile().getAbsolutePath());
 				return FileVisitResult.SKIP_SUBTREE;
-
+			}
+			
+			slog.debug("araqne-logapi-nio: logger [{}] visit directory [{}]", getFullName(), dir.toFile().getAbsolutePath());
 			return FileVisitResult.CONTINUE;
 		}
 

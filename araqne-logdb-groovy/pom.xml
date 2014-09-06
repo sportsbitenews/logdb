@@ -24,7 +24,7 @@
 						<Export-Package>org.araqne.logdb.groovy;version=${project.version}</Export-Package>
 						<Private-Package>org.araqne.logdb.groovy.impl</Private-Package>
 						<Import-Package>
-							org.araqne.log.api;version="3.0.1",
+							org.araqne.log.api;version="3.4.0",
 							org.araqne.logdb;version="2.2.10",
 							javax.script,*</Import-Package>
 					</instructions>
@@ -74,7 +74,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.2.13</version>
+			<version>3.4.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.codehaus.groovy</groupId>
