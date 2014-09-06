@@ -39,7 +39,7 @@ public interface LogTableRegistry {
 
 	void removeListener(TableEventListener listener);
 
-	Lock getExclusiveTableLock(String tableName, String owner);
+	Lock getExclusiveTableLock(String tableName, String owner, String purpose);
 
 	Lock getSharedTableLock(String tableName);
 

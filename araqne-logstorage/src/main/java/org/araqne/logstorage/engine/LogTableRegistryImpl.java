@@ -408,12 +408,12 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	}
 
 	@Override
-	public Lock getExclusiveTableLock(String tableName, String owner) {
+	public Lock getExclusiveTableLock(String tableName, String owner, String purpose) {
 		TableLock tableLock = tableLocks.get(tableName);
 		if (tableLock == null)
 			throw new TableNotFoundException(tableName);
 
-		return tableLock.writeLock(owner);
+		return tableLock.writeLock(owner, purpose);
 	}
 
 	@Override
@@ -433,7 +433,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 		if (tableLock != null) {
 			String owner = tableLock.getOwner();
 			if (owner != null)
-				return new LockStatus(owner, tableLock.availableShared(), tableLock.getReentrantCount());
+				return new LockStatus(owner, tableLock.availableShared(), tableLock.getReentrantCount(), tableLock.getPurposes());
 			else
 				return new LockStatus(tableLock.availableShared());
 		} else {

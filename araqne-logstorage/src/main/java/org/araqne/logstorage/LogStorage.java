@@ -141,9 +141,9 @@ public interface LogStorage {
 	/*
 	 * @since 2.5.5
 	 */
-	boolean lock(LockKey storageLockKey, long timeout, TimeUnit unit) throws InterruptedException;
+	boolean lock(LockKey storageLockKey, String purpose, long timeout, TimeUnit unit) throws InterruptedException;
 
-	void unlock(LockKey storageLockKey);
+	void unlock(LockKey storageLockKey, String purpose);
 
 	void flush(String tableName);
 

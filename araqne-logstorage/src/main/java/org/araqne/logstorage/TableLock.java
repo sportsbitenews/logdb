@@ -1,218 +1,213 @@
 package org.araqne.logstorage;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-public class TableLock {
-	final int EXCLUSIVE = 65535;
-	Semaphore sem = new Semaphore(EXCLUSIVE, true);
-	String owner;
-	protected int holdCount = 0;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-	public void unlockForced() {
-		sem.release(EXCLUSIVE);
+public class TableLock {
+	public static Logger logger = LoggerFactory.getLogger(TableLock.class);
+	static final int EXCLUSIVE = 65535;
+	Semaphore sem = new Semaphore(EXCLUSIVE, true);
+
+	String owner;
+	int holdCount;
+	List<String> purposes;
+
+	@Override
+	public String toString() {
+		return String.format("TableLock [owner=%s, holdCount=%s, purposes=%s]", owner, holdCount, purposes);
+	}
+
+	public TableLock() {
+		owner = null;
+		holdCount = 0;
+		purposes = new LinkedList<String>();
 	}
 
 	public int availableShared() {
 		return sem.availablePermits();
 	}
 
-	public Lock readLock() {
-		return new Lock() {
-			long ownerTid = -1;
+	public class ReadLock implements Lock {
+		long ownerTid = -1;
 
-			@Override
-			public void lock() {
-				try {
-					sem.acquire();
-					ownerTid = Thread.currentThread().getId();
-				} catch (InterruptedException e) {
-					throw new RuntimeException(e);
-				}
-			}
-
-			@Override
-			public void lockInterruptibly() throws InterruptedException {
+		@Override
+		public void lock() {
+			try {
 				sem.acquire();
 				ownerTid = Thread.currentThread().getId();
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
 			}
+		}
 
-			@Override
-			public boolean tryLock() {
-				boolean locked = sem.tryAcquire();
-				if (locked) {
-					ownerTid = Thread.currentThread().getId();
-				}
-				return locked;
+		@Override
+		public void lockInterruptibly() throws InterruptedException {
+			sem.acquire();
+			ownerTid = Thread.currentThread().getId();
+		}
+
+		@Override
+		public boolean tryLock() {
+			boolean locked = sem.tryAcquire();
+			if (locked) {
+				ownerTid = Thread.currentThread().getId();
 			}
+			return locked;
+		}
 
-			@Override
-			public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-				boolean locked = sem.tryAcquire(time, unit);
-				if (locked) {
-					ownerTid = Thread.currentThread().getId();
-				}
-				return locked;
+		@Override
+		public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+			boolean locked = sem.tryAcquire(time, unit);
+			if (locked) {
+				ownerTid = Thread.currentThread().getId();
 			}
+			return locked;
+		}
 
-			@Override
-			public void unlock() {
-				if (ownerTid == -1)
-					return;
-				else if (ownerTid != Thread.currentThread().getId())
-					throw new IllegalThreadStateException("unlocking from the thread which doesn't own the lock");
+		@Override
+		public void unlock() {
+			if (ownerTid == -1)
+				return;
+			else if (ownerTid != Thread.currentThread().getId())
+				throw new IllegalThreadStateException("unlocking from the thread which doesn't own the lock");
 
-				ownerTid = -1;
-				sem.release();
-			}
+			ownerTid = -1;
+			sem.release();
+		}
 
-			@Override
-			public Condition newCondition() {
-				throw new UnsupportedOperationException();
-			}
-
-		};
+		@Override
+		public Condition newCondition() {
+			throw new UnsupportedOperationException();
+		}
 	}
 
-	public Lock writeLock(final String owner) {
-		if (owner == null)
-			throw new IllegalArgumentException("owner argument cannot be null");
-		return new Lock() {
-			@Override
-			public void lock() {
-				try {
-					synchronized(TableLock.this) {
-						if (owner.equals(TableLock.this.owner)) {
-							TableLock.this.holdCount += 1;
-							return;
-						}
-					}
-					sem.acquire(EXCLUSIVE);
-					try {
-						synchronized (TableLock.this) {
-							if (owner.equals(TableLock.this.owner)) {
-								TableLock.this.holdCount += 1;
-							} else {
-								TableLock.this.owner = owner;
-								TableLock.this.holdCount = 1;
-							}
-						}
-					} catch (RuntimeException t) {
-						sem.release(EXCLUSIVE);
-						throw t;
-					}
-				} catch (InterruptedException e) {
-					throw new RuntimeException(e);
-				}
-			}
+	public Lock readLock() {
+		return new ReadLock();
+	}
 
-			@Override
-			public void lockInterruptibly() throws InterruptedException {
-				synchronized(TableLock.this) {
-					if (owner.equals(TableLock.this.owner)) {
-						TableLock.this.holdCount += 1;
-						return;
-					}
+	public class WriteLock implements Lock {
+		final public String acquierer;
+		final public String purpose;
+
+		public WriteLock(String owner, String purpose) {
+			this.acquierer = owner;
+			this.purpose = purpose;
+		}
+
+		@Override
+		public void lock() {
+			try {
+				assert acquierer != null;
+				if (checkReentrant()) {
+					return;
 				}
 				sem.acquire(EXCLUSIVE);
-				try {
-					synchronized (TableLock.this) {
-						if (owner.equals(TableLock.this.owner)) {
-							TableLock.this.holdCount += 1;
-						} else {
-							TableLock.this.owner = owner;
-							TableLock.this.holdCount = 1;
-						}
-					}
-				} catch (RuntimeException t) {
+				onLockAcquired();
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		private void onLockAcquired() {
+			if (!acquierer.equals(TableLock.this.owner)) {
+				TableLock.this.owner = acquierer;
+				TableLock.this.purposes.clear();
+			}
+			TableLock.this.holdCount += 1;
+			TableLock.this.purposes.add(purpose);
+		}
+
+		@Override
+		public void lockInterruptibly() throws InterruptedException {
+			if (checkReentrant()) {
+				return;
+			}
+			sem.acquire(EXCLUSIVE);
+			onLockAcquired();
+		}
+
+		@Override
+		public boolean tryLock() {
+			if (checkReentrant()) {
+				return true;
+			}
+			boolean locked = sem.tryAcquire(EXCLUSIVE);
+			if (locked) {
+				onLockAcquired();
+			}
+			return locked;
+		}
+
+		@Override
+		public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+			if (checkReentrant())
+				return true;
+			boolean locked = sem.tryAcquire(EXCLUSIVE, time, unit);
+			if (locked) {
+				onLockAcquired();
+			}
+			return locked;
+		}
+
+		private boolean checkReentrant() {
+			synchronized (TableLock.this) {
+				if (acquierer.equals(TableLock.this.owner)) {
+					onLockAcquired();
+					return true;
+				}
+				return false;
+			}
+		}
+
+		@Override
+		public void unlock() {
+			if (TableLock.this.owner == null) {
+				return;
+			} else {
+				if (onLockReleased())
 					sem.release(EXCLUSIVE);
-					throw t;
-				}
 			}
+		}
 
-			@Override
-			public boolean tryLock() {
-				synchronized(TableLock.this) {
-					if (owner.equals(TableLock.this.owner)) {
-						TableLock.this.holdCount += 1;
-						return true;
-					}
+		private boolean onLockReleased() {
+			synchronized (TableLock.this) {
+				if (!acquierer.equals(TableLock.this.owner)) {
+					throw new IllegalMonitorStateException(owner + " cannot unlock this lock now: "
+							+ TableLock.this.owner);
 				}
-				boolean locked = sem.tryAcquire(EXCLUSIVE);
-				if (locked) {
-					try {
-						synchronized (TableLock.this) {
-							if (owner.equals(TableLock.this.owner)) {
-								TableLock.this.holdCount += 1;
-							} else {
-								TableLock.this.owner = owner;
-								TableLock.this.holdCount = 1;
-							}
-						}
-					} catch (RuntimeException t) {
-						sem.release(EXCLUSIVE);
-						throw t;
-					}
+				TableLock.this.holdCount -= 1;
+				TableLock.this.purposes.remove(purpose);
+				if (TableLock.this.holdCount == 0) {
+					if (!TableLock.this.purposes.isEmpty())
+						logger.warn(
+								"purposes isn't managed correctly: {}: {}", TableLock.this, TableLock.this.purposes);
+					TableLock.this.owner = null;
+					TableLock.this.purposes.clear();
+					return true;
 				}
-				return locked;
+				return false;
 			}
+		}
 
-			@Override
-			public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-				synchronized(TableLock.this) {
-					if (owner.equals(TableLock.this.owner)) {
-						TableLock.this.holdCount += 1;
-						return true;
-					}
-				}
+		@Override
+		public Condition newCondition() {
+			throw new UnsupportedOperationException();
+		}
+	}
 
-				boolean locked = sem.tryAcquire(EXCLUSIVE, time, unit);
-				if (locked) {
-					try {
-						synchronized (TableLock.this) {
-							if (owner.equals(TableLock.this.owner)) {
-								TableLock.this.holdCount += 1;
-							} else {
-								TableLock.this.owner = owner;
-								TableLock.this.holdCount = 1;
-							}
-						}
-					} catch (RuntimeException t) {
-						sem.release(EXCLUSIVE);
-						throw t;
-					}
-				} 
-				return locked;
-			}
-
-			@Override
-			public void unlock() {
-				if (TableLock.this.owner == null) {
-					return;
-				} else {
-					synchronized(TableLock.this) {
-						if (owner.equals(TableLock.this.owner)) {
-							TableLock.this.holdCount -= 1;
-							if (TableLock.this.holdCount == 0) {
-								TableLock.this.owner = null;
-								sem.release(EXCLUSIVE);
-							}
-						} else {
-							throw new IllegalMonitorStateException(owner + " cannot unlock this lock now: " + TableLock.this.owner);
-						}
-						
-					}
-				}
-			}
-
-			@Override
-			public Condition newCondition() {
-				throw new UnsupportedOperationException();
-			}
-
-		};
+	public Lock writeLock(String owner, String purpose) {
+		if (owner == null)
+			throw new IllegalArgumentException("owner argument cannot be null");
+		return new WriteLock(owner, purpose);
 	}
 
 	public String getOwner() {
@@ -221,6 +216,10 @@ public class TableLock {
 
 	public int getReentrantCount() {
 		return holdCount;
+	}
+
+	public Collection<String> getPurposes() {
+		return Collections.unmodifiableCollection(purposes);
 	}
 
 }
