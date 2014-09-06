@@ -33,6 +33,7 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	private String pattern;
 
 	private Receiver receiver = new Receiver();
+	private Logger sourceLogger;
 
 	public SelectorLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
 		super(spec, factory);
@@ -45,11 +46,10 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	@Override
 	protected void onStart(LoggerStartReason reason) {
 		loggerRegistry.addListener(this);
-		Logger logger = loggerRegistry.getLogger(loggerName);
-
-		if (logger != null) {
+		Logger capturedLogger = sourceLogger;
+		if (capturedLogger != null) {
 			slog.debug("araqne log api: connect pipe to source logger [{}]", loggerName);
-			logger.addLogPipe(receiver);
+			capturedLogger.addLogPipe(receiver);
 		} else
 			slog.debug("araqne log api: source logger [{}] not found", loggerName);
 	}
@@ -57,13 +57,10 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	@Override
 	protected void onStop(LoggerStopReason reason) {
 		try {
-			if (loggerRegistry != null) {
-				Logger logger = loggerRegistry.getLogger(loggerName);
-				if (logger != null) {
-					slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
-					logger.removeLogPipe(receiver);
-				}
-
+			Logger capturedLogger = sourceLogger;
+			if (capturedLogger != null) {
+				slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
+				capturedLogger.removeLogPipe(receiver);
 				loggerRegistry.removeListener(this);
 			}
 		} catch (RuntimeException e) {
@@ -86,6 +83,7 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] loaded", loggerName);
 			logger.addLogPipe(receiver);
+			this.sourceLogger = logger;
 		}
 	}
 
@@ -94,6 +92,7 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] unloaded", loggerName);
 			logger.removeLogPipe(receiver);
+			this.sourceLogger = null;
 		}
 	}
 
