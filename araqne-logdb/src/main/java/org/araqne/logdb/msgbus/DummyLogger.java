@@ -12,6 +12,7 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStatus;
 import org.araqne.log.api.LoggerStopReason;
+import org.araqne.log.api.TimeRange;
 
 class DummyLogger implements Logger {
 
@@ -136,6 +137,15 @@ class DummyLogger implements Logger {
 	@Override
 	public int getInterval() {
 		return 0;
+	}
+
+	@Override
+	public TimeRange getTimeRange() {
+		return null;
+	}
+
+	@Override
+	public void setTimeRange(TimeRange timeRange) {
 	}
 
 	@Override
