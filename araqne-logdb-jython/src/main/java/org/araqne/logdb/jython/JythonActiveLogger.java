@@ -32,6 +32,7 @@ import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStatus;
 import org.araqne.log.api.LoggerStopReason;
+import org.araqne.log.api.TimeRange;
 
 public abstract class JythonActiveLogger implements Logger, Runnable {
 	private final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JythonActiveLogger.class.getName());
@@ -50,6 +51,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	private volatile boolean doStop = false;
 	private volatile boolean stopped = true;
 	private volatile boolean enabled;
+	private TimeRange timeRange;
 	private volatile boolean pending;
 	private volatile boolean manualStart;
 	private volatile Date lastStartDate;
@@ -71,8 +73,13 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		this.config = spec.getConfig();
 
 		LastState state = getFactory().getLastStateService().getState(getFullName());
-		if (state != null)
+		if (state != null) {
 			enabled = state.isEnabled();
+
+			if (state.getStartTime() != null && state.getEndTime() != null) {
+				timeRange = new TimeRange(state.getStartTime(), state.getEndTime());
+			}
+		}
 	}
 
 	@Override
@@ -167,6 +174,11 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	@Override
 	public long getLogCount() {
 		return logCounter.get();
+	}
+
+	@Override
+	public TimeRange getTimeRange() {
+		return timeRange;
 	}
 
 	@Override
@@ -329,6 +341,10 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		LastState s = new LastState();
 		s.setLoggerName(getFullName());
 		s.setInterval(interval);
+		if (timeRange != null) {
+			s.setStartTime(timeRange.getStartTime());
+			s.setEndTime(timeRange.getEndTime());
+		}
 		s.setLogCount(getLogCount());
 		s.setDropCount(getDropCount());
 		s.setLastLogDate(getLastLogDate());
@@ -352,6 +368,10 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		LastState s = new LastState();
 		s.setLoggerName(getFullName());
 		s.setInterval(interval);
+		if (timeRange != null) {
+			s.setStartTime(timeRange.getStartTime());
+			s.setEndTime(timeRange.getEndTime());
+		}
 		s.setLogCount(getLogCount());
 		s.setDropCount(getDropCount());
 		s.setLastLogDate(getLastLogDate());

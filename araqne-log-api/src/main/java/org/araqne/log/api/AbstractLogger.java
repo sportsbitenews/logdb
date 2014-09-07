@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.araqne.api.DateFormat;
 
 public abstract class AbstractLogger implements Logger, Runnable {
-	private final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AbstractLogger.class.getName());
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(AbstractLogger.class.getName());
 	private static final int INFINITE = 0;
 	private String fullName;
 	private String namespace;
@@ -38,6 +38,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private CopyOnWriteArraySet<LogPipe> pipes;
 	private Thread t;
 	private int interval;
+	private TimeRange timeRange;
+
 	private Map<String, String> config;
 
 	private volatile LoggerStatus status = LoggerStatus.Stopped;
@@ -214,6 +216,24 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	@Override
+	public TimeRange getTimeRange() {
+		return timeRange;
+	}
+
+	@Override
+	public void setTimeRange(TimeRange timeRange) {
+		this.timeRange = timeRange;
+
+		for (LoggerEventListener callback : eventListeners) {
+			try {
+				callback.onSetTimeRange(this);
+			} catch (Throwable t) {
+				slog.warn("araqne log api; logger [" + getFullName() + "] callback should not throw any exception", t);
+			}
+		}
+	}
+
+	@Override
 	public LoggerFactory getFactory() {
 		return factory;
 	}
@@ -288,8 +308,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		for (LoggerEventListener callback : eventListeners) {
 			try {
 				callback.onStart(this);
-			} catch (Exception e) {
-				log.warn("logger callback should not throw any exception", e);
+			} catch (Throwable t) {
+				slog.warn("araqne log api; logger [" + getFullName() + "] callback should not throw any exception", t);
 			}
 		}
 	}
@@ -371,25 +391,20 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		stopCallbacked = true;
 
 		if (reason == LoggerStopReason.USER_REQUEST) {
-			try {
-				throw new IllegalStateException("LOGGER STOP " + getFullName());
-			} catch (Throwable t) {
-				t.printStackTrace();
-			}
 			enabled = false;
 		}
 
 		try {
 			onStop(lastStopReason);
 		} catch (Exception e) {
-			log.warn("araqne log api: [" + fullName + "] stop callback should not throw any exception", e);
+			slog.warn("araqne log api: [" + fullName + "] stop callback should not throw any exception", e);
 		}
 
 		for (LoggerEventListener callback : eventListeners) {
 			try {
 				callback.onStop(this, lastStopReason);
 			} catch (Exception e) {
-				log.warn("logger callback should not throw any exception", e);
+				slog.warn("logger callback should not throw any exception", e);
 			}
 		}
 	}
@@ -417,11 +432,21 @@ public abstract class AbstractLogger implements Logger, Runnable {
 					try {
 						if (doStop)
 							break;
+
+						if (timeRange != null && !timeRange.isInRange(new Date())) {
+							if (slog.isDebugEnabled())
+								slog.debug("araqne log api : skip logger [{}] run, waiting time range [{}]", getFullName(),
+										timeRange);
+
+							Thread.sleep(1000);
+							continue;
+						}
+
 						long startedAt = System.currentTimeMillis();
 						runOnce();
 						if (doStop)
 							break;
-						
+
 						long elapsed = System.currentTimeMillis() - startedAt;
 						lastRunDate = new Date();
 						if (interval - elapsed < 0)
@@ -431,7 +456,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 					}
 				}
 			} catch (Throwable t) {
-				log.error("araqne log api: logger [" + getFullName() + "] stopped", t);
+				slog.error("araqne log api: logger [" + getFullName() + "] stopped", t);
 			} finally {
 				status = LoggerStatus.Stopped;
 				stopped = true;
@@ -507,7 +532,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			try {
 				pipe.onLogBatch(this, logs);
 			} catch (LoggerStopException e) {
-				this.log.warn("araqne-log-api: stopping logger [" + getFullName() + "] by exception", e);
+				this.slog.warn("araqne-log-api: stopping logger [" + getFullName() + "] by exception", e);
 				if (isPassive())
 					stop(LoggerStopReason.STOP_EXCEPTION);
 				else {
@@ -517,9 +542,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 				}
 			} catch (Throwable t) {
 				if (t.getMessage() != null && t.getMessage().startsWith("invalid time"))
-					this.log.warn("araqne-log-api: log pipe should not throw exception" + t.getMessage());
+					this.slog.warn("araqne-log-api: log pipe should not throw exception" + t.getMessage());
 				else
-					this.log.warn("araqne-log-api: log pipe should not throw exception", t);
+					this.slog.warn("araqne-log-api: log pipe should not throw exception", t);
 			}
 		}
 	}
@@ -551,7 +576,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			try {
 				pipe.onLog(this, log);
 			} catch (LoggerStopException e) {
-				this.log.warn("araqne-log-api: stopping logger [" + getFullName() + "] by exception", e);
+				this.slog.warn("araqne-log-api: stopping logger [" + getFullName() + "] by exception", e);
 				if (isPassive())
 					stop(LoggerStopReason.STOP_EXCEPTION);
 				else {
@@ -561,9 +586,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 				}
 			} catch (Exception e) {
 				if (e.getMessage() != null && e.getMessage().startsWith("invalid time"))
-					this.log.warn("araqne-log-api: log pipe should not throw exception" + e.getMessage());
+					this.slog.warn("araqne-log-api: log pipe should not throw exception" + e.getMessage());
 				else
-					this.log.warn("araqne-log-api: log pipe should not throw exception", e);
+					this.slog.warn("araqne-log-api: log pipe should not throw exception", e);
 			}
 		}
 	}
@@ -599,7 +624,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			try {
 				callback.onUpdated(this, config);
 			} catch (Exception e) {
-				log.error("araqne log api: logger event callback should not throw any exception", e);
+				slog.error("araqne log api: logger event callback should not throw any exception", e);
 			}
 		}
 	}
@@ -640,6 +665,12 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		LastState s = new LastState();
 		s.setLoggerName(getFullName());
 		s.setInterval(interval);
+
+		if (timeRange != null) {
+			s.setStartTime(timeRange.getStartTime());
+			s.setEndTime(timeRange.getEndTime());
+		}
+
 		s.setLogCount(logCounter.get());
 		s.setDropCount(dropCounter.get());
 		s.setLastLogDate(lastLogDate);
@@ -649,7 +680,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		s.setProperties(state);
 
 		lastStateService.setState(s);
-		log.trace("araqne log api: running state saved: {}", getFullName());
+		slog.trace("araqne log api: running state saved: {}", getFullName());
 	}
 
 	@Override
@@ -662,7 +693,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		try {
 			onResetStates();
 		} catch (Throwable t) {
-			log.warn("araqne log api: logger [" + getFullName() + "] throws exception at onResetStates()", t);
+			slog.warn("araqne log api: logger [" + getFullName() + "] throws exception at onResetStates()", t);
 		}
 	}
 
@@ -675,6 +706,10 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		if (state != null) {
 			this.enabled = state.isEnabled();
+
+			if (state.getStartTime() != null && state.getEndTime() != null)
+				this.timeRange = new TimeRange(state.getStartTime(), state.getEndTime());
+
 			lastLogCount = state.getLogCount();
 			lastDropCount = state.getDropCount();
 			lastLogDate = state.getLastLogDate();

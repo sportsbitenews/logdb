@@ -53,6 +53,7 @@ import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.Mutable;
+import org.araqne.log.api.TimeRange;
 import org.araqne.log.api.WildcardMatcher;
 
 import com.bethecoder.ascii_table.ASCIITable;
@@ -419,10 +420,12 @@ public class LogApiScript implements Script {
 		context.println(" * Logger Factory: " + logger.getFactoryFullName());
 		context.println(" * Status: " + logger.getStatus());
 		context.println(" * Interval: " + logger.getInterval() + "ms");
+		context.println(" * Time Range: " + (logger.getTimeRange() != null ? logger.getTimeRange() : "N/A"));
 		context.println(" * Last Log: " + lastLogDate);
 		context.println(" * Last Run: " + lastRunDate);
 		context.println(" * Log Count: " + logger.getLogCount());
 		context.println(" * Drop Count: " + logger.getDropCount());
+
 		context.println("");
 
 		context.println("Configuration");
@@ -803,6 +806,33 @@ public class LogApiScript implements Script {
 		} catch (Exception e) {
 			context.println("error: " + e.getMessage());
 			slog.error("araqne log api: cannot remove logger", e);
+		}
+	}
+
+	@ScriptUsage(description = "set time range. logger only works for specified time range.", arguments = {
+			@ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname", autocompletion = LoggerAutoCompleter.class),
+			@ScriptArgument(name = "start time", type = "string", description = "HH:mm format", optional = true),
+			@ScriptArgument(name = "end time", type = "string", description = "HH:mm format", optional = true) })
+	public void setTimeRange(String[] args) {
+		try {
+			String fullName = args[0];
+			Logger logger = loggerRegistry.getLogger(fullName);
+
+			if (logger == null) {
+				context.println("logger not found");
+				return;
+			}
+
+			if (args.length >= 3) {
+				logger.setTimeRange(new TimeRange(args[1], args[2]));
+				context.println("set");
+			} else {
+				logger.setTimeRange(null);
+				context.println("unset");
+			}
+		} catch (Exception e) {
+			context.println("error: " + e.getMessage());
+			slog.error("araqne log api: cannot set time range", e);
 		}
 	}
 

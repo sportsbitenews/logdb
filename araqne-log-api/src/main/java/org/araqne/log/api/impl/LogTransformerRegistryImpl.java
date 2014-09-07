@@ -171,7 +171,11 @@ public class LogTransformerRegistryImpl extends AbstractTickTimer implements Log
 	}
 
 	private void setTransformers(LogTransformerProfile profile) {
-		for (Logger logger : loggerRegistry.getLoggers()) {
+		LoggerRegistry captured = loggerRegistry;
+		if (captured == null)
+			return;
+		
+		for (Logger logger : captured.getLoggers()) {
 			String transformerName = logger.getConfigs().get("transformer");
 			if (profile.getName().equals(transformerName)) {
 				try {

@@ -88,6 +88,16 @@ public interface Logger {
 
 	int getInterval();
 
+	/**
+	 * @since 3.4.0
+	 */
+	TimeRange getTimeRange();
+
+	/**
+	 * @since 3.4.0
+	 */
+	void setTimeRange(TimeRange timeRange);
+
 	void start(LoggerStartReason reason);
 
 	void start(LoggerStartReason reason, int interval);

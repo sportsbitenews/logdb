@@ -22,5 +22,10 @@ public interface LoggerEventListener {
 
 	void onStop(Logger logger, LoggerStopReason reason);
 
+	/**
+	 * @Since 3.4.0
+	 */
+	void onSetTimeRange(Logger logger);
+
 	void onUpdated(Logger logger, Map<String, String> config);
 }

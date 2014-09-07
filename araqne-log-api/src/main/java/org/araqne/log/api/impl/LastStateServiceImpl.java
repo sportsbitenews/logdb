@@ -158,44 +158,7 @@ public class LastStateServiceImpl implements LastStateService {
 		if (old == null)
 			return null;
 
-		return cloneState(old);
-	}
-
-	@SuppressWarnings("unchecked")
-	private LastState cloneState(LastState old) {
-		LastState clone = new LastState();
-		clone.setLoggerName(old.getLoggerName());
-		clone.setInterval(old.getInterval());
-		clone.setLogCount(old.getLogCount());
-		clone.setDropCount(old.getDropCount());
-		clone.setPending(old.isPending());
-		clone.setEnabled(old.isEnabled());
-		clone.setRunning(old.isRunning());
-		clone.setLastLogDate(old.getLastLogDate());
-		clone.setUpdateCount(old.getUpdateCount());
-		clone.setProperties((Map<String, Object>) deepCopy(old.getProperties()));
-		return clone;
-	}
-
-	@SuppressWarnings("unchecked")
-	private Object deepCopy(Object o) {
-		if (o == null)
-			return null;
-
-		if (o instanceof Map) {
-			Map<String, Object> dup = new HashMap<String, Object>();
-			Map<String, Object> m = (Map<String, Object>) o;
-			for (String key : m.keySet())
-				dup.put(key, deepCopy(m.get(key)));
-			return dup;
-		} else if (o instanceof List) {
-			List<Object> dup = new ArrayList<Object>();
-			List<Object> l = (List<Object>) o;
-			for (Object el : l)
-				dup.add(deepCopy(el));
-			return dup;
-		} else
-			return o;
+		return LastState.cloneState(old);
 	}
 
 	@Override
@@ -208,7 +171,7 @@ public class LastStateServiceImpl implements LastStateService {
 					+ "], service is closing");
 
 		// skip disk update if state is not changed at all
-		state = cloneState(state);
+		state = LastState.cloneState(state);
 		LastState old = states.get(state.getLoggerName());
 		if (old != null && old.equals(state)) {
 			slog.debug("araqne log api: logger [{}] same state for update", state.getLoggerName());

@@ -361,32 +361,14 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 	private class DbSync implements LoggerEventListener {
 		@Override
 		public void onStart(Logger logger) {
-			LastState s = new LastState();
-			s.setLoggerName(logger.getFullName());
-			s.setInterval(logger.getInterval());
-			s.setLogCount(logger.getLogCount());
-			s.setDropCount(logger.getDropCount());
-			s.setLastLogDate(logger.getLastLogDate());
-			s.setPending(logger.isPending());
-			s.setProperties(logger.getStates());
-			s.setEnabled(logger.isEnabled());
-			s.setRunning(logger.isRunning());
-
+			LastState s = buildState(logger);
 			LastStateService lss = getLastStateService();
 			lss.setState(s);
 		}
 
 		@Override
 		public void onStop(Logger logger, LoggerStopReason reason) {
-			LastState s = new LastState();
-			s.setLoggerName(logger.getFullName());
-			s.setInterval(logger.getInterval());
-			s.setLogCount(logger.getLogCount());
-			s.setDropCount(logger.getDropCount());
-			s.setLastLogDate(logger.getLastLogDate());
-			s.setPending(logger.isPending());
-			s.setProperties(logger.getStates());
-			s.setEnabled(logger.isEnabled());
+			LastState s = buildState(logger);
 
 			// isRunning() returns true while stopping
 			s.setRunning(false);
@@ -396,8 +378,35 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		}
 
 		@Override
+		public void onSetTimeRange(Logger logger) {
+			LastState s = buildState(logger);
+			LastStateService lss = getLastStateService();
+			lss.setState(s);
+		}
+
+		@Override
 		public void onUpdated(Logger logger, Map<String, String> config) {
 			saveLoggerConfig(logger, config);
+		}
+
+		private LastState buildState(Logger logger) {
+			LastState s = new LastState();
+			s.setLoggerName(logger.getFullName());
+			s.setInterval(logger.getInterval());
+
+			if (logger.getTimeRange() != null) {
+				s.setStartTime(logger.getTimeRange().getStartTime());
+				s.setEndTime(logger.getTimeRange().getEndTime());
+			}
+
+			s.setLogCount(logger.getLogCount());
+			s.setDropCount(logger.getDropCount());
+			s.setLastLogDate(logger.getLastLogDate());
+			s.setPending(logger.isPending());
+			s.setProperties(logger.getStates());
+			s.setEnabled(logger.isEnabled());
+			s.setRunning(logger.isRunning());
+			return s;
 		}
 	}
 

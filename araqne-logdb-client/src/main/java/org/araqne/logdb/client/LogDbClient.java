@@ -1433,6 +1433,8 @@ public class LogDbClient implements TrapListener, Closeable {
 		lo.setDescription((String) m.get("description"));
 		lo.setPassive((Boolean) m.get("is_passive"));
 		lo.setInterval((Integer) m.get("interval"));
+		lo.setStartTime((String) m.get("start_time"));
+		lo.setEndTime((String) m.get("end_time"));
 		lo.setStatus((String) m.get("status"));
 		lo.setLastStartAt(parseDate((String) m.get("last_start")));
 		lo.setLastRunAt(parseDate((String) m.get("last_run")));
