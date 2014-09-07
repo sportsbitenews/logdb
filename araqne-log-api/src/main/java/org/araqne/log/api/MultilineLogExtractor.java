@@ -166,7 +166,15 @@ public class MultilineLogExtractor {
 		}
 
 		if (log != null) {
-			log = log.trim();
+			int l = log.length();
+			boolean cr = log.charAt(l - 2) == '\r';
+			boolean lf = log.charAt(l - 1) == '\n';
+
+			if (cr && lf)
+				log = log.substring(0, l - 2);
+			else if (lf)
+				log = log.substring(0, l - 1);
+
 			if (log.length() > 0) {
 				Date d = parseDate(log, dateFromFileName);
 
