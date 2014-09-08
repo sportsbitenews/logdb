@@ -264,8 +264,8 @@ public class OnlineWriter {
 	}
 
 	public void sync() throws IOException {
-		// intentional access without lock
-		writer.sync();
+		if (writer != null)
+			writer.sync();
 	}
 
 	public void close() {
