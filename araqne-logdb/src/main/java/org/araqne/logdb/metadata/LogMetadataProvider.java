@@ -148,7 +148,6 @@ public class LogMetadataProvider implements MetadataProvider {
 			String line = (String) log.getParams().get("line");
 			Row row = new Row();
 			row.put("_time", log.getDate());
-			System.out.println(log.getDate() + " " + line);
 
 			if (line != null) {
 				matcher.reset(line);
