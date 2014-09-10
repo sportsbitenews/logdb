@@ -45,7 +45,13 @@ public class Logdb extends DriverQueryCommand {
 
 	@Override
 	public void run() {
-		metadataService.query(context, objectType, args, metadataWriter);
+		try {
+			metadataService.query(context, objectType, args, metadataWriter);
+		} catch (IllegalStateException e) {
+			// ignore query cancelled by user
+			if (e.getMessage() == null || !e.getMessage().contains("result writer is already closed"))
+				throw e;
+		}
 		completed = true;
 	}
 
