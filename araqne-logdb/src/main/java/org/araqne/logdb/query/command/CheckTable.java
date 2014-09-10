@@ -39,9 +39,10 @@ import org.araqne.storage.api.FilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LogCheck extends QueryCommand {
-	private final Logger logger = LoggerFactory.getLogger(LogCheck.class);
+public class CheckTable extends QueryCommand {
+	private final Logger logger = LoggerFactory.getLogger(CheckTable.class);
 
+	private final String commandName;
 	private IntegrityCheckTask mainTask = new IntegrityCheckTask();
 	private Set<String> tableNames;
 	private Date from;
@@ -55,8 +56,9 @@ public class LogCheck extends QueryCommand {
 	private LogStorage storage;
 	private LogFileServiceRegistry fileServiceRegistry;
 
-	public LogCheck(Set<String> tableNames, Date from, Date to, boolean trace, String tableToken, LogTableRegistry tableRegistry,
-			LogStorage storage, LogFileServiceRegistry fileSerivceRegistry) {
+	public CheckTable(String commandName, Set<String> tableNames, Date from, Date to, boolean trace, String tableToken,
+			LogTableRegistry tableRegistry, LogStorage storage, LogFileServiceRegistry fileSerivceRegistry) {
+		this.commandName = commandName;
 		this.tableNames = tableNames;
 		this.from = from;
 		this.to = to;
@@ -69,7 +71,7 @@ public class LogCheck extends QueryCommand {
 
 	@Override
 	public String getName() {
-		return "logcheck";
+		return "checktable";
 	}
 
 	@Override
@@ -212,7 +214,7 @@ public class LogCheck extends QueryCommand {
 		if (!tables.isEmpty())
 			tables = " " + tables;
 
-		return "logcheck" + fromOption + toOption + traceOption + tables;
+		return commandName + fromOption + toOption + traceOption + tables;
 	}
 
 	private class IntegrityCheckTask extends QueryTask {

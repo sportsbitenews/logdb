@@ -14,20 +14,21 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Strings;
-import org.araqne.logdb.query.command.LogCheck;
+import org.araqne.logdb.query.command.CheckTable;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 
-public class LogCheckParser extends AbstractQueryCommandParser {
+public class CheckTableParser extends AbstractQueryCommandParser {
 
+	private String commandName;
 	private LogTableRegistry tableRegistry;
-
 	private LogStorage storage;
-
 	private LogFileServiceRegistry fileServiceRegistry;
 
-	public LogCheckParser(LogTableRegistry tableRegistry, LogStorage storage, LogFileServiceRegistry fileServiceRegistry) {
+	public CheckTableParser(String commandName, LogTableRegistry tableRegistry, LogStorage storage,
+			LogFileServiceRegistry fileServiceRegistry) {
+		this.commandName = commandName;
 		this.tableRegistry = tableRegistry;
 		this.storage = storage;
 		this.fileServiceRegistry = fileServiceRegistry;
@@ -35,7 +36,7 @@ public class LogCheckParser extends AbstractQueryCommandParser {
 
 	@Override
 	public String getCommandName() {
-		return "logcheck";
+		return commandName;
 	}
 
 	@Override
@@ -71,7 +72,7 @@ public class LogCheckParser extends AbstractQueryCommandParser {
 		String tableToken = commandString.substring(r.next).trim();
 
 		Set<String> tableNames = getFilteredTableNames(tableToken);
-		return new LogCheck(tableNames, from, to, trace, tableToken, tableRegistry, storage, fileServiceRegistry);
+		return new CheckTable(commandName, tableNames, from, to, trace, tableToken, tableRegistry, storage, fileServiceRegistry);
 	}
 
 	private Set<String> getFilteredTableNames(String t) {

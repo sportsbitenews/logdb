@@ -22,15 +22,17 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 
-public class Logdb extends DriverQueryCommand {
+public class SystemCommand extends DriverQueryCommand {
 	private QueryContext context;
+	private String commandName;
 	private String objectType;
 	private String args;
 	private MetadataService metadataService;
 	private MetadataCallbackWriter metadataWriter;
 	private boolean completed;
 
-	public Logdb(QueryContext context, String objectType, String args, MetadataService metadataService) {
+	public SystemCommand(String commandName, QueryContext context, String objectType, String args, MetadataService metadataService) {
+		this.commandName = commandName;
 		this.context = context;
 		this.objectType = objectType;
 		this.args = args;
@@ -40,7 +42,7 @@ public class Logdb extends DriverQueryCommand {
 
 	@Override
 	public String getName() {
-		return "logdb";
+		return commandName;
 	}
 
 	@Override
@@ -80,6 +82,6 @@ public class Logdb extends DriverQueryCommand {
 		String arguments = args;
 		if (!arguments.isEmpty())
 			arguments = " " + arguments;
-		return "logdb " + objectType + arguments;
+		return commandName + " " + objectType + arguments;
 	}
 }

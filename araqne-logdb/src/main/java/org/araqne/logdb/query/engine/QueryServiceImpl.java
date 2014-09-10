@@ -78,8 +78,8 @@ import org.araqne.logdb.query.parser.JsonFileParser;
 import org.araqne.logdb.query.parser.JsonParser;
 import org.araqne.logdb.query.parser.LimitParser;
 import org.araqne.logdb.query.parser.LoadParser;
-import org.araqne.logdb.query.parser.LogCheckParser;
-import org.araqne.logdb.query.parser.LogdbParser;
+import org.araqne.logdb.query.parser.CheckTableParser;
+import org.araqne.logdb.query.parser.SystemCommandParser;
 import org.araqne.logdb.query.parser.LoggerParser;
 import org.araqne.logdb.query.parser.LookupParser;
 import org.araqne.logdb.query.parser.MvParser;
@@ -236,9 +236,10 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new OutputCsvParser(useBom));
 		parsers.add(new OutputJsonParser());
 		parsers.add(new OutputTxtParser());
-		parsers.add(new LogdbParser("logdb", metadataService));
-		parsers.add(new LogdbParser("system", metadataService));
-		parsers.add(new LogCheckParser(tableRegistry, storage, fileServiceRegistry));
+		parsers.add(new SystemCommandParser("logdb", metadataService)); // deprecated
+		parsers.add(new SystemCommandParser("system", metadataService));
+		parsers.add(new CheckTableParser("logcheck", tableRegistry, storage, fileServiceRegistry)); // deprecated
+		parsers.add(new CheckTableParser("checktable", tableRegistry, storage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService, resultFactory));
 		parsers.add(new UnionParser(queryParserService));
 		parsers.add(new ImportParser(tableRegistry, storage));
