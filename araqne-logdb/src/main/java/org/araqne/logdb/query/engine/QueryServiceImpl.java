@@ -199,6 +199,11 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		dir.mkdirs();
 
 		allowQueryPurge = Boolean.parseBoolean(System.getProperty("araqne.logdb.allowpurge"));
+		if (System.getProperty("araqne.logdb.purge") != null) {
+			String s = System.getProperty("araqne.logdb.purge");
+			allowQueryPurge = s.equalsIgnoreCase("enabled") || s.equalsIgnoreCase("true");
+		}
+
 		useBom = Boolean.parseBoolean(System.getProperty("araqne.logdb.utf8bom"));
 
 		prepareQueryParsers();
