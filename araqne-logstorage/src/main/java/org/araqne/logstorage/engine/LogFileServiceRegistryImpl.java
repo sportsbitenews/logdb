@@ -1,16 +1,6 @@
 package org.araqne.logstorage.engine;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -26,9 +16,11 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.confdb.ConfigService;
+import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceEventListener;
 import org.araqne.logstorage.LogFileServiceRegistry;
+import org.araqne.logstorage.LogFlushCallback;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.repair.IntegrityChecker;
@@ -120,7 +112,8 @@ public class LogFileServiceRegistryImpl implements LogFileServiceRegistry {
 		ev.await();
 
 		LogFileService logFileService = services.get(type);
-		return logFileService.newWriter(options);
+		LogFileWriter newWriter = logFileService.newWriter(options);
+		return newWriter;
 	}
 
 	@Override

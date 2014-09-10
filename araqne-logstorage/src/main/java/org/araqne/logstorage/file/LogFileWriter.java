@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
+import org.araqne.logstorage.CallbackSet;
 import org.araqne.logstorage.Log;
 
 public abstract class LogFileWriter {
@@ -59,4 +60,10 @@ public abstract class LogFileWriter {
 	public abstract List<List<Log>> getBuffers();
 
 	public abstract boolean isClosed();
+
+	/**
+	 * @since 2.8.12
+	 */
+	public abstract void setCallbackSet(CallbackSet callbackSet);
+	public abstract CallbackSet getCallbackSet();
 }
