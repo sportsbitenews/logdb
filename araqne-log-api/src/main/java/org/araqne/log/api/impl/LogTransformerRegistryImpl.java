@@ -77,7 +77,13 @@ public class LogTransformerRegistryImpl extends AbstractTickTimer implements Log
 		ConfigIterator it = db.find(LogTransformerProfile.class, null);
 
 		for (LogTransformerProfile p : it.getDocuments(LogTransformerProfile.class)) {
-			loadProfile(p);
+			try {
+				loadProfile(p);
+			} catch (Throwable t) {
+				slog.warn(
+						"araqne log api: load transformer profile failure, profile=" + p.getName() + ", factory="
+								+ p.getFactoryName(), t);
+			}
 		}
 
 		factoryRegistry.addListener(updater);
@@ -174,7 +180,7 @@ public class LogTransformerRegistryImpl extends AbstractTickTimer implements Log
 		LoggerRegistry captured = loggerRegistry;
 		if (captured == null)
 			return;
-		
+
 		for (Logger logger : captured.getLoggers()) {
 			String transformerName = logger.getConfigs().get("transformer");
 			if (profile.getName().equals(transformerName)) {
