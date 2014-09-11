@@ -147,20 +147,31 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 		long usable = dir.getUsableSpace();
 		long total = dir.getTotalSpace();
 
-		logger.trace("araqne logstorage: check {} {} free space of partition [{}], current [{}/{}]", new Object[] { minFreeSpaceValue,
-				minFreeSpaceType.toString().toLowerCase(), dir.getAbsolutePath(), usable, total });
+		logger.trace("araqne logstorage: check {} {} free space of partition [{}], current [{}] total [{}]", new Object[] {
+				minFreeSpaceValue, minFreeSpaceType.toString().toLowerCase(), dir.getAbsolutePath(), usable, total });
 
-		if (total == 0)
+		if (total == 0) {
+			logger.error("araqne logstorage: low disk, dir [{}] usable [{}] total [{}]", new Object[] {
+					dir.getAbsoluteFilePath(), usable, total });
 			return true;
+		}
+
+		String unit = (minFreeSpaceType == DiskSpaceType.Percentage ? "%" : "MB");
 
 		if (minFreeSpaceType == DiskSpaceType.Percentage) {
 			int percent = (int) (usable * 100 / total);
 			if (percent < minFreeSpaceValue) {
+				logger.error("araqne logstorage: low disk, dir [{}] usable [{}] total [{}] percent [{}] threshold [{} {}]",
+						new Object[] { dir.getAbsoluteFilePath(), usable, total, percent, minFreeSpaceValue, unit });
+
 				return true;
 			}
 		} else if (minFreeSpaceType == DiskSpaceType.Megabyte) {
 			int mega = (int) (usable / 1048576);
 			if (mega < minFreeSpaceValue) {
+				logger.error("araqne logstorage: low disk, dir [{}] usable [{}] total [{}] percent [{}] threshold [{} {}]",
+						new Object[] { dir.getAbsoluteFilePath(), usable, total, mega, minFreeSpaceValue, unit });
+
 				return true;
 			}
 		}
@@ -216,7 +227,7 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 			FilePath tableDir = storage.getTableDirectory(tableName);
 			if (tableDir == null)
 				continue;
-			
+
 			FilePath dir = tableDir.getAbsoluteFilePath().getParentFilePath();
 
 			List<String> tables = partitionTables.get(dir);
@@ -250,8 +261,9 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 
 	private boolean checkDiskPartitions(FilePath partitionPath, List<String> tableNames) {
 		if (isDiskLack(partitionPath)) {
-			logger.trace("araqne logstorage: not enough disk space, current minimum free space config [{}] {}", minFreeSpaceValue,
-					(minFreeSpaceType == DiskSpaceType.Percentage ? "%" : "MB"));
+			logger.error("araqne logstorage: not enough disk space, current minimum free space config [{}] {}",
+					minFreeSpaceValue, (minFreeSpaceType == DiskSpaceType.Percentage ? "%" : "MB"));
+
 			if (diskLackAction == DiskLackAction.StopLogging) {
 				if (storage.getStatus() == LogStorageStatus.Open) {
 					stopStorage(partitionPath);
