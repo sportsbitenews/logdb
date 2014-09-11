@@ -34,6 +34,8 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logstorage.Log;
+import org.araqne.logstorage.LogFlushCallback;
+import org.araqne.logstorage.LogFlushCallbackArgs;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.file.LogRecord;
@@ -42,10 +44,11 @@ import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryResultImpl implements QueryResult {
+public class QueryResultImpl implements QueryResult, LogFlushCallback {
 	private final Logger logger = LoggerFactory.getLogger(QueryResultImpl.class);
 	private LogFileWriter writer;
 	private AtomicLong counter = new AtomicLong();
+	private AtomicLong flushed = new AtomicLong();
 
 	/**
 	 * do NOT directly lock on log file writer. input should be serialized at
@@ -75,6 +78,7 @@ public class QueryResultImpl implements QueryResult {
 		this.config = config;
 		this.resultStorage = resultStorage;
 		writer = resultStorage.createWriter(config);
+		writer.getCallbackSet().get(LogFlushCallback.class).add(this);
 	}
 
 	@Override
@@ -189,7 +193,7 @@ public class QueryResultImpl implements QueryResult {
 		LogFileReader reader = null;
 		try {
 			reader = resultStorage.createReader(config);
-			return new LogResultSetImpl(resultStorage.getName(), reader, counter.get());
+			return new LogResultSetImpl(resultStorage.getName(), reader, flushed.get());
 		} catch (Throwable t) {
 			if (reader != null)
 				reader.close();
@@ -320,5 +324,18 @@ public class QueryResultImpl implements QueryResult {
 		public void close() {
 			reader.close();
 		}
+	}
+
+	@Override
+	public void onFlushCompleted(LogFlushCallbackArgs arg) {
+		flushed.addAndGet(arg.getLogs().size());
+	}
+
+	@Override
+	public void onFlush(LogFlushCallbackArgs arg) {
+	}
+
+	@Override
+	public void onFlushException(LogFlushCallbackArgs arg, Throwable t) {
 	}
 }
