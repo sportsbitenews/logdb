@@ -235,7 +235,16 @@ public class OnlineWriter {
 
 	public List<Log> getBuffer() {
 		// all log file writer should have lock free implementation
-		return writer.getBuffer();
+		try {
+			awaitWriterPreparation();
+			return writer.getBuffer();
+		} catch (InterruptedException e) {
+			throw new IllegalStateException(e);
+		} catch (WriterPreparationException e) {
+			throw new IllegalStateException(e);
+		} catch (TimeoutException e) {
+			throw new IllegalStateException(e);
+		}
 		// synchronized (this) {
 		// // return new ArrayList<LogRecord>(writer.getBuffer());
 		// List<Log> buffers = writer.getBuffer();

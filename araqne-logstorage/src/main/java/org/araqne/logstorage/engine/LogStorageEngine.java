@@ -539,7 +539,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 						writer.write(l);
 						break;
 					} catch (WriterPreparationException ex) {
-						logger.info("WriterPreparationException");
+						logger.debug("WriterPreparationException", ex);
 						// retry
 					} catch (TimeoutException ex) {
 						throw new IllegalStateException("cannot write [" + l.size() + "] logs to table [" + tableName
