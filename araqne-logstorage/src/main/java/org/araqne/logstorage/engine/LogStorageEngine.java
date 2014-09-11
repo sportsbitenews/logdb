@@ -81,6 +81,7 @@ import org.araqne.logstorage.TableEventListener;
 import org.araqne.logstorage.TableNotFoundException;
 import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
+import org.araqne.logstorage.WriterPreparationException;
 import org.araqne.logstorage.file.DatapathUtil;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV2;
