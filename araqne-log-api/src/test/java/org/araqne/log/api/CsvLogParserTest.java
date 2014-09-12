@@ -212,4 +212,18 @@ public class CsvLogParserTest {
 
 		// darkluster pc -> 2789ms elapsed
 	}
+
+	// fix for issue#624
+	@Test
+	public void testBlankFieldName() {
+		Map<String, String> configs = new HashMap<String, String>();
+		configs.put("column_headers", "a, b, c");
+
+		CsvLogParser parser = (CsvLogParser) new CsvParserFactory().createParser(configs);
+		String[] headers = parser.getColumnHeaders();
+		assertEquals(3, headers.length);
+		assertEquals("a", headers[0]);
+		assertEquals("b", headers[1]);
+		assertEquals("c", headers[2]);
+	}
 }
