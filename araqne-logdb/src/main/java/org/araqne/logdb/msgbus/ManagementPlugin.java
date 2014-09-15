@@ -220,6 +220,22 @@ public class ManagementPlugin {
 	}
 
 	@MsgbusMethod
+	public void grantAdmin(Request req, Response resp) {
+		String loginName = req.getString("login_name", true);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+
+		accountService.grantAdmin(session, loginName);
+	}
+
+	@MsgbusMethod
+	public void revokeAdmin(Request req, Response resp) {
+		String loginName = req.getString("login_name", true);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+
+		accountService.revokeAdmin(session, loginName);
+	}
+
+	@MsgbusMethod
 	public void grantPrivilege(Request req, Response resp) {
 		org.araqne.logdb.Session session = ensureAdminSession(req);
 		String loginName = req.getString("login_name", true);
@@ -560,7 +576,6 @@ public class ManagementPlugin {
 		p.setFilePath(filePath);
 		p.setPassword(password);
 
-		
 		try {
 			logCryptoProfileRegistry.addProfile(p);
 		} catch (IllegalStateException e) {
