@@ -219,6 +219,9 @@ public class ManagementPlugin {
 		accountService.setPrivileges(session, loginName, privileges);
 	}
 
+	/**
+	 * @since 2.4.28
+	 */
 	@MsgbusMethod
 	public void grantAdmin(Request req, Response resp) {
 		String loginName = req.getString("login_name", true);
@@ -227,6 +230,9 @@ public class ManagementPlugin {
 		accountService.grantAdmin(session, loginName);
 	}
 
+	/**
+	 * @since 2.4.28
+	 */
 	@MsgbusMethod
 	public void revokeAdmin(Request req, Response resp) {
 		String loginName = req.getString("login_name", true);
