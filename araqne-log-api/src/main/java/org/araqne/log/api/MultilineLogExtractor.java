@@ -167,7 +167,9 @@ public class MultilineLogExtractor {
 
 		if (log != null) {
 			int l = log.length();
-			boolean cr = log.charAt(l - 2) == '\r';
+			boolean cr = false;
+			if (l > 2)
+				cr = log.charAt(l - 2) == '\r';
 			boolean lf = log.charAt(l - 1) == '\n';
 
 			if (cr && lf)
