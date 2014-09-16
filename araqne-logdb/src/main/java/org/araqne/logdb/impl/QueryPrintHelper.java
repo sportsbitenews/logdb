@@ -61,7 +61,10 @@ public class QueryPrintHelper {
 			String when = "";
 			if (q.isStarted())
 				when = " at " + df.format(new Date(q.getStartTime()));
-			String loginName = q.getContext().getSession().getLoginName();
+			String loginName = "no session";
+			if (q.getContext() != null && q.getContext().getSession() != null)
+				loginName = q.getContext().getSession().getLoginName();
+
 			Long count = null;
 			try {
 				count = q.getResultCount();
