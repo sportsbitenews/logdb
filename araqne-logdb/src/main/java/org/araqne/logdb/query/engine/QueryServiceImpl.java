@@ -499,6 +499,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	@Override
 	public void onLogout(Session session) {
 		for (Query q : queries.values()) {
+			if (q.getContext() == null || q.getContext().getSession() == null)
+				continue;
+
 			if (q.getRunMode() == RunMode.FOREGROUND && q.getContext().getSession().equals(session)) {
 				logger.trace("araqne logdb: removing foreground query [{}:{}] by session [{}] logout", new Object[] { q.getId(),
 						q.getQueryString(), session.getLoginName() });
