@@ -385,7 +385,7 @@ public class Console {
 								throw new InterruptedException();
 							}
 						} catch (InterruptedException e) {
-							context.printf("\n");
+							context.printf("\r\n");
 							break;
 						}
 						context.printf("\r");
