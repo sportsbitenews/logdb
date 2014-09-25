@@ -375,8 +375,6 @@ public class Console {
 			try {
 				rs = lq.getResultSet();
 				while (rs.hasNext()) {
-					printMap(rs.next());
-					count++;
 					if (count == 1000) {
 						context.printf("** result set size is over 1000. do you want to continue (y/N)? ");
 						try {
@@ -390,6 +388,8 @@ public class Console {
 						}
 						context.printf("\r");
 					}
+					printMap(rs.next());
+					count++;
 				}
 			} finally {
 				if (rs != null)
