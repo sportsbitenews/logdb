@@ -114,4 +114,14 @@ public class StatsParserTest {
 		assertEquals("b", stats.getAggregationFields().get(1).getName());
 		assertEquals("c", stats.getClauses().get(0));
 	}
+
+	// araqne/issue#684. check also boxplot and timechart.
+	@Test
+	public void testMultilineBugFix() {
+		StatsParser p = new StatsParser();
+		p.setQueryParserService(queryParserService);
+		Stats stats = (Stats) p.parse(null, "stats count\nby\nname");
+		assertEquals("count", stats.getAggregationFields().get(0).getName());
+		assertEquals("name", stats.getClauses().get(0));
+	}
 }

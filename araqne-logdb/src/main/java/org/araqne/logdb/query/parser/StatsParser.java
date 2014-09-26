@@ -27,7 +27,7 @@ import org.araqne.logdb.query.command.Stats;
 
 public class StatsParser extends AbstractQueryCommandParser {
 	private static final String COMMAND = "stats";
-	private static final String BY = " by ";
+	private static final String BY = "by";
 
 	@Override
 	public String getCommandName() {
@@ -69,7 +69,7 @@ public class StatsParser extends AbstractQueryCommandParser {
 		String aggsPart = commandString.substring(COMMAND.length());
 
 		// parse clauses
-		int byPos = QueryTokenizer.findKeyword(commandString, BY, 0);
+		int byPos = QueryTokenizer.findKeyword(commandString, BY, 0, true);
 		if (byPos > 0) {
 			aggsPart = commandString.substring(COMMAND.length(), byPos);
 			String clausePart = commandString.substring(byPos + BY.length());

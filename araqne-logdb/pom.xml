@@ -23,7 +23,6 @@
 						<Bundle-SymbolicName>org.araqne.logdb</Bundle-SymbolicName>
 						<Export-Package>
 							org.araqne.logdb;version=${project.version},
-							org.araqne.logdb.query;version=${project.version},
 							org.araqne.logdb.query.parser;version=${project.version},
 							org.araqne.logdb.query.aggregator;version=${project.version},
 							org.araqne.logdb.query.expr;version=${project.version},

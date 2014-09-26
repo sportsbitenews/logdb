@@ -28,7 +28,7 @@ import org.araqne.logdb.query.expr.Expression;
 
 public class BoxPlotParser extends AbstractQueryCommandParser {
 	private final String COMMAND = "boxplot";
-	private static final String BY = " by ";
+	private static final String BY = "by";
 
 	@Override
 	public String getCommandName() {
@@ -41,7 +41,7 @@ public class BoxPlotParser extends AbstractQueryCommandParser {
 		List<String> clauses = new ArrayList<String>();
 
 		// parse clauses
-		int byPos = QueryTokenizer.findKeyword(commandString, BY, 0);
+		int byPos = QueryTokenizer.findKeyword(commandString, BY, 0, true);
 		if (byPos > 0) {
 			exprToken = commandString.substring(COMMAND.length(), byPos);
 			String clausePart = commandString.substring(byPos + BY.length());

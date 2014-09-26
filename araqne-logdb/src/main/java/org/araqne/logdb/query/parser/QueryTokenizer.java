@@ -133,12 +133,12 @@ public class QueryTokenizer {
 					i++;
 					continue;
 				}
-				
+
 				// skip !=, <=, >= token
 				if (i > 0) {
-					 char before = s.charAt(i - 1);
-					 if (before == '!' || before == '<' || before == '>') 
-						 continue;
+					char before = s.charAt(i - 1);
+					if (before == '!' || before == '<' || before == '>')
+						continue;
 				}
 
 				return i;
@@ -315,12 +315,31 @@ public class QueryTokenizer {
 	 * call)
 	 */
 	public static int findKeyword(String haystack, String needle, int offset) {
+		return findKeyword(haystack, needle, offset, false);
+	}
+
+	/**
+	 * @param checkWhitespace
+	 *            the needle should be enclosed by whitespace
+	 */
+	public static int findKeyword(String haystack, String needle, int offset, boolean checkWhitespace) {
 		if (offset >= haystack.length())
 			return -1;
 
 		int p = haystack.indexOf(needle, offset);
 		if (p < 0)
 			return p;
+
+		boolean whitespace = true;
+		if (checkWhitespace) {
+			if (p - 1 < 0 || p + needle.length() >= haystack.length()) {
+				whitespace = false;
+			} else {
+				char c1 = haystack.charAt(p - 1);
+				char c2 = haystack.charAt(p + needle.length());
+				whitespace = Character.isWhitespace(c1) && Character.isWhitespace(c2);
+			}
+		}
 
 		// check outermost condition (not in function call or quoted string)
 		int parens = 0;
@@ -335,10 +354,10 @@ public class QueryTokenizer {
 				quoted = !quoted;
 		}
 
-		if (parens == 0 && !quoted)
+		if (parens == 0 && !quoted && whitespace)
 			return p;
 
-		return findKeyword(haystack, needle, p + 1);
+		return findKeyword(haystack, needle, p + 1, checkWhitespace);
 	}
 
 	public static List<String> parseByComma(String haystack) {
