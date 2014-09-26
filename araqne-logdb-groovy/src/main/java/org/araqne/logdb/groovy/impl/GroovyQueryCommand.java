@@ -37,6 +37,14 @@ public class GroovyQueryCommand extends QueryCommand {
 		return "groovy";
 	}
 
+	/**
+	 * @since 0.1.3
+	 */
+	@Override
+	public void onStart() {
+		script.onStart();
+	}
+
 	@Override
 	public void onPush(Row row) {
 		script.onRow(row);

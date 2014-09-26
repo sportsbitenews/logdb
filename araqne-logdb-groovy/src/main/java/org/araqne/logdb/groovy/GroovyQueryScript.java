@@ -47,6 +47,9 @@ public abstract class GroovyQueryScript {
 				onRow(row);
 		}
 	}
+	
+	public void onStart() {
+	}
 
 	public void onClose(QueryStopReason reason) {
 	}
