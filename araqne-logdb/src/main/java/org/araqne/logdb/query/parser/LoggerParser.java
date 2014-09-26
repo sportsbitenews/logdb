@@ -17,10 +17,13 @@ package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.araqne.log.api.LoggerRegistry;
+import org.araqne.log.api.WildcardMatcher;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
@@ -57,20 +60,29 @@ public class LoggerParser extends AbstractQueryCommandParser {
 		String[] tokens = commandString.substring(r.next).split(",");
 
 		List<String> loggerNames = new ArrayList<String>();
+		Collection<org.araqne.log.api.Logger> loggers = loggerRegistry.getLoggers();
 		for (String s : tokens) {
 			s = s.trim();
 			if (s.isEmpty())
 				continue;
 
-			if (loggerRegistry.getLogger(s) == null)
-				throw new QueryParseException("logger-not-found", -1);
-
-			loggerNames.add(s);
+			for (org.araqne.log.api.Logger logger : loggers) {
+				if (checkLoggerName(s, logger.getFullName()))
+					loggerNames.add(logger.getFullName());
+			}
 		}
 
 		if (loggerNames.isEmpty())
 			throw new QueryParseException("empty-loggers", -1);
 
 		return new Logger(loggerRegistry, window, loggerNames);
+	}
+
+	private boolean checkLoggerName(String namePattern, String loggerName) {
+		Pattern p = WildcardMatcher.buildPattern(namePattern);
+		if (p == null)
+			return namePattern.contains(loggerName);
+
+		return p.matcher(loggerName).find();
 	}
 }
