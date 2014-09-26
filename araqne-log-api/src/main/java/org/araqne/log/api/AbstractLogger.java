@@ -705,6 +705,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		long lastDropCount = 0;
 
 		if (state != null) {
+			this.interval = state.getInterval();
 			this.enabled = state.isEnabled();
 
 			if (state.getStartTime() != null && state.getEndTime() != null)
