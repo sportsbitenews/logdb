@@ -47,7 +47,7 @@ public class ApacheWebLogParserFactory implements LogParserFactory {
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		LoggerConfigOption s = new StringConfigType("log_format", text("Log Format", "로그 포맷", "日志格式"), text("Apache Log Format",
-				"아파리 로그 포맷", "Apache日志格式"), true, text("%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\""));
+				"아파치 웹 로그 포맷", "Apache日志格式"), true, text("%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\""));
 		return Arrays.asList(s);
 	}
 
