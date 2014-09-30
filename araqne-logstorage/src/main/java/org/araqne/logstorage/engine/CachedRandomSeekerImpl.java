@@ -65,7 +65,8 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		this.logDir = logDir;
 	}
 
-	private List<Log> getLogsFromOnlineWriter(String tableName, int tableId, Date day, List<Long> ids, LogParserBuilder builder) {
+	private List<Log> getLogsFromOnlineWriter(
+			String tableName, int tableId, Date day, List<Long> ids, LogParserBuilder builder) {
 		OnlineWriterKey onlineKey = new OnlineWriterKey(tableName, day, tableId);
 		List<Log> buffer = onlineBuffers.get(onlineKey);
 		if (buffer == null) {
@@ -176,6 +177,16 @@ public class CachedRandomSeekerImpl implements CachedRandomSeeker {
 		if (result == null || result.isEmpty())
 			return null;
 		return result.get(0);
+	}
+
+	@Override
+	public List<Log> getLogs(String tableName, Date day, Date from, Date to, long[] ids, LogParserBuilder builder) {
+		// XXX
+		ArrayList<Long> idList = new ArrayList<Long>(ids.length);
+		for (long id: ids) {
+			idList.add(id);
+		}
+		return getLogs(tableName, day, from, to, idList, builder);
 	}
 
 	@Override

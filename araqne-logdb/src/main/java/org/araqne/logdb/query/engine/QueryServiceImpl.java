@@ -62,6 +62,7 @@ import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
+import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.parser.BoxPlotParser;
 import org.araqne.logdb.query.parser.ConfdbParser;
 import org.araqne.logdb.query.parser.DropParser;
@@ -77,8 +78,8 @@ import org.araqne.logdb.query.parser.JsonFileParser;
 import org.araqne.logdb.query.parser.JsonParser;
 import org.araqne.logdb.query.parser.LimitParser;
 import org.araqne.logdb.query.parser.LoadParser;
-import org.araqne.logdb.query.parser.LogCheckParser;
-import org.araqne.logdb.query.parser.LogdbParser;
+import org.araqne.logdb.query.parser.CheckTableParser;
+import org.araqne.logdb.query.parser.SystemCommandParser;
 import org.araqne.logdb.query.parser.LoggerParser;
 import org.araqne.logdb.query.parser.LookupParser;
 import org.araqne.logdb.query.parser.MvParser;
@@ -185,6 +186,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	private List<QueryPlanner> planners;
 
 	private boolean allowQueryPurge = false;
+	private boolean useBom = false;
 
 	public QueryServiceImpl(BundleContext bc) {
 		this.bc = bc;
@@ -197,6 +199,12 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		dir.mkdirs();
 
 		allowQueryPurge = Boolean.parseBoolean(System.getProperty("araqne.logdb.allowpurge"));
+		if (System.getProperty("araqne.logdb.purge") != null) {
+			String s = System.getProperty("araqne.logdb.purge");
+			allowQueryPurge = s.equalsIgnoreCase("enabled") || s.equalsIgnoreCase("true");
+		}
+
+		useBom = Boolean.parseBoolean(System.getProperty("araqne.logdb.utf8bom"));
 
 		prepareQueryParsers();
 	}
@@ -225,12 +233,13 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new TextFileParser(parserFactoryRegistry));
 		parsers.add(new ZipFileParser(parserFactoryRegistry));
 		parsers.add(new JsonFileParser(parserFactoryRegistry));
-		parsers.add(new OutputCsvParser());
+		parsers.add(new OutputCsvParser(useBom));
 		parsers.add(new OutputJsonParser());
 		parsers.add(new OutputTxtParser());
-		parsers.add(new LogdbParser("logdb", metadataService));
-		parsers.add(new LogdbParser("system", metadataService));
-		parsers.add(new LogCheckParser(tableRegistry, storage, fileServiceRegistry));
+		parsers.add(new SystemCommandParser("logdb", metadataService)); // deprecated
+		parsers.add(new SystemCommandParser("system", metadataService));
+		parsers.add(new CheckTableParser("logcheck", tableRegistry, storage, fileServiceRegistry)); // deprecated
+		parsers.add(new CheckTableParser("checktable", tableRegistry, storage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService, resultFactory));
 		parsers.add(new UnionParser(queryParserService));
 		parsers.add(new ImportParser(tableRegistry, storage));
@@ -347,43 +356,10 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
-		setJoinAndUnionDependencies(query.getCommands());
+		QueryHelper.setJoinAndUnionDependencies(query.getCommands());
 
 		new Thread(query, "Query " + id).start();
 		invokeCallbacks(query, QueryStatus.STARTED);
-	}
-
-	private void setJoinAndUnionDependencies(List<QueryCommand> commands) {
-		List<QueryCommand> joinCmds = new ArrayList<QueryCommand>();
-		List<QueryCommand> unionCmds = new ArrayList<QueryCommand>();
-
-		for (QueryCommand cmd : commands) {
-			if (cmd.getName().equals("join"))
-				joinCmds.add(cmd);
-
-			if (cmd.getName().equals("union"))
-				unionCmds.add(cmd);
-		}
-
-		for (QueryCommand cmd : commands) {
-			if (cmd.isDriver() && !cmd.getName().equals("join") && cmd.getMainTask() != null) {
-				for (QueryCommand join : joinCmds)
-					cmd.getMainTask().addDependency(join.getMainTask());
-			}
-
-			if (cmd.isDriver() && !cmd.getName().equals("join") && !cmd.getName().equals("union") && cmd.getMainTask() != null) {
-				for (QueryCommand union : unionCmds)
-					union.getMainTask().addDependency(cmd.getMainTask());
-			}
-		}
-
-		QueryCommand prevUnion = null;
-		for (QueryCommand union : unionCmds) {
-			if (prevUnion != null)
-				union.getMainTask().addDependency(prevUnion.getMainTask());
-
-			prevUnion = union;
-		}
 	}
 
 	@Override
@@ -523,6 +499,10 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	@Override
 	public void onLogout(Session session) {
 		for (Query q : queries.values()) {
+			if (q.getContext() == null || q.getContext().getSession() == null)
+				continue;
+
+			Session s = q.getContext().getSession();
 			if (q.getRunMode() == RunMode.FOREGROUND && q.getContext().getSession().equals(session)) {
 				logger.trace("araqne logdb: removing foreground query [{}:{}] by session [{}] logout", new Object[] { q.getId(),
 						q.getQueryString(), session.getLoginName() });

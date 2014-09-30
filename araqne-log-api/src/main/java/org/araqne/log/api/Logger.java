@@ -62,6 +62,12 @@ public interface Logger {
 	 */
 	long getUpdateCount();
 
+	/**
+	 * @since 3.2.13
+	 * @return logger is started/stopped by user request
+	 */
+	boolean isEnabled();
+
 	boolean isRunning();
 
 	boolean isPending();
@@ -82,9 +88,19 @@ public interface Logger {
 
 	int getInterval();
 
-	void start();
+	/**
+	 * @since 3.4.0
+	 */
+	TimeRange getTimeRange();
 
-	void start(int interval);
+	/**
+	 * @since 3.4.0
+	 */
+	void setTimeRange(TimeRange timeRange);
+
+	void start(LoggerStartReason reason);
+
+	void start(LoggerStartReason reason, int interval);
 
 	void stop(LoggerStopReason reason);
 

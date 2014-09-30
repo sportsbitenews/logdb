@@ -37,6 +37,39 @@ public class QueryHelper {
 	private QueryHelper() {
 	}
 
+	public static void setJoinAndUnionDependencies(List<QueryCommand> commands) {
+		List<QueryCommand> joinCmds = new ArrayList<QueryCommand>();
+		List<QueryCommand> unionCmds = new ArrayList<QueryCommand>();
+
+		for (QueryCommand cmd : commands) {
+			if (cmd.getName().equals("join"))
+				joinCmds.add(cmd);
+
+			if (cmd.getName().equals("union"))
+				unionCmds.add(cmd);
+		}
+
+		for (QueryCommand cmd : commands) {
+			if (cmd.isDriver() && !cmd.getName().equals("join") && cmd.getMainTask() != null) {
+				for (QueryCommand join : joinCmds)
+					cmd.getMainTask().addDependency(join.getMainTask());
+			}
+
+			if (cmd.isDriver() && !cmd.getName().equals("join") && !cmd.getName().equals("union") && cmd.getMainTask() != null) {
+				for (QueryCommand union : unionCmds)
+					union.getMainTask().addDependency(cmd.getMainTask());
+			}
+		}
+
+		QueryCommand prevUnion = null;
+		for (QueryCommand union : unionCmds) {
+			if (prevUnion != null)
+				union.getMainTask().addDependency(prevUnion.getMainTask());
+
+			prevUnion = union;
+		}
+	}
+
 	public static List<Object> getQueries(Session session, QueryService service) {
 		List<Object> result = new ArrayList<Object>();
 		for (Query lq : service.getQueries(session)) {
@@ -89,7 +122,8 @@ public class QueryHelper {
 		// @since 2.2.17
 		if (q.getCause() != null) {
 			m.put("error_code", GENERAL_QUERY_FAILURE_CODE);
-			m.put("error_detail", q.getCause().getMessage() != null ? q.getCause().getMessage() : q.getCause().getClass().getName());
+			m.put("error_detail", q.getCause().getMessage() != null ? q.getCause().getMessage() : q.getCause().getClass()
+					.getName());
 		}
 
 		return m;

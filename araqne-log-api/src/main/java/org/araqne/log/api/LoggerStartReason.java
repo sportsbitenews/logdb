@@ -1,5 +1,5 @@
-/*
- * Copyright 2010 NCHOVY
+/**
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +15,6 @@
  */
 package org.araqne.log.api;
 
-import java.util.Map;
-
-public interface LoggerEventListener {
-	void onStart(Logger logger);
-
-	void onStop(Logger logger, LoggerStopReason reason);
-
-	/**
-	 * @Since 3.4.0
-	 */
-	void onSetTimeRange(Logger logger);
-
-	void onUpdated(Logger logger, Map<String, String> config);
+public enum LoggerStartReason {
+	USER_REQUEST, SYSTEM_REQUEST, DEPENDENCY_RESOLVED
 }

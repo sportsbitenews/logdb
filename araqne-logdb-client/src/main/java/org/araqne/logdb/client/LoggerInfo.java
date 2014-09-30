@@ -34,6 +34,8 @@ public class LoggerInfo {
 	private String description;
 	private boolean passive;
 	private int interval;
+	private String startTime;
+	private String endTime;
 	private String status;
 	private Date lastStartAt;
 	private Date lastRunAt;
@@ -205,6 +207,44 @@ public class LoggerInfo {
 	 */
 	public void setInterval(int interval) {
 		this.interval = interval;
+	}
+
+	/**
+	 * 수집 시작 시각을 반환합니다. 액티브 로거인 경우에만 설정이 유효합니다.
+	 * 
+	 * @return HHmm 포맷의 수집 시작 시각
+	 */
+	public String getStartTime() {
+		return startTime;
+	}
+
+	/**
+	 * 수집 시작 시각을 설정합니다. 액티브 로거의 경우에만 설정이 유효합니다.
+	 * 
+	 * @param startTime
+	 *            수집 시작 시각 (HHmm 포맷)
+	 */
+	public void setStartTime(String startTime) {
+		this.startTime = startTime;
+	}
+
+	/**
+	 * 수집 종료 시각을 반환합니다. 액티브 로거인 경우에만 설정이 유효합니다.
+	 * 
+	 * @return HHmm 포맷의 수집 시작 시각
+	 */
+	public String getEndTime() {
+		return endTime;
+	}
+
+	/**
+	 * 수집 종료 시각을 설정합니다. 액티브 로거의 경우에만 설정이 유효합니다.
+	 * 
+	 * @param endTime
+	 *            수집 시작 시각 (HHmm 포맷)
+	 */
+	public void setEndTime(String endTime) {
+		this.endTime = endTime;
 	}
 
 	/**

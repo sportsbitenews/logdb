@@ -29,6 +29,15 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.OutputCsv;
 
 public class OutputCsvParser extends AbstractQueryCommandParser {
+	private boolean defaultUseBom;
+
+	public OutputCsvParser() {
+		this(false);
+	}
+
+	public OutputCsvParser(boolean useBom) {
+		this.defaultUseBom = useBom;
+	}
 
 	@Override
 	public String getCommandName() {
@@ -43,13 +52,20 @@ public class OutputCsvParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("30200", commandString.trim().length() -1, commandString.trim().length() -1 , null);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("overwrite", "encoding", "bom", "tab", "tmp", "partition"), getFunctionRegistry());
+				Arrays.asList("overwrite", "encoding", "bom", "tab", "tmp", "partition", "emptyfile"), getFunctionRegistry());
 
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
-		boolean useBom = CommandOptions.parseBoolean(options.get("bom"));
+
+		boolean useBom = false;
+		if (options.get("bom") == null)
+			useBom = this.defaultUseBom;
+		else
+			useBom = CommandOptions.parseBoolean(options.get("bom"));
+
 		boolean useTab = CommandOptions.parseBoolean(options.get("tab"));
 		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
+		boolean emptyfile = CommandOptions.parseBoolean(options.get("emptyfile"));
 
 		String encoding = options.get("encoding");
 		if (encoding == null)
@@ -78,14 +94,6 @@ public class OutputCsvParser extends AbstractQueryCommandParser {
 	//		throw new QueryParseException("missing-field", commandString.length());
 			throw new QueryParseException("30202", getCommandName().length() + 1 , commandString.length() - 1, null) ;
 
-//		File csvFile = new File(csvPath);
-//		if (csvFile.exists() && !overwrite)
-//			throw new IllegalStateException("csv file exists: " + csvFile.getAbsolutePath());
-//
-//		if (!usePartition && csvFile.getParentFile() != null)
-//			csvFile.getParentFile().mkdirs();
-//		return new OutputCsv(csvPath, csvFile, tmpPath, overwrite, fields, encoding, useBom, useTab, usePartition,
-//				holders);
-		return new OutputCsv(csvPath,  tmpPath, overwrite, fields, encoding, useBom, useTab, usePartition,	holders);
+		return new OutputCsv(csvPath,  tmpPath, overwrite, fields, encoding, useBom, useTab, usePartition,emptyfile, holders);
 	}
 }

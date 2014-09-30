@@ -104,8 +104,8 @@ public class LogMetadataProvider implements MetadataProvider {
 			is = new FileInputStream(f);
 			MultilineLogExtractor extractor = new MultilineLogExtractor(null, pipe);
 			extractor.setBeginMatcher(Pattern.compile("^\\[\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3}\\]").matcher(""));
-			extractor.setDateMatcher(Pattern.compile("\\[(.\\*),").matcher(""));
-			extractor.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
+			extractor.setDateMatcher(Pattern.compile("\\[(.*)\\]").matcher(""));
+			extractor.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS"));
 			extractor.setCharset(Charset.defaultCharset().name());
 			extractor.extract(is, new AtomicLong());
 		} catch (IOException e) {

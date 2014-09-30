@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
@@ -80,6 +81,7 @@ import org.araqne.logstorage.TableEventListener;
 import org.araqne.logstorage.TableNotFoundException;
 import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
+import org.araqne.logstorage.WriterPreparationException;
 import org.araqne.logstorage.file.DatapathUtil;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV2;
@@ -118,6 +120,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 	// online writers
 	private ConcurrentMap<OnlineWriterKey, OnlineWriter> onlineWriters;
+	private ConcurrentMap<OnlineWriterKey, OnlineWriter> preparingWriters;
 	private ConcurrentMap<OnlineWriterKey, AtomicLong> lastIds;
 
 	private CopyOnWriteArraySet<LogCallback> callbacks;
@@ -313,7 +316,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		if (c != null)
 			c.remove();
 
-		Lock tLock = tableRegistry.getExclusiveTableLock(tableName, "LogStorageEngine.dropTable");
+		Lock tLock = tableRegistry.getExclusiveTableLock(tableName, "engine", "dropTable");
 		try {
 			tLock.lock();
 			// drop table metadata
@@ -437,7 +440,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		// write data
 		String tableName = log.getTableName();
 
-		for (int i = 0; i < 2; i++) {
+		int tryCnt = 0;
+		int tryCntLimit = 2;
+		for (; tryCnt < tryCntLimit; tryCnt++) {
 			Lock lock = null;
 			try {
 				lock = tableRegistry.getSharedTableLock(tableName);
@@ -449,6 +454,10 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				} else {
 					return false;
 				}
+			} catch (WriterPreparationException ex) {
+				continue;
+			} catch (TimeoutException ex) {
+				throw new IllegalStateException(ex);
 			} catch (IOException e) {
 				if (e.getMessage().contains("closed")) {
 					logger.info("closed online writer: trying one more time");
@@ -461,6 +470,11 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 					lock.unlock();
 				}
 			}
+		}
+
+		if (tryCnt == tryCntLimit) {
+			throw new IllegalStateException("cannot write [1] logs to table [" + tableName
+					+ "]: retry count exceeded");
 		}
 
 		if (log.getId() == 0)
@@ -518,11 +532,22 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				String tableName = writerKey.getTableName();
 				List<Log> l = e.getValue();
 
-				for (int i = 0; i < 2; i++) {
+				int tryCnt = 0;
+				int tryCntLimit = 2;
+				for (; tryCnt < tryCntLimit; tryCnt++) {
 					try {
 						OnlineWriter writer = loadOnlineWriter(writerKey.getTableName(), writerKey.getDay());
 						writer.write(l);
 						break;
+					} catch (WriterPreparationException ex) {
+						logger.debug("WriterPreparationException", ex);
+						// retry
+					} catch (TimeoutException ex) {
+						throw new IllegalStateException("cannot write [" + l.size() + "] logs to table [" + tableName
+								+ "]", ex);
+					} catch (InterruptedException ex) {
+						throw new IllegalStateException("cannot write [" + l.size() + "] logs to table [" + tableName
+								+ "]", ex);
 					} catch (IOException ex) {
 						if (ex.getMessage().contains("closed")) {
 							logger.info("araqne logstorage: closed online writer, trying one more time");
@@ -530,8 +555,14 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 						}
 
 						throw new IllegalStateException("cannot write [" + l.size() + "] logs to table [" + tableName
-								+ "]");
+								+ "]", ex);
 					}
+				}
+
+				if (tryCnt == tryCntLimit) {
+					logger.info("tryCnt == tryCntLimit");
+					throw new IllegalStateException("cannot write [" + l.size() + "] logs to table [" + tableName
+							+ "]: retry count exceeded");
 				}
 
 				// invoke log callbacks
@@ -543,6 +574,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 					}
 				}
 			}
+		} catch (RuntimeException e) {
+			logger.error("unexpected exception", e);
+			throw e;
 		} finally {
 			for (Lock l : locks.values()) {
 				l.unlock();
@@ -763,7 +797,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		return new LogCursorImpl(tableName, day, buffer, reader, ascending);
 	}
 
-	private OnlineWriter loadOnlineWriter(String tableName, Date date) {
+	private OnlineWriter loadOnlineWriter(String tableName, Date date)
+			throws TimeoutException, InterruptedException, WriterPreparationException {
 		// check table existence
 		Integer tableId = tableNameCache.get(tableName);
 		if (tableId == null)
@@ -773,53 +808,63 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		OnlineWriterKey key = new OnlineWriterKey(tableName, day, tableId);
 
 		OnlineWriter online = onlineWriters.get(key);
-		if (online != null && online.isOpen())
-			return online;
+		if (online != null && !online.isClosed()) {
+			if (online.isReady()) {
+				return online;
+			} else {
+				online.awaitWriterPreparation();
+				return online;
+			}
+		}
 
 		try {
 			OnlineWriter oldWriter = onlineWriters.get(key);
 
-			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
-			String logFileType = schema.getPrimaryStorage().getType();
-
+			// @formatter:off
+			/*
+			 * statuses of OnlineWriter
+			 * 
+			 * 		writer	closing	writer.closed
+			 * 1)	null	false	false
+			 * 2)	!null	false	false
+			 * 3)	!null	true	false
+			 * 4)	!null	true	true
+			 */
+			// @formatter:on
 			if (oldWriter != null) {
-				synchronized (oldWriter) {
-					if (!oldWriter.isOpen() && !oldWriter.isClosed()) { // closing
-						while (!oldWriter.isClosed()) {
-							try {
-								oldWriter.wait(1000);
-							} catch (InterruptedException e) {
-							}
+				if (oldWriter.isCloseCompleted()) {
+					while (onlineWriters.get(key) == oldWriter)
+						Thread.yield();
+					return loadNewOnlineWriter(key, getLogFileType(tableName));
+				} else if (oldWriter.isClosed()) {
+					synchronized (oldWriter) {
+						while (!oldWriter.isCloseCompleted()) {
+							oldWriter.wait(1000);
 						}
-						while (onlineWriters.get(key) == oldWriter) {
+						while (onlineWriters.get(key) == oldWriter)
 							Thread.yield();
-						}
-						online = loadNewOnlineWriter(key, logFileType);
-					} else if (oldWriter.isClosed()) {
-						while (onlineWriters.get(key) == oldWriter) {
-							Thread.yield();
-						}
-						online = loadNewOnlineWriter(key, logFileType);
-					} else {
-						online = oldWriter;
+						return loadNewOnlineWriter(key, getLogFileType(tableName));
 					}
+				} else {
+					return loadNewOnlineWriter(key, getLogFileType(tableName));
 				}
 			} else {
-				online = loadNewOnlineWriter(key, logFileType);
+				return loadNewOnlineWriter(key, getLogFileType(tableName));
 			}
 		} catch (UnsupportedLogFileTypeException e) {
 			throw new IllegalStateException("cannot open writer: " + tableName + ", date=" + day, e);
 		} catch (IOException e) {
 			throw new IllegalStateException("cannot open writer: " + tableName + ", date=" + day, e);
-		} catch (InterruptedException e) {
-			throw new IllegalStateException("cannot open writer: " + tableName + ", date=" + day, e);
 		}
+	}
 
-		return online;
+	private String getLogFileType(String tableName) {
+		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+		return schema.getPrimaryStorage().getType();
 	}
 
 	private OnlineWriter loadNewOnlineWriter(OnlineWriterKey key, String logFileType)
-			throws IOException, InterruptedException {
+			throws IOException, InterruptedException, TimeoutException, WriterPreparationException {
 		OnlineWriter newWriter = newOnlineWriter(key.getTableName(), key.getDay(), logFileType);
 		OnlineWriter consensus = onlineWriters.putIfAbsent(key, newWriter);
 		if (consensus == null) {
@@ -838,10 +883,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			}
 		} else {
 			try {
-				if (!consensus.awaitWriterPreparation())
-					throw new IllegalStateException("awaiting for log writer preparation timeout - " + key);
+				consensus.awaitWriterPreparation();
 
-				if (!consensus.isOpen())
+				if (!consensus.isReady())
 					throw new IllegalStateException("log writer preparation failed - " + key);
 				else {
 					return consensus;
@@ -993,6 +1037,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			try {
 				isStopped = false;
 
+				int runCount = 0;
 				while (true) {
 					try {
 						if (doStop)
@@ -1001,6 +1046,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 						synchronized (this) {
 							this.wait(checkInterval);
 						}
+						runCount += 1;
 						sweep();
 					} catch (InterruptedException e) {
 						logger.trace("araqne logstorage: sweeper interrupted");
@@ -1025,14 +1071,15 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				this.flushAll = false;
 				for (OnlineWriterKey key : onlineWriters.keySet()) {
 					OnlineWriter writer = onlineWriters.get(key);
-					if (writer == null || !writer.isOpen())
+					if (writer == null || writer.isClosed())
 						continue;
 					boolean doFlush =
 							writer.isCloseReserved() || ((now - writer.getLastFlush().getTime()) > flushInterval);
 					doFlush = flushAll ? true : doFlush;
 					if (doFlush) {
 						try {
-							logger.trace("araqne logstorage: flushing writer [{}]", key);
+							if (logger.isTraceEnabled())
+								logger.trace("araqne logstorage: flushing writer [{}]", key);
 							writer.flush();
 						} catch (IOException e) {
 							logger.error("araqne logstorage: log flush failed", e);
@@ -1055,7 +1102,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				OnlineWriter evictee = onlineWriters.get(key);
 				if (evictee != null) {
 					evictee.close();
-					logger.trace("araqne logstorage: evict logger [{}]", key);
+					if (logger.isTraceEnabled())
+						logger.trace("araqne logstorage: evict logger [{}]", key);
 					onlineWriters.remove(key);
 				}
 			}
@@ -1348,11 +1396,11 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	}
 
 	@Override
-	public boolean lock(LockKey storageLockKey, long timeout, TimeUnit unit) throws InterruptedException {
-		Lock lock = tableRegistry.getExclusiveTableLock(storageLockKey.tableName, storageLockKey.owner);
+	public boolean lock(LockKey key, String purpose, long timeout, TimeUnit unit) throws InterruptedException {
+		Lock lock = tableRegistry.getExclusiveTableLock(key.tableName, key.owner, purpose);
 
 		if (lock.tryLock(timeout, unit)) {
-			flush(storageLockKey.tableName);
+			flush(key.tableName);
 			return true;
 		} else {
 			return false;
@@ -1360,8 +1408,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	}
 
 	@Override
-	public void unlock(LockKey storageLockKey) {
-		Lock lock = tableRegistry.getExclusiveTableLock(storageLockKey.tableName, storageLockKey.owner);
+	public void unlock(LockKey storageLockKey, String purpose) {
+		Lock lock = tableRegistry.getExclusiveTableLock(storageLockKey.tableName, storageLockKey.owner, purpose);
 
 		lock.unlock();
 	}

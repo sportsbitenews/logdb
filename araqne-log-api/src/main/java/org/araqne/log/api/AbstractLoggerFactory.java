@@ -97,14 +97,14 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		// unload from registry
 		LoggerRegistry loggerRegistry = getLoggerRegistry();
 		for (Logger logger : loggers.values()) {
-			// prevent stop state saving
-			logger.removeEventListener(sync);
-
 			// stop and unregister
 			if (logger.isRunning())
 				logger.stop(LoggerStopReason.FACTORY_DEPENDENCY, 5000);
 			if (loggerRegistry != null)
 				loggerRegistry.removeLogger(logger);
+
+			// remove sync
+			logger.removeEventListener(sync);
 		}
 
 		loggers.clear();
@@ -138,8 +138,8 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 				newLogger.setPending(true);
 
 			slog.info("araqne log api: logger [{}] is loaded", config.getFullname());
-			if (!config.isManualStart() && state.isRunning() && !newLogger.isPending()) {
-				newLogger.start(state.getInterval());
+			if (!config.isManualStart() && state.isEnabled() && !newLogger.isPending()) {
+				newLogger.start(LoggerStartReason.SYSTEM_REQUEST, state.getInterval());
 				slog.info("araqne log api: logger [{}] started with interval {}ms", config.getFullname(), state.getInterval());
 			}
 		} catch (Exception e) {
@@ -154,6 +154,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		LastState state = new LastState();
 		state.setLoggerName(config.getFullname());
 		state.setInterval(config.getInterval());
+		state.setEnabled(config.isRunning());
 		state.setRunning(config.isRunning());
 		state.setPending(config.isPending());
 		state.setLogCount(config.getCount());
@@ -237,8 +238,18 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			LogTransformer transformer = null;
 			if (transformerName != null) {
 				if (transformerRegistry.getProfile(transformerName) != null) {
-					transformer = transformerRegistry.newTransformer(transformerName);
-					logger.setTransformer(transformer);
+					try {
+						transformer = transformerRegistry.newTransformer(transformerName);
+						logger.setTransformer(transformer);
+					} catch (LogTransformerNotReadyException e) {
+						slog.debug(
+								"araqne log api: cannot load transformer [" + transformerName + "] for logger ["
+										+ logger.getFullName() + "]", e.getCause());
+					} catch (Throwable t) {
+						slog.warn(
+								"araqne log api: cannot load transformer [" + transformerName + "] for logger ["
+										+ logger.getFullName() + "]", t);
+					}
 				}
 			}
 		}
@@ -350,29 +361,25 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 	private class DbSync implements LoggerEventListener {
 		@Override
 		public void onStart(Logger logger) {
-			logger.setStates(logger.getStates());
+			LastState s = buildState(logger);
+			LastStateService lss = getLastStateService();
+			lss.setState(s);
 		}
 
 		@Override
 		public void onStop(Logger logger, LoggerStopReason reason) {
-			LastState s = new LastState();
-			s.setLoggerName(logger.getFullName());
-			s.setLogCount(logger.getLogCount());
-			s.setDropCount(logger.getDropCount());
-			s.setLastLogDate(logger.getLastLogDate());
-			s.setPending(logger.isPending());
-			s.setProperties(logger.getStates());
+			LastState s = buildState(logger);
 
-			// do not save status caused by bundle stopping
-			LoggerRegistry loggerRegistry = getLoggerRegistry();
-			if (loggerRegistry != null && loggerRegistry.isOpen() && reason != LoggerStopReason.FACTORY_DEPENDENCY
-					&& reason != LoggerStopReason.TRANSFORMER_DEPENDENCY) {
-				slog.trace("araqne log api: [{}] stopped state saved", logger.getFullName());
-				s.setRunning(false);
-			} else {
-				s.setRunning(logger.isRunning());
-			}
+			// isRunning() returns true while stopping
+			s.setRunning(false);
 
+			LastStateService lss = getLastStateService();
+			lss.setState(s);
+		}
+
+		@Override
+		public void onSetTimeRange(Logger logger) {
+			LastState s = buildState(logger);
 			LastStateService lss = getLastStateService();
 			lss.setState(s);
 		}
@@ -380,6 +387,26 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		@Override
 		public void onUpdated(Logger logger, Map<String, String> config) {
 			saveLoggerConfig(logger, config);
+		}
+
+		private LastState buildState(Logger logger) {
+			LastState s = new LastState();
+			s.setLoggerName(logger.getFullName());
+			s.setInterval(logger.getInterval());
+
+			if (logger.getTimeRange() != null) {
+				s.setStartTime(logger.getTimeRange().getStartTime());
+				s.setEndTime(logger.getTimeRange().getEndTime());
+			}
+
+			s.setLogCount(logger.getLogCount());
+			s.setDropCount(logger.getDropCount());
+			s.setLastLogDate(logger.getLastLogDate());
+			s.setPending(logger.isPending());
+			s.setProperties(logger.getStates());
+			s.setEnabled(logger.isEnabled());
+			s.setRunning(logger.isRunning());
+			return s;
 		}
 	}
 

@@ -4,13 +4,13 @@ import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.query.command.Logdb;
+import org.araqne.logdb.query.command.SystemCommand;
 
-public class LogdbParser extends AbstractQueryCommandParser {
+public class SystemCommandParser extends AbstractQueryCommandParser {
 	private String commandName;
 	private MetadataService metadataService;
 
-	public LogdbParser(String commandName, MetadataService metadataService) {
+	public SystemCommandParser(String commandName, MetadataService metadataService) {
 		this.commandName = commandName;
 		this.metadataService = metadataService;
 	}
@@ -33,6 +33,6 @@ public class LogdbParser extends AbstractQueryCommandParser {
 
 		metadataService.verify(context, type, queryString);
 
-		return new Logdb(context, type, queryString, metadataService);
+		return new SystemCommand(commandName, context, type, queryString, metadataService);
 	}
 }

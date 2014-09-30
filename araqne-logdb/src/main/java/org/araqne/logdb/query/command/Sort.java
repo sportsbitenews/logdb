@@ -73,8 +73,12 @@ public class Sort extends QueryCommand {
 		try {
 			if (top != null)
 				top.add(new Item(m.map(), null));
-			else
-				sorter.add(new Item(m.map(), null));
+			else if (sorter != null) {
+				// onClose() thread can interfere
+				synchronized (sorter) {
+					sorter.add(new Item(m.map(), null));
+				}
+			}
 		} catch (IOException e) {
 			throw new IllegalStateException("sort failed, query " + query, e);
 		}
@@ -90,15 +94,18 @@ public class Sort extends QueryCommand {
 
 					if (top != null)
 						top.add(new Item(row.map(), null));
-					else
+					else if (sorter != null)
 						sorter.add(new Item(row.map(), null));
 				}
 			} else {
 				for (Row row : rowBatch.rows) {
 					if (top != null)
 						top.add(new Item(row.map(), null));
-					else
-						sorter.add(new Item(row.map(), null));
+					else if (sorter != null) {
+						synchronized (sorter) {
+							sorter.add(new Item(row.map(), null));
+						}
+					}
 				}
 			}
 		} catch (IOException e) {
@@ -126,13 +133,22 @@ public class Sort extends QueryCommand {
 			// support sorter cache GC when query processing is ended
 			top = null;
 
-		} else {
+		} else if (sorter != null) {
 			// TODO: use LONG instead!
 			int count = limit != null ? limit : Integer.MAX_VALUE;
 
 			CloseableIterator it = null;
 			try {
-				it = sorter.sort();
+				if (reason != QueryStopReason.End && reason != QueryStopReason.PartialFetch) {
+					synchronized (sorter) {
+						sorter.cancel();
+					}
+					return;
+				}
+
+				synchronized (sorter) {
+					it = sorter.sort();
+				}
 
 				while (it.hasNext()) {
 					Object o = it.next();

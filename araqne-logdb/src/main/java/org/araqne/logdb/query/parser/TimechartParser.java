@@ -31,7 +31,7 @@ import org.araqne.logdb.query.command.Timechart;
 
 public class TimechartParser extends AbstractQueryCommandParser {
 	private static final String COMMAND = "timechart";
-	private static final String BY = " by ";
+	private static final String BY = "by";
 
 	@Override
 	public String getCommandName() {
@@ -53,7 +53,7 @@ public class TimechartParser extends AbstractQueryCommandParser {
 		List<String> clauses = new ArrayList<String>();
 
 		// parse clauses
-		int byPos = QueryTokenizer.findKeyword(argsPart, BY, 0);
+		int byPos = QueryTokenizer.findKeyword(argsPart, BY, 0, true);
 		if (byPos > 0) {
 			aggsPart = argsPart.substring(0, byPos);
 			String clausePart = argsPart.substring(byPos + BY.length());
@@ -83,7 +83,7 @@ public class TimechartParser extends AbstractQueryCommandParser {
 
 		String clause = null;
 		if (!clauses.isEmpty())
-			clause = clauses.get(0);
+			clause = clauses.get(0).trim();
 
 		return new Timechart(fields, clause, timeSpan);
 	}

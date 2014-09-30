@@ -250,6 +250,7 @@ public class Table extends DriverQueryCommand {
 	}
 
 	private static class ResultSink extends LogTraverseCallback.Sink {
+		private final Logger sinkLog = LoggerFactory.getLogger(ResultSink.class);
 		private final Table self;
 
 		public ResultSink(Table self, long offset, long limit, boolean ordered) {
@@ -259,6 +260,10 @@ public class Table extends DriverQueryCommand {
 
 		@Override
 		protected void processLogs(List<Log> logs) {
+			if (sinkLog.isDebugEnabled()) {
+				sinkLog.debug("araqne logdb: table {} push [{}] rows", self.getTableSpecs(), logs.size());
+			}
+
 			RowBatch batch = new RowBatch();
 			batch.size = logs.size();
 			batch.rows = new Row[batch.size];
@@ -286,7 +291,8 @@ public class Table extends DriverQueryCommand {
 		@Override
 		public boolean isInterrupted() {
 			if (task.getStatus() == QueryTask.TaskStatus.CANCELED) {
-				logger.debug("araqne logdb: table scan task canceled, [{}]", Table.this.toString());
+				if (logger.isDebugEnabled())
+					logger.debug("araqne logdb: table scan task canceled, [{}]", Table.this.toString());
 				return true;
 			}
 

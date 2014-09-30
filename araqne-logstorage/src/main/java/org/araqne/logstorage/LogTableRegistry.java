@@ -39,9 +39,18 @@ public interface LogTableRegistry {
 
 	void removeListener(TableEventListener listener);
 
-	Lock getExclusiveTableLock(String tableName, String owner);
+	Lock getExclusiveTableLock(String tableName, String owner, String purpose);
 
 	Lock getSharedTableLock(String tableName);
 
 	LockStatus getTableLockStatus(String tableName);
+	
+	/**
+	 * @since 2.8.13
+	 */
+	TableSchema getTableSchema(int tableId);
+
+	TableSchema getTableSchema(int tableId, boolean required);
+	
+	String getTableName(int tableId);
 }

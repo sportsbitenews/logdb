@@ -34,9 +34,13 @@ public class LogFileRepairerRegistryImpl implements LogFileRepairerRegistry {
 	private ConcurrentHashMap<String, WaitEvent> availableRepairers = new ConcurrentHashMap<String, WaitEvent>();
 
 	private ConcurrentMap<String, LogFileRepairerService> repairers = new ConcurrentHashMap<String, LogFileRepairerService>();
-	
+
 	public LogFileRepairerRegistryImpl(BundleContext bc) {
 		this.bc = bc;
+
+		String opt = System.getProperty("araqne.logstorage.repair");
+		if (opt != null && (opt.equalsIgnoreCase("disabled") || !Boolean.parseBoolean(opt)))
+			bc.registerService(IntegrityChecker.class.getName(), new DummyIntegrityChecker(), null);
 	}
 
 	@Override
@@ -220,5 +224,6 @@ public class LogFileRepairerRegistryImpl implements LogFileRepairerRegistry {
 		}
 	}
 
-
+	private class DummyIntegrityChecker implements IntegrityChecker {
+	}
 }

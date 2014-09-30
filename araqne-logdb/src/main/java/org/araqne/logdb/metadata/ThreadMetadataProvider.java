@@ -64,7 +64,8 @@ public class ThreadMetadataProvider implements MetadataProvider {
 		ParseResult r = QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("prettystack"), functionRegistry);
 		Map<String, Object> options = (Map<String, Object>) r.value;
 
-		boolean prettyStack = false;
+		// enable by default
+		boolean prettyStack = true;
 		if (options.get("prettystack") != null) {
 			prettyStack = CommandOptions.parseBoolean(options.get("prettystack").toString());
 		}

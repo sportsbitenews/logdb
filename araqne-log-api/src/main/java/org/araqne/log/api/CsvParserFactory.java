@@ -78,8 +78,11 @@ public class CsvParserFactory extends AbstractLogParserFactory {
 
 		String[] columnHeaders = null;
 		String h = configs.get("column_headers");
-		if (h != null)
+		if (h != null) {
 			columnHeaders = h.split(",");
+			for (int i = 0; i < columnHeaders.length; i++) 
+				columnHeaders[i] = columnHeaders[i].trim();
+		}
 
 		boolean includeTargetField = false;
 		if (configs.containsKey("include_target")) {

@@ -29,8 +29,10 @@ import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerEventListener;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStatus;
 import org.araqne.log.api.LoggerStopReason;
+import org.araqne.log.api.TimeRange;
 
 public abstract class JythonActiveLogger implements Logger, Runnable {
 	private final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JythonActiveLogger.class.getName());
@@ -48,6 +50,8 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	private volatile LoggerStatus status = LoggerStatus.Stopped;
 	private volatile boolean doStop = false;
 	private volatile boolean stopped = true;
+	private volatile boolean enabled;
+	private TimeRange timeRange;
 	private volatile boolean pending;
 	private volatile boolean manualStart;
 	private volatile Date lastStartDate;
@@ -67,6 +71,15 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		this.factory = factory;
 		this.spec = spec;
 		this.config = spec.getConfig();
+
+		LastState state = getFactory().getLastStateService().getState(getFullName());
+		if (state != null) {
+			enabled = state.isEnabled();
+
+			if (state.getStartTime() != null && state.getEndTime() != null) {
+				timeRange = new TimeRange(state.getStartTime(), state.getEndTime());
+			}
+		}
 	}
 
 	@Override
@@ -164,6 +177,16 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	}
 
 	@Override
+	public TimeRange getTimeRange() {
+		return timeRange;
+	}
+
+	@Override
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	@Override
 	public boolean isRunning() {
 		return !stopped;
 	}
@@ -179,22 +202,25 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	}
 
 	@Override
-	public void start() {
+	public void start(LoggerStartReason reason) {
 		throw new UnsupportedOperationException("this is active logger, start with interval");
 	}
 
 	@Override
-	public void start(int interval) {
+	public void start(LoggerStartReason reason, int interval) {
 		if (!stopped)
 			throw new IllegalStateException("logger is already running");
+
+		if (reason == LoggerStartReason.USER_REQUEST)
+			enabled = true;
 
 		status = LoggerStatus.Starting;
 		this.interval = interval;
 
+		invokeStartCallback();
+
 		t = new Thread(this, "Logger [" + getFullName() + "]");
 		t.start();
-
-		invokeStartCallback();
 	}
 
 	@Override
@@ -204,6 +230,14 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 
 	@Override
 	public void stop(LoggerStopReason reason, int maxWaitTime) {
+		status = LoggerStatus.Stopping;
+		doStop = true;
+
+		if (reason == LoggerStopReason.USER_REQUEST)
+			enabled = false;
+
+		invokeStopCallback(reason);
+
 		if (t != null) {
 			if (!t.isAlive()) {
 				t = null;
@@ -213,9 +247,6 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 			t = null;
 		}
 
-		status = LoggerStatus.Stopping;
-
-		doStop = true;
 		long begin = new Date().getTime();
 		try {
 			while (true) {
@@ -229,8 +260,6 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 			}
 		} catch (InterruptedException e) {
 		}
-
-		invokeStopCallback(reason);
 	}
 
 	@Override
@@ -309,7 +338,22 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		lastStartDate = new Date();
 		status = LoggerStatus.Running;
 
-		setStates(getStates());
+		LastState s = new LastState();
+		s.setLoggerName(getFullName());
+		s.setInterval(interval);
+		if (timeRange != null) {
+			s.setStartTime(timeRange.getStartTime());
+			s.setEndTime(timeRange.getEndTime());
+		}
+		s.setLogCount(getLogCount());
+		s.setDropCount(getDropCount());
+		s.setLastLogDate(getLastLogDate());
+		s.setPending(isPending());
+		s.setProperties(getStates());
+		s.setEnabled(isEnabled());
+		s.setRunning(isRunning());
+
+		getFactory().getLastStateService().setState(s);
 
 		for (LoggerEventListener callback : listeners) {
 			try {
@@ -323,11 +367,17 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	private void invokeStopCallback(LoggerStopReason reason) {
 		LastState s = new LastState();
 		s.setLoggerName(getFullName());
+		s.setInterval(interval);
+		if (timeRange != null) {
+			s.setStartTime(timeRange.getStartTime());
+			s.setEndTime(timeRange.getEndTime());
+		}
 		s.setLogCount(getLogCount());
 		s.setDropCount(getDropCount());
 		s.setLastLogDate(getLastLogDate());
 		s.setPending(isPending());
 		s.setProperties(getStates());
+		s.setEnabled(false);
 		s.setRunning(isRunning());
 
 		getFactory().getLastStateService().setState(s);

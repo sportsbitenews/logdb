@@ -13,13 +13,13 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
-import org.araqne.logdb.query.command.LogCheck;
+import org.araqne.logdb.query.command.CheckTable;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.araqne.logstorage.LogTableRegistry;
 import org.junit.Before;
 import org.junit.Test;
 
-public class LogCheckParserTest {
+public class CheckTableParserTest {
 	private QueryParserService queryParserService;
 
 	@Before
@@ -31,35 +31,35 @@ public class LogCheckParserTest {
 	
 	@Test
 	public void checkAll() {
-		String query = "logcheck";
+		String query = "checktable";
 
-		LogCheck c = parse(query);
+		CheckTable c = parse(query);
 		assertEquals(3, c.getTableNames().size());
 		assertTrue(c.getTableNames().contains("secure_log"));
 		assertTrue(c.getTableNames().contains("secure_event"));
 		assertTrue(c.getTableNames().contains("text_log"));
 		assertNull(c.getFrom());
 		assertNull(c.getTo());
-		assertEquals("logcheck", c.toString());
+		assertEquals("checktable", c.toString());
 	}
 
 	@Test
 	public void checkAll2() {
-		LogCheck c = parse("logcheck *");
+		CheckTable c = parse("checktable *");
 		assertEquals(3, c.getTableNames().size());
 		assertTrue(c.getTableNames().contains("secure_log"));
 		assertTrue(c.getTableNames().contains("secure_event"));
 		assertTrue(c.getTableNames().contains("text_log"));
 		assertNull(c.getFrom());
 		assertNull(c.getTo());
-		assertEquals("logcheck *", c.toString());
+		assertEquals("checktable *", c.toString());
 	}
 
 	@Test
 	public void checkSomeTables() {
-		String query = "logcheck text_log, secure_log";
+		String query = "checktable text_log, secure_log";
 
-		LogCheck c = parse(query);
+		CheckTable c = parse(query);
 		assertEquals(2, c.getTableNames().size());
 		assertTrue(c.getTableNames().contains("secure_log"));
 		assertTrue(c.getTableNames().contains("text_log"));
@@ -71,8 +71,8 @@ public class LogCheckParserTest {
 
 	@Test
 	public void checkWildMatch() {
-		String query = "logcheck secure_*";
-		LogCheck c = parse(query);
+		String query = "checktable secure_*";
+		CheckTable c = parse(query);
 		assertEquals(2, c.getTableNames().size());
 		assertTrue(c.getTableNames().contains("secure_log"));
 		assertTrue(c.getTableNames().contains("secure_event"));
@@ -84,8 +84,8 @@ public class LogCheckParserTest {
 
 	@Test
 	public void checkFromTo() {
-		String query = "logcheck from=20130806 to=20130808 secure_*";
-		LogCheck c = parse(query);
+		String query = "checktable from=20130806 to=20130808 secure_*";
+		CheckTable c = parse(query);
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 		assertEquals(2, c.getTableNames().size());
@@ -97,14 +97,14 @@ public class LogCheckParserTest {
 		assertEquals(query, c.toString());
 	}
 
-	private LogCheck parse(String query) {
+	private CheckTable parse(String query) {
 		LogTableRegistry tableRegistry = mock(LogTableRegistry.class);
 		when(tableRegistry.getTableNames()).thenReturn(Arrays.asList("secure_log", "secure_event", "text_log"));
 
-		LogCheckParser parser = new LogCheckParser(tableRegistry, null, null);
+		CheckTableParser parser = new CheckTableParser("checktable", tableRegistry, null, null);
 		parser.setQueryParserService(queryParserService);
 		
-		LogCheck c = (LogCheck) parser.parse(getContext(), query);
+		CheckTable c = (CheckTable) parser.parse(getContext(), query);
 		return c;
 	}
 

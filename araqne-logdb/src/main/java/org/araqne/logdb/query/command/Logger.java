@@ -1,21 +1,30 @@
 package org.araqne.logdb.query.command;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.araqne.log.api.Log;
+import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.logdb.DriverQueryCommand;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
-import org.slf4j.LoggerFactory;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.Strings;
+import org.araqne.logdb.TimeSpan;
 
-public class Logger extends DriverQueryCommand {
-	private final org.slf4j.Logger logger = LoggerFactory.getLogger(Logger.class);
+public class Logger extends DriverQueryCommand implements LogPipe {
 
 	private LoggerRegistry loggerRegistry;
+	private TimeSpan window;
+	private List<String> loggerNames;
 
-	public Logger(LoggerRegistry loggerRegistry) {
+	private volatile boolean stopped = false;
+
+	public Logger(LoggerRegistry loggerRegistry, TimeSpan window, List<String> loggerNames) {
 		this.loggerRegistry = loggerRegistry;
+		this.window = window;
+		this.loggerNames = loggerNames;
 	}
 
 	@Override
@@ -25,28 +34,77 @@ public class Logger extends DriverQueryCommand {
 
 	public void run() {
 		try {
-			for (org.araqne.log.api.Logger logger : loggerRegistry.getLoggers()) {
-				Map<String, Object> m = new HashMap<String, Object>();
-				m.put("namespace", logger.getNamespace());
-				m.put("name", logger.getName());
-				m.put("factory_namespace", logger.getFactoryNamespace());
-				m.put("factory_name", logger.getFactoryName());
-				m.put("status", logger.getStatus().toString());
-				m.put("interval", logger.getInterval());
-				m.put("log_count", logger.getLogCount());
-				m.put("drop_count", logger.getDropCount());
-				m.put("last_start_at", logger.getLastStartDate());
-				m.put("last_run_at", logger.getLastRunDate());
-				m.put("last_log_at", logger.getLastLogDate());
-				m.put("last_write_at", logger.getLastWriteDate());
-				pushPipe(new Row(m));
+			for (String name : loggerNames) {
+				org.araqne.log.api.Logger logger = loggerRegistry.getLogger(name);
+				if (logger != null)
+					logger.addLogPipe(this);
 			}
-		} catch (Throwable t) {
-			logger.error("araqne logdb: failed to load logger status");
-			Map<String, String> params = new HashMap<String, String>();
-			params.put("msg", t.getMessage());
-			throw new QueryParseException("60000", -1, -1, params);
-		//	throw new QueryParseException("logger-load-fail", -1);
+
+			long expire = System.currentTimeMillis() + window.amount * window.unit.getMillis();
+
+			while (true) {
+				if (System.currentTimeMillis() >= expire)
+					break;
+
+				if (stopped)
+					break;
+
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+				}
+			}
+		} finally {
+			for (String name : loggerNames) {
+				org.araqne.log.api.Logger logger = loggerRegistry.getLogger(name);
+				if (logger != null)
+					logger.removeLogPipe(this);
+			}
 		}
+	}
+
+	@Override
+	public void onLog(org.araqne.log.api.Logger logger, Log log) {
+		Map<String, Object> m = Row.clone(log.getParams());
+		m.put("_logger", logger.getFullName());
+		m.put("_time", log.getDate());
+		pushPipe(new Row(m));
+	}
+
+	@Override
+	public void onLogBatch(org.araqne.log.api.Logger logger, Log[] logs) {
+		int count = 0;
+		for (Log log : logs) {
+			if (log != null)
+				count++;
+		}
+
+		Row[] rows = new Row[count];
+
+		int i = 0;
+		for (Log log : logs) {
+			if (log != null) {
+				Map<String, Object> m = Row.clone(log.getParams());
+				m.put("_logger", logger.getFullName());
+				m.put("_time", log.getDate());
+				rows[i++] = new Row(m);
+			}
+		}
+
+		RowBatch rowBatch = new RowBatch();
+		rowBatch.rows = rows;
+		rowBatch.size = count;
+
+		pushPipe(rowBatch);
+	}
+
+	@Override
+	public void onClose(QueryStopReason reason) {
+		stopped = true;
+	}
+
+	@Override
+	public String toString() {
+		return "logger window=" + window + " " + Strings.join(loggerNames, ", ");
 	}
 }

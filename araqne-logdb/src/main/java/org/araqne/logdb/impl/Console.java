@@ -359,7 +359,7 @@ public class Console {
 
 		queryString = sb.toString();
 
-		long begin = System.currentTimeMillis();
+		long begin = System.nanoTime();
 		Query lq = queryService.createQuery(session, queryString);
 		queryService.startQuery(session, lq.getId());
 
@@ -369,6 +369,8 @@ public class Console {
 			} catch (InterruptedException e) {
 			}
 		} while (!lq.isFinished());
+		
+		long duration = (System.nanoTime() - begin) / 1000000L;
 
 		if (lq.getCause() != null) {
 			context.println("query failure: " + lq.getCause().getMessage());
@@ -378,6 +380,19 @@ public class Console {
 			try {
 				rs = lq.getResultSet();
 				while (rs.hasNext()) {
+					if (count == 1000) {
+						context.printf("** result set size is over 1000. do you want to continue (y/N)? ");
+						try {
+							char read = context.read();
+							if (read != 'y' && read != 'Y') {
+								throw new InterruptedException();
+							}
+						} catch (InterruptedException e) {
+							context.printf("\r\n");
+							break;
+						}
+						context.printf("\r");
+					}
 					printMap(rs.next());
 					count++;
 				}
@@ -386,8 +401,7 @@ public class Console {
 					rs.close();
 			}
 
-			context.println(String.format("total %d rows, elapsed %.1fs", count, (System.currentTimeMillis() - begin)
-					/ (double) 1000));
+			context.println(String.format("total %d rows, elapsed %.2fs", lq.getResultCount(), duration / (double) 1000));
 		}
 
 		queryService.removeQuery(lq.getId());

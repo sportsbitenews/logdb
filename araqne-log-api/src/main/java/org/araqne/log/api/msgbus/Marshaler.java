@@ -66,6 +66,12 @@ public class Marshaler {
 		m.put("description", logger.getDescription());
 		m.put("is_passive", logger.isPassive());
 		m.put("interval", logger.getInterval());
+
+		if (logger.getTimeRange() != null) {
+			m.put("start_time", logger.getTimeRange().getStartTime());
+			m.put("end_time", logger.getTimeRange().getEndTime());
+		}
+
 		m.put("status", logger.isRunning() ? "running" : "stopped");
 		m.put("last_start", dateFormatting(logger.getLastStartDate()));
 		m.put("last_run", dateFormatting(logger.getLastRunDate()));

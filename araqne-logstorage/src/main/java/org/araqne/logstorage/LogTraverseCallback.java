@@ -21,38 +21,40 @@ import java.util.List;
 public abstract class LogTraverseCallback {
 	private final Sink sink;
 	private Throwable failure;
-	
+
 	abstract public void interrupt();
+
 	abstract public boolean isInterrupted();
-	
+
 	public boolean isEof() {
 		return sink.isEof() || isInterrupted();
 	}
-	
+
 	public LogTraverseCallback(Sink sink) {
 		this.sink = sink;
 	}
-	
+
 	public boolean isOrdered() {
 		return sink.isOrdered();
 	}
-	
+
 	public void writeLogs(List<Log> logs) {
-		sink.write(filter(logs));
+		if (!isInterrupted())
+			sink.write(filter(logs));
 	}
-	
+
 	public boolean isFailed() {
 		return failure != null;
 	}
-	
+
 	public void setFailure(Throwable t) {
 		failure = t;
 	}
-	
+
 	public Throwable getFailure() {
 		return failure;
 	}
-	
+
 	abstract protected List<Log> filter(List<Log> logs);
 
 	public static abstract class Sink {
@@ -61,11 +63,11 @@ public abstract class LogTraverseCallback {
 		private long curr;
 		private final boolean ordered;
 		private boolean eof;
-		
+
 		public Sink(long offset, long limit) {
 			this(offset, limit, true);
 		}
-		
+
 		public Sink(long offset, long limit, boolean order) {
 			this.offset = offset;
 			this.limit = limit;
@@ -73,50 +75,50 @@ public abstract class LogTraverseCallback {
 			this.eof = false;
 			this.ordered = order;
 		}
-		
+
 		public boolean isEof() {
 			return eof;
 		}
-		
+
 		public boolean isOrdered() {
 			return ordered;
 		}
-		
+
 		// returns whether result is end or not
 		public boolean write(List<Log> logs) {
 			if (logs.isEmpty())
 				return !eof;
-			
+
 			long start = curr;
 			curr += logs.size();
-			
+
 			if (eof)
 				return false;
-			
+
 			if (offset > 0 && curr <= offset)
 				return true;
-			
+
 			int processBegin = 0;
 			int processEnd = logs.size();
-			
+
 			if (offset > 0 && start <= offset) {
-				processBegin = (int)(offset - start);
+				processBegin = (int) (offset - start);
 			}
-			
+
 			if (limit > 0 && curr >= offset + limit) {
-				processEnd = (int)(offset + limit - start);
+				processEnd = (int) (offset + limit - start);
 				eof = true;
 			}
-			
+
 			if (processBegin == 0 && processEnd == logs.size())
 				processLogs(logs);
 			else
 				processLogs(logs.subList(processBegin, processEnd));
-			
+
 			return !eof;
 		}
-		
+
 		protected abstract void processLogs(List<Log> logs);
 	}
-	
+
 }

@@ -46,6 +46,7 @@ import org.araqne.log.api.Log;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.MultilineLogExtractor;
 import org.araqne.log.api.Reconfigurable;
@@ -76,6 +77,12 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 			slog.debug("araqne-logapi-nio: recursive dirwatcher used nio");
 
 		applyConfig();
+	}
+
+	@Override
+	protected void onResetStates() {
+		walkTreeRequired = true;
+		slog.debug("araqne-logapi-nio: recursive-dirwatch [{}] will retraverse directories", getFullName());
 	}
 
 	private void applyConfig() {
@@ -132,7 +139,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	}
 
 	@Override
-	protected void onStart() {
+	protected void onStart(LoggerStartReason reason) {
 		detector = new ChangeDetector();
 		detector.start();
 	}
@@ -319,21 +326,25 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 		@Override
 		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-			if (!dir.equals(root)) {
-				if (!recursive
-						|| (dirPathPattern != null && !dir.equals(root) && !dirPathPattern
-								.matcher(dir.toFile().getAbsolutePath()).find()))
-					return FileVisitResult.SKIP_SUBTREE;
-			}
 
+			if (!root.equals(dir) && !recursive) {
+				slog.debug("araqne-logapi-nio: logger [{}] skip directory [{}]", getFullName(), dir.toFile().getAbsolutePath());
+				return FileVisitResult.SKIP_SUBTREE;
+			}
+			
+			slog.debug("araqne-logapi-nio: logger [{}] visit directory [{}]", getFullName(), dir.toFile().getAbsolutePath());
 			return FileVisitResult.CONTINUE;
 		}
 
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+			slog.debug("araqne-logapi-nio: logger [{}] visit file [{}]", getFullName(), file.toFile().getAbsolutePath());
+
 			File f = file.toFile();
-			if (dirPathPattern != null && !dirPathPattern.matcher(f.getParentFile().getAbsolutePath()).find())
+			if (dirPathPattern != null && !dirPathPattern.matcher(f.getParentFile().getAbsolutePath()).find()) {
+				slog.debug("araqne-logapi-nio: logger [{}] skip file [{}]", getFullName(), f.getAbsolutePath());
 				return FileVisitResult.CONTINUE;
+			}
 
 			if (fileNamePattern.matcher(f.getName()).matches())
 				processFile(lastPositions, f);
@@ -342,6 +353,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 		@Override
 		public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+			slog.debug("araqne-logapi-nio: logger [{}] visit file failed [{}]", getFullName(), exc.getMessage());
 			return FileVisitResult.CONTINUE;
 		}
 

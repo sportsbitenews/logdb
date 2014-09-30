@@ -53,6 +53,7 @@ public class OutputCsv extends QueryCommand {
 	private boolean usePartition;
 	private boolean useTab;
 	private boolean useBom;
+	private boolean emptyfile;
 	private String encoding;
 
 	private List<PartitionPlaceholder> holders;
@@ -64,7 +65,7 @@ public class OutputCsv extends QueryCommand {
 
 	@Deprecated
 	public OutputCsv(String pathToken, File f, String tmpPath, boolean overwrite, List<String> fields, String encoding,
-			boolean useBom, boolean useTab, boolean usePartition, List<PartitionPlaceholder> holders) {
+			boolean useBom, boolean useTab, boolean usePartition, boolean emptyfile, List<PartitionPlaceholder> holders) {
 		try {
 			this.pathToken = pathToken;
 			this.f = f;
@@ -76,6 +77,7 @@ public class OutputCsv extends QueryCommand {
 			this.holders = holders;
 			this.useTab = useTab;
 			this.useBom = useBom;
+			this.emptyfile = emptyfile;
 			char separator = useTab ? '\t' : ',';
 
 			this.writerFactory = new CsvLineWriterFactory(fields, encoding, separator, useBom);
@@ -97,7 +99,7 @@ public class OutputCsv extends QueryCommand {
 	}
 	
 	public OutputCsv(String pathToken, String tmpPath, boolean overwrite, List<String> fields, String encoding,
-			boolean useBom, boolean useTab, boolean usePartition, List<PartitionPlaceholder> holders) {
+			boolean useBom, boolean useTab, boolean usePartition,boolean emptyfile,  List<PartitionPlaceholder> holders) {
 			this.pathToken = pathToken;
 			this.tmpPath = tmpPath;
 			this.overwrite = overwrite;
@@ -107,6 +109,7 @@ public class OutputCsv extends QueryCommand {
 			this.holders = holders;
 			this.useTab = useTab;
 			this.useBom = useBom;
+			this.emptyfile = emptyfile;
 	}
 
 	@Override
