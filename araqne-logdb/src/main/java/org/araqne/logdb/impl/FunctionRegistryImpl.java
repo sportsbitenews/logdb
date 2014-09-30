@@ -30,6 +30,7 @@ import org.araqne.logdb.FunctionFactory;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.query.expr.Abs;
 import org.araqne.logdb.query.expr.Array;
 import org.araqne.logdb.query.expr.Case;
@@ -218,17 +219,32 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 		@Override
 		public Expression newFunction(QueryContext ctx, String name, List<Expression> exprs) {
 			Constructor<?> c = constructors.get(name);
-			if (c == null)
-				throw new QueryParseException("unsupported-function", -1, name);
+			if (c == null){
+				//		throw new QueryParseException("unsupported-function", -1, name);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("name", name);
+				throw new QueryParseInsideException("90900", -1, -1, params);
+			}
 			try {
 				return (Expression) c.newInstance(ctx, exprs);
 			} catch (InvocationTargetException e) {
 				if (e.getTargetException() instanceof QueryParseException)
 					throw (QueryParseException) e.getTargetException();
-				else
-					throw new QueryParseException("cannot create function instance", -1, e.getTargetException().toString());
-			} catch (Throwable t) {
-				throw new QueryParseException("cannot create function instance", -1, t.toString());
+				else if (e.getTargetException() instanceof QueryParseInsideException)
+					throw (QueryParseInsideException) e.getTargetException();
+				else{
+					//	throw new QueryParseException("cannot create function instance", -1, e.getTargetException().toString());
+					Map<String, String> params = new HashMap<String, String>();
+					params.put("exception", e.getTargetException().toString() );
+					throw new QueryParseInsideException("90901", -1, -1, params);
+				}
+			}catch(QueryParseInsideException e){
+				throw e;
+			}catch (Throwable t) {
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("exception", t.toString());
+				//throw new QueryParseException("cannot create function instance", -1, t.toString());
+				throw new QueryParseInsideException("90902", -1, -1,  params);
 			}
 		}
 	}
@@ -236,8 +252,12 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 	@Override
 	public Expression newFunction(QueryContext ctx, String functionName, List<Expression> exprs) {
 		FunctionFactory ff = factories.get(functionName);
-		if (ff == null)
-			throw new QueryParseException("unsupported-function", -1, functionName);
+		if (ff == null){
+		//	throw new QueryParseException("unsupported-function", -1, functionName);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("name", functionName);
+			throw new QueryParseInsideException("90903", -1, -1, params);
+		}
 		return ff.newFunction(ctx, functionName, exprs);
 	}
 }

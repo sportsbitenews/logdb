@@ -12,7 +12,6 @@ import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.OutputJson;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -40,6 +39,8 @@ public class OutputJsonParserTest {
 			p.setQueryParserService(queryParserService);
 			
 			json = (OutputJson) p.parse(null, "outputjson logexport.json sip, dip ");
+			
+			json.onStart();
 
 			File f = json.getTxtFile();
 			assertEquals("logexport.json", f.getName());
@@ -47,6 +48,8 @@ public class OutputJsonParserTest {
 			assertEquals("dip", json.getFields().get(1));
 
 			assertEquals("outputjson logexport.json sip, dip", json.toString());
+		}catch(Throwable t){
+			t.printStackTrace();
 		} finally {
 			if (json != null)
 				json.onClose(QueryStopReason.End);
@@ -56,35 +59,66 @@ public class OutputJsonParserTest {
 
 	@Test
 	public void testMissingField() {
-		new File("logexport.json").delete();
+		String query = "outputjson ";
+		
 		try {
 			OutputJsonParser p = new OutputJsonParser();
 			p.setQueryParserService(queryParserService);
 			
-			p.parse(null, "outputjson");
+			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("missing-field", e.getType());
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("30302", e.getType());
+			assertEquals(11, e.getOffsetS());
+			assertEquals(10, e.getOffsetE());	
+		}
+	}
+	
+	@Test
+	public void testMissingPartition() {
+		String query = "outputjson {logtime:/yyyy/MM/dd/}{now:HHmm.json} src_ip, dst_ip";
+		
+		try {
+			OutputJsonParser p = new OutputJsonParser();
+			p.setQueryParserService(queryParserService);
+			
+			p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("30301", e.getType());
+			assertEquals(11, e.getOffsetS());
+			assertEquals(62, e.getOffsetE());	
 		} finally {
 			new File("logexport.json").delete();
 		}
 	}
-
+	
 	@Test
 	public void testInvalidEndCharacter() {
-		new File("logexport.json").delete();
+		String query = "outputjson logexport.json sip,";
+
 		try {
 			OutputJsonParser p = new OutputJsonParser();
 			p.setQueryParserService(queryParserService);
 			
-			p.parse(null, "outputjson logexport.json sip,");
+			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("missing-field", e.getType());
-			assertEquals(30, (int) e.getOffset());
-		} finally {
-			new File("logexport.json").delete();
-		}
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("30300", e.getType());
+			assertEquals(29, e.getOffsetS());
+			assertEquals(29, e.getOffsetE());	
+		} 
 	}
-
 }

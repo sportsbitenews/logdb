@@ -15,11 +15,13 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
 
 /**
@@ -32,13 +34,20 @@ public class RandBytes implements Expression {
 
 	public RandBytes(QueryContext ctx, List<Expression> exprs) {
 		Object n = exprs.get(0).eval(null);
-		if (!(n instanceof Integer))
-			throw new QueryParseException("invalid-rand-argument", -1);
-
+		if (!(n instanceof Integer)){
+		//	throw new QueryParseException("invalid-rand-argument", -1);
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("length", n + "");
+			throw new QueryParseInsideException("90760", -1, -1, params);
+		}
+	
 		this.len = (Integer) n;
-		if (len <= 0 || len > 1000000)
-			throw new QueryParseException("invalid-randbytes-len", -1);
-
+		if (len <= 0 || len > 1000000){
+		//	throw new QueryParseException("invalid-randbytes-len", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("length", n + "");
+			throw new QueryParseInsideException("90761", -1, -1, params);
+		}
 		this.rand = new Random();
 	}
 

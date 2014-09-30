@@ -15,12 +15,18 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.query.command.Term;
 import org.araqne.logdb.query.command.Term.Operator;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 public class TermParserTest {
 	@Test
@@ -57,9 +63,13 @@ public class TermParserTest {
 			TermParser.parseTerm(TERM);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("string-quote-mismatch", e.getType());
-			assertEquals(16, (int) e.getOffset());
-		}
+			if(e.isDebugMode()){
+				System.out.println("query " + TERM);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90005", e.getType());
+			assertEquals(TERM, e.getParams().get("value"));
+		} 
 	}
 
 	@Test
@@ -70,9 +80,17 @@ public class TermParserTest {
 			TermParser.parseTerm(TERM);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("need-string-token", e.getType());
-			assertEquals(9, (int) e.getOffset());
-		}
+			if(e.isDebugMode()){
+				System.out.println("query " + TERM);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90004", e.getType());
+			assertEquals(TERM, e.getParams().get("value"));
+		} 
+//		catch (QueryParseException e) {
+//			assertEquals("need-string-token", e.getType());
+//			assertEquals(9, (int) e.getOffset());
+//		}
 	}
 
 	@Test
@@ -206,5 +224,23 @@ public class TermParserTest {
 		assertEquals("field1", term.getLh());
 		assertNull(term.getRh());
 		assertEquals(Operator.NotNull, term.getOperator());
+	}
+	
+	@Test
+	public void testUnsupportedOp() {
+		final String TERM = "field1 <> field2";
+
+		try {
+			TermParser.parseTerm(TERM);
+			fail();
+		} catch (QueryParseInsideException e) {
+			if(e.isDebugMode()){
+				System.out.println(TERM);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("21900", e.getType());
+			assertEquals(TERM, e.getParams().get("value"));
+			assertEquals("<>", e.getParams().get("op"));
+		} 
 	}
 }

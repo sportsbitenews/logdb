@@ -18,6 +18,7 @@ package org.araqne.logdb.query.parser;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -28,6 +29,7 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.OutputTxt;
+
 
 /**
  * @since 1.6.7
@@ -44,7 +46,8 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
-			throw new QueryParseException("missing-field", commandString.length());
+			//throw new QueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("30400", commandString.trim().length() -1, commandString.trim().length() -1 , null);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(),
 				Arrays.asList("delimiter", "overwrite", "gz", "encoding", "partition", "tmp"), getFunctionRegistry());
@@ -69,25 +72,33 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 		File tmpFile = null;
 		if (tmpPath != null) {
 			tmpFile = new File(tmpPath);
-			if (!usePartition && tmpFile.exists())
-				throw new QueryParseException("tmp file exist: " + tmpPath, -1);
+			if (!usePartition && tmpFile.exists()){
+				//	throw new QueryParseException("tmp file exist: " + tmpPath, -1);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("temp", tmpPath);
+				int offset = QueryTokenizer.indexOfValue(commandString,  "tmp=" + tmpPath) + 1;
+				throw new QueryParseException("30403", offset , offset+ tmpPath.length() - 1,  params);
+			}
 		}
 
 		int next = r.next;
 		if (next < 0)
-			throw new QueryParseException("invalid-field", next);
+			//throw new QueryParseException("invalid-field", next);
+			throw new QueryParseException("30404", getCommandName().length() + 1, commandString.length() - 1, null);
 
 		String remainCommandString = commandString.substring(next);
 		QueryTokens tokens = QueryTokenizer.tokenize(remainCommandString);
 		if (tokens.size() < 1)
-			throw new QueryParseException("missing-field", tokens.size());
+			//	throw new QueryParseException("missing-field", tokens.size());
+			throw new QueryParseException("30405", getCommandName().length() + 1, commandString.length() - 1, null);
 
 		String filePath = tokens.token(0).token;
 		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
 
 		List<PartitionPlaceholder> holders = PartitionPlaceholder.parse(filePath);
 		if (!usePartition && holders.size() > 0)
-			throw new QueryParseException("use-partition-option", -1, holders.size() + " partition holders");
+			//	throw new QueryParseException("use-partition-option", -1, holders.size() + " partition holders");
+			throw new QueryParseException("30401", getCommandName().length() + 1, commandString.length() - 1, null);
 
 		List<String> fields = new ArrayList<String>();
 
@@ -104,15 +115,18 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 		}
 
 		if (fields.size() == 0)
-			throw new QueryParseException("missing-field", remainCommandString.length());
+			//	throw new QueryParseException("missing-field", remainCommandString.length());
+			throw new QueryParseException("30402", getCommandName().length() + 1 , commandString.length() - 1, null) ;
 
-		File txtFile = new File(filePath);
-		if (txtFile.exists() && !overwrite)
-			throw new IllegalStateException("txt file exists: " + txtFile.getAbsolutePath());
+		//		File txtFile = new File(filePath);
+		//		if (txtFile.exists() && !overwrite)
+		//			throw new IllegalStateException("txt file exists: " + txtFile.getAbsolutePath());
+		//
+		//		if (!usePartition && txtFile.getParentFile() != null)
+		//			txtFile.getParentFile().mkdirs();
+		//
+		//		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders);
+		return new OutputTxt( filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders);
 
-		if (!usePartition && txtFile.getParentFile() != null)
-			txtFile.getParentFile().mkdirs();
-
-		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders);
 	}
 }

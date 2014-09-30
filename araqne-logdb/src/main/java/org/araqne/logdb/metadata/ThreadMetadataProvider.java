@@ -50,8 +50,10 @@ public class ThreadMetadataProvider implements MetadataProvider {
 
 	@Override
 	public void verify(QueryContext context, String queryString) {
-		if (!context.getSession().isAdmin())
-			throw new QueryParseException("no-read-permission", -1);
+		if (!context.getSession().isAdmin()){
+			throw new QueryParseException("95040", -1, -1, null);
+			//	throw new QueryParseException("no-read-permission", -1);
+		}
 
 		QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("prettystack"), functionRegistry);
 	}

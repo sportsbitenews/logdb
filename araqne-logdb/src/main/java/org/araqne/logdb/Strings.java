@@ -16,6 +16,8 @@
 package org.araqne.logdb;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 public class Strings {
@@ -38,8 +40,13 @@ public class Strings {
 					sb.append('\n');
 				else if (c == 't')
 					sb.append('\t');
-				else
-					throw new QueryParseException("invalid-escape-sequence", -1, "char=" + c);
+				else{
+					//throw new QueryParseException("invalid-escape-sequence", -1, "char=" + c);
+					Map<String, String> params = new HashMap<String, String>();
+					params.put("value", s);
+					params.put("char","\\" + c);
+					throw new QueryParseInsideException("90400", i -1 , i, params);
+				}
 				escape = false;
 			} else {
 				if (c == '\\')

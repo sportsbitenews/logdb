@@ -29,6 +29,7 @@ import java.util.Map;
 import org.araqne.api.ScriptContext;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryService;
 import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.Permission;
@@ -193,7 +194,11 @@ public class Console {
 			} else {
 				context.println("invalid syntax");
 			}
-		} catch (Throwable t) {
+		}catch (QueryParseException t){
+			context.println(line);
+			context.println(t.getMessage());
+			logger.error("araqne logdb: console fail", t);
+		}catch (Throwable t) {
 			context.println(t.getMessage());
 			logger.error("araqne logdb: console fail", t);
 		}

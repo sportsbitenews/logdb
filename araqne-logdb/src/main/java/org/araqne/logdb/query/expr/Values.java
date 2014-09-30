@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.TreeSet;
 
 import org.araqne.logdb.ObjectComparator;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
 
@@ -36,7 +36,8 @@ public class Values implements AggregationFunction {
 
 	public Values(List<Expression> exprs) {
 		if (exprs.isEmpty())
-			throw new QueryParseException("missing-values-arg", -1);
+	//		throw new QueryParseException("missing-values-arg", -1);
+			throw new QueryParseInsideException("90870", -1, -1, null);
 
 		this.exprs = exprs;
 		this.arg = exprs.get(0);

@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class QueryContext {
 	private Session session;
+	private ParserContext parserContext = new ParserContext();
 	private Map<String, Object> constants = new ConcurrentHashMap<String, Object>();
 
 	/**
@@ -35,6 +36,10 @@ public class QueryContext {
 
 	public Session getSession() {
 		return session;
+	}
+
+	public ParserContext getParserContext() {
+		return parserContext;
 	}
 
 	public Map<String, Object> getConstants() {

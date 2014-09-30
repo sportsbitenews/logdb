@@ -1,5 +1,8 @@
 package org.araqne.logdb;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class TimeSpan {
 	public int amount;
 	public TimeUnit unit;
@@ -35,10 +38,18 @@ public class TimeSpan {
 			unit = TimeUnit.Year;
 		amount = Integer.parseInt(value.substring(0, i));
 
-		if (unit == TimeUnit.Month && (amount != 1 && amount != 2 && amount != 3 && amount != 4 && amount != 6))
-			throw new QueryParseException("invalid-timespan", -1, "month should be 1, 2, 3, 4, or 6");
-		if (unit == TimeUnit.Year && amount != 1)
-			throw new QueryParseException("invalid-timespan", -1, "year should be 1");
+		if (unit == TimeUnit.Month && (amount != 1 && amount != 2 && amount != 3 && amount != 4 && amount != 6)){
+		//	throw new QueryParseException("invalid-timespan", -1, "month should be 1, 2, 3, 4, or 6");
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("value", value);
+			throw new QueryParseInsideException("90500" , -1, -1,  params);
+		}
+		if (unit == TimeUnit.Year && amount != 1){
+		//	throw new QueryParseException("invalid-timespan", -1, "year should be 1");
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("value", value);
+			throw new QueryParseInsideException("90501", -1, -1, params);
+		}
 		return new TimeSpan(amount, unit);
 	}
 

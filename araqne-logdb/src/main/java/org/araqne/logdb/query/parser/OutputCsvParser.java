@@ -15,7 +15,6 @@
  */
 package org.araqne.logdb.query.parser;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -40,7 +39,8 @@ public class OutputCsvParser extends AbstractQueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
-			throw new QueryParseException("missing-field", commandString.length());
+		//	throw new QueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("30200", commandString.trim().length() -1, commandString.trim().length() -1 , null);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
 				Arrays.asList("overwrite", "encoding", "bom", "tab", "tmp", "partition"), getFunctionRegistry());
@@ -64,8 +64,9 @@ public class OutputCsvParser extends AbstractQueryCommandParser {
 
 		List<PartitionPlaceholder> holders = PartitionPlaceholder.parse(csvPath);
 		if (!usePartition && holders.size() > 0)
-			throw new QueryParseException("use-partition-option", -1, holders.size() + " partition holders");
-
+		//	throw new QueryParseException("use-partition-option", -1, holders.size() + " partition holders");
+			throw new QueryParseException("30201", getCommandName().length() + 1, commandString.length() - 1, null);
+			
 		List<QueryToken> fieldTokens = tokens.subtokens(1, tokens.size());
 		for (QueryToken t : fieldTokens) {
 			StringTokenizer tok = new StringTokenizer(t.token, ",");
@@ -74,15 +75,17 @@ public class OutputCsvParser extends AbstractQueryCommandParser {
 		}
 
 		if (fields.size() == 0)
-			throw new QueryParseException("missing-field", commandString.length());
+	//		throw new QueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("30202", getCommandName().length() + 1 , commandString.length() - 1, null) ;
 
-		File csvFile = new File(csvPath);
-		if (csvFile.exists() && !overwrite)
-			throw new IllegalStateException("csv file exists: " + csvFile.getAbsolutePath());
-
-		if (!usePartition && csvFile.getParentFile() != null)
-			csvFile.getParentFile().mkdirs();
-		return new OutputCsv(csvPath, csvFile, tmpPath, overwrite, fields, encoding, useBom, useTab, usePartition,
-				holders);
+//		File csvFile = new File(csvPath);
+//		if (csvFile.exists() && !overwrite)
+//			throw new IllegalStateException("csv file exists: " + csvFile.getAbsolutePath());
+//
+//		if (!usePartition && csvFile.getParentFile() != null)
+//			csvFile.getParentFile().mkdirs();
+//		return new OutputCsv(csvPath, csvFile, tmpPath, overwrite, fields, encoding, useBom, useTab, usePartition,
+//				holders);
+		return new OutputCsv(csvPath,  tmpPath, overwrite, fields, encoding, useBom, useTab, usePartition,	holders);
 	}
 }

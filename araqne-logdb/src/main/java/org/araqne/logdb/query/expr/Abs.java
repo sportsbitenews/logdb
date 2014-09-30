@@ -15,19 +15,23 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
 
 public class Abs implements Expression {
 	private Expression expr;
 
 	public Abs(QueryContext ctx, List<Expression> exprs) {
-		if (exprs.size() != 1)
-			throw new QueryParseException("invalid-abs-args", -1);
-
+		if (exprs.size() != 1){
+		//	throw new QueryParseException("invalid-abs-args", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			throw new QueryParseInsideException("90600", -1, -1, params);
+		}
 		this.expr = exprs.get(0);
 	}
 

@@ -15,7 +15,9 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.LookupHandlerRegistry;
@@ -50,17 +52,40 @@ public class LookupParser extends AbstractQueryCommandParser {
 		}
 
 		if (outputOffset == -1)
-			throw new QueryParseException("output-token-not-found", commandString.length());
+			//throw new QueryParseException("output-token-not-found", commandString.length());
+			throw new QueryParseException("20700", getCommandName().length()  + 1,  commandString.length() - 1, null);
 
 		List<String> inputTokens = tokens.substrings(2, outputOffset);
 		List<String> outputTokens = tokens.substrings(outputOffset + 1);
 
 		String handlerName = tokens.firstArg();
-		if (registry != null && registry.getLookupHandler(handlerName) == null)
-			throw new QueryParseException("invalid-lookup-name", -1, handlerName);
+		if (registry != null && registry.getLookupHandler(handlerName) == null){
+			//throw new QueryParseException("invalid-lookup-name", -1, handlerName);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("table", handlerName );
+			int offset =  QueryTokenizer.findIndexOffset(tokens, 1);
+			throw new QueryParseException("20701", offset, offset + handlerName.length() - 1, params);
+		}
 
-		LookupField src = parseLookupField(inputTokens);
-		LookupField dst = parseLookupField(outputTokens);
+		LookupField src;
+		LookupField dst;
+		try {
+			src = parseLookupField(inputTokens);
+			dst = parseLookupField(outputTokens);
+		} catch (IllegalStateException e) {
+			if (e.getMessage().equals("20702")){
+				int offset = QueryTokenizer.findIndexOffset(tokens, outputOffset + 1);
+				throw new QueryParseException(e.getMessage(), offset,	commandString.length() - 1,	null);
+			}else if (e.getMessage().equals("20703")){
+				String AS = tokens.string(outputOffset  + 2);
+				int offset = QueryTokenizer.findIndexOffset(tokens, outputOffset  + 2);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("as", AS);
+				throw new QueryParseException(e.getMessage(), offset, offset + AS.length() -1,	params);
+			}else {
+				throw e;
+			}
+		}
 
 		Lookup lookup = new Lookup(handlerName, src.first, src.second, dst.first, dst.second);
 		lookup.setLogQueryService(registry);
@@ -76,10 +101,10 @@ public class LookupParser extends AbstractQueryCommandParser {
 		}
 
 		if (tokens.size() != 3)
-			throw new QueryParseException("invalid-lookup-field", -1);
+			throw new IllegalStateException("20702");
 
 		if (!tokens.get(1).equalsIgnoreCase("as"))
-			throw new QueryParseException("as-token-not-found", -1);
+			throw new IllegalStateException("20703");
 
 		field.first = tokens.get(0);
 		field.second = tokens.get(2);

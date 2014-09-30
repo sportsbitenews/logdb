@@ -20,12 +20,15 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Strings;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -187,41 +190,53 @@ public class ExpressionParser {
 	
 
 	public static Expression parse(QueryContext context, String s, ParsingRule r) {
-		if (s == null)
-			throw new IllegalArgumentException("expression string should not be null");
+		try {
+			if (s == null)
+				throw new IllegalArgumentException("expression string should not be null");
 
-		s = Normalizer.normalize(s, Normalizer.Form.NFC);
-		s = normalizeQueryStr(s);
-		s = s.replaceAll("\t", "    ");
-		s = s.replaceAll("\n", " ");
-		s = s.replaceAll("\r", " ");
-		List<Term> terms = tokenize(s, r);
-		List<Term> output = convertToPostfix(terms, r);
-		Stack<Expression> exprStack = new Stack<Expression>();
-		OpEmitterFactory of = r.getOpEmmiterFactory();
-		TermEmitterFactory tf = r.getTermEmitterFactory();
-		FuncEmitterFactory ff = r.getFuncEmitterFactory();
+			s = Normalizer.normalize(s, Normalizer.Form.NFC);
+			s = normalizeQueryStr(s);
+			s = s.replaceAll("\t", "    ");
+			s = s.replaceAll("\n", " ");
+			s = s.replaceAll("\r", " ");
+			List<Term> terms = tokenize(s, r);
+			List<Term> output = convertToPostfix(terms, r);
+			Stack<Expression> exprStack = new Stack<Expression>();
+			OpEmitterFactory of = r.getOpEmmiterFactory();
+			TermEmitterFactory tf = r.getTermEmitterFactory();
+			FuncEmitterFactory ff = r.getFuncEmitterFactory();
 
-		for (Term term : output) {
-			if (r.getOpTerm().isInstance(term)) {
-				of.emit(exprStack, term);
-			} else if (term instanceof TokenTerm) {
-				// parse token expression (variable or numeric constant)
-				TokenTerm t = (TokenTerm) term;
-				tf.emit(exprStack, t);
-			} else if (term instanceof FuncTerm) {
-				// parse function expression
-				FuncTerm f = (FuncTerm) term;
-				ff.emit(context, exprStack, f);
-			} else {
-				throw new QueryParseException("unexpected-term", -1, term.toString());
+			for (Term term : output) {
+				if (r.getOpTerm().isInstance(term)) {
+					of.emit(exprStack, term);
+				} else if (term instanceof TokenTerm) {
+					// parse token expression (variable or numeric constant)
+					TokenTerm t = (TokenTerm) term;
+					tf.emit(exprStack, t);
+				} else if (term instanceof FuncTerm) {
+					// parse function expression
+					FuncTerm f = (FuncTerm) term;
+					ff.emit(context, exprStack, f);
+				} else {
+					Map<String, String> params = new HashMap<String, String>();
+					params.put("term", term.toString());
+					params.put("value", s);
+					throw new QueryParseInsideException("90200", -1, -1, params);
+					//throw new QueryParseException("unexpected-term", -1, term.toString());
+				}
 			}
-		}
 
-		if (exprStack.size() > 1) {
-			throw new QueryParseException("remain-terms", -1, exprStack.toString());
+			if (exprStack.size() > 1) {
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("value",s);
+				throw new QueryParseInsideException("90201", -1, -1, params);
+				//throw new QueryParseException("remain-terms", -1, exprStack.toString());
+			}
+			return exprStack.pop();
+		} catch (QueryParseInsideException e) {
+			e.getParams().put("value", s);
+			throw e;
 		}
-		return exprStack.pop();
 	}
 
 	/**
@@ -230,7 +245,14 @@ public class ExpressionParser {
 	public static Expression parse(QueryContext context, String s, FunctionRegistry functionRegistry) {
 		ParsingRule evalRule = new ParsingRule(EvalOpTerm.NOP, new EvalOpEmitterFactory(), new EvalFuncEmitterFactory(
 				functionRegistry), new EvalTermEmitterFactory());
-		return parse(context, s, evalRule);
+		
+		try {
+			return parse(context, s, evalRule);
+		} catch (QueryParseInsideException e) {
+			//e.printStackTrace();
+			e.getParams().put("value", s);
+			throw e;
+		}
 	}
 
 	private static List<Term> convertToPostfix(List<Term> tokens, ParsingRule rule) {
@@ -268,9 +290,10 @@ public class ExpressionParser {
 						}
 					}
 
-					if (!foundMatchParens)
-						throw new QueryParseException("parens-mismatch", -1);
-
+					if (!foundMatchParens){
+						//throw new QueryParseException("parens-mismatch", -1);
+						throw new QueryParseInsideException("90202", -1, -1, null);
+					}
 					// postprocess for closed parenthesis
 
 					// postprocess function term
@@ -435,7 +458,9 @@ public class ExpressionParser {
 				int p = findClosingQuote(s, r.next + 1);
 				// int p = s.indexOf('"', r.next + 1);
 				if (p < 0) {
-					throw new QueryParseException("quote-mismatch", r.next + 1);
+					//throw new QueryParseException("quote-mismatch", r.next + 1);
+					throw new QueryParseInsideException("90203", -1, -1, null);
+					
 					// String quoted = unveilEscape(s.substring(r.next));
 					// return new ParseResult(quoted, s.length());
 				} else {
@@ -446,7 +471,8 @@ public class ExpressionParser {
 			if (r.value.equals("[")) {
 				int p = findClosingSquareBracket(s, r.next + 1);
 				if (p == r.next + 1 - 1)
-					throw new QueryParseException("sqbracket-mismatch", r.next + 1);
+				//	throw new QueryParseException("sqbracket-mismatch", r.next + 1);
+					throw new QueryParseInsideException("90204", -1, -1, null);
 				else {
 					String subquery = s.substring(r.next, p + 1);
 					return new ParseResult(subquery, p + 1);
@@ -487,15 +513,19 @@ public class ExpressionParser {
 		return start - 1;
 	}
 
-	private static int findClosingQuote(String s, int offset) {
+	static int findClosingQuote(String s, int offset) {
 		boolean escape = false;
 		for (int i = offset; i < s.length(); i++) {
 			char c = s.charAt(i);
 			if (escape) {
 				if (c == '\\' || c == '"' || c == 'n' || c == 't')
 					escape = false;
-				else
-					throw new QueryParseException("invalid-escape-sequence", offset);
+				else{
+					//throw new QueryParseException("invalid-escape-sequence", offset);
+					Map<String, String> params = new HashMap<String, String>();
+					params.put("escape", "\\" + c);
+					throw new QueryParseInsideException("90205", -1, -1, params);
+				}
 			} else {
 				if (c == '\\')
 					escape = true;

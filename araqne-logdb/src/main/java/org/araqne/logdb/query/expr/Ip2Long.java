@@ -18,8 +18,8 @@ package org.araqne.logdb.query.expr;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +29,8 @@ public class Ip2Long implements Expression {
 
 	public Ip2Long(QueryContext ctx, List<Expression> exprs) {
 		if (exprs.size() != 1)
-			throw new QueryParseException("invalid-ip2long-args", -1);
+//			throw new QueryParseException("invalid-ip2long-args", -1);
+			throw new QueryParseInsideException("90710", -1, -1, null);
 		this.valueExpr = exprs.get(0);
 	}
 

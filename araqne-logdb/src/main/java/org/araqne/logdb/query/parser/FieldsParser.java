@@ -38,14 +38,17 @@ public class FieldsParser extends AbstractQueryCommandParser {
 		List<String> fields = new ArrayList<String>();
 		List<String> args = tokens.substrings(1);
 
+		
 		boolean selector = true;
 		if (args.get(0).equals("-")) {
 			selector = false;
 			args.remove(0);
 		}
-
+		
 		if (args.size() == 0)
-			throw new QueryParseException("no-field-args", -1);
+			//throw new QueryParseException("no-field-args", -1);
+			throw new QueryParseException("20400", getCommandName().length()  + 1,  commandString.length() - 1, null);
+
 
 		for (String t : args) {
 			String[] csv = t.split(",");

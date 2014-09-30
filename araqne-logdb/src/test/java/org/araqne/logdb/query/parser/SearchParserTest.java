@@ -27,7 +27,7 @@ import java.net.UnknownHostException;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandPipe;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
@@ -230,16 +230,21 @@ public class SearchParserTest {
 
 	@Test
 	public void testMissingEscape() {
+		String query = "search limit=10 category == \"E002\"\n and ((method == \"<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>\"))";
 		try {
-			String query = "search limit=10 category == \"E002\"\n and ((method == \"<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>\"))";
 			SearchParser p = new SearchParser();
 			p.setQueryParserService(queryParserService);
 
 			p.parse(null, query);
 			fail();
-		} catch (QueryParseException e) {
-			assertEquals("quote-mismatch", e.getType());
-		}
+		} catch (QueryParseInsideException e) {
+			if(e.isDebugMode()){
+				System.out.println(query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90203", e.getType());
+			assertEquals("category == \"E002\"\n and ((method == \"<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>\"))", e.getParams().get("value"));
+		} 
 	}
 
 	@Test

@@ -48,9 +48,10 @@ public class LoggerMetadataProvider implements MetadataProvider {
 
 	@Override
 	public void verify(QueryContext context, String queryString) {
-		if (!context.getSession().isAdmin())
-			throw new QueryParseException("no-read-permission", -1);
-
+		if (!context.getSession().isAdmin()){
+		//	throw new QueryParseException("no-read-permission", -1);
+			throw new QueryParseException("90510",  -1,  -1 ,  null);
+		}
 	}
 
 	@Override
@@ -74,7 +75,10 @@ public class LoggerMetadataProvider implements MetadataProvider {
 			}
 		} catch (Throwable t) {
 			slog.error("araqne logdb: failed to load logger status");
-			throw new QueryParseException("logger-load-fail", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("msg",  t.getMessage());
+			throw new QueryParseException("95011",  -1,  -1, params);
+			//throw new QueryParseException("logger-load-fail", -1);
 		}
 	}
 

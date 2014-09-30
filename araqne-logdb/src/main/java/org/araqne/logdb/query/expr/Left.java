@@ -15,11 +15,13 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryParseException;
 
 public class Left implements Expression {
 	private Expression valueExpr;
@@ -28,8 +30,12 @@ public class Left implements Expression {
 	public Left(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		this.length = Integer.parseInt(exprs.get(1).eval(null).toString());
-		if (length < 0)
-			throw new QueryParseException("left-func-negative-length", -1);
+		if (length < 0){
+	//		throw new QueryParseException("left-func-negative-length", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("length", length+"");
+			throw new QueryParseInsideException("90720", -1, -1, params);
+		}
 	}
 
 	@Override

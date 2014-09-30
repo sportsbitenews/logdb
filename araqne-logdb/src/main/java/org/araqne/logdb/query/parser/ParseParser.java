@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.parser;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.LogParserRegistry;
@@ -53,15 +54,23 @@ public class ParseParser extends AbstractQueryCommandParser {
 
 		String parserName = commandString.substring(r.next).trim();
 		if (parserName.isEmpty())
-			throw new QueryParseException("missing-parser-name", -1);
-
-		if (registry.getProfile(parserName) == null)
-			throw new QueryParseException("parser-not-found", -1);
-
+		//	throw new QueryParseException("missing-parser-name", -1);
+			throw new QueryParseException("21000", getCommandName().length() + 1, commandString.length() - 1, null);
+			
+		if (registry.getProfile(parserName) == null){
+			//throw new QueryParseException("parser-not-found", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("parser" , parserName);
+			throw new QueryParseException("21001", r.next,  r.next + parserName.length(), params);
+		}
+			
 		try {
 			return new Parse(parserName, registry.newParser(parserName), overlay);
 		} catch (Throwable t) {
-			throw new QueryParseException("parser-init-failure", -1, t.toString());
+			//throw new QueryParseException("parser-init-failure", -1, t.toString());
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("parser", parserName);
+			throw new QueryParseException("21002", r.next,  r.next + parserName.length(), params);
 		}
 	}
 }

@@ -15,13 +15,14 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.junit.Test;
 import static org.junit.Assert.*;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Fields;
+import org.junit.Test;
 
 public class FieldsParserTest {
+	
 	@Test
 	public void testSelectSingleField() {
 		FieldsParser p = new FieldsParser();
@@ -61,12 +62,20 @@ public class FieldsParserTest {
 
 	@Test
 	public void testBrokenFields() {
+		FieldsParser p = new FieldsParser();
+		String query = "fields - ";
+		
 		try {
-			FieldsParser p = new FieldsParser();
-			p.parse(null, "fields - ");
+			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("no-field-args", e.getType());
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20400", e.getType());
+			assertEquals(7, e.getOffsetS());
+			assertEquals(8, e.getOffsetE());	
 		}
 	}
 }

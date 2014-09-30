@@ -17,8 +17,8 @@ package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
 
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.expr.Expression;
 
 public class Count implements AggregationFunction {
@@ -28,7 +28,8 @@ public class Count implements AggregationFunction {
 
 	public Count(List<Expression> exprs) {
 		if (exprs.size() > 1)
-			throw new QueryParseException("invalid-count-args", -1);
+		//	throw new QueryParseException("invalid-count-args", -1);
+			throw new QueryParseInsideException("91010", -1, -1, null);
 
 		this.exprs = exprs;
 		if (exprs.size() == 1)

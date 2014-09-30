@@ -17,11 +17,13 @@ package org.araqne.logdb.query.expr;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryParseException;
 
 /**
  * @since 1.7.2
@@ -45,7 +47,8 @@ public class DateDiff implements Expression {
 		this.exprs = exprs;
 
 		if (exprs.size() != 3)
-			throw new QueryParseException("invalid-datediff-args", -1);
+//			throw new QueryParseException("invalid-datediff-args", -1);
+			throw new QueryParseInsideException("90630", -1, -1  , null);
 
 		start = exprs.get(0);
 		end = exprs.get(1);
@@ -65,8 +68,12 @@ public class DateDiff implements Expression {
 			calField = Calendar.SECOND;
 		else if (s.equals("msec"))
 			calField = Calendar.MILLISECOND;
-		else
-			throw new QueryParseException("invalid-datediff-unit", -1);
+		else{
+		//	throw new QueryParseException("invalid-datediff-unit", -1);
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("field", s);
+			throw new QueryParseInsideException("90631", -1, -1  , params);
+		}
 	}
 
 	@Override

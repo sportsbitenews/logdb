@@ -47,14 +47,16 @@ public class RexParser extends AbstractQueryCommandParser {
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		String field = options.get("field");
-		if (field == null)
-			throw new QueryParseException("field-not-found", commandString.length());
-
+		if (field == null || field.isEmpty()){
+			//throw new QueryParseException("field-not-found", commandString.length());
+			int offset = QueryTokenizer.findKeyword(commandString, "=") + 1;
+			throw new  QueryParseException("20900", offset, offset, null);
+		}
 		Pattern placeholder = Pattern.compile("\\(\\?<(.*?)>");
 		String regexToken = commandString.substring(r.next);
 		if (!QueryTokenizer.isQuoted(regexToken.trim()))
-			throw new QueryParseException("invalid-regex", commandString.length(), regexToken);
-
+			throw new QueryParseException("20901", r.next , commandString.length() -1  , null);
+			
 		// for later toString convenience
 		String originalRegexToken = regexToken;
 

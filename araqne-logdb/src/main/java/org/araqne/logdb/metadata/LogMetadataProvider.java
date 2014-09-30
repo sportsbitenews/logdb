@@ -69,8 +69,10 @@ public class LogMetadataProvider implements MetadataProvider {
 
 	@Override
 	public void verify(QueryContext context, String queryString) {
-		if (!context.getSession().isAdmin())
-			throw new QueryParseException("no-read-permission", -1);
+		if (!context.getSession().isAdmin()){
+		//	throw new QueryParseException("no-read-permission", -1);
+			throw new QueryParseException("95020", -1, -1, null);
+		}
 	}
 
 	@Override

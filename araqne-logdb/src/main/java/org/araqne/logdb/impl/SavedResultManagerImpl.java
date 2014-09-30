@@ -1,9 +1,7 @@
 package org.araqne.logdb.impl;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,8 +30,6 @@ import org.araqne.logstorage.file.LogRecordCursor;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
 import org.araqne.storage.api.StorageOutputStream;
-import org.araqne.storage.localfile.LocalFileInputStream;
-import org.araqne.storage.localfile.LocalFileOutputStream;
 import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

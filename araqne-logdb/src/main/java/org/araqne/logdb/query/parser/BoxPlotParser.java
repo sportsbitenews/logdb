@@ -20,7 +20,6 @@ import java.util.List;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.BoxPlot;
@@ -46,17 +45,22 @@ public class BoxPlotParser extends AbstractQueryCommandParser {
 			exprToken = commandString.substring(COMMAND.length(), byPos);
 			String clausePart = commandString.substring(byPos + BY.length());
 
-			if (clausePart.trim().endsWith(","))
-				throw new QueryParseException("missing-clause", commandString.length());
+			if (clausePart.trim().endsWith(",")){
+				//throw new QueryParseException("missing-clause", commandString.length());
+				throw new QueryParseException("20000", commandString.length() - 1, commandString.length() - 1, null );
+			}
 
 			// trim
 			for (String clause : clausePart.split(","))
 				clauses.add(clause.trim());
 		}
 
-		if (exprToken.trim().isEmpty())
-			throw new QueryParseException("missing-expr", -1);
-
+		if (exprToken.trim().isEmpty()){
+			//throw new QueryParseException("missing-expr", -1);
+			throw new QueryParseException("20001", getCommandName().length() + 1,
+					(byPos > 0) ? byPos : commandString.length() - 1, null );
+		}
+		
 		Expression expr = ExpressionParser.parse(context, exprToken, getFunctionRegistry());
 		return new BoxPlot(expr, clauses);
 	}

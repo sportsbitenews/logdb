@@ -15,11 +15,13 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryParseException;
 
 public class Substr implements Expression {
 	private Expression valueExpr;
@@ -33,8 +35,23 @@ public class Substr implements Expression {
 		if (exprs.size() > 2)
 			this.end = Integer.parseInt(exprs.get(2).eval(null).toString());
 
-		if (begin < 0 || (end >= 0 && begin > end))
-			throw new QueryParseException("invalid-substr-range", -1);
+		//		if (begin < 0 || (end >= 0 && begin > end)){
+		//					throw new QueryParseException("invalid-substr-range", -1);
+		//		}
+
+		if(begin <0 ){
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("begin", begin + "");
+			throw new QueryParseInsideException("90790", -1, -1, params);
+		}
+		
+		if(end >= 0 && begin > end){
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("begin", begin + "");
+			params.put("end", end + "");
+			throw new QueryParseInsideException("90791", -1, -1, params);
+		}
+
 	}
 
 	@Override

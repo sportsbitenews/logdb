@@ -17,11 +17,13 @@ package org.araqne.logdb.query.command;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.Row;
 
 public class Term {
 	public static enum Operator {
@@ -35,7 +37,10 @@ public class Term {
 				if (o.toString().equalsIgnoreCase(str))
 					return o;
 			}
-			throw new QueryParseException("unsupported-operator", -1, str);
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("op", str);
+			throw new QueryParseInsideException("21900", -1, -1, params);
+			//throw new QueryParseException("unsupported-operator", -1, str);
 		}
 
 		private Operator(String str) {

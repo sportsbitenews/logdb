@@ -16,7 +16,9 @@
 package org.araqne.logdb.query.engine;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -58,27 +60,36 @@ public class QueryParserServiceImpl implements QueryParserService {
 	@Override
 	public List<QueryCommand> parseCommands(QueryContext context, String queryString) {
 		List<QueryCommand> commands = new ArrayList<QueryCommand>();
-
+		int offsetCnt = 0; //
 		try {
 			for (String q : QueryTokenizer.parseCommands(queryString)) {
 				q = q.trim();
-
 				StringTokenizer tok = new StringTokenizer(q, " \t");
 				String commandType = tok.nextToken();
 				QueryCommandParser parser = commandParsers.get(commandType);
-				if (parser == null)
-					throw new QueryParseException("unsupported-command", -1, "command is [" + commandType + "]");
+				if (parser == null){
+					//	throw new QueryParseException("unsupported-command", -1, "command is [" + commandType + "]");
+					Map<String, String> params = new HashMap<String, String>();
+					params.put("command", commandType);
+					throw new QueryParseException("99000", -1, -1, params);
+				}
 
 				QueryCommand cmd = parser.parse(context, q);
 				commands.add(cmd);
+				offsetCnt++; //
 			}
 		} catch (QueryParseException t) {
 			closePrematureCommands(commands);
+			t.addOffset(offsetCnt); //
 			throw t;
 		} catch (Throwable t) {
 			closePrematureCommands(commands);
 			slog.debug("QueryParserServiceImpl", t);
-			throw new QueryParseException("parse failure", -1, t.toString());
+		
+			Map<String, String>params = new HashMap<String, String>();
+			params.put("msg", t.getMessage());
+			throw new QueryParseException("99001", -1, -1, params);
+			//throw new QueryParseException("parse failure", -1, t.toString());
 		}
 
 		if (commands.isEmpty())

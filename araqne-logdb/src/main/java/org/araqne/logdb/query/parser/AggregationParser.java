@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +23,7 @@ import java.util.Map;
 
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
 import org.araqne.logdb.query.aggregator.Average;
@@ -109,13 +110,37 @@ public class AggregationParser {
 
 		// find function
 		Class<?> c = funcTable.get(funcName);
-		if (c == null)
-			throw new QueryParseException("invalid-aggregation-function", -1, "function name token is [" + funcName + "]");
-
+		if (c == null){
+			//throw new QueryParseException("invalid-aggregation-function", -1, "function name token is [" + funcName + "]");
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("function", funcName);
+			params.put("value", s);
+			throw new QueryParseInsideException("21702", -1 , -1 , params);
+		}
 		try {
 			return (AggregationFunction) c.getConstructors()[0].newInstance(exprs);
+		}catch( InvocationTargetException e){
+			Throwable t =  e.getTargetException();
+			if(t instanceof QueryParseInsideException){
+				Map<String, String> params  = ((QueryParseInsideException) t).getParams();
+				if(params == null)
+					params = new HashMap<String, String> ();
+				params.put("function", funcName);
+				params.put("value", s);
+				throw new QueryParseInsideException(((QueryParseInsideException) t).getType(),-1, -1, params);
+			}else {
+				Map<String, String> params = new HashMap<String, String> ();
+				params.put("function", funcName);
+				params.put("msg", t.getMessage());
+				params.put("value", s);
+				throw new QueryParseInsideException("21703", -1, -1,  params);
+			}
 		} catch (Throwable e) {
-			throw new QueryParseException("cannot-create-aggregation-function", -1, e.getMessage());
+		//	throw new QueryParseException("cannot-create-aggregation-function", -1, e.getMessage());
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("function", funcName);
+			params.put("msg", e.getMessage());
+			throw new QueryParseInsideException("21703", -1, -1,  params);
 		}
 	}
 }

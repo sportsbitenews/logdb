@@ -32,7 +32,8 @@ public class ExplodeParser extends AbstractQueryCommandParser {
 	public QueryCommand parse(QueryContext context, String commandString) {
 		String arrayFieldName = commandString.substring(getCommandName().length()).trim();
 		if (arrayFieldName.isEmpty())
-			throw new QueryParseException("missing-explode-field", -1);
+			//throw new QueryParseException("missing-explode-field", -1);.
+			throw new QueryParseException("20300", getCommandName().length()  + 1,  commandString.length() - 1, null);
 
 		return new Explode(arrayFieldName);
 	}

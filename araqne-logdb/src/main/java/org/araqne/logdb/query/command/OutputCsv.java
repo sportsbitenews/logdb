@@ -29,6 +29,7 @@ import org.araqne.logdb.PartitionOutput;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
@@ -61,6 +62,7 @@ public class OutputCsv extends QueryCommand {
 	private LineWriter writer;
 	private LineWriterFactory writerFactory;
 
+	@Deprecated
 	public OutputCsv(String pathToken, File f, String tmpPath, boolean overwrite, List<String> fields, String encoding,
 			boolean useBom, boolean useTab, boolean usePartition, List<PartitionPlaceholder> holders) {
 		try {
@@ -88,10 +90,23 @@ public class OutputCsv extends QueryCommand {
 				this.holders = holders;
 				this.outputs = new HashMap<List<String>, PartitionOutput>();
 			}
-		} catch (Throwable t) {
+		} catch (Throwable t) { 
 			close();
 			throw new QueryParseException("io-error", -1);
 		}
+	}
+	
+	public OutputCsv(String pathToken, String tmpPath, boolean overwrite, List<String> fields, String encoding,
+			boolean useBom, boolean useTab, boolean usePartition, List<PartitionPlaceholder> holders) {
+			this.pathToken = pathToken;
+			this.tmpPath = tmpPath;
+			this.overwrite = overwrite;
+			this.fields = fields;
+			this.usePartition = usePartition;
+			this.encoding = encoding;
+			this.holders = holders;
+			this.useTab = useTab;
+			this.useBom = useBom;
 	}
 
 	@Override
@@ -111,6 +126,45 @@ public class OutputCsv extends QueryCommand {
 		return fields;
 	}
 
+	@Override
+	public void onStart(){
+		File jsonFile = new File(pathToken);
+		if (jsonFile.exists() && !overwrite)
+			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
+
+		if (!usePartition && jsonFile.getParentFile() != null)
+			jsonFile.getParentFile().mkdirs();
+		
+		this.f = jsonFile;
+		
+		char separator = useTab ? '\t' : ',';
+		this.writerFactory = new CsvLineWriterFactory(fields, encoding, separator, useBom);
+		
+		try {
+			if (!usePartition) {
+				String path = pathToken;
+				if (tmpPath != null)
+					path = tmpPath;
+
+				this.writer = writerFactory.newWriter(path);
+				mover = new LocalFileMover();
+			} else {
+				//this.holders = holders;
+				this.outputs = new HashMap<List<String>, PartitionOutput>();
+			}
+		}catch(QueryParseInsideException t){
+			close();
+			throw t;
+		} catch (Throwable t) {
+			close();
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("msg", t.getMessage());
+			throw new QueryParseException("30203",  -1, -1, params);
+			//throw new QueryParseException("io-error", -1);
+		}
+		
+	}
+	
 	@Override
 	public void onPush(Row m) {
 		try {

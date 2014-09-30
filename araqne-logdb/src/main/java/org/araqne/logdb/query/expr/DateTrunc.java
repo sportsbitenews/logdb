@@ -19,7 +19,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.TimeUnit;
@@ -35,7 +35,9 @@ public class DateTrunc implements Expression {
 
 	public DateTrunc(QueryContext ctx, List<Expression> exprs) {
 		if (exprs.size() < 2)
-			throw new QueryParseException("invalid-datetrunc-args", -1);
+	//		throw new QueryParseException("invalid-datetrunc-args", -1);
+			throw new QueryParseInsideException("90640", -1, -1  , null);
+
 
 		this.valueExpr = exprs.get(0);
 		this.span = TimeSpan.parse(exprs.get(1).eval(null).toString());

@@ -22,10 +22,11 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.IoHelper;
 
@@ -49,8 +50,12 @@ public class CsvLineWriter implements LineWriter {
 		this.writer = new CSVWriter(new OutputStreamWriter(os, Charset.forName(encoding)), separator);
 
 		if (useBom) {
-			if (!boms.containsKey(encoding))
-				throw new QueryParseException("unsuported-encoding: " + encoding, -1);
+			if (!boms.containsKey(encoding)){
+				//throw new QueryParseExceptio("unsuported-encoding: " + encoding, -1);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("encoding",encoding);
+				throw new QueryParseInsideException("30600", -1, -1, params);
+			}
 
 			for (Integer bom : boms.get(encoding))
 				os.write(bom);

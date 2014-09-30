@@ -19,7 +19,7 @@ import java.util.List;
 
 import org.araqne.codec.Base64;
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +36,8 @@ public class FromBase64 implements Expression {
 
 	public FromBase64(QueryContext ctx, List<Expression> exprs) {
 		if (exprs.size() < 1)
-			throw new QueryParseException("frombase64-arg-missing", -1);
+		//	throw new QueryParseException("frombase64-arg-missing", -1);
+			throw new QueryParseInsideException("90680", -1, -1, null);
 
 		this.dataExpr = exprs.get(0);
 	}

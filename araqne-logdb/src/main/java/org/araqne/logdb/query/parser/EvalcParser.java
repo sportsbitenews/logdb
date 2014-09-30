@@ -41,16 +41,19 @@ public class EvalcParser extends AbstractQueryCommandParser {
 		// find assignment symbol
 		int p = QueryTokenizer.findKeyword(commandString, "=");
 		if (p < 0)
-			throw new QueryParseException("assign-token-not-found", commandString.length());
+			//throw new QueryParseException("assign-token-not-found", commandString.length());
+			throw new QueryParseException("20200", COMMAND.length()  + 1, commandString.length() -1, null);
 
 		String constantName = commandString.substring(COMMAND.length(), p).trim();
 		String exprToken = commandString.substring(p + 1).trim();
 
 		if (constantName.isEmpty())
-			throw new QueryParseException("constant-name-not-found", commandString.length());
+			//throw new QueryParseException("constant-name-not-found", commandString.length());
+			throw new QueryParseException("20201", COMMAND.length()  + 1,  p - 1, null);
 
 		if (exprToken.isEmpty())
-			throw new QueryParseException("expression-not-found", commandString.length());
+			//throw new QueryParseException("expression-not-found", commandString.length());
+			throw new QueryParseException("20202", p + 1, commandString.length() -1, null);
 
 		Expression expr = ExpressionParser.parse(context, exprToken, getFunctionRegistry());
 		return new Evalc(context, constantName, expr);

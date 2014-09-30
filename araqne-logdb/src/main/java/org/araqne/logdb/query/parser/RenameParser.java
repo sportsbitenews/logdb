@@ -15,6 +15,9 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
@@ -31,15 +34,23 @@ public class RenameParser extends AbstractQueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
-		if (tokens.size() < 3)
-			throw new QueryParseException("as-token-not-found", commandString.length());
+		if (tokens.size() < 2)
+			//throw new QueryParseException("as-token-not-found", commandString.length());
+			throw new QueryParseException("20800",  getCommandName().length() + 1,  commandString.length() - 1, null);
 
 		if (tokens.size() < 4)
-			throw new QueryParseException("to-field-not-found", commandString.length());
+			//throw new QueryParseException("to-field-not-found", commandString.length());
+			throw new QueryParseException("20801", QueryTokenizer.findIndexOffset(tokens, 1),  commandString.length() - 1, null);
 
-		if (!tokens.string(2).equalsIgnoreCase("as"))
-			throw new QueryParseException("invalid-as-position", -1);
-
+		if (!tokens.string(2).equalsIgnoreCase("as")){
+		//throw new QueryParseException("invalid-as-position", -1);
+			String AS = tokens.string(2);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("AS", AS);
+			int offset = QueryTokenizer.findIndexOffset(tokens, 2);
+			throw new QueryParseException("20802", offset , offset + AS.length() - 1, params);
+		}
+			
 		String from = tokens.firstArg();
 		String to = tokens.lastArg();
 		return new Rename(from, to);

@@ -48,8 +48,10 @@ public class SortParser extends AbstractQueryCommandParser {
 			List<SortField> fields = SortField.parseSortFields(commandString, r);
 			return new Sort(count, fields.toArray(new SortField[0]));
 		} catch (QueryParseException e) {
-			if (e.getType().equals("need-string-token"))
-				throw new QueryParseException("need-column", r.next);
+			//if (e.getType().equals("need-string-token"))
+			//	throw new QueryParseException("need-column", r.next);
+			if (e.getType().equals("90004"))
+				throw new QueryParseException("21600", r.next, commandString.length() - 1, null);
 			throw e;
 		}
 	}

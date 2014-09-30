@@ -43,7 +43,10 @@ public class Logger extends DriverQueryCommand {
 			}
 		} catch (Throwable t) {
 			logger.error("araqne logdb: failed to load logger status");
-			throw new QueryParseException("logger-load-fail", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("msg", t.getMessage());
+			throw new QueryParseException("60000", -1, -1, params);
+		//	throw new QueryParseException("logger-load-fail", -1);
 		}
 	}
 }

@@ -77,5 +77,12 @@ public class ExecParserTest {
 		assertTrue(arg1 instanceof EvalField);
 		assertEquals("path", arg1.toString());
 	}
-
+	
+	@Test
+	public void testErr20300(){
+		Exec exec = (Exec) parser.parse(null, "exec run.bat");
+		assertEquals("run.bat", exec.getCommand());
+		
+	}
+	
 }

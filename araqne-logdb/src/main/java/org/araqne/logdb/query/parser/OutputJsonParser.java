@@ -15,7 +15,6 @@
  */
 package org.araqne.logdb.query.parser;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -45,8 +44,9 @@ public class OutputJsonParser extends AbstractQueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
-			throw new QueryParseException("missing-field", commandString.length());
-
+		//	throw new QueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("30300", commandString.trim().length() -1, commandString.trim().length() -1 , null);
+			
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
 				Arrays.asList("overwrite", "tmp", "partition", "encoding"), getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -60,14 +60,17 @@ public class OutputJsonParser extends AbstractQueryCommandParser {
 
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
 		if (tokens.size() < 1)
-			throw new QueryParseException("missing-field", tokens.size());
-
+		//	throw new QueryParseException("missing-field", tokens.size());
+			throw new QueryParseException("30302", getCommandName().length() + 1 , commandString.length() - 1, null) ;
+		
 		String filePath = tokens.string(0);
 		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
 
 		List<PartitionPlaceholder> holders = PartitionPlaceholder.parse(filePath);
 		if (!usePartition && holders.size() > 0)
-			throw new QueryParseException("use-partition-option", -1, holders.size() + " partition holders");
+		//	throw new QueryParseException("use-partition-option", -1, holders.size() + " partition holders");
+			throw new QueryParseException("30301", getCommandName().length() + 1, commandString.length() - 1, null);
+
 
 		List<String> fields = new ArrayList<String>();
 
@@ -83,12 +86,13 @@ public class OutputJsonParser extends AbstractQueryCommandParser {
 				fields.add(tok.nextToken().trim());
 		}
 
-		File jsonFile = new File(filePath);
-		if (jsonFile.exists() && !overwrite)
-			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
-
-		if (!usePartition && jsonFile.getParentFile() != null)
-			jsonFile.getParentFile().mkdirs();
-		return new OutputJson(jsonFile, filePath, overwrite, fields, encoding, usePartition, tmpPath, holders);
+//		File jsonFile = new File(filePath);
+//		if (jsonFile.exists() && !overwrite)
+//			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
+//
+//		if (!usePartition && jsonFile.getParentFile() != null)
+//			jsonFile.getParentFile().mkdirs();
+//	  	return new OutputJson(jsonFile, filePath, overwrite, fields, encoding, usePartition, tmpPath, holders);
+		return new OutputJson(filePath, overwrite, fields, encoding, usePartition, tmpPath, holders);
 	}
 }

@@ -39,12 +39,19 @@ public class TimechartParserTest {
 	public void testInsufficientCommand() {
 		TimechartParser p = new TimechartParser();
 		p.setQueryParserService(queryParserService);
+		String query = "timecahrt";
 		
 		try {
-			p.parse(null, "timechart");
+			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("need-aggregation-field", e.getType());
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("21800", e.getType());
+			assertEquals(10, e.getOffsetS());
+			assertEquals(8, e.getOffsetE());
 		}
 	}
 

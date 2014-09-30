@@ -33,22 +33,26 @@ public class SetParser extends AbstractQueryCommandParser {
 	public String getCommandName() {
 		return "set";
 	}
-
+ 
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		// find assignment symbol
 		int p = QueryTokenizer.findKeyword(commandString, "=");
 		if (p < 0)
-			throw new QueryParseException("assign-token-not-found", commandString.length());
+		//	throw new QueryParseException("assign-token-not-found", commandString.length());
+			throw new QueryParseException("10400", getCommandName().length()  + 1 ,commandString.length() -1 , null);
 
 		String field = commandString.substring(getCommandName().length(), p).trim();
 		String exprToken = commandString.substring(p + 1).trim();
 
 		if (field.isEmpty())
-			throw new QueryParseException("field-name-not-found", commandString.length());
+		//	throw new QueryParseException("field-name-not-found", commandString.length());
+			throw new QueryParseException("10401", getCommandName().length()  + 1,  p - 1, null);
+
 
 		if (exprToken.isEmpty())
-			throw new QueryParseException("expression-not-found", commandString.length());
+		//	throw new QueryParseException("expression-not-found", commandString.length());
+			throw new QueryParseException("10402", p + 1, commandString.length() -1, null);
 
 		Expression expr = ExpressionParser.parse(context, exprToken, getFunctionRegistry());
 		context.getConstants().put(field, expr.eval(null));

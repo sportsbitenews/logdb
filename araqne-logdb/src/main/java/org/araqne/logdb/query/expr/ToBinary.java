@@ -17,10 +17,12 @@ package org.araqne.logdb.query.expr;
 
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
 
 /**
@@ -34,7 +36,8 @@ public class ToBinary implements Expression {
 
 	public ToBinary(QueryContext ctx, List<Expression> exprs) {
 		if (exprs.size() < 1)
-			throw new QueryParseException("missing-data", -1);
+		//	throw new QueryParseException("missing-data", -1);
+			throw new QueryParseInsideException("90810", -1, -1, null);
 
 		this.data = exprs.get(0);
 
@@ -48,7 +51,10 @@ public class ToBinary implements Expression {
 		try {
 			this.charset = Charset.forName(charsetName);
 		} catch (UnsupportedCharsetException e) {
-			throw new QueryParseException("unsupported-charset", -1, charsetName);
+			//throw new QueryParseException("unsupported-charset", -1, charsetName);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("charset", charsetName);
+			throw new QueryParseInsideException("90811", -1, -1, params);
 		}
 	}
 

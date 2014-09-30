@@ -46,25 +46,43 @@ public class ConfdbParser extends AbstractQueryCommandParser {
 	public QueryCommand parse(QueryContext context, String commandString) {
 		boolean allowed = context != null && context.getSession() != null && context.getSession().isAdmin();
 		if (!allowed)
-			throw new QueryParseException("no-read-permission", -1, "admin only");
+		//	throw new QueryParseException("no-read-permission", -1, "admin only");
+			throw new QueryParseException("10000", -1, -1, null);
 
 		String s = commandString.substring(getCommandName().length());
 		QueryTokens tokens = QueryTokenizer.tokenize(s);
 
 		if (tokens.size() < 1)
-			throw new QueryParseException("missing-confdb-op", -1);
-
-		Confdb.Op op = Confdb.Op.parse(tokens.string(0));
+		//	throw new QueryParseException("missing-confdb-op", -1);
+			throw new QueryParseException("10001", getCommandName().length() + 1, commandString.length() - 1, null);
+			
+		
+		Confdb.Op op = null;
+		try {
+			op = Confdb.Op.parse(tokens.string(0));;
+		} catch (QueryParseException t) {
+			if(t.getType().equals("10004")){
+				String ops = t.getParams().get("op");
+				int offset = QueryTokenizer.findKeyword(commandString,ops, getCommandName().length());
+				throw new QueryParseException(t.getType(), offset,  offset + ops.length() - 1,  t.getParams() );
+			}else{
+				throw t;
+			}
+		}
+		
+		
 		ConfdbOptions options = new ConfdbOptions();
 		options.setOp(op);
 
 		if (op == Op.COLS) {
 			if (tokens.size() < 2)
-				throw new QueryParseException("missing-confdb-dbname", -1);
-			options.setDbName(tokens.string(1));
+			//	throw new QueryParseException("missing-confdb-dbname", -1);
+				throw new QueryParseException("10002", commandString.length() - 1, commandString.length() - 1, null);
+				options.setDbName(tokens.string(1));
 		} else if (op == Op.DOCS) {
 			if (tokens.size() < 3)
-				throw new QueryParseException("missing-confdb-colname", -1);
+			//	throw new QueryParseException("missing-confdb-colname", -1);
+				throw new QueryParseException("10003", commandString.length() - 1,  commandString.length() - 1, null);
 			options.setDbName(tokens.string(1));
 			options.setColName(tokens.string(2));
 		}

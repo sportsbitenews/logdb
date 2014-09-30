@@ -114,18 +114,6 @@ public class QueryTokenizerTest {
 		assertEquals("10", options.get("limit"));
 	}
 
-	@Test
-	public void testOptions6() {
-		String query = "search offset = 1  limit=10 ";
-
-		try {
-			QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"), functionRegistry);
-			fail();
-		} catch (QueryParseException e) {
-			assertEquals("option-space-not-allowed", e.getType());
-		}
-	}
-
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testOptions7() {
@@ -137,14 +125,56 @@ public class QueryTokenizerTest {
 	}
 
 	@Test
-	public void testOptions8() {
-		String query = "textfile \"parser\"=\"<key = value>\" foo.txt";
+	public void testError90000() { 
+		String query = "search offset = 1  limit=10 ";
 
 		try {
-			QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("parser"), functionRegistry);
+			QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"), functionRegistry);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("invalid-option", e.getType());
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90000", e.getType());
+			assertEquals(13, e.getOffsetS());
+			assertEquals(13, e.getOffsetE());
+		}
+	}
+	
+	@Test
+	public void testError90001() { 
+		String query = "textfile limit=100 \"parser\"=\"<key = value>\" foo.txt";
+
+		try {
+			QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("parser", "limit"), functionRegistry);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90001", e.getType());
+			assertEquals(19, e.getOffsetS());
+			assertEquals(26, e.getOffsetE());
+		}
+	}
+
+	@Test
+	public void testError90002() {
+		String query = "textfile limit=100 parser=\"<key = value> foo.txt";
+
+		try {
+			QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("parser", "limit"), functionRegistry);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90002", e.getType());
+			assertEquals(26, e.getOffsetS());
+			assertEquals(47, e.getOffsetE());
 		}
 	}
 
@@ -162,5 +192,74 @@ public class QueryTokenizerTest {
 		String s = "table limit=1 iis | rex field=line \"(?<d>\\\\d+-\\\\d+-\\\\d+)\" | eval d2 = date(d, \"yyyy-MM-dd HH:mm:ss\") | fields d, d2";
 		List<String> commands = QueryTokenizer.parseCommands(s);
 		System.out.println(commands.get(1));
+	}
+
+	@Test
+	public void testError90003() {
+		String query = "table iis |    |";
+
+		try {
+			QueryTokenizer.parseCommands(query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90003", e.getType());
+			assertEquals(15, e.getOffsetS());
+			assertEquals(15, e.getOffsetE());
+		}
+
+		query = "table test |    ";
+
+		try {
+			QueryTokenizer.parseCommands(query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90003", e.getType());
+			assertEquals(15, e.getOffsetS());
+			assertEquals(15, e.getOffsetE());
+		}
+	}
+	
+	@Test
+	public void testError90004(){
+		String query = "";
+		
+		try {
+			QueryTokenizer.nextString(query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90004", e.getType());
+			assertEquals(0, e.getOffsetS());
+			assertEquals(0, e.getOffsetE());
+		}
+	}
+	
+	@Test
+	public void testError90005(){
+		String query = "\"table test";
+		
+		try {
+			QueryTokenizer.nextString(query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90005", e.getType());
+			assertEquals(query, e.getParams().get("value"));
+		}
+		
 	}
 }

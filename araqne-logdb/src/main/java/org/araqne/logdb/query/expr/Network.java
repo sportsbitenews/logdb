@@ -17,11 +17,13 @@ package org.araqne.logdb.query.expr;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.impl.InetAddresses;
 
 /**
@@ -37,8 +39,12 @@ public class Network implements Expression {
 	public Network(QueryContext ctx, List<Expression> exprs) {
 		this.valueExpr = exprs.get(0);
 		this.maskNumber = Integer.parseInt(exprs.get(1).eval(null).toString());
-		if (maskNumber < 0 || maskNumber > 128)
-			throw new QueryParseException("invalid-mask", -1);
+		if (maskNumber < 0 || maskNumber > 128){
+	//		throw new QueryParseException("invalid-mask", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("mask", maskNumber + "");
+			throw new QueryParseInsideException("90740", -1, -1, params);
+		}
 		initializeMask(maskNumber);
 	}
 

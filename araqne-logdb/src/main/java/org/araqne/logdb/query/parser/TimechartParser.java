@@ -70,8 +70,9 @@ public class TimechartParser extends AbstractQueryCommandParser {
 		}
 
 		if (fields.size() == 0)
-			throw new QueryParseException("need-aggregation-field", COMMAND.length());
-
+		//	throw new QueryParseException("need-aggregation-field", COMMAND.length());
+			throw new QueryParseException("21800", COMMAND.length() + 1, commandString.length() - 1, null);
+		
 		// parse timespan option
 		TimeSpan timeSpan = null;
 		if (options.containsKey("span"))

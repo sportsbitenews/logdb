@@ -1,6 +1,8 @@
 package org.araqne.logdb.query.expr;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -8,7 +10,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +27,8 @@ public class Decrypt implements Expression {
 
 	public Decrypt(QueryContext ctx, List<Expression> exprs) {
 		if (exprs.size() < 3)
-			throw new QueryParseException("insufficient-decrypt-args", -1);
+//			throw new QueryParseException("insufficient-decrypt-args", -1);
+			throw new QueryParseInsideException("90650", -1, -1  , null);
 
 		algorithm = exprs.get(0).eval(null).toString();
 		int p = algorithm.indexOf("/");
@@ -40,7 +43,11 @@ public class Decrypt implements Expression {
 		try {
 			cipher = Cipher.getInstance(algorithm);
 		} catch (Throwable t) {
-			throw new QueryParseException("invalid-cipher-algorithm", -1, algorithm);
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("algorithm", algorithm);
+			//throw new QueryParseException("invalid-cipher-algorithm", -1, algorithm);
+			throw new QueryParseInsideException("90651", -1, -1  , params);
+
 		}
 	}
 

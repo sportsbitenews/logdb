@@ -23,11 +23,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.araqne.logdb.FileMover;
 import org.araqne.logdb.PartitionOutput;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
@@ -46,7 +48,8 @@ import org.slf4j.LoggerFactory;
  */
 public class OutputTxt extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(OutputTxt.class.getName());
-	private String[] fields;
+	//private String[] fields;
+	private List<String> fields;
 	private String delimiter;
 	private String encoding;
 	private File f;
@@ -62,6 +65,7 @@ public class OutputTxt extends QueryCommand {
 	private LineWriter writer;
 	private LineWriterFactory writerFactory;
 
+	@Deprecated
 	public OutputTxt(File f, String filePath, String tmpPath, boolean overwrite, String delimiter,
 			List<String> fields, boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders) {
 		try {
@@ -73,7 +77,7 @@ public class OutputTxt extends QueryCommand {
 			this.filePath = filePath;
 			this.tmpPath = tmpPath;
 			this.overwrite = overwrite;
-			this.fields = fields.toArray(new String[0]);
+		//	this.fields = fields.toArray(new String[0]);
 			if (useGzip)
 				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding);
 			else
@@ -95,6 +99,21 @@ public class OutputTxt extends QueryCommand {
 			throw new QueryParseException("io-error", -1);
 		}
 	}
+	
+	public OutputTxt( String filePath, String tmpPath, boolean overwrite, String delimiter,
+			List<String> fields, boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders) {
+		
+			this.usePartition = usePartition;
+			this.useGzip = useGzip;
+			this.delimiter = delimiter;
+			this.encoding = encoding;
+			this.filePath = filePath;
+			this.tmpPath = tmpPath;
+			this.overwrite = overwrite;
+			this.fields = fields;
+			//this.fields = fields.toArray(new String[0]);
+			
+	}
 
 	@Override
 	public String getName() {
@@ -106,13 +125,53 @@ public class OutputTxt extends QueryCommand {
 	}
 
 	public List<String> getFields() {
-		return Arrays.asList(fields);
+		return fields;// Arrays.asList(fields);
 	}
 
 	public String getDelimiter() {
 		return delimiter;
 	}
 
+	@Override
+	public void onStart(){
+		File jsonFile = new File(filePath);
+		if (jsonFile.exists() && !overwrite)
+			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
+
+		if (!usePartition && jsonFile.getParentFile() != null)
+			jsonFile.getParentFile().mkdirs();
+		
+		this.f = jsonFile;
+		
+		try {
+		
+			if (useGzip)
+				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding);
+			else
+				writerFactory = new PlainLineWriterFactory(fields, delimiter, encoding);
+			
+			if (!usePartition) {
+				String path = filePath;
+				if (tmpPath != null)
+					path = tmpPath;
+
+				this.writer = writerFactory.newWriter(path);
+			} else {
+			//	this.holders = holders;
+				this.outputs = new HashMap<List<String>, PartitionOutput>();
+			}
+		}catch(QueryParseInsideException t){
+			close();
+			throw t;
+		} catch (Throwable t) {
+			close();
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("msg", t.getMessage());
+			throw new QueryParseException("30405",  -1, -1, params);
+			//throw new QueryParseException("io-error", -1);
+		}
+	}
+	
 	@Override
 	public void onPush(RowBatch rowBatch) {
 		try {
@@ -235,7 +294,8 @@ public class OutputTxt extends QueryCommand {
 		String path = " " + filePath;
 
 		String fieldsOption = "";
-		if (fields.length > 0)
+		//if (fields.length > 0)
+		if (fields.size() > 0)
 			fieldsOption = " " + Strings.join(getFields(), ", ");
 
 		return "outputtxt" + overwriteOption + encodingOption + compressionOption + delimiterOption + partitionOption

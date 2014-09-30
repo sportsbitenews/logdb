@@ -22,12 +22,14 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 import java.util.StringTokenizer;
 
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParseInsideException;
 
 public class QueryTokenizer {
 	private QueryTokenizer() {
@@ -51,9 +53,14 @@ public class QueryTokenizer {
 
 			if (validKeys.size() > 0 && !validKeys.contains(key)) {
 				if (validKeys.contains(key.trim()))
-					throw new QueryParseException("option-space-not-allowed", next);
-
-				throw new QueryParseException("invalid-option", -1, key);
+				//	throw new QueryParseException("option-space-not-allowed", next);
+					throw new QueryParseException("90000", offset + next, offset + next, null);
+				
+				//throw new QueryParseException("invalid-option", -1, key);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("option", key);
+				int offsetS= s.indexOf(key, offset);
+				throw new QueryParseException("90001", offsetS, offsetS + key.length() -1 , params);
 			}
 
 			if (s.charAt(p + 1) == '"') {
@@ -71,8 +78,9 @@ public class QueryTokenizer {
 				}
 
 				if (closingQuote == -1)
-					throw new QueryParseException("string-quote-mismatch", s.length());
-
+					//throw new QueryParseException("string-quote-mismatch", s.length());
+					throw new QueryParseException("90002", p + 1, s.length() - 1, null);
+				
 				String quotedValue = s.substring(p + 2, closingQuote);
 				quotedValue = ExpressionParser.evalContextReference(context, quotedValue, functionRegistry);
 				options.put(key, quotedValue);
@@ -174,7 +182,8 @@ public class QueryTokenizer {
 				if (c == '|' && !quoted && sqStack.isEmpty()) {
 					String cmd = sb.toString();
 					if (cmd.trim().isEmpty())
-						throw new QueryParseException("empty-command", -1);
+				//		throw new QueryParseException("empty-command", -1);
+						throw new QueryParseException("90003", p, p, null);
 					l.add(cmd);
 					sb = new StringBuilder();
 				} else
@@ -187,8 +196,10 @@ public class QueryTokenizer {
 
 		if (sb.length() > 0) {
 			String cmd = sb.toString();
-			if (cmd.trim().isEmpty())
-				throw new QueryParseException("empty-command", -1);
+			if (cmd.trim().isEmpty()){
+				//throw new QueryParseException("empty-command", -1);
+				throw new QueryParseException("90003", query.length() -1 , query.length() -1, null);
+			}
 			l.add(cmd);
 		}
 
@@ -248,8 +259,9 @@ public class QueryTokenizer {
 
 		int begin = i;
 
-		if (text.length() <= begin)
-			throw new QueryParseException("need-string-token", begin);
+		if (text.length() <= begin){
+			throw new QueryParseException("90004", 0, 0, null);
+		}
 
 		i = nextString(sb, text, i, delim);
 
@@ -300,8 +312,12 @@ public class QueryTokenizer {
 			}
 		}
 
-		if (quote)
-			throw new QueryParseException("string-quote-mismatch", i);
+		if (quote){
+			//throw new QueryParseException("string-quote-mismatch", i);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("value", text);
+			throw new QueryParseException("90005", -1, -1, params);
+		}
 
 		return i;
 	}
@@ -309,7 +325,7 @@ public class QueryTokenizer {
 	public static int findKeyword(String haystack, String needle) {
 		return findKeyword(haystack, needle, 0);
 	}
-
+	
 	/**
 	 * find outermost keyword from query (ignore keyword in string or function
 	 * call)
@@ -410,4 +426,39 @@ public class QueryTokenizer {
 		}
 	}
 
+	/*
+	 * get position of n-th index of tokens
+	 */
+	public static int findIndexOffset(QueryTokens tokens, int index){
+		return index<=0? skipSpaces(tokens.query(), 0) : 
+			skipSpaces(tokens.query(), findIndexOffset(tokens, index - 1) + tokens.string(index - 1).length());
+	}
+	
+	public static int findIndexOffset(String query, int index){
+		return index<=0? skipSpaces(query, 0): 
+			skipSpaces(query, skipNonSpaces(query,  findIndexOffset(query, index -1)));	
+	}
+	
+	public static int skipNonSpaces(String text, int position) {
+		int i = position;
+
+		while (i < text.length() && text.charAt(i) != ' ')
+			i++;
+		
+		return i;
+	}
+	
+	public static int indexOfValue(String subQuery, String keyword){
+		return indexOfValue(subQuery, keyword, '=');
+	}
+
+	public static int indexOfValue(String subQuery, String keyword, char delim){
+		int index = subQuery.indexOf(keyword);
+		return index<0? index: subQuery.indexOf(delim, index);
+	}
 }
+
+
+
+
+

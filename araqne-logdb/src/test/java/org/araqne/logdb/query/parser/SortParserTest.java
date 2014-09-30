@@ -133,12 +133,16 @@ public class SortParserTest {
 		try {
 			SortParser p = new SortParser();
 			p.setQueryParserService(queryParserService);
-			
 			p.parse(null, command);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("need-column", e.getType());
-			assertEquals(13, (int) e.getOffset());
+			if(e.isDebugMode()){
+				System.out.println("query " + command);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("21600", e.getType());
+			assertEquals(13, e.getOffsetS());
+			assertEquals(12, e.getOffsetE());	
 		}
 	}
 
@@ -152,8 +156,13 @@ public class SortParserTest {
 			p.parse(null, command);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("need-column", e.getType());
-			assertEquals(5, (int) e.getOffset());
+			if(e.isDebugMode()){
+				System.out.println("query " + command);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("21600", e.getType());
+			assertEquals(5, e.getOffsetS());
+			assertEquals(4, e.getOffsetE());	
 		}
 	}
 }

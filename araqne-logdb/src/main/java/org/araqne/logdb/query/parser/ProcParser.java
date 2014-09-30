@@ -17,7 +17,9 @@ package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,8 +29,8 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.FunctionFactory;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.Procedure;
-import org.araqne.logdb.ProcedureRegistry;
 import org.araqne.logdb.ProcedureParameter;
+import org.araqne.logdb.ProcedureRegistry;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
@@ -62,8 +64,9 @@ public class ProcParser extends AbstractQueryCommandParser {
 
 		Procedure procedure = procedureRegistry.getProcedure(procFunc.procedureName);
 		if (procedure == null)
-			throw new QueryParseException("procedure-not-found", -1);
-
+		//	throw new QueryParseException("procedure-not-found", -1);
+			throw new QueryParseException("11000",  getCommandName().length() + 1, commandString.length() - 1, null);
+			
 		// parameter evaluation
 		List<Object> params = new ArrayList<Object>();
 		for (Expression e : procFunc.exprs)
@@ -74,25 +77,55 @@ public class ProcParser extends AbstractQueryCommandParser {
 		for (ProcedureParameter var : procedure.getParameters()) {
 			Object param = params.get(i++);
 			if (var.getType().equals("string") && param != null && !(param instanceof String)) {
-				throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
+				Map<String, String> parameter = new HashMap<String, String>();
+				parameter.put("param", param.toString());
+				parameter.put("type", "string");
+				int offset = QueryTokenizer.findKeyword(commandString,  procedure.getName()) +  procedure.getName().length();
+				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
+				//throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
 			} else if (var.getType().equals("int") && param != null && !(param instanceof Integer)) {
-				throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
+				Map<String, String> parameter = new HashMap<String, String>();
+				parameter.put("param", param.toString());
+				parameter.put("type", "int");
+				int offset = QueryTokenizer.findKeyword(commandString,  procedure.getName()) +  procedure.getName().length();
+				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
+			//	throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
 			} else if (var.getType().equals("double") && param != null && !(param instanceof Double)) {
-				throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
+				Map<String, String> parameter = new HashMap<String, String>();
+				parameter.put("param", param.toString());
+				parameter.put("type", "double");
+				int offset = QueryTokenizer.findKeyword(commandString,  procedure.getName()) +  procedure.getName().length();
+				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
+				//throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
 			} else if (var.getType().equals("bool") && param != null && !(param instanceof Boolean)) {
-				throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
+				Map<String, String> parameter = new HashMap<String, String>();
+				parameter.put("param", param.toString());
+				parameter.put("type", "bool");
+				int offset = QueryTokenizer.findKeyword(commandString,  procedure.getName()) +  procedure.getName().length();
+				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
+				//throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
 			}
 		}
 
 		// owner delegation
 		Account account = accountService.getAccount(procedure.getOwner());
-		if (account == null)
-			throw new QueryParseException("procedure-owner-not-found", -1);
-
+		if (account == null){
+		//	throw new QueryParseException("procedure-owner-not-found", -1);
+			Map<String, String> parameter = new HashMap<String, String>();
+			parameter.put("owner", procedure.getOwner() );
+			throw new QueryParseException("11002", -1, -1, parameter);
+		}
+		
 		QueryContext procCtx = new QueryContext(new DummySession(account));
 
-		if (procedure.getParameters().size() != procFunc.exprs.size())
-			throw new QueryParseException("procedure-parameter-mismatch", -1);
+		if (procedure.getParameters().size() != procFunc.exprs.size()){
+		//	throw new QueryParseException("procedure-parameter-mismatch", -1);
+			Map<String, String> parameter = new HashMap<String, String>();
+			parameter.put("params", procFunc.exprs.size() + "");
+			parameter.put("preset", procedure.getParameters().size() + "");
+			
+			throw new QueryParseException("11003", getCommandName().length() + 1, commandString.length() - 1, parameter);
+		}
 
 		i = 0;
 		for (Object param : params) {

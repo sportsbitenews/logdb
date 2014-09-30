@@ -17,6 +17,7 @@ package org.araqne.logdb.query.parser;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
@@ -65,9 +66,14 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 			}
 
 			File f = new File(filePath);
-			if (!f.exists() || !f.canRead())
-				throw new QueryParseException("invalid-jsonfile-path", -1);
-
+			if (!f.exists() || !f.canRead()){
+			//	throw new QueryParseException("invalid-jsonfile-path", -1);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("file",filePath);
+				int offsetS = QueryTokenizer.findKeyword(commandString, filePath, r.next);
+				throw new QueryParseException("10900",  offsetS, offsetS + filePath.length() -1, params );
+			}
+			
 			String parserName = options.get("parser");
 			LogParser parser = null;
 			if (parserName != null) {
@@ -81,7 +87,9 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 			String parseTarget = options.get("parsetarget");
 
 			return new JsonFile(filePath, parser, parseTarget, overlay, offset, limit);
-		} catch (Throwable t) {
+		} catch(QueryParseException t){
+			throw t;
+		}catch (Throwable t) {
 			throw new RuntimeException("cannot create jsonfile source", t);
 		}
 	}

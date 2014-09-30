@@ -18,8 +18,8 @@ package org.araqne.logdb.query.expr;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryParseException;
 
 public class ToInt implements Expression {
 
@@ -35,7 +35,8 @@ public class ToInt implements Expression {
 			this.radix = (Integer) exprs.get(1).eval(null);
 
 		if (radix != 10)
-			throw new QueryParseException("invalid-argument", -1, "radix should be 10");
+		//	throw new QueryParseException("invalid-argument", -1, "radix should be 10");
+			throw new QueryParseInsideException("90830", -1, -1, null);
 	}
 
 	@Override
