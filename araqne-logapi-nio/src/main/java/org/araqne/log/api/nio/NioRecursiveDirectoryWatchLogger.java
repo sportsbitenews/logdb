@@ -47,6 +47,7 @@ import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStartReason;
+import org.araqne.log.api.LoggerStatus;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.MultilineLogExtractor;
 import org.araqne.log.api.Reconfigurable;
@@ -69,6 +70,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	private MultilineLogExtractor extractor;
 
 	private boolean walkTreeRequired = true;
+	private boolean walkForceStopped = false;
 
 	public NioRecursiveDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
@@ -155,6 +157,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		if (detector.deadThread)
 			throw new IllegalStateException("dead file watcher, logger[ [" + getFullName() + "]");
 
+		walkForceStopped = false;
 		if (walkTreeRequired) {
 			try {
 				Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
@@ -167,7 +170,8 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 				}
 
 				setStates(LastPositionHelper.serialize(lastPositions));
-				walkTreeRequired = false;
+				if (!walkForceStopped)
+					walkTreeRequired = false;
 			} catch (IOException e) {
 				throw new IllegalStateException("failed to initial run, logger [" + getFullName() + "]", e);
 			}
@@ -326,23 +330,37 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 		@Override
 		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+			LoggerStatus status = getStatus();
+			if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped) {
+				slog.debug("araqne log api: stop logger [{}] initial runner.", getFullName());
+				walkForceStopped = true;
+				return FileVisitResult.TERMINATE;
+			}
 
 			if (!root.equals(dir) && !recursive) {
 				slog.debug("araqne-logapi-nio: logger [{}] skip directory [{}]", getFullName(), dir.toFile().getAbsolutePath());
 				return FileVisitResult.SKIP_SUBTREE;
 			}
-			
+
 			slog.debug("araqne-logapi-nio: logger [{}] visit directory [{}]", getFullName(), dir.toFile().getAbsolutePath());
 			return FileVisitResult.CONTINUE;
 		}
 
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+			LoggerStatus status = getStatus();
+			if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped) {
+				slog.debug("araqne log api: stop logger [{}] initial runner.", getFullName());
+				walkForceStopped = true;
+				return FileVisitResult.TERMINATE;
+			}
+
 			slog.debug("araqne-logapi-nio: logger [{}] visit file [{}]", getFullName(), file.toFile().getAbsolutePath());
 
 			File f = file.toFile();
 			if (dirPathPattern != null && !dirPathPattern.matcher(f.getParentFile().getAbsolutePath()).find()) {
 				slog.debug("araqne-logapi-nio: logger [{}] skip file [{}]", getFullName(), f.getAbsolutePath());
+				walkForceStopped = true;
 				return FileVisitResult.CONTINUE;
 			}
 
@@ -353,12 +371,26 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 		@Override
 		public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+			LoggerStatus status = getStatus();
+			if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped) {
+				slog.debug("araqne log api: stop logger [{}] initial runner.", getFullName());
+				walkForceStopped = true;
+				return FileVisitResult.TERMINATE;
+			}
+
 			slog.debug("araqne-logapi-nio: logger [{}] visit file failed [{}]", getFullName(), exc.getMessage());
 			return FileVisitResult.CONTINUE;
 		}
 
 		@Override
 		public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+			LoggerStatus status = getStatus();
+			if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped) {
+				slog.debug("araqne log api: stop logger [{}] initial runner.", getFullName());
+				walkForceStopped = true;
+				return FileVisitResult.TERMINATE;
+			}
+
 			return FileVisitResult.CONTINUE;
 		}
 	}
