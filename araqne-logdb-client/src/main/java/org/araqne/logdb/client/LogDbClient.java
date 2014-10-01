@@ -2353,7 +2353,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("instance_guid", instanceGuid);
 
-		Message resp = rpc("org.araqne.logdb.msgbus.FederationPlugin.getNodeByGuid", params);
+		Message resp = rpc("com.logpresso.query.msgbus.FederationPlugin.getNodeByGuid", params);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> nodeInfo = (Map<String, Object>) resp.get("node");
 
@@ -2371,7 +2371,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("instance_guid", instanceGuid);
 
-		Message resp = rpc("org.araqne.logdb.msgbus.FederationPlugin.getPeerStatus", params);
+		Message resp = rpc("com.logpresso.query.msgbus.FederationPlugin.getPeerStatus", params);
 		return new PeerStatus(resp.get("peer_status"));
 	}
 }
