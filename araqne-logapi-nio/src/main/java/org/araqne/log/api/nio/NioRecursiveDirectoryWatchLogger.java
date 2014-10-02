@@ -54,6 +54,9 @@ import org.araqne.log.api.Reconfigurable;
 
 public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(NioRecursiveDirectoryWatchLogger.class.getName());
+	private int pollInterval = 0;
+	private int pollTimeout = 100;
+
 	private String basePath;
 	private Pattern fileNamePattern;
 	private Pattern dirPathPattern;
@@ -75,10 +78,32 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	public NioRecursiveDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
 
+		loadPollConfigs();
+
 		if (slog.isDebugEnabled())
-			slog.debug("araqne-logapi-nio: recursive dirwatcher used nio");
+			slog.debug("araqne-logapi-nio: recursive dirwatcher uses nio");
 
 		applyConfig();
+	}
+
+	private void loadPollConfigs() {
+		String s = System.getProperty("araqne.nio.poll_interval");
+		if (s != null) {
+			try {
+				pollInterval = Integer.valueOf(s);
+				slog.info("araqne-logapi-nio: use recursive watcher poll interval [{}]", pollInterval);
+			} catch (Throwable t) {
+			}
+		}
+
+		s = System.getProperty("araqne.nio.poll_timeout");
+		if (s != null) {
+			try {
+				pollTimeout = Integer.valueOf(s);
+				slog.info("araqne-logapi-nio: use recursive watcher poll timeout [{}]", pollTimeout);
+			} catch (Throwable t) {
+			}
+		}
 	}
 
 	@Override
@@ -432,7 +457,15 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 				evtWatcher.addListener(detector);
 
 				while (!doStop) {
-					evtWatcher.poll(100);
+					evtWatcher.poll(pollTimeout);
+
+					if (pollInterval > 0) {
+						try {
+							Thread.sleep(pollInterval);
+						} catch (InterruptedException e) {
+							slog.debug("araqne-logapi-nio: watcher poll sleep interrupted");
+						}
+					}
 				}
 			} catch (IOException e) {
 				slog.error("araqne-logapi-nio: cannot poll file event for logger [" + getFullName() + "]", e);
