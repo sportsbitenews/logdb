@@ -134,9 +134,6 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			if (state == null)
 				return;
 
-			if (state.isPending())
-				newLogger.setPending(true);
-
 			slog.info("araqne log api: logger [{}] is loaded", config.getFullname());
 			if (!config.isManualStart() && state.isEnabled() && !newLogger.isPending()) {
 				newLogger.start(LoggerStartReason.SYSTEM_REQUEST, state.getInterval());
@@ -237,10 +234,12 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			LogTransformerRegistry transformerRegistry = getTransformerRegistry();
 			LogTransformer transformer = null;
 			if (transformerName != null) {
+				logger.setPending(true);
 				if (transformerRegistry.getProfile(transformerName) != null) {
 					try {
 						transformer = transformerRegistry.newTransformer(transformerName);
 						logger.setTransformer(transformer);
+						logger.setPending(false);
 					} catch (LogTransformerNotReadyException e) {
 						slog.debug(
 								"araqne log api: cannot load transformer [" + transformerName + "] for logger ["
