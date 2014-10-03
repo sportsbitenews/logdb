@@ -729,7 +729,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	public void setTransformer(LogTransformer transformer) {
 		this.transformer = transformer;
 
-		if (isPending() && transformer != null)
+		if (enabled && isPending() && transformer != null)
 			start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
 		if (enabled && config.get("transformer") != null && transformer == null) {
 			stop(LoggerStopReason.TRANSFORMER_DEPENDENCY, 5000);
