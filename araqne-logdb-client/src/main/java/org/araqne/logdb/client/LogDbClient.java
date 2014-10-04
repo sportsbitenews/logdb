@@ -375,7 +375,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	 *            DB 암호
 	 */
 	public void connect(String host, String loginName, String password) throws IOException {
-		connect(host, 80, loginName, password);
+		connect(host, 8888, loginName, password);
 	}
 
 	/**
