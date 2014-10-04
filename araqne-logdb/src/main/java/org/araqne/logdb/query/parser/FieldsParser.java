@@ -49,8 +49,9 @@ public class FieldsParser extends AbstractQueryCommandParser {
 
 		for (String t : args) {
 			String[] csv = t.split(",");
-			for (String s : csv)
-				fields.add(s);
+			for (String s : csv) {
+				fields.add(s.trim());
+			}
 		}
 
 		return new Fields(fields, selector);

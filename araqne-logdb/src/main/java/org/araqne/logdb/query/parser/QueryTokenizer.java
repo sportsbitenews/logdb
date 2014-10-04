@@ -199,7 +199,7 @@ public class QueryTokenizer {
 		List<QueryToken> l = new ArrayList<QueryToken>();
 
 		// TODO: consider quote-string and backslash escape
-		StringTokenizer tok = new StringTokenizer(s, " ");
+		StringTokenizer tok = new StringTokenizer(s, " \n\t");
 		while (tok.hasMoreTokens())
 			l.add(new QueryToken(tok.nextToken(), -1));
 
