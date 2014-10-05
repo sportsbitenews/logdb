@@ -15,7 +15,9 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.LogParserRegistry;
@@ -23,6 +25,7 @@ import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.query.command.ParseWithAnchor;
 import org.araqne.logdb.query.command.Parse;
 
 /**
@@ -46,14 +49,54 @@ public class ParseParser extends AbstractQueryCommandParser {
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("overlay"),
-				getFunctionRegistry());
+		ParseResult r =
+				QueryTokenizer.parseOptions(
+						context, commandString, getCommandName().length(), Arrays.asList("overlay"),
+						getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overlay = CommandOptions.parseBoolean(options.get("overlay"));
 
-		String parserName = commandString.substring(r.next).trim();
-		if (parserName.isEmpty())
-			throw new QueryParseException("missing-parser-name", -1);
+		String remainder = commandString.substring(r.next).trim();
+
+		if (remainder.isEmpty())
+			throw new QueryParseException("missing-parameter", r.next);
+
+		if (registry.getProfile(remainder) != null)
+			return newParserFromRegistry(overlay, remainder);
+
+		List<String> parseByComma = QueryTokenizer.parseByComma(remainder);
+		List<String> anchors = new ArrayList<String>(parseByComma.size());
+		List<String> aliases = new ArrayList<String>(parseByComma.size());
+		for (String e : parseByComma) {
+			e = e.trim();
+			try {
+				ParseResult anchor = QueryTokenizer.nextString(e);
+				ParseResult as = QueryTokenizer.nextString(e, anchor.next);
+				ParseResult alias = QueryTokenizer.nextString(e, as.next);
+
+				if (!"as".equals(as.value))
+					throw new QueryParseException("syntax-error: \"as\" needed", remainder.indexOf(e));
+				
+				if (!QueryTokenizer.isQuoted((String) anchor.value))
+					throw new QueryParseException("syntax-error: anchor should be quoted", remainder.indexOf(e));
+
+				if (QueryTokenizer.isQuoted((String) alias.value))
+					throw new QueryParseException("syntax-error: alias should not be quoted", remainder.indexOf(e));
+
+				anchors.add((String) anchor.value);
+				aliases.add((String) alias.value);
+			} catch (QueryParseException ex) {
+				throw ex;
+			} catch (Throwable th) {
+				throw new IllegalStateException(th);
+			}
+
+		}
+
+		return new ParseWithAnchor(anchors, aliases);
+	}
+
+	private QueryCommand newParserFromRegistry(boolean overlay, String parserName) {
 
 		if (registry.getProfile(parserName) == null)
 			throw new QueryParseException("parser-not-found", -1);
