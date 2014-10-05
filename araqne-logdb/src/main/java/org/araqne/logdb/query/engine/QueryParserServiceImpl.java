@@ -63,7 +63,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 			for (String q : QueryTokenizer.parseCommands(queryString)) {
 				q = q.trim();
 
-				StringTokenizer tok = new StringTokenizer(q, " \t");
+				StringTokenizer tok = new StringTokenizer(q, " \n\t");
 				String commandType = tok.nextToken();
 				QueryCommandParser parser = commandParsers.get(commandType);
 				if (parser == null)
