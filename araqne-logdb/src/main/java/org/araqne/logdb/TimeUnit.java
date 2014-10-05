@@ -2,6 +2,7 @@ package org.araqne.logdb;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 public enum TimeUnit {
 	Second(Calendar.SECOND, 1000L, "s"), Minute(Calendar.MINUTE, 60 * 1000L, "m"), Hour(Calendar.HOUR_OF_DAY, 60 * 60 * 1000L,
@@ -16,6 +17,16 @@ public enum TimeUnit {
 	private static final int[] mon3Spans = new int[] { 1, 4, 7, 10 };
 	private static final int[] mon4Spans = new int[] { 1, 5, 9 };
 	private static final int[] mon6Spans = new int[] { 1, 7 };
+
+	private static long timeZoneOffset;
+	private static long timeZoneShift;
+
+	static {
+		timeZoneOffset = TimeZone.getDefault().getRawOffset();
+
+		// base to Monday, 00:00:00
+		timeZoneShift = timeZoneOffset + 86400000 * 3;
+	}
 
 	private TimeUnit(int calendarField, long millis, String acronym) {
 		this.calendarField = calendarField;
@@ -73,9 +84,9 @@ public enum TimeUnit {
 			long time = date.getTime();
 
 			int spanAmount = timeSpan.amount;
-			time += 291600000L; // base to Monday, 00:00:00
+			time += timeZoneShift;
 			time -= time % (spanField.millis * spanAmount);
-			time -= 291600000L;
+			time -= timeZoneShift;
 			return new Date(time);
 		}
 	}
