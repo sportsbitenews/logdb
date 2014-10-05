@@ -38,18 +38,20 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	public SelectorLogger(LoggerSpecification spec, LoggerFactory factory, LoggerRegistry loggerRegistry) {
 		super(spec, factory);
 		this.loggerRegistry = loggerRegistry;
+		this.loggerRegistry.addListener(this);
+
 		Map<String, String> config = spec.getConfig();
-		loggerName = config.get(OPT_SOURCE_LOGGER);
-		pattern = config.get(OPT_PATTERN);
+		this.loggerName = config.get(OPT_SOURCE_LOGGER);
+		this.pattern = config.get(OPT_PATTERN);
+		this.sourceLogger = loggerRegistry.getLogger(loggerName);
 	}
 
 	@Override
 	protected void onStart(LoggerStartReason reason) {
-		loggerRegistry.addListener(this);
-		Logger capturedLogger = sourceLogger;
-		if (capturedLogger != null) {
+		Logger captured = sourceLogger;
+		if (captured != null) {
 			slog.debug("araqne log api: connect pipe to source logger [{}]", loggerName);
-			capturedLogger.addLogPipe(receiver);
+			captured.addLogPipe(receiver);
 		} else
 			slog.debug("araqne log api: source logger [{}] not found", loggerName);
 	}
@@ -57,10 +59,10 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	@Override
 	protected void onStop(LoggerStopReason reason) {
 		try {
-			Logger capturedLogger = sourceLogger;
-			if (capturedLogger != null) {
+			Logger captured = sourceLogger;
+			if (captured != null) {
 				slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
-				capturedLogger.removeLogPipe(receiver);
+				captured.removeLogPipe(receiver);
 				loggerRegistry.removeListener(this);
 			}
 		} catch (RuntimeException e) {
@@ -82,7 +84,11 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	public void loggerAdded(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] loaded", loggerName);
-			logger.addLogPipe(receiver);
+			if (isRunning()) {
+				slog.debug("araqne log api: connect pipe to source logger [{}]", loggerName);
+				logger.addLogPipe(receiver);
+			}
+			
 			this.sourceLogger = logger;
 		}
 	}
@@ -91,6 +97,7 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 	public void loggerRemoved(Logger logger) {
 		if (logger.getFullName().equals(loggerName)) {
 			slog.debug("araqne log api: source logger [{}] unloaded", loggerName);
+			slog.debug("araqne log api: disconnect pipe from source logger [{}]", loggerName);
 			logger.removeLogPipe(receiver);
 			this.sourceLogger = null;
 		}
