@@ -51,22 +51,25 @@ public class ParseParser extends AbstractQueryCommandParser {
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r =
 				QueryTokenizer.parseOptions(
-						context, commandString, getCommandName().length(), Arrays.asList("overlay"),
+						context, commandString, getCommandName().length(), Arrays.asList("overlay", "field"),
 						getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overlay = CommandOptions.parseBoolean(options.get("overlay"));
+		String field = options.get("field");
 
 		String remainder = commandString.substring(r.next).trim();
 
 		if (remainder.isEmpty())
 			throw new QueryParseException("missing-parameter", r.next);
 
-		if (registry.getProfile(remainder) != null)
+		if (QueryTokenizer.findKeyword(remainder, "as") == -1) {
 			return newParserFromRegistry(overlay, remainder);
-
+		}
+		
 		List<String> parseByComma = QueryTokenizer.parseByComma(remainder);
 		List<String> anchors = new ArrayList<String>(parseByComma.size());
 		List<String> aliases = new ArrayList<String>(parseByComma.size());
+		
 		for (String e : parseByComma) {
 			e = e.trim();
 			try {
@@ -83,7 +86,7 @@ public class ParseParser extends AbstractQueryCommandParser {
 				if (QueryTokenizer.isQuoted((String) alias.value))
 					throw new QueryParseException("syntax-error: alias should not be quoted", remainder.indexOf(e));
 
-				anchors.add((String) anchor.value);
+				anchors.add(unquote((String) anchor.value));
 				aliases.add((String) alias.value);
 			} catch (QueryParseException ex) {
 				throw ex;
@@ -93,11 +96,14 @@ public class ParseParser extends AbstractQueryCommandParser {
 
 		}
 
-		return new ParseWithAnchor(anchors, aliases);
+		return new Parse("AnchorParser", new ParseWithAnchor(field, anchors, aliases), overlay);
+	}
+
+	private String unquote(String value) {
+		return value.substring(1, value.length() - 1);
 	}
 
 	private QueryCommand newParserFromRegistry(boolean overlay, String parserName) {
-
 		if (registry.getProfile(parserName) == null)
 			throw new QueryParseException("parser-not-found", -1);
 
