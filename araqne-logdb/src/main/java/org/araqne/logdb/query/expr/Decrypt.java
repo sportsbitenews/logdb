@@ -13,7 +13,7 @@ import org.araqne.logdb.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Decrypt implements Expression {
+public class Decrypt extends FunctionExpression {
 	private final Logger slog = LoggerFactory.getLogger(Decrypt.class);
 
 	private Cipher cipher;
@@ -24,6 +24,8 @@ public class Decrypt implements Expression {
 	private Expression dataExpr;
 
 	public Decrypt(QueryContext ctx, List<Expression> exprs) {
+		super("decrypt", exprs);
+
 		if (exprs.size() < 3)
 			throw new QueryParseException("insufficient-decrypt-args", -1);
 

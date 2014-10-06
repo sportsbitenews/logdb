@@ -21,10 +21,12 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
 
-public class Long2Ip implements Expression {
+public class Long2Ip extends FunctionExpression {
 	private Expression valueExpr;
 
 	public Long2Ip(QueryContext ctx, List<Expression> exprs) {
+		super("long2ip", exprs);
+		
 		if (exprs.size() != 1)
 			throw new QueryParseException("invalid-long2ip-args", -1);
 		this.valueExpr = exprs.get(0);

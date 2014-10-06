@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Eediom Inc.
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,26 +15,22 @@
  */
 package org.araqne.logdb.query.expr;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.Collection;
 
-import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.Row;
+import org.araqne.logdb.Strings;
 
-/**
- * @since 1.7.5
- * @author xeraph
- *
- */
-public class Guid extends FunctionExpression {
+public abstract class FunctionExpression implements Expression {
+	private final String name;
+	private final Collection<Expression> args;
 	
-	public Guid(QueryContext ctx, List<Expression> exprs) {
-		super("guid", exprs);
+	public FunctionExpression(String name, Collection<Expression> args) {
+		this.name = name;
+		this.args = args;
 	}
-
+	
 	@Override
-	public Object eval(Row map) {
-		return UUID.randomUUID().toString();
+	public String toString() {
+		return name + "(" + Strings.join(args, ", ") + ")";
 	}
 
 }

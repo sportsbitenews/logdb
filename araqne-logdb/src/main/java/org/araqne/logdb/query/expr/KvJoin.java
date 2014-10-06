@@ -24,15 +24,17 @@ import java.util.regex.Pattern;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class KvJoin implements Expression {
+public class KvJoin extends FunctionExpression {
 
-	private Expression pairDelim;
 	private Expression kvDelim;
+	private Expression pairDelim;
 	private String pattern;
 	private Pattern p;
 	private Matcher matcher;
 
 	public KvJoin(QueryContext ctx, List<Expression> exprs) {
+		super("kvjoin", exprs);
+		
 		kvDelim = exprs.get(0);
 		pairDelim = exprs.get(1);
 
@@ -63,10 +65,5 @@ public class KvJoin implements Expression {
 			sb.append(entry.getValue());
 		}
 		return sb.toString();
-	}
-
-	@Override
-	public String toString() {
-		return "kvjoin(" + pairDelim + ", " + kvDelim + ", " + pattern + ")";
 	}
 }

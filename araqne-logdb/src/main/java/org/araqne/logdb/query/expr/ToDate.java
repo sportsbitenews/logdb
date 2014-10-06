@@ -23,13 +23,15 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
-public class ToDate implements Expression {
+public class ToDate extends FunctionExpression {
 
 	private Expression valueExpr;
 	private String format;
 	private Locale locale;
 
 	public ToDate(QueryContext ctx, List<Expression> exprs) {
+		super("date", exprs);
+		
 		this.valueExpr = exprs.get(0);
 		locale = Locale.ENGLISH;
 		if (exprs.size() > 2)
@@ -61,10 +63,4 @@ public class ToDate implements Expression {
 			return null;
 		}
 	}
-
-	@Override
-	public String toString() {
-		return "date(" + valueExpr + ", " + format + ")";
-	}
-
 }

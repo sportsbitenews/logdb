@@ -7,12 +7,14 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
-public class Split implements Expression {
+public class Split extends FunctionExpression {
 	private Expression target;
 	private final String delimiters;
 	private final int next;
 
 	public Split(QueryContext ctx, List<Expression> exprs) {
+		super("split", exprs);
+		
 		if (exprs.size() < 2)
 			throw new QueryParseException("missing-split-args", -1);
 

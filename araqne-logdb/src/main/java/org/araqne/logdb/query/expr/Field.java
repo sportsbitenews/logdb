@@ -26,11 +26,13 @@ import org.araqne.logdb.Row;
  * @author xeraph
  *
  */
-public class Field implements Expression {
+public class Field extends FunctionExpression {
 
 	private Expression expr;
 
 	public Field(QueryContext ctx, List<Expression> exprs) {
+		super("field", exprs);
+		
 		if (exprs.isEmpty())
 			throw new QueryParseException("missing-field-name", -1);
 

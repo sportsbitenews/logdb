@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * @since 2.4.11
  * @author xeraph
  */
-public class Encrypt implements Expression {
+public class Encrypt extends FunctionExpression {
 	private final Logger slog = LoggerFactory.getLogger(Encrypt.class);
 
 	private Cipher cipher;
@@ -43,6 +43,8 @@ public class Encrypt implements Expression {
 	private Expression ivExpr;
 
 	public Encrypt(QueryContext ctx, List<Expression> exprs) {
+		super("encrypt", exprs);
+
 		if (exprs.size() < 3)
 			throw new QueryParseException("insufficient-encrypt-args", -1);
 

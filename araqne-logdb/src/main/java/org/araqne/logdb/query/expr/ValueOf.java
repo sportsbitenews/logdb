@@ -22,12 +22,14 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
-public class ValueOf implements Expression {
+public class ValueOf extends FunctionExpression {
 
 	private Expression compound;
 	private Expression key;
 
 	public ValueOf(QueryContext ctx, List<Expression> args) {
+		super("valueof", args);
+		
 		if (args.size() < 2)
 			throw new QueryParseException("insufficient-valueof-args", -1);
 
