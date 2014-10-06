@@ -353,4 +353,15 @@ public class LogDBScript implements Script {
 		procedureRegistry.removeProcedure(name);
 		context.println("removed");
 	}
+	
+	@ScriptUsage(description = "set hash join threshold", arguments = { @ScriptArgument(name = "threshold", type = "int", description = "hash join threshold") })
+	public void setHashJoinThreshold(String[] args) {
+		System.setProperty("araqne.hashjointhreshold", args[0]);
+		context.println("set hash join threshold");
+	}
+	
+	@ScriptUsage(description = "get hash join threshold")
+	public void getHashJoinThreshold(String[] args) {
+		context.println("hash join threshold :" + System.getProperty("araqne.hashjointhreshold", "100000"));
+	}
 }

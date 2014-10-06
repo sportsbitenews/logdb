@@ -183,7 +183,7 @@ public class Join extends QueryCommand {
 
 	// bulid hash table or sort
 	private class SubQueryTask extends QueryTask {
-		private static final int HASH_JOIN_THRESHOLD = 100000;
+		private final int HASH_JOIN_THRESHOLD = Integer.parseInt(System.getProperty("araqne.hashjointhreshold", "100000"));
 
 		@Override
 		public void run() {
