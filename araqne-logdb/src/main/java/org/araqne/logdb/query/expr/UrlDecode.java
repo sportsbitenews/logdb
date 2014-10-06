@@ -30,12 +30,14 @@ import org.slf4j.LoggerFactory;
  * @author darkluster
  * 
  */
-public class UrlDecode implements Expression {
+public class UrlDecode extends FunctionExpression {
 	private final Logger logger = LoggerFactory.getLogger(UrlDecode.class);
 	private Expression valueExpr;
 	private String charset;
 
 	public UrlDecode(QueryContext ctx, List<Expression> exprs) {
+		super("urldecode", exprs);
+		
 		this.valueExpr = exprs.get(0);
 		charset = "utf-8";
 		if (exprs.size() > 1)
@@ -61,5 +63,10 @@ public class UrlDecode implements Expression {
 
 			return value;
 		}
+	}
+	
+	@Override
+	public String toString() {
+		return "urldecode(" + valueExpr + ", " + charset + ")";
 	}
 }

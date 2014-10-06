@@ -26,11 +26,13 @@ import org.araqne.logdb.Row;
  * @since 2.4.11
  * @author xeraph
  */
-public class Rand implements Expression {
+public class Rand extends FunctionExpression {
 	private Random rand;
 	private int bound;
 
 	public Rand(QueryContext ctx, List<Expression> exprs) {
+		super("rand", exprs);
+		
 		Object n = exprs.get(0).eval(null);
 		if (!(n instanceof Integer))
 			throw new QueryParseException("invalid-rand-argument", -1);

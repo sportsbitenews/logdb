@@ -377,6 +377,7 @@ public class TableParser extends AbstractQueryCommandParser {
 			return result;
 		}
 
+		@Override
 		public String toString() {
 			StringBuilder sb = new StringBuilder();
 			sb.append("meta(");

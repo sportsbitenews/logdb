@@ -29,12 +29,14 @@ import org.araqne.logdb.impl.InetAddresses;
  * @author darkluster
  * 
  */
-public class Network implements Expression {
+public class Network extends FunctionExpression {
 	private Expression valueExpr;
 	private int maskNumber;
 	private byte[] mask;
 
 	public Network(QueryContext ctx, List<Expression> exprs) {
+		super("network", exprs);
+		
 		this.valueExpr = exprs.get(0);
 		this.maskNumber = Integer.parseInt(exprs.get(1).eval(null).toString());
 		if (maskNumber < 0 || maskNumber > 128)

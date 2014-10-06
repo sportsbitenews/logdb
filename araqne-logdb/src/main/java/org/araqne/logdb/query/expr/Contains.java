@@ -20,12 +20,14 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Contains implements Expression {
+public class Contains extends FunctionExpression {
 
 	private Expression targetExpr;
 	private Expression needleExpr;
 
 	public Contains(QueryContext ctx, List<Expression> exprs) {
+		super("contains", exprs);
+		
 		this.targetExpr = exprs.get(0);
 		this.needleExpr = exprs.get(1);
 	}

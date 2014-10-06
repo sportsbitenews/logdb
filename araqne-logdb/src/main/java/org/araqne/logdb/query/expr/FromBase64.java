@@ -30,11 +30,13 @@ import org.slf4j.LoggerFactory;
  * @since 2.4.11
  * @author xeraph
  */
-public class FromBase64 implements Expression {
+public class FromBase64 extends FunctionExpression {
 	private final Logger slog = LoggerFactory.getLogger(FromBase64.class);
 	private Expression dataExpr;
 
 	public FromBase64(QueryContext ctx, List<Expression> exprs) {
+		super("frombase64", exprs);
+
 		if (exprs.size() < 1)
 			throw new QueryParseException("frombase64-arg-missing", -1);
 
