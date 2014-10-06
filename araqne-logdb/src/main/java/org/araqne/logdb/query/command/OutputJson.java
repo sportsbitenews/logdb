@@ -196,7 +196,7 @@ public class OutputJson extends QueryCommand {
 	public String toString() {
 		String overwriteOption = " ";
 		if (overwrite)
-			overwriteOption = " overwrite=true ";
+			overwriteOption = " overwrite=t ";
 
 		String encodingOption = "";
 		if (encoding != null)

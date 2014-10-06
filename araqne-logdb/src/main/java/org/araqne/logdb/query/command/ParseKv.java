@@ -134,6 +134,22 @@ public class ParseKv extends QueryCommand {
 
 	@Override
 	public String toString() {
-		return "parsekv field=" + field + " overlay=" + overlay + " pairdelim=\"" + pairDelim + "\" kvdelim=\"" + kvDelim + "\"";
+		String fieldOpt = "";
+		if (field != null && !field.equals("line"))
+			fieldOpt = " field=" + field;
+
+		String overlayOpt = "";
+		if (overlay)
+			overlayOpt = " overlay=t";
+
+		String pairDelimOpt = "";
+		if (!pairDelim.equals(" "))
+			pairDelimOpt = " pairdelim=\"" + pairDelim + "\"";
+
+		String kvDelimOpt = "";
+		if (!kvDelim.equals("="))
+			kvDelimOpt = " kvdelim=\"" + kvDelim + "\"";
+
+		return "parsekv" + fieldOpt + overlayOpt + pairDelimOpt + kvDelimOpt;
 	}
 }

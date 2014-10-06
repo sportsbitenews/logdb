@@ -72,7 +72,14 @@ public class ParseJson extends QueryCommand {
 
 	@Override
 	public String toString() {
-		return "parsejson field=" + field + " overlay=" + overlay;
-	}
+		String fieldOpt = "";
+		if (field != null && !field.equals("line"))
+			fieldOpt = " field=" + field;
 
+		String overlayOpt = "";
+		if (overlay)
+			overlayOpt = " overlay=t";
+
+		return "parsejson" + fieldOpt + overlayOpt;
+	}
 }
