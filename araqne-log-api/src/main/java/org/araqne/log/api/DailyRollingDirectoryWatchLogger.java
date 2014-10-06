@@ -132,9 +132,6 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 		FileInputStream is = null;
 		String path = f.getAbsolutePath();
 		try {
-			// get date pattern-matched string from filename
-			String timestampPrefix = getTimestampPrefix(f, dirNameDateMatcher, fileNameDateMatcher);
-
 			// skip previous read part
 			long offset = 0;
 			if (lastPositions.containsKey(path)) {
@@ -151,6 +148,8 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 			is = new FileInputStream(file);
 			is.skip(offset);
 
+			// get date pattern-matched string from filename
+			String timestampPrefix = getTimestampPrefix(f, dirNameDateMatcher, fileNameDateMatcher);
 			extractor.extract(is, lastPosition, timestampPrefix);
 
 			slog.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
