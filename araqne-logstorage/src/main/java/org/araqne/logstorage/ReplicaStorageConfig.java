@@ -1,6 +1,6 @@
 package org.araqne.logstorage;
 
-public class ReplicaStorageConfig {
+public class ReplicaStorageConfig implements Cloneable {
 	@Override
 	public String toString() {
 		return String.format("ReplicaStorageConfig [%s, local=%s, remote=%s:%s]", mode,
@@ -12,7 +12,13 @@ public class ReplicaStorageConfig {
 		mode = tmode;
 		this.remoteNode = remoteNode;
 		this.remoteName = remoteName;
+
 	}
+
+	public static ReplicaStorageConfig copy(ReplicaStorageConfig conf) {
+		return new ReplicaStorageConfig(conf.tableName(), conf.mode, conf.remoteNode(), conf.remoteName()); 
+	}
+
 
 	String tableName;
 	String remoteNode;
