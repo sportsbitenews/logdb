@@ -344,14 +344,16 @@ public class QueryTokenizer {
 		// check outermost condition (not in function call or quoted string)
 		int parens = 0;
 		boolean quoted = false;
+		char b = '\0';
 		for (int i = 0; i <= p; i++) {
 			char c = haystack.charAt(i);
-			if (c == '(')
+			if (c == '(' && b != '\\')
 				parens++;
-			else if (c == ')')
+			else if (c == ')' && b != '\\')
 				parens--;
-			else if (c == '"')
+			else if (c == '"' && b != '\\')
 				quoted = !quoted;
+			b = c;
 		}
 
 		if (parens == 0 && !quoted && whitespace)
