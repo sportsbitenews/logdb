@@ -19,22 +19,20 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryParseException;
 
-public class Substr implements Expression {
-	private Expression valueExpr;
-	private int begin;
-	private int end = -1;
+public class Substr extends FunctionExpression {
+	private final Expression valueExpr;
+	private final Expression beginExpr;
+	private Expression endExpr;
 
 	public Substr(QueryContext ctx, List<Expression> exprs) {
+		super("substr", exprs);
+		
 		this.valueExpr = exprs.get(0);
-		this.begin = Integer.parseInt(exprs.get(1).eval(null).toString());
+		this.beginExpr = exprs.get(1);
 
 		if (exprs.size() > 2)
-			this.end = Integer.parseInt(exprs.get(2).eval(null).toString());
-
-		if (begin < 0 || (end >= 0 && begin > end))
-			throw new QueryParseException("invalid-substr-range", -1);
+			this.endExpr = exprs.get(2);
 	}
 
 	@Override
@@ -44,20 +42,25 @@ public class Substr implements Expression {
 			return null;
 
 		String s = value.toString();
-		if (s.length() <= begin)
+		int len = s.length();
+		int begin = Integer.parseInt(beginExpr.eval(map).toString());
+		if (begin < 0)
+			begin = len + begin;
+		
+		if (begin < 0 || len <= begin)
 			return null;
 
-		if (end == -1 || s.length() < end)
-			return s.substring(begin);
+		int end = len;
+		if (endExpr != null)
+			end = Integer.parseInt(endExpr.eval(map).toString());
+		
+		if (end < 0)
+			end = len + end;
+		
+		if (end < 0 || begin > end)
+			return null;
 
 		return s.substring(begin, end);
-	}
-
-	@Override
-	public String toString() {
-		if (end == -1)
-			return "substr(" + valueExpr + ", " + begin + ")";
-		return "substr(" + valueExpr + ", " + begin + ", " + end + ")";
 	}
 
 }
