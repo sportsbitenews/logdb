@@ -40,9 +40,7 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 		Map<String, LastPosition> lastPositions = null;
 		try {
 			List<File> files = scanFiles();
-			List<File> oldFiles = null;
-			if (firstRun)
-				oldFiles = scanOldFiles();
+			List<File> oldFiles = scanOldFiles();
 
 			lastPositions = LastPositionHelper.deserialize(getStates());
 			removeOldStates(files, oldFiles, lastPositions);
@@ -59,7 +57,7 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 			// traverse files
 			String fileTag = getConfigs().get("file_tag");
 
-			if (oldFiles != null) {
+			if (firstRun && oldFiles != null) {
 				for (File f : oldFiles) {
 					if (getStatus() == LoggerStatus.Stopping || getStatus() == LoggerStatus.Stopped)
 						break;
