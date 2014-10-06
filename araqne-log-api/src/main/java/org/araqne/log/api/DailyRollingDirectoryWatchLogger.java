@@ -140,7 +140,6 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 				slog.trace("araqne log api: target file [{}] skip offset [{}]", path, offset);
 			}
 
-			AtomicLong lastPosition = new AtomicLong(offset);
 			File file = new File(path);
 			if (file.length() <= offset)
 				return;
@@ -150,6 +149,7 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 
 			// get date pattern-matched string from filename
 			String timestampPrefix = getTimestampPrefix(f, dirNameDateMatcher, fileNameDateMatcher);
+			AtomicLong lastPosition = new AtomicLong(offset);
 			extractor.extract(is, lastPosition, timestampPrefix);
 
 			slog.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
