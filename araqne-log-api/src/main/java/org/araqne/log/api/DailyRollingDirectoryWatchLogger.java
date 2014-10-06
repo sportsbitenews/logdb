@@ -238,9 +238,18 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 	}
 
 	private List<File> scanFiles(Date begin, Date end) {
+		if (begin == null)
+			throw new IllegalArgumentException("begin should not be null");
+
+		if (end == null)
+			throw new IllegalArgumentException("end should not be null");
+
 		List<File> l = new ArrayList<File>();
 
 		File basePath = new File(getConfigs().get("base_path"));
+		if (slog.isDebugEnabled()) {
+			slog.debug("araqne log api: scan files [{}], period [{} ~ {}]", basePath.getAbsolutePath());
+		}
 
 		File[] dirs = basePath.listFiles();
 
@@ -257,13 +266,27 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 
 			String dirName = dir.getName();
 			Date date = dirDateParser.parse(dirName);
+			if (date == null) {
+				if (slog.isDebugEnabled())
+					slog.debug("araqne log api: logger [{}] cannot parse date from directory name [{}]", getFullName(), dirName);
 
-			if (date.before(begin) || date.after(end))
 				continue;
+			}
+
+			if (date.before(begin) || date.after(end)) {
+				if (slog.isDebugEnabled())
+					slog.debug("araqne log api: logger [{}] skip [{}] directory (out of range)", getFullName(), dirName);
+
+				continue;
+			}
 
 			File[] files = dir.listFiles();
-			if (files == null)
+			if (files == null) {
+				if (slog.isDebugEnabled())
+					slog.debug("araqne log api: logger [{}] skip [{}] directory (no files)", getFullName(), dirName);
+
 				continue;
+			}
 
 			for (File f : files) {
 				fileNameMatcher.reset(f.getName());
