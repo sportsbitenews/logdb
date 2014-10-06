@@ -71,7 +71,6 @@ import org.araqne.logdb.query.expr.Network;
 import org.araqne.logdb.query.expr.Now;
 import org.araqne.logdb.query.expr.Rand;
 import org.araqne.logdb.query.expr.RandBytes;
-import org.araqne.logdb.query.expr.RexReplace;
 import org.araqne.logdb.query.expr.Right;
 import org.araqne.logdb.query.expr.Round;
 import org.araqne.logdb.query.expr.Seq;
@@ -157,8 +156,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("trim", Trim.class);
 			define("len", Len.class);
 			define("substr", Substr.class);
-			define("strreplace", StringReplace.class);
-			define("rexreplace", RexReplace.class);
+			define("replace", StringReplace.class);
 			define("isnull", IsNull.class);
 			define("isnotnull", IsNotNull.class);
 			define("isnum", IsNum.class);
