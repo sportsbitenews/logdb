@@ -248,7 +248,9 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 
 		File basePath = new File(getConfigs().get("base_path"));
 		if (slog.isDebugEnabled()) {
-			slog.debug("araqne log api: scan files [{}], period [{} ~ {}]", basePath.getAbsolutePath());
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+			slog.debug("araqne log api: scan files [{}], period [{} ~ {}]",
+					new Object[] { basePath.getAbsolutePath(), df.format(begin), df.format(end) });
 		}
 
 		File[] dirs = basePath.listFiles();
