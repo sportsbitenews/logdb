@@ -14,7 +14,7 @@ public class Split extends FunctionExpression {
 
 	public Split(QueryContext ctx, List<Expression> exprs) {
 		super("split", exprs);
-		
+
 		if (exprs.size() < 2)
 			throw new QueryParseException("missing-split-args", -1);
 
@@ -22,6 +22,9 @@ public class Split extends FunctionExpression {
 		try {
 			this.delimiters = exprs.get(1).eval(null).toString();
 			this.next = delimiters.length();
+
+			if (next == 0)
+				throw new QueryParseException("empty-delimiters", -1);
 		} catch (NullPointerException e) {
 			throw new QueryParseException("invalid-delimiters", -1);
 		}
