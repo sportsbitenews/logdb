@@ -52,7 +52,7 @@ public class Substr extends FunctionExpression {
 
 		int end = len;
 		if (endExpr != null)
-			end = Integer.parseInt(endExpr.eval(map).toString());
+			end = Math.min(len, Integer.parseInt(endExpr.eval(map).toString()));
 		
 		if (end < 0)
 			end = len + end;
