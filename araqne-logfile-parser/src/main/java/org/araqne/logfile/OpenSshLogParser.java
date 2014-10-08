@@ -68,8 +68,8 @@ public class OpenSshLogParser extends V1LogParser {
 		}
 
 		target = "Accepted publickey for ";
-		int acceptedPasswordPosition = body.indexOf(target);
-		if (acceptedPasswordPosition != -1) {
+		int acceptedPublickeyPosition = body.indexOf(target);
+		if (acceptedPublickeyPosition != -1) {
 			String[] bodyTokens = split(body);
 			m.put("login_method", "publickey");
 			m.put("type", "login");
