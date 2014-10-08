@@ -47,6 +47,17 @@ public class SearchParserTest {
 		p.setFunctionRegistry(new FunctionRegistryImpl());
 		queryParserService = p;
 	}
+	
+	@Test
+	public void testSimple() {
+		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+
+		Search search = (Search) p.parse(null, "search field == \"\" or field == \"\"");
+		Expression expr = search.getExpression();
+
+		assertEquals("search ((field == \"\") or (field == \"\"))", search.toString());
+	}
 
 	@Test
 	public void testWildSearch() {
