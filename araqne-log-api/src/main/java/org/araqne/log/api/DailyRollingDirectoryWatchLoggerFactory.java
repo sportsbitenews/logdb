@@ -22,6 +22,10 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "일자별 디렉터리";
+
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "日期目录监控";
+
 		return "Daily Rolling Directory Watcher";
 	}
 
@@ -34,6 +38,8 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "일자별로 생성되는 디렉터리를 순회하면서 파일 이름 패턴과 일치하는 모든 텍스트 로그 파일을 수집합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "监控按日期生成的目录，并采集与指定文件名模式匹配的所有文本文件。";
 		return "Traverse daily rolling directories and collect matching text log files";
 	}
 
@@ -45,9 +51,10 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 
-		LoggerConfigOption period = new MutableIntegerConfigType("period", t("Monitoring period", "모니터링 기간"), t(
-				"Period in days for watch file changes. 0 for disable realtime monitoring.",
-				"실시간으로 파일 변화를 모니터링할 기간. 0으로 설정 시 실시간 수집을 비활성화합니다."), true);
+		LoggerConfigOption period = new MutableIntegerConfigType("period", t("Monitoring period", "모니터링 기간", "Monitoring period",
+				"监控期间"), t("Period in days for watch file changes. 0 for disable realtime monitoring.",
+				"실시간으로 파일 변화를 모니터링할 기간. 0으로 설정 시 실시간 수집을 비활성화합니다.",
+				"Period in days for watch file changes. 0 for disable realtime monitoring.", "指定实时监控周期。如果为0，将不进行实时监控。"), true);
 
 		LoggerConfigOption basePath = new MutableStringConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路", "目录"),
 				t("Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true);
@@ -57,21 +64,30 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 				"対象ログファイルを選ぶとき使う正規表現", "用于筛选文件的正则表达式"), true);
 
 		LoggerConfigOption dirDatePattern = new MutableStringConfigType("dir_date_pattern", t("Directory date pattern",
-				"디렉터리 날짜 정규표현식"),
-				t("Regular expression for extracting date from directory name", "디렉터리 이름에서 날짜를 추출하는데 사용할 정규표현식"), false);
+				"디렉터리 날짜 정규표현식", "Directory date pattern", "目录日期正则表达式"), t(
+				"Regular expression for extracting date from directory name", "디렉터리 이름에서 날짜를 추출하는데 사용할 정규표현식",
+				"Regular expression for extracting date from directory name", "设置用于从目录名称提取日期的正则表达式。"), false);
 
-		LoggerConfigOption dirDateFormat = new MutableStringConfigType("dir_date_format",
-				t("Directory date format", "디렉터리 날짜 포맷"), t(
-						"Date format for parsing date from directory name. yyyyMMdd by default",
-						"디렉터리 이름에서 날짜를 파싱하는데 사용할 포맷. 미설정 시 yyyyMMdd를 기본값으로 사용합니다."), false);
+		LoggerConfigOption dirDateFormat = new MutableStringConfigType("dir_date_format", t("Directory date format",
+				"디렉터리 날짜 포맷", "Directory date format", "目录日期格式"), t(
+				"Date format for parsing date from directory name. yyyyMMdd by default",
+				"디렉터리 이름에서 날짜를 파싱하는데 사용할 포맷. 미설정 시 yyyyMMdd를 기본값으로 사용합니다.",
+				"Date format for parsing date from directory name. yyyyMMdd by default",
+				"设置用于从目录名称解析日期的格式。如果未指定，将使用yyyyMMdd作为日期格式。"), false);
 
 		LoggerConfigOption oldDirScanFrom = new MutableStringConfigType("old_dir_scan_from", t("Begin date for old log scan",
-				"과거 로그 수집 시작 일자"), t("Use yyyyMMdd format. Old log scan will be disabled if not specified",
-				"yyyyMMdd 포맷으로 시작 일자를 지정합니다. 미설정 시 과거 로그 수집이 비활성화됩니다."), false);
+				"과거 로그 수집 시작 일자", "Begin date for old log scan", "历史数据采集起始日期"), t(
+				"Use yyyyMMdd format. Old log scan will be disabled if not specified",
+				"yyyyMMdd 포맷으로 시작 일자를 지정합니다. 미설정 시 과거 로그 수집이 비활성화됩니다.",
+				"Use yyyyMMdd format. Old log scan will be disabled if not specified", "以yyyyMMdd格式指定起始日期。如果未指定，将不采集历史数据。"),
+				false);
 
 		LoggerConfigOption oldDirScanTo = new MutableStringConfigType("old_dir_scan_to", t("End date for old log scan",
-				"과거 로그 수집 끝 일자"), t("Use yyyyMMdd format. Old log scan will be disabled if not specified",
-				"yyyyMMdd 포맷으로 끝 일자를 지정합니다. 미설정 시 과거 로그 수집이 비활성화됩니다."), false);
+				"과거 로그 수집 끝 일자", "End date for old log scan", "历史数据采集结束日期"), t(
+				"Use yyyyMMdd format. Old log scan will be disabled if not specified",
+				"yyyyMMdd 포맷으로 끝 일자를 지정합니다. 미설정 시 과거 로그 수집이 비활성화됩니다.",
+				"Use yyyyMMdd format. Old log scan will be disabled if not specified", "以yyyyMMdd格式指定结束日期。如果未指定，将不采集历史数据。"),
+				false);
 
 		LoggerConfigOption datePattern = new MutableStringConfigType("date_pattern", t("Date pattern", "날짜 정규표현식", "日付正規表現",
 				"日期正则表达式"), t("Regular expression to match date and time strings", "날짜 및 시각을 추출하는데 사용할 정규표현식", "日付と時刻を解析する正規表現",
