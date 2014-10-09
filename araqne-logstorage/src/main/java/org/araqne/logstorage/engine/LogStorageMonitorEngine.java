@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 @Provides
 public class LogStorageMonitorEngine implements LogStorageMonitor {
 	private static final String DEFAULT_MIN_FREE_SPACE_TYPE = DiskSpaceType.Percentage.toString();
-	private static final int DEFAULT_MIN_FREE_SPACE_VALUE = 10;
+	private static final int DEFAULT_MIN_FREE_SPACE_VALUE = 5;
 	private static final String DEFAULT_DISK_LACK_ACTION = DiskLackAction.StopLogging.toString();
 
 	private final Logger logger = LoggerFactory.getLogger(LogStorageMonitorEngine.class.getName());
