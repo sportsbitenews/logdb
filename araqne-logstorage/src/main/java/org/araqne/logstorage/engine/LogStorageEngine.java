@@ -1237,8 +1237,10 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		for (OnlineWriterKey key : toRemove) {
 			try {
 				OnlineWriter writer = onlineWriters.get(key);
-				writer.close();
-				onlineWriters.remove(key);
+				if (writer != null) {
+					writer.close();
+					onlineWriters.remove(key);
+				}
 			} catch (Throwable t) {
 				logger.warn("exception caught", t);
 			}
