@@ -1,5 +1,8 @@
 package org.araqne.logdb;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public abstract class AbstractQueryCommandParser implements QueryCommandParser {
 	private QueryParserService queryParserService;
 
@@ -14,4 +17,10 @@ public abstract class AbstractQueryCommandParser implements QueryCommandParser {
 	public FunctionRegistry getFunctionRegistry() {
 		return queryParserService.getFunctionRegistry();
 	}
+	
+	public Map<String, QueryErrorMessage> getErrorMessages() 
+	{
+		return new HashMap<String, QueryErrorMessage>();
+	}
+	
 }

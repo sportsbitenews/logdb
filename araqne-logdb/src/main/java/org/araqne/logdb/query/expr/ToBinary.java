@@ -22,22 +22,24 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 /**
  * @since 2.4.8
  * @author xeraph
  */
-public class ToBinary implements Expression {
+public class ToBinary extends FunctionExpression {
 
 	private Expression data;
 	private Charset charset;
 
 	public ToBinary(QueryContext ctx, List<Expression> exprs) {
+		super("tobinary", exprs);
+		
 		if (exprs.size() < 1)
 		//	throw new QueryParseException("missing-data", -1);
-			throw new QueryParseInsideException("90810", -1, -1, null);
+			throw new QueryParseException("90810", -1, -1, null);
 
 		this.data = exprs.get(0);
 
@@ -54,7 +56,7 @@ public class ToBinary implements Expression {
 			//throw new QueryParseException("unsupported-charset", -1, charsetName);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("charset", charsetName);
-			throw new QueryParseInsideException("90811", -1, -1, params);
+			throw new QueryParseException("90811", -1, -1, params);
 		}
 	}
 

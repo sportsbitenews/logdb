@@ -16,12 +16,10 @@
 package org.araqne.logdb.query.expr;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.araqne.logdb.QueryParseInsideException;
 import org.junit.Test;
 /**
  * 
@@ -35,36 +33,7 @@ public class SubStrTest {
 		Substr substr = new Substr(null, expr("0123456789", 0, 3));
 		assertEquals("012", substr.eval(null));
 	}
-	    
-	@Test
-	public void testError90790(){
-		try {
-			new Substr(null, expr("01234", -1, 2));
-			fail();
-		} catch (QueryParseInsideException e) {
-			if (e.isDebugMode()) {
-				System.out.println(e.getMessage());
-			}
-			assertEquals("90790", e.getType());
-			assertEquals("-1", e.getParams().get("begin"));
-		}
-	}
-	
-	@Test
-	public void testError90791(){
-		try {
-			new Substr(null, expr("01234", 3,1));
-			fail();
-		} catch (QueryParseInsideException e) {
-			if (e.isDebugMode()) {
-				System.out.println(e.getMessage());
-			}
-			assertEquals("90791", e.getType());
-			assertEquals("3", e.getParams().get("begin"));
-			assertEquals("1", e.getParams().get("end"));
-		}
-	}
-	
+
 	private List<Expression> expr(Object...object ){
 		List<Expression> expr = new ArrayList<Expression>();
 
@@ -78,7 +47,6 @@ public class SubStrTest {
 			else if(o instanceof Boolean)
 				expr.add(new BooleanConstant((Boolean)o));
 		}
-
 		return expr;
 	}
 }

@@ -532,13 +532,18 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			try {
 				pipe.onLogBatch(this, logs);
 			} catch (LoggerStopException e) {
+				LoggerStopReason reason = LoggerStopReason.STOP_EXCEPTION;
+				if (e.getCause() != null && e.getCause().getMessage() != null
+						&& e.getCause().getMessage().contains("archive not opened"))
+					reason = LoggerStopReason.LOW_DISK;
+
 				this.slog.warn("araqne-log-api: stopping logger [" + getFullName() + "] by exception", e);
 				if (isPassive())
-					stop(LoggerStopReason.STOP_EXCEPTION);
+					stop(reason);
 				else {
 					doStop = true;
 					status = LoggerStatus.Stopping;
-					invokeStopCallback(LoggerStopReason.STOP_EXCEPTION);
+					invokeStopCallback(reason);
 				}
 			} catch (Throwable t) {
 				if (t.getMessage() != null && t.getMessage().startsWith("invalid time"))
@@ -729,7 +734,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	public void setTransformer(LogTransformer transformer) {
 		this.transformer = transformer;
 
-		if (isPending() && transformer != null)
+		if (enabled && isPending() && transformer != null)
 			start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
 		if (enabled && config.get("transformer") != null && transformer == null) {
 			stop(LoggerStopReason.TRANSFORMER_DEPENDENCY, 5000);

@@ -66,4 +66,9 @@ public class Mv extends QueryCommand implements ThreadSafe {
 					toFile.getAbsolutePath());
 		}
 	}
+
+	@Override
+	public String toString() {
+		return "mv from=" + from + " to=" + to;
+	}
 }

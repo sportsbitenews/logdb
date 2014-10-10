@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -70,7 +70,7 @@ public class DateTruncTest {
 		try {
 			new DateTrunc(null, expr(null));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}

@@ -26,9 +26,10 @@ import org.araqne.logdb.Row;
  * @author xeraph
  *
  */
-public class Guid implements Expression {
+public class Guid extends FunctionExpression {
 	
 	public Guid(QueryContext ctx, List<Expression> exprs) {
+		super("guid", exprs);
 	}
 
 	@Override

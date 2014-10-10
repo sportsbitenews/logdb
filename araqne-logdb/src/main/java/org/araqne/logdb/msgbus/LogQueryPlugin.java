@@ -36,6 +36,8 @@ import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryResult;
 import org.araqne.logdb.QueryResultCallback;
 import org.araqne.logdb.QueryResultSet;
@@ -69,6 +71,9 @@ public class LogQueryPlugin {
 
 	@Requires
 	private QueryService service;
+	
+	@Requires
+	private QueryParserService parserService;
 
 	@Requires
 	private LogTableRegistry tableRegistry;
@@ -146,7 +151,18 @@ public class LogQueryPlugin {
 			org.araqne.logdb.Session dbSession = getDbSession(req);
 			Query query = service.createQuery(dbSession, req.getString("query"));
 			resp.put("id", query.getId());
-		} catch (Exception e) {
+		} catch (QueryParseException e) {
+			if(e.getParams() == null)
+				throw new MsgbusException("logdb", e.getMessage());
+			
+			String msg = parserService.formatErrorMessage(e.getType(), req.getSession().getLocale(),  e.getParams());
+			Map<String, Object> parameters = new HashMap<String, Object>();
+			parameters.put("start", e.getOffsetS());
+			parameters.put("end", e.getOffsetE());
+			parameters.put("offsetList", e.getOffsetList());
+			parameters.putAll(e.getParams());
+			throw new MsgbusException("logdb", msg, parameters );		  
+		}catch (Exception e) {
 			logger.error("araqne logdb: cannot create query", e);
 			throw new MsgbusException("logdb", e.getMessage());
 		}

@@ -26,6 +26,7 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.JsonFile;
 
@@ -41,7 +42,14 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 	public String getCommandName() {
 		return "jsonfile";
 	}
-
+	
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("10900", new QueryErrorMessage("invalid-jsonfile-path","[file]이 존재하지 않거나 읽을수 없습니다"));
+		return m;
+	}
+	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>(),

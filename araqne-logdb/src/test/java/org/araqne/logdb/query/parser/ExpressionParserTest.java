@@ -27,7 +27,7 @@ import java.util.Date;
 
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.expr.Expression;
@@ -124,7 +124,7 @@ public class ExpressionParserTest {
 		try {
 			parseExpr(invalid);
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if(e.isDebugMode()){
 				System.out.println("query " + invalid);
 				System.out.println(e.getMessage());
@@ -137,7 +137,7 @@ public class ExpressionParserTest {
 		try {
 			parseExpr(invalid);
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if(e.isDebugMode()){
 				System.out.println("query " + invalid);
 				System.out.println(e.getMessage());
@@ -407,7 +407,7 @@ public class ExpressionParserTest {
 			parseExpr(invalid);
 			fail();
 		
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if(e.isDebugMode()){
 				System.out.println(invalid);
 				System.out.println(e.getMessage());

@@ -6,28 +6,33 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
-public class Split implements Expression {
+public class Split extends FunctionExpression {
 	private Expression target;
 	private final String delimiters;
 	private final int next;
 
 	public Split(QueryContext ctx, List<Expression> exprs) {
+		super("split", exprs);
+
 		if (exprs.size() < 2)
 		//	throw new QueryParseException("missing-split-args", -1);
-			throw new QueryParseInsideException("90770", -1, -1, null);
+			throw new QueryParseException("90770", -1, -1, null);
 
 		this.target = exprs.get(0);
 		try {
 			this.delimiters = exprs.get(1).eval(null).toString();
 			this.next = delimiters.length();
+
+			if (next == 0)
+				throw new QueryParseException("empty-delimiters", -1);
 		} catch (NullPointerException e) {
 		//	throw new QueryParseException("invalid-delimiters", -1);
 			Map<String, String> params = new HashMap<String, String> ();
 			params.put("exception", e.getMessage());
-			throw new QueryParseInsideException("90771", -1, -1, params);
+			throw new QueryParseException("90771", -1, -1, params);
 		}
 	}
 

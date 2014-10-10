@@ -110,6 +110,14 @@ public class ZipFile extends DriverQueryCommand {
 
 	@Override
 	public String toString() {
-		return "zipfile offset=" + offset + " limit=" + limit + " " + filePath + " " + entryPath;
+		String offsetOpt = "";
+		if (offset > 0)
+			offsetOpt = " offset=" + offset;
+
+		String limitOpt = "";
+		if (limit > 0)
+			limitOpt = " limit=" + limit;
+
+		return "zipfile" + offsetOpt + limitOpt + " " + filePath + " " + entryPath;
 	}
 }

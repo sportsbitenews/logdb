@@ -18,7 +18,9 @@ package org.araqne.logdb.query.engine;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -31,6 +33,7 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryCommandPipe;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
@@ -43,6 +46,132 @@ import org.slf4j.LoggerFactory;
 public class QueryParserServiceImpl implements QueryParserService {
 	private final Logger slog = LoggerFactory.getLogger(QueryParserServiceImpl.class);
 	private ConcurrentMap<String, QueryCommandParser> commandParsers = new ConcurrentHashMap<String, QueryCommandParser>();
+	private ConcurrentMap<String, QueryErrorMessage> errorMappings = new ConcurrentHashMap<String, QueryErrorMessage>();
+	private static final Map<String, QueryErrorMessage> commonErrorMap;
+
+
+	static{
+		commonErrorMap = new HashMap<String, QueryErrorMessage>();
+		/* QueryTokenizer */
+		add("90000", "option-space-not-allowed", "옵션과 '=' 사이에 공백은 허용되지 않습니다."); 
+		add("90001", "invalid-option", "[option]은 지원하지 않는 옵션입니다."); 
+		add("90002", "string-quote-mismatch", "\"의 짝이 맞지 않습니다.");
+		add("90003", "empty-command", "쿼리가 없습니다.");
+		add("90004", "need-string-token", "입력된 쿼리가 없습니다."); 
+		add("90005", "string-quote-mismatch", "\"의 짝이 맞지 않습니다.");
+		/* EvalOpEmitterFactory */
+		add("90100", "broken-expression", "잘못된 표현식입니다.");
+		add("90101", "unsupported operator", "[op]은 지원하지 않는 연산자입니다.");
+		/* ExpressionParser */
+		add("90200", "unexpected-term", "쿼리가 없습니다.");
+		add("90201", "remain-terms", "잘못된 쿼리 입니다.");
+		add("90202", "parens-mismatch", "잘못된 쿼리 입니다.");
+		add("90203", "quote-mismatch", "\"가 짝이 맞지 않습니다.");
+		add("90204", "sqbracket-mismatch", "'['가 짝이 맞지 않습니다.");
+		add("90205", "invalid-escape-sequence", "잘못된 이스케이프 문자입니다.([escape])");
+		/* MetadataMatcher */
+		add("90300", "broken-expression", "쿼리가 없습니다.");
+		/* Strings */
+		add("90400", "invalid-escape-sequence", "[char] ]지원하지 않는 이스케이프 문자입니다.");
+		/* TimeSpan */
+		add("90500", "invalid-timespan", "mon 은 12의 소인수(1,2,3,4,6)만 사용가능합니다.");
+		add("90501", "year should be 1", "y 앞에는 1만 사용가능합니다.");
+		/* Abs */
+		add("90600", "invalid-abs-args", "abs의 매개변수는 하나여야만 합니다.");
+		/* ContextReference */
+		add("90610", "null-context-reference", "값이 입력되지 않았습니다.");
+		add("90611", "null-context-reference", "null 값이 입력되었습니다.");
+		/* dateAdd */
+		add("90620", "invalid-dateadd-args", "올바르지 않는 입력 형식입니다.");
+		add("90621", "invalid-dateadd-calendar-field", "[field]는 잘못된 유형입니다.");
+		add("90622", "invalid-dateadd-delta-type", "[time]는 잘못된 시간입니다.");
+		/* DateDiff */
+		add("90630", "invalid-datediff-args", "올바르지 않는 입력 형식입니다.");
+		add("90631", "invalid-datediff-unit", "[field]는 잘못된 유형입니다.");
+		/* DateTrunc */
+		add("90640", "invalid-datetrunc-args", "올바르지 않는 입력 형식입니다.");
+		/* Decrypt */
+		add("90650", "insufficient-decrypt-args", "올바르지 않는 입력 형식입니다.");
+		add("90651", "invalid-cipher-algorithm", "[algorithm]은 지원하지 않는 암호화 알고리즘 입니다.");
+		/* Encrypt */
+		add("90660", "insufficient-encrypt-args", "올바르지 않는 입력 형식입니다.");
+		add("90661", "invalid-cipher-algorithm", "[algorithm]은 지원하지 않는 암호화 알고리즘 입니다.");
+		/* Field */
+		add("90670", "missing-field-name", "필드 이름을 입력하십시오.");
+		/* FromBase64 */
+		add("90680", "frombase64-arg-missing", "변환할 문자열을 입력하십시오.");
+		/* Hash */
+		add("90690", "missing-hash-algorithm", "해시 알고리즘을 입력하십시오.");
+		add("90691", "missing-hash-data", "바이너리 표현식을 입력하십시오.");
+		add("90692", "unsupported-hash", "[algorithm]은 지원하지 않는 해시 알고리즘 입니다.");
+		/* In */
+		add("90700", "insufficient-arguments", "올바르지 않는 입력 형식입니다.");
+		/* Ip2Long */
+		add("90710", "invalid-ip2long-args", "올바르지 않는 입력 형식입니다.");
+		/* Left */
+		add("90720", "left-func-negative-length", "길이는 0보다 커야 합니다.(입력값 : [length])");
+		/* Long2Ip */
+		add("90730", "invalid-long2ip-args", "올바르지 않는 입력 형식입니다.");
+		/* Network */
+		add("90740", "invalid-mask", "CIDR 값이 올바르지 않습니다.(입력값: [mask])");
+		/* Rand */
+		add("90750", "invalid-rand-argument", "경계값은 숫자여야 합니다.(입력값: [bound])");
+		add("90751", "rand-bound-should-be-positive", "경계값은 양수여야 합니다.(입력값: [bound])");
+		/* RandBytes */
+		add("90760", "invalid-rand-argument", "길이는 숫자여야 합니다.(입력값: [length])");
+		add("90761", "invalid-randbytes-len", "길이는 0보다 크거나 1000000보다 작아야 합니다.(입력값: [length])");
+		/* Split */
+		add("90770", "missing-split-args", "올바르지 않는 입력 형식입니다.");
+		add("90771", "invalid-delimiters", "올바르지 않는  구분자입니다.([exception])");
+		/* StrJoin */
+		add("90780", "nvalid-strjoin-args", "올바르지 않는  구분자입니다.([exception])");
+		add("90781", "strjoin-require-constant-separato", "올바르지 않는 입력 형식입니다.");
+		/* Substr */
+		add("90790", "invalid-substr-range", "시작 위치는 0보다 커야합니다(입력값 : [begin])");
+		add("90791", "invalid-substr-range", "끝위치([end])는 시작위치(begin])보다 커야합니다.");
+		/* ToBase64 */
+		add("90800", "tobase64-arg-missing", "올바르지 않는 입력 형식입니다.");
+		/* ToBinary */
+		add("90810", "missing-data", "올바르지 않는 입력 형식입니다.");
+		add("90811", "unsupported-charset", "[charset]은 지원하지 않는 인코딩입니다.");
+		/* ToDate */
+		add("90820", "invalid date format pattern", "날짜변환에 실패하였습니다.([exception])");
+		/* ToInt */
+		add("90830", "invalid-argument radix should be 10", "radix는 10이여야 합니다..(입력값: [radix])");
+		/* ToLong */
+		add("90840", "invalid-argument radix should be 10", "radix는 10이여야 합니다..(입력값: [radix])");
+		/* UrlDecode */
+		add("90850", "invalid-charset", "[charset]은 지원하지 않는 인코딩입니다.");
+		/* ValueOf */
+		add("90860", "insufficient-valueof-args", "올바르지 않는 입력 형식입니다.");
+		/* Values */
+		add("90870", "missing-values-arg", "올바르지 않는 입력 형식입니다.");
+		/* Count */
+		add("91010", "invalid-count-args", "올바르지 않는 입력 형식입니다.");
+		/* First */
+		add("91020", "invalid-parameter-count", "올바르지 않는 입력 형식입니다.");
+		/* QueryCommandParser */
+		add("99000", "unsupported-command command is [command]", "[command]는 지원하지 않는 명령어 입니다.");
+		add("99001", "parse failure", "파싱 실패.(msg:[msg])");
+		/* MetadataServiceImpl */
+		add("95000", "invalid-system-object-type, type=[type]", "[type]는 잘못된 타입입니다.");
+		/* LoggerMetadataProvider */
+		add("95010", "no-read-permission", "읽기 권한이 없습니다.");
+		add("95011", "logger-load-fail", "로거를 읽어오는데 실패했습니다.(msg:[msg])");
+		/* LogMetadataProvider */
+		add("95020", "no-read-permission", "읽기 권한이 없습니다.");
+		/* MetadataQueryStringParser */
+		add("95030", "invalid-from", "from 값이 유효하지 않습니다.");
+		add("95031", "invalid-to", "to 값이 유효하지 않습니다.");
+		add("95032", "invalid-date-rangen", "from 값이 유효하지 않습니다.(from:[from])");
+		/* ThreadMetadataProvider */
+		add("95040", "no-read-permission", "읽기 권한이 없습니다.");
+		/* FunctionRegistryImpl */
+		add("90900", "unsupported-function", "[function] 은 지원하지 않는 함수입니다.");
+		add("90901", "cannot create function instance", "[function] 함수 오류: [msg].");
+		add("90902", "cannot create function instance", "[function] 함수 오류 : [msg].");
+		add("90903", "no-read-permission", "[funtion] 함수 읽기 권한이 없습니다.");
+	}
 
 	@Requires
 	private FunctionRegistry functionRegistry;
@@ -64,11 +193,12 @@ public class QueryParserServiceImpl implements QueryParserService {
 		try {
 			for (String q : QueryTokenizer.parseCommands(queryString)) {
 				q = q.trim();
-				StringTokenizer tok = new StringTokenizer(q, " \t");
+				StringTokenizer tok = new StringTokenizer(q, " \n\t");
 				String commandType = tok.nextToken();
 				QueryCommandParser parser = commandParsers.get(commandType);
-				if (parser == null){
-					//	throw new QueryParseException("unsupported-command", -1, "command is [" + commandType + "]");
+				if (parser == null) {
+					// throw new QueryParseException("unsupported-command", -1,
+					// "command is [" + commandType + "]");
 					Map<String, String> params = new HashMap<String, String>();
 					params.put("command", commandType);
 					throw new QueryParseException("99000", -1, -1, params);
@@ -80,16 +210,16 @@ public class QueryParserServiceImpl implements QueryParserService {
 			}
 		} catch (QueryParseException t) {
 			closePrematureCommands(commands);
-			t.addOffset(offsetCnt); //
+			t.addOffset(offsetCnt);
 			throw t;
 		} catch (Throwable t) {
 			closePrematureCommands(commands);
 			slog.debug("QueryParserServiceImpl", t);
-		
-			Map<String, String>params = new HashMap<String, String>();
+
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("msg", t.getMessage());
 			throw new QueryParseException("99001", -1, -1, params);
-			//throw new QueryParseException("parse failure", -1, t.toString());
+			// throw new QueryParseException("parse failure", -1, t.toString());
 		}
 
 		if (commands.isEmpty())
@@ -116,19 +246,42 @@ public class QueryParserServiceImpl implements QueryParserService {
 	}
 
 	@Override
+	public String formatErrorMessage(String errorCode, Locale locale, Map<String, String> params) {
+		QueryErrorMessage m =  errorMappings.get(errorCode);
+		if (m == null)
+			return null;
+
+		return m.format(locale, params);
+	}
+
+	@Override
 	public void addCommandParser(QueryCommandParser parser) {
 		parser.setQueryParserService(this);
 		commandParsers.putIfAbsent(parser.getCommandName(), parser);
+
+		// TODO: register error messages
+		for (Entry<String, QueryErrorMessage> e : parser.getErrorMessages().entrySet()) {
+			errorMappings.put(e.getKey(), e.getValue());
+		}
 	}
 
 	@Override
 	public void removeCommandParser(QueryCommandParser parser) {
+		// TODO: unregister error messages
+		for (Entry<String, QueryErrorMessage> e : parser.getErrorMessages().entrySet()) {
+			errorMappings.remove(e.getKey(), parser);
+		}
+
 		commandParsers.remove(parser.getCommandName(), parser);
 	}
 
 	@Override
 	public FunctionRegistry getFunctionRegistry() {
 		return functionRegistry;
+	}
+
+	static void add(String code, String en, String ko) {
+		commonErrorMap.put(code, new QueryErrorMessage(en, ko));
 	}
 
 }

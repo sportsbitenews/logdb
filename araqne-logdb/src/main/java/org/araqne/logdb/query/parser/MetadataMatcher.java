@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 import org.araqne.log.api.WildcardMatcher;
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.StorageObjectName;
 import org.araqne.logdb.query.expr.Comma;
@@ -312,7 +312,7 @@ public class MetadataMatcher<T extends StorageObjectSpec> {
 			//	throw new QueryParseException("broken-expression", -1, "operator is [" + op + "]");
 				Map<String, String> params = new HashMap<String, String>();
 				params.put("option", op.toString());
-				throw new QueryParseInsideException("90301", -1 , -1, params);
+				throw new QueryParseException("90300", -1 , -1, params);
 			}
 			Expression rhs = exprStack.pop();
 			Expression lhs = exprStack.pop();

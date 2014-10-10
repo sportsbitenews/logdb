@@ -375,7 +375,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	 *            DB 암호
 	 */
 	public void connect(String host, String loginName, String password) throws IOException {
-		connect(host, 80, loginName, password);
+		connect(host, 8888, loginName, password);
 	}
 
 	/**
@@ -2349,12 +2349,29 @@ public class LogDbClient implements TrapListener, Closeable {
 		return session.rpc(method, params);
 	}
 
-	@SuppressWarnings("unused")
+	public Map<String, Object> getNodeByGuid(String instanceGuid) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("instance_guid", instanceGuid);
+
+		Message resp = rpc("com.logpresso.query.msgbus.FederationPlugin.getNodeByGuid", params);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> nodeInfo = (Map<String, Object>) resp.get("node");
+
+		return nodeInfo;
+	}
+
 	public String getInstanceGuid() throws IOException {
 		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.getInstanceGuid");
-		List<AccountInfo> accounts = new ArrayList<AccountInfo>();
 		String l = (String) resp.get("instance_guid");
 
 		return l;
+	}
+
+	public PeerStatus getPeerStatus(String instanceGuid) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("instance_guid", instanceGuid);
+
+		Message resp = rpc("com.logpresso.query.msgbus.FederationPlugin.getPeerStatus", params);
+		return new PeerStatus(resp.get("peer_status"));
 	}
 }

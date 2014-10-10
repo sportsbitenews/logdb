@@ -176,6 +176,10 @@ public class Parse extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public String toString() {
-		return "parse " + parserName;
+		if (parser instanceof ParseWithAnchor) {
+			return ((ParseWithAnchor)parser).toQueryCommandString();
+		} else {
+			return "parse " + parserName;
+		}
 	}
 }

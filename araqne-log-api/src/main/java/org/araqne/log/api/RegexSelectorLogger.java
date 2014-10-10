@@ -23,7 +23,7 @@ public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistr
 	private static final String OPT_SOURCE_LOGGER = "source_logger";
 	private static final String OPT_PATTERN = "pattern";
 	private static final String OPT_INVERT = "invert";
-	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SelectorLogger.class.getName());
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(RegexSelectorLogger.class.getName());
 	private LoggerRegistry loggerRegistry;
 
 	/**

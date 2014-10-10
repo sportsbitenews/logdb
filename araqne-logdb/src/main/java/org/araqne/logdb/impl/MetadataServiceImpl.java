@@ -46,9 +46,9 @@ public class MetadataServiceImpl implements MetadataService {
 		if (provider == null){
 			Map<String, String> params = new HashMap<String, String> ();
 			params.put("type", type);
-			params.put("query", queryString);
+			params.put("value", queryString);
 			throw new QueryParseException("95000", -1, -1, params);
-			//throw new QueryParseException("invalid-syste\m-object-type", -1, "type=" + type);
+			//throw new QueryParseException("invalid-system-object-type", -1, "type=" + type);
 		}
 		provider.verify(context, queryString);
 	}

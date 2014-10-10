@@ -21,7 +21,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.junit.Ignore;
 import org.junit.Test;
 /**
@@ -43,7 +43,7 @@ public class UrlDecodeTest {
 		try {
 			new UrlDecode(null, expr("test", "euc-kk"));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}

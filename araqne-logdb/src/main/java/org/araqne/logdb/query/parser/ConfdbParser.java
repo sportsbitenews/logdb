@@ -15,10 +15,14 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.araqne.confdb.ConfigService;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Confdb;
 import org.araqne.logdb.query.command.Confdb.ConfdbOptions;
@@ -40,6 +44,17 @@ public class ConfdbParser extends AbstractQueryCommandParser {
 	@Override
 	public String getCommandName() {
 		return "confdb";
+	}
+	
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("10000", new QueryErrorMessage("no-read-permission","권한이 없습니다. 관리자 권한이 필요합니다."));
+		m.put("10001", new QueryErrorMessage("missing-confdb-op", "입력된 옵션 값이 없습니다."));
+		m.put("10002", new QueryErrorMessage("missing-confdb-dbname", "검색 할 컬렉션의 데이타베이스 이름을 입력하십시오."));
+		m.put("10003", new QueryErrorMessage("missing-confdb-colname", "검색 할 설정 문서의 데이타베이스 이름을 입력하십시오."));
+		m.put("10004", new QueryErrorMessage("invalid-confdb-op", "[op]는 지원하지 않는 옵션 입니다."));
+		return m;
 	}
 
 	@Override

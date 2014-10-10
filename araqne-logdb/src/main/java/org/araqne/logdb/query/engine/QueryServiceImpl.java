@@ -503,7 +503,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 				continue;
 
 			Session s = q.getContext().getSession();
-			if (q.getRunMode() == RunMode.FOREGROUND && q.getContext().getSession().equals(session)) {
+			if (q.getRunMode() == RunMode.FOREGROUND && s.equals(session)) {
 				logger.trace("araqne logdb: removing foreground query [{}:{}] by session [{}] logout", new Object[] { q.getId(),
 						q.getQueryString(), session.getLoginName() });
 				removeQuery(q.getId());

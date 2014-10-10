@@ -241,6 +241,7 @@
 		<module>araqne-logstorage</module>
 		<module>araqne-snmptrap-parser</module>
 		<module>araqne-syslog-parser</module>
+		<module>araqne-krsyslog-parser</module>
 		<module>araqne-logdb-geoip</module>
 		<module>araqne-logdb-client</module>
 		<module>araqne-logdb-jython</module>

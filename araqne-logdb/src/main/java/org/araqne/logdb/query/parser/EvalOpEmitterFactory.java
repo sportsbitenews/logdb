@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.expr.Add;
 import org.araqne.logdb.query.expr.And;
 import org.araqne.logdb.query.expr.Comma;
@@ -38,7 +38,7 @@ public class EvalOpEmitterFactory implements OpEmitterFactory {
 //			throw new QueryParseException("broken-expression", -1, "operator is [" + op + "]");
 			Map<String, String> params = new HashMap<String, String > ();
 			params.put("option", op.toString());
-			throw new QueryParseInsideException("90100", -1, -1, params);
+			throw new QueryParseException("90100", -1, -1, params);
 }
 
 		Expression rhs = exprStack.pop();
@@ -90,8 +90,8 @@ public class EvalOpEmitterFactory implements OpEmitterFactory {
 		default:
 		//	throw new QueryParseException("unsupported operator", -1, op + " is not supported");
 			Map<String, String> params = new HashMap<String, String > ();
-			params.put("option", op.toString());
-			throw new QueryParseInsideException("90101", -1, -1, params);
+			params.put("op", op.toString());
+			throw new QueryParseException("90101", -1, -1, params);
 		}
 	}
 	

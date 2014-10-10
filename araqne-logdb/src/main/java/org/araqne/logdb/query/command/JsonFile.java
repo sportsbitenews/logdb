@@ -118,6 +118,14 @@ public class JsonFile extends DriverQueryCommand {
 
 	@Override
 	public String toString() {
-		return "jsonfile offset=" + offset + " limit=" + limit + " " + filePath;
+		String offsetOpt = "";
+		if (offset != 0)
+			offsetOpt = " offset=" + offset;
+
+		String limitOpt = "";
+		if (limit != 0)
+			limitOpt = " limit" + limit;
+
+		return "jsonfile" + offsetOpt + limitOpt + " " + filePath;
 	}
 }

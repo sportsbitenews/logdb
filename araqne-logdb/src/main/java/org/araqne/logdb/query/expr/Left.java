@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class Left implements Expression {
@@ -34,7 +34,7 @@ public class Left implements Expression {
 	//		throw new QueryParseException("left-func-negative-length", -1);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("length", length+"");
-			throw new QueryParseInsideException("90720", -1, -1, params);
+			throw new QueryParseException("90720", -1, -1, params);
 		}
 	}
 

@@ -30,6 +30,7 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.TimeSpan;
@@ -65,6 +66,21 @@ public class TableParser extends AbstractQueryCommandParser {
 		return "table";
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("10600", new QueryErrorMessage("archive-not-opened", "저장소가 닫혀 있습니다."));
+		m.put("10601", new QueryErrorMessage("negative-offset", "offset 값은 0보다 크거나 같아야 합니다: 입력값=[offset]."));
+		m.put("10602", new QueryErrorMessage("negative-limit", "입력값이 허용 범위를 벗어났습니다: limit=[offset]."));
+		m.put("10603", new QueryErrorMessage("invalid-table-spec", "[options]에서 [exp] 잘못된 옵션입니다."));
+		m.put("10604", new QueryErrorMessage("no-table-data-source", "테이블이 없습니다."));
+		m.put("10605", new QueryErrorMessage("table-not-found", "테이블 [table]이(가) 존재하지 않습니다."));
+		m.put("10606", new QueryErrorMessage("no-read-permission", "테이블 [table] 읽기 권한이 없습니다."));
+		m.put("10607", new QueryErrorMessage("table-not-found", "테이블 [table]이(가) 존재하지 않습니다."));
+		m.put("10608", new QueryErrorMessage("no-read-permission", "테이블 [table] 읽기 권한이 없습니다."));
+		return m;
+	}
+	
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
@@ -398,6 +414,7 @@ public class TableParser extends AbstractQueryCommandParser {
 			return result;
 		}
 
+		@Override
 		public String toString() {
 			StringBuilder sb = new StringBuilder();
 			sb.append("meta(");
@@ -459,9 +476,12 @@ public class TableParser extends AbstractQueryCommandParser {
 			addTableSpec(tableNames, context, evalResult);
 		}
 
-		if (tableNames.isEmpty())
+		if (tableNames.isEmpty()){
 			//	throw new QueryParseException("no-table-data-source", -1);
-			throw new QueryParseException("10604", -1, -1, null);
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("value", tableTokens);
+			throw new QueryParseException("10604", -1, -1, params);
+		}
 		return tableNames;
 	}
 

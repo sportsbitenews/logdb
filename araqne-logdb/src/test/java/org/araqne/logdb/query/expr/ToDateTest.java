@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.junit.Test;
 /**
  * 
@@ -46,7 +46,7 @@ public class ToDateTest {
 		try {
 			new ToDate(null, expr("2014-09-22 16:38:55", "TTTTT"));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}

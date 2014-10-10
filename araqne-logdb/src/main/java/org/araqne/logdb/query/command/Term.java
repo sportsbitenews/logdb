@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.araqne.logdb.ObjectComparator;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class Term {
@@ -39,7 +39,7 @@ public class Term {
 			}
 			Map<String, String> params = new HashMap<String, String> ();
 			params.put("op", str);
-			throw new QueryParseInsideException("21900", -1, -1, params);
+			throw new QueryParseException("21900", -1, -1, params);
 			//throw new QueryParseException("unsupported-operator", -1, str);
 		}
 

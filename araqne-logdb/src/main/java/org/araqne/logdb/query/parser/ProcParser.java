@@ -33,6 +33,7 @@ import org.araqne.logdb.ProcedureParameter;
 import org.araqne.logdb.ProcedureRegistry;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Row;
@@ -57,6 +58,17 @@ public class ProcParser extends AbstractQueryCommandParser {
 		return "proc";
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("11000", new QueryErrorMessage("procedure-not-found","프로시저를 찾을 수 없습니다."));
+		m.put("11001", new QueryErrorMessage("procedure-variable-type-mismatch [Type]","프로시저 변수가 타입이 맞지 않습니다. [param]는 [type] 타입이여야 합니다."));
+		m.put("11002", new QueryErrorMessage("procedure-owner-not-found","프로시저 소유자를 찾을 수 없습니다."));
+		m.put("11003", new QueryErrorMessage("procedure-parameter-mismatch","프로시저의 인자 수가 맞지 않습니다. [preset]개의 인자가 필요한데 [params]개의 인자가 입력 됐습니다."));
+		return m;
+	}
+	
+	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ProcFunction procFunc = (ProcFunction) ExpressionParser.parse(context, commandString.substring(4),

@@ -42,13 +42,13 @@ public class TimeSpan {
 		//	throw new QueryParseException("invalid-timespan", -1, "month should be 1, 2, 3, 4, or 6");
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("value", value);
-			throw new QueryParseInsideException("90500" , -1, -1,  params);
+			throw new QueryParseException("90500" , -1, -1,  params);
 		}
 		if (unit == TimeUnit.Year && amount != 1){
 		//	throw new QueryParseException("invalid-timespan", -1, "year should be 1");
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("value", value);
-			throw new QueryParseInsideException("90501", -1, -1, params);
+			throw new QueryParseException("90501", -1, -1, params);
 		}
 		return new TimeSpan(amount, unit);
 	}

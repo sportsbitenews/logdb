@@ -19,7 +19,6 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
 
@@ -39,12 +38,12 @@ public class StrJoin implements Expression {
 
 		if (exprs.size() != 2)
 //			throw new QueryParseException("invalid-strjoin-args", -1);
-			throw new QueryParseInsideException("90780", -1, -1, null);
+			throw new QueryParseException("90780", -1, -1, null);
 
 		Object sepValue = exprs.get(0).eval(null);
 		if (sepValue == null)
 //			throw new QueryParseException("strjoin-require-constant-separator", -1);
-			throw new QueryParseInsideException("90781", -1, -1, null);
+			throw new QueryParseException("90781", -1, -1, null);
 
 		this.sep = sepValue.toString();
 		this.array = exprs.get(1);

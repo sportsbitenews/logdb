@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 /**
@@ -43,7 +43,7 @@ public class DateAdd implements Expression {
 		c = Calendar.getInstance();
 		if (exprs.size() != 3)
 	//		throw new QueryParseException("invalid-dateadd-args", -1);
-			throw new QueryParseInsideException("90620" ,  -1, -1, null);
+			throw new QueryParseException("90620" ,  -1, -1, null);
 
 		field = exprs.get(0);
 
@@ -64,7 +64,7 @@ public class DateAdd implements Expression {
 		//	throw new QueryParseException("invalid-dateadd-calendar-field", -1);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("field", s);
-			throw new QueryParseInsideException("90621" ,  -1, -1, params);
+			throw new QueryParseException("90621" ,  -1, -1, params);
 		}
 		Object d = exprs.get(2).eval(null);
 		if (d instanceof Integer)
@@ -73,7 +73,7 @@ public class DateAdd implements Expression {
 		//	throw new QueryParseException("invalid-dateadd-delta-type", -1);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("time", d.toString());
-			throw new QueryParseInsideException("90622" ,  -1, -1, params);
+			throw new QueryParseException("90622" ,  -1, -1, params);
 		}
 	}
 

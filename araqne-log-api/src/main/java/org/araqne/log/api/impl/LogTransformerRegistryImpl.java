@@ -181,8 +181,20 @@ public class LogTransformerRegistryImpl extends AbstractTickTimer implements Log
 		if (captured == null)
 			return;
 
+		// set passive logger first
+		setTransformers(profile, captured, true);
+		setTransformers(profile, captured, false);
+	}
+
+	private void setTransformers(LogTransformerProfile profile, LoggerRegistry captured, boolean passive) {
 		for (Logger logger : captured.getLoggers()) {
+			if (logger.isPassive() != passive)
+				continue;
+
 			String transformerName = logger.getConfigs().get("transformer");
+			if (transformerName == null)
+				continue;
+
 			if (profile.getName().equals(transformerName)) {
 				try {
 					LogTransformer transformer = newTransformer(transformerName);

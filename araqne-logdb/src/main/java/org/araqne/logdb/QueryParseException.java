@@ -48,7 +48,7 @@ public class QueryParseException extends RuntimeException {
 
 	/**
 	 * 
-	 * @since 2.4.25
+	 * @since 2.4.30
 	 * @author kyun
 	 * 
 	 */
@@ -89,9 +89,8 @@ public class QueryParseException extends RuntimeException {
 	}
 	
 	public boolean isDebugMode(){
-		return true;
+		return false;
 	}
-	
 	
 	@Override
 	public String getMessage() {

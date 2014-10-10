@@ -26,6 +26,7 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.TextFile;
 
@@ -40,6 +41,13 @@ public class TextFileParser extends AbstractQueryCommandParser {
 	@Override
 	public String getCommandName() {
 		return "textfile";
+	}
+	
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("10700", new QueryErrorMessage("invalid-textfile-path", "[file]이 존재하지 않거나 읽을수 없습니다."));
+		return m;
 	}
 
 	@Override

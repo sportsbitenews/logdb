@@ -21,7 +21,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.junit.Test;
 /**
  * 
@@ -43,7 +43,7 @@ public class EncryptTest {
 		try {
 			new Encrypt(null, expr("AES"));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
@@ -54,7 +54,7 @@ public class EncryptTest {
 		try {
 			new Encrypt(null, expr("AES", "KEY"));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
@@ -67,7 +67,7 @@ public class EncryptTest {
 		try {
 			new Encrypt(null, expr("ASE", key, "hello"));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}

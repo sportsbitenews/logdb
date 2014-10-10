@@ -36,7 +36,7 @@ public class StringsTest {
 		try {
 			Strings.unescape(value);
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if(e.isDebugMode()){
 				System.out.println(value);
 				System.out.println(e.getMessage());

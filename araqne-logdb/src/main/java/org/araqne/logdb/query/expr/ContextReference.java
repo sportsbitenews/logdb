@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class ContextReference implements Expression {
@@ -15,11 +15,11 @@ public class ContextReference implements Expression {
 		this.constants = context.getConstants();
 		if (exprs.size() == 0)
 //			throw new QueryParseException("null-context-reference", -1);
-			throw new QueryParseInsideException("90610", -1, -1, null);
+			throw new QueryParseException("90610", -1, -1, null);
 		Object o = exprs.get(0).eval(null);
 		if (o == null)
 //			throw new QueryParseException("null-context-reference", -1);
-			throw new QueryParseInsideException("90611", -1, -1, null);
+			throw new QueryParseException("90611", -1, -1, null);
 
 		this.field = o.toString();
 	}

@@ -47,12 +47,16 @@ import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStartReason;
+import org.araqne.log.api.LoggerStatus;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.MultilineLogExtractor;
 import org.araqne.log.api.Reconfigurable;
 
 public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(NioRecursiveDirectoryWatchLogger.class.getName());
+	private int pollInterval = 0;
+	private int pollTimeout = 100;
+
 	private String basePath;
 	private Pattern fileNamePattern;
 	private Pattern dirPathPattern;
@@ -69,14 +73,41 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	private MultilineLogExtractor extractor;
 
 	private boolean walkTreeRequired = true;
+	private boolean walkForceStopped = false;
+
+	// update only state is modified (reduce large file set serialization
+	// overhead)
+	private volatile boolean modifiedStates;
 
 	public NioRecursiveDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
 
+		loadPollConfigs();
+
 		if (slog.isDebugEnabled())
-			slog.debug("araqne-logapi-nio: recursive dirwatcher used nio");
+			slog.debug("araqne-logapi-nio: recursive dirwatcher uses nio");
 
 		applyConfig();
+	}
+
+	private void loadPollConfigs() {
+		String s = System.getProperty("araqne.nio.poll_interval");
+		if (s != null) {
+			try {
+				pollInterval = Integer.valueOf(s);
+				slog.info("araqne-logapi-nio: use recursive watcher poll interval [{}]", pollInterval);
+			} catch (Throwable t) {
+			}
+		}
+
+		s = System.getProperty("araqne.nio.poll_timeout");
+		if (s != null) {
+			try {
+				pollTimeout = Integer.valueOf(s);
+				slog.info("araqne-logapi-nio: use recursive watcher poll timeout [{}]", pollTimeout);
+			} catch (Throwable t) {
+			}
+		}
 	}
 
 	@Override
@@ -155,6 +186,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		if (detector.deadThread)
 			throw new IllegalStateException("dead file watcher, logger[ [" + getFullName() + "]");
 
+		walkForceStopped = false;
 		if (walkTreeRequired) {
 			try {
 				Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
@@ -166,29 +198,45 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 					markDeletedFile(lastPositions, new File(path));
 				}
 
-				setStates(LastPositionHelper.serialize(lastPositions));
-				walkTreeRequired = false;
+				if (modifiedStates)
+					setStates(LastPositionHelper.serialize(lastPositions));
+				else
+					slog.debug("araqne-logapi-nio: logger [{}] has no modification, skip setStates()", getFullName());
+
+				if (!walkForceStopped)
+					walkTreeRequired = false;
 			} catch (IOException e) {
 				throw new IllegalStateException("failed to initial run, logger [" + getFullName() + "]", e);
 			}
 		}
 
-		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
-
+		Map<String, LastPosition> lastPositions = null;
 		try {
 			List<File> changedFiles = new ArrayList<File>(detector.getChangedFiles());
+			List<File> deletedFiles = new ArrayList<File>(detector.getDeletedFiles());
+
+			if (changedFiles.isEmpty() && deletedFiles.isEmpty()) {
+				return;
+			}
+
+			lastPositions = LastPositionHelper.deserialize(getStates());
+
 			Collections.sort(changedFiles);
 			for (File f : changedFiles) {
 				processFile(lastPositions, f);
 			}
 
-			List<File> deletedFiles = new ArrayList<File>(detector.getDeletedFiles());
 			Collections.sort(deletedFiles);
 			for (File f : deletedFiles) {
 				markDeletedFile(lastPositions, f);
 			}
 		} finally {
-			setStates(LastPositionHelper.serialize(lastPositions));
+			if (lastPositions != null && modifiedStates)
+				setStates(LastPositionHelper.serialize(lastPositions));
+			else
+				slog.debug("araqne-logapi-nio: logger [{}] has no modification, skip setStates()", getFullName());
+			
+			modifiedStates = false;
 		}
 	}
 
@@ -200,6 +248,8 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		LastPosition lp = lastPositions.get(path);
 		if (lp == null)
 			return;
+
+		modifiedStates = true;
 		if (lp.getLastSeen() == null) {
 			lp.setLastSeen(new Date());
 			slog.debug("araqne-logapi-nio: logger [{}] marked deleted file [{}] state", getFullName(), f.getAbsolutePath());
@@ -232,10 +282,12 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 				slog.trace("araqne-logapi-nio: target file [{}] skip offset [{}]", path, offset);
 			}
 
-			AtomicLong lastPosition = new AtomicLong(offset);
 			if (file.length() <= offset)
 				return;
 
+			modifiedStates = true;
+			
+			AtomicLong lastPosition = new AtomicLong(offset);
 			receiver.filename = file.getName();
 			is = new FileInputStream(file);
 			is.skip(offset);
@@ -266,7 +318,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	}
 
 	private String getDateString(File f) {
-		StringBuffer sb = new StringBuffer(f.getAbsolutePath().length());
+		StringBuilder sb = new StringBuilder(f.getAbsolutePath().length());
 		String dirPath = f.getParentFile().getAbsolutePath();
 		if (dirPathPattern != null) {
 			Matcher dirNameDateMatcher = dirPathPattern.matcher(dirPath);
@@ -326,23 +378,37 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 		@Override
 		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+			LoggerStatus status = getStatus();
+			if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped) {
+				slog.debug("araqne log api: stop logger [{}] initial runner.", getFullName());
+				walkForceStopped = true;
+				return FileVisitResult.TERMINATE;
+			}
 
 			if (!root.equals(dir) && !recursive) {
 				slog.debug("araqne-logapi-nio: logger [{}] skip directory [{}]", getFullName(), dir.toFile().getAbsolutePath());
 				return FileVisitResult.SKIP_SUBTREE;
 			}
-			
+
 			slog.debug("araqne-logapi-nio: logger [{}] visit directory [{}]", getFullName(), dir.toFile().getAbsolutePath());
 			return FileVisitResult.CONTINUE;
 		}
 
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+			LoggerStatus status = getStatus();
+			if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped) {
+				slog.debug("araqne log api: stop logger [{}] initial runner.", getFullName());
+				walkForceStopped = true;
+				return FileVisitResult.TERMINATE;
+			}
+
 			slog.debug("araqne-logapi-nio: logger [{}] visit file [{}]", getFullName(), file.toFile().getAbsolutePath());
 
 			File f = file.toFile();
 			if (dirPathPattern != null && !dirPathPattern.matcher(f.getParentFile().getAbsolutePath()).find()) {
 				slog.debug("araqne-logapi-nio: logger [{}] skip file [{}]", getFullName(), f.getAbsolutePath());
+				walkForceStopped = true;
 				return FileVisitResult.CONTINUE;
 			}
 
@@ -353,12 +419,26 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 		@Override
 		public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+			LoggerStatus status = getStatus();
+			if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped) {
+				slog.debug("araqne log api: stop logger [{}] initial runner.", getFullName());
+				walkForceStopped = true;
+				return FileVisitResult.TERMINATE;
+			}
+
 			slog.debug("araqne-logapi-nio: logger [{}] visit file failed [{}]", getFullName(), exc.getMessage());
 			return FileVisitResult.CONTINUE;
 		}
 
 		@Override
 		public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+			LoggerStatus status = getStatus();
+			if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped) {
+				slog.debug("araqne log api: stop logger [{}] initial runner.", getFullName());
+				walkForceStopped = true;
+				return FileVisitResult.TERMINATE;
+			}
+
 			return FileVisitResult.CONTINUE;
 		}
 	}
@@ -400,7 +480,15 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 				evtWatcher.addListener(detector);
 
 				while (!doStop) {
-					evtWatcher.poll(100);
+					evtWatcher.poll(pollTimeout);
+
+					if (pollInterval > 0) {
+						try {
+							Thread.sleep(pollInterval);
+						} catch (InterruptedException e) {
+							slog.debug("araqne-logapi-nio: watcher poll sleep interrupted");
+						}
+					}
 				}
 			} catch (IOException e) {
 				slog.error("araqne-logapi-nio: cannot poll file event for logger [" + getFullName() + "]", e);

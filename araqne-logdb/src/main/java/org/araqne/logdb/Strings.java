@@ -45,7 +45,7 @@ public class Strings {
 					Map<String, String> params = new HashMap<String, String>();
 					params.put("value", s);
 					params.put("char","\\" + c);
-					throw new QueryParseInsideException("90400", i -1 , i, params);
+					throw new QueryParseException("90400", i -1 , i, params);
 				}
 				escape = false;
 			} else {

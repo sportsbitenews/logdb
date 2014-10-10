@@ -33,6 +33,10 @@ import java.util.Map;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.api.PrimitiveConverter;
+import org.araqne.confdb.Config;
+import org.araqne.confdb.ConfigCollection;
+import org.araqne.confdb.ConfigDatabase;
+import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Permission;
@@ -80,6 +84,10 @@ public class ManagementPlugin {
 
 	@Requires
 	private LogCryptoProfileRegistry logCryptoProfileRegistry;
+
+	// TODO: move system variables control to storage service
+	@Requires
+	private ConfigService conf;
 
 	private UploadDataHandler uploadDataHandler = new UploadDataHandler();
 
@@ -699,4 +707,78 @@ public class ManagementPlugin {
 		storage.setRetentionPolicy(p);
 	}
 
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void getSystemVariables(Request req, Response resp) {
+		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
+		ConfigCollection col = db.ensureCollection("global_settings");
+		Config c = col.findOne(null);
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		if (c != null)
+			m = (Map<String, Object>) c.getDocument();
+
+		Map<String, Object> vars = new HashMap<String, Object>();
+
+		for (String key : Arrays.asList("min_free_disk_space_type", "min_free_disk_space_value", "disk_lack_action")) {
+			Object var = m.get(key);
+			if (key.equals("min_free_disk_space_type") && var == null)
+				var = "Percentage";
+
+			if (key.equals("min_free_disk_space_value") && var == null)
+				var = "10";
+			
+			if (key.equals("disk_lack_action") && var == null)
+				var = "StopLogging";
+
+			vars.put(key, var);
+		}
+
+		resp.put("vars", vars);
+	}
+
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void setSystemVariables(Request req, Response resp) {
+		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
+		ConfigCollection col = db.ensureCollection("global_settings");
+		Config c = col.findOne(null);
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		if (c != null)
+			m = (Map<String, Object>) c.getDocument();
+
+		String minFreeDiskSpaceType = (String) req.get("min_free_disk_space_type");
+		if (minFreeDiskSpaceType != null) {
+			if (!minFreeDiskSpaceType.equals("Percentage") && !minFreeDiskSpaceType.equals("Megabyte"))
+				throw new MsgbusException("logdb", "invalid-unit");
+			else
+				m.put("min_free_disk_space_type", minFreeDiskSpaceType);
+		}
+
+		String minFreeDiskSpaceValue = (String) req.get("min_free_disk_space_value");
+		if (minFreeDiskSpaceValue != null) {
+			try {
+				Long.valueOf(minFreeDiskSpaceValue);
+				m.put("min_free_disk_space_value", minFreeDiskSpaceValue);
+			} catch (NumberFormatException e) {
+				throw new MsgbusException("logdb", "invalid-number-format");
+			}
+		}
+
+		String diskLackAction = (String) req.get("disk_lack_action");
+		if (diskLackAction != null) {
+			if ((!diskLackAction.equals("StopLogging") && !diskLackAction.equals("RemoveOldLog")))
+				throw new MsgbusException("logdb", "invalid-disk-lack-action");
+			else
+				m.put("disk_lack_action", diskLackAction);
+		}
+
+		if (c != null) {
+			c.setDocument(m);
+			c.update();
+		} else {
+			col.add(c);
+		}
+	}
 }

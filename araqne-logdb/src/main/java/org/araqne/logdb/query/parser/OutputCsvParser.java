@@ -17,6 +17,7 @@ package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -25,6 +26,7 @@ import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.OutputCsv;
 
@@ -44,6 +46,17 @@ public class OutputCsvParser extends AbstractQueryCommandParser {
 		return "outputcsv";
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("30200", new QueryErrorMessage("missing-field","잘못된 쿼리문 입니다."));
+		m.put("30201", new QueryErrorMessage("use-partition-option", "파티션(partition) 옵션이 필요합니다."));
+		m.put("30202", new QueryErrorMessage("missing-field", "필드명을 입력하십시오.")); 
+		m.put("30203", new QueryErrorMessage("io-error", "IO 에러가 발생했습니다: [msg].")); 
+		m.put("30204", new QueryErrorMessage("unsuported-encoding", "[encoding]은 지원하지 않는 인코딩입니다.")); 
+		return m;
+	}
+	
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {

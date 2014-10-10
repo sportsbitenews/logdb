@@ -22,6 +22,7 @@ import java.util.List;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.Strings;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.expr.Expression;
 import org.slf4j.LoggerFactory;
@@ -121,5 +122,14 @@ public class Exec extends QueryCommand {
 			slog.error("araqne logdb: exec failed: " + command, e);
 		} catch (InterruptedException e) {
 		}
+	}
+
+	@Override
+	public String toString() {
+		String timeoutOpt = "";
+		if (timeout != null)
+			timeoutOpt = " timeout=" + timeout;
+
+		return "exec" + timeoutOpt + " " + command + " " + Strings.join(args, ", ");
 	}
 }

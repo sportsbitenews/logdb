@@ -67,7 +67,7 @@ public class Insert extends QueryCommand implements ThreadSafe {
 	public String toString() {
 		String createOption = "";
 		if (create)
-			createOption = "create=true ";
+			createOption = "create=t ";
 
 		return "insert into=" + tableNameField + " " + createOption;
 	}

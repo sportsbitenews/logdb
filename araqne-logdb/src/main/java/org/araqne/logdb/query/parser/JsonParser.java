@@ -9,6 +9,7 @@ import java.util.Map;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.Json;
@@ -22,6 +23,15 @@ public class JsonParser extends AbstractQueryCommandParser {
 	@Override
 	public String getCommandName() {
 		return "json";
+	}
+	
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("10200", new QueryErrorMessage("missing-json-quotation","json 문자열은 큰 따옴표(\")로 시작하고 끝나야 합니다."));
+		m.put("10201", new QueryErrorMessage("invalid-json-type","json 형태의 문자열을 입력하십시오."));
+		m.put("10202", new QueryErrorMessage("invalid-json","json 파싱에 실패하였습니다. [msg]"));
+		return m;
 	}
 
 	@SuppressWarnings("unchecked")

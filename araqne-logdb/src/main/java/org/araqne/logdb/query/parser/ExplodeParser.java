@@ -15,9 +15,13 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Explode;
 
@@ -28,6 +32,13 @@ public class ExplodeParser extends AbstractQueryCommandParser {
 		return "explode";
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("20300", new QueryErrorMessage("missing-explode-field","올바르지 않는 필드 이름입니다."));
+		return m;
+	}
+	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		String arrayFieldName = commandString.substring(getCommandName().length()).trim();

@@ -9,10 +9,11 @@ import java.util.Map;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Typeof implements Expression {
+public class Typeof extends FunctionExpression {
 	private Expression expr;
 
 	public Typeof(QueryContext ctx, List<Expression> exprs) {
+		super("typeof", exprs);
 		expr = exprs.get(0);
 	}
 
@@ -68,5 +69,5 @@ public class Typeof implements Expression {
 		// should not reach here
 		return o.getClass().getName();
 	}
-
+	
 }

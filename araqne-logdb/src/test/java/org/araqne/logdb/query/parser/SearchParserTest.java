@@ -27,7 +27,7 @@ import java.net.UnknownHostException;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandPipe;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
@@ -46,6 +46,17 @@ public class SearchParserTest {
 		QueryParserServiceImpl p = new QueryParserServiceImpl();
 		p.setFunctionRegistry(new FunctionRegistryImpl());
 		queryParserService = p;
+	}
+	
+	@Test
+	public void testSimple() {
+		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+
+		Search search = (Search) p.parse(null, "search field == \"\" or field == \"\"");
+		Expression expr = search.getExpression();
+
+		assertEquals("search ((field == \"\") or (field == \"\"))", search.toString());
 	}
 
 	@Test
@@ -237,7 +248,7 @@ public class SearchParserTest {
 
 			p.parse(null, query);
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if(e.isDebugMode()){
 				System.out.println(query);
 				System.out.println(e.getMessage());

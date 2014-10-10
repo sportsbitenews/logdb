@@ -75,6 +75,9 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 	@Requires
 	private StorageManager storageManager;
 
+	public StorageBackupManagerImpl() {
+	}
+
 	@Override
 	public StorageBackupJob prepare(StorageBackupRequest req) throws IOException {
 		if (req.getType() == StorageBackupType.BACKUP)
@@ -97,7 +100,10 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 				int tableId = schema.getId();
 				String basePath = schema.getPrimaryStorage().getBasePath();
 				FilePath baseDir = storageManager.resolveFilePath(basePath);
-				if (baseDir == null || !(baseDir instanceof LocalFilePath)) {
+				if (baseDir == null)
+					baseDir = storage.getDirectory();
+
+				if (!(baseDir instanceof LocalFilePath)) {
 					logger.warn("araqne logstorage : unsupported base path : " + basePath);
 					continue;
 				}

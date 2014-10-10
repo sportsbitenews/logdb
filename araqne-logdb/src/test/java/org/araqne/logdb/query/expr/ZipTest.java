@@ -14,10 +14,6 @@ import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.parser.ExpressionParser;
 import org.junit.Test;
 
-/**
- * @since 2.4.22
- * @author kyun
- */
 public class ZipTest {
 
 	private Row row;

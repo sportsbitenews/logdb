@@ -29,7 +29,7 @@ import java.util.StringTokenizer;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 
 public class QueryTokenizer {
 	private QueryTokenizer() {
@@ -210,7 +210,7 @@ public class QueryTokenizer {
 		List<QueryToken> l = new ArrayList<QueryToken>();
 
 		// TODO: consider quote-string and backslash escape
-		StringTokenizer tok = new StringTokenizer(s, " ");
+		StringTokenizer tok = new StringTokenizer(s, " \n\t");
 		while (tok.hasMoreTokens())
 			l.add(new QueryToken(tok.nextToken(), -1));
 
@@ -360,14 +360,16 @@ public class QueryTokenizer {
 		// check outermost condition (not in function call or quoted string)
 		int parens = 0;
 		boolean quoted = false;
+		char b = '\0';
 		for (int i = 0; i <= p; i++) {
 			char c = haystack.charAt(i);
-			if (c == '(')
+			if (c == '(' && b != '\\')
 				parens++;
-			else if (c == ')')
+			else if (c == ')' && b != '\\')
 				parens--;
-			else if (c == '"')
+			else if (c == '"' && b != '\\')
 				quoted = !quoted;
+			b = c;
 		}
 
 		if (parens == 0 && !quoted && whitespace)

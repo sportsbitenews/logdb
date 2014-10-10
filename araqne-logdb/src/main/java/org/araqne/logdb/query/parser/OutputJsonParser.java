@@ -17,6 +17,7 @@ package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -25,6 +26,7 @@ import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.OutputJson;
 
@@ -38,6 +40,16 @@ public class OutputJsonParser extends AbstractQueryCommandParser {
 	@Override
 	public String getCommandName() {
 		return "outputjson";
+	}
+	
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("30300", new QueryErrorMessage("missing-field","잘못된 쿼리문 입니다."));
+		m.put("30301", new QueryErrorMessage("use-partition-option", "파티션(partition) 옵션이 필요합니다."));
+		m.put("30302", new QueryErrorMessage("missing-field", "필드명을 입력하십시오.")); 
+		m.put("30303", new QueryErrorMessage("io-error", "IO 에러가 발생했습니다: [msg].")); 
+		return m;
 	}
 
 	@SuppressWarnings("unchecked")

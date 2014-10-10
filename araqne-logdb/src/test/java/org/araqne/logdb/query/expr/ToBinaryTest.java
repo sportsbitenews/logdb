@@ -22,7 +22,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.junit.Test;
 /**
  * 
@@ -48,7 +48,7 @@ public class ToBinaryTest {
 		try {
 			new ToBinary(null, expr());
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
@@ -61,7 +61,7 @@ public class ToBinaryTest {
 		try {
 			new ToBinary(null, expr("01234", "euc-ke"));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}

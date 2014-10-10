@@ -25,7 +25,7 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
 
 /**
- * @since 2.4.22
+ * @since 2.4.30
  * @author kyun
  */
 public class Zip implements Expression {

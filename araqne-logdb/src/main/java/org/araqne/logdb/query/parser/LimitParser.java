@@ -21,6 +21,7 @@ import java.util.Map;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Limit;
 
@@ -36,6 +37,14 @@ public class LimitParser extends AbstractQueryCommandParser {
 		return "limit";
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("20600", new QueryErrorMessage("invalid-limit-args","오프셋은 1개 또는 2개 입니다."));
+		m.put("20601", new QueryErrorMessage("invalid-limit-arg-type:[msg]", "잘못된 오프셋 타입입니다: [msg]."));
+		return m;
+	}
+		
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		//commandString = commandString.substring(getCommandName().length()).trim();
@@ -55,7 +64,8 @@ public class LimitParser extends AbstractQueryCommandParser {
 				long limit = Long.parseLong(tokens[1]);
 				return new Limit(offset, limit);
 			}
-		} catch (NumberFormatException e) {
+		} catch (NumberFormatException e) { 
+			
 			//throw new QueryParseException("invalid-limit-arg-type", -1);
 			Map<String, String> param = new HashMap<String, String>();
 			param.put("msg", e.getMessage());

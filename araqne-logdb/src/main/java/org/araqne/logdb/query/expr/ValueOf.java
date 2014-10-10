@@ -19,18 +19,20 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
-public class ValueOf implements Expression {
+public class ValueOf extends FunctionExpression {
 
 	private Expression compound;
 	private Expression key;
 
 	public ValueOf(QueryContext ctx, List<Expression> args) {
+		super("valueof", args);
+		
 		if (args.size() < 2)
 		//	throw new QueryParseException("insufficient-valueof-args", -1);
-			throw new QueryParseInsideException("90860", -1, -1, null);
+			throw new QueryParseException("90860", -1, -1, null);
 
 		this.compound = args.get(0);
 		this.key = args.get(1);

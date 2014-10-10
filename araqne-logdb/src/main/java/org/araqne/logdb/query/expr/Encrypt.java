@@ -25,7 +25,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * @since 2.4.11
  * @author xeraph
  */
-public class Encrypt implements Expression {
+public class Encrypt extends FunctionExpression {
 	private final Logger slog = LoggerFactory.getLogger(Encrypt.class);
 
 	private Cipher cipher;
@@ -45,9 +45,11 @@ public class Encrypt implements Expression {
 	private Expression ivExpr;
 
 	public Encrypt(QueryContext ctx, List<Expression> exprs) {
+		super("encrypt", exprs);
+
 		if (exprs.size() < 3)
 		//	throw new QueryParseException("insufficient-encrypt-args", -1);
-			throw new QueryParseInsideException("90660", -1, -1  , null);
+			throw new QueryParseException("90660", -1, -1  , null);
 
 		algorithm = exprs.get(0).eval(null).toString();
 		int p = algorithm.indexOf("/");
@@ -64,7 +66,7 @@ public class Encrypt implements Expression {
 		} catch (Throwable t) {
 			Map<String, String> params = new HashMap<String, String> ();
 			params.put("algorithm", algorithm);
-			throw new QueryParseInsideException("90661", -1, -1  , params);
+			throw new QueryParseException("90661", -1, -1  , params);
 			//throw new QueryParseException("invalid-cipher-algorithm", -1, algorithm);
 		}
 	}

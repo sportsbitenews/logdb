@@ -29,7 +29,7 @@ import org.araqne.logdb.PartitionOutput;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
@@ -160,14 +160,14 @@ public class OutputTxt extends QueryCommand {
 			//	this.holders = holders;
 				this.outputs = new HashMap<List<String>, PartitionOutput>();
 			}
-		}catch(QueryParseInsideException t){
+		}catch(QueryParseException t){
 			close();
 			throw t;
 		} catch (Throwable t) {
 			close();
 			Map<String, String> params = new HashMap<String, String> ();
 			params.put("msg", t.getMessage());
-			throw new QueryParseException("30405",  -1, -1, params);
+			throw new QueryParseException("30406",  -1, -1, params);
 			//throw new QueryParseException("io-error", -1);
 		}
 	}

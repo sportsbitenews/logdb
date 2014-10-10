@@ -23,7 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
 
@@ -128,7 +128,7 @@ public class In implements Expression {
 	public In(QueryContext ctx, List<Expression> exprs) {
 		if (exprs.size() < 2)
 	//		throw new QueryParseException("insufficient-arguments", -1);
-			throw new QueryParseInsideException("90700", -1, -1, null);
+			throw new QueryParseException("90700", -1, -1, null);
 
 		this.exprs = exprs;
 		this.field = exprs.get(0);

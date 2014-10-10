@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class Abs implements Expression {
@@ -29,8 +29,7 @@ public class Abs implements Expression {
 	public Abs(QueryContext ctx, List<Expression> exprs) {
 		if (exprs.size() != 1){
 		//	throw new QueryParseException("invalid-abs-args", -1);
-			Map<String, String> params = new HashMap<String, String>();
-			throw new QueryParseInsideException("90600", -1, -1, params);
+			throw new QueryParseException("90600", -1, -1, null);
 		}
 		this.expr = exprs.get(0);
 	}

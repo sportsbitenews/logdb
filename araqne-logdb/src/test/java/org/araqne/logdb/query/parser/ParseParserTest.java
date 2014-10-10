@@ -16,69 +16,68 @@
 package org.araqne.logdb.query.parser;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-
+import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LogParserProfile;
 import org.araqne.log.api.LogParserRegistry;
-import org.araqne.log.api.impl.LogParserRegistryImpl;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.FunctionRegistry;
+import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
-import org.araqne.logdb.impl.FunctionRegistryImpl;
-import org.araqne.logdb.query.engine.QueryParserServiceImpl;
-import org.araqne.logstorage.LogTableRegistry;
-import org.araqne.logstorage.TableSchema;
-import org.junit.Before;
 import org.junit.Test;
 
 public class ParseParserTest {
-	private QueryParserService queryParserService;
+	@Test
+	public void parseSuccessTest() {
+		assertEquals("parse test", getParseResult("parse test"));
 
-	@Before
-	public void setup() {
-		QueryParserServiceImpl p = new QueryParserServiceImpl();
-		p.setFunctionRegistry(new FunctionRegistryImpl());
-		queryParserService = p;
+		assertEquals("parse \"[Test: *]\" as test, \"[Time: *]\" as time", 
+				getParseResult("parse \"[Test: *]\" as test, \"[Time: *]\" as time"));
 	}
-	
+
 	@Test
-	public void testError21000(){
-		ParseParser parser = new ParseParser(null);
-		parser.setQueryParserService(queryParserService);
-		String query = "parse ";
-		
-		try {
-			parser.parse(null, query);
-			fail();
-		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
-				System.out.println("query " + query);
-				System.out.println(e.getMessage());
-			}
-			assertEquals("21000", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(5, e.getOffsetE());	
-		}
+	public void parseFailureTest() {
+		// assertEquals("parse test", getParseResult("parse test"));
 	}
-	
-	@Test
-	public void testError21001(){
-		ParseParser parser = new ParseParser( mock(LogParserRegistryImpl.class));
-		parser.setQueryParserService(queryParserService);
-		String query = "parse delim";
-		try {
-			parser.parse(null, query);
-			fail();
-		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
-				System.out.println("query " + query);
-				System.out.println(e.getMessage());
-			}
-			assertEquals("21001", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(11, e.getOffsetE());	
-		}
+
+	private String getParseResult(String testString) {
+		ParseParser pp = new ParseParser(mockLogParserRegistry());
+
+		pp.setQueryParserService(mockQueryParserService());
+
+		QueryCommand p1 = pp.parse(mockQueryContext(), testString);
+
+		return p1.toString();
+	}
+
+	private QueryParserService mockQueryParserService() {
+		QueryParserService qps = mock(QueryParserService.class);
+		when(qps.getFunctionRegistry()).thenReturn(mockFunctionRegistry());
+
+		return qps;
+	}
+
+	private FunctionRegistry mockFunctionRegistry() {
+		FunctionRegistry fr = mock(FunctionRegistry.class);
+
+		return fr;
+	}
+
+	private LogParserRegistry mockLogParserRegistry() {
+		LogParserRegistry lpr = mock(LogParserRegistry.class);
+
+		when(lpr.getProfile("test")).thenReturn(mock(LogParserProfile.class));
+		when(lpr.newParser("test")).thenReturn(mock(LogParser.class));
+
+		return lpr;
+	}
+
+	private QueryContext mockQueryContext() {
+		QueryContext ret = mock(QueryContext.class);
+
+		return ret;
+
 	}
 }

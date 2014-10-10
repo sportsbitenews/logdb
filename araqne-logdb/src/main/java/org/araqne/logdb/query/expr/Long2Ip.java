@@ -18,16 +18,18 @@ package org.araqne.logdb.query.expr;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
-public class Long2Ip implements Expression {
+public class Long2Ip extends FunctionExpression {
 	private Expression valueExpr;
 
 	public Long2Ip(QueryContext ctx, List<Expression> exprs) {
+		super("long2ip", exprs);
+		
 		if (exprs.size() != 1)
 	//		throw new QueryParseException("invalid-long2ip-args", -1);
-			throw new QueryParseInsideException("90730", -1, -1, null);
+			throw new QueryParseException("90730", -1, -1, null);
 			
 		this.valueExpr = exprs.get(0);
 	}

@@ -78,4 +78,20 @@ public class FieldsParserTest {
 			assertEquals(8, e.getOffsetE());	
 		}
 	}
+	
+	
+	// test for araqne/issue#714
+	@Test
+	public void testFieldNameTrimming() {
+		FieldsParser p = new FieldsParser();
+		Fields fields = (Fields) p.parse(null, "fields sip\t,\nsport,\ndip,\n dport ");
+
+		assertEquals(4, fields.getFields().size());
+		assertTrue(fields.isSelector());
+		assertEquals("sip", fields.getFields().get(0));
+		assertEquals("sport", fields.getFields().get(1));
+		assertEquals("dip", fields.getFields().get(2));
+		assertEquals("dport", fields.getFields().get(3));
+		assertEquals("fields sip, sport, dip, dport", fields.toString());
+	}
 }

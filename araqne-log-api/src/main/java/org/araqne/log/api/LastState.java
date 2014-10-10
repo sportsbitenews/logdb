@@ -212,7 +212,7 @@ public class LastState {
 		result = prime * result + ((loggerName == null) ? 0 : loggerName.hashCode());
 		result = prime * result + ((properties == null) ? 0 : properties.hashCode());
 		result = prime * result + ((startTime == null) ? 0 : startTime.hashCode());
-		result = prime * result + (int) (updateCount ^ (updateCount >>> 32));
+		// do not compare update count
 		return result;
 	}
 
@@ -262,8 +262,8 @@ public class LastState {
 				return false;
 		} else if (!startTime.equals(other.startTime))
 			return false;
-		if (updateCount != other.updateCount)
-			return false;
+
+		// do not compare update count
 		return true;
 	}
 }

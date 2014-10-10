@@ -54,7 +54,7 @@ public class ParseKvParserTest {
 		assertFalse(kv.isOverlay());
 		assertEquals(" ", kv.getPairDelim());
 		assertEquals("=", kv.getKvDelim());
-		assertEquals("parsekv field=line overlay=false pairdelim=\" \" kvdelim=\"=\"", kv.toString());
+		assertEquals("parsekv", kv.toString());
 
 		// test field extraction
 		String line = "a=1 b=2 c=3";

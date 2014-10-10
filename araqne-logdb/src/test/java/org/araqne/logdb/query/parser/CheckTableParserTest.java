@@ -3,6 +3,7 @@ package org.araqne.logdb.query.parser;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -10,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
@@ -95,6 +97,42 @@ public class CheckTableParserTest {
 		assertEquals("20130808", df.format(c.getTo()));
 		
 		assertEquals(query, c.toString());
+	}
+	
+	@Test
+	public void testError11101() {
+		String  query = "checktable from=1007 to=20130808 secure_*";
+		
+		try {
+			parse(query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("11101", e.getType());
+			assertEquals(11, e.getOffsetS());
+			assertEquals(19, e.getOffsetE());	
+		}
+	}
+	
+	@Test
+	public void testError11102() {
+		String  query = "checktable from=20141007 to=2014 secure_*";
+		
+		try {
+			parse(query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("11102", e.getType());
+			assertEquals(25, e.getOffsetS());
+			assertEquals(31, e.getOffsetE());	
+		}
 	}
 
 	private CheckTable parse(String query) {

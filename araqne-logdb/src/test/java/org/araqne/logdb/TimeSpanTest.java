@@ -20,7 +20,7 @@ public class TimeSpanTest {
 		try {
 			TimeSpan.parse(value);
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if(e.isDebugMode()){
 				System.out.println(value);
 				System.out.println(e.getMessage());
@@ -37,7 +37,7 @@ public class TimeSpanTest {
 		try {
 			TimeSpan.parse(value);
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if(e.isDebugMode()){
 				System.out.println(value);
 				System.out.println(e.getMessage());

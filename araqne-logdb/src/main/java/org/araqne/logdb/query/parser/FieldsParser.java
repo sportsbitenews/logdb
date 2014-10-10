@@ -16,11 +16,14 @@
 package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Fields;
 
@@ -30,7 +33,15 @@ public class FieldsParser extends AbstractQueryCommandParser {
 	public String getCommandName() {
 		return "fields";
 	}
+	
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("20400", new QueryErrorMessage("no-field-args","필드 이름이 없습니다. "));
+		return m;
+	}
 
+	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
@@ -52,8 +63,9 @@ public class FieldsParser extends AbstractQueryCommandParser {
 
 		for (String t : args) {
 			String[] csv = t.split(",");
-			for (String s : csv)
-				fields.add(s);
+			for (String s : csv) {
+				fields.add(s.trim());
+			}
 		}
 
 		return new Fields(fields, selector);

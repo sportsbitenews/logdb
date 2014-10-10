@@ -17,12 +17,14 @@ package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.TimeUnit;
@@ -38,6 +40,13 @@ public class TimechartParser extends AbstractQueryCommandParser {
 		return COMMAND;
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("21800", new QueryErrorMessage("need-aggregation-field", "필드를 입력하십시오."));
+		return m;
+	}
+	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		// timechart <options> <aggregation functions> by <clause>

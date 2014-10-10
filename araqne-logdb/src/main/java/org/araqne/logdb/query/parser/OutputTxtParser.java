@@ -27,6 +27,7 @@ import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.OutputTxt;
 
@@ -43,6 +44,19 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 		return "outputtxt";
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("30400", new QueryErrorMessage("missing-field","잘못된 쿼리문 입니다."));
+		m.put("30401", new QueryErrorMessage("use-partition-option", "파티션(partition) 옵션이 필요합니다."));
+		m.put("30402", new QueryErrorMessage("missing-field", "필드명을 입력하십시오.")); 
+		m.put("30403", new QueryErrorMessage("missing-field", "[temp](temp) 파일이 존재합니다.")); 
+		m.put("30404", new QueryErrorMessage("missing-field", "출력파일명 및 필드 값을 입력하시오.")); 
+		m.put("30405", new QueryErrorMessage("missing-field", "출력파일명 및 필드 값을 입력하시오.")); 
+		m.put("30406", new QueryErrorMessage("io-error", " IO 에러가 발생했습니다: [msg].")); 
+		return m;
+	}
+	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))

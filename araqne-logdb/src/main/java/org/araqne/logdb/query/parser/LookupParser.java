@@ -23,6 +23,7 @@ import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Lookup;
 
@@ -38,6 +39,16 @@ public class LookupParser extends AbstractQueryCommandParser {
 		return "lookup";
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("20700", new QueryErrorMessage("output-token-not-found","변형 대상 필드(output)를 입력하십시오."));
+		m.put("20701", new QueryErrorMessage("invalid-lookup-name", "[table]은 유효하지 않는 매핑 테이블 입니다."));
+		m.put("20702", new QueryErrorMessage("invalid-lookup-field", "출력필드가 유효하지 않는 형식입니다. "));
+		m.put("20703", new QueryErrorMessage("as-token-not-found", "잘못된 문법 : [as] 자리에 as 가 와야 합니다. "));
+		return m;
+	}
+	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString);

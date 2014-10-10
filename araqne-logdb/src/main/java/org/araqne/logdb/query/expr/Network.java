@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.InetAddresses;
 
@@ -31,19 +31,21 @@ import org.araqne.logdb.impl.InetAddresses;
  * @author darkluster
  * 
  */
-public class Network implements Expression {
+public class Network extends FunctionExpression {
 	private Expression valueExpr;
 	private int maskNumber;
 	private byte[] mask;
 
 	public Network(QueryContext ctx, List<Expression> exprs) {
+		super("network", exprs);
+		
 		this.valueExpr = exprs.get(0);
 		this.maskNumber = Integer.parseInt(exprs.get(1).eval(null).toString());
 		if (maskNumber < 0 || maskNumber > 128){
 	//		throw new QueryParseException("invalid-mask", -1);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("mask", maskNumber + "");
-			throw new QueryParseInsideException("90740", -1, -1, params);
+			throw new QueryParseException("90740", -1, -1, params);
 		}
 		initializeMask(maskNumber);
 	}

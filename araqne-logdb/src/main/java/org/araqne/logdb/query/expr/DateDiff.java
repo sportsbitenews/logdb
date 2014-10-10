@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 /**
@@ -48,7 +48,7 @@ public class DateDiff implements Expression {
 
 		if (exprs.size() != 3)
 //			throw new QueryParseException("invalid-datediff-args", -1);
-			throw new QueryParseInsideException("90630", -1, -1  , null);
+			throw new QueryParseException("90630", -1, -1  , null);
 
 		start = exprs.get(0);
 		end = exprs.get(1);
@@ -72,7 +72,7 @@ public class DateDiff implements Expression {
 		//	throw new QueryParseException("invalid-datediff-unit", -1);
 			Map<String, String> params = new HashMap<String, String> ();
 			params.put("field", s);
-			throw new QueryParseInsideException("90631", -1, -1  , params);
+			throw new QueryParseException("90631", -1, -1  , params);
 		}
 	}
 

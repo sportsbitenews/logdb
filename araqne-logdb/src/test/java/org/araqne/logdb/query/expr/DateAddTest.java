@@ -25,7 +25,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.junit.Before;
 import org.junit.Test;
 /**
@@ -93,7 +93,7 @@ public class DateAddTest {
 		try {
 			new DateAdd(null,  expr(date( sdf.format(date), format)));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
@@ -104,7 +104,7 @@ public class DateAddTest {
 		try {
 			new DateAdd(null,  expr(date( sdf.format(date), format) , "sec"));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
@@ -115,7 +115,7 @@ public class DateAddTest {
 		try {
 			new DateAdd(null,  expr(date( sdf.format(date), format) , "sec", 1, 2));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
@@ -129,7 +129,7 @@ public class DateAddTest {
 		try {
 			new DateAdd(null, expr(date( sdf.format(date), format) , "seconds", 1));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
@@ -143,7 +143,7 @@ public class DateAddTest {
 		try {
 			new DateAdd(null, expr(date( sdf.format(date), format) , "sec", 1.2));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
@@ -154,7 +154,7 @@ public class DateAddTest {
 		try {
 			new DateAdd(null, expr(date( sdf.format(date), format) , "sec", "now().sec"));
 			fail();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}

@@ -13,6 +13,7 @@
 	<instance component="log-transformer-factory-registry" />
 	<instance component="selector-logger-factory" />
 	<instance component="directory-watch-logger-factory" />
+	<instance component="daily-directory-watch-logger-factory" />
 	<instance component="key-value-tagger-factory" />
 	<instance component="log-normalizer-registry" />
 	<instance component="log-transformer-registry" />

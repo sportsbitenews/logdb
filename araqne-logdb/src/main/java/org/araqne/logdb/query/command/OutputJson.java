@@ -29,7 +29,6 @@ import org.araqne.logdb.PartitionOutput;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
@@ -127,7 +126,7 @@ public class OutputJson extends QueryCommand {
 				//this.holders = holders;
 				this.outputs = new HashMap<List<String>, PartitionOutput>();
 			}
-		}catch(QueryParseInsideException t){
+		}catch(QueryParseException t){
 			close();
 			throw t;
 		} catch (Throwable t) {
@@ -245,7 +244,7 @@ public class OutputJson extends QueryCommand {
 	public String toString() {
 		String overwriteOption = " ";
 		if (overwrite)
-			overwriteOption = " overwrite=true ";
+			overwriteOption = " overwrite=t ";
 
 		String encodingOption = "";
 		if (encoding != null)

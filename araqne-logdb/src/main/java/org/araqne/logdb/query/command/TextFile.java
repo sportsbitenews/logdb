@@ -95,6 +95,14 @@ public class TextFile extends DriverQueryCommand {
 
 	@Override
 	public String toString() {
-		return "textfile offset=" + offset + " limit=" + limit + " " + filePath;
+		String offsetOpt = "";
+		if (offset > 0)
+			offsetOpt = " offset=" + offset;
+
+		String limitOpt = "";
+		if (limit > 0)
+			limitOpt = " limit=" + limit;
+
+		return "textfile" + offsetOpt + limitOpt + " " + filePath;
 	}
 }

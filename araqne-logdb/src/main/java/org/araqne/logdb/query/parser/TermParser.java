@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.query.command.Term;
 import org.araqne.logdb.query.command.Term.Operator;
 
@@ -44,7 +43,7 @@ public class TermParser {
 		}
 
 		// set operator
-		int checkpoint = r.next;
+		//int checkpoint = r.next;
 		r = QueryTokenizer.nextString(s, r.next);
 		String op = (String) r.value;
 
@@ -61,17 +60,17 @@ public class TermParser {
 		Operator operator = null;
 		try{
 			operator = Operator.find(op);
-		}catch(QueryParseInsideException t){
+		}catch(QueryParseException t){
 			Map<String, String> params = new HashMap<String, String> ();
 			params.put("op", op);
 			params.put("value", s);
-			throw new QueryParseInsideException(t.getType(), -1, -1, params);
+			throw new QueryParseException(t.getType(), -1, -1, params);
 		}
 		if (operator == null){
 			Map<String, String> params = new HashMap<String, String> ();
 			params.put("op", op);
 			params.put("value", s);
-			throw new QueryParseInsideException("21901", -1, -1, null);
+			//throw new QueryParseException("21901", -1, -1, null);
 			//throw new QueryParseException("invalid-operator", checkpoint);
 		}
 		term.setOperator(operator);
@@ -86,11 +85,6 @@ public class TermParser {
 			try {
 				r = QueryTokenizer.nextString(s, r.next);
 			} catch (QueryParseException e) {
-				//if (e.getType().equals("90004")){
-				//	Map<String, String> params = new HashMap<String, String>();
-				//	params.put("value", s);
-				//	throw new QueryParseException("21902", 0, 0, params);
-				//}
 				e.getParams().put("value", s);
 				throw e;
 			}

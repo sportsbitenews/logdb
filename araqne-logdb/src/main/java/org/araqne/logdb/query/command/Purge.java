@@ -15,13 +15,13 @@
  */
 package org.araqne.logdb.query.command;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
 import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.Strings;
 import org.araqne.logstorage.LogStorage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @since 2.2.10
@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
  * 
  */
 public class Purge extends QueryCommand {
-	private final Logger logger = LoggerFactory.getLogger(Purge.class);
 	private LogStorage storage;
 
 	private List<String> tableNames;
@@ -53,5 +52,11 @@ public class Purge extends QueryCommand {
 	public void onStart() {
 		for (String tableName : this.tableNames)
 			storage.purge(tableName, this.from, this.to);
+	}
+
+	@Override
+	public String toString() {
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+		return "purge from=" + df.format(from) + " to=" + df.format(to) + " " + Strings.join(tableNames, ", ");
 	}
 }

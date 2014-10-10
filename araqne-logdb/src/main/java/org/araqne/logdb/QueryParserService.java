@@ -16,6 +16,8 @@
 package org.araqne.logdb;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public interface QueryParserService {
 	/**
@@ -24,6 +26,8 @@ public interface QueryParserService {
 	QueryCommandParser getCommandParser(String name);
 
 	List<QueryCommand> parseCommands(QueryContext context, String queryString);
+	
+	String formatErrorMessage(String errorCode, Locale locale, Map<String, String> params);
 
 	void addCommandParser(QueryCommandParser parser);
 

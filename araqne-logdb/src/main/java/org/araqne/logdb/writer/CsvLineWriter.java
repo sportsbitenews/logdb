@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.QueryParseInsideException;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.IoHelper;
 
@@ -54,7 +54,7 @@ public class CsvLineWriter implements LineWriter {
 				//throw new QueryParseExceptio("unsuported-encoding: " + encoding, -1);
 				Map<String, String> params = new HashMap<String, String>();
 				params.put("encoding",encoding);
-				throw new QueryParseInsideException("30600", -1, -1, params);
+				throw new QueryParseException("30304", -1, -1, params);
 			}
 
 			for (Integer bom : boms.get(encoding))

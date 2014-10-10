@@ -4,6 +4,7 @@ import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -12,6 +13,7 @@ import java.util.regex.Pattern;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Strings;
 import org.araqne.logdb.query.command.CheckTable;
@@ -40,9 +42,19 @@ public class CheckTableParser extends AbstractQueryCommandParser {
 	}
 
 	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("11100", new QueryErrorMessage("no-permission","권한이 없습니다."));
+		m.put("11101", new QueryErrorMessage("invalid-limit-args","시작 날짜 포맷([from])이 형식(yyyyMMdd)에 맞지 않습니다."));
+		m.put("11102", new QueryErrorMessage("invalid-limit-args","끝 날짜 포맷([to])이 형식(yyyyMMdd)에 맞지 않습니다."));
+		return m;
+	}
+
+	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (!context.getSession().isAdmin())
-			throw new QueryParseException("no-permission", -1);
+			//	throw new QueryParseException("no-permission", -1);
+			throw new QueryParseException("11100", -1 ,-1, null);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
 				Arrays.asList("from", "to", "trace"), getFunctionRegistry());
@@ -58,15 +70,25 @@ public class CheckTableParser extends AbstractQueryCommandParser {
 		Date from = null;
 		if (fromToken != null) {
 			from = df.parse(fromToken, new ParsePosition(0));
-			if (from == null)
-				throw new QueryParseException("invalid-from-format", -1);
+			if (from == null){
+				//	throw new QueryParseException("invalid-from-format", -1);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("from", fromToken);
+				int index = commandString.indexOf("from=" + fromToken, getCommandName().length());
+				throw new QueryParseException("11101", index, index + fromToken.length() + 4 , params);
+			}
 		}
 
 		Date to = null;
 		if (toToken != null) {
 			to = df.parse(toToken, new ParsePosition(0));
-			if (to == null)
-				throw new QueryParseException("invalid-to-format", -1);
+			if (to == null){
+				//	throw new QueryParseException("invalid-to-format", -1);
+				Map<String, String> params = new HashMap<String, String> ();
+				params.put("to", toToken);
+				int index = commandString.indexOf("to=" + toToken, getCommandName().length());
+				throw new QueryParseException("11102", index, index + toToken.length() + 2, params);
+			}
 		}
 
 		String tableToken = commandString.substring(r.next).trim();

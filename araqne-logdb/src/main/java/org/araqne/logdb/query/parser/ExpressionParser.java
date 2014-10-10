@@ -28,7 +28,6 @@ import java.util.Stack;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.QueryParseInsideException;
 import org.araqne.logdb.Strings;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -221,7 +220,7 @@ public class ExpressionParser {
 					Map<String, String> params = new HashMap<String, String>();
 					params.put("term", term.toString());
 					params.put("value", s);
-					throw new QueryParseInsideException("90200", -1, -1, params);
+					throw new QueryParseException("90200", -1, -1, params);
 					//throw new QueryParseException("unexpected-term", -1, term.toString());
 				}
 			}
@@ -229,11 +228,11 @@ public class ExpressionParser {
 			if (exprStack.size() > 1) {
 				Map<String, String> params = new HashMap<String, String>();
 				params.put("value",s);
-				throw new QueryParseInsideException("90201", -1, -1, params);
+				throw new QueryParseException("90201", -1, -1, params);
 				//throw new QueryParseException("remain-terms", -1, exprStack.toString());
 			}
 			return exprStack.pop();
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			e.getParams().put("value", s);
 			throw e;
 		}
@@ -248,7 +247,7 @@ public class ExpressionParser {
 		
 		try {
 			return parse(context, s, evalRule);
-		} catch (QueryParseInsideException e) {
+		} catch (QueryParseException e) {
 			//e.printStackTrace();
 			e.getParams().put("value", s);
 			throw e;
@@ -292,7 +291,7 @@ public class ExpressionParser {
 
 					if (!foundMatchParens){
 						//throw new QueryParseException("parens-mismatch", -1);
-						throw new QueryParseInsideException("90202", -1, -1, null);
+						throw new QueryParseException("90202", -1, -1, null);
 					}
 					// postprocess for closed parenthesis
 
@@ -459,7 +458,7 @@ public class ExpressionParser {
 				// int p = s.indexOf('"', r.next + 1);
 				if (p < 0) {
 					//throw new QueryParseException("quote-mismatch", r.next + 1);
-					throw new QueryParseInsideException("90203", -1, -1, null);
+					throw new QueryParseException("90203", -1, -1, null);
 					
 					// String quoted = unveilEscape(s.substring(r.next));
 					// return new ParseResult(quoted, s.length());
@@ -472,7 +471,7 @@ public class ExpressionParser {
 				int p = findClosingSquareBracket(s, r.next + 1);
 				if (p == r.next + 1 - 1)
 				//	throw new QueryParseException("sqbracket-mismatch", r.next + 1);
-					throw new QueryParseInsideException("90204", -1, -1, null);
+					throw new QueryParseException("90204", -1, -1, null);
 				else {
 					String subquery = s.substring(r.next, p + 1);
 					return new ParseResult(subquery, p + 1);
@@ -524,7 +523,7 @@ public class ExpressionParser {
 					//throw new QueryParseException("invalid-escape-sequence", offset);
 					Map<String, String> params = new HashMap<String, String>();
 					params.put("escape", "\\" + c);
-					throw new QueryParseInsideException("90205", -1, -1, params);
+					throw new QueryParseException("90205", -1, -1, params);
 				}
 			} else {
 				if (c == '\\')
