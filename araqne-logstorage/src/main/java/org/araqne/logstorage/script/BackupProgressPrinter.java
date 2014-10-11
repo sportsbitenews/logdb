@@ -59,13 +59,13 @@ class BackupProgressPrinter implements StorageBackupProgressMonitor {
 	}
 
 	@Override
-	public void onBeginFile(StorageBackupJob job, String tableName, String fileName) {
+	public void onBeginFile(StorageBackupJob job, String tableName, String fileName, long fileLength) {
 		if (!disabled)
 			context.println(getTimestamp() + "> " + getType(job) + " file [" + tableName + ":" + fileName + "]");
 	}
 
 	@Override
-	public void onCompleteFile(StorageBackupJob job, String tableName, String fileName) {
+	public void onCompleteFile(StorageBackupJob job, String tableName, String fileName, long fileLength) {
 		if (!disabled)
 			context.println(getTimestamp() + "< " + getType(job) + " file [" + tableName + ":" + fileName + "]");
 	}

@@ -241,7 +241,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
 						try {
 							if (monitor != null)
-								monitor.onBeginFile(job, tableName, mediaFile.getFileName());
+								monitor.onBeginFile(job, tableName, mediaFile.getFileName(), mediaFile.getLength());
 
 							media.copyFromMedia(tr);
 						} catch (IOException e) {
@@ -252,7 +252,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 							mediaFile.setDone(true);
 
 							if (monitor != null)
-								monitor.onCompleteFile(job, tableName, mediaFile.getFileName());
+								monitor.onCompleteFile(job, tableName, mediaFile.getFileName(), mediaFile.getLength());
 						}
 					}
 
@@ -321,7 +321,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
 						try {
 							if (monitor != null)
-								monitor.onBeginFile(job, tableName, storageFile.getFileName());
+								monitor.onBeginFile(job, tableName, storageFile.getFileName(), storageFile.getLength());
 
 							media.copyToMedia(tr);
 						} catch (IOException e) {
@@ -332,7 +332,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 							storageFile.setDone(true);
 
 							if (monitor != null)
-								monitor.onCompleteFile(job, tableName, storageFile.getFileName());
+								monitor.onCompleteFile(job, tableName, storageFile.getFileName(), storageFile.getLength());
 						}
 					}
 
