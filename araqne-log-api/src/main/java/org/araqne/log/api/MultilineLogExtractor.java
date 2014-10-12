@@ -41,6 +41,7 @@ import java.util.regex.Pattern;
  */
 public class MultilineLogExtractor {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(MultilineLogExtractor.class);
+	private static boolean collectEmptyLine;
 	private Logger logger;
 	private String charset = "utf-8";
 	private Matcher beginMatcher;
@@ -54,6 +55,12 @@ public class MultilineLogExtractor {
 
 	// assign current year to date
 	private Calendar yearModifier;
+
+	static {
+		String s = System.getProperty("araqne.logapi.collect_empty_line");
+		if (s != null && (s.equalsIgnoreCase("enabled") || s.equalsIgnoreCase("true")))
+			collectEmptyLine = true;
+	}
 
 	public static MultilineLogExtractor build(Logger logger, LogPipe receiver) {
 		MultilineLogExtractor extractor = new MultilineLogExtractor(logger, receiver);
@@ -209,7 +216,7 @@ public class MultilineLogExtractor {
 		if (log != null) {
 			int l = log.length();
 			boolean cr = false;
-			if (l > 2)
+			if (l >= 2)
 				cr = log.charAt(l - 2) == '\r';
 			boolean lf = log.charAt(l - 1) == '\n';
 
@@ -224,6 +231,11 @@ public class MultilineLogExtractor {
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("line", log);
 
+				output.add(new SimpleLog(d, logger == null ? null : logger.getFullName(), m));
+			} else if (collectEmptyLine) {
+				Date d = parseDate("", dateFromFileName);
+				Map<String, Object> m = new HashMap<String, Object>();
+				m.put("line", "");
 				output.add(new SimpleLog(d, logger == null ? null : logger.getFullName(), m));
 			}
 		}
