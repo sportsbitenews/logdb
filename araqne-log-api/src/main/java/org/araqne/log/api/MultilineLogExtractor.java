@@ -27,10 +27,12 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @since 2.4.6
@@ -52,6 +54,45 @@ public class MultilineLogExtractor {
 
 	// assign current year to date
 	private Calendar yearModifier;
+
+	public static MultilineLogExtractor build(Logger logger, LogPipe receiver) {
+		MultilineLogExtractor extractor = new MultilineLogExtractor(logger, receiver);
+		Map<String, String> configs = logger.getConfigs();
+
+		// optional
+		String datePatternRegex = configs.get("date_pattern");
+		if (datePatternRegex != null) {
+			extractor.setDateMatcher(Pattern.compile(datePatternRegex).matcher(""));
+		}
+
+		// optional
+		String dateLocale = configs.get("date_locale");
+		if (dateLocale == null)
+			dateLocale = "en";
+
+		// optional
+		String dateFormatString = configs.get("date_format");
+		String timeZone = configs.get("timezone");
+		if (dateFormatString != null)
+			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
+
+		// optional
+		String beginRegex = configs.get("begin_regex");
+		if (beginRegex != null)
+			extractor.setBeginMatcher(Pattern.compile(beginRegex).matcher(""));
+
+		String endRegex = configs.get("end_regex");
+		if (endRegex != null)
+			extractor.setEndMatcher(Pattern.compile(endRegex).matcher(""));
+
+		// optional
+		String charset = configs.get("charset");
+		if (charset == null)
+			charset = "utf-8";
+
+		extractor.setCharset(charset);
+		return extractor;
+	}
 
 	public MultilineLogExtractor(Logger logger, LogPipe pipe) {
 		this.logger = logger;

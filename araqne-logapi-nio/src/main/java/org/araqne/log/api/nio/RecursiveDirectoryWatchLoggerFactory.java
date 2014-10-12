@@ -133,7 +133,7 @@ public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory 
 				"Include sub-directories. default is false", "하위 디렉터리 포함 여부, 기본값 false", "下位ディレクトリを含む。基本値はfalse",
 				"true表示采集子目录，默认值为false。"), false);
 
-		LoggerConfigOption fileTag = new MutableStringConfigType("file_tag", t("Filename Tag", "파일네임 태그", "ファイル名タグ", "文件名标记"), t(
+		LoggerConfigOption fileTag = new MutableStringConfigType("file_tag", t("Filename Tag", "파일이름 태그", "ファイル名タグ", "文件名标记"), t(
 				"Field name for filename tagging", "파일명을 태깅할 필드 이름", "ファイル名をタギングするフィールド名", "要进行文件名标记的字段"), false);
 
 		return Arrays.asList(basePath, dirPathPattern, fileNamePattern, datePattern, dateFormat, dateLocale, timezone,
