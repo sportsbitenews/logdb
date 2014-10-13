@@ -47,8 +47,8 @@ public class RenameParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20800", e.getType());
-			assertEquals(7, e.getOffsetS());
-			assertEquals(7, e.getOffsetE());	
+			assertEquals(7, e.getStartOffset());
+			assertEquals(7, e.getEndOffset());	
 		}
 	}
 
@@ -66,8 +66,8 @@ public class RenameParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20801", e.getType());
-			assertEquals(9, e.getOffsetS());
-			assertEquals(12, e.getOffsetE());	
+			assertEquals(9, e.getStartOffset());
+			assertEquals(12, e.getEndOffset());	
 		}
 		
 		query = "rename sent   as";
@@ -80,8 +80,8 @@ public class RenameParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20801", e.getType());
-			assertEquals(7, e.getOffsetS());
-			assertEquals(15, e.getOffsetE());	
+			assertEquals(7, e.getStartOffset());
+			assertEquals(15, e.getEndOffset());	
 		}
 	}
 	
@@ -99,8 +99,8 @@ public class RenameParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20802", e.getType());
-			assertEquals(13, e.getOffsetS());
-			assertEquals(16, e.getOffsetE());	
+			assertEquals(13, e.getStartOffset());
+			assertEquals(16, e.getEndOffset());	
 		}
 	}
 }

@@ -137,8 +137,8 @@ public class QueryTokenizerTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("90000", e.getType());
-			assertEquals(13, e.getOffsetS());
-			assertEquals(13, e.getOffsetE());
+			assertEquals(13, e.getStartOffset());
+			assertEquals(13, e.getEndOffset());
 		}
 	}
 	
@@ -155,8 +155,8 @@ public class QueryTokenizerTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("90001", e.getType());
-			assertEquals(19, e.getOffsetS());
-			assertEquals(26, e.getOffsetE());
+			assertEquals(19, e.getStartOffset());
+			assertEquals(26, e.getEndOffset());
 		}
 	}
 
@@ -173,8 +173,8 @@ public class QueryTokenizerTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("90002", e.getType());
-			assertEquals(26, e.getOffsetS());
-			assertEquals(47, e.getOffsetE());
+			assertEquals(26, e.getStartOffset());
+			assertEquals(47, e.getEndOffset());
 		}
 	}
 
@@ -207,8 +207,8 @@ public class QueryTokenizerTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("90003", e.getType());
-			assertEquals(15, e.getOffsetS());
-			assertEquals(15, e.getOffsetE());
+			assertEquals(15, e.getStartOffset());
+			assertEquals(15, e.getEndOffset());
 		}
 
 		query = "table test |    ";
@@ -222,8 +222,8 @@ public class QueryTokenizerTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("90003", e.getType());
-			assertEquals(15, e.getOffsetS());
-			assertEquals(15, e.getOffsetE());
+			assertEquals(15, e.getStartOffset());
+			assertEquals(15, e.getEndOffset());
 		}
 	}
 	
@@ -240,8 +240,8 @@ public class QueryTokenizerTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("90004", e.getType());
-			assertEquals(0, e.getOffsetS());
-			assertEquals(0, e.getOffsetE());
+			assertEquals(0, e.getStartOffset());
+			assertEquals(0, e.getEndOffset());
 		}
 	}
 	

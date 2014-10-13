@@ -95,8 +95,8 @@ public class TableParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10601", e.getType());
-			assertEquals(13, e.getOffsetS());
-			assertEquals(14, e.getOffsetE());	
+			assertEquals(13, e.getStartOffset());
+			assertEquals(14, e.getEndOffset());	
 		}
 	}
 
@@ -113,8 +113,8 @@ public class TableParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10602", e.getType());
-			assertEquals(12, e.getOffsetS());
-			assertEquals(14, e.getOffsetE());	
+			assertEquals(12, e.getStartOffset());
+			assertEquals(14, e.getEndOffset());	
 		}
 	}
 
@@ -131,8 +131,8 @@ public class TableParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10605", e.getType());
-			assertEquals(-1, e.getOffsetS());
-			assertEquals(-1, e.getOffsetE());	
+			assertEquals(-1, e.getStartOffset());
+			assertEquals(-1, e.getEndOffset());	
 		}
 	}
 
@@ -150,8 +150,8 @@ public class TableParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10606", e.getType());
-			assertEquals(-1, e.getOffsetS());
-			assertEquals(-1, e.getOffsetE());	
+			assertEquals(-1, e.getStartOffset());
+			assertEquals(-1, e.getEndOffset());	
 		}
 	}
 
@@ -171,8 +171,8 @@ public class TableParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10603", e.getType());
-			assertEquals(-1, e.getOffsetS());
-			assertEquals(-1, e.getOffsetE());	
+			assertEquals(-1, e.getStartOffset());
+			assertEquals(-1, e.getEndOffset());	
 		}
 	}
 

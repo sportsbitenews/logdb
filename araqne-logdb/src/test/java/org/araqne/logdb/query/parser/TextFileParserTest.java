@@ -51,8 +51,8 @@ public class TextFileParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10700", e.getType());
-			assertEquals(9, e.getOffsetS());
-			assertEquals(20, e.getOffsetE());
+			assertEquals(9, e.getStartOffset());
+			assertEquals(20, e.getEndOffset());
 		}
 	}
 }

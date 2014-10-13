@@ -38,8 +38,8 @@ public class EvalcParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20200", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(9, e.getOffsetE());	
+			assertEquals(6, e.getStartOffset());
+			assertEquals(9, e.getEndOffset());	
 		}
 		assertNull(eval);
 	}
@@ -60,8 +60,8 @@ public class EvalcParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20201", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(5, e.getOffsetE());	
+			assertEquals(6, e.getStartOffset());
+			assertEquals(5, e.getEndOffset());	
 		}
 		assertNull(eval);
 	}
@@ -82,8 +82,8 @@ public class EvalcParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20202", e.getType());
-			assertEquals(8, e.getOffsetS());
-			assertEquals(7, e.getOffsetE());	
+			assertEquals(8, e.getStartOffset());
+			assertEquals(7, e.getEndOffset());	
 		}
 		assertNull(eval);
 	}

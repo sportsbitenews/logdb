@@ -73,8 +73,8 @@ public class OutputJsonParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30302", e.getType());
-			assertEquals(11, e.getOffsetS());
-			assertEquals(10, e.getOffsetE());	
+			assertEquals(11, e.getStartOffset());
+			assertEquals(10, e.getEndOffset());	
 		}
 	}
 	
@@ -94,8 +94,8 @@ public class OutputJsonParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30301", e.getType());
-			assertEquals(11, e.getOffsetS());
-			assertEquals(62, e.getOffsetE());	
+			assertEquals(11, e.getStartOffset());
+			assertEquals(62, e.getEndOffset());	
 		} finally {
 			new File("logexport.json").delete();
 		}
@@ -117,8 +117,8 @@ public class OutputJsonParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30300", e.getType());
-			assertEquals(29, e.getOffsetS());
-			assertEquals(29, e.getOffsetE());	
+			assertEquals(29, e.getStartOffset());
+			assertEquals(29, e.getEndOffset());	
 		} 
 	}
 }

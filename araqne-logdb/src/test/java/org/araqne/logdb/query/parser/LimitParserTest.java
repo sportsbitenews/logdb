@@ -39,8 +39,8 @@ public class LimitParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20600", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(6, e.getOffsetE());	
+			assertEquals(6, e.getStartOffset());
+			assertEquals(6, e.getEndOffset());	
 		}
 		
 		query = "limit 5 10 15";
@@ -53,8 +53,8 @@ public class LimitParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20600", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(12, e.getOffsetE());	
+			assertEquals(6, e.getStartOffset());
+			assertEquals(12, e.getEndOffset());	
 		}
 	}
 	
@@ -72,8 +72,8 @@ public class LimitParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20601", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(8, e.getOffsetE());	
+			assertEquals(6, e.getStartOffset());
+			assertEquals(8, e.getEndOffset());	
 		}
 	}
 }

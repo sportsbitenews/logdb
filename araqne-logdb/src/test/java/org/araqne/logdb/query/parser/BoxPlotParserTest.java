@@ -45,8 +45,8 @@ public class BoxPlotParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20000", e.getType());
-			assertEquals(27, e.getOffsetS());
-			assertEquals(27, e.getOffsetE());
+			assertEquals(27, e.getStartOffset());
+			assertEquals(27, e.getEndOffset());
 		}
 	}
 	
@@ -79,8 +79,8 @@ public class BoxPlotParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20001", e.getType());
-			assertEquals(8, e.getOffsetS());
-			assertEquals(6, e.getOffsetE());
+			assertEquals(8, e.getStartOffset());
+			assertEquals(6, e.getEndOffset());
 		}
 	}
 }

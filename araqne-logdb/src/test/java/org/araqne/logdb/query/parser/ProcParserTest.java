@@ -63,8 +63,8 @@ public class ProcParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("11000", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(15, e.getOffsetE());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(15, e.getEndOffset());
 		}
 	}
 
@@ -83,8 +83,8 @@ public class ProcParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("11001", e.getType());
-			assertEquals(11, e.getOffsetS());
-			assertEquals(22, e.getOffsetE());
+			assertEquals(11, e.getStartOffset());
+			assertEquals(22, e.getEndOffset());
 		}
 	}
 
@@ -103,8 +103,8 @@ public class ProcParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("11002", e.getType());
-			assertEquals(-1, e.getOffsetS());
-			assertEquals(-1, e.getOffsetE());
+			assertEquals(-1, e.getStartOffset());
+			assertEquals(-1, e.getEndOffset());
 		}
 	}
 
@@ -124,8 +124,8 @@ public class ProcParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("11003", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(23, e.getOffsetE());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(23, e.getEndOffset());
 		}
 	}
 

@@ -24,43 +24,37 @@ public class QueryParseException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
 
 	private String type;
-	private Integer offset;
+	private int offset;
 	private String note;
 	private Map<String, String> params;
 	private int offsetS;
 	private int offsetE;
 	private List<Integer> offsetList;
-	
+
 	public QueryParseException(String type, int offset) {
 		this(type, offset, null);
 	}
-	
+
 	public QueryParseException(String type, int offset, String note) {
 		this.type = type;
 		this.offset = offset;
 		this.note = note;
-		
+
 		this.offsetS = -1;
 		this.offsetE = -1;
 		this.params = null;
 		this.offsetList = new ArrayList<Integer>();
 	}
 
-	/**
-	 * 
-	 * @since 2.4.30
-	 * @author kyun
-	 * 
-	 */
-	public QueryParseException(String type, int s, int e, Map<String, String> params){
+	public QueryParseException(String type, int s, int e, Map<String, String> params) {
 		this.type = type;
 		this.offsetS = s;
 		this.offsetE = e;
-		this.params = (params==null)? new HashMap<String, String>(): params;
+		this.params = (params == null) ? new HashMap<String, String>() : params;
 		this.offsetList = new ArrayList<Integer>();
 	}
 
-	public void addOffset(int offset){
+	public void addOffset(int offset) {
 		offsetList.add(offset);
 	}
 
@@ -68,44 +62,32 @@ public class QueryParseException extends RuntimeException {
 		return type;
 	}
 
-	public Integer getOffset() {
+	public int getOffset() {
 		return offset;
 	}
 
-	public int getOffsetS(){
+	public int getStartOffset() {
 		return offsetS;
 	}
-	
-	public int getOffsetE(){
+
+	public int getEndOffset() {
 		return offsetE;
 	}
-	
-	public Map<String, String> getParams(){
+
+	public Map<String, String> getParams() {
 		return params;
 	}
-	
-	public List<Integer> getOffsetList(){
+
+	public List<Integer> getOffsets() {
 		return offsetList;
 	}
-	
-	public boolean isDebugMode(){
+
+	public boolean isDebugMode() {
 		return false;
 	}
-	
+
 	@Override
 	public String getMessage() {
-		String mark = "^";
-		int start = offsetS;
-		int end = offsetE;
-		
-		start +=6;
-		end += 6;
-		
-		String s = (start >= end)?
-				String.format("%" + (end +1) + "s", mark):
-					String.format("%" +(start +1) + "s%" + (end - start) + "s", mark, mark); 
-		s =   s + "\ntype=" + type + ", offset=" + offset + ", note=" + note  + ", offsets:" + offsetList.toString() + ", errorStart: " + offsetS + ", errorEnd: " + offsetE;
-		
-		return  params == null? s + "\n":  s + " ,param:" + params.toString() +"\n" ;
+		return "type=" + type + ", offset=" + offset + ", note=" + note;
 	}
 }

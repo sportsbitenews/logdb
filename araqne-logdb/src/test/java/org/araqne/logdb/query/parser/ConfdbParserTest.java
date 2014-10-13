@@ -42,8 +42,8 @@ public class ConfdbParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10000", e.getType());
-			assertEquals(-1, e.getOffsetS());
-			assertEquals(-1, e.getOffsetE());	
+			assertEquals(-1, e.getStartOffset());
+			assertEquals(-1, e.getEndOffset());	
 		}
 	}
 
@@ -60,8 +60,8 @@ public class ConfdbParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10001", e.getType());
-			assertEquals(7, e.getOffsetS());
-			assertEquals(5, e.getOffsetE());	
+			assertEquals(7, e.getStartOffset());
+			assertEquals(5, e.getEndOffset());	
 		}
 	}
 	
@@ -78,8 +78,8 @@ public class ConfdbParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10002", e.getType());
-			assertEquals(10, e.getOffsetS());
-			assertEquals(10, e.getOffsetE());	
+			assertEquals(10, e.getStartOffset());
+			assertEquals(10, e.getEndOffset());	
 		}
 	}
 	
@@ -96,8 +96,8 @@ public class ConfdbParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10003", e.getType());
-			assertEquals(25, e.getOffsetS());
-			assertEquals(25, e.getOffsetE());	
+			assertEquals(25, e.getStartOffset());
+			assertEquals(25, e.getEndOffset());	
 		}
 	}
 	
@@ -114,8 +114,8 @@ public class ConfdbParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10004", e.getType());
-			assertEquals(7, e.getOffsetS());
-			assertEquals(12, e.getOffsetE());	
+			assertEquals(7, e.getStartOffset());
+			assertEquals(12, e.getEndOffset());	
 		}
 	}
 	

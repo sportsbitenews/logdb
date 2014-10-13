@@ -50,8 +50,8 @@ public class TimechartParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("21800", e.getType());
-			assertEquals(10, e.getOffsetS());
-			assertEquals(8, e.getOffsetE());
+			assertEquals(10, e.getStartOffset());
+			assertEquals(8, e.getEndOffset());
 		}
 	}
 

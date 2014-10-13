@@ -259,8 +259,8 @@ public class RexParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20900", e.getType());
-			assertEquals(10, e.getOffsetS());
-			assertEquals(10, e.getOffsetE());	
+			assertEquals(10, e.getStartOffset());
+			assertEquals(10, e.getEndOffset());	
 		}
 	}
 	
@@ -278,8 +278,8 @@ public class RexParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20901", e.getType());
-			assertEquals(15, e.getOffsetS());
-			assertEquals(46, e.getOffsetE());	
+			assertEquals(15, e.getStartOffset());
+			assertEquals(46, e.getEndOffset());	
 		}
 		
 		query = "rex field=line From: (?<from>.*) To: (?<to>.*)\"";
@@ -292,8 +292,8 @@ public class RexParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20901", e.getType());
-			assertEquals(15, e.getOffsetS());
-			assertEquals(46, e.getOffsetE());	
+			assertEquals(15, e.getStartOffset());
+			assertEquals(46, e.getEndOffset());	
 		}
 	}
 }

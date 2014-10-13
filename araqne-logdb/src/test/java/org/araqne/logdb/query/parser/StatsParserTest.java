@@ -68,8 +68,8 @@ public class StatsParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("91010", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(15, e.getOffsetE());	
+			assertEquals(6, e.getStartOffset());
+			assertEquals(15, e.getEndOffset());	
 		}
 	}	
 	
@@ -87,8 +87,8 @@ public class StatsParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("91020", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(15, e.getOffsetE());	
+			assertEquals(6, e.getStartOffset());
+			assertEquals(15, e.getEndOffset());	
 		}
 	}
 	
@@ -143,8 +143,8 @@ public class StatsParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("21700", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(4, e.getOffsetE());	
+			assertEquals(6, e.getStartOffset());
+			assertEquals(4, e.getEndOffset());	
 		}
 	}
 	
@@ -162,8 +162,8 @@ public class StatsParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("21701", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(49, e.getOffsetE());	
+			assertEquals(6, e.getStartOffset());
+			assertEquals(49, e.getEndOffset());	
 		}
 	}
 	
@@ -181,8 +181,8 @@ public class StatsParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("21702", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(11,  e.getOffsetE());	
+			assertEquals(6, e.getStartOffset());
+			assertEquals(11,  e.getEndOffset());	
 		}
 	}
 	
@@ -200,8 +200,8 @@ public class StatsParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("21703", e.getType());
-			assertEquals(6, e.getOffsetS());
-			assertEquals(8,  e.getOffsetE());	
+			assertEquals(6, e.getStartOffset());
+			assertEquals(8,  e.getEndOffset());	
 		}
 	}
 

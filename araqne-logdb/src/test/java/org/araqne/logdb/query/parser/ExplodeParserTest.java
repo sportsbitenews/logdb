@@ -37,8 +37,8 @@ public class ExplodeParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20300", e.getType());
-			assertEquals(8, e.getOffsetS());
-			assertEquals(7, e.getOffsetE());	
+			assertEquals(8, e.getStartOffset());
+			assertEquals(7, e.getEndOffset());	
 		}
 	}
 

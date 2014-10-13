@@ -71,7 +71,7 @@ public class LogQueryPlugin {
 
 	@Requires
 	private QueryService service;
-	
+
 	@Requires
 	private QueryParserService parserService;
 
@@ -152,17 +152,19 @@ public class LogQueryPlugin {
 			Query query = service.createQuery(dbSession, req.getString("query"));
 			resp.put("id", query.getId());
 		} catch (QueryParseException e) {
-			if(e.getParams() == null)
+			if (e.getParams() == null)
 				throw new MsgbusException("logdb", e.getMessage());
-			
-			String msg = parserService.formatErrorMessage(e.getType(), req.getSession().getLocale(),  e.getParams());
-			Map<String, Object> parameters = new HashMap<String, Object>();
-			parameters.put("start", e.getOffsetS());
-			parameters.put("end", e.getOffsetE());
-			parameters.put("offsetList", e.getOffsetList());
-			parameters.putAll(e.getParams());
-			throw new MsgbusException("logdb", msg, parameters );		  
-		}catch (Exception e) {
+
+			String msg = parserService.formatErrorMessage(e.getType(), req.getSession().getLocale(), e.getParams());
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("start", e.getStartOffset());
+			params.put("end", e.getEndOffset());
+			params.put("offsets", e.getOffsets());
+			params.putAll(e.getParams());
+
+			String errorMessage = "type=" + e.getType() + ", offset=" + e.getOffset() + ", note=" + msg;
+			throw new MsgbusException("logdb", errorMessage, params);
+		} catch (Exception e) {
 			logger.error("araqne logdb: cannot create query", e);
 			throw new MsgbusException("logdb", e.getMessage());
 		}

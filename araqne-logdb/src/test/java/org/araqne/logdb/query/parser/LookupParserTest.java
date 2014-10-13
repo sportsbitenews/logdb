@@ -63,8 +63,8 @@ public class LookupParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20700", e.getType());
-			assertEquals(7, e.getOffsetS());
-			assertEquals(45, e.getOffsetE());	
+			assertEquals(7, e.getStartOffset());
+			assertEquals(45, e.getEndOffset());	
 		}
 	}
 	
@@ -82,8 +82,8 @@ public class LookupParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20701", e.getType());
-			assertEquals(7, e.getOffsetS());
-			assertEquals(12, e.getOffsetE());	
+			assertEquals(7, e.getStartOffset());
+			assertEquals(12, e.getEndOffset());	
 		}
 	}
 	
@@ -101,8 +101,8 @@ public class LookupParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20702", e.getType());
-			assertEquals(32, e.getOffsetS());
-			assertEquals(59, e.getOffsetE());	
+			assertEquals(32, e.getStartOffset());
+			assertEquals(59, e.getEndOffset());	
 		}
 	}
 	
@@ -120,8 +120,8 @@ public class LookupParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20703", e.getType());
-			assertEquals(47, e.getOffsetS());
-			assertEquals(49, e.getOffsetE());	
+			assertEquals(47, e.getStartOffset());
+			assertEquals(49, e.getEndOffset());	
 		}
 	}
 	

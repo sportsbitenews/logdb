@@ -47,8 +47,8 @@ public class EvalParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20100", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(8, e.getOffsetE());	
+			assertEquals(5, e.getStartOffset());
+			assertEquals(8, e.getEndOffset());	
 		}
 	}
 
@@ -67,8 +67,8 @@ public class EvalParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20101", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(6, e.getOffsetE());	
+			assertEquals(5, e.getStartOffset());
+			assertEquals(6, e.getEndOffset());	
 		}
 		
 		query = "eval =";
@@ -82,8 +82,8 @@ public class EvalParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20101", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(4, e.getOffsetE());	
+			assertEquals(5, e.getStartOffset());
+			assertEquals(4, e.getEndOffset());	
 		}
 	}
 
@@ -102,8 +102,8 @@ public class EvalParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20102", e.getType());
-			assertEquals(7, e.getOffsetS());
-			assertEquals(10, e.getOffsetE());	
+			assertEquals(7, e.getStartOffset());
+			assertEquals(10, e.getEndOffset());	
 		}
 	}
 	

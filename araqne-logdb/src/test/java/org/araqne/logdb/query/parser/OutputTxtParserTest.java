@@ -93,8 +93,8 @@ public class OutputTxtParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("90001", e.getType());
-			assertEquals(10, e.getOffsetS());
-			assertEquals(32, e.getOffsetE());
+			assertEquals(10, e.getStartOffset());
+			assertEquals(32, e.getEndOffset());
 		} finally {
 			new File("logexport.csv").delete();
 		}
@@ -116,8 +116,8 @@ public class OutputTxtParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30400", e.getType());
-			assertEquals(27, e.getOffsetS());
-			assertEquals(27, e.getOffsetE());	
+			assertEquals(27, e.getStartOffset());
+			assertEquals(27, e.getEndOffset());	
 		}
 	}
 
@@ -137,8 +137,8 @@ public class OutputTxtParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30401", e.getType());
-			assertEquals(10, e.getOffsetS());
-			assertEquals(60, e.getOffsetE());	
+			assertEquals(10, e.getStartOffset());
+			assertEquals(60, e.getEndOffset());	
 		}
 	}
 	
@@ -158,8 +158,8 @@ public class OutputTxtParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30402", e.getType());
-			assertEquals(10, e.getOffsetS());
-			assertEquals(22, e.getOffsetE());	
+			assertEquals(10, e.getStartOffset());
+			assertEquals(22, e.getEndOffset());	
 		}
 	}
 
@@ -180,8 +180,8 @@ public class OutputTxtParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30403", e.getType());
-			assertEquals(30, e.getOffsetS());
-			assertEquals(38, e.getOffsetE());	
+			assertEquals(30, e.getStartOffset());
+			assertEquals(38, e.getEndOffset());	
 		}finally{
 			new File("overwrite").delete();
 		}
@@ -203,8 +203,8 @@ public class OutputTxtParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30405", e.getType());
-			assertEquals(10, e.getOffsetS());
-			assertEquals(8, e.getOffsetE());	
+			assertEquals(10, e.getStartOffset());
+			assertEquals(8, e.getEndOffset());	
 		}
 	}
 }

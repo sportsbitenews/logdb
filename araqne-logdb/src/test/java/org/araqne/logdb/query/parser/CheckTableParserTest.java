@@ -112,8 +112,8 @@ public class CheckTableParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("11101", e.getType());
-			assertEquals(11, e.getOffsetS());
-			assertEquals(19, e.getOffsetE());	
+			assertEquals(11, e.getStartOffset());
+			assertEquals(19, e.getEndOffset());	
 		}
 	}
 	
@@ -130,8 +130,8 @@ public class CheckTableParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("11102", e.getType());
-			assertEquals(25, e.getOffsetS());
-			assertEquals(31, e.getOffsetE());	
+			assertEquals(25, e.getStartOffset());
+			assertEquals(31, e.getEndOffset());	
 		}
 	}
 

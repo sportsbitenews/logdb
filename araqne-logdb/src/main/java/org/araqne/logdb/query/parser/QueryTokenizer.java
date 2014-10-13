@@ -29,7 +29,6 @@ import java.util.StringTokenizer;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.QueryParseException;
 
 public class QueryTokenizer {
 	private QueryTokenizer() {

@@ -105,8 +105,8 @@ public class OutputCsvParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30200", e.getType());
-			assertEquals(23, e.getOffsetS());
-			assertEquals(23, e.getOffsetE());	
+			assertEquals(23, e.getStartOffset());
+			assertEquals(23, e.getEndOffset());	
 		} 
 	}
 
@@ -126,8 +126,8 @@ public class OutputCsvParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30202", e.getType());
-			assertEquals(10, e.getOffsetS());
-			assertEquals(22, e.getOffsetE());	
+			assertEquals(10, e.getStartOffset());
+			assertEquals(22, e.getEndOffset());	
 		}
 	}
 
@@ -147,8 +147,8 @@ public class OutputCsvParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30201", e.getType());
-			assertEquals(10, e.getOffsetS());
-			assertEquals(60, e.getOffsetE());	
+			assertEquals(10, e.getStartOffset());
+			assertEquals(60, e.getEndOffset());	
 		}
 	}
 }

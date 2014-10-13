@@ -26,8 +26,8 @@ public class SetParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10400", e.getType());
-			assertEquals(4, e.getOffsetS());
-			assertEquals(11, e.getOffsetE());	
+			assertEquals(4, e.getStartOffset());
+			assertEquals(11, e.getEndOffset());	
 		}
 	}
 	
@@ -46,8 +46,8 @@ public class SetParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10401", e.getType());
-			assertEquals(4, e.getOffsetS());
-			assertEquals(4, e.getOffsetE());	
+			assertEquals(4, e.getStartOffset());
+			assertEquals(4, e.getEndOffset());	
 		}
 	}
 
@@ -65,8 +65,8 @@ public class SetParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10402", e.getType());
-			assertEquals(7, e.getOffsetS());
-			assertEquals(6, e.getOffsetE());	
+			assertEquals(7, e.getStartOffset());
+			assertEquals(6, e.getEndOffset());	
 		}
 	}
 }

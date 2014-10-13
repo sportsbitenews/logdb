@@ -43,8 +43,8 @@ public class StringsTest {
 			}
 			assertEquals("90400", e.getType());
 			assertEquals(value, e.getParams().get("value"));
-			assertEquals(1,  e.getOffsetS());
-			assertEquals(2, e.getOffsetE());
+			assertEquals(1,  e.getStartOffset());
+			assertEquals(2, e.getEndOffset());
 		}
 	}
 }

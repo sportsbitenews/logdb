@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
+import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
@@ -45,19 +46,129 @@ import org.slf4j.LoggerFactory;
 @Provides
 public class QueryParserServiceImpl implements QueryParserService {
 	private final Logger slog = LoggerFactory.getLogger(QueryParserServiceImpl.class);
-	private ConcurrentMap<String, QueryCommandParser> commandParsers = new ConcurrentHashMap<String, QueryCommandParser>();
-	private ConcurrentMap<String, QueryErrorMessage> errorMappings = new ConcurrentHashMap<String, QueryErrorMessage>();
-	private static final Map<String, QueryErrorMessage> commonErrorMap;
+	private ConcurrentMap<String, QueryCommandParser> commandParsers;
+	private ConcurrentMap<String, QueryErrorMessage> errorMappings;
 
+	@Requires
+	private FunctionRegistry functionRegistry;
 
-	static{
-		commonErrorMap = new HashMap<String, QueryErrorMessage>();
+	@Validate
+	public void start() {
+		commandParsers = new ConcurrentHashMap<String, QueryCommandParser>();
+		errorMappings = new ConcurrentHashMap<String, QueryErrorMessage>();
+		registerBuiltinErrors();
+	}
+
+	// support unit test
+	public void setFunctionRegistry(FunctionRegistry functionRegistry) {
+		this.functionRegistry = functionRegistry;
+	}
+
+	@Override
+	public QueryCommandParser getCommandParser(String name) {
+		return commandParsers.get(name);
+	}
+
+	@Override
+	public List<QueryCommand> parseCommands(QueryContext context, String queryString) {
+		List<QueryCommand> commands = new ArrayList<QueryCommand>();
+		int offsetCnt = 0; //
+		try {
+			for (String q : QueryTokenizer.parseCommands(queryString)) {
+				q = q.trim();
+				StringTokenizer tok = new StringTokenizer(q, " \n\t");
+				String commandType = tok.nextToken();
+				QueryCommandParser parser = commandParsers.get(commandType);
+				if (parser == null) {
+					// throw new QueryParseException("unsupported-command", -1,
+					// "command is [" + commandType + "]");
+					Map<String, String> params = new HashMap<String, String>();
+					params.put("command", commandType);
+					params.put("value", queryString);
+					throw new QueryParseException("99000", -1, -1, params);
+				}
+
+				QueryCommand cmd = parser.parse(context, q);
+				commands.add(cmd);
+				offsetCnt++; //
+			}
+		} catch (QueryParseException t) {
+			closePrematureCommands(commands);
+			t.addOffset(offsetCnt);
+			throw t;
+		} catch (Throwable t) {
+			closePrematureCommands(commands);
+			slog.debug("QueryParserServiceImpl", t);
+
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("msg", t.getMessage());
+			throw new QueryParseException("99001", -1, -1, params);
+			// throw new QueryParseException("parse failure", -1, t.toString());
+		}
+
+		if (commands.isEmpty())
+			throw new IllegalArgumentException("empty query");
+
+		for (int i = 0; i < commands.size(); i++) {
+			QueryCommand command = commands.get(i);
+			if (i < commands.size() - 1)
+				command.setOutput(new QueryCommandPipe(commands.get(i + 1)));
+		}
+
+		return commands;
+	}
+
+	private void closePrematureCommands(List<QueryCommand> commands) {
+		for (QueryCommand cmd : commands) {
+			try {
+				slog.debug("araqne logdb: parse failed, closing command [{}]", cmd.toString());
+				cmd.onClose(QueryStopReason.CommandFailure);
+			} catch (Throwable t2) {
+				slog.error("araqne logdb: cannot close command", t2);
+			}
+		}
+	}
+
+	@Override
+	public String formatErrorMessage(String errorCode, Locale locale, Map<String, String> params) {
+		QueryErrorMessage m = errorMappings.get(errorCode);
+		if (m == null)
+			return null;
+
+		return m.format(locale, params);
+	}
+
+	@Override
+	public void addCommandParser(QueryCommandParser parser) {
+		parser.setQueryParserService(this);
+		commandParsers.putIfAbsent(parser.getCommandName(), parser);
+
+		for (Entry<String, QueryErrorMessage> e : parser.getErrorMessages().entrySet()) {
+			errorMappings.put(e.getKey(), e.getValue());
+		}
+	}
+
+	@Override
+	public void removeCommandParser(QueryCommandParser parser) {
+		for (Entry<String, QueryErrorMessage> e : parser.getErrorMessages().entrySet()) {
+			errorMappings.remove(e.getKey(), parser);
+		}
+
+		commandParsers.remove(parser.getCommandName(), parser);
+	}
+
+	@Override
+	public FunctionRegistry getFunctionRegistry() {
+		return functionRegistry;
+	}
+
+	private void registerBuiltinErrors() {
 		/* QueryTokenizer */
-		add("90000", "option-space-not-allowed", "옵션과 '=' 사이에 공백은 허용되지 않습니다."); 
-		add("90001", "invalid-option", "[option]은 지원하지 않는 옵션입니다."); 
+		add("90000", "option-space-not-allowed", "옵션과 '=' 사이에 공백은 허용되지 않습니다.");
+		add("90001", "invalid-option", "[option]은 지원하지 않는 옵션입니다.");
 		add("90002", "string-quote-mismatch", "\"의 짝이 맞지 않습니다.");
 		add("90003", "empty-command", "쿼리가 없습니다.");
-		add("90004", "need-string-token", "입력된 쿼리가 없습니다."); 
+		add("90004", "need-string-token", "입력된 쿼리가 없습니다.");
 		add("90005", "string-quote-mismatch", "\"의 짝이 맞지 않습니다.");
 		/* EvalOpEmitterFactory */
 		add("90100", "broken-expression", "잘못된 표현식입니다.");
@@ -150,7 +261,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 		add("91010", "invalid-count-args", "올바르지 않는 입력 형식입니다.");
 		/* First */
 		add("91020", "invalid-parameter-count", "올바르지 않는 입력 형식입니다.");
-		/* QueryCommandParser */
+		/* QueryParserServiceImpl */
 		add("99000", "unsupported-command command is [command]", "[command]는 지원하지 않는 명령어 입니다.");
 		add("99001", "parse failure", "파싱 실패.(msg:[msg])");
 		/* MetadataServiceImpl */
@@ -173,115 +284,8 @@ public class QueryParserServiceImpl implements QueryParserService {
 		add("90903", "no-read-permission", "[funtion] 함수 읽기 권한이 없습니다.");
 	}
 
-	@Requires
-	private FunctionRegistry functionRegistry;
-
-	// support unit test
-	public void setFunctionRegistry(FunctionRegistry functionRegistry) {
-		this.functionRegistry = functionRegistry;
-	}
-
-	@Override
-	public QueryCommandParser getCommandParser(String name) {
-		return commandParsers.get(name);
-	}
-
-	@Override
-	public List<QueryCommand> parseCommands(QueryContext context, String queryString) {
-		List<QueryCommand> commands = new ArrayList<QueryCommand>();
-		int offsetCnt = 0; //
-		try {
-			for (String q : QueryTokenizer.parseCommands(queryString)) {
-				q = q.trim();
-				StringTokenizer tok = new StringTokenizer(q, " \n\t");
-				String commandType = tok.nextToken();
-				QueryCommandParser parser = commandParsers.get(commandType);
-				if (parser == null) {
-					// throw new QueryParseException("unsupported-command", -1,
-					// "command is [" + commandType + "]");
-					Map<String, String> params = new HashMap<String, String>();
-					params.put("command", commandType);
-					throw new QueryParseException("99000", -1, -1, params);
-				}
-
-				QueryCommand cmd = parser.parse(context, q);
-				commands.add(cmd);
-				offsetCnt++; //
-			}
-		} catch (QueryParseException t) {
-			closePrematureCommands(commands);
-			t.addOffset(offsetCnt);
-			throw t;
-		} catch (Throwable t) {
-			closePrematureCommands(commands);
-			slog.debug("QueryParserServiceImpl", t);
-
-			Map<String, String> params = new HashMap<String, String>();
-			params.put("msg", t.getMessage());
-			throw new QueryParseException("99001", -1, -1, params);
-			// throw new QueryParseException("parse failure", -1, t.toString());
-		}
-
-		if (commands.isEmpty())
-			throw new IllegalArgumentException("empty query");
-
-		for (int i = 0; i < commands.size(); i++) {
-			QueryCommand command = commands.get(i);
-			if (i < commands.size() - 1)
-				command.setOutput(new QueryCommandPipe(commands.get(i + 1)));
-		}
-
-		return commands;
-	}
-
-	private void closePrematureCommands(List<QueryCommand> commands) {
-		for (QueryCommand cmd : commands) {
-			try {
-				slog.debug("araqne logdb: parse failed, closing command [{}]", cmd.toString());
-				cmd.onClose(QueryStopReason.CommandFailure);
-			} catch (Throwable t2) {
-				slog.error("araqne logdb: cannot close command", t2);
-			}
-		}
-	}
-
-	@Override
-	public String formatErrorMessage(String errorCode, Locale locale, Map<String, String> params) {
-		QueryErrorMessage m =  errorMappings.get(errorCode);
-		if (m == null)
-			return null;
-
-		return m.format(locale, params);
-	}
-
-	@Override
-	public void addCommandParser(QueryCommandParser parser) {
-		parser.setQueryParserService(this);
-		commandParsers.putIfAbsent(parser.getCommandName(), parser);
-
-		// TODO: register error messages
-		for (Entry<String, QueryErrorMessage> e : parser.getErrorMessages().entrySet()) {
-			errorMappings.put(e.getKey(), e.getValue());
-		}
-	}
-
-	@Override
-	public void removeCommandParser(QueryCommandParser parser) {
-		// TODO: unregister error messages
-		for (Entry<String, QueryErrorMessage> e : parser.getErrorMessages().entrySet()) {
-			errorMappings.remove(e.getKey(), parser);
-		}
-
-		commandParsers.remove(parser.getCommandName(), parser);
-	}
-
-	@Override
-	public FunctionRegistry getFunctionRegistry() {
-		return functionRegistry;
-	}
-
-	static void add(String code, String en, String ko) {
-		commonErrorMap.put(code, new QueryErrorMessage(en, ko));
+	private void add(String code, String en, String ko) {
+		errorMappings.put(code, new QueryErrorMessage(en, ko));
 	}
 
 }

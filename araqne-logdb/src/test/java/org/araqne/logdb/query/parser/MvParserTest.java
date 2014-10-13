@@ -40,8 +40,8 @@ public class MvParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30500", e.getType());
-			assertEquals(13, e.getOffsetS());
-			assertEquals(13, e.getOffsetE());	
+			assertEquals(13, e.getStartOffset());
+			assertEquals(13, e.getEndOffset());	
 		}
 	}
 	
@@ -61,8 +61,8 @@ public class MvParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30501", e.getType());
-			assertEquals(3, e.getOffsetS());
-			assertEquals(12, e.getOffsetE());	
+			assertEquals(3, e.getStartOffset());
+			assertEquals(12, e.getEndOffset());	
 		}finally{
 			new File("tmpfile.txt").delete();
 		}
@@ -86,8 +86,8 @@ public class MvParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("30502", e.getType());
-			assertEquals(22, e.getOffsetS());
-			assertEquals(31, e.getOffsetE());	
+			assertEquals(22, e.getStartOffset());
+			assertEquals(31, e.getEndOffset());	
 		}finally{
 			new File("tmpfile.txt").delete();
 		}

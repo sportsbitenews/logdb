@@ -141,8 +141,8 @@ public class SortParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("21600", e.getType());
-			assertEquals(13, e.getOffsetS());
-			assertEquals(12, e.getOffsetE());	
+			assertEquals(13, e.getStartOffset());
+			assertEquals(12, e.getEndOffset());	
 		}
 	}
 
@@ -161,8 +161,8 @@ public class SortParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("21600", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(4, e.getOffsetE());	
+			assertEquals(5, e.getStartOffset());
+			assertEquals(4, e.getEndOffset());	
 		}
 	}
 }

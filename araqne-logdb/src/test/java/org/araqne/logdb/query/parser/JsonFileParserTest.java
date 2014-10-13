@@ -35,8 +35,8 @@ public class JsonFileParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10900", e.getType());
-			assertEquals(19, e.getOffsetS());
-			assertEquals(30, e.getOffsetE());
+			assertEquals(19, e.getStartOffset());
+			assertEquals(30, e.getEndOffset());
 		}
 	}
 }

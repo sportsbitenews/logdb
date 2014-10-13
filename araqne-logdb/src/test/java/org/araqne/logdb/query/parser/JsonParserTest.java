@@ -35,8 +35,8 @@ public class JsonParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10200", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(3, e.getOffsetE());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(3, e.getEndOffset());
 		}
 
 		query = "json \"{}";
@@ -50,8 +50,8 @@ public class JsonParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10200", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(7, e.getOffsetE());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(7, e.getEndOffset());
 		}
 
 		query = "json    {}";
@@ -64,8 +64,8 @@ public class JsonParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10200", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(9, e.getOffsetE());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(9, e.getEndOffset());
 		}
 
 		query = "json    \"{}";
@@ -78,8 +78,8 @@ public class JsonParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10200", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(10, e.getOffsetE());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(10, e.getEndOffset());
 		}
 	}
 
@@ -97,8 +97,8 @@ public class JsonParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10201", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(12, e.getOffsetE());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(12, e.getEndOffset());
 		}
 	}
 
@@ -117,8 +117,8 @@ public class JsonParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10202", e.getType());
-			assertEquals(5, e.getOffsetS());
-			assertEquals(12, e.getOffsetE());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(12, e.getEndOffset());
 		}
 	}
 }

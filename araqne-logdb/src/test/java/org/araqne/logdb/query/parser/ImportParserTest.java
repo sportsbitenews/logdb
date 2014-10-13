@@ -104,8 +104,8 @@ public class ImportParserTest {
 			}
 			
 			assertEquals("30101", e.getType());
-			assertEquals(20, e.getOffsetS());
-			assertEquals(25, e.getOffsetE());	
+			assertEquals(20, e.getStartOffset());
+			assertEquals(25, e.getEndOffset());	
 		}
 	}
 }

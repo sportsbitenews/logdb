@@ -74,8 +74,8 @@ public class FieldsParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20400", e.getType());
-			assertEquals(7, e.getOffsetS());
-			assertEquals(8, e.getOffsetE());	
+			assertEquals(7, e.getStartOffset());
+			assertEquals(8, e.getEndOffset());	
 		}
 	}
 	
