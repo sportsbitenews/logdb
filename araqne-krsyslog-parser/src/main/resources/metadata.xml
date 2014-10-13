@@ -1,0 +1,18 @@
+<ipojo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="org.apache.felix.ipojo http://felix.apache.org/ipojo/schemas/CURRENT/core.xsd"
+	xmlns="org.apache.felix.ipojo">
+	<instance component="trusguard-log-parser-factory" />
+	<instance component="weguardia-log-parser-factory" />
+	<instance component="geni-nac-snmp-log-parser-factory" />
+	<instance component="geni-nac-sys-log-parser-factory" />
+	<instance component="infosec-anti-web-shell-log-parser-factory" />
+	<instance component="wapples-syslog-parser-factory" />
+	<instance component="piolink-webfront-factory" />
+	<instance component="pnp-dbsafer-parser-factory" />
+	<instance component="mf2-log-parser-factory" />
+	<instance component="nxg-log-parser-factory" />
+	<instance component="sniper-log-parser-factory" />
+	<instance component="secureworks-log-parser-factory" />
+	<instance component="modoos-gateone-parser-factory" />	
+	<instance component="neobox-log-parser-factory" />
+</ipojo>
