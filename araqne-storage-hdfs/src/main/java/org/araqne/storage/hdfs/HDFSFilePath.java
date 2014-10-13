@@ -327,4 +327,9 @@ public class HDFSFilePath implements FilePath {
 		}
 	}
 
+	@Override
+	public long lastModified() throws SecurityException, IOException {
+		FileStatus fileStatus = root.getFileSystem().getFileStatus(path);
+		return fileStatus.getModificationTime();
+	}
 }

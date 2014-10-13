@@ -56,4 +56,6 @@ public interface FilePath extends Comparable<FilePath> {
 	long getUsableSpace() throws SecurityException;
 	
 	long getTotalSpace() throws SecurityException;
+
+	long lastModified() throws SecurityException, IOException;
 }

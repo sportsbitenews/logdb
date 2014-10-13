@@ -220,5 +220,10 @@ public class LocalFilePath implements FilePath {
 		path.deleteOnExit();
 		return true;
 	}
+	
+	@Override
+	public long lastModified() throws SecurityException {
+		return path.lastModified();
+	}
 
 }
