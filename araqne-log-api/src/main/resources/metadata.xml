@@ -35,4 +35,5 @@
 	<instance component="regex-selector-logger-factory" />
 	<instance component="gzip-directory-watch-logger-factory" />
 	<instance component="csv-log-parser-factory" />
+	<instance component="multi-rotation-file-logger-factory" />
 </ipojo>

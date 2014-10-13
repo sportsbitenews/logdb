@@ -31,11 +31,11 @@ public class DefaultStorageBackupProgressMonitor implements StorageBackupProgres
 	}
 
 	@Override
-	public void onBeginFile(StorageBackupJob job, String tableName, String fileName) {
+	public void onBeginFile(StorageBackupJob job, String tableName, String fileName, long fileLength) {
 	}
 
 	@Override
-	public void onCompleteFile(StorageBackupJob job, String tableName, String fileName) {
+	public void onCompleteFile(StorageBackupJob job, String tableName, String fileName, long fileLength) {
 	}
 
 	@Override

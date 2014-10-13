@@ -27,10 +27,12 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @since 2.4.6
@@ -39,6 +41,7 @@ import java.util.regex.Matcher;
  */
 public class MultilineLogExtractor {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(MultilineLogExtractor.class);
+	private static boolean collectEmptyLine;
 	private Logger logger;
 	private String charset = "utf-8";
 	private Matcher beginMatcher;
@@ -52,6 +55,51 @@ public class MultilineLogExtractor {
 
 	// assign current year to date
 	private Calendar yearModifier;
+
+	static {
+		String s = System.getProperty("araqne.logapi.collect_empty_line");
+		if (s != null && (s.equalsIgnoreCase("enabled") || s.equalsIgnoreCase("true")))
+			collectEmptyLine = true;
+	}
+
+	public static MultilineLogExtractor build(Logger logger, LogPipe receiver) {
+		MultilineLogExtractor extractor = new MultilineLogExtractor(logger, receiver);
+		Map<String, String> configs = logger.getConfigs();
+
+		// optional
+		String datePatternRegex = configs.get("date_pattern");
+		if (datePatternRegex != null) {
+			extractor.setDateMatcher(Pattern.compile(datePatternRegex).matcher(""));
+		}
+
+		// optional
+		String dateLocale = configs.get("date_locale");
+		if (dateLocale == null)
+			dateLocale = "en";
+
+		// optional
+		String dateFormatString = configs.get("date_format");
+		String timeZone = configs.get("timezone");
+		if (dateFormatString != null)
+			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
+
+		// optional
+		String beginRegex = configs.get("begin_regex");
+		if (beginRegex != null)
+			extractor.setBeginMatcher(Pattern.compile(beginRegex).matcher(""));
+
+		String endRegex = configs.get("end_regex");
+		if (endRegex != null)
+			extractor.setEndMatcher(Pattern.compile(endRegex).matcher(""));
+
+		// optional
+		String charset = configs.get("charset");
+		if (charset == null)
+			charset = "utf-8";
+
+		extractor.setCharset(charset);
+		return extractor;
+	}
 
 	public MultilineLogExtractor(Logger logger, LogPipe pipe) {
 		this.logger = logger;
@@ -168,7 +216,7 @@ public class MultilineLogExtractor {
 		if (log != null) {
 			int l = log.length();
 			boolean cr = false;
-			if (l > 2)
+			if (l >= 2)
 				cr = log.charAt(l - 2) == '\r';
 			boolean lf = log.charAt(l - 1) == '\n';
 
@@ -183,6 +231,11 @@ public class MultilineLogExtractor {
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("line", log);
 
+				output.add(new SimpleLog(d, logger == null ? null : logger.getFullName(), m));
+			} else if (collectEmptyLine) {
+				Date d = parseDate("", dateFromFileName);
+				Map<String, Object> m = new HashMap<String, Object>();
+				m.put("line", "");
 				output.add(new SimpleLog(d, logger == null ? null : logger.getFullName(), m));
 			}
 		}
