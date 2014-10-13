@@ -64,7 +64,7 @@ public class MvParserTest {
 			assertEquals(3, e.getStartOffset());
 			assertEquals(12, e.getEndOffset());	
 		}finally{
-			new File("tmpfile.txt").delete();
+			new File("tofile.txt").delete();
 		}
 	}
 	
@@ -89,9 +89,7 @@ public class MvParserTest {
 			assertEquals(22, e.getStartOffset());
 			assertEquals(31, e.getEndOffset());	
 		}finally{
-			new File("tmpfile.txt").delete();
+			new File("tofile.txt").delete();
 		}
-	}
-	
-	
+	}	
 }

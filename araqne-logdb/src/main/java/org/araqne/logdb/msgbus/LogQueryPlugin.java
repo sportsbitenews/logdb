@@ -155,15 +155,9 @@ public class LogQueryPlugin {
 			if (e.getParams() == null)
 				throw new MsgbusException("logdb", e.getMessage());
 
-			String msg = parserService.formatErrorMessage(e.getType(), req.getSession().getLocale(), e.getParams());
 			Map<String, Object> params = new HashMap<String, Object>();
-			params.put("start", e.getStartOffset());
-			params.put("end", e.getEndOffset());
-			params.put("offsets", e.getOffsets());
 			params.putAll(e.getParams());
-
-			String errorMessage = "type=" + e.getType() + ", offset=" + e.getOffset() + ", note=" + msg;
-			throw new MsgbusException("logdb", errorMessage, params);
+			throw new MsgbusException("logdb", e.getMessage(), params);
 		} catch (Exception e) {
 			logger.error("araqne logdb: cannot create query", e);
 			throw new MsgbusException("logdb", e.getMessage());

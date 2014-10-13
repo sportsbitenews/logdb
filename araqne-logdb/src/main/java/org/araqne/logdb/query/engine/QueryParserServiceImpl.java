@@ -51,7 +51,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 
 	@Requires
 	private FunctionRegistry functionRegistry;
-
+	
 	@Validate
 	public void start() {
 		commandParsers = new ConcurrentHashMap<String, QueryCommandParser>();
@@ -80,30 +80,26 @@ public class QueryParserServiceImpl implements QueryParserService {
 				String commandType = tok.nextToken();
 				QueryCommandParser parser = commandParsers.get(commandType);
 				if (parser == null) {
-					// throw new QueryParseException("unsupported-command", -1,
-					// "command is [" + commandType + "]");
-					Map<String, String> params = new HashMap<String, String>();
-					params.put("command", commandType);
-					params.put("value", queryString);
-					throw new QueryParseException("99000", -1, -1, params);
+					 throw new QueryParseException("unsupported-command", -1,
+					 "command is [" + commandType + "]");
 				}
 
 				QueryCommand cmd = parser.parse(context, q);
 				commands.add(cmd);
 				offsetCnt++; //
 			}
-		} catch (QueryParseException t) {
+		} catch (QueryParseException e) {
 			closePrematureCommands(commands);
-			t.addOffset(offsetCnt);
-			throw t;
+			e.addOffset(offsetCnt);
+			//FIXME : 로케일 하드 코딩 되어 있음
+			String errorMessage = formatErrorMessage(e.getType(), Locale.ENGLISH, e.getParams());
+			//FIXME : 오프셋 위치가 정확하지 않음
+			throw new QueryParseException(e.getType(), e.getStartOffset(), errorMessage );
 		} catch (Throwable t) {
 			closePrematureCommands(commands);
 			slog.debug("QueryParserServiceImpl", t);
 
-			Map<String, String> params = new HashMap<String, String>();
-			params.put("msg", t.getMessage());
-			throw new QueryParseException("99001", -1, -1, params);
-			// throw new QueryParseException("parse failure", -1, t.toString());
+			throw new QueryParseException("parse failure", -1, t.toString());
 		}
 
 		if (commands.isEmpty())
@@ -262,8 +258,8 @@ public class QueryParserServiceImpl implements QueryParserService {
 		/* First */
 		add("91020", "invalid-parameter-count", "올바르지 않는 입력 형식입니다.");
 		/* QueryParserServiceImpl */
-		add("99000", "unsupported-command command is [command]", "[command]는 지원하지 않는 명령어 입니다.");
-		add("99001", "parse failure", "파싱 실패.(msg:[msg])");
+		//add("99000", "unsupported-command command is [command]", "[command]는 지원하지 않는 명령어 입니다.");
+		//add("99001", "parse failure", "파싱 실패.(msg:[msg])");
 		/* MetadataServiceImpl */
 		add("95000", "invalid-system-object-type, type=[type]", "[type]는 잘못된 타입입니다.");
 		/* LoggerMetadataProvider */
