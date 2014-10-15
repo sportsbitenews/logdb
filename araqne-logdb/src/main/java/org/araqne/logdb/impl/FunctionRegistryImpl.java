@@ -48,7 +48,9 @@ import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.Field;
 import org.araqne.logdb.query.expr.Flatten;
 import org.araqne.logdb.query.expr.Floor;
+import org.araqne.logdb.query.expr.Format;
 import org.araqne.logdb.query.expr.FromBase64;
+import org.araqne.logdb.query.expr.Groups;
 import org.araqne.logdb.query.expr.Guid;
 import org.araqne.logdb.query.expr.Hash;
 import org.araqne.logdb.query.expr.If;
@@ -202,6 +204,8 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("zip", Zip.class);
 			define("unique", Unique.class);
 			define("flatten", Flatten.class);
+			define("format", Format.class);
+			define("groups", Groups.class);
 		}
 
 		private void define(String name, Class<?> clazz) {
