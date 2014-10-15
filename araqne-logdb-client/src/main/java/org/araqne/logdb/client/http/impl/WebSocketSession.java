@@ -92,7 +92,7 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 			else
 				m = table.await(call, timeout);
 		} catch (InterruptedException e) {
-			throw new RuntimeException("interrupted");
+			throw new RuntimeException("interrupted: " + e.getMessage());
 		}
 
 		if (m.getErrorCode() != null)
