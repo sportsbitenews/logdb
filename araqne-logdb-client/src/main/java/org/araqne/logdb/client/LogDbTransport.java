@@ -32,7 +32,10 @@ public interface LogDbTransport {
 	 *            접속할 로그프레소 서버의 IP 주소 혹은 도메인 주소
 	 * @param port
 	 *            접속할 로그프레소 서버의 웹 포트 번호
+	 * @param timeout 
 	 * @return 새 세션 개체
 	 */
 	LogDbSession newSession(String host, int port) throws IOException;
+
+	LogDbSession newSession(String host, int port, int timeout) throws IOException;
 }
