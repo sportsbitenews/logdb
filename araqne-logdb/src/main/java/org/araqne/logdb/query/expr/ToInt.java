@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
@@ -44,10 +45,32 @@ public class ToInt implements Expression {
 			Object v = valueExpr.eval(map);
 			if (v == null)
 				return null;
-			String s = v.toString();
-			if (s.isEmpty())
-				return null;
-			return Integer.parseInt(s, radix);
+
+			if (v instanceof List) {
+				@SuppressWarnings("unchecked")
+				List<Object> l = (List<Object>) v;
+				ArrayList<Object> casted = new ArrayList<Object>();
+				for (Object o : l) {
+					try {
+						String s = o.toString();
+						if (s.isEmpty()) {
+							casted.add(null);
+						} else {
+							int d = Integer.parseInt(s, radix);
+							casted.add(d);
+						}
+					} catch (Throwable t) {
+						casted.add(null);
+					}
+				}
+
+				return casted;
+			} else {
+				String s = v.toString();
+				if (s.isEmpty())
+					return null;
+				return Integer.parseInt(s, radix);
+			}
 		} catch (Throwable t) {
 			return null;
 		}

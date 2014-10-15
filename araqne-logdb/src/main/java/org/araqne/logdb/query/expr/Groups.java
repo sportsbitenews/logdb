@@ -17,32 +17,25 @@ package org.araqne.logdb.query.expr;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
-public class Split extends FunctionExpression {
+public class Groups extends FunctionExpression {
 	private Expression target;
-	private final String delimiters;
-	private final int next;
+	private Matcher matcher;
 
-	public Split(QueryContext ctx, List<Expression> exprs) {
-		super("split", exprs);
+	public Groups(QueryContext ctx, List<Expression> exprs) {
+		super("groups", exprs);
 
 		if (exprs.size() < 2)
-			throw new QueryParseException("missing-split-args", -1);
+			throw new QueryParseException("missing-groups-args", -1);
 
 		this.target = exprs.get(0);
-		try {
-			this.delimiters = exprs.get(1).eval(null).toString();
-			this.next = delimiters.length();
-
-			if (next == 0)
-				throw new QueryParseException("empty-delimiters", -1);
-		} catch (NullPointerException e) {
-			throw new QueryParseException("invalid-delimiters", -1);
-		}
+		this.matcher = Pattern.compile(exprs.get(1).eval(null).toString()).matcher("");
 	}
 
 	@Override
@@ -51,24 +44,16 @@ public class Split extends FunctionExpression {
 		if (o == null)
 			return null;
 
-		String line = o.toString();
-		if (line.isEmpty())
-			return new ArrayList<String>(1);
+		matcher.reset(o.toString());
+		if (!matcher.find())
+			return null;
 
-		int last = 0;
-		List<String> tokens = new ArrayList<String>();
-		while (true) {
-			int p = line.indexOf(delimiters, last);
+		int count = matcher.groupCount();
+		ArrayList<String> groups = new ArrayList<String>(count);
+		for (int i = 1; i <= count; i++)
+			groups.add(matcher.group(i));
 
-			if (p < 0) {
-				tokens.add(line.substring(last));
-				break;
-			} else {
-				tokens.add(line.substring(last, p));
-			}
-			last = p + next;
-		}
-
-		return tokens;
+		return groups;
 	}
+
 }
