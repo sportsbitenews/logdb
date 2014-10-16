@@ -630,6 +630,11 @@ public class ManagementPlugin {
 	public void loadTextFile(Request req, Response resp) throws IOException {
 		uploadDataHandler.loadTextFile(storage, req, resp);
 	}
+	
+	@MsgbusMethod
+	public void previewTextFile(Request req, Response resp) throws IOException {
+		resp.put("preview", uploadDataHandler.previewTextFile(req, resp));
+	}
 
 	@MsgbusMethod
 	public void getStorageEngines(Request req, Response resp) {
