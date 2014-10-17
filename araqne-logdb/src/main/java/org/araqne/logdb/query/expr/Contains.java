@@ -38,7 +38,7 @@ public class Contains extends FunctionExpression {
 		Object o2 = needleExpr.eval(row);
 
 		if (o1 == null || o2 == null)
-			return null;
+			return false;
 
 		String target = o1.toString();
 		String needle = o2.toString();
