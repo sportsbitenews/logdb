@@ -1071,7 +1071,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				this.flushAll = false;
 				for (OnlineWriterKey key : onlineWriters.keySet()) {
 					OnlineWriter writer = onlineWriters.get(key);
-					if (writer == null || writer.isClosed())
+					if (writer == null || writer.isClosed() || !writer.isReady())
 						continue;
 					boolean doFlush =
 							writer.isCloseReserved() || ((now - writer.getLastFlush().getTime()) > flushInterval);

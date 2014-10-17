@@ -391,8 +391,8 @@ public class LogDbClient implements TrapListener, Closeable {
 	 * @param password
 	 *            DB 암호
 	 */
-	public void connect(String host, int port, String loginName, String password) throws IOException {
-		this.session = transport.newSession(host, port);
+	public void connect(String host, int port, String loginName, String password, int timeout) throws IOException {
+		this.session = transport.newSession(host, port, timeout);
 		try {
 			this.session.login(loginName, password, true);
 			this.session.addListener(this);
@@ -405,6 +405,10 @@ public class LogDbClient implements TrapListener, Closeable {
 			this.session = null;
 			throw new IllegalStateException(t);
 		}
+	}
+	
+	public void connect(String host, int port, String loginName, String password) throws IOException {
+		connect(host, port, loginName, password, 0);
 	}
 
 	/**

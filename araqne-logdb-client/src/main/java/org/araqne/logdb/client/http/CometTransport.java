@@ -32,5 +32,11 @@ public class CometTransport implements LogDbTransport {
 	public LogDbSession newSession(String host, int port) {
 		return new CometSession(host, port);
 	}
+	
+	@Override
+	public LogDbSession newSession(String host, int port, int timeout) {
+		// XXX: respect timeout
+		return new CometSession(host, port);
+	}
 
 }

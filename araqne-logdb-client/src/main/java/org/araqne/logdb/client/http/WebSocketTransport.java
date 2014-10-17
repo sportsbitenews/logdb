@@ -54,4 +54,10 @@ public class WebSocketTransport implements LogDbTransport {
 	public LogDbSession newSession(String host, int port) throws IOException {
 		return new WebSocketSession(host, port, secure);
 	}
+	
+	@Override
+	public LogDbSession newSession(String host, int port, int timeout) throws IOException {
+		return new WebSocketSession(host, port, secure, timeout);
+	}
+
 }
