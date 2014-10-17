@@ -715,7 +715,7 @@ public class ManagementPlugin {
 		Config c = col.findOne(null);
 
 		Map<String, Object> m = new HashMap<String, Object>();
-		if (c != null)
+		if (c != null && c.getDocument() != null)
 			m = (Map<String, Object>) c.getDocument();
 
 		Map<String, Object> vars = new HashMap<String, Object>();
@@ -727,7 +727,7 @@ public class ManagementPlugin {
 
 			if (key.equals("min_free_disk_space_value") && var == null)
 				var = "10";
-			
+
 			if (key.equals("disk_lack_action") && var == null)
 				var = "StopLogging";
 
@@ -778,7 +778,7 @@ public class ManagementPlugin {
 			c.setDocument(m);
 			c.update();
 		} else {
-			col.add(c);
+			col.add(m);
 		}
 	}
 }
