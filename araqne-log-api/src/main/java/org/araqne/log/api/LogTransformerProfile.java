@@ -20,9 +20,10 @@ import java.util.Map;
 
 import org.araqne.api.FieldOption;
 import org.araqne.confdb.CollectionName;
+import org.araqne.msgbus.Marshalable;
 
 @CollectionName("transformer_profiles")
-public class LogTransformerProfile implements Comparable<LogTransformerProfile> {
+public class LogTransformerProfile implements Comparable<LogTransformerProfile>, Marshalable {
 	private String name;
 	private String factoryName;
 	private Map<String, String> configs = new HashMap<String, String>();
@@ -86,4 +87,17 @@ public class LogTransformerProfile implements Comparable<LogTransformerProfile> 
 		return name.compareTo(o.name);
 	}
 
+	/**
+	 * @since 3.4.6
+	 */
+	@Override
+	public Map<String, Object> marshal() {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("name", name);
+		m.put("factory_name", factoryName);
+		m.put("configs", configs);
+		m.put("ready", ready);
+		m.put("cause", cause != null ? cause.toString() : null);
+		return m;
+	}
 }
