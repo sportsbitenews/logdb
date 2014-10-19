@@ -15,34 +15,19 @@
  */
 package org.araqne.logdb.query.expr;
 
-import java.util.List;
+import static org.junit.Assert.assertEquals;
 
-import org.araqne.logdb.QueryContext;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.araqne.logdb.Row;
+import org.junit.Test;
 
-public class Contains extends FunctionExpression {
-
-	private Expression targetExpr;
-	private Expression needleExpr;
-
-	public Contains(QueryContext ctx, List<Expression> exprs) {
-		super("contains", exprs);
-		
-		this.targetExpr = exprs.get(0);
-		this.needleExpr = exprs.get(1);
-	}
-
-	@Override
-	public Object eval(Row row) {
-		Object o1 = targetExpr.eval(row);
-		Object o2 = needleExpr.eval(row);
-
-		if (o1 == null || o2 == null)
-			return false;
-
-		String target = o1.toString();
-		String needle = o2.toString();
-
-		return target.contains(needle);
+public class FieldTest {
+	@Test
+	public void test() {
+		Map<String, Object> map = new HashMap<String, Object>(1);
+		map.put("key", "value");
+		assertEquals("value", FunctionUtil.parseExpr("field(\"key\")").eval(new Row(map)));
 	}
 }

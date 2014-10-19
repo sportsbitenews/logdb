@@ -15,34 +15,19 @@
  */
 package org.araqne.logdb.query.expr;
 
-import java.util.List;
+import static org.junit.Assert.*;
 
-import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.Row;
+import org.junit.Test;
 
-public class Contains extends FunctionExpression {
-
-	private Expression targetExpr;
-	private Expression needleExpr;
-
-	public Contains(QueryContext ctx, List<Expression> exprs) {
-		super("contains", exprs);
-		
-		this.targetExpr = exprs.get(0);
-		this.needleExpr = exprs.get(1);
+public class RightTest {
+	@Test
+	public void testManual() {
+		assertEquals("6789", FunctionUtil.parseExpr("right(\"0123456789\", 4)").eval(null));
+		assertEquals("0123456789", FunctionUtil.parseExpr("right(\"0123456789\", 11)").eval(null));
+		assertEquals("", FunctionUtil.parseExpr("right(\"0123456789\", 0)").eval(null));
+		assertEquals("34", FunctionUtil.parseExpr("right(1234, 2)").eval(null));
+		assertEquals(".23", FunctionUtil.parseExpr("right(1.23, 3)").eval(null));
+		assertNull(FunctionUtil.parseExpr("right(int(\"invalid\"), 3)").eval(null));
 	}
 
-	@Override
-	public Object eval(Row row) {
-		Object o1 = targetExpr.eval(row);
-		Object o2 = needleExpr.eval(row);
-
-		if (o1 == null || o2 == null)
-			return false;
-
-		String target = o1.toString();
-		String needle = o2.toString();
-
-		return target.contains(needle);
-	}
 }

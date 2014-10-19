@@ -15,34 +15,17 @@
  */
 package org.araqne.logdb.query.expr;
 
-import java.util.List;
+import static org.junit.Assert.*;
 
-import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.Row;
+import org.junit.Test;
 
-public class Contains extends FunctionExpression {
-
-	private Expression targetExpr;
-	private Expression needleExpr;
-
-	public Contains(QueryContext ctx, List<Expression> exprs) {
-		super("contains", exprs);
-		
-		this.targetExpr = exprs.get(0);
-		this.needleExpr = exprs.get(1);
+public class LenTest {
+	@Test
+	public void testManual() {
+		assertEquals(6, FunctionUtil.parseExpr("len(\"sample\")").eval(null));
+		assertEquals(0, FunctionUtil.parseExpr("len(int(\"invalid\"))").eval(null));
+		assertEquals(3, FunctionUtil.parseExpr("len(123)").eval(null));
+		assertEquals(3, FunctionUtil.parseExpr("len(1.2)").eval(null));
 	}
 
-	@Override
-	public Object eval(Row row) {
-		Object o1 = targetExpr.eval(row);
-		Object o2 = needleExpr.eval(row);
-
-		if (o1 == null || o2 == null)
-			return false;
-
-		String target = o1.toString();
-		String needle = o2.toString();
-
-		return target.contains(needle);
-	}
 }
