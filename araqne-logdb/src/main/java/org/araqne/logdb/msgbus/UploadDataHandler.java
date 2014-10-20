@@ -1,5 +1,6 @@
 package org.araqne.logdb.msgbus;
 
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -236,14 +237,23 @@ public class UploadDataHandler {
 		public void onLog(Logger logger, org.araqne.log.api.Log log) {
 			if (log == null)
 				return;
-
-			previews.add(log.getParams());
+			
+			Map<String, Object> m = log.getParams();
+			m.put("_time", log.getDate());
+			previews.add(m);
 		}
 
 		@Override
 		public void onLogBatch(Logger logger, org.araqne.log.api.Log[] logs) {
-			// TODO Auto-generated method stub
-
+			if (logs == null)
+				return;
+			
+			for (org.araqne.log.api.Log log : logs)
+				if (log != null) {
+					Map<String, Object> m = log.getParams();
+					m.put("_time", log.getDate());
+					previews.add(m);
+				}
 		}
 	}
 }
