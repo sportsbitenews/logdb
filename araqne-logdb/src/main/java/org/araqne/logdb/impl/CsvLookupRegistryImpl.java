@@ -235,6 +235,9 @@ public class CsvLookupRegistryImpl implements CsvLookupRegistry {
 
 		@Override
 		public Object lookup(String srcField, String dstField, Object srcValue) {
+			if (srcValue == null)
+				return null;
+			
 			if (!srcField.equals(keyFieldName))
 				return null;
 
