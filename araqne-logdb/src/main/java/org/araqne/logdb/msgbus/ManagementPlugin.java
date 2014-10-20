@@ -423,6 +423,12 @@ public class ManagementPlugin {
 		String tableName = req.getString("table", true);
 		String engineType = req.getString("type", true);
 		String basePath = req.getString("base_path");
+
+		if (basePath != null) {
+			// normalize local path (prevent C://)
+			basePath = new File(basePath).getAbsolutePath();
+		}
+
 		Map<String, String> primaryConfigs = (Map<String, String>) req.get("primary_configs");
 		if (primaryConfigs == null)
 			primaryConfigs = new HashMap<String, String>();
@@ -630,7 +636,7 @@ public class ManagementPlugin {
 	public void loadTextFile(Request req, Response resp) throws IOException {
 		uploadDataHandler.loadTextFile(storage, req, resp);
 	}
-	
+
 	@MsgbusMethod
 	public void previewTextFile(Request req, Response resp) throws IOException {
 		resp.put("preview", uploadDataHandler.previewTextFile(req, resp));
