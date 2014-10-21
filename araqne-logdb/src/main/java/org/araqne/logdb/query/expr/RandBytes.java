@@ -31,7 +31,7 @@ public class RandBytes extends FunctionExpression {
 	private int len;
 
 	public RandBytes(QueryContext ctx, List<Expression> exprs) {
-		super("randbytes", exprs);
+		super("randbytes", exprs, 1);
 		
 		Object n = exprs.get(0).eval(null);
 		if (!(n instanceof Integer))

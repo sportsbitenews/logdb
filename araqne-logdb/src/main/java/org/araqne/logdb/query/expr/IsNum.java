@@ -20,10 +20,12 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class IsNum implements Expression {
+public class IsNum extends FunctionExpression {
 	private Expression expr;
 
 	public IsNum(QueryContext ctx, List<Expression> exprs) {
+		super("isnum", exprs, 1);
+		
 		this.expr = exprs.get(0);
 	}
 
@@ -34,10 +36,5 @@ public class IsNum implements Expression {
 			return false;
 		
 		return v instanceof Number;
-	}
-
-	@Override
-	public String toString() {
-		return "isnum(" + expr + ")";
 	}
 }

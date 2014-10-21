@@ -13,7 +13,7 @@ public class Typeof extends FunctionExpression {
 	private Expression expr;
 
 	public Typeof(QueryContext ctx, List<Expression> exprs) {
-		super("typeof", exprs);
+		super("typeof", exprs, 1);
 		expr = exprs.get(0);
 	}
 

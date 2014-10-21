@@ -5,10 +5,12 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class ToDouble implements Expression {
+public class ToDouble extends FunctionExpression {
 	private Expression valueExpr;
 
 	public ToDouble(QueryContext ctx, List<Expression> exprs) {
+		super("double", exprs, 1);
+		
 		this.valueExpr = exprs.get(0);
 	}
 
@@ -25,10 +27,5 @@ public class ToDouble implements Expression {
 		} catch (Throwable t) {
 			return null;
 		}
-	}
-
-	@Override
-	public String toString() {
-		return "double(" + valueExpr + ")";
 	}
 }

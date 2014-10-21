@@ -27,6 +27,6 @@ public class BoxPlotParserTest {
 		
 		BoxPlot boxPlot = (BoxPlot) parser.parse(null, query);
 		assertEquals("cell", boxPlot.getClauses().get(0));
-		assertEquals("boxplot long(delay, 10) by cell", boxPlot.toString());
+		assertEquals("boxplot long(delay) by cell", boxPlot.toString());
 	}
 }

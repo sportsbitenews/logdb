@@ -36,7 +36,7 @@ public class UrlDecode extends FunctionExpression {
 	private String charset;
 
 	public UrlDecode(QueryContext ctx, List<Expression> exprs) {
-		super("urldecode", exprs);
+		super("urldecode", exprs, 1);
 		
 		this.valueExpr = exprs.get(0);
 		charset = "utf-8";
@@ -63,10 +63,5 @@ public class UrlDecode extends FunctionExpression {
 
 			return value;
 		}
-	}
-	
-	@Override
-	public String toString() {
-		return "urldecode(" + valueExpr + ", " + charset + ")";
 	}
 }

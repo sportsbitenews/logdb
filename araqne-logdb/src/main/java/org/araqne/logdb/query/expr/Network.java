@@ -35,7 +35,7 @@ public class Network extends FunctionExpression {
 	private byte[] mask;
 
 	public Network(QueryContext ctx, List<Expression> exprs) {
-		super("network", exprs);
+		super("network", exprs, 2);
 		
 		this.valueExpr = exprs.get(0);
 		this.maskNumber = Integer.parseInt(exprs.get(1).eval(null).toString());

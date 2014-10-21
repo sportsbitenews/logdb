@@ -20,12 +20,13 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Right implements Expression {
+public class Right extends FunctionExpression {
 
 	private Expression valueExpr;
 	private int length;
 
 	public Right(QueryContext ctx, List<Expression> exprs) {
+		super("right", exprs, 2);
 		this.valueExpr = exprs.get(0);
 		this.length = Integer.parseInt(exprs.get(1).eval(null).toString());
 	}
@@ -41,10 +42,5 @@ public class Right implements Expression {
 			return s;
 
 		return s.substring(s.length() - length, s.length());
-	}
-
-	@Override
-	public String toString() {
-		return "right(" + valueExpr + ", " + length + ")";
 	}
 }

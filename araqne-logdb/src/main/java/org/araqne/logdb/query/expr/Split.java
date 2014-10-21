@@ -28,10 +28,7 @@ public class Split extends FunctionExpression {
 	private final int next;
 
 	public Split(QueryContext ctx, List<Expression> exprs) {
-		super("split", exprs);
-
-		if (exprs.size() < 2)
-			throw new QueryParseException("missing-split-args", -1);
+		super("split", exprs, 2);
 
 		this.target = exprs.get(0);
 		try {

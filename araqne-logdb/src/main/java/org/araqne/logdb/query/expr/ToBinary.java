@@ -33,11 +33,8 @@ public class ToBinary extends FunctionExpression {
 	private Charset charset;
 
 	public ToBinary(QueryContext ctx, List<Expression> exprs) {
-		super("tobinary", exprs);
+		super("tobinary", exprs, 1);
 		
-		if (exprs.size() < 1)
-			throw new QueryParseException("missing-data", -1);
-
 		this.data = exprs.get(0);
 
 		String charsetName = null;

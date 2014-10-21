@@ -27,10 +27,12 @@ import org.araqne.logdb.Row;
  * @author xeraph
  *
  */
-public class Flatten implements Expression {
+public class Flatten extends FunctionExpression {
 	private final Expression arg;
 
 	public Flatten(QueryContext ctx, List<Expression> exprs) {
+		super("flatten", exprs, 1);
+		
 		this.arg = exprs.get(0);
 	}
 
@@ -57,10 +59,5 @@ public class Flatten implements Expression {
 			else
 				l.add(o);
 		}
-	}
-
-	@Override
-	public String toString() {
-		return "flatten(" + arg + ")";
 	}
 }

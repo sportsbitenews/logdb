@@ -22,13 +22,14 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.Strings;
 
-public class ToString implements Expression {
+public class ToString extends FunctionExpression {
 	private Expression valueExpr;
 	private String format;
 
 	public ToString(QueryContext ctx, List<Expression> exprs) {
+		super("string", exprs, 1);
+		
 		this.valueExpr = exprs.get(0);
 		if (exprs.size() > 1) {
 			this.format = (String) exprs.get(1).eval(null);
@@ -48,13 +49,5 @@ public class ToString implements Expression {
 			return ((InetAddress) value).getHostAddress();
 
 		return value.toString();
-	}
-
-	@Override
-	public String toString() {
-		if (format == null)
-			return "string(" + valueExpr + ")";
-		else
-			return "string(" + valueExpr + ", " + Strings.doubleQuote(format) + ")";
 	}
 }

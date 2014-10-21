@@ -5,11 +5,13 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Ceil implements Expression {
+public class Ceil extends FunctionExpression {
 	private Expression expr;
 	private Expression digitExpr;
 
 	public Ceil(QueryContext ctx, List<Expression> exprs) {
+		super("ceil", exprs, 1);
+
 		this.expr = exprs.get(0);
 		if (exprs.size() > 1) {
 			this.digitExpr = exprs.get(1);
@@ -70,13 +72,5 @@ public class Ceil implements Expression {
 		}
 		else
 			return Math.ceil(value * m) / m;
-	}
-	
-	@Override
-	public String toString() {
-		if (digitExpr == null)
-			return "ceil(" + expr + ")";
-		else
-			return "ceil(" + expr + ", " + digitExpr + ")";
 	}
 }

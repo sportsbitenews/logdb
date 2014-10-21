@@ -19,20 +19,22 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.Strings;
 
-public class If implements Expression {
-	private List<Expression> exprs;
+public class If extends FunctionExpression {
+	private final Expression cond;
+	private final Expression value1;
+	private final Expression value2;
 
 	public If(QueryContext ctx, List<Expression> exprs) {
-		this.exprs = exprs;
+		super("if", exprs, 3);
+
+		this.cond = exprs.get(0);
+		this.value1 = exprs.get(1);
+		this.value2 = exprs.get(2);
 	}
 
 	@Override
 	public Object eval(Row map) {
-		Expression cond = exprs.get(0);
-		Expression value1 = exprs.get(1);
-		Expression value2 = exprs.get(2);
 
 		Object condResult = cond.eval(map);
 		if ((condResult instanceof Boolean)) {
@@ -42,11 +44,6 @@ public class If implements Expression {
 			return value1.eval(map);
 
 		return value2.eval(map);
-	}
-
-	@Override
-	public String toString() {
-		return "if(" + Strings.join(exprs, ", ") + ")";
 	}
 
 }
