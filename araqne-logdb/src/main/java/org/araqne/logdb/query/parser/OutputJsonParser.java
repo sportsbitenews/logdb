@@ -22,11 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.araqne.cron.TickService;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.command.OutputJson;
 
 /**
@@ -35,6 +37,11 @@ import org.araqne.logdb.query.command.OutputJson;
  * 
  */
 public class OutputJsonParser extends AbstractQueryCommandParser {
+	private TickService tickService;
+
+	public OutputJsonParser(TickService tickService) {
+		this.tickService = tickService;
+	}
 
 	@Override
 	public String getCommandName() {
@@ -52,10 +59,19 @@ public class OutputJsonParser extends AbstractQueryCommandParser {
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
 		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
+		boolean append = CommandOptions.parseBoolean(options.get("append"));
+
+		if (append && overwrite)
+			throw new QueryParseException("choose-overwrite-or-append", -1);
 
 		String encoding = options.get("encoding");
 		if (encoding == null)
 			encoding = "utf-8";
+
+		TimeSpan flushInterval = null;
+		if (options.containsKey("flush"))
+			flushInterval = TimeSpan.parse(options.get("flush"));
+
 		String tmpPath = options.get("tmp");
 
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
@@ -84,11 +100,12 @@ public class OutputJsonParser extends AbstractQueryCommandParser {
 		}
 
 		File jsonFile = new File(filePath);
-		if (jsonFile.exists() && !overwrite)
+		if (jsonFile.exists() && !overwrite && !append)
 			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
 
 		if (!usePartition && jsonFile.getParentFile() != null)
 			jsonFile.getParentFile().mkdirs();
-		return new OutputJson(jsonFile, filePath, overwrite, fields, encoding, usePartition, tmpPath, holders);
+		return new OutputJson(jsonFile, filePath, overwrite, fields, encoding, usePartition, tmpPath, holders, append,
+				flushInterval, tickService);
 	}
 }

@@ -23,6 +23,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.araqne.cron.AbstractTickTimer;
+import org.araqne.cron.TickService;
 import org.araqne.logdb.FileMover;
 import org.araqne.logdb.PartitionOutput;
 import org.araqne.logdb.PartitionPlaceholder;
@@ -32,6 +35,7 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.writer.GzipLineWriterFactory;
 import org.araqne.logdb.writer.LineWriter;
 import org.araqne.logdb.writer.LineWriterFactory;
@@ -56,14 +60,20 @@ public class OutputTxt extends QueryCommand {
 	private boolean usePartition;
 	private boolean useGzip;
 	private List<PartitionPlaceholder> holders;
+	private boolean append;
+	private TimeSpan flushInterval;
+	private TickService tickService;
+
 	private Map<List<String>, PartitionOutput> outputs;
 	private FileMover mover;
+	private FlushTimer flushTimer = new FlushTimer();
 
 	private LineWriter writer;
 	private LineWriterFactory writerFactory;
 
-	public OutputTxt(File f, String filePath, String tmpPath, boolean overwrite, String delimiter,
-			List<String> fields, boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders) {
+	public OutputTxt(File f, String filePath, String tmpPath, boolean overwrite, String delimiter, List<String> fields,
+			boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders, boolean append,
+			TimeSpan flushInterval, TickService tickService) {
 		try {
 			this.usePartition = usePartition;
 			this.useGzip = useGzip;
@@ -74,10 +84,16 @@ public class OutputTxt extends QueryCommand {
 			this.tmpPath = tmpPath;
 			this.overwrite = overwrite;
 			this.fields = fields.toArray(new String[0]);
+			this.append = append;
+			this.flushInterval = flushInterval;
+
 			if (useGzip)
-				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding);
+				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding, append);
 			else
-				writerFactory = new PlainLineWriterFactory(fields, delimiter, encoding);
+				writerFactory = new PlainLineWriterFactory(fields, delimiter, encoding, append);
+
+			if (flushInterval != null)
+				tickService.addTimer(flushTimer);
 
 			if (!usePartition) {
 				String path = filePath;
@@ -191,6 +207,10 @@ public class OutputTxt extends QueryCommand {
 	}
 
 	private void close() {
+		if (flushInterval != null && tickService != null) {
+			tickService.removeTimer(flushTimer);
+		}
+
 		if (!usePartition) {
 			try {
 				this.writer.close();
@@ -211,6 +231,10 @@ public class OutputTxt extends QueryCommand {
 		String overwriteOption = "";
 		if (overwrite)
 			overwriteOption = " overwrite=t";
+
+		String appendOption = "";
+		if (append)
+			appendOption = " append=t";
 
 		String compressionOption = "";
 		if (useGzip)
@@ -238,7 +262,27 @@ public class OutputTxt extends QueryCommand {
 		if (fields.length > 0)
 			fieldsOption = " " + Strings.join(getFields(), ", ");
 
-		return "outputtxt" + overwriteOption + encodingOption + compressionOption + delimiterOption + partitionOption
-				+ tmpPathOption + path + fieldsOption;
+		return "outputtxt" + overwriteOption + appendOption + encodingOption + compressionOption + delimiterOption
+				+ partitionOption + tmpPathOption + path + fieldsOption;
+	}
+
+	private class FlushTimer extends AbstractTickTimer {
+
+		@Override
+		public int getInterval() {
+			return (int) flushInterval.getMillis();
+		}
+
+		@Override
+		public void onTick() {
+			try {
+				if (writer != null) {
+					writer.flush();
+				} else {
+
+				}
+			} catch (IOException e) {
+			}
+		}
 	}
 }

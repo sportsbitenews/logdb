@@ -2,9 +2,11 @@ package org.araqne.logdb.query.parser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.io.File;
 
+import org.araqne.cron.TickService;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
@@ -12,7 +14,6 @@ import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.OutputJson;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -21,7 +22,7 @@ import org.junit.Test;
  * 
  */
 public class OutputJsonParserTest {
-	
+
 	private QueryParserService queryParserService;
 
 	@Before
@@ -30,15 +31,15 @@ public class OutputJsonParserTest {
 		p.setFunctionRegistry(new FunctionRegistryImpl());
 		queryParserService = p;
 	}
-	
+
 	@Test
 	public void testNormalCase() {
 		new File("logexport.json").delete();
 		OutputJson json = null;
 		try {
-			OutputJsonParser p = new OutputJsonParser();
+			OutputJsonParser p = new OutputJsonParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
-			
+
 			json = (OutputJson) p.parse(null, "outputjson logexport.json sip, dip ");
 
 			File f = json.getTxtFile();
@@ -58,9 +59,9 @@ public class OutputJsonParserTest {
 	public void testMissingField() {
 		new File("logexport.json").delete();
 		try {
-			OutputJsonParser p = new OutputJsonParser();
+			OutputJsonParser p = new OutputJsonParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
-			
+
 			p.parse(null, "outputjson");
 			fail();
 		} catch (QueryParseException e) {
@@ -74,9 +75,9 @@ public class OutputJsonParserTest {
 	public void testInvalidEndCharacter() {
 		new File("logexport.json").delete();
 		try {
-			OutputJsonParser p = new OutputJsonParser();
+			OutputJsonParser p = new OutputJsonParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
-			
+
 			p.parse(null, "outputjson logexport.json sip,");
 			fail();
 		} catch (QueryParseException e) {

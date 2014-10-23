@@ -22,12 +22,15 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
+import org.araqne.cron.TickService;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.OutputCsv;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
+
+import static org.mockito.Mockito.*;
 
 public class OutputCsvParserTest {
 	private QueryParserService queryParserService;
@@ -44,7 +47,7 @@ public class OutputCsvParserTest {
 		new File("logexport.csv").delete();
 		OutputCsv csv = null;
 		try {
-			OutputCsvParser p = new OutputCsvParser();
+			OutputCsvParser p = new OutputCsvParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 			
 			csv = (OutputCsv) p.parse(null, "outputcsv logexport.csv sip, dip ");
@@ -67,7 +70,7 @@ public class OutputCsvParserTest {
 		new File("logexport.csv").delete();
 		OutputCsv csv = null;
 		try {
-			OutputCsvParser p = new OutputCsvParser();
+			OutputCsvParser p = new OutputCsvParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 			
 			csv = (OutputCsv) p.parse(null, "outputcsv overwrite=true logexport.csv sip, dip ");
@@ -84,14 +87,14 @@ public class OutputCsvParserTest {
 			new File("logexport.csv").delete();
 		}
 
-		assertEquals("outputcsv overwrite=true encoding=utf-8 logexport.csv sip, dip", csv.toString());
+		assertEquals("outputcsv overwrite=t encoding=utf-8 logexport.csv sip, dip", csv.toString());
 	}
 
 	@Test
 	public void testMissingField1() {
 		new File("logexport.csv").delete();
 		try {
-			OutputCsvParser p = new OutputCsvParser();
+			OutputCsvParser p = new OutputCsvParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 			
 			p.parse(null, "outputcsv logexport.csv ");
@@ -108,7 +111,7 @@ public class OutputCsvParserTest {
 	public void testMissingField2() {
 		new File("logexport.csv").delete();
 		try {
-			OutputCsvParser p = new OutputCsvParser();
+			OutputCsvParser p = new OutputCsvParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 			
 			p.parse(null, "outputcsv logexport.csv sip,");

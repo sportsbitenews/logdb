@@ -25,15 +25,17 @@ public class PlainLineWriterFactory implements LineWriterFactory {
 	private List<String> fields;
 	private String delimiter;
 	private String encoding;
+	private boolean append;
 
-	public PlainLineWriterFactory(List<String> fields, String delimiter, String encoding) {
+	public PlainLineWriterFactory(List<String> fields, String delimiter, String encoding, boolean append) {
 		this.fields = fields;
 		this.delimiter = delimiter;
 		this.encoding = encoding;
+		this.append = append;
 	}
 
 	@Override
 	public LineWriter newWriter(String filePath) throws IOException {
-		return new PlainLineWriter(filePath, fields, delimiter, encoding);
+		return new PlainLineWriter(filePath, fields, delimiter, encoding, append);
 	}
 }

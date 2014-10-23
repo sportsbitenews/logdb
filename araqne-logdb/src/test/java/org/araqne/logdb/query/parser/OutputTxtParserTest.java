@@ -2,9 +2,11 @@ package org.araqne.logdb.query.parser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.io.File;
 
+import org.araqne.cron.TickService;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
@@ -34,9 +36,9 @@ public class OutputTxtParserTest {
 		new File("logexport.txt").delete();
 		OutputTxt txt = null;
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
-			
+
 			txt = (OutputTxt) p.parse(null, "outputtxt logexport.txt sip, dip ");
 
 			File f = txt.getTxtFile();
@@ -58,9 +60,9 @@ public class OutputTxtParserTest {
 		new File("logexport.txt").delete();
 		OutputTxt txt = null;
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
-			
+
 			txt = (OutputTxt) p.parse(null, "outputtxt delimiter=\"|\" logexport.txt sip, dip ");
 
 			assertEquals("|", txt.getDelimiter());
@@ -77,9 +79,9 @@ public class OutputTxtParserTest {
 		new File("logexport.txt").delete();
 		OutputTxt txt = null;
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
-			
+
 			txt = (OutputTxt) p.parse(null, "outputtxt logexport.txt delimiter=\"|\" sip, dip ");
 
 			assertEquals("|", txt.getDelimiter());
@@ -95,9 +97,9 @@ public class OutputTxtParserTest {
 	public void testMissingField1() {
 		new File("logexport.txt").delete();
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
-			
+
 			p.parse(null, "outputtxt logexport.txt ");
 			fail();
 		} catch (QueryParseException e) {
@@ -112,9 +114,9 @@ public class OutputTxtParserTest {
 	public void testMissingField2() {
 		new File("logexport.txt").delete();
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
-			
+
 			p.parse(null, "outputtxt logexport.txt sip,");
 			fail();
 		} catch (QueryParseException e) {
@@ -129,9 +131,9 @@ public class OutputTxtParserTest {
 	public void testMissingField3() {
 		new File("logexport.txt").delete();
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
-			
+
 			p.parse(null, "outputtxt");
 			fail();
 		} catch (QueryParseException e) {

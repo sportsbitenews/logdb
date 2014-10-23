@@ -22,11 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.araqne.cron.TickService;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.command.OutputTxt;
 
 /**
@@ -35,6 +37,12 @@ import org.araqne.logdb.query.command.OutputTxt;
  * 
  */
 public class OutputTxtParser extends AbstractQueryCommandParser {
+
+	private TickService tickService;
+
+	public OutputTxtParser(TickService tickService) {
+		this.tickService = tickService;
+	}
 
 	@Override
 	public String getCommandName() {
@@ -47,7 +55,8 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("missing-field", commandString.length());
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(),
-				Arrays.asList("delimiter", "overwrite", "gz", "encoding", "partition", "tmp"), getFunctionRegistry());
+				Arrays.asList("delimiter", "overwrite", "gz", "encoding", "partition", "tmp", "append", "flush"),
+				getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -60,11 +69,19 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 		if (encoding == null)
 			encoding = "utf-8";
 
+		TimeSpan flushInterval = null;
+		if (options.containsKey("flush"))
+			flushInterval = TimeSpan.parse(options.get("flush"));
+
 		String tmpPath = options.get("tmp");
 
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
 		boolean useGzip = CommandOptions.parseBoolean(options.get("gz"));
 		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
+		boolean append = CommandOptions.parseBoolean(options.get("append"));
+
+		if (append && overwrite)
+			throw new QueryParseException("choose-overwrite-or-append", -1);
 
 		File tmpFile = null;
 		if (tmpPath != null) {
@@ -107,12 +124,13 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("missing-field", remainCommandString.length());
 
 		File txtFile = new File(filePath);
-		if (txtFile.exists() && !overwrite)
+		if (txtFile.exists() && !overwrite && !append)
 			throw new IllegalStateException("txt file exists: " + txtFile.getAbsolutePath());
 
 		if (!usePartition && txtFile.getParentFile() != null)
 			txtFile.getParentFile().mkdirs();
 
-		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders);
+		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders,
+				append, flushInterval, tickService);
 	}
 }

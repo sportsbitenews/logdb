@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.cron.AbstractTickTimer;
+import org.araqne.cron.TickService;
 import org.araqne.logdb.FileMover;
 import org.araqne.logdb.LocalFileMover;
 import org.araqne.logdb.PartitionOutput;
@@ -33,6 +35,7 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.writer.CsvLineWriterFactory;
 import org.araqne.logdb.writer.LineWriter;
 import org.araqne.logdb.writer.LineWriterFactory;
@@ -56,14 +59,20 @@ public class OutputCsv extends QueryCommand {
 	private String encoding;
 
 	private List<PartitionPlaceholder> holders;
+	private boolean append;
+	private TimeSpan flushInterval;
+	private TickService tickService;
+
 	private Map<List<String>, PartitionOutput> outputs;
 	private FileMover mover;
+	private FlushTimer flushTimer = new FlushTimer();
 
 	private LineWriter writer;
 	private LineWriterFactory writerFactory;
 
 	public OutputCsv(String pathToken, File f, String tmpPath, boolean overwrite, List<String> fields, String encoding,
-			boolean useBom, boolean useTab, boolean usePartition, boolean emptyfile, List<PartitionPlaceholder> holders) {
+			boolean useBom, boolean useTab, boolean usePartition, boolean emptyfile, List<PartitionPlaceholder> holders,
+			boolean append, TimeSpan flushInterval, TickService tickService) {
 		try {
 			this.pathToken = pathToken;
 			this.f = f;
@@ -77,8 +86,13 @@ public class OutputCsv extends QueryCommand {
 			this.useBom = useBom;
 			this.emptyfile = emptyfile;
 			char separator = useTab ? '\t' : ',';
+			this.append = append;
+			this.flushInterval = flushInterval;
+			this.writerFactory = new CsvLineWriterFactory(fields, encoding, separator, useBom, append);
 
-			this.writerFactory = new CsvLineWriterFactory(fields, encoding, separator, useBom);
+			if (flushInterval != null)
+				tickService.addTimer(flushTimer);
+
 			if (!usePartition) {
 				String path = pathToken;
 				if (tmpPath != null)
@@ -192,6 +206,10 @@ public class OutputCsv extends QueryCommand {
 	}
 
 	private void close() {
+		if (flushInterval != null && tickService != null) {
+			tickService.removeTimer(flushTimer);
+		}
+
 		if (!usePartition) {
 			try {
 				writer.close();
@@ -211,7 +229,11 @@ public class OutputCsv extends QueryCommand {
 	public String toString() {
 		String overwriteOption = " ";
 		if (overwrite)
-			overwriteOption = " overwrite=true";
+			overwriteOption = " overwrite=t";
+
+		String appendOption = "";
+		if (append)
+			appendOption = " append=t";
 
 		String partitionOption = "";
 		if (usePartition)
@@ -233,7 +255,27 @@ public class OutputCsv extends QueryCommand {
 		if (useTab)
 			tabOption = " tab=t";
 
-		return "outputcsv" + overwriteOption + partitionOption + tmpPathOption + bomOption + encodingOption + tabOption + " "
-				+ pathToken + " " + Strings.join(fields, ", ");
+		return "outputcsv" + overwriteOption + appendOption + partitionOption + tmpPathOption + bomOption + encodingOption
+				+ tabOption + " " + pathToken + " " + Strings.join(fields, ", ");
+	}
+
+	private class FlushTimer extends AbstractTickTimer {
+
+		@Override
+		public int getInterval() {
+			return (int) flushInterval.getMillis();
+		}
+
+		@Override
+		public void onTick() {
+			try {
+				if (writer != null) {
+					writer.flush();
+				} else {
+
+				}
+			} catch (IOException e) {
+			}
+		}
 	}
 }

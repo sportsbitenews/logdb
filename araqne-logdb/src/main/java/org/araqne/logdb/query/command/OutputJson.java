@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.cron.AbstractTickTimer;
+import org.araqne.cron.TickService;
 import org.araqne.logdb.FileMover;
 import org.araqne.logdb.LocalFileMover;
 import org.araqne.logdb.PartitionOutput;
@@ -33,6 +35,7 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.writer.JsonLineWriterFactory;
 import org.araqne.logdb.writer.LineWriter;
 import org.araqne.logdb.writer.LineWriterFactory;
@@ -54,13 +57,19 @@ public class OutputJson extends QueryCommand {
 	private boolean usePartition;
 	private String tmpPath;
 	private List<PartitionPlaceholder> holders;
+	private boolean append;
+	private TimeSpan flushInterval;
+	private TickService tickService;
+
 	private Map<List<String>, PartitionOutput> outputs;
 	private LineWriterFactory writerFactory;
 	private LineWriter writer;
 	private FileMover mover;
+	private FlushTimer flushTimer = new FlushTimer();
 
 	public OutputJson(File f, String filePathToken, boolean overwrite, List<String> fields, String encoding,
-			boolean usePartition, String tmpPath, List<PartitionPlaceholder> holders) {
+			boolean usePartition, String tmpPath, List<PartitionPlaceholder> holders, boolean append, TimeSpan flushInterval,
+			TickService tickService) {
 		this.f = f;
 		this.overwrite = overwrite;
 		this.filePathToken = filePathToken;
@@ -69,8 +78,13 @@ public class OutputJson extends QueryCommand {
 		this.usePartition = usePartition;
 		this.tmpPath = tmpPath;
 		this.holders = holders;
+		this.append = append;
+		this.flushInterval = flushInterval;
 
-		this.writerFactory = new JsonLineWriterFactory(fields, encoding);
+		this.writerFactory = new JsonLineWriterFactory(fields, encoding, append);
+
+		if (flushInterval != null)
+			tickService.addTimer(flushTimer);
 
 		try {
 			if (!usePartition) {
@@ -177,6 +191,10 @@ public class OutputJson extends QueryCommand {
 	}
 
 	private void close() {
+		if (flushInterval != null && tickService != null) {
+			tickService.removeTimer(flushTimer);
+		}
+
 		if (!usePartition) {
 			try {
 				writer.close();
@@ -198,6 +216,10 @@ public class OutputJson extends QueryCommand {
 		if (overwrite)
 			overwriteOption = " overwrite=t ";
 
+		String appendOption = "";
+		if (append)
+			appendOption = " append=t";
+
 		String encodingOption = "";
 		if (encoding != null)
 			encoding = " encoding=" + encoding;
@@ -214,6 +236,27 @@ public class OutputJson extends QueryCommand {
 		if (!fields.isEmpty())
 			fieldsOption = " " + Strings.join(fields, ", ");
 
-		return "outputjson" + overwriteOption + encodingOption + partitionOption + tmpOption + filePathToken + fieldsOption;
+		return "outputjson" + overwriteOption + appendOption + encodingOption + partitionOption + tmpOption + filePathToken
+				+ fieldsOption;
+	}
+
+	private class FlushTimer extends AbstractTickTimer {
+
+		@Override
+		public int getInterval() {
+			return (int) flushInterval.getMillis();
+		}
+
+		@Override
+		public void onTick() {
+			try {
+				if (writer != null) {
+					writer.flush();
+				} else {
+
+				}
+			} catch (IOException e) {
+			}
+		}
 	}
 }
