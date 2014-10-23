@@ -55,7 +55,7 @@ public class OutputJsonParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("missing-field", commandString.length());
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("overwrite", "tmp", "partition", "encoding"), getFunctionRegistry());
+				Arrays.asList("overwrite", "tmp", "partition", "encoding", "append", "flush"), getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
 		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
