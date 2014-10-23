@@ -186,8 +186,12 @@ public class OutputJson extends QueryCommand {
 	public void onClose(QueryStopReason reason) {
 		this.status = Status.Finalizing;
 		close();
-		if (reason == QueryStopReason.CommandFailure)
-			f.delete();
+		if (!append && reason == QueryStopReason.CommandFailure) {
+			if (tmpPath != null)
+				new File(tmpPath).delete();
+			else
+				f.delete();
+		}
 	}
 
 	private void close() {

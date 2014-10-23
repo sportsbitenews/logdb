@@ -197,7 +197,7 @@ public class OutputCsv extends QueryCommand {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		close();
-		if (reason == QueryStopReason.CommandFailure) {
+		if (!append && reason == QueryStopReason.CommandFailure) {
 			if (tmpPath != null)
 				new File(tmpPath).delete();
 			else
