@@ -29,10 +29,12 @@ import org.araqne.logdb.Row;
  * @author xeraph
  * 
  */
-public class Unique implements Expression {
+public class Unique extends FunctionExpression {
 	private final Expression arg;
 
 	public Unique(QueryContext ctx, List<Expression> exprs) {
+		super("unique", exprs, 1);
+		
 		this.arg = exprs.get(0);
 	}
 
@@ -50,10 +52,5 @@ public class Unique implements Expression {
 		ArrayList<Object> l = new ArrayList<Object>();
 		l.add(o);
 		return l;
-	}
-
-	@Override
-	public String toString() {
-		return "unique(" + arg + ")";
 	}
 }

@@ -20,13 +20,13 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
-import org.araqne.logdb.Strings;
 
-public class Min implements Expression {
+public class Min extends FunctionExpression {
 	private ObjectComparator cmp = new ObjectComparator();
 	private List<Expression> exprs;
 
 	public Min(QueryContext ctx, List<Expression> exprs) {
+		super("min", exprs, 1);
 		this.exprs = exprs;
 	}
 
@@ -45,10 +45,5 @@ public class Min implements Expression {
 		}
 
 		return min;
-	}
-
-	@Override
-	public String toString() {
-		return "min(" + Strings.join(exprs, ", ") + ")";
 	}
 }

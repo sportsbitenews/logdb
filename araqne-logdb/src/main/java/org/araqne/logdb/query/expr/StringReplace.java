@@ -5,7 +5,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class StringReplace extends FunctionExpression {
@@ -15,10 +14,7 @@ public class StringReplace extends FunctionExpression {
 	private Expression flagExpr;
 
 	public StringReplace(QueryContext ctx, List<Expression> exprs) {
-		super("replace", exprs);
-		
-		if (exprs.size() < 3)
-			throw new QueryParseException("replace-func-invalid-argument-count", -1);
+		super("replace", exprs, 3);
 		
 		this.targetExpr = exprs.get(0);
 		this.patternExpr = exprs.get(1);

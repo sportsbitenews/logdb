@@ -26,7 +26,7 @@ public class Substr extends FunctionExpression {
 	private Expression endExpr;
 
 	public Substr(QueryContext ctx, List<Expression> exprs) {
-		super("substr", exprs);
+		super("substr", exprs, 2);
 		
 		this.valueExpr = exprs.get(0);
 		this.beginExpr = exprs.get(1);

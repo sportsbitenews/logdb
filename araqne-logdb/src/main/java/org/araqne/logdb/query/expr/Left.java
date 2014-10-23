@@ -21,11 +21,13 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
 
-public class Left implements Expression {
+public class Left extends FunctionExpression {
 	private Expression valueExpr;
 	private int length;
 
 	public Left(QueryContext ctx, List<Expression> exprs) {
+		super("left", exprs, 2);
+		
 		this.valueExpr = exprs.get(0);
 		this.length = Integer.parseInt(exprs.get(1).eval(null).toString());
 		if (length < 0)
@@ -44,10 +46,4 @@ public class Left implements Expression {
 
 		return s.substring(0, length);
 	}
-
-	@Override
-	public String toString() {
-		return "left(" + valueExpr + ", " + length + ")";
-	}
-
 }

@@ -31,7 +31,7 @@ public class Rand extends FunctionExpression {
 	private int bound;
 
 	public Rand(QueryContext ctx, List<Expression> exprs) {
-		super("rand", exprs);
+		super("rand", exprs, 1);
 		
 		Object n = exprs.get(0).eval(null);
 		if (!(n instanceof Integer))

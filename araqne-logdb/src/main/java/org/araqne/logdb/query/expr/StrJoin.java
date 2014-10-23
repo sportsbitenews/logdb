@@ -27,16 +27,18 @@ import org.araqne.logdb.Strings;
  * @author xeraph
  * 
  */
-public class StrJoin implements Expression {
+public class StrJoin extends FunctionExpression {
 	private List<Expression> exprs;
 
 	private String sep;
 	private Expression array;
 
 	public StrJoin(QueryContext ctx, List<Expression> exprs) {
+		super("strjoin", exprs, 2);
+		
 		this.exprs = exprs;
 
-		if (exprs.size() != 2)
+		if (exprs.size() > 2)
 			throw new QueryParseException("invalid-strjoin-args", -1);
 
 		Object sepValue = exprs.get(0).eval(null);

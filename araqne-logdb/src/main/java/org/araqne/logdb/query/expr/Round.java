@@ -5,11 +5,13 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Round implements Expression {
+public class Round extends FunctionExpression {
 	private Expression expr;
 	private Expression digitExpr;
 
 	public Round(QueryContext ctx, List<Expression> exprs) {
+		super("round", exprs, 1);
+		
 		this.expr = exprs.get(0);
 		if (exprs.size() > 1) {
 			this.digitExpr = exprs.get(1);
@@ -70,13 +72,5 @@ public class Round implements Expression {
 		}
 		else
 			return ((double)Math.round(value * m)) / m;
-	}
-	
-	@Override
-	public String toString() {
-		if (digitExpr == null)
-			return "round(" + expr + ")";
-		else
-			return "round(" + expr + ", " + digitExpr + ")";
 	}
 }

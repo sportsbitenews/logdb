@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class ValueOf extends FunctionExpression {
@@ -28,11 +27,8 @@ public class ValueOf extends FunctionExpression {
 	private Expression key;
 
 	public ValueOf(QueryContext ctx, List<Expression> args) {
-		super("valueof", args);
+		super("valueof", args, 2);
 		
-		if (args.size() < 2)
-			throw new QueryParseException("insufficient-valueof-args", -1);
-
 		this.compound = args.get(0);
 		this.key = args.get(1);
 	}

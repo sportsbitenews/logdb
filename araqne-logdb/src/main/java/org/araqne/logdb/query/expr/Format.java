@@ -27,10 +27,7 @@ public class Format extends FunctionExpression {
 	private final int argCount;
 
 	public Format(QueryContext ctx, List<Expression> exprs) {
-		super("format", exprs);
-
-		if (exprs.size() < 2)
-			throw new QueryParseException("invalid-format-args", -1);
+		super("format", exprs, 2);
 
 		if (!(exprs.get(0) instanceof StringConstant))
 			throw new QueryParseException("invalid-format-string", -1);

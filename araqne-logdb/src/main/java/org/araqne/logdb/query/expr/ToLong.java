@@ -21,13 +21,15 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
 
-public class ToLong implements Expression {
+public class ToLong extends FunctionExpression {
 	private Expression valueExpr;
 
 	// 10 for decimal (reserved extension)
 	private int radix;
 
 	public ToLong(QueryContext ctx, List<Expression> exprs) {
+		super("long", exprs, 1);
+		
 		this.valueExpr = exprs.get(0);
 		this.radix = 10;
 		if (exprs.size() > 1)
@@ -51,10 +53,4 @@ public class ToLong implements Expression {
 			return null;
 		}
 	}
-
-	@Override
-	public String toString() {
-		return "long(" + valueExpr + ", " + radix + ")";
-	}
-
 }

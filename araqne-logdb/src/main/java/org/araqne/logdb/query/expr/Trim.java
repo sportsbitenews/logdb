@@ -20,10 +20,12 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Trim implements Expression {
+public class Trim extends FunctionExpression {
 	private Expression expr;
 
 	public Trim(QueryContext ctx, List<Expression> exprs) {
+		super("trim", exprs, 1);
+		
 		this.expr = exprs.get(0);
 	}
 
@@ -35,10 +37,4 @@ public class Trim implements Expression {
 
 		return v.toString().trim();
 	}
-
-	@Override
-	public String toString() {
-		return "trim(" + expr + ")";
-	}
-
 }

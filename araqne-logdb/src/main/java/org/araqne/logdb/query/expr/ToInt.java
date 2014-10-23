@@ -22,7 +22,7 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
 
-public class ToInt implements Expression {
+public class ToInt extends FunctionExpression {
 
 	private Expression valueExpr;
 
@@ -30,6 +30,8 @@ public class ToInt implements Expression {
 	private int radix;
 
 	public ToInt(QueryContext ctx, List<Expression> exprs) {
+		super("int", exprs, 1);
+		
 		this.valueExpr = exprs.get(0);
 		this.radix = 10;
 		if (exprs.size() > 1)
@@ -75,10 +77,4 @@ public class ToInt implements Expression {
 			return null;
 		}
 	}
-
-	@Override
-	public String toString() {
-		return "int(" + valueExpr + ", " + radix + ")";
-	}
-
 }

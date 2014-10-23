@@ -32,7 +32,7 @@ public class Decode extends FunctionExpression {
 	private Charset charset;
 
 	public Decode(QueryContext ctx, List<Expression> exprs) {
-		super("decode", exprs);
+		super("decode", exprs, 1);
 		
 		this.dataExpr = exprs.get(0);
 

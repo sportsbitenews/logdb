@@ -30,7 +30,7 @@ public class ToDate extends FunctionExpression {
 	private Locale locale;
 
 	public ToDate(QueryContext ctx, List<Expression> exprs) {
-		super("date", exprs);
+		super("date", exprs, 2);
 		
 		this.valueExpr = exprs.get(0);
 		locale = Locale.ENGLISH;

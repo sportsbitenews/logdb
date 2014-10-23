@@ -20,22 +20,19 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class IsNotNull implements Expression {
+public class IsNotNull extends FunctionExpression {
 
 	private Expression expr;
 
 	public IsNotNull(QueryContext ctx, List<Expression> exprs) {
+		super("isnotnull", exprs, 1);
+		
 		this.expr = exprs.get(0);
 	}
 
 	@Override
 	public Object eval(Row map) {
 		return expr.eval(map) != null;
-	}
-
-	@Override
-	public String toString() {
-		return "isnotnull(" + expr + ")";
 	}
 
 }
