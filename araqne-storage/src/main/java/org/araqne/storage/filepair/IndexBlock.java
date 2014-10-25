@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 
 public abstract class IndexBlock<Derived extends IndexBlock<Derived>> {
 	public abstract int getId();
+	
+	public abstract boolean isEquivalent(Derived obj);
 
 	public abstract boolean isReserved();
 
