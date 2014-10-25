@@ -16,6 +16,7 @@
 package org.araqne.storage.filepair;
 
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -34,15 +35,27 @@ import org.araqne.storage.api.StorageUtil;
 import org.araqne.storage.localfile.LocalFileOutputStream;
 import org.araqne.storage.localfile.LocalFilePath;
 
-public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlock<RDB>> {
-	protected FilePath ifile;
-	protected FilePath dfile;
+public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlock<RDB>> implements Closeable {
+	protected final FilePath ifile;
+	protected final FilePath dfile;
+	protected final Class<IB> ibClass;
+	protected final Class<RDB> rdbClass;
 
-	public FilePair(FilePath indexFile, FilePath dataFile) {
+	public FilePair(FilePath indexFile, FilePath dataFile, Class<IB> ibClass, Class<RDB> rdbClass) {
 		this.ifile = indexFile;
 		this.dfile = dataFile;
+		this.ibClass = ibClass;
+		this.rdbClass = rdbClass;
 	}
 
+	public Class<? extends IndexBlock<?>> getIBClass() {
+		return ibClass;
+	}
+	
+	public Class<? extends RawDataBlock<?>> getRDBClass() {
+		return rdbClass;
+	}
+	
 	public FilePath getIndexFile() {
 		return ifile;
 	}
@@ -50,6 +63,8 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 	public FilePath getDataFile() {
 		return dfile;
 	}
+	
+	public abstract void close() throws IOException;
 
 	public static void main(String[] args) {
 		FilePath a =
@@ -143,8 +158,8 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 
 	public abstract IB getIndexBlock(int id) throws IOException;
 
-	public CloseableEnumeration<IB> getIndexBlocks(Class<IB> ibClass) throws IOException {
-		return new IndexBlockEnumeration(ibClass);
+	public CloseableEnumeration<IB> getIndexBlocks() throws IOException {
+		return new IndexBlockEnumeration();
 	}
 
 	public abstract RDB getRawDataBlock(IB indexBlock) throws IOException;
@@ -310,15 +325,13 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		private int currentSegId;
 		private IB next;
 		private IB prefetched;
-		private Class<IB> ibClass;
 		private IB ib;
 
-		public IndexBlockEnumeration(Class<IB> ibClass) throws IOException {
+		public IndexBlockEnumeration() throws IOException {
 			this.currentSegId = 0;
 
 			try {
 				this.ib = ibClass.newInstance();
-				this.ibClass = ibClass;
 
 				if (!ifile.exists() || ifile.length() == 0)
 					return;
