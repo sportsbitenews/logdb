@@ -15,25 +15,28 @@
  */
 package org.araqne.log.api;
 
-import java.util.List;
-
 /**
  * @since 3.4.7
  */
-public interface ParserSelectorRegistry {
-	List<ParserSelectorProfile> getProfiles();
+public class PredicateOption {
+	private String condition;
+	private String value;
 
-	ParserSelectorProfile getProfile(String name);
+	public PredicateOption(String condition, String value) {
+		this.condition = condition;
+		this.value = value;
+	}
 
-	void createProfile(ParserSelectorProfile profile);
+	public String getCondition() {
+		return condition;
+	}
 
-	void removeProfile(String name);
+	public String getParserName() {
+		return value;
+	}
 
-	List<ParserSelectorProvider> getProviders();
-
-	ParserSelectorProvider getProvider(String name);
-
-	void addProvider(ParserSelectorProvider provider);
-
-	void removeProvider(ParserSelectorProvider provider);
+	@Override
+	public String toString() {
+		return "(" + condition + " => " + value + ")";
+	}
 }

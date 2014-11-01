@@ -27,7 +27,6 @@ import org.araqne.log.api.LogTransformerFactoryRegistry;
 import org.araqne.log.api.LogTransformerRegistry;
 import org.araqne.log.api.LoggerFactoryRegistry;
 import org.araqne.log.api.LoggerRegistry;
-import org.araqne.log.api.ParserSelectorRegistry;
 
 @Component(name = "logapi-script-factory")
 @Provides
@@ -53,12 +52,9 @@ public class LogApiScriptFactory implements ScriptFactory {
 	@Requires
 	private LogTransformerRegistry transformerRegistry;
 
-	@Requires
-	private ParserSelectorRegistry parserSelectorRegistry;
-
 	@Override
 	public Script createScript() {
 		return new LogApiScript(loggerFactoryRegistry, loggerRegistry, parserFactoryRegistry, transformerFactoryRegistry,
-				parserRegistry, transformerRegistry, parserSelectorRegistry);
+				parserRegistry, transformerRegistry);
 	}
 }

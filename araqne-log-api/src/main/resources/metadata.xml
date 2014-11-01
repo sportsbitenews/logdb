@@ -21,7 +21,6 @@
 	<instance component="field-mapping-parser-factory" />
 	<instance component="tag-parser-factory" />
 	<instance component="regex-filter-transformer-factory" />
-	<instance component="parser-selector-registry" />
 
 	<!-- deprecated <instance component="rolling-log-writer-factory" /> <instance 
 		component="time-rolling-log-writer-factory" /> -->

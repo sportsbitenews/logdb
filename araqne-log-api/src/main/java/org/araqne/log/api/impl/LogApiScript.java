@@ -53,12 +53,11 @@ import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.Mutable;
-import org.araqne.log.api.ParserSelectorPredicate;
-import org.araqne.log.api.ParserSelectorProfile;
-import org.araqne.log.api.ParserSelectorProvider;
-import org.araqne.log.api.ParserSelectorRegistry;
+import org.araqne.log.api.PredicatesConfigType;
 import org.araqne.log.api.TimeRange;
 import org.araqne.log.api.WildcardMatcher;
+import org.json.JSONConverter;
+import org.json.JSONException;
 
 import com.bethecoder.ascii_table.ASCIITable;
 import com.bethecoder.ascii_table.impl.CollectionASCIITableAware;
@@ -73,19 +72,16 @@ public class LogApiScript implements Script {
 	private LogTransformerFactoryRegistry transformerFactoryRegistry;
 	private LogParserRegistry parserRegistry;
 	private LogTransformerRegistry transformerRegistry;
-	private ParserSelectorRegistry parserSelectorRegistry;
 
 	public LogApiScript(LoggerFactoryRegistry loggerFactoryRegistry, LoggerRegistry loggerRegistry,
 			LogParserFactoryRegistry parserFactoryRegistry, LogTransformerFactoryRegistry transformerFactoryRegistry,
-			LogParserRegistry parserRegistry, LogTransformerRegistry transformerRegistry,
-			ParserSelectorRegistry parserSelectorRegistry) {
+			LogParserRegistry parserRegistry, LogTransformerRegistry transformerRegistry) {
 		this.loggerFactoryRegistry = loggerFactoryRegistry;
 		this.loggerRegistry = loggerRegistry;
 		this.parserFactoryRegistry = parserFactoryRegistry;
 		this.transformerFactoryRegistry = transformerFactoryRegistry;
 		this.parserRegistry = parserRegistry;
 		this.transformerRegistry = transformerRegistry;
-		this.parserSelectorRegistry = parserSelectorRegistry;
 	}
 
 	@Override
@@ -849,16 +845,46 @@ public class LogApiScript implements Script {
 
 	private void setOption(Map<String, String> config, LoggerConfigOption type, String initialValue) throws InterruptedException {
 		String directive = type.isRequired() ? "(required)" : "(optional)";
-		context.print(type.getDisplayName(Locale.ENGLISH) + " " + directive + "? ");
-		String value = context.readLine(initialValue);
-		if (!value.isEmpty())
-			config.put(type.getName(), value);
 
-		if (value.isEmpty()) {
-			if (type.isRequired())
+		if (type instanceof PredicatesConfigType) {
+			context.println(type.getDisplayName(Locale.ENGLISH) + " " + directive + "");
+
+			List<Object> predicates = new ArrayList<Object>();
+			while (true) {
+				context.print(" * Condition (enter to end)? ");
+				String cond = context.readLine();
+				if (cond.trim().isEmpty())
+					break;
+
+				context.print(" * Value (enter to end)? ");
+				String value = context.readLine();
+				if (value.trim().isEmpty())
+					break;
+
+				predicates.add(Arrays.asList(cond, value));
+			}
+
+			if (predicates.isEmpty() && type.isRequired())
 				setOption(config, type, initialValue);
-			else
-				config.put(type.getName(), null);
+
+			try {
+				config.put(type.getName(), JSONConverter.jsonize(predicates));
+			} catch (JSONException e) {
+				throw new IllegalStateException("jsonize failure", e);
+			}
+
+		} else {
+			context.print(type.getDisplayName(Locale.ENGLISH) + " " + directive + "? ");
+			String value = context.readLine(initialValue);
+			if (!value.isEmpty())
+				config.put(type.getName(), value);
+
+			if (value.isEmpty()) {
+				if (type.isRequired())
+					setOption(config, type, initialValue);
+				else
+					config.put(type.getName(), null);
+			}
 		}
 	}
 
@@ -873,87 +899,4 @@ public class LogApiScript implements Script {
 		logger.resetStates();
 		context.println("reset completed");
 	}
-
-	public void parserSelectorProviders(String[] args) {
-		String lang = System.getProperty("user.language");
-		Locale locale = Locale.ENGLISH;
-		if (lang != null)
-			locale = new Locale(lang);
-
-		context.println("Parser Selector Providers");
-		context.println("---------------------------");
-		for (ParserSelectorProvider p : parserSelectorRegistry.getProviders()) {
-			context.println("[" + p.getName() + "] " + p.getDescription(locale));
-		}
-	}
-
-	public void parserSelectors(String[] args) {
-		context.println("Parser Selector Profiles");
-		context.println("--------------------------");
-		for (ParserSelectorProfile profile : parserSelectorRegistry.getProfiles()) {
-			context.println(profile.toString());
-		}
-	}
-
-	@ScriptUsage(description = "create parser selector profile", arguments = {
-			@ScriptArgument(name = "profile name", type = "string", description = "parser selector profile name"),
-			@ScriptArgument(name = "provider name", type = "string", description = "parser selector provider name") })
-	public void createParserSelector(String[] args) throws InterruptedException {
-		String name = args[0];
-		String providerName = args[1];
-
-		ParserSelectorProvider provider = parserSelectorRegistry.getProvider(providerName);
-		if (provider == null) {
-			context.println("unknown provider: " + providerName);
-			return;
-		}
-
-		ParserSelectorProfile profile = new ParserSelectorProfile();
-		profile.setName(name);
-		profile.setProviderName(providerName);
-
-		List<LoggerConfigOption> configOptions = provider.getConfigOptions();
-		if (!configOptions.isEmpty()) {
-			context.println("[Config Options]");
-			Map<String, String> configs = profile.getConfigs();
-			for (LoggerConfigOption option : configOptions) {
-				setOption(configs, option);
-				profile.setConfigs(configs);
-			}
-		}
-
-		List<ParserSelectorPredicate> predicates = new ArrayList<ParserSelectorPredicate>();
-		if (provider.hasPredicates()) {
-			context.println("[Predicates]");
-
-			while (true) {
-				context.print("Condition (enter to end): ");
-				String condition = context.readLine();
-				if (condition.trim().isEmpty()) {
-					break;
-				}
-
-				context.print("Parser Name (enter to end): ");
-				String parserName = context.readLine();
-				if (parserName.trim().isEmpty()) {
-					break;
-				}
-
-				predicates.add(new ParserSelectorPredicate(condition, parserName));
-			}
-
-			profile.setPredicates(predicates);
-		}
-
-		parserSelectorRegistry.createProfile(profile);
-
-		context.println("created");
-	}
-
-	@ScriptUsage(description = "remove parser selector profile", arguments = { @ScriptArgument(name = "profile name", type = "string", description = "parser selector profile name") })
-	public void removeParserSelector(String[] args) {
-		parserSelectorRegistry.removeProfile(args[0]);
-		context.println("removed");
-	}
-
 }
