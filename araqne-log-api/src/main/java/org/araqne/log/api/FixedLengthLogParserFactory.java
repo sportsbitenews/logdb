@@ -23,9 +23,9 @@ public class FixedLengthLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "fixed-length";
+			return "고정 길이 필드";
 
-		return "fixed-length";
+		return "Fixed Length Fields";
 	}
 
 	@Override
@@ -37,23 +37,23 @@ public class FixedLengthLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "설정된 필드 이름들에 대하여 입력한 고정길이로 로그를 파싱합니다.";
-		return "devide a string into tokens based on the fixed length and column names";
+		return "Devide a string into tokens based on the fixed length and field names";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		List<LoggerConfigOption> options = new ArrayList<LoggerConfigOption>();
-		options.add(new StringConfigType("column_headers", t("column headers", "필드 이름 목록"),
-				t("column headers", "파싱된 결과 필드 이름들"), true));
+		options.add(new StringConfigType("column_headers", t("Fields", "필드 이름 목록"),
+				t("Comma separated field names", "쉼표로 구분된 필드 이름 목록"), true));
 
-		options.add(new StringConfigType("column_length", t("column length", "필드 길이"),
-				t("column length", "필드 별 길이"), false));
+		options.add(new StringConfigType("column_length", t("Field lengths", "필드 길이 목록"),
+				t("Comma separated field lengths", "필드 별 길이"), false));
 
-		options.add(new StringConfigType("target_field", t("target field", "대상 필드"),
-				t("target field name", "파싱할 대상 필드 이름"), false));
+		options.add(new StringConfigType("target_field", t("Target field", "대상 필드"),
+				t("Target field name", "파싱할 대상 필드 이름"), false));
 
 		options.add(new StringConfigType("include_target", t("include target", "원본 값 포함 여부"),
-				t("return also target field (true or false)", "고정 길이로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false"), false));
+				t("Return also target field (true or false)", "고정 길이로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false"), false));
 
 		return options;
 	}

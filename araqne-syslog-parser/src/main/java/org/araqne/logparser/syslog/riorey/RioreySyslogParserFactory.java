@@ -51,16 +51,16 @@ public class RioreySyslogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "리오레이 시스 로그";
+			return "리오레이 시스로그";
 		if (locale != null && locale.equals(Locale.CHINESE))
-			return "Riorey SYS";
-		return "Riorey SYS";
+			return "Riorey Syslog";
+		return "Riorey Syslog";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "리오레이 디도스 방어 솔루션의 시스 로그를 파싱합니다.";
+			return "리오레이 디도스 방어 솔루션의 시스로그를 파싱합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "解析riorey DDoS防御产品的Syslog。";
 		return "Parse Riorey Riorey Syslogs.";
@@ -70,5 +70,4 @@ public class RioreySyslogParserFactory extends AbstractLogParserFactory {
 	public LogParser createParser(Map<String, String> configs) {
 		return new RioreySyslogParser();
 	}
-
 }

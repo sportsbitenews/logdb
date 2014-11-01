@@ -22,10 +22,7 @@ public class CsvParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale != null && locale.equals(Locale.KOREAN))
-			return "csv";
-
-		return "Csv";
+		return "CSV";
 	}
 
 	@Override
