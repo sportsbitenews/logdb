@@ -151,7 +151,7 @@ public class QueryHelper {
 		m.put("name", cmd.getName());
 		m.put("command", cmd.toString());
 		m.put("push_count", cmd.getOutputCount());
-		m.put("status", cmd.getStatus());
+		m.put("status", cmd.getStatus().toString());
 
 		if (l.size() > 0)
 			m.put("commands", l);
