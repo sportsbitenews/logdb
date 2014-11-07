@@ -35,4 +35,5 @@
 	<instance component="csv-log-parser-factory" />
 	<instance component="multi-rotation-file-logger-factory" />
 	<instance component="fixed-length-log-parser-factory" />
+	<instance component="config-watch-logger-factory" />
 </ipojo>
