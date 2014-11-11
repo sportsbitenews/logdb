@@ -71,7 +71,8 @@ public class TableParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("archive-not-opened", -1);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order", "window"), getFunctionRegistry());
+				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order", "window", "raw"),
+				getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		String tableTokens = commandString.substring(r.next);
 		List<TableSpec> tableNames = parseTableNames(context, tableTokens);
@@ -132,6 +133,12 @@ public class TableParser extends AbstractQueryCommandParser {
 		params.setParserName(parser);
 		params.setOrdered(ordered);
 		params.setWindow(window);
+		params.setRaw(CommandOptions.parseBoolean(options.get("raw")));
+
+		if (params.isRaw()) {
+			if (context.getSession() == null || !context.getSession().isAdmin())
+				throw new QueryParseException("no-raw-permission", -1);
+		}
 
 		Table table = new Table(params);
 		table.setAccountService(accountService);
