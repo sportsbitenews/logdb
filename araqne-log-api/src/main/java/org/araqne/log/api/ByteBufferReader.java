@@ -1,13 +1,8 @@
 package org.araqne.log.api;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
-import java.nio.channels.FileChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.file.StandardOpenOption;
 
 public class ByteBufferReader {
 	private ByteChannel channel;
