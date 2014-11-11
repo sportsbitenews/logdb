@@ -1,10 +1,12 @@
 package org.araqne.log.api;
+
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 
-public class ByteBufferReader {
+public class ByteBufferReader implements Closeable {
 	private ByteChannel channel;
 
 	public ByteBufferReader(ByteChannel channel) {
@@ -16,6 +18,7 @@ public class ByteBufferReader {
 	boolean skipLF;
 	int nextChar;
 	private ByteBuffer buf = ByteBuffer.allocate(32768);
+	private Object closeLock;
 
 	public ByteBuffer readLine() throws IOException {
 		return readLine(true);
@@ -54,7 +57,7 @@ public class ByteBufferReader {
 					break;
 				}
 			}
-			
+
 			if (eol) {
 				ByteBuffer ret = null;
 				if (b == null) {
@@ -66,7 +69,7 @@ public class ByteBufferReader {
 					b.write(buf.array(), oldPos, buf.position() - 1 - oldPos);
 					ret = ByteBuffer.wrap(b.toByteArray()).asReadOnlyBuffer();
 				}
-//				nextChar++;
+				// nextChar++;
 				if (c == '\r') {
 					skipLF = true;
 				}
@@ -89,7 +92,17 @@ public class ByteBufferReader {
 	}
 
 	private void ensureOpen() throws IOException {
-		if (channel == null)
-			throw new IOException("Stream closed");
+		synchronized (closeLock) {
+			if (channel == null)
+				throw new IOException("Stream closed");
+		}
+	}
+
+	@Override
+	public void close() throws IOException {
+		synchronized (closeLock) {
+			channel.close();
+			channel = null;
+		}
 	}
 }
