@@ -23,20 +23,7 @@ import java.util.Map;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.query.aggregator.AggregationField;
-import org.araqne.logdb.query.aggregator.AggregationFunction;
-import org.araqne.logdb.query.aggregator.Average;
-import org.araqne.logdb.query.aggregator.Count;
-import org.araqne.logdb.query.aggregator.First;
-import org.araqne.logdb.query.aggregator.Last;
-import org.araqne.logdb.query.aggregator.Max;
-import org.araqne.logdb.query.aggregator.Min;
-import org.araqne.logdb.query.aggregator.PerDay;
-import org.araqne.logdb.query.aggregator.PerHour;
-import org.araqne.logdb.query.aggregator.PerMinute;
-import org.araqne.logdb.query.aggregator.PerSecond;
-import org.araqne.logdb.query.aggregator.Range;
-import org.araqne.logdb.query.aggregator.Sum;
+import org.araqne.logdb.query.aggregator.*;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.Values;
 
@@ -60,6 +47,8 @@ public class AggregationParser {
 		t.put("per_second", PerSecond.class);
 		t.put("range", Range.class);
 		t.put("values", Values.class);
+		t.put("var", Variance.class);
+		t.put("stddev", StdDev.class);
 	}
 
 	public static AggregationField parse(QueryContext context, String s,
