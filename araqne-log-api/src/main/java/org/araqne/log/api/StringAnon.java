@@ -31,18 +31,18 @@ public class StringAnon {
 	private String aesKey;
 	private byte[] pad;
 
-	public StringAnon(String key) {
-		if (key.length() != 32) {
+	public StringAnon(String key32Byte) {
+		if (key32Byte.length() != 32) {
 			throw new IllegalArgumentException("key must me a 32 byte long string");
 		}
 
-		this.aesKey = key.substring(0, 16);
+		this.aesKey = key32Byte.substring(0, 16);
 
 		SecretKeySpec keyspec = new SecretKeySpec(aesKey.getBytes(), "AES");
 		try {
 			cipher = javax.crypto.Cipher.getInstance("AES/CBC/NoPadding");
 			cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, keyspec, new IvParameterSpec(new byte[16]));
-			this.pad = cipher.doFinal(key.substring(16).getBytes());
+			this.pad = cipher.doFinal(key32Byte.substring(16).getBytes());
 			byte[] f4 = Arrays.copyOf(this.pad, 4);
 			long f4bp = toInt(f4);
 
@@ -187,12 +187,13 @@ public class StringAnon {
 		Random,
 		ConsonantOnly,
 		PreserveNumber,
+		PreserveNumberAndSpace,
 		HexOnly,
 	}
 
-	public String anonymize(String src, String encoding, Options opt) {
+	public void anonymize(byte[] src, Options opt) {
 		try {
-			byte[] bytes = src.getBytes(encoding);
+			byte[] bytes = src;
 			ba[0] = ba[1] = ba[2] = ba[3] = 0;
 			int[] ccnt = new int[] { 0 };
 			for (int c = 0; c < bytes.length; c += 4) {
@@ -214,12 +215,19 @@ public class StringAnon {
 			}
 
 			reset();
-			return Charset.forName(encoding).decode(ByteBuffer.wrap(bytes)).toString();
-		} catch (UnsupportedEncodingException e) {
-			throw new IllegalStateException(e);
 		} catch (IllegalBlockSizeException e) {
 			throw new IllegalStateException(e);
 		} catch (BadPaddingException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+	
+	public String anonymize(String src, String encoding, Options opt) {
+		try {
+			byte[] bytes = src.getBytes(encoding);
+			anonymize(bytes, opt);
+			return Charset.forName(encoding).decode(ByteBuffer.wrap(bytes)).toString();
+		} catch (UnsupportedEncodingException e) {
 			throw new IllegalStateException(e);
 		}
 	}
@@ -250,6 +258,19 @@ public class StringAnon {
 				if (r == 3)
 					break;
 				bytes[c + 3] = selPreservingNumber(bytes[c + 3], result[3], ccnt);
+			} while (false);
+		} else if (opt == Options.PreserveNumberAndSpace) {
+			do {
+				bytes[c + 0] = selPreservingNumberAndSpace(bytes[c + 0], result[0], ccnt);
+				if (r == 1)
+					break;
+				bytes[c + 1] = selPreservingNumberAndSpace(bytes[c + 1], result[1], ccnt);
+				if (r == 2)
+					break;
+				bytes[c + 2] = selPreservingNumberAndSpace(bytes[c + 2], result[2], ccnt);
+				if (r == 3)
+					break;
+				bytes[c + 3] = selPreservingNumberAndSpace(bytes[c + 3], result[3], ccnt);
 			} while (false);
 		} else if (opt == Options.HexOnly) {
 			do {
@@ -306,6 +327,17 @@ public class StringAnon {
 		if (isDigit(s)) {
 			ccnt[0] = 0;
 			return dictn[(b & 0xff) % dictn.length];
+		} else {
+			return selReadableChar(b, ccnt);
+		}
+	}
+
+	private byte selPreservingNumberAndSpace(byte s, byte b, int[] ccnt) {
+		if (isDigit(s)) {
+			ccnt[0] = 0;
+			return dictn[(b & 0xff) % dictn.length];
+		} else if (s == ' ') {
+			return ' ';
 		} else {
 			return selReadableChar(b, ccnt);
 		}

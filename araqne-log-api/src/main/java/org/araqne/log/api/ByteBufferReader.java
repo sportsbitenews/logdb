@@ -18,7 +18,7 @@ public class ByteBufferReader implements Closeable {
 	boolean skipLF;
 	int nextChar;
 	private ByteBuffer buf = ByteBuffer.allocate(32768);
-	private Object closeLock;
+	private Object closeLock = new Object();
 
 	public ByteBuffer readLine() throws IOException {
 		return readLine(true);
