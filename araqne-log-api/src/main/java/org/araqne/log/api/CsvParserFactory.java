@@ -45,9 +45,9 @@ public class CsvParserFactory extends AbstractLogParserFactory {
 				"use tab to delimiter. (true or false)",
 				"구분자로 탭문자를 사용할지 결정합니다. true 혹은 false"), false));
 
-		options.add(new StringConfigType("use_double_quote", t("useDoubleQuote", "쌍따옴표 사용 여부"), t(
+		options.add(new StringConfigType("use_double_quote", t("useDoubleQuote", "큰 따옴표 사용 여부"), t(
 				"use double quote to escape. (true or false)",
-				"특수문자를 구분하기 위한 이스케이프 문자를 쌍따옴표로 사용합니다. true 혹은 false"), false));
+				"특수문자를 구분하기 위한 이스케이프 문자를 큰 따옴표로 사용합니다. true 혹은 false"), false));
 
 		options.add(new StringConfigType("column_headers", t("column headers", "필드 이름 목록"),
 				t("column headers", "파싱된 결과 필드 이름들"), false));
