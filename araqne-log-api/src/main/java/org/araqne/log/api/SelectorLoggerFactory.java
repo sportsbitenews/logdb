@@ -45,7 +45,7 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 			return "로그 선택자";
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "ログセレクター";
-		if(locale != null && locale.equals(Locale.CHINESE))
+		if (locale != null && locale.equals(Locale.CHINESE))
 			return "数据筛选器";
 		return "Log Selector";
 	}
@@ -61,7 +61,7 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 			return "다른 로거로부터 패턴 매칭되는 특정 로그들만 수집합니다.";
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "他のロガーからパターンマッチングされる特定ログだけ収集します。";
-		if(locale != null && locale.equals(Locale.CHINESE))
+		if (locale != null && locale.equals(Locale.CHINESE))
 			return "从其他数据采集器提取符合指定特征的数据。";
 		return "select logs from logger using text matching";
 	}
@@ -73,8 +73,9 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름", "元ロガー名", "源数据采集器"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的源数据采集器名称"), true);
+		LoggerConfigOption loggerName = new SourceLoggerConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름",
+				"元ロガー名", "源数据采集器"), t("Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名",
+				"包含名字空间的源数据采集器名称"), true);
 		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Text pattern", "텍스트 패턴", "テキストパターン", "文本模式"), t(
 				"Text pattern to match", "매칭할 대상 문자열", "マッチングする対象文字列", "要匹配的字符串"), true);
 		return Arrays.asList(loggerName, pattern);
@@ -91,7 +92,21 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	protected Logger createLogger(LoggerSpecification spec) {
-		return new SelectorLogger(spec, this, loggerRegistry);
+		String fullName = spec.getNamespace() + "\\" + spec.getName();
+		String sourceFullName = (String) spec.getConfig().get("source_logger");
+
+		Logger logger = new SelectorLogger(spec, this, loggerRegistry);
+		loggerRegistry.addDependency(fullName, sourceFullName);
+		return logger;
+	}
+
+	@Override
+	public void deleteLogger(String namespace, String name) {
+		Logger logger = loggerRegistry.getLogger(namespace, name);
+		super.deleteLogger(namespace, name);
+
+		String sourceFullname = (String) logger.getConfigs().get("source_logger");
+		loggerRegistry.removeDependency(logger.getFullName(), sourceFullname);
 	}
 
 }

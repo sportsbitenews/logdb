@@ -17,6 +17,7 @@ package org.araqne.log.api;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
 
 public interface Logger {
 	String getFullName();
@@ -154,4 +155,12 @@ public interface Logger {
 	void setTransformer(LogTransformer transformer);
 
 	LoggerFactory getFactory();
+
+	Set<String> getUnresolvedLoggers();
+
+	boolean hasUnresolvedLoggers();
+
+	void addUnresolvedLogger(String fullName);
+
+	void removeUnresolvedLogger(String fullName);
 }

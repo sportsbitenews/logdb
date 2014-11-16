@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -898,5 +899,30 @@ public class LogApiScript implements Script {
 
 		logger.resetStates();
 		context.println("reset completed");
+	}
+
+	@ScriptUsage(description = "print logger dependencies", arguments = { @org.araqne.api.ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format", autocompletion = LoggerAutoCompleter.class) })
+	public void dependencies(String[] args) {
+		String fullName = args[0];
+
+		Set<String> dependencies = loggerRegistry.getDependencies(fullName);
+		if (dependencies == null) {
+			context.println("no dependencies");
+			return;
+		}
+
+		Set<String> set = Collections.emptySet();
+		Logger logger = loggerRegistry.getLogger(fullName);
+		if (logger != null) {
+			set = logger.getUnresolvedLoggers();
+		}
+
+		context.println("Loger Dependencies");
+		context.println("--------------------");
+
+		for (String loggerName : dependencies) {
+			String status = set.contains(loggerName) ? "unresolved" : "resolved";
+			context.println(loggerName + " -> " + status);
+		}
 	}
 }
