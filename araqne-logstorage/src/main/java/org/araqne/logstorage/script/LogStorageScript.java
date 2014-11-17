@@ -16,10 +16,13 @@
 package org.araqne.logstorage.script;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -43,6 +46,7 @@ import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.WildcardMatcher;
 import org.araqne.logstorage.*;
+import org.araqne.logstorage.LogTraverseCallback.BlockSkipReason;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
 import org.araqne.storage.api.FilePath;
@@ -63,7 +67,8 @@ public class LogStorageScript implements Script {
 	private LogCryptoProfileRegistry cryptoRegistry;
 	private StorageManager storageManager;
 
-	public LogStorageScript(LogTableRegistry tableRegistry, LogStorage archive, LogStorageMonitor monitor, ConfigService conf,
+	public LogStorageScript(LogTableRegistry tableRegistry, LogStorage archive, LogStorageMonitor monitor,
+			ConfigService conf,
 			LogFileServiceRegistry lfsRegistry, LogCryptoProfileRegistry cryptoRegistry, StorageManager storageManager) {
 		this.tableRegistry = tableRegistry;
 		this.storage = archive;
@@ -346,7 +351,7 @@ public class LogStorageScript implements Script {
 	private String lockStatusStr(String tableName) {
 		LockStatus s = storage.lockStatus(new LockKey("script", tableName, null));
 		if (s.isLocked())
-			return String.format("locked(owner: %s, reentrant_cnt: %d, purpose(s): %s)", 
+			return String.format("locked(owner: %s, reentrant_cnt: %d, purpose(s): %s)",
 					s.getOwner(), s.getReentrantCount(), Arrays.toString(s.getPurposes().toArray()));
 		else
 			return "unlocked";
@@ -948,7 +953,7 @@ public class LogStorageScript implements Script {
 			storage.search(tableName, from, to, null, new SimpleLogTraverseCallback(counter));
 			long elapsed = new Date().getTime() - timestamp.getTime();
 
-			context.println("total count: " + counter.getCount() + ", elapsed: " + elapsed + "ms");
+			context.println("total count: " + counter.count + ", elapsed: " + elapsed + "ms");
 		} catch (ParseException e) {
 			context.println("invalid date format");
 		} catch (InterruptedException e) {
@@ -956,23 +961,69 @@ public class LogStorageScript implements Script {
 		}
 	}
 
+	public void _scan(String[] args) {
+		try {
+			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+			if (args.length != 4)
+				throw new IllegalArgumentException("illegal argument count (expected: 4)");
+			String tableName = args[0];
+			Date day = dateFormat.parse(args[1]);
+			long minId = Long.parseLong(args[2]);
+			long maxId = Long.parseLong(args[3]);
+
+			CounterSink counter = new CounterSink(Integer.MAX_VALUE);
+			Date timestamp = new Date();
+			storage.searchTablet(tableName, day, minId, maxId, null, new SimpleLogTraverseCallback(counter), false);
+			long elapsed = new Date().getTime() - timestamp.getTime();
+
+			context.println("total count: " + counter.count + ", elapsed: " + elapsed + "ms");
+			context.println(String.format("minId: %d, maxId: %d", counter.minId, counter.maxId));
+			if (counter.rsvCnt > 0)
+				context.println(String.format("reserved: %d", counter.rsvCnt));
+			if (counter.fixCnt > 0)
+				context.println(String.format("fixed: %d", counter.fixCnt));
+		} catch (ParseException e) {
+			context.println("invalid date format");
+		} catch (InterruptedException e) {
+			context.println("interrupted");
+		} catch (RuntimeException e) {
+			StringWriter sw = new StringWriter();
+			e.printStackTrace(new PrintWriter(sw));
+			context.println(sw.toString());
+		}
+	}
+
 	private class CounterSink extends LogTraverseCallback.Sink {
-		private int count;
+		int count;
+		long minId = Long.MAX_VALUE;
+		long maxId = Long.MIN_VALUE;
+		long rsvCnt = 0;
+		long fixCnt = 0;
 
 		public CounterSink(long limit) {
 			super(0, limit);
 			count = 0;
 		}
 
-		public int getCount() {
-			return count;
+		@Override
+		protected void onBlockSkipped(BlockSkipReason reason, long firstId, int logCount) {
+			if (reason.equals(BlockSkipReason.Reserved))
+				rsvCnt += logCount;
+			else if (reason.equals(BlockSkipReason.Fixed))
+				fixCnt += logCount;
 		}
 
 		@Override
 		protected void processLogs(List<Log> logs) {
 			count += logs.size();
+			for (Log l : logs) {
+				long id = l.getId();
+				if (minId > id)
+					minId = id;
+				if (maxId < id)
+					maxId = id;
+			}
 		}
-
 	}
 
 	public void flush(String[] args) {
@@ -1054,10 +1105,13 @@ public class LogStorageScript implements Script {
 
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("c-ip", "111.222.33.44");
-		map.put("cs(User-Agent)",
+		map.put(
+				"cs(User-Agent)",
 				"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.1 (KHTML, like Gecko) Chrome/13.0.782.112 Safari/535.1");
 		map.put("cs-method", "GET");
-		map.put("cs-uri-query", "q=cache:xgLxoOQBOoIJ:araqneapps.org/+araqneapps&cd=1&hl=en&ct=clnk&source=www.google.com");
+		map.put(
+				"cs-uri-query",
+				"q=cache:xgLxoOQBOoIJ:araqneapps.org/+araqneapps&cd=1&hl=en&ct=clnk&source=www.google.com");
 		map.put("cs-uri-stem", "/search");
 		map.put("cs-username", "-");
 		map.put("date", "2011-08-22");
@@ -1077,7 +1131,8 @@ public class LogStorageScript implements Script {
 		}
 	}
 
-	private void benchmark(String name, String tableName, int count, Map<String, Object> data) throws InterruptedException {
+	private void benchmark(String name, String tableName, int count, Map<String, Object> data)
+			throws InterruptedException {
 		try {
 			storage.createTable(new TableSchema(tableName, new StorageConfig("v3p")));
 		} catch (UnsupportedLogFileTypeException e) {
@@ -1190,7 +1245,7 @@ public class LogStorageScript implements Script {
 		storage.unlock(new LockKey("script", args[0], null), args[1]);
 		context.printf("unlocked: %s\n", lockStatusStr(args[0]));
 	}
-	
+
 	public void _unlockForce(String[] args) {
 		storage.unlock(new LockKey(args[0], args[1], null), args[2]);
 		context.printf("unlocked: %s\n", lockStatusStr(args[1]));
