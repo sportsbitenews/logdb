@@ -378,6 +378,14 @@ public class LogDbClient implements TrapListener, Closeable {
 		connect(host, 8888, loginName, password);
 	}
 
+	public void connect(String host, int port, String loginName, String password) throws IOException {
+		connect(host, port, loginName, password, 0, 10000);
+	}
+
+	public void connect(String host, int port, String loginName, String password, int connectTimeout) throws IOException {
+		connect(host, port, loginName, password, connectTimeout, 10000);
+	}
+
 	/**
 	 * 로그프레소 서버에 접속을 시도합니다. 잘못된 IP 주소, DNS 조회 실패, 방화벽 문제 혹은 암호 실패 등의 원인으로 접속 실패
 	 * 시 IOException 예외가 발생합니다.
@@ -391,8 +399,9 @@ public class LogDbClient implements TrapListener, Closeable {
 	 * @param password
 	 *            DB 암호
 	 */
-	public void connect(String host, int port, String loginName, String password, int timeout) throws IOException {
-		this.session = transport.newSession(host, port, timeout);
+	public void connect(String host, int port, String loginName, String password, int connectTimeout, int readTimeout)
+			throws IOException {
+		this.session = transport.newSession(host, port, connectTimeout, readTimeout);
 		try {
 			this.session.login(loginName, password, true);
 			this.session.addListener(this);
@@ -405,10 +414,6 @@ public class LogDbClient implements TrapListener, Closeable {
 			this.session = null;
 			throw new IllegalStateException(t);
 		}
-	}
-	
-	public void connect(String host, int port, String loginName, String password) throws IOException {
-		connect(host, port, loginName, password, 0);
 	}
 
 	/**
