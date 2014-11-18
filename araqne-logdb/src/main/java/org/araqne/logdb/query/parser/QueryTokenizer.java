@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Stack;
 import java.util.StringTokenizer;
@@ -38,7 +39,7 @@ public class QueryTokenizer {
 	 */
 	public static ParseResult parseOptions(QueryContext context, String s, int offset, List<String> validKeys,
 			FunctionRegistry functionRegistry) {
-		HashMap<String, Object> options = new HashMap<String, Object>();
+		HashMap<String, Object> options = new LinkedHashMap<String, Object>();
 		int next = offset;
 		while (true) {
 			next = skipSpaces(s, next);

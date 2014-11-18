@@ -77,7 +77,7 @@ public class ScriptParserTest {
 		assertEquals(2, script.getParameters().size());
 		assertEquals("value1", script.getParameters().get("key1"));
 		assertEquals("value2", script.getParameters().get("key2"));
-		assertEquals("script key2=value2 key1=value1 sample", script.toString());
+		assertEquals("script key1=value1 key2=value2 sample", script.toString());
 	}
 
 	private static class MockQueryScript extends BaseQueryScript {
