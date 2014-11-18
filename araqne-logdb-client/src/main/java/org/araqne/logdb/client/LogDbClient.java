@@ -2314,9 +2314,15 @@ public class LogDbClient implements TrapListener, Closeable {
 			query = queries.get(queryId);
 			rs = streamCallbacks.get(queryId);
 
-			List<Object> l = streamingDecoder.decode(chunks);
+			ArrayList<Row> rows = null;
+			List<Object> l = null;
 
-			ArrayList<Row> rows = new ArrayList<Row>(l.size());
+			if (chunks != null)
+				l = streamingDecoder.decode(chunks);
+			else
+				l = (List<Object>) msg.get("rows");
+
+			rows = new ArrayList<Row>(l.size());
 			for (Object o : l)
 				rows.add(new Row((Map<String, Object>) o));
 
