@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -34,6 +35,8 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
+import org.araqne.cron.AbstractTickTimer;
+import org.araqne.cron.TickService;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryResult;
@@ -65,7 +68,13 @@ import org.slf4j.LoggerFactory;
 @MsgbusPlugin
 public class LogQueryPlugin {
 	private final Logger logger = LoggerFactory.getLogger(LogQueryPlugin.class.getName());
+	private final Logger streamLogger = LoggerFactory.getLogger(LogQueryPlugin.class.getName() + "-stream");
+
 	private static final int GENERAL_QUERY_FAILURE_CODE = 1;
+	private static final int DEFAULT_STREAM_FLUSH_SIZE = 10000;
+
+	// milliseconds
+	private static final int DEFAULT_STREAM_FLUSH_INTERVAL = 1000;
 
 	@Requires
 	private QueryService service;
@@ -81,6 +90,9 @@ public class LogQueryPlugin {
 
 	@Requires
 	private SavedResultManager savedResultManager;
+
+	@Requires
+	private TickService tickService;
 
 	private StreamingResultEncoder streamingEncoder;
 	private StreamingResultDecoder streamingDecoder;
@@ -176,8 +188,14 @@ public class LogQueryPlugin {
 			streaming = req.getBoolean("streaming");
 
 		String compression = "deflate";
-		if (req.getString("compression") != null)
-			compression = "gzip";
+		if (req.getString("compression") != null) {
+			compression = req.getString("compression");
+			if (!compression.equals("gzip") && !compression.equals("none"))
+				throw new MsgbusException("logdb", "invalid-compression-type");
+		}
+
+		int streamFlushSize = DEFAULT_STREAM_FLUSH_SIZE;
+		int streamFlushInterval = DEFAULT_STREAM_FLUSH_INTERVAL;
 
 		Query query = service.getQuery(id);
 
@@ -192,7 +210,8 @@ public class LogQueryPlugin {
 			throw new MsgbusException("logdb", "already running");
 
 		// set query and timeline callback
-		QueryResultCallback qc = new MsgbusQueryResultCallback(orgDomain, streaming, compression);
+		QueryResultCallback qc = new MsgbusQueryResultCallback(query, orgDomain, streaming, compression, streamFlushSize,
+				streamFlushInterval);
 		QueryResult result = query.getResult();
 		result.setStreaming(streaming);
 		result.getResultCallbacks().add(qc);
@@ -536,18 +555,43 @@ public class LogQueryPlugin {
 		}
 	}
 
-	private class MsgbusQueryResultCallback implements QueryResultCallback {
-		private static final int STREAM_FLUSH_SIZE = 10000;
+	private class MsgbusQueryResultCallback extends AbstractTickTimer implements QueryResultCallback {
+		private Query query;
 		private String orgDomain;
 
+		private final String callbackName;
 		private boolean streaming;
+		private boolean noCompression;
 		private boolean useGzip;
+		private int streamFlushSize;
+		private int streamFlushInterval;
 		private ArrayList<Object> rows = new ArrayList<Object>(10000);
+		private AtomicBoolean closed = new AtomicBoolean();
 
-		private MsgbusQueryResultCallback(String orgDomain, boolean streaming, String compression) {
+		private MsgbusQueryResultCallback(Query query, String orgDomain, boolean streaming, String compression,
+				int streamFlushSize, int streamFlushInterval) {
+			this.query = query;
 			this.orgDomain = orgDomain;
 			this.streaming = streaming;
+			this.streamFlushSize = streamFlushSize;
+			this.streamFlushInterval = streamFlushInterval;
 			this.useGzip = compression != null && compression.equals("gzip");
+			this.noCompression = compression != null && compression.equals("none");
+			this.callbackName = "logdb-query-result-" + query.getId();
+
+			tickService.addTimer(this);
+		}
+
+		@Override
+		public int getInterval() {
+			return streamFlushInterval;
+		}
+
+		@Override
+		public void onTick() {
+			synchronized (rows) {
+				flushResultSet(query, false);
+			}
 		}
 
 		@Override
@@ -555,12 +599,10 @@ public class LogQueryPlugin {
 			if (!streaming)
 				return;
 
-			try {
+			synchronized (rows) {
 				rows.add(row.map());
-				if (rows.size() >= STREAM_FLUSH_SIZE)
+				if (rows.size() >= streamFlushSize)
 					flushResultSet(query, false);
-			} catch (IOException e) {
-				query.stop(QueryStopReason.NetworkFailure);
 			}
 		}
 
@@ -569,7 +611,7 @@ public class LogQueryPlugin {
 			if (!streaming)
 				return;
 
-			try {
+			synchronized (rows) {
 				if (rowBatch.selectedInUse) {
 					for (int i = 0; i < rowBatch.size; i++) {
 						int p = rowBatch.selected[i];
@@ -581,33 +623,47 @@ public class LogQueryPlugin {
 						rows.add(row.map());
 				}
 
-				if (rows.size() >= STREAM_FLUSH_SIZE)
+				if (rows.size() >= streamFlushSize)
 					flushResultSet(query, false);
-
-			} catch (IOException e) {
-				query.stop(QueryStopReason.NetworkFailure);
 			}
 		}
 
 		@Override
 		public void onClose(Query query, QueryStopReason reason) {
-			try {
+			if (!closed.compareAndSet(false, true))
+				return;
+
+			tickService.removeTimer(this);
+
+			synchronized (rows) {
 				flushResultSet(query, true);
-			} catch (IOException e) {
-				logger.error("araqne logdb: cannot flush streaming result set of query " + query.getId(), e);
 			}
 		}
 
-		private void flushResultSet(Query query, boolean last) throws IOException {
+		private void flushResultSet(Query query, boolean last) {
+			if (!last && rows.isEmpty())
+				return;
+
+			streamLogger.debug("araqne logdb: flushing stream of query [{}], rows [{}]", query.getId(), rows.size());
+
 			try {
-				List<Map<String, Object>> bins = streamingEncoder.encode(rows, useGzip);
+				if (noCompression) {
+					Map<String, Object> m = new HashMap<String, Object>();
+					m.put("rows", rows);
+					m.put("last", last);
 
-				Map<String, Object> m = new HashMap<String, Object>();
-				m.put("bins", bins);
-				m.put("last", last);
+					pushApi.push(orgDomain, callbackName, m);
+					rows.clear();
+				} else {
+					List<Map<String, Object>> bins = streamingEncoder.encode(rows, useGzip);
 
-				pushApi.push(orgDomain, "logdb-query-result-" + query.getId(), m);
-				rows.clear();
+					Map<String, Object> m = new HashMap<String, Object>();
+					m.put("bins", bins);
+					m.put("last", last);
+
+					pushApi.push(orgDomain, callbackName, m);
+					rows.clear();
+				}
 			} catch (Throwable t) {
 				logger.error("araqne logdb: cannot encode streaming result", t);
 			}
