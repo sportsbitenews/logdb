@@ -15,12 +15,13 @@
  */
 package org.araqne.logdb.query.command;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryScript;
 import org.araqne.logdb.QueryScriptInput;
 import org.araqne.logdb.QueryScriptOutput;
-import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.osgi.framework.BundleContext;
@@ -36,7 +37,7 @@ public class Script extends QueryCommand {
 	public Script(BundleContext bc, String scriptName, Map<String, String> params, QueryScript script) {
 		this.bc = bc;
 		this.scriptName = scriptName;
-		this.params = params;
+		this.params = new LinkedHashMap<String, String>(params);
 		this.script = script;
 		this.input = new DefaultScriptInput();
 		this.output = new DefaultScriptOutput();
