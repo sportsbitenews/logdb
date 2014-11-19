@@ -34,6 +34,8 @@ public class Strings {
 					sb.append('\\');
 				else if (c == '"')
 					sb.append('"');
+				else if (c == 'r')
+					sb.append('\r');
 				else if (c == 'n')
 					sb.append('\n');
 				else if (c == 't')
