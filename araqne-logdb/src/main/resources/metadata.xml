@@ -19,6 +19,7 @@
 	<instance component="logdb-query-metadata" />
 	<instance component="logdb-thread-metadata" />
 	<instance component="logdb-log-metadata" />
+	<instance component="logdb-lookup-metadata" />
 	<instance component="csv-import-script-factory" />
 	<instance component="query-log-parser-factory" />
 	<instance component="saved-result-manager" />
