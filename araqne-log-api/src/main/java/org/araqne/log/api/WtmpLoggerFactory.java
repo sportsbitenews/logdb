@@ -52,7 +52,7 @@ public class WtmpLoggerFactory extends AbstractLoggerFactory {
 			return "ターミナルのログインとログアウト記録を収集します。";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "采集终端登录、退出记录。";
-		return "collect wtmp log file";
+		return "Collect wtmp log file";
 	}
 
 	@Override
