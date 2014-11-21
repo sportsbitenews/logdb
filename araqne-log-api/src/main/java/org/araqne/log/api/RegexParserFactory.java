@@ -66,7 +66,7 @@ public class RegexParserFactory implements LogParserFactory {
 			return "正規表現を使ってログを解析します。";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "利用正则表达式解析日志。";
-		return "parse log using regular expression";
+		return "Parse logs using regular expression.";
 	}
 
 	@Override
@@ -75,15 +75,11 @@ public class RegexParserFactory implements LogParserFactory {
 		options.add(new StringConfigType("regex", t("regex", "정규표현식", "正規表現", "正则表达式"), t("regular expression with placeholder",
 				"필드 이름이 포함된 정규표현식", "フィールド名を含めている正規表現", "包含字段名称的正则表达式"), true));
 		options.add(new StringConfigType("field", t("field", "대상 필드", "対象フィールド", "目标字段"), t(
-				"parse target field. 'line' field by default", "정규표현식을 적용할 필드, 미설정 시 기본값은 line", 
-				"正規表現を適用するフィールド。未設定の場合はline",
-				"要应用正则表达式的字段, 默认值为line。"),
-				false));
-		options.add(new StringConfigType("include_original_field", t("include original field", "원본 필드 포함", "元フィールド込み", "包含原始字段"), t(
-				"return also original field (true or false)", 
-				"정규표현식으로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false",
-				"正規表現の結果と元のフィールドも含むか設定します。trueかfalse",
-				"设置除通过正则表达式解析的结果之外，是否包含原始字段值。True或者false。"), false));
+				"parse target field. 'line' field by default", "정규표현식을 적용할 필드, 미설정 시 기본값은 line", "正規表現を適用するフィールド。未設定の場合はline",
+				"要应用正则表达式的字段, 默认值为line。"), false));
+		options.add(new StringConfigType("include_original_field", t("include original field", "원본 필드 포함", "元フィールド込み", "包含原始字段"),
+				t("return also original field (true or false)", "정규표현식으로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false",
+						"正規表現の結果と元のフィールドも含むか設定します。trueかfalse", "设置除通过正则表达式解析的结果之外，是否包含原始字段值。True或者false。"), false));
 		return options;
 	}
 

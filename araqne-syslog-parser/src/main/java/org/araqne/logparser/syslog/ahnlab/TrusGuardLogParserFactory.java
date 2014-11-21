@@ -55,7 +55,7 @@ public class TrusGuardLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "안랩 트러스가드 장비의 시스로그를 파싱합니다.";
-		return "Parse Ahnlab TrusGuard syslog";
+		return "Parse Ahnlab TrusGuard syslogs.";
 	}
 
 	@Override

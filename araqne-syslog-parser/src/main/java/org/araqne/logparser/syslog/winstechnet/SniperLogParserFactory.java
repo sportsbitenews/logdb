@@ -55,7 +55,7 @@ public class SniperLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "윈스테크넷 스나이퍼 IPS 로그를 파싱합니다.";
-		return "Winstechnet Sniper";
+		return "Parse Wins Sniper logs";
 	}
 
 	@Override

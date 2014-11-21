@@ -64,7 +64,7 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 			return "他のロガーから正規表現がマッチングされるログだけ収集します。";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "从源数据采集器采集的数据中提取符合正则表达式特征的数据。";
-		return "select logs from logger using regular expression pattern matching";
+		return "Select logs from logger using regular expression pattern matching";
 	}
 
 	@Override

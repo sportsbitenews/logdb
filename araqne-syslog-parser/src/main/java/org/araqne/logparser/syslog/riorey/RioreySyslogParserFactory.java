@@ -63,7 +63,7 @@ public class RioreySyslogParserFactory extends AbstractLogParserFactory {
 			return "리오레이 디도스 방어 솔루션의 시스로그를 파싱합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "解析riorey DDoS防御产品的Syslog。";
-		return "Parse Riorey Riorey Syslogs.";
+		return "Parse Riorey Riorey syslogs.";
 	}
 
 	@Override

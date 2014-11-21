@@ -74,7 +74,7 @@ public class QueryLogParserFactory implements LogParserFactory {
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "基于查询进行解析。";
 
-		return "Parse log using query";
+		return "Parse logs using query.";
 	}
 
 	@Override

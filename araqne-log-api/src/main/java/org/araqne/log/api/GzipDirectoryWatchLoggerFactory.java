@@ -71,9 +71,9 @@ public class GzipDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				"날짜 및 시각 문자열을 파싱하는데 사용할 포맷. 예) yyyy-MM-dd HH:mm:ss", "日付と時刻の文字列を解析するためのフォーマット", "用于解析日期及时间字符串的格式。 示例) yyyy-MM-dd HH:mm:ss"), false);
 
 		LoggerConfigOption dateLocale = new StringConfigType("date_locale", t("Date locale", "날짜 로케일", "日付ロケール", "日期区域"), t(
-				"date locale, e.g. en", "날짜 로케일, 예를 들면 ko", "日付ロケール、例)jp","日期区域， 例如 zh"), false);
+				"Date locale, e.g. en", "날짜 로케일, 예를 들면 ko", "日付ロケール、例)jp","日期区域， 例如 zh"), false);
 
-		LoggerConfigOption timezone = new StringConfigType("timezone", t("Time zone", "시간대","時間帯","时区"), t("time zone, e.g. America/New_york ",
+		LoggerConfigOption timezone = new StringConfigType("timezone", t("Time zone", "시간대","時間帯","时区"), t("Time zone, e.g. America/New_york ",
 					"시간대, 예를 들면 KST 또는 Asia/Seoul","時間帯。例えばJSTまたはAsia/Tokyo","时区， 例如Asia/Beijing"), false);
 																												
 		LoggerConfigOption newlogRegex = new StringConfigType("newlog_designator", t("Regex for first line", "로그 시작 정규식",

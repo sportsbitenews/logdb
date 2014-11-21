@@ -60,7 +60,7 @@ public class Mf2LogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "시큐아이 MF2 방화벽 로그를 파싱합니다.";
-		return "SECUI MF2";
+		return "Parse SECUI MF2 logs.";
 	}
 
 	@Override

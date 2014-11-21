@@ -55,7 +55,7 @@ public class NeoboxLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "XN시스템즈 네오박스 로그를 파싱합니다.";
-		return "XNsystems Neobox Log Parser";
+		return "Parse XNsystems Neobox logs.";
 	}
 
 	@Override

@@ -46,7 +46,7 @@ public class FieldMappingParserFactory extends AbstractLogParserFactory {
 			return "フィルド名変更";
 		if(locale != null && locale.equals(Locale.CHINESE))
 			return "修改字段名称";
-		return "field mapper";
+		return "Field mapper";
 	}
 
 	@Override
@@ -62,13 +62,13 @@ public class FieldMappingParserFactory extends AbstractLogParserFactory {
 			return "フィルドの名前を変更します。";
 		if(locale != null && locale.equals(Locale.CHINESE))
 			return "修改字段名称。";
-		return "Replace original field name by specified name";
+		return "Replace original field name by specified name.";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption mappings = new StringConfigType("mappings", t("field mappings", "필드 이름 변환 목록", "フィルド名変更リスト", "字段名称转换列表"), t(
-				"comma separated from=to field mappings", "쉼표로 구분되는 원본필드=변경필드 이름 목록", "コンマで区分される元＝変更フィルド名リスト", "格式：原始字段名称1=变更字段名称1,原始字段名称2=变更字段名称2,…"), true);
+		LoggerConfigOption mappings = new StringConfigType("mappings", t("Field mappings", "필드 이름 변환 목록", "フィルド名変更リスト", "字段名称转换列表"), t(
+				"Comma separated from=to field mappings", "쉼표로 구분되는 원본필드=변경필드 이름 목록", "コンマで区分される元＝変更フィルド名リスト", "格式：原始字段名称1=变更字段名称1,原始字段名称2=变更字段名称2,…"), true);
 		return Arrays.asList(mappings);
 	}
 

@@ -58,7 +58,7 @@ public class SnortLogParserFactory extends AbstractLogParserFactory {
 			return "스노트 로그에서 출발지, 목적지, 프로토콜, 룰, 메시지를 추출합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "提取Snort日志中的源地址、目的地址、协议、规则及消息。";
-		return "Create snort log parser";
+		return "Parse Snort logs.";
 	}
 
 	@Override

@@ -84,7 +84,7 @@ public class MultiRotationFileLoggerFactory extends AbstractLoggerFactory {
 				"문자 집합. 기본값 UTF-8", "文字セット。基本値はutf-8", "字符集，默认值为UTF-8"), false, t("utf-8"));
 
 		LoggerConfigOption timezone = new MutableStringConfigType("timezone", t("Time zone", "시간대", "時間帯", "时区"), t(
-				"time zone, e.g. America/New_york ", "시간대, 예를 들면 KST 또는 Asia/Seoul", "時間帯。例えばJSTまたはAsia/Tokyo",
+				"Time zone, e.g. America/New_york ", "시간대, 예를 들면 KST 또는 Asia/Seoul", "時間帯。例えばJSTまたはAsia/Tokyo",
 				"时区， 例如 Asia/Beijing"), false);
 
 		LoggerConfigOption logBeginRegex = new MutableStringConfigType("begin_regex", t("Log begin regex", "로그 시작 구분 정규식", "ログ始め正規表現",

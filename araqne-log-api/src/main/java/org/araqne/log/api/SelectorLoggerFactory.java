@@ -63,7 +63,7 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 			return "他のロガーからパターンマッチングされる特定ログだけ収集します。";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "从其他数据采集器提取符合指定特征的数据。";
-		return "select logs from logger using text matching";
+		return "Select logs from logger using text matching";
 	}
 
 	@Override
