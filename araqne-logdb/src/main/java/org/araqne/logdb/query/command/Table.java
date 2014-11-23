@@ -480,7 +480,11 @@ public class Table extends DriverQueryCommand {
 				}
 			} else {
 				for (Log log : logBatch) {
-					Row row = new Row(new HashMap<String, Object>(log.getData()));
+					HashMap<String, Object> m = new HashMap<String, Object>(log.getData());
+					m.put("_table", tableName);
+					m.put("_id", log.getId());
+					m.put("_time", log.getDate());
+					Row row = new Row(m);
 					rows.add(row);
 				}
 			}
