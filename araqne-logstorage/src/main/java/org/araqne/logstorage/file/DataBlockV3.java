@@ -168,11 +168,13 @@ public class DataBlockV3 {
 	}
 
 	public void uncompress() throws IOException {
-		if (params.cipher != null) {
-			try {
-				compressedBuffer = Crypto.decrypt(compressedBuffer, params.cipher, params.cipherKey, iv);
-			} catch (Throwable t) {
-				throw new IOException("cannot decrypt block", t);
+		if (dataBuffer == null && compressedBuffer != null) {
+			if (params.cipher != null) {
+				try {
+					compressedBuffer = Crypto.decrypt(compressedBuffer, params.cipher, params.cipherKey, iv);
+				} catch (Throwable t) {
+					throw new IOException("cannot decrypt block", t);
+				}
 			}
 		}
 
