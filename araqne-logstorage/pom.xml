@@ -110,7 +110,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.4.10</version>
+			<version>3.4.11</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jcraft</groupId>
