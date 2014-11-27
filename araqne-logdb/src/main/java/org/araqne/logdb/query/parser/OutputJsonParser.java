@@ -22,12 +22,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.araqne.cron.TickService;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.command.OutputJson;
 
 /**
@@ -36,6 +38,11 @@ import org.araqne.logdb.query.command.OutputJson;
  * 
  */
 public class OutputJsonParser extends AbstractQueryCommandParser {
+	private TickService tickService;
+
+	public OutputJsonParser(TickService tickService) {
+		this.tickService = tickService;
+	}
 
 	@Override
 	public String getCommandName() {
@@ -49,6 +56,8 @@ public class OutputJsonParser extends AbstractQueryCommandParser {
 		m.put("30301", new QueryErrorMessage("use-partition-option", "파티션(partition) 옵션이 필요합니다."));
 		m.put("30302", new QueryErrorMessage("missing-field", "필드명을 입력하십시오.")); 
 		m.put("30303", new QueryErrorMessage("io-error", "IO 에러가 발생했습니다: [msg].")); 
+		m.put("30304", new QueryErrorMessage("choose-overwrite-or-append", "overwrite 와 append 옵션은 동시에 사용할 수 없습니다.")); 
+		
 		return m;
 	}
 
@@ -60,14 +69,24 @@ public class OutputJsonParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("30300", commandString.trim().length() -1, commandString.trim().length() -1 , null);
 			
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("overwrite", "tmp", "partition", "encoding"), getFunctionRegistry());
+				Arrays.asList("overwrite", "tmp", "partition", "encoding", "append", "flush"), getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
 		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
+		boolean append = CommandOptions.parseBoolean(options.get("append"));
+
+		if (append && overwrite)
+		//	throw new QueryParseException("choose-overwrite-or-append", -1);
+			 throw new QueryParseException("30304", -1, -1, null);
 
 		String encoding = options.get("encoding");
 		if (encoding == null)
 			encoding = "utf-8";
+
+		TimeSpan flushInterval = null;
+		if (options.containsKey("flush"))
+			flushInterval = TimeSpan.parse(options.get("flush"));
+
 		String tmpPath = options.get("tmp");
 
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next));
@@ -98,6 +117,7 @@ public class OutputJsonParser extends AbstractQueryCommandParser {
 				fields.add(tok.nextToken().trim());
 		}
 
+
 //		File jsonFile = new File(filePath);
 //		if (jsonFile.exists() && !overwrite)
 //			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
@@ -105,6 +125,7 @@ public class OutputJsonParser extends AbstractQueryCommandParser {
 //		if (!usePartition && jsonFile.getParentFile() != null)
 //			jsonFile.getParentFile().mkdirs();
 //	  	return new OutputJson(jsonFile, filePath, overwrite, fields, encoding, usePartition, tmpPath, holders);
-		return new OutputJson(filePath, overwrite, fields, encoding, usePartition, tmpPath, holders);
+		return new OutputJson(filePath, overwrite, fields, encoding, usePartition, tmpPath, holders, append,
+				flushInterval, tickService);
 	}
 }

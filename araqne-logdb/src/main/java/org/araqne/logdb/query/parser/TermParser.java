@@ -66,13 +66,15 @@ public class TermParser {
 			params.put("value", s);
 			throw new QueryParseException(t.getType(), -1, -1, params);
 		}
+		
 		if (operator == null){
 			Map<String, String> params = new HashMap<String, String> ();
 			params.put("op", op);
 			params.put("value", s);
-			//throw new QueryParseException("21901", -1, -1, null);
+			throw new QueryParseException("21901", -1, -1, null);
 			//throw new QueryParseException("invalid-operator", checkpoint);
 		}
+		
 		term.setOperator(operator);
 
 		if (operator == Operator.IsNull || operator == Operator.NotNull)

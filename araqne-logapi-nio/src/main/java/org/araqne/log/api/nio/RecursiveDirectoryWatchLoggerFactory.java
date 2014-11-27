@@ -76,7 +76,7 @@ public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory 
 			return "指定されたディレクトリでファイル名パータンと一致するすべてのテキストログファイルを収集します。";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "从指定目录(包括子目录)中采集所有文本文件。";
-		return "collect all text log files in specified directory";
+		return "Collect all text log files in specified directory";
 	}
 
 	@Override

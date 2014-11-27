@@ -46,6 +46,11 @@ public class LookupHandlerRegistryImpl implements LookupHandlerRegistry {
 	}
 
 	@Override
+	public void setLookupHandler(String name, LookupHandler handler) {
+		lookupHandlers.put(name, handler);
+	}
+
+	@Override
 	public LookupHandler getLookupHandler(String name) {
 		return lookupHandlers.get(name);
 	}

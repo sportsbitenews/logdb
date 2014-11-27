@@ -15,8 +15,8 @@
  */
 package org.araqne.logdb.query.expr;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +43,16 @@ public class LeftTest {
 		
 		left = new Left(null, expr(1234, 2));
 		assertEquals("12", left.eval(null));
+	}
+	
+	@Test
+	public void testManual() {
+		assertEquals("0123", FunctionUtil.parseExpr("left(\"0123456789\", 4)").eval(null));
+		assertEquals("0123456789", FunctionUtil.parseExpr("left(\"0123456789\", 11)").eval(null));
+		assertEquals("", FunctionUtil.parseExpr("left(\"0123456789\", 0)").eval(null));
+		assertEquals("12", FunctionUtil.parseExpr("left(1234, 2)").eval(null));
+		assertEquals("1.2", FunctionUtil.parseExpr("left(1.23, 3)").eval(null));
+		assertNull(FunctionUtil.parseExpr("left(int(\"invalid\"), 3)").eval(null));
 	}
 	
 	@Test

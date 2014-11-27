@@ -15,8 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,6 +51,13 @@ public class UrlDecodeTest {
 		}
 	}
 	
+	@Test
+	public void testManual() {
+		assertNull(FunctionUtil.parseExpr("urldecode(int(\"invalid\"))").eval(null));
+		assertEquals("로그분석", FunctionUtil.parseExpr("urldecode(\"%B7%CE%B1%D7%BA%D0%BC%AE\", \"EUC-KR\")").eval(null));
+		assertEquals("로그분석", FunctionUtil.parseExpr("urldecode(\"%EB%A1%9C%EA%B7%B8%EB%B6%84%EC%84%9D\")").eval(null));
+	}
+	
 	private List<Expression> expr(Object...object ){
 		List<Expression> expr = new ArrayList<Expression>();
 
@@ -67,5 +73,6 @@ public class UrlDecodeTest {
 		}
 
 		return expr;
+
 	}
 }

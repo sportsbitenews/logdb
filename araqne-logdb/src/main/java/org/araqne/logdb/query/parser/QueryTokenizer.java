@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -39,7 +40,7 @@ public class QueryTokenizer {
 	 */
 	public static ParseResult parseOptions(QueryContext context, String s, int offset, List<String> validKeys,
 			FunctionRegistry functionRegistry) {
-		HashMap<String, Object> options = new HashMap<String, Object>();
+		HashMap<String, Object> options = new LinkedHashMap<String, Object>();
 		int next = offset;
 		while (true) {
 			next = skipSpaces(s, next);
@@ -67,12 +68,19 @@ public class QueryTokenizer {
 				int closingQuote = -1;
 				for (int i = p + 2; i < s.length(); i++) {
 					char c = s.charAt(i);
-					if (c == '\\')
+					if (c == '\\') {
 						escape = true;
+						continue;
+					}
 
-					if (c == '"' && !escape) {
-						closingQuote = i;
-						break;
+					if (c == '"') {
+						if (!escape) {
+							closingQuote = i;
+							break;
+						}
+					}
+					if (escape) {
+						escape = false;
 					}
 				}
 
@@ -326,8 +334,7 @@ public class QueryTokenizer {
 	}
 	
 	/**
-	 * find outermost keyword from query (ignore keyword in string or function
-	 * call)
+	 * find outermost keyword from query (ignore keyword in string or function call)
 	 */
 	public static int findKeyword(String haystack, String needle, int offset) {
 		return findKeyword(haystack, needle, offset, false);

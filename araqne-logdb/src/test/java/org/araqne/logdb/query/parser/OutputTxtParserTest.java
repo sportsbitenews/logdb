@@ -2,10 +2,12 @@ package org.araqne.logdb.query.parser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.io.IOException;
 
+import org.araqne.cron.TickService;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
@@ -35,7 +37,7 @@ public class OutputTxtParserTest {
 		new File("logexport.txt").delete();
 		OutputTxt txt = null;
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 
 			txt = (OutputTxt) p.parse(null, "outputtxt logexport.txt sip, dip ");
@@ -60,7 +62,7 @@ public class OutputTxtParserTest {
 		new File("logexport.txt").delete();
 		OutputTxt txt = null;
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 
 			txt = (OutputTxt) p.parse(null, "outputtxt delimiter=\"|\" logexport.txt sip, dip ");
@@ -81,7 +83,7 @@ public class OutputTxtParserTest {
 		OutputTxt txt = null;
 		String query =  "outputtxt logexport.txt delimiter=\"|\" sip, dip ";
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 
 			txt = (OutputTxt) p.parse(null, query);
@@ -105,7 +107,7 @@ public class OutputTxtParserTest {
 		String query = "outputtxt logexport.txt sip,";
 
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 
 			p.parse(null, query);
@@ -126,7 +128,7 @@ public class OutputTxtParserTest {
 		String query = "outputtxt {logtime:/yyyy/MM/dd/}{now:HHmm.txt} src_ip, dst_ip";
 
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 
 			p.parse(null, query);
@@ -147,7 +149,7 @@ public class OutputTxtParserTest {
 		String query = "outputtxt logexport.txt";
 
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 
 			p.parse(null, query);
@@ -169,10 +171,11 @@ public class OutputTxtParserTest {
 		String query = "outputtxt overwrite=false tmp=overwrite logexport.txt sip, dip ";
 			
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 
 			p.parse(null, query);
+			//p.parse(null, "outputtxt");
 			fail();
 		} catch (QueryParseException e) {
 			if(e.isDebugMode()){
@@ -192,7 +195,7 @@ public class OutputTxtParserTest {
 		String query = "outputtxt";
 
 		try {
-			OutputTxtParser p = new OutputTxtParser();
+			OutputTxtParser p = new OutputTxtParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 
 			p.parse(null, query);

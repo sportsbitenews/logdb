@@ -62,13 +62,13 @@ public class TagParserFactory extends AbstractLogParserFactory {
 			return "指定したタグを追加します。";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "添加指定的标记。";
-		return "add specified tags";
+		return "Add specified tags.";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption tags = new StringConfigType("tags", t("tag list", "태그 목록", "タグリスト", "标记列表"), t(
-				"comma separated key=value tags", "쉼표로 구분된 키=값 형태의 태그 목록", 
+		LoggerConfigOption tags = new StringConfigType("tags", t("Tag list", "태그 목록", "タグリスト", "标记列表"), t(
+				"Comma separated key=value tags", "쉼표로 구분된 키=값 형태의 태그 목록", 
 				"コンマで区分されているキー＝バリュー形のタグリスト", "以逗号分隔的键=值格式的标记列表"), true);
 		return Arrays.asList(tags);
 	}

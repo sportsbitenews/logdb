@@ -23,6 +23,8 @@ public interface LookupHandlerRegistry {
 	LookupHandler getLookupHandler(String name);
 
 	void addLookupHandler(String name, LookupHandler handler);
+	
+	void setLookupHandler(String name, LookupHandler handler);
 
 	void removeLookupHandler(String name);
 }

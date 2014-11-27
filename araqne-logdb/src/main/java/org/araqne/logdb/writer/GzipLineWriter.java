@@ -40,18 +40,18 @@ public class GzipLineWriter implements LineWriter {
 	private String delimiter;
 	private SimpleDateFormat sdf;
 
-	public GzipLineWriter(String path, List<String> fields, String delimiter, String encoding) throws IOException {
+	public GzipLineWriter(String path, List<String> fields, String delimiter, String encoding, boolean append) throws IOException {
 		this.fields = fields;
 		this.lineSeparator = System.getProperty("line.separator");
 		this.delimiter = delimiter;
-		this.fos = new FileOutputStream(new File(path));
+		this.fos = new FileOutputStream(new File(path), append);
 		this.gos = new GZIPOutputStream(fos, 8192);
 		this.osw = new OutputStreamWriter(gos, Charset.forName(encoding));
 		this.sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 	}
 
 	@Override
-	public void write(Row m) throws IOException {
+	public synchronized void write(Row m) throws IOException {
 		int n = 0;
 		int last = fields.size() - 1;
 		for (String field : fields) {
@@ -67,7 +67,12 @@ public class GzipLineWriter implements LineWriter {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public synchronized void flush() throws IOException {
+		osw.flush();
+	}
+
+	@Override
+	public synchronized void close() throws IOException {
 		IoHelper.close(osw);
 		IoHelper.close(gos);
 		IoHelper.close(fos);

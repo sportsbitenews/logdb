@@ -56,7 +56,7 @@ public class NetScreenLogParserFactory extends AbstractLogParserFactory {
 			return "넷스크린 방화벽 및 IPS 로그를 파싱합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "解析NetScreen防火墙及IPS日志。";
-		return "Create netscreen log parser";
+		return "Parse NetScreen logs.";
 	}
 
 	@Override

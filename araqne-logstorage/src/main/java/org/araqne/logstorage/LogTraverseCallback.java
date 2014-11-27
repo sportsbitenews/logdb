@@ -19,6 +19,10 @@ package org.araqne.logstorage;
 import java.util.List;
 
 public abstract class LogTraverseCallback {
+	public enum BlockSkipReason {
+		Reserved, Fixed
+	}
+	
 	private final Sink sink;
 	private Throwable failure;
 
@@ -119,6 +123,13 @@ public abstract class LogTraverseCallback {
 		}
 
 		protected abstract void processLogs(List<Log> logs);
+		
+		protected void onBlockSkipped(BlockSkipReason reason, long firstId, int logCount) {
+		}
+	}
+	
+	public void onBlockSkipped(BlockSkipReason reason, long firstId, int logCount) {
+		sink.onBlockSkipped(reason, firstId, logCount);
 	}
 
 }

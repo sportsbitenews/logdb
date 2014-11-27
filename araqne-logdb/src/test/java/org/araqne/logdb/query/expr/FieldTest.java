@@ -15,25 +15,32 @@
  */
 package org.araqne.logdb.query.expr;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
  *
  */
 public class FieldTest {
+	@Test
+	public void test() {
+		Map<String, Object> map = new HashMap<String, Object>(1);
+		map.put("key", "value");
+		assertEquals("value", FunctionUtil.parseExpr("field(\"key\")").eval(new Row(map)));
+	}
 	
-
 	@Test
 	public void testError90670(){
-		
 		try {
 			new Field(null, expr());
 			fail();
@@ -58,8 +65,6 @@ public class FieldTest {
 			else if(o instanceof Boolean)
 				expr.add(new BooleanConstant((Boolean)o));
 		}
-
 		return expr;
 	}
-
 }

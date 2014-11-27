@@ -16,6 +16,7 @@
 package org.araqne.logdb.writer;
 
 import java.io.Closeable;
+import java.io.Flushable;
 import java.io.IOException;
 
 import org.araqne.logdb.Row;
@@ -23,6 +24,6 @@ import org.araqne.logdb.Row;
 /**
  * @author darkluster
  */
-public interface LineWriter extends Closeable {
+public interface LineWriter extends Closeable, Flushable {
 	void write(Row m) throws IOException;
 }

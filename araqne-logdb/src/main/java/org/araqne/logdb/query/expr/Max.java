@@ -20,13 +20,14 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
-import org.araqne.logdb.Strings;
 
-public class Max implements Expression {
+public class Max extends FunctionExpression {
 	private ObjectComparator cmp = new ObjectComparator();
 	private List<Expression> exprs;
 
 	public Max(QueryContext ctx, List<Expression> exprs) {
+		super("max", exprs, 1);
+		
 		this.exprs = exprs;
 	}
 
@@ -45,10 +46,5 @@ public class Max implements Expression {
 		}
 
 		return max;
-	}
-
-	@Override
-	public String toString() {
-		return "max(" + Strings.join(exprs, ", ") + ")";
 	}
 }

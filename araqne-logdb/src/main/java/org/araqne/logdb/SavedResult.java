@@ -17,6 +17,7 @@ package org.araqne.logdb;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import org.araqne.api.FieldOption;
@@ -53,6 +54,11 @@ public class SavedResult {
 
 	@FieldOption(nullable = false)
 	private Date created = new Date();
+	
+	/**
+	 * @since 2.4.40
+	 */
+	private List<String> fieldNames;
 
 	public String getGuid() {
 		return guid;
@@ -132,6 +138,14 @@ public class SavedResult {
 
 	public void setCreated(Date created) {
 		this.created = created;
+	}
+
+	public List<String> getFieldNames() {
+		return fieldNames;
+	}
+
+	public void setFieldNames(List<String> fieldNames) {
+		this.fieldNames = fieldNames;
 	}
 
 	@Override

@@ -228,18 +228,58 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		Map<String, String> config = spec.getConfig();
 		Logger logger = createLogger(spec);
 
-		// try to set log transformer
+		boolean loggerPending = false;
+		LoggerRegistry loggerRegistry = getLoggerRegistry();
+		for (String waitingFullName : loggerRegistry.getDependencies(logger.getFullName())) {
+			Logger waiting = loggerRegistry.getLogger(waitingFullName);
+			if (waiting == null) {
+				slog.debug("araqne log api: logger [{}] is pending for logger [{}] is loaded", logger.getFullName(),
+						waitingFullName);
+				loggerPending = true;
+				logger.addUnresolvedLogger(waitingFullName);
+			} else if ((waiting.isEnabled()) && (!waiting.isRunning())) {
+				slog.debug("araqne log api: logger [{}] is pending for logger [{}] is started", logger.getFullName(),
+						waitingFullName);
+				logger.addUnresolvedLogger(waitingFullName);
+			}
+		}
+
+		boolean transformerPending = setupTransformer(logger);
+
+		logger.setPending(loggerPending || transformerPending);
+		loggers.put(logger.getFullName(), logger);
+
+		// add listener, save config, and register logger
+		logger.addEventListener(sync);
+		if (!booting)
+			saveLoggerConfig(logger, spec.getConfig());
+
+		loggerRegistry.addLogger(logger);
+
+		for (LoggerFactoryEventListener callback : callbacks) {
+			callback.loggerCreated(this, logger, config);
+		}
+
+		return logger;
+	}
+
+	private boolean setupTransformer(Logger logger) {
+		Map<String, String> config = logger.getConfigs();
+		
+		boolean transformerPending = false;
+		LogTransformerRegistry transformerRegistry;
 		if (config.containsKey("transformer")) {
-			String transformerName = config.get("transformer");
-			LogTransformerRegistry transformerRegistry = getTransformerRegistry();
+			String transformerName = (String) config.get("transformer");
+			transformerRegistry = getTransformerRegistry();
 			LogTransformer transformer = null;
+
 			if (transformerName != null) {
-				logger.setPending(true);
+				transformerPending = true;
 				if (transformerRegistry.getProfile(transformerName) != null) {
 					try {
 						transformer = transformerRegistry.newTransformer(transformerName);
 						logger.setTransformer(transformer);
-						logger.setPending(false);
+						transformerPending = false;
 					} catch (LogTransformerNotReadyException e) {
 						slog.debug(
 								"araqne log api: cannot load transformer [" + transformerName + "] for logger ["
@@ -252,22 +292,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 				}
 			}
 		}
-
-		loggers.put(logger.getFullName(), logger);
-
-		// add listener, save config, and register logger
-		logger.addEventListener(sync);
-		if (!booting)
-			saveLoggerConfig(logger, spec.getConfig());
-
-		LoggerRegistry loggerRegistry = getLoggerRegistry();
-		loggerRegistry.addLogger(logger);
-
-		for (LoggerFactoryEventListener callback : callbacks) {
-			callback.loggerCreated(this, logger, config);
-		}
-
-		return logger;
+		return transformerPending;
 	}
 
 	@Override

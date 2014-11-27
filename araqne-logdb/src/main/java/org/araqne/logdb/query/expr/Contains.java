@@ -26,7 +26,7 @@ public class Contains extends FunctionExpression {
 	private Expression needleExpr;
 
 	public Contains(QueryContext ctx, List<Expression> exprs) {
-		super("contains", exprs);
+		super("contains", exprs, 2);
 		
 		this.targetExpr = exprs.get(0);
 		this.needleExpr = exprs.get(1);
@@ -38,7 +38,7 @@ public class Contains extends FunctionExpression {
 		Object o2 = needleExpr.eval(row);
 
 		if (o1 == null || o2 == null)
-			return null;
+			return false;
 
 		String target = o1.toString();
 		String needle = o2.toString();

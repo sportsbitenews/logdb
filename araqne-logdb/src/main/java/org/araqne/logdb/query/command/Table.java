@@ -111,14 +111,18 @@ public class Table extends DriverQueryCommand {
 			boolean isSuppressedBugAlert = false;
 
 			for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
-				LogParserBuilder builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
-						tableName.getTable());
-				if (isSuppressedBugAlert)
-					builder.suppressBugAlert();
+				LogParserBuilder builder = null;
+
+				if (!params.raw) {
+					builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
+							tableName.getTable());
+					if (isSuppressedBugAlert)
+						builder.suppressBugAlert();
+				}
 
 				storage.search(tableName.getTable(), params.from, params.to, builder, new LogTraverseCallbackImpl(sink));
 
-				isSuppressedBugAlert = isSuppressedBugAlert || builder.isBugAlertSuppressed();
+				isSuppressedBugAlert = isSuppressedBugAlert || (builder != null && builder.isBugAlertSuppressed());
 				if (sink.isEof())
 					break;
 			}
@@ -322,6 +326,7 @@ public class Table extends DriverQueryCommand {
 		private Date to;
 		private TimeSpan window;
 		private String parserName;
+		private boolean raw;
 
 		public List<TableSpec> getTableSpecs() {
 			return tableNames;
@@ -387,6 +392,13 @@ public class Table extends DriverQueryCommand {
 			this.ordered = ordered;
 		}
 
+		public boolean isRaw() {
+			return raw;
+		}
+
+		public void setRaw(boolean raw) {
+			this.raw = raw;
+		}
 	}
 
 	@Override
@@ -408,6 +420,9 @@ public class Table extends DriverQueryCommand {
 
 		if (params.getWindow() != null)
 			s += " window=" + params.getWindow();
+
+		if (params.isRaw())
+			s += " raw=t";
 
 		return s + " " + Strings.join(getTableNames(), ", ");
 	}
@@ -465,7 +480,11 @@ public class Table extends DriverQueryCommand {
 				}
 			} else {
 				for (Log log : logBatch) {
-					Row row = new Row(new HashMap<String, Object>(log.getData()));
+					HashMap<String, Object> m = new HashMap<String, Object>(log.getData());
+					m.put("_table", tableName);
+					m.put("_id", log.getId());
+					m.put("_time", log.getDate());
+					Row row = new Row(m);
 					rows.add(row);
 				}
 			}

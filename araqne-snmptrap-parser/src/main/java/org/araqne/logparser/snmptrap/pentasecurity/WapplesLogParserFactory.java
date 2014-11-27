@@ -55,7 +55,7 @@ public class WapplesLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "와플 웹방화벽 장비의 SNMP 트랩 로그를 파싱합니다.";
-		return "Parse Wapples SNMP Trap logs";
+		return "Parse Wapples SNMP Trap logs.";
 	}
 
 	@Override

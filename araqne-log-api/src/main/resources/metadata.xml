@@ -21,12 +21,10 @@
 	<instance component="field-mapping-parser-factory" />
 	<instance component="tag-parser-factory" />
 	<instance component="regex-filter-transformer-factory" />
-	
-	<!-- deprecated 
-	<instance component="rolling-log-writer-factory" />
-	<instance component="time-rolling-log-writer-factory" />
-	 -->
-	 
+
+	<!-- deprecated <instance component="rolling-log-writer-factory" /> <instance 
+		component="time-rolling-log-writer-factory" /> -->
+
 	<instance component="rotation-file-logger-factory" />
 	<instance component="exec-logger-factory" />
 	<instance component="wtmp-logger-factory" />
@@ -36,4 +34,6 @@
 	<instance component="gzip-directory-watch-logger-factory" />
 	<instance component="csv-log-parser-factory" />
 	<instance component="multi-rotation-file-logger-factory" />
+	<instance component="fixed-length-log-parser-factory" />
+	<instance component="config-watch-logger-factory" />
 </ipojo>

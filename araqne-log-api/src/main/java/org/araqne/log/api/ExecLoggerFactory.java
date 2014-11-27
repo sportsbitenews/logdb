@@ -73,8 +73,8 @@ public class ExecLoggerFactory extends AbstractLoggerFactory {
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		LoggerConfigOption command = new StringConfigType("command", 
-				t("command", "명령어", "コマンド","命令"), 
-				t("command to execute in shell", "쉘에서 실행할 명령어", 
+				t("Command", "명령어", "コマンド","命令"), 
+				t("Command to execute in shell", "쉘에서 실행할 명령어", 
 						"シェルで実行するコマンド","命令行命令"), true);
 	
 		return Arrays.asList(command);

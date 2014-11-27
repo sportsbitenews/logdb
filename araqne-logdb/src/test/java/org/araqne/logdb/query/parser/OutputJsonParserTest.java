@@ -2,9 +2,11 @@ package org.araqne.logdb.query.parser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.io.File;
 
+import org.araqne.cron.TickService;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
@@ -20,7 +22,7 @@ import org.junit.Test;
  * 
  */
 public class OutputJsonParserTest {
-	
+
 	private QueryParserService queryParserService;
 
 	@Before
@@ -29,15 +31,15 @@ public class OutputJsonParserTest {
 		p.setFunctionRegistry(new FunctionRegistryImpl());
 		queryParserService = p;
 	}
-	
+
 	@Test
 	public void testNormalCase() {
 		new File("logexport.json").delete();
 		OutputJson json = null;
 		try {
-			OutputJsonParser p = new OutputJsonParser();
+			OutputJsonParser p = new OutputJsonParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
-			
+
 			json = (OutputJson) p.parse(null, "outputjson logexport.json sip, dip ");
 			
 			json.onStart();
@@ -62,10 +64,10 @@ public class OutputJsonParserTest {
 		String query = "outputjson ";
 		
 		try {
-			OutputJsonParser p = new OutputJsonParser();
+			OutputJsonParser p = new OutputJsonParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
-			
 			p.parse(null, query);
+
 			fail();
 		} catch (QueryParseException e) {
 			if(e.isDebugMode()){
@@ -83,7 +85,7 @@ public class OutputJsonParserTest {
 		String query = "outputjson {logtime:/yyyy/MM/dd/}{now:HHmm.json} src_ip, dst_ip";
 		
 		try {
-			OutputJsonParser p = new OutputJsonParser();
+			OutputJsonParser p = new OutputJsonParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 			
 			p.parse(null, query);
@@ -106,7 +108,7 @@ public class OutputJsonParserTest {
 		String query = "outputjson logexport.json sip,";
 
 		try {
-			OutputJsonParser p = new OutputJsonParser();
+			OutputJsonParser p = new OutputJsonParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 			
 			p.parse(null, query);

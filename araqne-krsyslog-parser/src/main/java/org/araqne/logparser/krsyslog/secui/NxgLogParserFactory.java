@@ -57,7 +57,7 @@ public class NxgLogParserFactory implements LogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "SECUI NXG 시스로그를 파싱합니다.";
-		return "Parse SECUI NXG syslog";
+		return "Parse SECUI NXG syslogs.";
 	}
 
 	@Override

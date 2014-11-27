@@ -60,7 +60,7 @@ public class PaloAltoLogParserFactory extends AbstractLogParserFactory {
 			return "팔로알토 네트웍스 PA 시리즈 장비 로그를 파싱합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "解析PaloAlto PA系列设备日志。";
-		return "Palo Alto Network's PA series log parser";
+		return "Parse Palo Alto Network's PA series logs.";
 	}
 
 	@Override

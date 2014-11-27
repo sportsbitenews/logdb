@@ -33,7 +33,7 @@ public class KvJoin extends FunctionExpression {
 	private Matcher matcher;
 
 	public KvJoin(QueryContext ctx, List<Expression> exprs) {
-		super("kvjoin", exprs);
+		super("kvjoin", exprs, 2);
 		
 		kvDelim = exprs.get(0);
 		pairDelim = exprs.get(1);

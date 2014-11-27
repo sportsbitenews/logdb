@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.cron.AbstractTickTimer;
+import org.araqne.cron.TickService;
 import org.araqne.logdb.FileMover;
 import org.araqne.logdb.LocalFileMover;
 import org.araqne.logdb.PartitionOutput;
@@ -33,6 +35,7 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.writer.JsonLineWriterFactory;
 import org.araqne.logdb.writer.LineWriter;
 import org.araqne.logdb.writer.LineWriterFactory;
@@ -54,14 +57,20 @@ public class OutputJson extends QueryCommand {
 	private boolean usePartition;
 	private String tmpPath;
 	private List<PartitionPlaceholder> holders;
+	private boolean append;
+	private TimeSpan flushInterval;
+	private TickService tickService;
+
 	private Map<List<String>, PartitionOutput> outputs;
 	private LineWriterFactory writerFactory;
 	private LineWriter writer;
 	private FileMover mover;
+	private FlushTimer flushTimer = new FlushTimer();
 
 	@Deprecated
 	public OutputJson(File f, String filePathToken, boolean overwrite, List<String> fields, String encoding,
-			boolean usePartition, String tmpPath, List<PartitionPlaceholder> holders) {
+			boolean usePartition, String tmpPath, List<PartitionPlaceholder> holders, boolean append, TimeSpan flushInterval,
+			TickService tickService) {
 		this.f = f;
 		this.overwrite = overwrite;
 		this.filePathToken = filePathToken;
@@ -70,8 +79,13 @@ public class OutputJson extends QueryCommand {
 		this.usePartition = usePartition;
 		this.tmpPath = tmpPath;
 		this.holders = holders;
+		this.append = append;
+		this.flushInterval = flushInterval;
 
-		this.writerFactory = new JsonLineWriterFactory(fields, encoding);
+		this.writerFactory = new JsonLineWriterFactory(fields, encoding, append);
+
+		if (flushInterval != null)
+			tickService.addTimer(flushTimer);
 
 		try {
 			if (!usePartition) {
@@ -92,7 +106,8 @@ public class OutputJson extends QueryCommand {
 	}
 
 	public OutputJson(String filePathToken, boolean overwrite, List<String> fields, String encoding,
-			boolean usePartition, String tmpPath, List<PartitionPlaceholder> holders) {
+			boolean usePartition, String tmpPath, List<PartitionPlaceholder> holders,
+			boolean append, TimeSpan flushInterval, TickService tickService	) {
 		this.overwrite = overwrite;
 		this.filePathToken = filePathToken;
 		this.fields = fields;
@@ -100,12 +115,18 @@ public class OutputJson extends QueryCommand {
 		this.usePartition = usePartition;
 		this.tmpPath = tmpPath;
 		this.holders = holders;
+		this.append = append;
+		this.flushInterval = flushInterval;
+
+		if (flushInterval != null)
+			tickService.addTimer(flushTimer);
+
 	}
 
 	@Override
 	public void onStart(){
 		File jsonFile = new File(filePathToken);
-		if (jsonFile.exists() && !overwrite)
+		if (jsonFile.exists() && !overwrite  && !append)
 			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
 
 		if (!usePartition && jsonFile.getParentFile() != null)
@@ -113,7 +134,8 @@ public class OutputJson extends QueryCommand {
 		
 		this.f = jsonFile;
 		
-		this.writerFactory = new JsonLineWriterFactory(fields, encoding);
+		this.writerFactory = new JsonLineWriterFactory(fields, encoding, append);
+
 		try {
 			if (!usePartition) {
 				String path = filePathToken;
@@ -220,11 +242,19 @@ public class OutputJson extends QueryCommand {
 	public void onClose(QueryStopReason reason) {
 		this.status = Status.Finalizing;
 		close();
-		if (reason == QueryStopReason.CommandFailure)
-			f.delete();
+		if (!append && reason == QueryStopReason.CommandFailure) {
+			if (tmpPath != null)
+				new File(tmpPath).delete();
+			else
+				f.delete();
+		}
 	}
 
 	private void close() {
+		if (flushInterval != null && tickService != null) {
+			tickService.removeTimer(flushTimer);
+		}
+
 		if (!usePartition) {
 			try {
 				writer.close();
@@ -246,6 +276,10 @@ public class OutputJson extends QueryCommand {
 		if (overwrite)
 			overwriteOption = " overwrite=t ";
 
+		String appendOption = "";
+		if (append)
+			appendOption = " append=t";
+
 		String encodingOption = "";
 		if (encoding != null)
 			encoding = " encoding=" + encoding;
@@ -262,174 +296,28 @@ public class OutputJson extends QueryCommand {
 		if (!fields.isEmpty())
 			fieldsOption = " " + Strings.join(fields, ", ");
 
-		return "outputjson" + overwriteOption + encodingOption + partitionOption + tmpOption + filePathToken + fieldsOption;
+		return "outputjson" + overwriteOption + appendOption + encodingOption + partitionOption + tmpOption + filePathToken
+				+ fieldsOption;
+	}
+
+	private class FlushTimer extends AbstractTickTimer {
+
+		@Override
+		public int getInterval() {
+			return (int) flushInterval.getMillis();
+		}
+
+		@Override
+		public void onTick() {
+			try {
+				if (writer != null) {
+					writer.flush();
+				} else {
+
+				}
+			} catch (IOException e) {
+			}
+		}
 	}
 }
-
-/**
- * backup 140821 kyun
- */
-//public OutputJson(File f, String filePathToken, boolean overwrite, List<String> fields, String encoding,
-//		boolean usePartition, String tmpPath, List<PartitionPlaceholder> holders) {
-//	this.f = f;
-//	this.overwrite = overwrite;
-//	this.filePathToken = filePathToken;
-//	this.fields = fields;
-//	this.encoding = encoding;
-//	this.usePartition = usePartition;
-//	this.tmpPath = tmpPath;
-//	this.holders = holders;
-//
-//	this.writerFactory = new JsonLineWriterFactory(fields, encoding);
-//
-//	try {
-//		if (!usePartition) {
-//			String path = filePathToken;
-//			if (tmpPath != null)
-//				path = tmpPath;
-//
-//			this.writer = writerFactory.newWriter(path);
-//			mover = new LocalFileMover();
-//		} else {
-//			this.holders = holders;
-//			this.outputs = new HashMap<List<String>, PartitionOutput>();
-//		}
-//	} catch (Throwable t) {
-//		close();
-//		throw new QueryParseException("io-error", -1);
-//	}
-//}
-//
-//@Override
-//public String getName() {
-//	return "outputjson";
-//}
-//
-//public File getTxtFile() {
-//	return f;
-//}
-//
-//public List<String> getFields() {
-//	return fields;
-//}
-//
-//@Override
-//public void onStart(){
-//	
-//}
-//
-//@Override
-//public void onPush(Row m) {
-//	try {
-//		writeLog(m);
-//	} catch (Throwable t) {
-//		if (logger.isDebugEnabled())
-//			logger.debug("araqne logdb: cannot write log to json file", t);
-//
-//		getQuery().stop(QueryStopReason.CommandFailure);
-//	}
-//	pushPipe(m);
-//}
-//
-//@Override
-//public void onPush(RowBatch rowBatch) {
-//	try {
-//		if (rowBatch.selectedInUse) {
-//			for (int i = 0; i < rowBatch.size; i++) {
-//				int p = rowBatch.selected[i];
-//				Row m = rowBatch.rows[p];
-//
-//				writeLog(m);
-//			}
-//		} else {
-//			for (Row m : rowBatch.rows) {
-//				writeLog(m);
-//			}
-//		}
-//	} catch (Throwable t) {
-//		if (logger.isDebugEnabled())
-//			logger.debug("araqne logdb: cannot write log to json file", t);
-//
-//		getQuery().stop(QueryStopReason.CommandFailure);
-//	}
-//
-//	pushPipe(rowBatch);
-//}
-//
-//private void writeLog(Row m) throws IOException {
-//	LineWriter writer = this.writer;
-//	if (usePartition) {
-//		List<String> key = new ArrayList<String>(holders.size());
-//		Date date = m.getDate();
-//		for (PartitionPlaceholder holder : holders)
-//			key.add(holder.getKey(date));
-//
-//		PartitionOutput output = outputs.get(key);
-//		if (output == null) {
-//			output = new PartitionOutput(writerFactory, filePathToken, tmpPath, date, encoding);
-//			outputs.put(key, output);
-//			logger.debug("araqne logdb: new partition found key [{}] tmpPath [{}] filePath [{}] date [{}]", new Object[] {
-//					key, tmpPath, filePathToken, date });
-//		}
-//
-//		writer = output.getWriter();
-//	}
-//
-//	writer.write(m);
-//}
-//
-//@Override
-//public boolean isReducer() {
-//	return true;
-//}
-//
-//@Override
-//public void onClose(QueryStopReason reason) {
-//	this.status = Status.Finalizing;
-//	close();
-//	if (reason == QueryStopReason.CommandFailure)
-//		f.delete();
-//}
-//
-//private void close() {
-//	if (!usePartition) {
-//		try {
-//			writer.close();
-//			if (tmpPath != null) {
-//				mover.move(tmpPath, filePathToken);
-//			}
-//		} catch (Throwable t) {
-//			logger.error("araqne logdb: file move failed", t);
-//		}
-//	} else {
-//		for (PartitionOutput output : outputs.values())
-//			output.close();
-//	}
-//}
-//
-//@Override
-//public String toString() {
-//	String overwriteOption = " ";
-//	if (overwrite)
-//		overwriteOption = " overwrite=true ";
-//
-//	String encodingOption = "";
-//	if (encoding != null)
-//		encoding = " encoding=" + encoding;
-//
-//	String partitionOption = "";
-//	if (usePartition)
-//		partitionOption = " partition=t";
-//
-//	String tmpOption = "";
-//	if (tmpPath != null)
-//		tmpOption = " tmp=" + tmpPath;
-//
-//	String fieldsOption = "";
-//	if (!fields.isEmpty())
-//		fieldsOption = " " + Strings.join(fields, ", ");
-//
-//	return "outputjson" + overwriteOption + encodingOption + partitionOption + tmpOption + filePathToken + fieldsOption;
-//}
-//}
 

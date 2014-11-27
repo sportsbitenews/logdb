@@ -54,6 +54,9 @@ public class ParseParser extends AbstractQueryCommandParser {
 		m.put("21000", new QueryErrorMessage("missing-parser-name","파서 이름을 입력하십시오."));
 		m.put("21001", new QueryErrorMessage("parser-not-found", "[parser] 파서가 존재하지 않습니다."));
 		m.put("21002", new QueryErrorMessage("parser-init-failure", "[parser] 파서 초기화에 실패했습니다.")); 
+		m.put("21003", new QueryErrorMessage("syntax-error: \"as\" needed", "구문 안에\"as\" 가 필요합니다.")); 
+		m.put("21004", new QueryErrorMessage("syntax-error: anchor should be quoted", "anchor 값([anc])은 쌍따옴표로 묶여야 합니다.")); 
+		m.put("21005", new QueryErrorMessage("syntax-error: alias should not be quoted", "alias 값([alias])은 쌍따옴표로 묶여야 합니다.")); 
 		return m;
 	}
 	
@@ -89,13 +92,23 @@ public class ParseParser extends AbstractQueryCommandParser {
 				ParseResult alias = QueryTokenizer.nextString(e, as.next);
 
 				if (!"as".equals(as.value))
-					throw new QueryParseException("syntax-error: \"as\" needed", remainder.indexOf(e));
+				//	throw new QueryParseException("syntax-error: \"as\" needed", remainder.indexOf(e));
+					throw new QueryParseException("21003", -1, -1, null);
 				
-				if (!QueryTokenizer.isQuoted((String) anchor.value))
-					throw new QueryParseException("syntax-error: anchor should be quoted", remainder.indexOf(e));
+				
+				if (!QueryTokenizer.isQuoted((String) anchor.value)){
+				//	throw new QueryParseException("syntax-error: anchor should be quoted", remainder.indexOf(e));
+					Map<String, String> params = new HashMap<String, String> ();
+					params.put("anc", (String) anchor.value);
+					throw new QueryParseException("21004", -1, -1, null);
+				}
 
-				if (QueryTokenizer.isQuoted((String) alias.value))
-					throw new QueryParseException("syntax-error: alias should not be quoted", remainder.indexOf(e));
+				if (QueryTokenizer.isQuoted((String) alias.value)){
+				//	throw new QueryParseException("syntax-error: alias should not be quoted", remainder.indexOf(e));
+					Map<String, String> params = new HashMap<String, String> ();
+					params.put("alias", (String)alias.value);
+					throw new QueryParseException("21005", -1, -1, null);
+				}
 
 				anchors.add(unquote((String) anchor.value));
 				aliases.add((String) alias.value);

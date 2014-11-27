@@ -87,7 +87,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		sessions.clear();
 		localAccounts.clear();
 		authServices.clear();
-		
+
 		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
 
 		// load accounts
@@ -402,6 +402,8 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		} else {
 			db.add(account);
 		}
+
+		localAccounts.putIfAbsent(account.getLoginName(), account);
 	}
 
 	@Override
@@ -649,7 +651,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	public String getInstanceGuid() {
 		return instanceGuid;
 	}
-	
+
 	@Override
 	public void setInstanceGuid(String guid) {
 		ConfigDatabase db = conf.ensureDatabase(DB_NAME);

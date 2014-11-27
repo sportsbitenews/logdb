@@ -423,6 +423,12 @@ public class ManagementPlugin {
 		String tableName = req.getString("table", true);
 		String engineType = req.getString("type", true);
 		String basePath = req.getString("base_path");
+
+		if (basePath != null) {
+			// normalize local path (prevent C://)
+			basePath = new File(basePath).getAbsolutePath();
+		}
+
 		Map<String, String> primaryConfigs = (Map<String, String>) req.get("primary_configs");
 		if (primaryConfigs == null)
 			primaryConfigs = new HashMap<String, String>();
@@ -632,6 +638,11 @@ public class ManagementPlugin {
 	}
 
 	@MsgbusMethod
+	public void previewTextFile(Request req, Response resp) throws IOException {
+		resp.put("preview", uploadDataHandler.previewTextFile(req, resp));
+	}
+
+	@MsgbusMethod
 	public void getStorageEngines(Request req, Response resp) {
 		Locale locale = req.getSession().getLocale();
 		String s = req.getString("locale");
@@ -715,7 +726,7 @@ public class ManagementPlugin {
 		Config c = col.findOne(null);
 
 		Map<String, Object> m = new HashMap<String, Object>();
-		if (c != null)
+		if (c != null && c.getDocument() != null)
 			m = (Map<String, Object>) c.getDocument();
 
 		Map<String, Object> vars = new HashMap<String, Object>();
@@ -727,7 +738,7 @@ public class ManagementPlugin {
 
 			if (key.equals("min_free_disk_space_value") && var == null)
 				var = "10";
-			
+
 			if (key.equals("disk_lack_action") && var == null)
 				var = "StopLogging";
 
@@ -778,7 +789,7 @@ public class ManagementPlugin {
 			c.setDocument(m);
 			c.update();
 		} else {
-			col.add(c);
+			col.add(m);
 		}
 	}
 }

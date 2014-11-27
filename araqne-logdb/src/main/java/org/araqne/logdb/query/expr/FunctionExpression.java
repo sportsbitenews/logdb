@@ -16,7 +16,10 @@
 package org.araqne.logdb.query.expr;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Strings;
 
 public abstract class FunctionExpression implements Expression {
@@ -26,6 +29,20 @@ public abstract class FunctionExpression implements Expression {
 	public FunctionExpression(String name, Collection<Expression> args) {
 		this.name = name;
 		this.args = args;
+	}
+	
+	public FunctionExpression(String name, Collection<Expression> args, int minArgCnt) {
+		this.name = name;
+		this.args = args;
+		
+		if (args.size() < minArgCnt){
+			//throw new QueryParseException(name + "-arg-missing", -1);
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("name", name);
+			params.put("min", minArgCnt +"");
+			params.put("args", args.size() +"");
+			throw new QueryParseException("99000", -1, -1, null);
+		}
 	}
 	
 	@Override

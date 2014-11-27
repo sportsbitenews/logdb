@@ -35,4 +35,32 @@ public interface LogDbTransport {
 	 * @return 새 세션 개체
 	 */
 	LogDbSession newSession(String host, int port) throws IOException;
+
+	/**
+	 * 새 세션을 생성합니다.
+	 * 
+	 * @param host
+	 *            접속할 로그프레소 서버의 IP 주소 혹은 도메인 주소
+	 * @param port
+	 *            접속할 로그프레소 서버의 웹 포트 번호
+	 * @param connectTimeout
+	 *            접속 타임아웃
+	 * @return 새 세션 개체
+	 */
+	LogDbSession newSession(String host, int port, int connectTimeout) throws IOException;
+
+	/**
+	 * 새 세션을 생성합니다.
+	 * 
+	 * @param host
+	 *            접속할 로그프레소 서버의 IP 주소 혹은 도메인 주소
+	 * @param port
+	 *            접속할 로그프레소 서버의 웹 포트 번호
+	 * @param connectTimeout
+	 *            접속 타임아웃
+	 * @param readTimeout
+	 *            읽기 타임아웃
+	 * @return 새 세션 개체
+	 */
+	LogDbSession newSession(String host, int port, int connectTimeout, int readTimeout) throws IOException;
 }

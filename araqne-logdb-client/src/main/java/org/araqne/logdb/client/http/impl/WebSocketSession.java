@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
  * 
  */
 public class WebSocketSession extends AbstractLogDbSession implements WebSocketListener {
+	private static final int DEFAULT_READ_TIMEOUT = 10000;
 	private final Logger logger = LoggerFactory.getLogger(WebSocketSession.class);
 	private Object sendLock = new Object();
 	private WebSocket websocket;
@@ -47,15 +48,23 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 	private final Timer timer;
 
 	public WebSocketSession(String host, int port) throws IOException {
-		this(host, port, false);
+		this(host, port, false, 0);
 	}
 
 	public WebSocketSession(String host, int port, boolean secure) throws IOException {
+		this(host, port, secure, 0);
+	}
+
+	public WebSocketSession(String host, int port, boolean secure, int connectTimeout) throws IOException {
+		this(host, port, secure, connectTimeout, DEFAULT_READ_TIMEOUT);
+	}
+
+	public WebSocketSession(String host, int port, boolean secure, int connectTimeout, int readTimeout) throws IOException {
 		URI uri = null;
 		try {
 			String scheme = secure ? "wss://" : "ws://";
 			uri = new URI(scheme + host + ":" + port + "/websocket");
-			this.websocket = new WebSocket(uri);
+			this.websocket = new WebSocket(uri, connectTimeout, readTimeout);
 			websocket.addListener(this);
 		} catch (URISyntaxException e) {
 			throw new IllegalArgumentException("invalid host: " + host);
@@ -88,7 +97,7 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 			else
 				m = table.await(call, timeout);
 		} catch (InterruptedException e) {
-			throw new RuntimeException("interrupted");
+			throw new RuntimeException("interrupted: " + e.getMessage());
 		}
 
 		if (m.getErrorCode() != null)

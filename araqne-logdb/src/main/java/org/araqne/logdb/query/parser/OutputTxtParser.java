@@ -23,12 +23,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.araqne.cron.TickService;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.command.OutputTxt;
 
 
@@ -38,6 +40,12 @@ import org.araqne.logdb.query.command.OutputTxt;
  * 
  */
 public class OutputTxtParser extends AbstractQueryCommandParser {
+
+	private TickService tickService;
+
+	public OutputTxtParser(TickService tickService) {
+		this.tickService = tickService;
+	}
 
 	@Override
 	public String getCommandName() {
@@ -54,6 +62,8 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 		m.put("30404", new QueryErrorMessage("missing-field", "출력파일명 및 필드 값을 입력하시오.")); 
 		m.put("30405", new QueryErrorMessage("missing-field", "출력파일명 및 필드 값을 입력하시오.")); 
 		m.put("30406", new QueryErrorMessage("io-error", " IO 에러가 발생했습니다: [msg].")); 
+		m.put("30407", new QueryErrorMessage("choose-overwrite-or-append", "overwrite 와 append 옵션은 동시에 사용할 수 없습니다.")); 
+		
 		return m;
 	}
 	
@@ -64,7 +74,8 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("30400", commandString.trim().length() -1, commandString.trim().length() -1 , null);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, "outputtxt".length(),
-				Arrays.asList("delimiter", "overwrite", "gz", "encoding", "partition", "tmp"), getFunctionRegistry());
+				Arrays.asList("delimiter", "overwrite", "gz", "encoding", "partition", "tmp", "append", "flush"),
+				getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -77,11 +88,21 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 		if (encoding == null)
 			encoding = "utf-8";
 
+		TimeSpan flushInterval = null;
+		if (options.containsKey("flush"))
+			flushInterval = TimeSpan.parse(options.get("flush"));
+
 		String tmpPath = options.get("tmp");
 
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
 		boolean useGzip = CommandOptions.parseBoolean(options.get("gz"));
 		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
+		boolean append = CommandOptions.parseBoolean(options.get("append"));
+
+		if (append && overwrite)
+		//	throw new QueryParseException("choose-overwrite-or-append", -1);
+			throw new QueryParseException("30407", -1, -1, null);
+		
 
 		File tmpFile = null;
 		if (tmpPath != null) {
@@ -140,7 +161,7 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 		//			txtFile.getParentFile().mkdirs();
 		//
 		//		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders);
-		return new OutputTxt( filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders);
-
+		return new OutputTxt( filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders,
+				append, flushInterval, tickService);
 	}
 }

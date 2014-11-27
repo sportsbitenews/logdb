@@ -6,13 +6,14 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Epoch implements Expression {
+public class Epoch extends FunctionExpression {
 
 	private Expression valueExpr;
 
 	public Epoch(QueryContext ctx, List<Expression> exprs) {
-		this.valueExpr = exprs.get(0);
+		super("epoch", exprs, 1);
 		
+		this.valueExpr = exprs.get(0);
 	}
 
 	@Override
@@ -31,10 +32,4 @@ public class Epoch implements Expression {
 			return null;
 		}
 	}
-
-	@Override
-	public String toString() {
-		return "epoch(" + valueExpr + ")";
-	}
-
 }

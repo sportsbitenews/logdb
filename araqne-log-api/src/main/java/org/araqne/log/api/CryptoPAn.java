@@ -73,14 +73,14 @@ public class CryptoPAn {
 		return l0 | l1 | l2 | l3;
 	}
 
-	public String anonymize(String ip) {
+	public int[] anonymizei(String ip) {
 		long result = 0;
 		byte[] addria = new byte[4];
 		{
 			int i = 0;
 
 			for (String a : ip.split("\\.")) {
-				addria[i++] = (byte) Integer.parseInt(a);
+				addria[i++] = (byte) Integer.parseInt(a.trim());
 			}
 			if (i != 4)
 				throw new IllegalArgumentException("Invalid IPv4 address");
@@ -103,21 +103,30 @@ public class CryptoPAn {
 			}
 
 			byte[] rarr = toArray(result ^ addri);
-			StringBuilder sb = new StringBuilder();
-			sb.append(((int) rarr[0]) & 0xff);
-			sb.append(".");
-			sb.append(((int) rarr[1]) & 0xff);
-			sb.append(".");
-			sb.append(((int) rarr[2]) & 0xff);
-			sb.append(".");
-			sb.append(((int) rarr[3]) & 0xff);
-			return sb.toString();
+			int[] iresult = new int[4];
+			iresult[0] = ((int) rarr[0]) & 0xff;
+			iresult[1] = ((int) rarr[1]) & 0xff;
+			iresult[2] = ((int) rarr[2]) & 0xff;
+			iresult[3] = ((int) rarr[3]) & 0xff;
+			return iresult;
 		} catch (IllegalBlockSizeException e) {
-			e.printStackTrace();
+			throw new IllegalStateException(e);
 		} catch (BadPaddingException e) {
-			e.printStackTrace();
+			throw new IllegalStateException(e);
 		}
-		throw new IllegalStateException();
+	}
+
+	public String anonymize(String ip) {
+		int[] result = anonymizei(ip);
+		StringBuilder sb = new StringBuilder();
+		sb.append(result[0]);
+		sb.append(".");
+		sb.append(result[1]);
+		sb.append(".");
+		sb.append(result[2]);
+		sb.append(".");
+		sb.append(result[3]);
+		return sb.toString();
 	}
 
 	private byte[] toArray(long n) {

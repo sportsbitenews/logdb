@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,8 +54,11 @@ import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.Mutable;
+import org.araqne.log.api.PredicatesConfigType;
 import org.araqne.log.api.TimeRange;
 import org.araqne.log.api.WildcardMatcher;
+import org.json.JSONConverter;
+import org.json.JSONException;
 
 import com.bethecoder.ascii_table.ASCIITable;
 import com.bethecoder.ascii_table.impl.CollectionASCIITableAware;
@@ -842,16 +846,46 @@ public class LogApiScript implements Script {
 
 	private void setOption(Map<String, String> config, LoggerConfigOption type, String initialValue) throws InterruptedException {
 		String directive = type.isRequired() ? "(required)" : "(optional)";
-		context.print(type.getDisplayName(Locale.ENGLISH) + " " + directive + "? ");
-		String value = context.readLine(initialValue);
-		if (!value.isEmpty())
-			config.put(type.getName(), value);
 
-		if (value.isEmpty()) {
-			if (type.isRequired())
+		if (type instanceof PredicatesConfigType) {
+			context.println(type.getDisplayName(Locale.ENGLISH) + " " + directive + "");
+
+			List<Object> predicates = new ArrayList<Object>();
+			while (true) {
+				context.print(" * Condition (enter to end)? ");
+				String cond = context.readLine();
+				if (cond.trim().isEmpty())
+					break;
+
+				context.print(" * Value (enter to end)? ");
+				String value = context.readLine();
+				if (value.trim().isEmpty())
+					break;
+
+				predicates.add(Arrays.asList(cond, value));
+			}
+
+			if (predicates.isEmpty() && type.isRequired())
 				setOption(config, type, initialValue);
-			else
-				config.put(type.getName(), null);
+
+			try {
+				config.put(type.getName(), JSONConverter.jsonize(predicates));
+			} catch (JSONException e) {
+				throw new IllegalStateException("jsonize failure", e);
+			}
+
+		} else {
+			context.print(type.getDisplayName(Locale.ENGLISH) + " " + directive + "? ");
+			String value = context.readLine(initialValue);
+			if (!value.isEmpty())
+				config.put(type.getName(), value);
+
+			if (value.isEmpty()) {
+				if (type.isRequired())
+					setOption(config, type, initialValue);
+				else
+					config.put(type.getName(), null);
+			}
 		}
 	}
 
@@ -865,5 +899,30 @@ public class LogApiScript implements Script {
 
 		logger.resetStates();
 		context.println("reset completed");
+	}
+
+	@ScriptUsage(description = "print logger dependencies", arguments = { @org.araqne.api.ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format", autocompletion = LoggerAutoCompleter.class) })
+	public void dependencies(String[] args) {
+		String fullName = args[0];
+
+		Set<String> dependencies = loggerRegistry.getDependencies(fullName);
+		if (dependencies == null) {
+			context.println("no dependencies");
+			return;
+		}
+
+		Set<String> set = Collections.emptySet();
+		Logger logger = loggerRegistry.getLogger(fullName);
+		if (logger != null) {
+			set = logger.getUnresolvedLoggers();
+		}
+
+		context.println("Loger Dependencies");
+		context.println("--------------------");
+
+		for (String loggerName : dependencies) {
+			String status = set.contains(loggerName) ? "unresolved" : "resolved";
+			context.println(loggerName + " -> " + status);
+		}
 	}
 }

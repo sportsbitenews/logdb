@@ -15,8 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +54,7 @@ public class StrJoinTest {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
-			assertEquals("90780", e.getType());
+			assertEquals("99000", e.getType());
 		}
 
 		//args size 1
@@ -66,7 +65,7 @@ public class StrJoinTest {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
-			assertEquals("90780", e.getType());
+			assertEquals("99000", e.getType());
 		}
 
 		//args size 3
@@ -92,6 +91,12 @@ public class StrJoinTest {
 			}
 			assertEquals("90781", e.getType());
 		}
+	}
+	
+	@Test
+	public void testManual() {
+		assertNull(FunctionUtil.parseExpr("strjoin(\",\", int(\"invalid\"))").eval(null));
+		assertEquals("1,2,3", FunctionUtil.parseExpr("strjoin(\",\", array(1, 2, 3))").eval(null));
 	}
 	
 	private Array array(List<Expression> expr){

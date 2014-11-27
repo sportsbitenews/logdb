@@ -5,11 +5,13 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Floor implements Expression {
+public class Floor extends FunctionExpression {
 	private Expression expr;
 	private Expression digitExpr;
 
 	public Floor(QueryContext ctx, List<Expression> exprs) {
+		super("floor", exprs, 1);
+
 		this.expr = exprs.get(0);
 		if (exprs.size() > 1) {
 			this.digitExpr = exprs.get(1);
@@ -72,11 +74,4 @@ public class Floor implements Expression {
 			return Math.floor(value * m) / m;
 	}
 	
-	@Override
-	public String toString() {
-		if (digitExpr == null)
-			return "floor(" + expr + ")";
-		else
-			return "floor(" + expr + ", " + digitExpr + ")";
-	}
 }

@@ -56,7 +56,7 @@ public class FortigateLogParserFactory extends AbstractLogParserFactory {
 			return "WELF 형식으로 된 포티게이트 로그를 파싱합니다.";
 		if(locale != null && locale.equals(Locale.CHINESE))
 			return "用于解析WELF格式的FortiGate日志。";
-		return "Create fortigate log parser";
+		return "Parse Fortigate logs.";
 	}
 
 	@Override

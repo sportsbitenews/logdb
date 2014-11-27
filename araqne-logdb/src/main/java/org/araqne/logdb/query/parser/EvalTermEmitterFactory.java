@@ -18,7 +18,7 @@ public class EvalTermEmitterFactory implements TermEmitterFactory {
 			exprStack.add(expr);
 		}
 	}
-	
+
 	private Expression parseTokenExpr(Stack<Expression> exprStack, String token) {
 		// is quoted?
 		if (token.startsWith("\"") && token.endsWith("\""))

@@ -59,7 +59,7 @@ public class SrxLogParserFactory extends AbstractLogParserFactory {
 			return "주니퍼 SRX 시리즈 서비스 게이트웨이 로그를 파싱합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "解析juniper SRX系列网关日志。";
-		return "Juniper SRX Series Service Gateway";
+		return "Parse Juniper SRX Series Service Gateway logs.";
 	}
 
 	@Override

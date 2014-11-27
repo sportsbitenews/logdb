@@ -17,6 +17,7 @@ package org.araqne.log.api;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -62,6 +63,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private LogTransformer transformer;
 	private LoggerFactory factory;
 	private LoggerStopReason lastStopReason;
+	private Set<String> unresolvedLoggers = new CopyOnWriteArraySet<String>();
 
 	/**
 	 * @since 1.7.0
@@ -192,6 +194,12 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public void setPending(boolean pending) {
 		this.pending = pending;
+		if (pending) {
+			if (!unresolvedLoggers.isEmpty())
+				lastStopReason = LoggerStopReason.LOGGER_DEPENDENCY;
+			else if (config.get("transformer") != null && transformer == null)
+				lastStopReason = LoggerStopReason.TRANSFORMER_DEPENDENCY;
+		}
 	}
 
 	@Override
@@ -243,7 +251,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	 */
 	@Override
 	public void start(LoggerStartReason reason) {
-		verifyTransformer();
+		verifyPending();
 
 		if (!isPassive())
 			throw new IllegalStateException("not passive mode. use start(interval)");
@@ -258,7 +266,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	 */
 	@Override
 	public void start(LoggerStartReason reason, int interval) {
-		verifyTransformer();
+		verifyPending();
 
 		if (isPassive()) {
 			start(reason);
@@ -284,9 +292,12 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		pending = false;
 	}
 
-	private void verifyTransformer() {
-		if (config.get("transformer") != null && transformer == null)
+	private void verifyPending() {
+		if ((config.get("transformer") != null) && (transformer == null))
 			throw new IllegalStateException("pending transformer");
+
+		if (!unresolvedLoggers.isEmpty())
+			throw new IllegalStateException("pending logger");
 	}
 
 	protected ExecutorService getExecutor() {
@@ -323,7 +334,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			invokeStopCallback(reason);
 			stopped = true;
 			status = LoggerStatus.Stopped;
-			this.pending = reason == LoggerStopReason.TRANSFORMER_DEPENDENCY;
+			this.pending = ((reason == LoggerStopReason.TRANSFORMER_DEPENDENCY) || (reason == LoggerStopReason.LOGGER_DEPENDENCY));
 		} else
 			stop(reason, INFINITE);
 	}
@@ -734,9 +745,11 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	public void setTransformer(LogTransformer transformer) {
 		this.transformer = transformer;
 
-		if (enabled && isPending() && transformer != null)
+		boolean transformerResolved = (config.get("transformer") == null) || (transformer != null);
+		if ((enabled) && (isPending()) && (transformerResolved) && (unresolvedLoggers.isEmpty())) {
 			start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
-		if (enabled && config.get("transformer") != null && transformer == null) {
+		}
+		if ((enabled) && (!transformerResolved)) {
 			stop(LoggerStopReason.TRANSFORMER_DEPENDENCY, 5000);
 		}
 	}
@@ -776,6 +789,39 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public void clearEventListeners() {
 		eventListeners.clear();
+	}
+
+	public Set<String> getUnresolvedLoggers() {
+		return new HashSet<String>(unresolvedLoggers);
+	}
+
+	@Override
+	public boolean hasUnresolvedLoggers() {
+		return !unresolvedLoggers.isEmpty();
+	}
+
+	public void addUnresolvedLogger(String fullName) {
+		if (this.slog.isDebugEnabled()) {
+			this.slog.debug("araqne log api: logger [{}] has unresolved logger [{}]", getFullName(), fullName);
+		}
+
+		unresolvedLoggers.add(fullName);
+
+		if (this.enabled) {
+			stop(LoggerStopReason.LOGGER_DEPENDENCY, 5000);
+		}
+	}
+
+	public void removeUnresolvedLogger(String fullName) {
+		if (this.slog.isDebugEnabled()) {
+			this.slog.debug("araqne log api: logger [{}] has resolved logger [{}]", getFullName(), fullName);
+		}
+		this.unresolvedLoggers.remove(fullName);
+
+		boolean transformerResolved = config.get("transformer") == null || transformer != null;
+		if (status != LoggerStatus.Running && enabled && transformerResolved && unresolvedLoggers.isEmpty()) {
+			start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
+		}
 	}
 
 	@Override

@@ -70,14 +70,14 @@ public class RemoteJmxLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption host = new StringConfigType("host", t("Host address", "호스트 주소", "主机地址"), t("domain name or ip address",
+		LoggerConfigOption host = new StringConfigType("host", t("Host address", "호스트 주소", "主机地址"), t("Domain name or ip address",
 				"도메인 주소 또는 IP 주소", "域名或IP地址。"), true);
 		LoggerConfigOption port = new IntegerConfigType("port", t("Port", "포트", "端口"), t("RMI port number", "RMI 포트 주소","RMI端口"), true);
 		LoggerConfigOption user = new StringConfigType("user", t("User", "사용자 계정", "账户"), t("RMI account", "RMI 접속 계정","连接RMI账户"), true);
 		LoggerConfigOption password = new StringConfigType("password", t("Password", "암호", "密码"), t("RMI password", "RMI 접속 암호", "连接RMI密码"), true);
 		LoggerConfigOption objName = new StringConfigType("obj_name", t("Object Name", "개체 이름", "对象名称"), t("JMX object name", "JMX 개체 이름", "JMX对象名称"), true);
 		LoggerConfigOption attrNames = new StringConfigType("attr_names", t("Attribute Names", "속성 이름 목록", "属性名称列表"), t(
-				"comma separated attribute names, all attributes by default", "쉼표로 구분되는 속성 이름 목록, 미설정 시 전체 속성 수집", "以逗号分隔的属性名称列表, 未设置时采集全部属性"), false);
+				"Comma separated attribute names, all attributes by default", "쉼표로 구분되는 속성 이름 목록, 미설정 시 전체 속성 수집", "以逗号分隔的属性名称列表, 未设置时采集全部属性"), false);
 		return Arrays.asList(host, port, user, password, objName, attrNames);
 	}
 

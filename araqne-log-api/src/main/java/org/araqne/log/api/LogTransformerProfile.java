@@ -86,4 +86,16 @@ public class LogTransformerProfile implements Comparable<LogTransformerProfile> 
 		return name.compareTo(o.name);
 	}
 
+	/**
+	 * @since 3.4.6
+	 */
+	public Map<String, Object> marshal() {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("name", name);
+		m.put("factory_name", factoryName);
+		m.put("configs", configs);
+		m.put("ready", ready);
+		m.put("cause", cause != null ? cause.toString() : null);
+		return m;
+	}
 }

@@ -13,7 +13,7 @@ public class Typeof extends FunctionExpression {
 	private Expression expr;
 
 	public Typeof(QueryContext ctx, List<Expression> exprs) {
-		super("typeof", exprs);
+		super("typeof", exprs, 1);
 		expr = exprs.get(0);
 	}
 
@@ -45,6 +45,8 @@ public class Typeof extends FunctionExpression {
 			return "float";
 		else if (o instanceof Map)
 			return "map";
+		else if (o instanceof List)
+			return "list";
 		else if (o.getClass().isArray()) {
 			Class<?> c = o.getClass().getComponentType();
 			if (c == byte.class) {
@@ -69,5 +71,5 @@ public class Typeof extends FunctionExpression {
 		// should not reach here
 		return o.getClass().getName();
 	}
-	
+
 }

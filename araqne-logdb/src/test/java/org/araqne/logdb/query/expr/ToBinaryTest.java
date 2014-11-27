@@ -52,7 +52,7 @@ public class ToBinaryTest {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
-			assertEquals("90810", e.getType());
+			assertEquals("99000", e.getType());
 		}
 	}
 	

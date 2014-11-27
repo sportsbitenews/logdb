@@ -517,7 +517,7 @@ public class ExpressionParser {
 		for (int i = offset; i < s.length(); i++) {
 			char c = s.charAt(i);
 			if (escape) {
-				if (c == '\\' || c == '"' || c == 'n' || c == 't')
+				if (c == '\\' || c == '"' || c == 'n' || c == 't' || c == 'r')
 					escape = false;
 				else{
 					//throw new QueryParseException("invalid-escape-sequence", offset);

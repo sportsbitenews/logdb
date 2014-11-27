@@ -25,9 +25,9 @@ public class Long2Ip extends FunctionExpression {
 	private Expression valueExpr;
 
 	public Long2Ip(QueryContext ctx, List<Expression> exprs) {
-		super("long2ip", exprs);
+		super("long2ip", exprs, 1);
 		
-		if (exprs.size() != 1)
+		if (exprs.size() > 1)
 	//		throw new QueryParseException("invalid-long2ip-args", -1);
 			throw new QueryParseException("90730", -1, -1, null);
 			

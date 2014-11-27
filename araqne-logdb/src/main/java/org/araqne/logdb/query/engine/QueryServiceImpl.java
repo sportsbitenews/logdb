@@ -64,6 +64,7 @@ import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
 import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.parser.BoxPlotParser;
+import org.araqne.logdb.query.parser.CheckTableParser;
 import org.araqne.logdb.query.parser.ConfdbParser;
 import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;
@@ -78,10 +79,9 @@ import org.araqne.logdb.query.parser.JsonFileParser;
 import org.araqne.logdb.query.parser.JsonParser;
 import org.araqne.logdb.query.parser.LimitParser;
 import org.araqne.logdb.query.parser.LoadParser;
-import org.araqne.logdb.query.parser.CheckTableParser;
-import org.araqne.logdb.query.parser.SystemCommandParser;
 import org.araqne.logdb.query.parser.LoggerParser;
 import org.araqne.logdb.query.parser.LookupParser;
+import org.araqne.logdb.query.parser.MemLookupParser;
 import org.araqne.logdb.query.parser.MvParser;
 import org.araqne.logdb.query.parser.OutputCsvParser;
 import org.araqne.logdb.query.parser.OutputJsonParser;
@@ -89,6 +89,7 @@ import org.araqne.logdb.query.parser.OutputTxtParser;
 import org.araqne.logdb.query.parser.ParseCsvParser;
 import org.araqne.logdb.query.parser.ParseJsonParser;
 import org.araqne.logdb.query.parser.ParseKvParser;
+import org.araqne.logdb.query.parser.ParseMapParser;
 import org.araqne.logdb.query.parser.ParseParser;
 import org.araqne.logdb.query.parser.ProcParser;
 import org.araqne.logdb.query.parser.PurgeParser;
@@ -101,9 +102,11 @@ import org.araqne.logdb.query.parser.SetParser;
 import org.araqne.logdb.query.parser.SignatureParser;
 import org.araqne.logdb.query.parser.SortParser;
 import org.araqne.logdb.query.parser.StatsParser;
+import org.araqne.logdb.query.parser.SystemCommandParser;
 import org.araqne.logdb.query.parser.TableParser;
 import org.araqne.logdb.query.parser.TextFileParser;
 import org.araqne.logdb.query.parser.TimechartParser;
+import org.araqne.logdb.query.parser.ToJsonParser;
 import org.araqne.logdb.query.parser.TransactionParser;
 import org.araqne.logdb.query.parser.UnionParser;
 import org.araqne.logdb.query.parser.ZipFileParser;
@@ -215,7 +218,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 				EvalcParser.class, SearchParser.class, StatsParser.class, FieldsParser.class, SortParser.class,
 				TimechartParser.class, RenameParser.class, RexParser.class, JsonParser.class, SignatureParser.class,
 				LimitParser.class, SetParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class,
-				ExplodeParser.class, ParseJsonParser.class, ExecParser.class);
+				ExplodeParser.class, ParseJsonParser.class, ExecParser.class, ParseMapParser.class);
 
 		List<QueryCommandParser> parsers = new ArrayList<QueryCommandParser>();
 		for (Class<? extends AbstractQueryCommandParser> clazz : parserClazzes) {
@@ -233,9 +236,10 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new TextFileParser(parserFactoryRegistry));
 		parsers.add(new ZipFileParser(parserFactoryRegistry));
 		parsers.add(new JsonFileParser(parserFactoryRegistry));
-		parsers.add(new OutputCsvParser(useBom));
-		parsers.add(new OutputJsonParser());
-		parsers.add(new OutputTxtParser());
+		parsers.add(new ToJsonParser());
+		parsers.add(new OutputCsvParser(tickService, useBom));
+		parsers.add(new OutputJsonParser(tickService));
+		parsers.add(new OutputTxtParser(tickService));
 		parsers.add(new SystemCommandParser("logdb", metadataService)); // deprecated
 		parsers.add(new SystemCommandParser("system", metadataService));
 		parsers.add(new CheckTableParser("logcheck", tableRegistry, storage, fileServiceRegistry)); // deprecated
@@ -252,6 +256,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new ParseCsvParser());
 		parsers.add(new ProcParser(accountService, queryParserService, procedureRegistry));
 		parsers.add(new RateLimitParser(tickService));
+		parsers.add(new MemLookupParser(lookupRegistry));
+
 		if (allowQueryPurge)
 			parsers.add(new PurgeParser(storage, tableRegistry));
 

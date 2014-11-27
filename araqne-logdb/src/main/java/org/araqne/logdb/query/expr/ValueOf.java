@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class ValueOf extends FunctionExpression {
@@ -28,11 +27,7 @@ public class ValueOf extends FunctionExpression {
 	private Expression key;
 
 	public ValueOf(QueryContext ctx, List<Expression> args) {
-		super("valueof", args);
-		
-		if (args.size() < 2)
-		//	throw new QueryParseException("insufficient-valueof-args", -1);
-			throw new QueryParseException("90860", -1, -1, null);
+		super("valueof", args, 2);
 
 		this.compound = args.get(0);
 		this.key = args.get(1);
@@ -49,8 +44,47 @@ public class ValueOf extends FunctionExpression {
 		try {
 			if (c instanceof Map) {
 				return ((Map<?, ?>) c).get(k);
-			} else if (c instanceof List && k instanceof Integer) {
-				return ((List<?>) c).get((Integer) k);
+			} else {
+				if (c instanceof List && k instanceof Integer) {
+					int index = (Integer) k;
+					return ((List<?>) c).get(index);
+				} else if (c.getClass().isArray() && k instanceof Integer) {
+					int index = (Integer) k;
+					Class<?> cl = c.getClass().getComponentType();
+					if (cl == byte.class) {
+						byte[] arr = (byte[]) c;
+						if (index >= 0 && index < arr.length)
+							return arr[index];
+					} else if (cl == int.class) {
+						int[] arr = (int[]) c;
+						if (index >= 0 && index < arr.length)
+							return arr[index];
+					} else if (cl == long.class) {
+						long[] arr = (long[]) c;
+						if (index >= 0 && index < arr.length)
+							return arr[index];
+					} else if (cl == short.class) {
+						short[] arr = (short[]) c;
+						if (index >= 0 && index < arr.length)
+							return arr[index];
+					} else if (cl == boolean.class) {
+						boolean[] arr = (boolean[]) c;
+						if (index >= 0 && index < arr.length)
+							return arr[index];
+					} else if (cl == double.class) {
+						double[] arr = (double[]) c;
+						if (index >= 0 && index < arr.length)
+							return arr[index];
+					} else if (cl == float.class) {
+						float[] arr = (float[]) c;
+						if (index >= 0 && index < arr.length)
+							return arr[index];
+					} else {
+						Object[] arr = (Object[]) c;
+						if (index >= 0 && index < arr.length)
+							return arr[index];
+					}
+				}
 			}
 		} catch (Throwable t) {
 		}

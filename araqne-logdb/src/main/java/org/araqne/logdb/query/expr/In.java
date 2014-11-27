@@ -23,11 +23,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
+
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
 
-public class In implements Expression {
+public class In extends FunctionExpression {
 	private static abstract class FieldMatcher {
 		public abstract boolean match(Row log, Object o);
 	}
@@ -119,18 +119,14 @@ public class In implements Expression {
 		}
 	}
 
-	private List<Expression> exprs;
 	private Expression field;
 	private List<Expression> values;
 	private List<FieldMatcher> matchers;
 	private Set<String> exactTerms;
 
 	public In(QueryContext ctx, List<Expression> exprs) {
-		if (exprs.size() < 2)
-	//		throw new QueryParseException("insufficient-arguments", -1);
-			throw new QueryParseException("90700", -1, -1, null);
+		super("in", exprs, 2);
 
-		this.exprs = exprs;
 		this.field = exprs.get(0);
 		this.values = exprs.subList(1, exprs.size());
 		this.matchers = new ArrayList<FieldMatcher>(values.size());
@@ -165,10 +161,5 @@ public class In implements Expression {
 		}
 
 		return false;
-	}
-
-	@Override
-	public String toString() {
-		return "in(" + Strings.join(exprs, ", ") + ")";
 	}
 }

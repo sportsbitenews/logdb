@@ -46,7 +46,7 @@ public class WapplesSyslogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "펜타 시큐리티 와플 시스로그를 파싱합니다.";
-		return "Parse penta security wapples web firewall logs.";
+		return "Parse Penta security Wapples web firewall logs.";
 	}
 
 	@Override

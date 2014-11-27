@@ -54,7 +54,7 @@ public class SecureWorksLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "어울림 시큐어웍스 방화벽 로그를 파싱합니다.";
-		return "Oullim SecureWorks";
+		return "Parse Oullim SecureWorks logs.";
 	}
 
 	@Override

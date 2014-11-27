@@ -126,7 +126,7 @@ public class SplitTest {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
-			assertEquals("90770", e.getType());
+			assertEquals("99000", e.getType());
 		}
 	}
 	

@@ -1,5 +1,6 @@
 package org.araqne.logdb.msgbus;
 
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -7,6 +8,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -66,6 +68,29 @@ public class UploadDataHandler {
 		}
 	}
 
+	public List<Map<String, Object>> previewTextFile(Request req, Response resp) throws IOException {
+		String data = (String) req.get("data", true);
+
+		// decode base64 data uri
+		int p = data.indexOf(",");
+		String s = data.substring(p + 1);
+		byte[] b = Base64.decode(s);
+
+		// get preview state
+		PreviewState state = new PreviewState(req);
+
+		MultilineLogExtractor extractor = state.extractor;
+		AtomicLong lastPosition = new AtomicLong();
+
+		// transfer decoded input
+		state.input.write(b);
+
+		ByteArrayInputStream is = new ByteArrayInputStream(state.input.toByteArray());
+		extractor.extract(is, lastPosition);
+
+		return state.previews;			
+	}
+
 	private static class UploadState {
 		public MultilineLogExtractor extractor;
 		public ByteArrayOutputStream input = new ByteArrayOutputStream();
@@ -81,9 +106,8 @@ public class UploadDataHandler {
 
 			DummyLogger logger = new DummyLogger();
 			UploadPipe pipe = new UploadPipe(storage, tableName);
-			this.extractor =
-					newMultilineExtractor(datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset, logger,
-							pipe);
+			this.extractor = newMultilineExtractor(datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset, logger,
+					pipe);
 		}
 
 		private MultilineLogExtractor newMultilineExtractor(String datePattern, String dateFormat, String dateLocale,
@@ -152,6 +176,83 @@ public class UploadDataHandler {
 					storage.write(tableLogs);
 				} catch (InterruptedException e) {
 					slog.warn("storage.write interrupted", e);
+				}
+		}
+	}
+
+	private static class PreviewState {
+		public MultilineLogExtractor extractor;
+		public ByteArrayOutputStream input = new ByteArrayOutputStream();
+		public List<Map<String, Object>> previews = new ArrayList<Map<String, Object>>();
+
+		public PreviewState(Request req) {
+			String datePattern = (String) req.get("date_pattern");
+			String dateFormat = (String) req.get("date_format");
+			String dateLocale = (String) req.get("date_locale");
+			String beginRegex = (String) req.get("begin_regex");
+			String endRegex = (String) req.get("end_regex");
+			String charset = (String) req.get("charset", true);
+
+			DummyLogger logger = new DummyLogger();
+			PreviewPipe pipe = new PreviewPipe(previews);
+			this.extractor = newMultilineExtractor(datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset, logger,
+					pipe);
+		}
+
+		private MultilineLogExtractor newMultilineExtractor(String datePattern, String dateFormat, String dateLocale,
+				String beginRegex, String endRegex, String charset, DummyLogger logger, PreviewPipe pipe) {
+
+			MultilineLogExtractor extractor = new MultilineLogExtractor(logger, pipe);
+			if (datePattern != null)
+				extractor.setDateMatcher(Pattern.compile(datePattern).matcher(""));
+
+			if (dateLocale == null)
+				dateLocale = "en";
+
+			if (dateFormat != null)
+				extractor.setDateFormat(new SimpleDateFormat(dateFormat, new Locale(dateLocale)), null);
+
+			if (beginRegex != null)
+				extractor.setBeginMatcher(Pattern.compile(beginRegex).matcher(""));
+
+			if (endRegex != null)
+				extractor.setEndMatcher(Pattern.compile(endRegex).matcher(""));
+
+			if (charset == null)
+				charset = "utf-8";
+
+			extractor.setCharset(charset);
+			return extractor;
+		}
+	}
+
+	private static class PreviewPipe implements LogPipe {
+		private List<Map<String, Object>> previews;
+
+		private PreviewPipe(List<Map<String, Object>> previews) {
+			this.previews = previews;
+		}
+
+		@Override
+		public void onLog(Logger logger, org.araqne.log.api.Log log) {
+			if (log == null)
+				return;
+			
+			Map<String, Object> m = log.getParams();
+			m.put("_time", log.getDate());
+			previews.add(m);
+		}
+
+		@Override
+		public void onLogBatch(Logger logger, org.araqne.log.api.Log[] logs) {
+			if (logs == null)
+				return;
+			
+			for (org.araqne.log.api.Log log : logs)
+				if (log != null) {
+					Map<String, Object> m = log.getParams();
+					m.put("_time", log.getDate());
+					previews.add(m);
 				}
 		}
 	}

@@ -38,8 +38,8 @@ public class PlainLineWriter implements LineWriter {
 	private String lineSeparator;
 	private String delimiter;
 
-	public PlainLineWriter(String filePath, List<String> fields, String delimiter, String encoding) throws IOException {
-		this.fos = new FileOutputStream(new File(filePath));
+	public PlainLineWriter(String filePath, List<String> fields, String delimiter, String encoding, boolean append) throws IOException {
+		this.fos = new FileOutputStream(new File(filePath), append);
 		this.bos = new BufferedOutputStream(fos);
 		this.osw = new OutputStreamWriter(bos, Charset.forName(encoding));
 		this.fields = fields;
@@ -48,7 +48,7 @@ public class PlainLineWriter implements LineWriter {
 	}
 
 	@Override
-	public void write(Row m) throws IOException {
+	public synchronized void write(Row m) throws IOException {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 		int n = 0;
 		int last = fields.size() - 1;
@@ -65,7 +65,12 @@ public class PlainLineWriter implements LineWriter {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public synchronized void flush() throws IOException {
+		osw.flush();
+	}
+
+	@Override
+	public synchronized void close() throws IOException {
 		IoHelper.close(osw);
 		IoHelper.close(bos);
 		IoHelper.close(fos);

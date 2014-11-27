@@ -20,10 +20,12 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class IsStr implements Expression {
+public class IsStr extends FunctionExpression {
 	private Expression expr;
 
 	public IsStr(QueryContext ctx, List<Expression> exprs) {
+		super("isstr", exprs, 1);
+		
 		this.expr = exprs.get(0);
 	}
 
@@ -34,10 +36,5 @@ public class IsStr implements Expression {
 			return false;
 
 		return v instanceof String;
-	}
-
-	@Override
-	public String toString() {
-		return "isstr(" + expr + ")";
 	}
 }

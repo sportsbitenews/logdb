@@ -16,14 +16,15 @@
 package org.araqne.log.api;
 
 import java.util.Collection;
+import java.util.Set;
 
 public interface LoggerRegistry {
 	boolean isOpen();
-	
+
 	Collection<Logger> getLoggers();
 
 	Logger getLogger(String fullName);
-	
+
 	Logger getLogger(String namespace, String name);
 
 	void addLogger(Logger logger);
@@ -37,4 +38,12 @@ public interface LoggerRegistry {
 	void addListener(LoggerRegistryEventListener callback);
 
 	void removeListener(LoggerRegistryEventListener callback);
+
+	Set<String> getDependencies(String paramString);
+
+	boolean hasDependency(String fullName, String sourceFullName);
+
+	void addDependency(String fullName, String sourceFullName);
+
+	void removeDependency(String fullName, String sourceFullName);
 }

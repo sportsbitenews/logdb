@@ -328,7 +328,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				OnlineWriter writer = onlineWriters.get(key);
 				if (writer != null) {
 					writer.close();
-					logger.trace("araqne logstorage: removing logger [{}] according to table drop", key);
+					if (logger.isTraceEnabled())
+						logger.trace("araqne logstorage: removing logger [{}] according to table drop", key);
 					onlineWriters.remove(key);
 				}
 			}
@@ -739,7 +740,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 		while (true) {
 			if (!f.exists() || f.delete()) {
-				logger.trace("araqne logstorage: deleted log file [{}]", f.getAbsolutePath());
+				if (logger.isTraceEnabled())
+					logger.trace("araqne logstorage: deleted log file [{}]", f.getAbsolutePath());
 				return true;
 			}
 
@@ -1071,7 +1073,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				this.flushAll = false;
 				for (OnlineWriterKey key : onlineWriters.keySet()) {
 					OnlineWriter writer = onlineWriters.get(key);
-					if (writer == null || writer.isClosed())
+					if (writer == null || writer.isClosed() || !writer.isReady())
 						continue;
 					boolean doFlush =
 							writer.isCloseReserved() || ((now - writer.getLastFlush().getTime()) > flushInterval);
@@ -1300,7 +1302,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 					if (builder != null)
 						parser = builder.build();
 
-					logger.trace("araqne logstorage: {} logs in writer buffer.", buffer.size());
+					if (logger.isTraceEnabled())
+						logger.trace("araqne logstorage: {} logs in writer buffer.", buffer.size());
+					
 					List<Log> logs = new ArrayList<Log>(buffer.size());
 					ListIterator<Log> li = buffer.listIterator(buffer.size());
 
@@ -1348,7 +1352,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 			if (e.getMessage().contains("license is locked"))
 				logger.warn("araqne logstorage: search tablet failed. {}", e.getMessage());
-			else
+			else if (logger.isTraceEnabled())
 				logger.trace("araqne logstorage: search tablet failed. logfile may be not synced yet", e);
 		} catch (BufferUnderflowException e) {
 			c.setFailure(e);

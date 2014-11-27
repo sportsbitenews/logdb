@@ -46,7 +46,7 @@ public class DbSaferLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "피엔피시큐어 디비세이퍼의 로그를 파싱합니다.";
-		return "Parse Pnp secure DBSAFER logs.";
+		return "Parse PNP Secure DBSAFER logs.";
 	}
 
 	@Override

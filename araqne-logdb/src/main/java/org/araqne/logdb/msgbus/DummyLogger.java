@@ -2,6 +2,7 @@ package org.araqne.logdb.msgbus;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
 
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogPipe;
@@ -227,5 +228,23 @@ class DummyLogger implements Logger {
 	@Override
 	public LoggerFactory getFactory() {
 		return null;
+	}
+
+	@Override
+	public Set<String> getUnresolvedLoggers() {
+		return null;
+	}
+
+	@Override
+	public boolean hasUnresolvedLoggers() {
+		return false;
+	}
+
+	@Override
+	public void addUnresolvedLogger(String fullName) {
+	}
+
+	@Override
+	public void removeUnresolvedLogger(String fullName) {
 	}
 }

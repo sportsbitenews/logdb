@@ -7,10 +7,12 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class ToIp implements Expression {
+public class ToIp extends FunctionExpression {
 	private Expression valueExpr;
 
 	public ToIp(QueryContext ctx, List<Expression> exprs) {
+		super("ip", exprs, 1);
+		
 		this.valueExpr = exprs.get(0);
 	}
 
@@ -28,11 +30,6 @@ public class ToIp implements Expression {
 		} catch (UnknownHostException e) {
 			return null;
 		}
-	}
-
-	@Override
-	public String toString() {
-		return "ip(" + valueExpr + ")";
 	}
 
 }

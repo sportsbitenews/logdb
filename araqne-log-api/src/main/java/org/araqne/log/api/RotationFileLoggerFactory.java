@@ -58,7 +58,7 @@ public class RotationFileLoggerFactory extends AbstractLoggerFactory {
 			return "一定周期で他の経路にバックアップしたあと削除し、書き換えるログファイルを収集します。";
 		if(locale != null && locale.equals(Locale.CHINESE))
 			return "采集定期备份到其他路径之后删除并重新写的日志文件。";
-		return "collect rotation text log file";
+		return "Collect rotation text log files";
 	}
 
 	@Override
@@ -85,7 +85,7 @@ public class RotationFileLoggerFactory extends AbstractLoggerFactory {
 		LoggerConfigOption charset = new StringConfigType("charset", t("Charset", "문자 집합", "文字セット", "字符集"), t("Charset",
 				"문자 집합. 기본값 UTF-8", "文字セット。基本値はutf-8", "字符集，默认值为UTF-8"), false, t("utf-8"));
 
-		LoggerConfigOption timezone = new StringConfigType("timezone", t("Time zone", "시간대","時間帯", "时区"), t("time zone, e.g. America/New_york ",
+		LoggerConfigOption timezone = new StringConfigType("timezone", t("Time zone", "시간대","時間帯", "时区"), t("Time zone, e.g. America/New_york ",
 				"시간대, 예를 들면 KST 또는 Asia/Seoul","時間帯。例えばJSTまたはAsia/Tokyo", "时区， 例如 Asia/Beijing"), false);
 		
 		LoggerConfigOption logBeginRegex = new StringConfigType("begin_regex", t("Log begin regex", "로그 시작 구분 정규식", "ログ始め正規表現", "日志起始正则表达式"),

@@ -66,6 +66,22 @@ public class TextFileParser extends AbstractQueryCommandParser {
 			int limit = 0;
 			if (options.containsKey("limit"))
 				limit = Integer.valueOf(options.get("limit"));
+			
+			String brex = null;
+			if (options.containsKey("brex"))
+				brex = options.get("brex");
+			
+			String df = null;
+			if (options.containsKey("df"))
+				df = options.get("df");
+			
+			String dp = null;
+			if (options.containsKey("dp"))
+				dp = options.get("dp");
+			
+			String cs = "utf-8";
+			if (options.containsKey("cs"))
+				cs = options.get("cs");
 
 			File f = new File(filePath);
 			if (!f.exists() || !f.canRead()){
@@ -86,7 +102,7 @@ public class TextFileParser extends AbstractQueryCommandParser {
 				parser = factory.createParser(options);
 			}
 
-			return new TextFile(filePath, parser, offset, limit);
+			return new TextFile(filePath, parser, offset, limit, brex, df, dp, cs);
 		}catch(QueryParseException t){
 			throw t;
 		}catch (Throwable t) {

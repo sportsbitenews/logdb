@@ -27,7 +27,7 @@ public class IndexOf extends FunctionExpression {
 	private Expression fromIndexExpr;
 
 	public IndexOf(QueryContext ctx, List<Expression> exprs) {
-		super("indexof", exprs);
+		super("indexof", exprs, 2);
 		
 		this.targetExpr = exprs.get(0);
 		this.needleExpr = exprs.get(1);
