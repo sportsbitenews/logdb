@@ -118,7 +118,7 @@ public class LocalFileOutputStream extends StorageOutputStream {
 		target.seek(p);
 	}
 
-	public RandomAccessFile getRandomAceessFile() {
+	public RandomAccessFile getRandomAccessFile() {
 		return target;
 	}
 }
