@@ -61,15 +61,22 @@ public class Timechart extends QueryCommand {
 	// key field name ('by' clause of command)
 	private String keyField;
 
-	public Timechart(List<AggregationField> fields, String keyField, TimeSpan timeSpan) {
+	private boolean pivot;
+
+	public Timechart(List<AggregationField> fields, String keyField, TimeSpan timeSpan, boolean pivot) {
 		this.fields = fields;
 		this.keyField = keyField;
 		this.timeSpan = timeSpan;
+		this.pivot = pivot;
 
 		// set up clone templates
 		this.funcs = new AggregationFunction[fields.size()];
 		for (int i = 0; i < fields.size(); i++)
 			this.funcs[i] = fields.get(i).getFunction();
+	}
+
+	public Timechart(List<AggregationField> fields, String keyField, TimeSpan timeSpan) {
+		this(fields, keyField, timeSpan, false);
 	}
 
 	@Override
@@ -321,7 +328,7 @@ public class Timechart extends QueryCommand {
 
 				// write to next pipeline
 				output.put("_time", lastTime);
-				pushPipe(new Row(output));
+				pushPipe(new Row(output), pivot);
 				output = new HashMap<String, Object>();
 
 				// change merge set
@@ -350,10 +357,27 @@ public class Timechart extends QueryCommand {
 		if (lastTime != null) {
 			output.put("_time", lastTime);
 			setOutputAndReset(output, fs, lastKeyFieldValue);
-			pushPipe(new Row(output));
+			pushPipe(new Row(output), pivot);
 		}
 	}
-
+	
+	private void pushPipe(Row r, boolean pivot) {
+		if (pivot) {
+			Object _time = r.get("_time");
+			for (Map.Entry<String, Object> e: r.map().entrySet()) {
+				HashMap<String, Object> m = new HashMap<String, Object>();
+				if (e.getKey().equals("_time"))
+					continue;
+				m.put("_time", _time);
+				m.put("key", e.getKey());
+				m.put("value", e.getValue());
+				pushPipe(new Row(m));
+			}
+		} else {
+			pushPipe(r);
+		}
+	}
+	
 	private void setOutputAndReset(Map<String, Object> output, AggregationFunction[] fs, String keyFieldValue) {
 		if (keyField != null) {
 			if (fs.length > 1) {
