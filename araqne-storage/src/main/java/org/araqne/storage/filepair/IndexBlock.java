@@ -13,6 +13,10 @@ public abstract class IndexBlock<Derived extends IndexBlock<Derived>> {
 	public abstract boolean isReserved();
 
 	public abstract long getPosOnData();
+	
+	public boolean hasEndPosOnData() { return false; }
+	
+	public long getEndPosOnData() { return -1; }
 
 	public abstract int getBlockSize();
 
