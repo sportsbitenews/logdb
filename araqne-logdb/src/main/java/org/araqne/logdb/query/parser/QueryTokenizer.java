@@ -437,5 +437,17 @@ public class QueryTokenizer {
 			return null;
 		}
 	}
+	
+	public static boolean isTrue(String value) {
+		String v = toLower(value);
+		return "t".equals(v) || "true".equals(v) || "1".equals(v);
+	}
+
+	private static String toLower(String value) {
+		if (value == null)
+			return null;
+		else
+			return value.toLowerCase();
+	}
 
 }

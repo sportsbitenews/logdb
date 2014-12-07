@@ -41,7 +41,7 @@ public class IndexBlockV3Header extends IndexBlock<IndexBlockV3Header>{
 	// except this block's log count
 	public long ascLogCount;
 	public long dscLogCount;
-	private long dataBlockLen;
+	private Long dataBlockLen;
 
 	// for unserialize
 	public IndexBlockV3Header() {
@@ -139,7 +139,7 @@ public class IndexBlockV3Header extends IndexBlock<IndexBlockV3Header>{
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (int) (ascLogCount ^ (ascLogCount >>> 32));
-		result = prime * result + (int) (dataBlockLen ^ (dataBlockLen >>> 32));
+		result = prime * result + ((dataBlockLen == null) ? 0 : dataBlockLen.hashCode());
 		result = prime * result + (int) (dataFp ^ (dataFp >>> 32));
 		result = prime * result + (int) (dscLogCount ^ (dscLogCount >>> 32));
 		result = prime * result + (int) (firstId ^ (firstId >>> 32));
@@ -163,7 +163,10 @@ public class IndexBlockV3Header extends IndexBlock<IndexBlockV3Header>{
 		IndexBlockV3Header other = (IndexBlockV3Header) obj;
 		if (ascLogCount != other.ascLogCount)
 			return false;
-		if (dataBlockLen != other.dataBlockLen)
+		if (dataBlockLen == null) {
+			if (other.dataBlockLen != null)
+				return false;
+		} else if (!dataBlockLen.equals(other.dataBlockLen))
 			return false;
 		if (dataFp != other.dataFp)
 			return false;
@@ -203,7 +206,9 @@ public class IndexBlockV3Header extends IndexBlock<IndexBlockV3Header>{
 			return false;
 		if (dataFp != other.dataFp)
 			return false;
-		if (dataBlockLen != other.dataBlockLen)
+		if (dataBlockLen == null || other.dataBlockLen == null) {
+			throw new IllegalArgumentException("not nullable item: dataBlockLen");
+		} else if (!dataBlockLen.equals(other.dataBlockLen))
 			return false;
 		return true;
 	}

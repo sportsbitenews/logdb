@@ -161,4 +161,9 @@ public class HDFSFileInputStream extends StorageInputStream {
 		return stream.available();
 	}
 
+	@Override
+	public void sync() throws IOException {
+		stream.getFileDescriptor().sync();
+	}
+
 }
