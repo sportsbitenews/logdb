@@ -21,7 +21,8 @@ public abstract class DriverQueryCommand extends QueryCommand {
 
 	@Override
 	public QueryTask getMainTask() {
-		return task;
+		// support optional driver mode
+		return isDriver() ? task : null;
 	}
 
 	@Override
