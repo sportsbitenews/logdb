@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
@@ -27,11 +28,12 @@ public class Contains extends FunctionExpression {
 
 	public Contains(QueryContext ctx, List<Expression> exprs) {
 		super("contains", exprs, 2);
-		
+
 		this.targetExpr = exprs.get(0);
 		this.needleExpr = exprs.get(1);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object eval(Row row) {
 		Object o1 = targetExpr.eval(row);
@@ -39,6 +41,24 @@ public class Contains extends FunctionExpression {
 
 		if (o1 == null || o2 == null)
 			return false;
+
+		if (o1 instanceof ArrayList) {
+			List<Object> l1 = (List<Object>) o1;
+			if (!(o2 instanceof ArrayList)) {
+				for (Object o : l1) {
+					if (o.equals(o2))
+						return true;
+				}
+				return false;
+			} else {
+				List<Object> l2 = (List<Object>) o2;
+				for (Object o : l1) {
+					if (o.equals(l2))
+						return true;
+				}
+				return false;
+			}
+		}
 
 		String target = o1.toString();
 		String needle = o2.toString();

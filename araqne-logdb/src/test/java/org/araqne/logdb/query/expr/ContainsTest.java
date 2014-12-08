@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 
@@ -26,5 +26,14 @@ public class ContainsTest {
 		assertEquals(false, FunctionUtil.parseExpr("contains(\"bar\", \"o\")").eval(null));
 		assertEquals(false, FunctionUtil.parseExpr("contains(\"baz\", int(\"invalid\"))").eval(null));
 		assertEquals(false, FunctionUtil.parseExpr("contains(int(\"invalid\"), int(\"invalid\"))").eval(null));
+	}
+
+	@Test
+	public void testArray() {
+		assertTrue((Boolean) FunctionUtil.parseExpr("contains(\"stabcnia\", \"abc\"").eval(null));
+		assertTrue((Boolean) FunctionUtil.parseExpr("contains(array(\"1\",\"abc\",\"2\"), \"abc\"").eval(null));
+		assertFalse((Boolean) FunctionUtil.parseExpr("contains(array(\"1\",\"abc\",\"2\"), array(\"abc\",\"2\"))").eval(null));
+		assertTrue((Boolean) FunctionUtil.parseExpr("contains(array(\"1\",array(\"abc\",\"2\"),\"2\"), array(\"abc\",\"2\"))")
+				.eval(null));
 	}
 }
