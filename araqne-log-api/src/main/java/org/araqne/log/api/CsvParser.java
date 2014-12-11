@@ -65,6 +65,8 @@ public class CsvParser {
 					containEscape = false;
 				}
 				values.add(value);
+				startIndex = i + 1;
+				endIndex = i + 1;
 				openChar = false;
 			} else {
 				if (!openQuote && !openChar) {

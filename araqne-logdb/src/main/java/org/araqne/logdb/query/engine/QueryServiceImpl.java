@@ -64,6 +64,7 @@ import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
 import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.parser.BoxPlotParser;
+import org.araqne.logdb.query.parser.BypassParser;
 import org.araqne.logdb.query.parser.CheckTableParser;
 import org.araqne.logdb.query.parser.ConfdbParser;
 import org.araqne.logdb.query.parser.DropParser;
@@ -257,6 +258,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new ProcParser(accountService, queryParserService, procedureRegistry));
 		parsers.add(new RateLimitParser(tickService));
 		parsers.add(new MemLookupParser(lookupRegistry));
+		parsers.add(new BypassParser());
 
 		if (allowQueryPurge)
 			parsers.add(new PurgeParser(storage, tableRegistry));
