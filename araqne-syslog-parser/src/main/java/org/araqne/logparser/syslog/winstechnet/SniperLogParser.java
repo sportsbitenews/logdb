@@ -15,16 +15,13 @@
  */
 package org.araqne.logparser.syslog.winstechnet;
 
-import java.text.ParsePosition;
-import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.V1LogParser;
 
 public class SniperLogParser extends V1LogParser {
-	private SimpleDateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-
+	
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
 		String line = (String) params.get("line");
@@ -33,7 +30,10 @@ public class SniperLogParser extends V1LogParser {
 		HashMap<String, Object> m = new HashMap<String, Object>();
 
 		int s = 0, e = 0;
+		int a = line.indexOf("[") + 1;
 		int b = line.indexOf("] [") + 3;
+		
+		m.put("host_name", line.substring(a, b - 3));
 
 		boolean eof = false;
 		while (!eof) {
@@ -48,10 +48,7 @@ public class SniperLogParser extends V1LogParser {
 			String valueToken = line.substring(s + 1, e);
 			Object value = valueToken;
 
-			if (key.equals("Time")) {
-				key = "_time";
-				value = df.parse(valueToken, new ParsePosition(0));
-			} else if (key.equals("Information"))
+			if (key.equals("Information"))
 				key = "info";
 			else if (key.equals("SrcPort")) {
 				key = "src_port";
