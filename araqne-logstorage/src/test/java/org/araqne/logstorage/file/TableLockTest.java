@@ -16,7 +16,7 @@ import org.araqne.logstorage.LockStatus;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogUtil;
-import org.araqne.logstorage.TableLock;
+import org.araqne.logstorage.TableLockImpl;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -25,11 +25,11 @@ import org.mockito.stubbing.Answer;
 public class TableLockTest {
 
 	static LogStorage ls = mock(LogStorage.class);
-	static TableLock lock;
+	static TableLockImpl lock;
 
 	@BeforeClass
 	public static void setup() throws InterruptedException {
-		lock = new TableLock();
+		lock = new TableLockImpl(0);
 		when(ls.lock(any(LockKey.class), any(String.class), any(Long.class), any(TimeUnit.class))).thenAnswer(
 				new Answer<Boolean>() {
 					@Override

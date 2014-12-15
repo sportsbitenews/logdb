@@ -29,6 +29,7 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
+import org.araqne.logdb.query.parser.CommandOptions;
 import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 
@@ -58,17 +59,19 @@ public class EvtCtxDropParser extends AbstractQueryCommandParser {
 
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("topic"),
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("topic", "all"),
 				getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
+		boolean dropAll = CommandOptions.parseBoolean(options.get("all"));
 		String topic = options.get("topic");
-		if (topic == null)
+		if (!dropAll && topic == null)
 			throw new QueryParseException("missing-evtctxdrop-topic", -1);
+		
 
 		EventContextStorage storage = eventContextService.getStorage("mem");
-		return new EvtCtxDropCommand(storage, topic);
+		return new EvtCtxDropCommand(storage, topic, dropAll);
 	}
 
 }

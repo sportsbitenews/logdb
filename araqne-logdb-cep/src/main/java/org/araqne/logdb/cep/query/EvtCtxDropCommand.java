@@ -21,10 +21,12 @@ import org.araqne.logdb.cep.EventContextStorage;
 public class EvtCtxDropCommand extends QueryCommand {
 	private EventContextStorage storage;
 	private String topic;
+	private boolean dropAll;
 
-	public EvtCtxDropCommand(EventContextStorage storage, String topic) {
+	public EvtCtxDropCommand(EventContextStorage storage, String topic, boolean dropAll) {
 		this.storage = storage;
 		this.topic = topic;
+		this.dropAll = dropAll;
 	}
 
 	@Override
@@ -34,6 +36,17 @@ public class EvtCtxDropCommand extends QueryCommand {
 
 	@Override
 	public void onStart() {
-		storage.clearContexts(topic);
+		if (dropAll)
+			storage.clearContexts();
+		else
+			storage.clearContexts(topic);
+	}
+
+	@Override
+	public String toString() {
+		if (dropAll)
+			return "evtctxdrop all=t";
+		else
+			return "evtctxdrop topic=" + topic;
 	}
 }

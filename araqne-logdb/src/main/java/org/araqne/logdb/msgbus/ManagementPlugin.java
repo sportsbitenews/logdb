@@ -57,6 +57,8 @@ import org.araqne.msgbus.MsgbusException;
 import org.araqne.msgbus.Request;
 import org.araqne.msgbus.Response;
 import org.araqne.msgbus.Session;
+import org.araqne.msgbus.Token;
+import org.araqne.msgbus.TokenApi;
 import org.araqne.msgbus.handler.AllowGuestAccess;
 import org.araqne.msgbus.handler.CallbackType;
 import org.araqne.msgbus.handler.MsgbusMethod;
@@ -89,6 +91,9 @@ public class ManagementPlugin {
 	@Requires
 	private ConfigService conf;
 
+	@Requires
+	private TokenApi tokenApi;
+
 	private UploadDataHandler uploadDataHandler = new UploadDataHandler();
 
 	@AllowGuestAccess
@@ -99,10 +104,25 @@ public class ManagementPlugin {
 		if (session.get("araqne_logdb_session") != null)
 			throw new MsgbusException("logdb", "already-logon");
 
-		String loginName = req.getString("login_name", true);
-		String password = req.getString("password", true);
+		org.araqne.logdb.Session dbSession = null;
+		String loginName = null;
 
-		org.araqne.logdb.Session dbSession = accountService.login(loginName, password);
+		// authenticate using msgbus token api
+		String t = req.getString("token");
+		if (t != null) {
+			Token token = tokenApi.getToken(t);
+			if (token == null || (token.getData() == null || !token.getData().toString().equals("logdb-auth-token")))
+				throw new MsgbusException("logdb", "invalid-token");
+
+			tokenApi.removeToken(t);
+
+			loginName = token.getSession().getAdminLoginName();
+			dbSession = accountService.newSession(loginName);
+		} else {
+			loginName = req.getString("login_name", true);
+			String password = req.getString("password", true);
+			dbSession = accountService.login(loginName, password);
+		}
 
 		if (session.getOrgDomain() == null && session.getAdminLoginName() == null) {
 			session.setProperty("org_domain", "localhost");

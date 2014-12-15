@@ -18,20 +18,8 @@ package org.araqne.logstorage.engine;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.ConcurrentModificationException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -55,33 +43,7 @@ import org.araqne.confdb.Predicates;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
-import org.araqne.logstorage.CachedRandomSeeker;
-import org.araqne.logstorage.CallbackSet;
-import org.araqne.logstorage.DateUtil;
-import org.araqne.logstorage.LockKey;
-import org.araqne.logstorage.LockStatus;
-import org.araqne.logstorage.Log;
-import org.araqne.logstorage.LogMarshaler;
-import org.araqne.logstorage.LogCallback;
-import org.araqne.logstorage.LogCursor;
-import org.araqne.logstorage.LogFileService;
-import org.araqne.logstorage.LogFileServiceEventListener;
-import org.araqne.logstorage.LogFileServiceRegistry;
-import org.araqne.logstorage.LogRetentionPolicy;
-import org.araqne.logstorage.LogStorage;
-import org.araqne.logstorage.LogStorageEventListener;
-import org.araqne.logstorage.LogStorageStatus;
-import org.araqne.logstorage.LogTableRegistry;
-import org.araqne.logstorage.LogTraverseCallback;
-import org.araqne.logstorage.LogWriterStatus;
-import org.araqne.logstorage.ReplicaStorageConfig;
-import org.araqne.logstorage.ReplicationMode;
-import org.araqne.logstorage.SimpleLogTraverseCallback;
-import org.araqne.logstorage.TableEventListener;
-import org.araqne.logstorage.TableNotFoundException;
-import org.araqne.logstorage.TableSchema;
-import org.araqne.logstorage.UnsupportedLogFileTypeException;
-import org.araqne.logstorage.WriterPreparationException;
+import org.araqne.logstorage.*;
 import org.araqne.logstorage.file.DatapathUtil;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV2;
@@ -126,6 +88,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	private CopyOnWriteArraySet<LogCallback> callbacks;
 
 	private CallbackSet callbackSet;
+	private CallbackSet fallbackSet;
 
 	// sweeping and flushing data
 	private WriterSweeper writerSweeper;
@@ -153,6 +116,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		lastIds = new ConcurrentHashMap<OnlineWriterKey, AtomicLong>();
 		writerSweeper = new WriterSweeper(checkInterval, maxIdleTime, flushInterval);
 		callbacks = new CopyOnWriteArraySet<LogCallback>();
+		fallbackSet = new CallbackSet();
 		callbackSet = new CallbackSet();
 		tableNameCache = new ConcurrentHashMap<String, Integer>();
 
@@ -524,8 +488,10 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				Lock lock = tableRegistry.getSharedTableLock(k.getTableName());
 				if (lock.tryLock(waitFor, tu))
 					locks.put(k, lock);
-				else
+				else {
+					
 					return false;
+				}
 			}
 			// write data
 			for (Entry<OnlineWriterKey, List<Log>> e : keyLogs.entrySet()) {
@@ -1004,6 +970,16 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	@Override
 	public <T> void removeEventListener(Class<T> clazz, T listener) {
 		callbackSet.get(clazz).remove(listener);
+	}
+	
+	@Override
+	public <T> void addFallback(Class<T> clazz, T fallback) {
+		fallbackSet.get(clazz).add(fallback);
+	}
+	
+	@Override
+	public <T> void removeFallback(Class<T> clazz, T fallback) {
+		fallbackSet.get(clazz).remove(fallback);
 	}
 
 	private class WriterSweeper implements Runnable {
