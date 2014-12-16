@@ -40,6 +40,7 @@ import org.araqne.logdb.writer.GzipLineWriterFactory;
 import org.araqne.logdb.writer.LineWriter;
 import org.araqne.logdb.writer.LineWriterFactory;
 import org.araqne.logdb.writer.PlainLineWriterFactory;
+import org.araqne.logdb.writer.RowOutputStreamWriterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,9 +71,9 @@ public class OutputTxt extends QueryCommand {
 
 	private LineWriter writer;
 	private LineWriterFactory writerFactory;
-
+	
 	public OutputTxt(File f, String filePath, String tmpPath, boolean overwrite, String delimiter, List<String> fields,
-			boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders, boolean append,
+			boolean useRowFlush, boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders, boolean append,
 			TimeSpan flushInterval, TickService tickService) {
 		try {
 			this.usePartition = usePartition;
@@ -86,8 +87,10 @@ public class OutputTxt extends QueryCommand {
 			this.fields = fields.toArray(new String[0]);
 			this.append = append;
 			this.flushInterval = flushInterval;
-
-			if (useGzip)
+			
+			if (useRowFlush)
+				writerFactory = new RowOutputStreamWriterFactory(fields, encoding, append, delimiter);
+			else if (useGzip)
 				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding, append);
 			else
 				writerFactory = new PlainLineWriterFactory(fields, delimiter, encoding, append);
