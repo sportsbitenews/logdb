@@ -130,8 +130,7 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 		if (!usePartition && txtFile.getParentFile() != null)
 			txtFile.getParentFile().mkdirs();
 		
-		// TODO I'll fix 7th parameter
-		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, true, useGzip, encoding, usePartition, holders,
+		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders,
 				append, flushInterval, tickService);
 	}
 }
