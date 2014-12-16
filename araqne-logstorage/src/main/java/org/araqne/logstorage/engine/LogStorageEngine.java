@@ -408,17 +408,24 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		int tryCnt = 0;
 		int tryCntLimit = 2;
 		for (; tryCnt < tryCntLimit; tryCnt++) {
-			Lock lock = null;
+			TableLock tl = tableRegistry.getSharedTableLock(tableName);
+			BackOffLock bol = new BackOffLock(tl);
 			try {
-				lock = tableRegistry.getSharedTableLock(tableName);
-				boolean locked = lock.tryLock(waitFor, tu);
-				if (locked) {
-					OnlineWriter writer = loadOnlineWriter(tableName, log.getDate());
-					writer.write(log);
-					break;
-				} else {
+				do {
+					boolean locked = bol.tryLock();
+					if (locked) {
+						OnlineWriter writer = loadOnlineWriter(tableName, log.getDate());
+						writer.write(log);
+						break;
+					} else {
+						if (callWriteFallback(Arrays.asList(log), tl))
+							return true;
+					}
+				} while (!bol.isDone());
+				if (!bol.hasLocked())
 					return false;
-				}
+				else
+					break;
 			} catch (WriterPreparationException ex) {
 				continue;
 			} catch (TimeoutException ex) {
@@ -431,9 +438,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 				throw new IllegalStateException("cannot write log: " + tableName + ", " + log.getDate());
 			} finally {
-				if (lock != null) {
-					lock.unlock();
-				}
+				bol.unlock();
 			}
 		}
 
@@ -447,15 +452,18 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 		// invoke log callbacks
 		List<Log> one = Arrays.asList(log);
-		for (LogCallback callback : callbacks) {
-			try {
-				callback.onLogBatch(log.getTableName(), one);
-			} catch (Exception e) {
-				logger.warn("araqne logstorage: log callback should not throw any exception", e);
-			}
-		}
+		invokeLogCallbacks(log.getTableName(), one);
 
 		return true;
+	}
+
+	private boolean callWriteFallback(List<Log> logs, TableLock tl) {
+		for (WriteFallback fb: fallbackSet.get(WriteFallback.class)) {
+			int handled = fb.onLockFailure(tl, logs);
+			if (handled == logs.size())
+				return true;
+		}
+		return false;
 	}
 
 	@Override
@@ -481,26 +489,34 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			l.add(log);
 		}
 
-		HashMap<OnlineWriterKey, Lock> locks = new HashMap<OnlineWriterKey, Lock>();
+		HashMap<OnlineWriterKey, BackOffLock> locks = new HashMap<OnlineWriterKey, BackOffLock>();
 
 		try {
 			for (OnlineWriterKey k : keyLogs.keySet()) {
-				Lock lock = tableRegistry.getSharedTableLock(k.getTableName());
-				if (lock.tryLock(waitFor, tu))
-					locks.put(k, lock);
-				else {
-					
-					return false;
-				}
+				TableLock lock = tableRegistry.getSharedTableLock(k.getTableName());
+				BackOffLock bol = new BackOffLock(lock, waitFor, tu);
+				do {
+					boolean locked = bol.tryLock();
+					if (locked) {
+						locks.put(k, bol);
+					} else {
+						if (callWriteFallback(keyLogs.get(k), lock))
+							break;
+					}
+				} while (!bol.isDone());
 			}
 			// write data
 			for (Entry<OnlineWriterKey, List<Log>> e : keyLogs.entrySet()) {
 				OnlineWriterKey writerKey = e.getKey();
 				String tableName = writerKey.getTableName();
 				List<Log> l = e.getValue();
+				
+				if (!locks.containsKey(writerKey))
+					continue;
 
 				int tryCnt = 0;
 				int tryCntLimit = 2;
+
 				for (; tryCnt < tryCntLimit; tryCnt++) {
 					try {
 						OnlineWriter writer = loadOnlineWriter(writerKey.getTableName(), writerKey.getDay());
@@ -532,24 +548,28 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 							+ "]: retry count exceeded");
 				}
 
-				// invoke log callbacks
-				for (LogCallback callback : callbacks) {
-					try {
-						callback.onLogBatch(writerKey.getTableName(), l);
-					} catch (Exception ex) {
-						logger.warn("araqne logstorage: log callback should not throw any exception", ex);
-					}
-				}
+				invokeLogCallbacks(writerKey.getTableName(), l);
 			}
 		} catch (RuntimeException e) {
 			logger.error("unexpected exception", e);
 			throw e;
 		} finally {
-			for (Lock l : locks.values()) {
+			for (BackOffLock l : locks.values()) {
 				l.unlock();
 			}
 		}
 		return true;
+	}
+
+	private void invokeLogCallbacks(String tableName, List<Log> l) {
+		// invoke log callbacks
+		for (LogCallback callback : callbacks) {
+			try {
+				callback.onLogBatch(tableName, l);
+			} catch (Exception ex) {
+				logger.warn("araqne logstorage: log callback should not throw any exception", ex);
+			}
+		}
 	}
 
 	@Override
@@ -971,12 +991,12 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	public <T> void removeEventListener(Class<T> clazz, T listener) {
 		callbackSet.get(clazz).remove(listener);
 	}
-	
+
 	@Override
 	public <T> void addFallback(Class<T> clazz, T fallback) {
 		fallbackSet.get(clazz).add(fallback);
 	}
-	
+
 	@Override
 	public <T> void removeFallback(Class<T> clazz, T fallback) {
 		fallbackSet.get(clazz).remove(fallback);
@@ -1280,7 +1300,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 					if (logger.isTraceEnabled())
 						logger.trace("araqne logstorage: {} logs in writer buffer.", buffer.size());
-					
+
 					List<Log> logs = new ArrayList<Log>(buffer.size());
 					ListIterator<Log> li = buffer.listIterator(buffer.size());
 

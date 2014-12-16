@@ -437,7 +437,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	}
 
 	@Override
-	public Lock getExclusiveTableLock(String tableName, String owner, String purpose) {
+	public TableLock getExclusiveTableLock(String tableName, String owner, String purpose) {
 		TableLockImpl tableLock = tableLocks.get(getTableSchema(tableName).getId());
 		if (tableLock == null)
 			throw new TableNotFoundException(tableName);
@@ -446,7 +446,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	}
 
 	@Override
-	public Lock getSharedTableLock(String tableName) {
+	public TableLock getSharedTableLock(String tableName) {
 		TableLockImpl tableLock = tableLocks.get(getTableSchema(tableName).getId());
 		if (tableLock == null)
 			throw new TableNotFoundException(tableName);
