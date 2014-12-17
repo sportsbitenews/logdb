@@ -1756,12 +1756,20 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> c = (Map<String, Object>) m.get("config");
 
 		StreamQueryInfo query = new StreamQueryInfo();
+		
 		query.setName((String) c.get("name"));
 		query.setDescription((String) c.get("description"));
 		query.setInterval((Integer) c.get("interval"));
 		query.setQueryString((String) c.get("query"));
 		query.setOwner((String) c.get("owner"));
-		query.setSourceType((String) c.get("source_type"));
+		String sourceType = (String) c.get("source_type");
+		query.setSourceType(sourceType);
+		if(sourceType.equals("table")) 
+			query.setSources((List<String>) c.get("table"));
+		else if(sourceType.equals("logger")) 
+			query.setSources((List<String>) c.get("logger"));
+		else if (sourceType.equals("stream"))
+			query.setSources((List<String>) c.get("stream"));
 		query.setEnabled((Boolean) c.get("is_enabled"));
 		query.setCreated(df.parse((String) c.get("created"), new ParsePosition(0)));
 		query.setModified(df.parse((String) c.get("modified"), new ParsePosition(0)));
@@ -1866,7 +1874,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		query.setTitle((String) m.get("title"));
 		query.setCronSchedule((String) m.get("cron_schedule"));
 		query.setOwner((String) m.get("owner"));
-		query.setQueryString((String) m.get("query_string"));
+		query.setQueryString((String) m.get("query"));
 		query.setSaveResult((Boolean) m.get("use_save_result"));
 		query.setUseAlert((Boolean) m.get("use_alert"));
 		query.setAlertQuery((String) m.get("alert_query"));
