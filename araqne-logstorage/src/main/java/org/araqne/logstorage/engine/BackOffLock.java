@@ -31,6 +31,7 @@ public class BackOffLock {
 	}
 
 	public BackOffLock(Lock l, long time, TimeUnit unit) {
+		this.lock = l;
 		to = unit.toNanos(time);
 
 		this.min = 0;
