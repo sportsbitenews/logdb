@@ -39,6 +39,7 @@ import org.araqne.logdb.writer.GzipLineWriterFactory;
 import org.araqne.logdb.writer.LineWriter;
 import org.araqne.logdb.writer.LineWriterFactory;
 import org.araqne.logdb.writer.PlainLineWriterFactory;
+import org.araqne.logdb.writer.RowOutputStreamWriterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +64,7 @@ public class OutputTxt extends QueryCommand {
 	private boolean append;
 	private TimeSpan flushInterval;
 	private TickService tickService;
+	private boolean useRowFlush;
 
 	private Map<List<String>, PartitionOutput> outputs;
 	private FileMover mover;
@@ -73,8 +75,9 @@ public class OutputTxt extends QueryCommand {
 
 	@Deprecated
 	public OutputTxt(File f, String filePath, String tmpPath, boolean overwrite, String delimiter, 
-			List<String> fields, 	boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders, 
+			List<String> fields, 	boolean useRowFlush, boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders, 
 			boolean append, TimeSpan flushInterval, TickService tickService) {
+
 		try {
 			this.usePartition = usePartition;
 			this.useGzip = useGzip;
@@ -87,11 +90,14 @@ public class OutputTxt extends QueryCommand {
 		//	this.fields = fields.toArray(new String[0]);
 			this.append = append;
 			this.flushInterval = flushInterval;
-
+						
+			if (useRowFlush)
+				writerFactory = new RowOutputStreamWriterFactory(fields, encoding, append, delimiter);
+			
 			if (useGzip)
 				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding, append);
 			else
-				writerFactory = new PlainLineWriterFactory(fields, delimiter, encoding, append);
+				writerFactory = new PlainLineWriterFactory(fields, encoding, append, delimiter);
 
 			if (flushInterval != null)
 				tickService.addTimer(flushTimer);
@@ -114,7 +120,7 @@ public class OutputTxt extends QueryCommand {
 	}
 	
 	public OutputTxt( String filePath, String tmpPath, boolean overwrite, String delimiter,
-			List<String> fields, boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders,
+			List<String> fields, boolean useRowFlush,  boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders,
 			boolean append, TimeSpan flushInterval, TickService tickService)  {
 		
 			this.usePartition = usePartition;
@@ -128,6 +134,7 @@ public class OutputTxt extends QueryCommand {
 			//this.fields = fields.toArray(new String[0]);
 			this.append = append;
 			this.flushInterval = flushInterval;
+			this.useRowFlush = useRowFlush;
 			
 			if (flushInterval != null)
 				tickService.addTimer(flushTimer);
@@ -163,11 +170,14 @@ public class OutputTxt extends QueryCommand {
 		
 		try {
 		
+			if (useRowFlush)
+				writerFactory = new RowOutputStreamWriterFactory(fields, encoding, append, delimiter);
+			
 			if (useGzip)
 				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding, append);
 			else
-				writerFactory = new PlainLineWriterFactory(fields, delimiter, encoding, append);
-			
+				writerFactory = new PlainLineWriterFactory(fields, encoding, append, delimiter);
+						
 			if (!usePartition) {
 				String path = filePath;
 				if (tmpPath != null)

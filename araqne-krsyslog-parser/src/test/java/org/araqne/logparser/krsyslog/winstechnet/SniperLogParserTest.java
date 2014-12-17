@@ -23,7 +23,6 @@ import java.util.Map;
 import org.junit.Test;
 
 
-
 public class SniperLogParserTest {
 
 	@Test

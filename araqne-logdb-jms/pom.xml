@@ -96,7 +96,11 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logdb</artifactId>
+<<<<<<< HEAD
 			<version>2.4.50</version>
+=======
+			<version>2.4.51</version>
+>>>>>>> master
 		</dependency>
 		<dependency>
 			<groupId>org.apache.activemq</groupId>

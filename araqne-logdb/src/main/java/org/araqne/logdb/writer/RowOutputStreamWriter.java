@@ -30,7 +30,7 @@ import org.araqne.logdb.query.command.IoHelper;
 /**
  * @author mindori
  */
-public class PlainLineWriter implements LineWriter {
+public class RowOutputStreamWriter implements LineWriter {
 	private static final int MAX_ROW_COUNT = 100;
 	private OutputStream fos;
 	private List<Row> rowBuffer;
@@ -40,7 +40,7 @@ public class PlainLineWriter implements LineWriter {
 	private byte[] lineSeparator;
 	private ByteArrayOutputStream bos = new ByteArrayOutputStream(10 * 1024);
 
-	public PlainLineWriter(String filePath, List<String> fields, String encoding, boolean append, String delimiter)
+	public RowOutputStreamWriter(String filePath, List<String> fields, String encoding, boolean append, String delimiter)
 			throws IOException {
 		fos = new FileOutputStream(new File(filePath), append);
 		rowBuffer = new ArrayList<Row>(MAX_ROW_COUNT);

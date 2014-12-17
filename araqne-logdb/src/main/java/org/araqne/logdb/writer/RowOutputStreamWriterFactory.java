@@ -21,13 +21,13 @@ import java.util.List;
 /**
  * @author mindori
  */
-public class PlainLineWriterFactory implements LineWriterFactory {
+public class RowOutputStreamWriterFactory implements LineWriterFactory {
 	private List<String> fields;
 	private String encoding;
 	private String delimiter;
 	private boolean append;
 
-	public PlainLineWriterFactory(List<String> fields, String encoding, boolean append, String delimiter) {
+	public RowOutputStreamWriterFactory(List<String> fields, String encoding, boolean append, String delimiter) {
 		this.fields = fields;
 		this.encoding = encoding;
 		this.append = append;
@@ -36,6 +36,6 @@ public class PlainLineWriterFactory implements LineWriterFactory {
 
 	@Override
 	public LineWriter newWriter(String filePath) throws IOException {
-		return new PlainLineWriter(filePath, fields, encoding, append, delimiter);
+		return new RowOutputStreamWriter(filePath, fields, encoding, append, delimiter);
 	}
 }

@@ -26,7 +26,7 @@ import org.junit.Test;
  * @author kyun
  *
  */
-public class SubStrTest {
+public class SubstrTest {
 
 	@Test
 	public void testSubStr(){

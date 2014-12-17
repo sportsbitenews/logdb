@@ -150,6 +150,7 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 		}
 
 		if (fields.size() == 0)
+
 			//	throw new QueryParseException("missing-field", remainCommandString.length());
 			throw new QueryParseException("30402", getCommandName().length() + 1 , commandString.length() - 1, null) ;
 
@@ -161,7 +162,10 @@ public class OutputTxtParser extends AbstractQueryCommandParser {
 		//			txtFile.getParentFile().mkdirs();
 		//
 		//		return new OutputTxt(txtFile, filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders);
-		return new OutputTxt( filePath, tmpPath, overwrite, delimiter, fields, useGzip, encoding, usePartition, holders,
+		return new OutputTxt( filePath, tmpPath, overwrite, delimiter, 
+				fields, true, useGzip, encoding, usePartition, holders,
 				append, flushInterval, tickService);
 	}
 }
+
+
