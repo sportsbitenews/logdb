@@ -42,6 +42,8 @@ public interface EventContextStorage {
 	void clearClocks();
 
 	void clearContexts();
+	
+	void clearContexts(String topic);
 
 	void addSubscriber(String topic, EventSubscriber subscriber);
 

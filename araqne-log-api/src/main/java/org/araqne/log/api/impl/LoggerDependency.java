@@ -2,11 +2,12 @@ package org.araqne.log.api.impl;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.araqne.confdb.CollectionName;
-import org.araqne.msgbus.Marshalable;
 
+import org.araqne.confdb.CollectionName;
+
+// do not implement msgbus.Marshalable. sentry should not require msgbus bundle.
 @CollectionName("logger_dependencies")
-public class LoggerDependency implements Marshalable {
+public class LoggerDependency {
 	private String logger;
 	private String source;
 

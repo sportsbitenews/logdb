@@ -15,18 +15,38 @@
  */
 package org.araqne.logdb.query.expr;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
+/**
+ * 
+ * @author kyun
+ *
+ */
+public class SubStrTest {
 
-public class SubstrTest {
 	@Test
-	public void testManual() {
-		assertEquals("012", FunctionUtil.parseExpr("substr(\"0123456789\", 0, 3)").eval(null));
-		assertEquals("23", FunctionUtil.parseExpr("substr(\"0123456789\", 2, 4)").eval(null));
-		assertEquals("456789", FunctionUtil.parseExpr("substr(\"0123456789\", 4, 12)").eval(null));
-		assertEquals("", FunctionUtil.parseExpr("substr(\"0123456789\", 5, 5)").eval(null));
-		assertNull(FunctionUtil.parseExpr("substr(\"0123456789\", 10, 11)").eval(null));
-		assertNull(FunctionUtil.parseExpr("substr(int(\"asdf\"), 0, 3)").eval(null));
+	public void testSubStr(){
+		Substr substr = new Substr(null, expr("0123456789", 0, 3));
+		assertEquals("012", substr.eval(null));
+	}
+
+	private List<Expression> expr(Object...object ){
+		List<Expression> expr = new ArrayList<Expression>();
+
+		for(Object o: object){
+			if(o instanceof Expression)
+				expr.add((Expression)o);
+			else if(o instanceof String)
+				expr.add(new StringConstant((String)o));
+			else if(o instanceof Number)
+				expr.add(new NumberConstant((Number)o));
+			else if(o instanceof Boolean)
+				expr.add(new BooleanConstant((Boolean)o));
+		}
+		return expr;
 	}
 }

@@ -15,23 +15,30 @@
  */
 package org.araqne.logdb.query.expr;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
- *
+ * 
  */
 public class ValueOfTest {
-		    
+
 	@Test
-	public void testError90860(){
+	public void testManual() {
+		assertNull(FunctionUtil.parseExpr("valueof(int(\"asdf\"), int(\"asdf\"))").eval(null));
+		assertEquals(2, FunctionUtil.parseExpr("valueof(array(1, 2, 3), 1)").eval(null));
+		assertNull(FunctionUtil.parseExpr("valueof(array(1, 2, 3), \"error\")").eval(null));
+	}
+
+	@Test
+	public void testMissingArgs() {
 		try {
 			new ValueOf(null, expr("test"));
 			fail();
@@ -39,22 +46,25 @@ public class ValueOfTest {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
 			}
-			assertEquals("90860", e.getType());
+			assertEquals("99000", e.getType());
+			assertEquals("valueof", e.getParams().get("name"));
+			assertEquals("2", e.getParams().get("min"));
+			assertEquals("1", e.getParams().get("args"));
 		}
 	}
-	
-	private List<Expression> expr(Object...object ){
+
+	private List<Expression> expr(Object... object) {
 		List<Expression> expr = new ArrayList<Expression>();
 
-		for(Object o: object){
-			if(o instanceof Expression)
-				expr.add((Expression)o);
-			else if(o instanceof String)
-				expr.add(new StringConstant((String)o));
-			else if(o instanceof Number)
-				expr.add(new NumberConstant((Number)o));
-			else if(o instanceof Boolean)
-				expr.add(new BooleanConstant((Boolean)o));
+		for (Object o : object) {
+			if (o instanceof Expression)
+				expr.add((Expression) o);
+			else if (o instanceof String)
+				expr.add(new StringConstant((String) o));
+			else if (o instanceof Number)
+				expr.add(new NumberConstant((Number) o));
+			else if (o instanceof Boolean)
+				expr.add(new BooleanConstant((Boolean) o));
 		}
 
 		return expr;

@@ -272,10 +272,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	public Session newSession(String loginName) {
 		verifyNotNull(loginName, "login name");
 
-		Account account = localAccounts.get(loginName);
-		if (account == null)
-			throw new IllegalStateException("account-not-found");
-
+		Account account = ensureAccount(loginName);
 		return registerSession(account);
 	}
 

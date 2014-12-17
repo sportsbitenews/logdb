@@ -51,11 +51,11 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 	public Class<? extends IndexBlock<?>> getIBClass() {
 		return ibClass;
 	}
-	
+
 	public Class<? extends RawDataBlock<?>> getRDBClass() {
 		return rdbClass;
 	}
-	
+
 	public FilePath getIndexFile() {
 		return ifile;
 	}
@@ -63,7 +63,7 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 	public FilePath getDataFile() {
 		return dfile;
 	}
-	
+
 	public abstract void close() throws IOException;
 
 	public static void main(String[] args) {
@@ -239,12 +239,14 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 			ensureDataFileHeader();
 
 			if (indexBlock.getPosOnData() != dfile.length())
-				throw new CannotAppendBlockException(this + ": unexpected data block position " + indexBlock.getPosOnData()
+				throw new CannotAppendBlockException(this + ": unexpected data block position "
+						+ indexBlock.getPosOnData()
 						+ " (expected: " + dfile.length() + ")");
 
 			long indexPos = getIndexFileHeaderLength() + indexBlock.getBlockSize() * indexBlock.getId();
 			if (indexPos != ifile.length())
-				throw new CannotAppendBlockException(this + ": unexpected index block position" + indexPos + " (expected: "
+				throw new CannotAppendBlockException(this + ": unexpected index block position" + indexPos
+						+ " (expected: "
 						+ ifile.length() + ")");
 
 			dataStream = dfile.newOutputStream(true);
@@ -368,6 +370,9 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 
 					IB newInstance = (IB) ibClass.newInstance();
 					next = newInstance.unserialize(currentSegId, new ByteArrayInputStream(b.array()));
+					if (next.hasEndPosOnData()) {
+						next.setDataBlockLen(next.getEndPosOnData() + 1 - getDataFileHeaderLength());
+					}
 				} else {
 					next = prefetched;
 				}
@@ -377,9 +382,14 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 					readIndexBlock(b);
 					prefetched =
 							ibClass.newInstance().unserialize(currentSegId + 1, new ByteArrayInputStream(b.array()));
-					next.setDataBlockLen(prefetched.getPosOnData() - next.getPosOnData());
+					if (prefetched.hasEndPosOnData()) {
+						prefetched.setDataBlockLen(prefetched.getEndPosOnData() - next.getEndPosOnData());
+					} else {
+						next.setDataBlockLen(prefetched.getPosOnData() - next.getPosOnData());
+					}
 				} else {
-					next.setDataBlockLen(dataStreamLength - next.getPosOnData());
+					if (!next.hasEndPosOnData())
+						next.setDataBlockLen(dataStreamLength - next.getPosOnData());
 				}
 
 				boolean hasNext = currentSegId < segCount;

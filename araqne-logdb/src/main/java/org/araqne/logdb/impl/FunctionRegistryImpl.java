@@ -143,6 +143,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("format", Format.class);
 			define("groups", Groups.class);
 			define("signature", Signature.class);
+			define("mod", Mod.class);
 		}
 
 		private void define(String name, Class<?> clazz) {

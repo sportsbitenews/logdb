@@ -175,8 +175,15 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void clearContexts() {
-		if (contexts != null)
-			contexts.clear();
+		clearContexts(null);
+	}
+
+	@Override
+	public void clearContexts(String topic) {
+		for (EventKey key : getContextKeys()) {
+			if (topic == null || key.getTopic().equals(topic))
+				contexts.remove(key);
+		}
 	}
 
 	@Override

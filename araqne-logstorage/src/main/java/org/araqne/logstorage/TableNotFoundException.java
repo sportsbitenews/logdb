@@ -27,5 +27,4 @@ public class TableNotFoundException extends RuntimeException {
 	public String getTableName() {
 		return tableName;
 	}
-
 }

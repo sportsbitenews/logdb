@@ -50,7 +50,7 @@ public class TimechartParser extends AbstractQueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		// timechart <options> <aggregation functions> by <clause>
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, COMMAND.length(), Arrays.asList("span"),
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, COMMAND.length(), Arrays.asList("span", "pivot"),
 				getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
@@ -89,11 +89,15 @@ public class TimechartParser extends AbstractQueryCommandParser {
 
 		if (timeSpan == null)
 			timeSpan = new TimeSpan(1, TimeUnit.Day);
+		
+		boolean pivot = false;
+		if (options.containsKey("pivot") && QueryTokenizer.isTrue(options.get("pivot")))
+			pivot = true;
 
 		String clause = null;
 		if (!clauses.isEmpty())
 			clause = clauses.get(0).trim();
 
-		return new Timechart(fields, clause, timeSpan);
+		return new Timechart(fields, clause, timeSpan, pivot);
 	}
 }

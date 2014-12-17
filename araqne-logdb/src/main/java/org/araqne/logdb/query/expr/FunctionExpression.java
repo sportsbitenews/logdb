@@ -41,7 +41,7 @@ public abstract class FunctionExpression implements Expression {
 			params.put("name", name);
 			params.put("min", minArgCnt +"");
 			params.put("args", args.size() +"");
-			throw new QueryParseException("99000", -1, -1, null);
+			throw new QueryParseException("99000", -1, -1, params);
 		}
 	}
 	

@@ -90,10 +90,10 @@ public class QueryParserServiceImpl implements QueryParserService {
 			}
 		} catch (QueryParseException e) {
 			closePrematureCommands(commands);
+			//XXX : 오프셋 위치가 정확하지 않을 수 있으니 테스트 해 볼 것!
 			e.addOffset(offsetCnt);
 			//FIXME : 로케일 하드 코딩 되어 있음
 			String errorMessage = formatErrorMessage(e.getType(), Locale.ENGLISH, e.getParams());
-			//FIXME : 오프셋 위치가 정확하지 않음
 			throw new QueryParseException(e.getType(), e.getStartOffset(), errorMessage );
 		} catch (Throwable t) {
 			closePrematureCommands(commands);

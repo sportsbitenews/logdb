@@ -168,4 +168,9 @@ public class LocalFileInputStream extends StorageInputStream {
 		return total;
 	}
 
+	@Override
+	public void sync() throws IOException {
+		source.getFD().sync();
+	}
+
 }

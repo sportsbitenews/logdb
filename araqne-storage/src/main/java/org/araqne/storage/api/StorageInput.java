@@ -20,4 +20,6 @@ public interface StorageInput  extends Closeable, DataInput {
 	 * @throws IOException
 	 */
 	int readBestEffort(ByteBuffer buf) throws IOException;
+	
+	void sync() throws IOException;
 }

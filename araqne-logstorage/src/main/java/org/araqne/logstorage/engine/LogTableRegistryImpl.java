@@ -59,20 +59,20 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	private AtomicInteger nextTableId;
 
 	/**
-	 * table id to name mappings
+	 * table name to id mappings
 	 */
-	private ConcurrentMap<Integer, String> tableNames;
+	private ConcurrentMap<String, Integer> tableIDs;
 
 	/**
 	 * table name to schema mappings
 	 */
-	private ConcurrentMap<String, TableSchema> tableSchemas;
+	private ConcurrentMap<Integer, TableSchema> tableSchemas;
 
 	private CopyOnWriteArraySet<TableEventListener> callbacks;
 
 	public LogTableRegistryImpl() {
-		tableSchemas = new ConcurrentHashMap<String, TableSchema>();
-		tableNames = new ConcurrentHashMap<Integer, String>();
+		tableSchemas = new ConcurrentHashMap<Integer, TableSchema>();
+		tableIDs = new ConcurrentHashMap<String, Integer>();
 		callbacks = new CopyOnWriteArraySet<TableEventListener>();
 
 		// migrate _filetype metadata to configs
@@ -149,9 +149,10 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 		ConfigIterator it = col.findAll();
 		for (TableSchema t : it.getDocuments(TableSchema.class)) {
-			tableNames.put(t.getId(), t.getName());
-			tableSchemas.put(t.getName(), t);
-			tableLocks.put(t.getName(), new TableLock());
+			// tableNames.put(t.getId(), t.getName());
+			tableSchemas.put(t.getId(), t);
+			tableIDs.put(t.getName(), t.getId());
+			tableLocks.put(t.getId(), new TableLockImpl(t.getId()));
 			if (maxId < t.getId())
 				maxId = t.getId();
 		}
@@ -161,12 +162,16 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 	@Override
 	public boolean exists(String tableName) {
-		return tableSchemas.containsKey(tableName);
+		Integer tid = tableIDs.get(tableName);
+		if (tid == null)
+			return false;
+		
+		return tableSchemas.containsKey(tid);
 	}
 
 	@Override
 	public List<String> getTableNames() {
-		return new ArrayList<String>(tableSchemas.keySet());
+		return new ArrayList<String>(tableIDs.keySet());
 	}
 
 	@Override
@@ -179,7 +184,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 	@Override
 	public void createTable(TableSchema schema) {
-		if (tableSchemas.containsKey(schema.getName()))
+		if (tableIDs.containsKey(schema.getName()))
 			throw new IllegalStateException("table already exists: " + schema.getName());
 
 		verifyInputSchema(schema);
@@ -193,9 +198,10 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
 		db.add(newSchema, "araqne-logstorage", "created " + tableName + " table");
 
-		tableNames.put(newSchema.getId(), tableName);
-		tableSchemas.put(tableName, newSchema);
-		tableLocks.put(tableName, new TableLock());
+		// tableNames.put(newSchema.getId(), tableName);
+		tableIDs.put(tableName, newSchema.getId());
+		tableSchemas.put(newSchema.getId(), newSchema);
+		tableLocks.put(newSchema.getId(), new TableLockImpl(newSchema.getId()));
 
 		// invoke callbacks
 		for (TableEventListener callback : callbacks) {
@@ -213,7 +219,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	public void alterTable(String tableName, TableSchema schema) {
 		schema = schema.clone();
 
-		TableSchema oldSchema = tableSchemas.get(tableName);
+		TableSchema oldSchema = getTableSchema(tableName);
 		if (oldSchema == null)
 			throw new TableNotFoundException(tableName);
 
@@ -254,6 +260,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 			logger.debug("araqne logstorage: alter table [{}] added {}={}", new Object[] { tableName, key, newConfig });
 		}
+		;
 
 		for (String key : updated) {
 			TableConfigSpec spec = find(specs, key);
@@ -284,7 +291,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 		db.update(c, schema, true, "araqne-logstorage", "altered " + tableName + " table");
 
-		tableSchemas.put(tableName, schema);
+		tableSchemas.put(schema.getId(), schema);
 
 		// invoke callbacks
 		for (TableEventListener callback : callbacks) {
@@ -378,28 +385,45 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 			}
 		}
 
-		TableLock tableLock = tableLocks.remove(tableName);
+		TableLockImpl tableLock = tableLocks.remove(schema.getId());
 		// XXX : maybe we should invalidate lock.
-		TableSchema t = tableSchemas.remove(tableName);
+		TableSchema t = tableSchemas.remove(schema.getId());
+		// if (t != null)
+		// tableNames.remove(t.getId());
 		if (t != null)
-			tableNames.remove(t.getId());
+			tableIDs.remove(t.getName());
 	}
 
 	@Override
 	public TableSchema getTableSchema(String tableName) {
-		TableSchema schema = tableSchemas.get(tableName);
-		if (schema == null)
+		Integer tableID = tableIDs.get(tableName);
+		if (tableID != null) {
+			return getTableSchema(tableID, false);
+		} else
 			return null;
-		return schema.clone();
 	}
 
 	@Override
 	public TableSchema getTableSchema(String tableName, boolean required) {
-		TableSchema schema = getTableSchema(tableName);
-		if (required && schema == null)
+		Integer tableID = tableIDs.get(tableName);
+		if (required && tableID == null)
 			throw new TableNotFoundException(tableName);
+		return getTableSchema(tableID, required);
+	}
 
-		return schema;
+	@Override
+	public TableSchema getTableSchema(int tableId) {
+		TableSchema schema = tableSchemas.get(tableId);
+		return schema == null ? null : schema.clone();
+	}
+
+	@Override
+	public TableSchema getTableSchema(int tableId, boolean required) {
+		TableSchema schema = tableSchemas.get(tableId);
+		if (required && schema == null)
+			throw new TableIDNotFoundException(tableId);
+
+		return schema == null ? null : schema.clone();
 	}
 
 	@Override
@@ -414,7 +438,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 	@Override
 	public Lock getExclusiveTableLock(String tableName, String owner, String purpose) {
-		TableLock tableLock = tableLocks.get(tableName);
+		TableLockImpl tableLock = tableLocks.get(getTableSchema(tableName).getId());
 		if (tableLock == null)
 			throw new TableNotFoundException(tableName);
 
@@ -423,18 +447,18 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 	@Override
 	public Lock getSharedTableLock(String tableName) {
-		TableLock tableLock = tableLocks.get(tableName);
+		TableLockImpl tableLock = tableLocks.get(getTableSchema(tableName).getId());
 		if (tableLock == null)
 			throw new TableNotFoundException(tableName);
 
 		return tableLock.readLock();
 	}
 
-	private ConcurrentHashMap<String, TableLock> tableLocks = new ConcurrentHashMap<String, TableLock>();
+	private ConcurrentHashMap<Integer, TableLockImpl> tableLocks = new ConcurrentHashMap<Integer, TableLockImpl>();
 
 	@Override
 	public LockStatus getTableLockStatus(String tableName) {
-		TableLock tableLock = tableLocks.get(tableName);
+		TableLockImpl tableLock = tableLocks.get(tableIDs.get(tableName));
 		if (tableLock != null) {
 			String owner = tableLock.getOwner();
 			if (owner != null)
@@ -448,26 +472,8 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	}
 
 	@Override
-	public TableSchema getTableSchema(int tableId) {
-		String tableName = tableNames.get(tableId);
-		if (tableName != null) {
-			return getTableSchema(tableName);
-		} else
-			return null;
-	}
-
-	@Override
-	public TableSchema getTableSchema(int tableId, boolean required) {
-		String tableName = tableNames.get(tableId);
-		if (tableName != null) {
-			return getTableSchema(tableName, required);
-		} else
-			return null;
-	}
-	
-	@Override
 	public String getTableName(int tableId) {
-		return tableNames.get(tableId);
+		return getTableSchema(tableId).getName();
 	}
 
 }

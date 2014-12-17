@@ -20,4 +20,23 @@ public class RowBatch {
 	public int[] selected;
 	public int size;
 	public Row[] rows;
+
+	/**
+	 * @since 2.4.48
+	 */
+	public RowBatch rebuild() {
+		RowBatch c = new RowBatch();
+		c.size = size;
+		c.rows = new Row[size];
+
+		if (selectedInUse) {
+			for (int i = 0; i < size; i++)
+				c.rows[i] = rows[selected[i]].clone();
+		} else {
+			for (int i = 0; i < size; i++)
+				c.rows[i] = rows[i].clone();
+		}
+
+		return c;
+	}
 }

@@ -6,6 +6,7 @@
 	<instance component="evtctxadd-parser" />
 	<instance component="evtctxdel-parser" />
 	<instance component="evtctxlist-parser" />
+	<instance component="evtctxdrop-parser" />
 	<instance component="cep-script-factory" />
 	<instance component="cep-function-factory" />
 	<instance component="cep-event-logger-registry" />

@@ -20,8 +20,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Set;
 
 public class EventClock {
 	private final TimeoutComparator timeoutComparator = new TimeoutComparator();
@@ -107,6 +109,8 @@ public class EventClock {
 	}
 
 	private void evictContext(long now) {
+		Set<EventKey> expiredEvictees = new HashSet<EventKey>();
+
 		synchronized (expireQueue) {
 			while (true) {
 				EventContext ctx = expireQueue.peek();
@@ -115,11 +119,19 @@ public class EventClock {
 
 				if (ctx.getExpireTime() <= now) {
 					expireQueue.poll();
-					storage.removeContext(ctx.getKey(), EventCause.EXPIRE);
+					expiredEvictees.add(ctx.getKey());
+
 				} else
 					break;
 			}
 		}
+
+		for (EventKey key : expiredEvictees)
+			storage.removeContext(key, EventCause.EXPIRE);
+
+		expiredEvictees = null;
+
+		Set<EventKey> timeoutEvictees = new HashSet<EventKey>();
 
 		synchronized (timeoutQueue) {
 			while (true) {
@@ -129,11 +141,15 @@ public class EventClock {
 
 				if (ctx.getTimeoutTime() <= now) {
 					timeoutQueue.poll();
-					storage.removeContext(ctx.getKey(), EventCause.TIMEOUT);
+					timeoutEvictees.add(ctx.getKey());
+
 				} else
 					break;
 			}
 		}
+
+		for (EventKey key : timeoutEvictees)
+			storage.removeContext(key, EventCause.TIMEOUT);
 	}
 
 	@Override
