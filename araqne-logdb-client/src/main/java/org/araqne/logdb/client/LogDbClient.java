@@ -21,23 +21,17 @@ import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
@@ -96,7 +90,8 @@ public class LogDbClient implements TrapListener, Closeable {
 	private Locale locale = Locale.getDefault();
 	private StreamingResultDecoder streamingDecoder;
 
-	private Timer timer;
+	private AtomicReference<Flusher> flusher = new AtomicReference<Flusher>(null);
+
 	private StreamingResultEncoder streamingEncoder;
 	private int counter = 0;
 
@@ -104,9 +99,10 @@ public class LogDbClient implements TrapListener, Closeable {
 
 	// milliseconds
 	private int indexFlushInterval = 1000;
+	private int indexFlushIntervalMin = 10;
 
 	// table name to row list mappings
-	private Map<String, List<Row>> flushBuffers = new HashMap<String, List<Row>>();
+	private Map<String, List<QueuedRows>> flushBuffers = new HashMap<String, List<QueuedRows>>();
 	private CopyOnWriteArraySet<FailureListener> failureListeners = new CopyOnWriteArraySet<FailureListener>();
 
 	public LogDbClient() {
@@ -180,12 +176,8 @@ public class LogDbClient implements TrapListener, Closeable {
 		if (millisec < 0)
 			throw new IllegalArgumentException("Index flush interval should be greater than 0");
 		this.indexFlushInterval = millisec;
-		if (timer != null) {
-			timer.cancel();
-			timer = null;
-			timer = new Timer("Insert Flush Timer");
-			timer.schedule(new FlushTask(), indexFlushInterval, indexFlushInterval);
-		}
+		if (flusher.get() != null)
+			flusher.get().signal();
 	}
 
 	/**
@@ -1756,12 +1748,20 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> c = (Map<String, Object>) m.get("config");
 
 		StreamQueryInfo query = new StreamQueryInfo();
+		
 		query.setName((String) c.get("name"));
 		query.setDescription((String) c.get("description"));
 		query.setInterval((Integer) c.get("interval"));
 		query.setQueryString((String) c.get("query"));
 		query.setOwner((String) c.get("owner"));
-		query.setSourceType((String) c.get("source_type"));
+		String sourceType = (String) c.get("source_type");
+		query.setSourceType(sourceType);
+		if(sourceType.equals("table")) 
+			query.setSources((List<String>) c.get("table"));
+		else if(sourceType.equals("logger")) 
+			query.setSources((List<String>) c.get("logger"));
+		else if (sourceType.equals("stream"))
+			query.setSources((List<String>) c.get("stream"));
 		query.setEnabled((Boolean) c.get("is_enabled"));
 		query.setCreated(df.parse((String) c.get("created"), new ParsePosition(0)));
 		query.setModified(df.parse((String) c.get("modified"), new ParsePosition(0)));
@@ -1866,7 +1866,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		query.setTitle((String) m.get("title"));
 		query.setCronSchedule((String) m.get("cron_schedule"));
 		query.setOwner((String) m.get("owner"));
-		query.setQueryString((String) m.get("query_string"));
+		query.setQueryString((String) m.get("query"));
 		query.setSaveResult((Boolean) m.get("use_save_result"));
 		query.setUseAlert((Boolean) m.get("use_alert"));
 		query.setAlertQuery((String) m.get("alert_query"));
@@ -2033,6 +2033,73 @@ public class LogDbClient implements TrapListener, Closeable {
 		failureListeners.remove(listener);
 	}
 
+	private static class QueuedRows implements Future<Integer> {
+		private String tableName;
+		private List<Row> rows;
+
+		CountDownLatch l = new CountDownLatch(1);
+		private volatile Throwable t;
+		private Flusher flusher;
+
+		public QueuedRows(String tableName, List<Row> rows, Flusher flusher) {
+			this.tableName = tableName;
+			this.rows = rows;
+			this.flusher = flusher;
+		}
+
+		@Override
+		public boolean cancel(boolean mayInterruptIfRunning) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isCancelled() {
+			return false;
+		}
+
+		@Override
+		public boolean isDone() {
+			return false;
+		}
+
+		public void setDone() {
+			l.countDown();
+		}
+
+		public void setDone(Throwable t) {
+			this.t = t;
+			l.countDown();
+		}
+
+		@Override
+		public Integer get() throws InterruptedException, ExecutionException {
+			flusher.signal();
+			l.await();
+			if (t != null)
+				throw new ExecutionException(t);
+			else
+				return rows.size();
+		}
+
+		@Override
+		public Integer get(long timeout, TimeUnit unit)
+				throws InterruptedException, ExecutionException, TimeoutException {
+			flusher.signal();
+			if (l.await(timeout, unit)) {
+				if (t != null)
+					throw new ExecutionException(t);
+				else
+					return rows.size();
+			} else
+				throw new TimeoutException();
+		}
+
+		public List<Row> getRows() {
+			return rows;
+		}
+
+	}
+
 	/**
 	 * 지정된 테이블에 행을 입력합니다.
 	 * 
@@ -2042,28 +2109,32 @@ public class LogDbClient implements TrapListener, Closeable {
 	 *            행 목록
 	 * @since 0.9.5
 	 */
-	public void insert(String tableName, List<Row> rows) {
-
+	public Future<Integer> insert(String tableName, List<Row> rows) {
 		for (Row row : rows) {
 			if (row.get("_time") == null || !(row.get("_time") instanceof Date))
 				row.put("_time", new Date());
 		}
 
+		QueuedRows ret = null;
 		// buffering
-		synchronized (flushBuffers) {
-			flushBuffers.put(tableName, rows);
-			counter += rows.size();
+		if (flusher.get() == null) {
+			if (flusher.compareAndSet(null, new Flusher())) {
+				flusher.get().start();
+			}
 		}
-		// timer thread
-		if (timer == null) {
-			timer = new Timer("Insert Flush Timer");
-			timer.schedule(new FlushTask(), indexFlushInterval, indexFlushInterval);
+		synchronized (flushBuffers) {
+			if (!flushBuffers.containsKey(tableName))
+				flushBuffers.put(tableName, new ArrayList<QueuedRows>());
+			QueuedRows qr = new QueuedRows(tableName, rows, flusher.get());
+			flushBuffers.get(tableName).add(qr);
+			ret = qr;
+			counter += rows.size();
 		}
 		// count over -> flush
 		if (counter >= insertBatchSize) {
-			flush();
+			flusher.get().signal();
 		}
-
+		return ret;
 	}
 
 	/**
@@ -2075,38 +2146,75 @@ public class LogDbClient implements TrapListener, Closeable {
 	 *            입력할 행
 	 * @since 0.9.5
 	 */
-	public void insert(String tableName, Row row) {
+	public Future<Integer> insert(String tableName, Row row) {
 		if (row.get("_time") == null || !(row.get("_time") instanceof Date))
 			row.put("_time", new Date());
 
+		QueuedRows ret = null;
 		// buffering
-		List<Row> rows = new ArrayList<Row>();
+		if (flusher.get() == null) {
+			if (flusher.compareAndSet(null, new Flusher())) {
+				flusher.get().start();
+			}
+		}
 		synchronized (flushBuffers) {
-			if (flushBuffers.containsKey(tableName))
-				rows = flushBuffers.get(tableName);
+			if (!flushBuffers.containsKey(tableName))
+				flushBuffers.put(tableName, new ArrayList<QueuedRows>());
 
-			rows.add(row);
-			flushBuffers.put(tableName, rows);
+			QueuedRows qr = new QueuedRows(tableName, Arrays.asList(row), flusher.get());
+			flushBuffers.get(tableName).add(qr);
+			ret = qr;
 			counter++;
 		}
 
-		// timer thread
-		if (timer == null) {
-			timer = new Timer("Insert Flush Timer");
-			timer.schedule(new FlushTask(), indexFlushInterval, indexFlushInterval);
-		}
 		// count over -> flush
 		if (counter >= insertBatchSize) {
-			flush();
+			flusher.get().signal();
 		}
+
+		return ret;
 	}
 
-	private class FlushTask extends TimerTask {
+	public class Flusher implements Runnable {
+		Thread th;
+
+		public void start() {
+			synchronized (this) {
+				if (th == null) {
+					th = new Thread(this, "Insert flush thread");
+					th.start();
+				}
+			}
+		}
+
+		volatile boolean running = true;
+
 		@Override
 		public void run() {
-			if (counter > 0)
-				flush();
+			while (running) {
+				try {
+					long started = System.nanoTime();
+					flush();
+					long nextWaitMillis = indexFlushInterval - (System.nanoTime() - started) / 1000000L;
+					if (nextWaitMillis > 0)
+						synchronized (this) {
+							this.wait(nextWaitMillis);
+						}
+				} catch (InterruptedException e) {
+				}
+			}
 		}
+
+		void shutdown() {
+			running = false;
+		}
+
+		public void signal() {
+			synchronized (this) {
+				this.notifyAll();
+			}
+		}
+
 	}
 
 	/**
@@ -2118,36 +2226,45 @@ public class LogDbClient implements TrapListener, Closeable {
 		if (counter == 0)
 			return;
 
-		Map<String, List<Row>> binsMap = null;
+		Map<String, List<QueuedRows>> binsMap = null;
 		synchronized (flushBuffers) {
-			binsMap = new HashMap<String, List<Row>>(flushBuffers);
+			binsMap = new HashMap<String, List<QueuedRows>>(flushBuffers);
 			flushBuffers.clear();
 			counter = 0;
 		}
 
-		for (Map.Entry<String, List<Row>> entry : binsMap.entrySet()) {
+		for (Map.Entry<String, List<QueuedRows>> entry : binsMap.entrySet()) {
 			String tableName = entry.getKey();
-			List<Row> rows = entry.getValue();
+			List<QueuedRows> items = entry.getValue();
 			try {
-				List<Object> l = new ArrayList<Object>(rows.size());
-				for (Row row : rows)
-					l.add(row.map());
+				List<Object> l = new ArrayList<Object>(items.size());
+				for (QueuedRows rows : items) {
+					for (Row row: rows.getRows())
+						l.add(row.map());
+				}
 
 				List<Map<String, Object>> bins = streamingEncoder.encode(l, false);
 				Map<String, Object> params = new HashMap<String, Object>();
 				params.put("table", entry.getKey());
 				params.put("bins", bins);
 				rpc("org.araqne.logdb.msgbus.LogQueryPlugin.insertBatch", params);
+				for (QueuedRows rows: items) {
+					rows.setDone();
+				}
 			} catch (Throwable t) {
 				logger.debug("araqne logdb client: cannot insert data", t);
-
-				for (FailureListener c : failureListeners) {
-					try {
-						c.onInsertFailure(tableName, rows, t);
-					} catch (Throwable t2) {
-						logger.debug("araqne logdb client: insert failure callback should not throw any exception", t2);
+				
+				for (QueuedRows rows: items) {
+					rows.setDone(t);
+					for (FailureListener c : failureListeners) {
+						try {
+							c.onInsertFailure(tableName, rows.getRows(), t);
+						} catch (Throwable t2) {
+							logger.debug("araqne logdb client: insert failure callback should not throw any exception", t2);
+						}
 					}
 				}
+
 			}
 		}
 	}
@@ -2253,8 +2370,8 @@ public class LogDbClient implements TrapListener, Closeable {
 			streamingDecoder = null;
 		}
 
-		if (timer != null)
-			timer.cancel();
+		if (flusher.get() != null)
+			flusher.get().shutdown();
 
 		if (streamingEncoder != null) {
 			streamingEncoder.close();

@@ -1,5 +1,7 @@
 package org.araqne.logstorage;
 
+import java.util.List;
+
 public interface WriteFallback {
-	boolean onLockFailure(String reason);
+	int onLockFailure(TableLock lock, List<Log> logs);
 }

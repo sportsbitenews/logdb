@@ -299,6 +299,8 @@ public class LastStateServiceImpl implements LastStateService {
 			}
 
 			return PrimitiveConverter.parse(LastState.class, m);
+		} catch (ClassCastException e) {
+			throw new IOException("invalid json file [" + f.getAbsolutePath() + "]", e);
 		} catch (JSONException e) {
 			throw new IOException("invalid json file [" + f.getAbsolutePath() + "]", e);
 		} finally {
