@@ -1,6 +1,7 @@
 package org.araqne.log.api;
 
 import java.io.File;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -9,9 +10,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
@@ -32,7 +33,9 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 
 	@Override
 	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
-		firstRun = true;
+		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))) {
+			setStates(new HashMap<String, Object>());
+		}
 	}
 
 	@Override
@@ -84,39 +87,7 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 	}
 
 	private MultilineLogExtractor newExtractor(String fileTag, String fileName) {
-		MultilineLogExtractor extractor = new MultilineLogExtractor(this, new Receiver(fileTag, fileName));
-
-		// optional
-		String dateExtractRegex = getConfigs().get("date_pattern");
-		if (dateExtractRegex != null)
-			extractor.setDateMatcher(Pattern.compile(dateExtractRegex).matcher(""));
-
-		// optional
-		String dateLocale = getConfigs().get("date_locale");
-		if (dateLocale == null)
-			dateLocale = "en";
-
-		// optional
-		String dateFormatString = getConfigs().get("date_format");
-		String timeZone = getConfigs().get("timezone");
-		if (dateFormatString != null)
-			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
-
-		// optional
-		String newlogRegex = getConfigs().get("newlog_designator");
-		if (newlogRegex != null)
-			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
-
-		String newlogEndRegex = getConfigs().get("newlog_end_designator");
-		if (newlogEndRegex != null)
-			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
-
-		// optional
-		String charset = getConfigs().get("charset");
-		if (charset == null)
-			charset = "utf-8";
-
-		extractor.setCharset(charset);
+		MultilineLogExtractor extractor = MultilineLogExtractor.build(this, new Receiver(fileTag, fileName));
 		return extractor;
 	}
 

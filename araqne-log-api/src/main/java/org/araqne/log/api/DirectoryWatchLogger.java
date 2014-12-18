@@ -19,12 +19,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -33,61 +31,16 @@ import java.util.regex.Pattern;
 
 import org.araqne.log.api.impl.FileUtils;
 
-public class DirectoryWatchLogger extends AbstractLogger {
+public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(DirectoryWatchLogger.class.getName());
-	protected File dataDir;
-	protected String basePath;
-	protected Pattern fileNamePattern;
-	private Receiver receiver = new Receiver();
-
-	private MultilineLogExtractor extractor;
 
 	public DirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
-
-		dataDir = new File(System.getProperty("araqne.data.dir"), "araqne-log-api");
+		File dataDir = new File(System.getProperty("araqne.data.dir"), "araqne-log-api");
 		dataDir.mkdirs();
-		basePath = getConfigs().get("base_path");
-
-		String fileNameRegex = getConfigs().get("filename_pattern");
-		fileNamePattern = Pattern.compile(fileNameRegex);
-
-		extractor = new MultilineLogExtractor(this, receiver);
-
-		// optional
-		String dateExtractRegex = getConfigs().get("date_pattern");
-		if (dateExtractRegex != null)
-			extractor.setDateMatcher(Pattern.compile(dateExtractRegex).matcher(""));
-
-		// optional
-		String dateLocale = getConfigs().get("date_locale");
-		if (dateLocale == null)
-			dateLocale = "en";
-
-		// optional
-		String dateFormatString = getConfigs().get("date_format");
-		String timeZone = getConfigs().get("timezone");
-		if (dateFormatString != null)
-			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
-
-		// optional
-		String newlogRegex = getConfigs().get("newlog_designator");
-		if (newlogRegex != null)
-			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
-
-		String newlogEndRegex = getConfigs().get("newlog_end_designator");
-		if (newlogEndRegex != null)
-			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
-
-		// optional
-		String charset = getConfigs().get("charset");
-		if (charset == null)
-			charset = "utf-8";
-
-		extractor.setCharset(charset);
-
+		
 		// try migration at boot
-		File oldLastFile = getLastLogFile();
+		File oldLastFile = getLastLogFile(dataDir); 
 		if (oldLastFile.exists()) {
 			Map<String, LastPosition> lastPositions = LastPositionHelper.readLastPositions(oldLastFile);
 			setStates(LastPositionHelper.serialize(lastPositions));
@@ -96,12 +49,27 @@ public class DirectoryWatchLogger extends AbstractLogger {
 	}
 
 	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))) {
+			setStates(new HashMap<String, Object>());
+		}
+	}
+	
+	@Override
 	protected void runOnce() {
+		Map<String, String> configs = getConfigs();
+
+		String basePath = configs.get("base_path");
+		Pattern fileNamePattern = Pattern.compile(configs.get("filename_pattern"));
+		
+		Receiver receiver = new Receiver();
+		MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
+		
 		List<File> logFiles = FileUtils.matches(basePath, fileNamePattern);
 		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
 
 		for (File f : logFiles) {
-			processFile(lastPositions, f);
+			processFile(lastPositions, f, extractor, fileNamePattern);
 		}
 
 		lastPositions = updateLastSeen(lastPositions, logFiles);
@@ -135,7 +103,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		return updatedLastPositions;
 	}
 
-	protected void processFile(Map<String, LastPosition> lastPositions, File f) {
+	protected void processFile(Map<String, LastPosition> lastPositions, File f, MultilineLogExtractor extractor, Pattern fileNamePattern) {
 		if (!f.canRead()) {
 			slog.debug("araqne log api: cannot read file [{}], logger [{}]", f.getAbsolutePath(), getFullName());
 			return;
@@ -199,7 +167,7 @@ public class DirectoryWatchLogger extends AbstractLogger {
 		}
 	}
 
-	protected File getLastLogFile() {
+	protected File getLastLogFile(File dataDir) {
 		return new File(dataDir, "dirwatch-" + getName() + ".lastlog");
 	}
 
