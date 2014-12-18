@@ -16,7 +16,6 @@
 package org.araqne.logdb.query.engine;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -51,7 +50,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 
 	@Requires
 	private FunctionRegistry functionRegistry;
-	
+
 	@Validate
 	public void start() {
 		commandParsers = new ConcurrentHashMap<String, QueryCommandParser>();
@@ -80,8 +79,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 				String commandType = tok.nextToken();
 				QueryCommandParser parser = commandParsers.get(commandType);
 				if (parser == null) {
-					 throw new QueryParseException("unsupported-command", -1,
-					 "command is [" + commandType + "]");
+					throw new QueryParseException("unsupported-command", -1, "command is [" + commandType + "]");
 				}
 
 				QueryCommand cmd = parser.parse(context, q);
@@ -90,11 +88,11 @@ public class QueryParserServiceImpl implements QueryParserService {
 			}
 		} catch (QueryParseException e) {
 			closePrematureCommands(commands);
-			//XXX : 오프셋 위치가 정확하지 않을 수 있으니 테스트 해 볼 것!
+			// XXX : 오프셋 위치가 정확하지 않을 수 있으니 테스트 해 볼 것!
 			e.addOffset(offsetCnt);
-			//FIXME : 로케일 하드 코딩 되어 있음
+			// FIXME : 로케일 하드 코딩 되어 있음
 			String errorMessage = formatErrorMessage(e.getType(), Locale.ENGLISH, e.getParams());
-			throw new QueryParseException(e.getType(), e.getStartOffset(), errorMessage );
+			throw new QueryParseException(e.getType(), e.getStartOffset(), errorMessage);
 		} catch (Throwable t) {
 			closePrematureCommands(commands);
 			slog.debug("QueryParserServiceImpl", t);
@@ -275,6 +273,9 @@ public class QueryParserServiceImpl implements QueryParserService {
 		add("95032", "invalid-date-rangen", "from 값이 유효하지 않습니다.(from:[from])");
 		/* ThreadMetadataProvider */
 		add("95040", "no-read-permission", "읽기 권한이 없습니다.");
+		/* TopThreadMetadataProvider */
+		add("95050", "no-read-permission", "읽기 권한이 없습니다.");
+		add("95051", "topthread-not-supported", "자바가상머신이 스레드 CPU 사용량 측정을 지원하지 않습니다.");
 		/* FunctionRegistryImpl */
 		add("90900", "unsupported-function", "[function] 은 지원하지 않는 함수입니다.");
 		add("90901", "cannot create function instance", "[function] 함수 오류: [msg].");

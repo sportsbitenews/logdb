@@ -8,10 +8,10 @@
 		<groupId>org.araqne</groupId>
 		<version>1.0.0</version>
 	</parent>
-	<artifactId>araqne-logdb-crawler</artifactId>
-	<version>0.1.1</version>
+	<artifactId>araqne-logdb-nashorn</artifactId>
+	<version>0.1.0</version>
 	<packaging>bundle</packaging>
-	<name>Araqne LogDB Crawler</name>
+	<name>Araqne LogDB Nashorn Scripting</name>
 	<build>
 		<plugins>
 			<plugin>
@@ -20,18 +20,13 @@
 				<extensions>true</extensions>
 				<configuration>
 					<instructions>
-						<Bundle-SymbolicName>org.araqne.logdb.crawler</Bundle-SymbolicName>
-						<Export-Package>org.araqne.logdb.crawler;version=${project.version}</Export-Package>
-						<Private-Package>
-							org.araqne.logdb.crawler.query,
-							org.araqne.logdb.crawler.engine,
-							org.araqne.logdb.cralwer.script
-						</Private-Package>
+						<Bundle-SymbolicName>org.araqne.logdb.nashorn</Bundle-SymbolicName>
+						<Export-Package>org.araqne.logdb.nashorn;version=${project.version}</Export-Package>
+						<Private-Package>org.araqne.logdb.nashorn.impl</Private-Package>
 						<Import-Package>
 							org.araqne.log.api;version="3.4.0",
 							org.araqne.logdb;version="2.2.10",
-							*
-						</Import-Package>
+							javax.script,*</Import-Package>
 					</instructions>
 				</configuration>
 			</plugin>
@@ -47,10 +42,6 @@
 				</executions>
 			</plugin>
 			<plugin>
-				<groupId>pl.project13.maven</groupId>
-				<artifactId>git-commit-id-plugin</artifactId>
-			</plugin>
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
 			</plugin>
@@ -58,28 +49,32 @@
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<groupId>pl.project13.maven</groupId>
+				<artifactId>git-commit-id-plugin</artifactId>
+			</plugin>
 		</plugins>
 	</build>
 	<dependencies>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-api</artifactId>
-			<version>2.6.3</version>
+			<version>2.7.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logdb</artifactId>
-			<version>2.4.52</version>
+			<version>2.4.50</version>
+		</dependency>
+		<dependency>
+			<groupId>org.araqne</groupId>
+			<artifactId>araqne-logdb-cep</artifactId>
+			<version>0.2.12</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
 			<version>3.4.11</version>
-		</dependency>
-		<dependency>
-			<groupId>org.jsoup</groupId>
-			<artifactId>jsoup</artifactId>
-			<version>1.7.3</version>
 		</dependency>
 	</dependencies>
 </project>
