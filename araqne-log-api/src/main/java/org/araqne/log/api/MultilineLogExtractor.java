@@ -96,8 +96,17 @@ public class MultilineLogExtractor {
 		String charset = configs.get("charset");
 		if (charset == null)
 			charset = "utf-8";
-
+		
 		extractor.setCharset(charset);
+		
+		String newlogRegex = configs.get("newlog_designator");
+		if (newlogRegex != null)
+			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
+
+		String newlogEndRegex = configs.get("newlog_end_designator");
+		if (newlogEndRegex != null)
+			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
+		
 		return extractor;
 	}
 
