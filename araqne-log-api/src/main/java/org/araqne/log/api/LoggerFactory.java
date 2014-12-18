@@ -16,8 +16,8 @@
 package org.araqne.log.api;
 
 import java.util.Collection;
+
 import java.util.Locale;
-import java.util.Map;
 
 import org.osgi.framework.BundleContext;
 
