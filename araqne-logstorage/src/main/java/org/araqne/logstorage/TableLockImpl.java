@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +23,7 @@ public class TableLockImpl {
 
 	@Override
 	public String toString() {
-		return String.format("TableLock [owner=%s, holdCount=%s, purposes=%s]", owner, holdCount, purposes);
+		return String.format("TableLockImpl [owner=%s, holdCount=%s, purposes=%s]", owner, holdCount, purposes);
 	}
 
 	public TableLockImpl(int tableId) {
@@ -94,6 +93,16 @@ public class TableLockImpl {
 		@Override
 		public int getTableId() {
 			return tid;
+		}
+
+		@Override
+		public String getLockOwner() {
+			return TableLockImpl.this.getOwner();
+		}
+
+		@Override
+		public Collection<String> getPurposes() {
+			return TableLockImpl.this.getPurposes();
 		}
 	}
 
@@ -214,9 +223,20 @@ public class TableLockImpl {
 		public int getTableId() {
 			return tid;
 		}
+		
+		@Override
+		public String getLockOwner() {
+			return TableLockImpl.this.getOwner();
+		}
+
+		@Override
+		public Collection<String> getPurposes() {
+			return TableLockImpl.this.getPurposes();
+		}
+
 	}
 
-	public Lock writeLock(String owner, String purpose) {
+	public TableLock writeLock(String owner, String purpose) {
 		if (owner == null)
 			throw new IllegalArgumentException("owner argument cannot be null");
 		return new WriteLock(owner, purpose);

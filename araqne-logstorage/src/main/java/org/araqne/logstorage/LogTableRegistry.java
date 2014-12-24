@@ -16,7 +16,6 @@
 package org.araqne.logstorage;
 
 import java.util.List;
-import java.util.concurrent.locks.Lock;
 
 public interface LogTableRegistry {
 	boolean exists(String tableName);
@@ -39,9 +38,9 @@ public interface LogTableRegistry {
 
 	void removeListener(TableEventListener listener);
 
-	Lock getExclusiveTableLock(String tableName, String owner, String purpose);
+	TableLock getExclusiveTableLock(String tableName, String owner, String purpose);
 
-	Lock getSharedTableLock(String tableName);
+	TableLock getSharedTableLock(String tableName);
 
 	LockStatus getTableLockStatus(String tableName);
 	
