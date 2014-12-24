@@ -45,16 +45,16 @@ import org.slf4j.LoggerFactory;
 @Provides
 public class QueryParserServiceImpl implements QueryParserService {
 	private final Logger slog = LoggerFactory.getLogger(QueryParserServiceImpl.class);
-	private ConcurrentMap<String, QueryCommandParser> commandParsers;
-	private ConcurrentMap<String, QueryErrorMessage> errorMappings;
+	private ConcurrentMap<String, QueryCommandParser> commandParsers = new ConcurrentHashMap<String, QueryCommandParser>(); 
+	private ConcurrentMap<String, QueryErrorMessage> errorMappings = new ConcurrentHashMap<String, QueryErrorMessage>();
 
 	@Requires
 	private FunctionRegistry functionRegistry;
 
 	@Validate
 	public void start() {
-		commandParsers = new ConcurrentHashMap<String, QueryCommandParser>();
-		errorMappings = new ConcurrentHashMap<String, QueryErrorMessage>();
+		commandParsers.clear();
+		errorMappings.clear();
 		registerBuiltinErrors();
 	}
 
