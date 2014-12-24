@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -382,6 +384,20 @@ public class LogQueryPlugin {
 		Integer limit = req.getInteger("limit");
 
 		List<SavedResult> l = savedResultManager.getResultList(dbSession.getLoginName());
+		
+		Collections.sort(l, new Comparator<SavedResult>() {
+			@Override
+			public int compare(SavedResult first, SavedResult second) {
+				int compared = first.getCreated().compareTo(second.getCreated());
+		        if (compared > 0) {
+		            return -1;
+		        } else if (compared < 0) {
+		            return 1;
+		        } else {
+		            return 0;
+		        }
+			}
+		});
 
 		// make sublist for offset and limit
 		List<SavedResult> subList = subList(l, offset, limit);
