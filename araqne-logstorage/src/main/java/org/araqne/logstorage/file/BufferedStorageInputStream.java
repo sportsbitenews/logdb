@@ -42,8 +42,16 @@ public class BufferedStorageInputStream implements DataInput, Closeable {
 		this(path, BUFFER_SIZE);
 	}
 	
+	public BufferedStorageInputStream(StorageInputStream sis) throws IOException {
+		this(sis, BUFFER_SIZE);
+	}
+	
 	public BufferedStorageInputStream(FilePath path, int bufSize) throws IOException {
-		storageInputStream = path.newInputStream();
+		this(path.newInputStream(), bufSize);
+	}
+	
+	public BufferedStorageInputStream(StorageInputStream sis, int bufSize) throws IOException {
+		this.storageInputStream = sis;
 		this.bufSize = bufSize;
 		buf = ByteBuffer.allocate(bufSize);
 		dataInputStream = new DataInputStream(new InputStream() {
