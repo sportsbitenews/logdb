@@ -1954,7 +1954,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	public int createQuery(String queryString, StreamingResultSet rs) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("query", queryString);
-
+		params.put("source", "java-client");
 		Message resp = rpc("org.araqne.logdb.msgbus.LogQueryPlugin.createQuery", params);
 		int id = resp.getInt("id");
 		session.registerTrap("logdb-query-" + id);

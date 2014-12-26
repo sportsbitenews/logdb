@@ -27,6 +27,9 @@ public class QueryErrorMessage {
 		if (template == null)
 			return null;
 
+		if (params == null)
+			return template;
+		
 		// while     param replace
 		// template.replaceAll(regex, replacement)
 		for (Map.Entry<String, String> entry : params.entrySet()) {

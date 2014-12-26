@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.Account;
@@ -191,12 +192,14 @@ public class ProcParser extends AbstractQueryCommandParser {
 	private class DummySession implements Session {
 		private String guid;
 		private Account account;
-
+		private Map<String, Object> props;
+		
 		public DummySession(Account account) {
 			this.guid = UUID.randomUUID().toString();
 			this.account = account;
+			props = new ConcurrentHashMap<String, Object>();
 		}
-
+		
 		@Override
 		public String getGuid() {
 			return guid;
@@ -215,6 +218,27 @@ public class ProcParser extends AbstractQueryCommandParser {
 		@Override
 		public boolean isAdmin() {
 			return account.isAdmin();
+		}
+		
+		@Override
+		public Set<String> getPropertyKeys() {
+			return props.keySet();
+		}
+
+		@Override
+		public Object getProperty(String name) {
+			return props.get(name);
+		}
+
+		@Override
+		public void setProperty(String name, Object value) {
+			props.put(name, value);
+		}
+
+		@Override
+		public void unsetProperty(String name) {
+			if(props.containsKey(name))
+				props.remove(name);
 		}
 	}
 }

@@ -16,6 +16,7 @@
 package org.araqne.logdb;
 
 import java.util.Date;
+import java.util.Set;
 
 public interface Session {
 	String getGuid();
@@ -28,4 +29,24 @@ public interface Session {
 	 * @since 1.0.0
 	 */
 	boolean isAdmin();
+
+	/**
+	 * @since 2.4.53
+	 */
+	Set<String> getPropertyKeys();
+
+	/**
+	 * @since 2.4.53
+	 */
+	Object getProperty(String name);
+
+	/**
+	 * @since 2.4.53
+	 */
+	void setProperty(String name, Object value);
+
+	/**
+	 * @since 2.4.53
+	 */
+	void unsetProperty(String name);
 }

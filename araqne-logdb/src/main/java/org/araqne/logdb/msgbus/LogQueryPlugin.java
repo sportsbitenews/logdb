@@ -163,18 +163,22 @@ public class LogQueryPlugin {
 	public void createQuery(Request req, Response resp) {
 		try {
 			org.araqne.logdb.Session dbSession = getDbSession(req);
+			if (req.get("source") != null)
+				dbSession.setProperty("araqne_logdb_query_source", req.getString("source"));
+
 			Query query = service.createQuery(dbSession, req.getString("query"));
 			resp.put("id", query.getId());
 		} catch (QueryParseException e) {
-			if (e.getParams() == null)
+			if (e.getParams() == null || !req.getBoolean("use_error_return"))
 				throw new MsgbusException("logdb", e.getMessage());
 
-			Map<String, Object> params = new HashMap<String, Object>();
-			params.putAll(e.getParams());
-			throw new MsgbusException("logdb", e.getMessage(), params);
+			resp.put("error_code", e.getType());
+			resp.put("error_msg", e.getMessage());
+			resp.put("error_begin", e.getStartOffset());
+			resp.put("error_end", e.getEndOffset());
 		} catch (Exception e) {
-			logger.error("araqne logdb: cannot create query", e);
-			throw new MsgbusException("logdb", e.getMessage());
+			resp.put("error_code", "99999");
+			resp.put("error_msg", e.getMessage());
 		}
 	}
 
@@ -679,12 +683,11 @@ public class LogQueryPlugin {
 					Map<String, Object> m = new HashMap<String, Object>();
 					m.put("rows", rows);
 					m.put("last", last);
-
 					pushApi.push(orgDomain, callbackName, m);
 					rows.clear();
 				} else {
 					List<Map<String, Object>> bins = streamingEncoder.encode(rows, useGzip);
-
+					
 					Map<String, Object> m = new HashMap<String, Object>();
 					m.put("bins", bins);
 					m.put("last", last);

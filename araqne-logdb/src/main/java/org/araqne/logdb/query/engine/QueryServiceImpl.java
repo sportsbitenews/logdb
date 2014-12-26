@@ -50,6 +50,7 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryEventListener;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryPlanner;
 import org.araqne.logdb.QueryResultFactory;
@@ -334,8 +335,27 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]",
 					new Object[] { queryString, session.getGuid(), session.getLoginName() });
 
-		QueryContext context = new QueryContext(session);
-		List<QueryCommand> commands = queryParserService.parseCommands(context, queryString);
+		List<QueryCommand> commands = null;
+		QueryContext context = new QueryContext(session);		
+		try {
+			commands = queryParserService.parseCommands(context, queryString);
+		} catch(QueryParseException e) {
+			// write log(query execution failed)
+			HashMap<String, Object> m = new HashMap<String, Object>();
+			String source = (String) session.getProperty("araqne_logdb_query_source");
+			if(source != null)
+				m.put("source", source);
+			m.put("query_string", queryString);
+			m.put("error_code", e.getType());
+			m.put("error_msg", e.getMessage());
+			m.put("login_name", session.getLoginName());
+					
+			Date now = new Date();
+			writeLog(now, m);
+			
+			throw e;
+		}
+		
 		for (QueryPlanner planner : planners)
 			commands = planner.plan(context, commands);
 
@@ -346,7 +366,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		queries.put(query.getId(), query);
 		query.getCallbacks().getStatusCallbacks().add(new EofReceiver());
 		invokeCallbacks(query, QueryStatus.CREATED);
-
+		
 		return query;
 	}
 
@@ -518,7 +538,48 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			}
 		}
 	}
-
+	
+	private void serializeQuery(Query query, Date now, HashMap<String, Object> m) {
+		Session session = query.getContext().getSession();
+		
+		m.put("query_id", query.getId());
+		m.put("query_string", query.getQueryString());
+		try {
+			m.put("rows", query.getResultCount());
+		} catch (IOException e) {
+			m.put("rows", 0);
+		}
+		m.put("start_at", new Date(query.getStartTime()));
+		m.put("eof_at", now);
+		m.put("login_name", session.getLoginName());
+		m.put("cancelled", query.isCancelled());
+		if(query.getStopReason() != null)
+			m.put("stop_reason", query.getStopReason().toString());
+		
+		if (query.isStarted())
+			m.put("duration", (query.getFinishTime() - query.getStartTime()) / 1000.0);
+		else
+			m.put("duration", 0);
+		
+		String source = (String) session.getProperty("araqne_logdb_query_source");
+		if(source != null)
+			m.put("source", source);
+	}
+	
+	private void writeLog(Date now, HashMap<String, Object> m) {
+		try {
+			storage.write(new Log(QUERY_LOG_TABLE, now, m));
+		} catch (InterruptedException e) {
+			logger.warn("writing query log is interrupted: {}", m);
+		} catch (TableNotFoundException e) {
+			storage.ensureTable(new TableSchema(QUERY_LOG_TABLE, new StorageConfig("v2")));
+			try {
+				storage.write(new Log(QUERY_LOG_TABLE, now, m));
+			} catch (InterruptedException e1) {
+			}
+		}
+	}
+	
 	private class EofReceiver implements QueryStatusCallback {
 		@Override
 		public void onChange(Query query) {
@@ -527,40 +588,14 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 			// prevent duplicated logging
 			query.getCallbacks().getStatusCallbacks().remove(this);
-
+			
 			Date now = new Date();
-
 			HashMap<String, Object> m = new HashMap<String, Object>();
-			m.put("query_id", query.getId());
-			m.put("query_string", query.getQueryString());
-			try {
-				m.put("rows", query.getResultCount());
-			} catch (IOException e) {
-				m.put("rows", 0);
-			}
-			m.put("start_at", new Date(query.getStartTime()));
-			m.put("eof_at", now);
-			m.put("login_name", query.getContext().getSession().getLoginName());
-			m.put("cancelled", query.isCancelled());
-
-			if (query.isStarted())
-				m.put("duration", (query.getFinishTime() - query.getStartTime()) / 1000.0);
-			else
-				m.put("duration", 0);
-
-			try {
-				storage.write(new Log(QUERY_LOG_TABLE, now, m));
-			} catch (InterruptedException e) {
-				logger.warn("writing query log is interrupted: {}", m);
-			} catch (TableNotFoundException e) {
-				storage.ensureTable(new TableSchema(QUERY_LOG_TABLE, new StorageConfig("v2")));
-				try {
-					storage.write(new Log(QUERY_LOG_TABLE, now, m));
-				} catch (InterruptedException e1) {
-				}
-			}
+			serializeQuery(query, now, m);
+			writeLog(now, m);
 
 			invokeCallbacks(query, QueryStatus.EOF);
 		}
+		
 	}
 }

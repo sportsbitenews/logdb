@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 @Provides
 public class QueryParserServiceImpl implements QueryParserService {
 	private final Logger slog = LoggerFactory.getLogger(QueryParserServiceImpl.class);
-	private ConcurrentMap<String, QueryCommandParser> commandParsers = new ConcurrentHashMap<String, QueryCommandParser>(); 
+	private ConcurrentMap<String, QueryCommandParser> commandParsers = new ConcurrentHashMap<String, QueryCommandParser>();
 	private ConcurrentMap<String, QueryErrorMessage> errorMappings = new ConcurrentHashMap<String, QueryErrorMessage>();
 
 	@Requires
@@ -79,7 +79,9 @@ public class QueryParserServiceImpl implements QueryParserService {
 				String commandType = tok.nextToken();
 				QueryCommandParser parser = commandParsers.get(commandType);
 				if (parser == null) {
-					throw new QueryParseException("unsupported-command", -1, "command is [" + commandType + "]");
+					// throw new QueryParseException("unsupported-command", -1,
+					// "command is [" + commandType + "]");
+					throw new QueryParseException("92000", -1, "command is [" + commandType + "]");
 				}
 
 				QueryCommand cmd = parser.parse(context, q);
@@ -128,7 +130,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 		QueryErrorMessage m = errorMappings.get(errorCode);
 		if (m == null)
 			return null;
-
+		
 		return m.format(locale, params);
 	}
 
@@ -210,7 +212,8 @@ public class QueryParserServiceImpl implements QueryParserService {
 		add("90691", "missing-hash-data", "바이너리 표현식을 입력하십시오.");
 		add("90692", "unsupported-hash", "[algorithm]은 지원하지 않는 해시 알고리즘 입니다.");
 		/* In */
-		//add("90700", "insufficient-arguments", "올바르지 않는 입력 형식입니다."); - 99000 으로 대체
+		// add("90700", "insufficient-arguments", "올바르지 않는 입력 형식입니다."); - 99000
+		// 으로 대체
 		/* Ip2Long */
 		add("90710", "invalid-ip2long-args", "올바르지 않는 입력 형식입니다.");
 		/* Left */
@@ -226,19 +229,23 @@ public class QueryParserServiceImpl implements QueryParserService {
 		add("90760", "invalid-rand-argument", "길이는 숫자여야 합니다.(입력값: [length])");
 		add("90761", "invalid-randbytes-len", "길이는 0보다 크거나 1000000보다 작아야 합니다.(입력값: [length])");
 		/* Split */
-		//add("90770", "missing-split-args", "올바르지 않는 입력 형식입니다."); - 99000 으로 대체
+		// add("90770", "missing-split-args", "올바르지 않는 입력 형식입니다."); - 99000 으로
+		// 대체
 		add("90771", "invalid-delimiters", "올바르지 않는  구분자입니다.([exception])");
 		add("90772", "empty-delimiters", "구분자가 없습니다.");
 		/* StrJoin */
 		add("90780", "nvalid-strjoin-args", "올바르지 않는  구분자입니다.([exception])");
 		add("90781", "strjoin-require-constant-separato", "올바르지 않는 입력 형식입니다.");
 		/* Substr */
-		//add("90790", "invalid-substr-range", "시작 위치는 0보다 커야합니다(입력값 : [begin])");
-		//add("90791", "invalid-substr-range", "끝위치([end])는 시작위치(begin])보다 커야합니다.");
+		// add("90790", "invalid-substr-range",
+		// "시작 위치는 0보다 커야합니다(입력값 : [begin])");
+		// add("90791", "invalid-substr-range",
+		// "끝위치([end])는 시작위치(begin])보다 커야합니다.");
 		/* ToBase64 */
-		//add("90800", "tobase64-arg-missing", "올바르지 않는 입력 형식입니다."); - 99000 으로 대체
+		// add("90800", "tobase64-arg-missing", "올바르지 않는 입력 형식입니다."); - 99000 으로
+		// 대체
 		/* ToBinary */
-		//add("90810", "missing-data", "올바르지 않는 입력 형식입니다."); - 99000 으로 대체
+		// add("90810", "missing-data", "올바르지 않는 입력 형식입니다."); - 99000 으로 대체
 		add("90811", "unsupported-charset", "[charset]은 지원하지 않는 인코딩입니다.");
 		/* ToDate */
 		add("90820", "invalid date format pattern", "날짜변환에 실패하였습니다.([exception])");
@@ -249,17 +256,18 @@ public class QueryParserServiceImpl implements QueryParserService {
 		/* UrlDecode */
 		add("90850", "invalid-charset", "[charset]은 지원하지 않는 인코딩입니다.");
 		/* ValueOf */
-		//add("90860", "insufficient-valueof-args", "올바르지 않는 입력 형식입니다.");  - 99000 으로 대체
+		// add("90860", "insufficient-valueof-args", "올바르지 않는 입력 형식입니다."); -
+		// 99000 으로 대체
 		/* Values */
 		add("90870", "missing-values-arg", "올바르지 않는 입력 형식입니다.");
 		/* Count */
 		add("91010", "invalid-count-args", "올바르지 않는 입력 형식입니다.");
 		/* First */
 		add("91020", "invalid-parameter-count", "올바르지 않는 입력 형식입니다.");
-		/* Foramt */
+		/* Format */
 		add("91030", "invalid-format-string", "[exp]은 문자열 형식이 아닙니다.");
 		/* FunctionExpression */
-		add("99000", "[name]-arg-missing([args]-[min])" , "[name]의 매개변수는 [min] 개 이상이여야 합니다.( [args] 개 입력 됨)");
+		add("99000", "[name]-arg-missing([args]-[min])", "[name]의 매개변수는 [min] 개 이상이여야 합니다.( [args] 개 입력 됨)");
 		/* MetadataServiceImpl */
 		add("95000", "invalid-system-object-type, type=[type]", "[type]는 잘못된 타입입니다.");
 		/* LoggerMetadataProvider */
@@ -281,6 +289,8 @@ public class QueryParserServiceImpl implements QueryParserService {
 		add("90901", "cannot create function instance", "[function] 함수 오류: [msg].");
 		add("90902", "cannot create function instance", "[function] 함수 오류 : [msg].");
 		add("90903", "no-read-permission", "[funtion] 함수 읽기 권한이 없습니다.");
+		/* Unsupported Command Type */
+		add("92000", "unsupported-command", "지원하지 않는 명령어입니다.");
 	}
 
 	private void add(String code, String en, String ko) {

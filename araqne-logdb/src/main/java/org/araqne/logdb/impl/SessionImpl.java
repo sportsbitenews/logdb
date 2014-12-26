@@ -17,13 +17,16 @@ package org.araqne.logdb.impl;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.araqne.logdb.Session;
 
 public class SessionImpl implements Session {
 	private String guid;
 	private String loginName;
-
+	
 	/**
 	 * @since 1.0.0
 	 */
@@ -31,11 +34,18 @@ public class SessionImpl implements Session {
 
 	private Date created;
 
+	/**
+	 * @since 2.4.53
+	 */
+	private Map<String, Object> props;
+	
 	public SessionImpl(String guid, String loginName, boolean admin) {
 		this.guid = guid;
 		this.loginName = loginName;
 		this.admin = admin;
 		this.created = new Date();
+		
+		props = new ConcurrentHashMap<String, Object>();
 	}
 
 	@Override
@@ -81,6 +91,27 @@ public class SessionImpl implements Session {
 	@Override
 	public Date getCreated() {
 		return created;
+	}
+
+	@Override
+	public Set<String> getPropertyKeys() {
+		return props.keySet();
+	}
+
+	@Override
+	public Object getProperty(String name) {
+		return props.get(name);
+	}
+
+	@Override
+	public void setProperty(String name, Object value) {
+		props.put(name, value);
+	}
+
+	@Override
+	public void unsetProperty(String name) {
+		if(props.containsKey(name))
+			props.remove(name);
 	}
 
 	@Override
