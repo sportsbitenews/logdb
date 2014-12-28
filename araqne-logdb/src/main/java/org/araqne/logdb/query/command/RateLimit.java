@@ -8,8 +8,9 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 
-public class RateLimit extends QueryCommand {
+public class RateLimit extends QueryCommand implements ThreadSafe {
 
 	private TickService tickService;
 	private CounterReset reset = new CounterReset();
