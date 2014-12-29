@@ -112,8 +112,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 				schema.setPrimaryStorage(primaryStorage);
 
 				db.update(c, schema);
-				logger.info(
-						"araqne logstorage: migrated table [{}] _filetype [{}] metadata to schema", schema.getName(),
+				logger.info("araqne logstorage: migrated table [{}] _filetype [{}] metadata to schema", schema.getName(),
 						fileType);
 			}
 		} finally {
@@ -136,9 +135,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 					ConfigIterator it = before.findAll();
 					while (it.hasNext())
 						col.add(xact, it.next().getDocument());
-					xact.commit(
-							"araqne-logstorage",
-							"migration from collection org.araqne.logstorage.engine.LogTableSchema");
+					xact.commit("araqne-logstorage", "migration from collection org.araqne.logstorage.engine.LogTableSchema");
 					db.dropCollection("org.araqne.logstorage.engine.LogTableSchema");
 				} catch (Throwable e) {
 					xact.rollback();
@@ -165,7 +162,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 		Integer tid = tableIDs.get(tableName);
 		if (tid == null)
 			return false;
-		
+
 		return tableSchemas.containsKey(tid);
 	}
 
@@ -255,8 +252,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 			TableConfig newConfig = newConfigs.get(key);
 
 			if (!spec.isOptional())
-				throw new IllegalArgumentException("table config [" + spec.getKey()
-						+ "] cannot be added, required config");
+				throw new IllegalArgumentException("table config [" + spec.getKey() + "] cannot be added, required config");
 
 			logger.debug("araqne logstorage: alter table [{}] added {}={}", new Object[] { tableName, key, newConfig });
 		}
@@ -270,8 +266,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 			if (!spec.isUpdatable() && !oldConfig.equals(newConfig))
 				throw new IllegalArgumentException("table config [" + spec.getKey() + "] is not updatable");
 
-			logger.debug("araqne logstorage: alter table [{}] updated key [{}] value [{} -> {}]", new Object[] {
-					tableName, key,
+			logger.debug("araqne logstorage: alter table [{}] updated key [{}] value [{} -> {}]", new Object[] { tableName, key,
 					oldConfig, newConfig });
 		}
 
@@ -374,7 +369,8 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 		Config c = db.findOne(TableSchema.class, Predicates.field("name", tableName));
 		if (c == null)
 			return;
-		db.remove(c);
+
+		db.remove(c, false, "araqne-logstorage", "dropped " + tableName + " table");
 
 		// invoke callbacks
 		for (TableEventListener callback : callbacks) {
@@ -462,8 +458,7 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 		if (tableLock != null) {
 			String owner = tableLock.getOwner();
 			if (owner != null)
-				return new LockStatus(
-						owner, tableLock.availableShared(), tableLock.getReentrantCount(), tableLock.getPurposes());
+				return new LockStatus(owner, tableLock.availableShared(), tableLock.getReentrantCount(), tableLock.getPurposes());
 			else
 				return new LockStatus(tableLock.availableShared());
 		} else {
