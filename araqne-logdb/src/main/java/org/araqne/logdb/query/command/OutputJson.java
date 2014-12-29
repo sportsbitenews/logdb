@@ -105,9 +105,8 @@ public class OutputJson extends QueryCommand {
 		}
 	}
 
-	public OutputJson(String filePathToken, boolean overwrite, List<String> fields, String encoding,
-			boolean usePartition, String tmpPath, List<PartitionPlaceholder> holders,
-			boolean append, TimeSpan flushInterval, TickService tickService	) {
+	public OutputJson(String filePathToken, boolean overwrite, List<String> fields, String encoding, boolean usePartition,
+			String tmpPath, List<PartitionPlaceholder> holders, boolean append, TimeSpan flushInterval, TickService tickService) {
 		this.overwrite = overwrite;
 		this.filePathToken = filePathToken;
 		this.fields = fields;
@@ -124,16 +123,16 @@ public class OutputJson extends QueryCommand {
 	}
 
 	@Override
-	public void onStart(){
+	public void onStart() {
 		File jsonFile = new File(filePathToken);
-		if (jsonFile.exists() && !overwrite  && !append)
+		if (jsonFile.exists() && !overwrite && !append)
 			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
 
 		if (!usePartition && jsonFile.getParentFile() != null)
 			jsonFile.getParentFile().mkdirs();
-		
+
 		this.f = jsonFile;
-		
+
 		this.writerFactory = new JsonLineWriterFactory(fields, encoding, append);
 
 		try {
@@ -145,21 +144,21 @@ public class OutputJson extends QueryCommand {
 				this.writer = writerFactory.newWriter(path);
 				mover = new LocalFileMover();
 			} else {
-				//this.holders = holders;
+				// this.holders = holders;
 				this.outputs = new HashMap<List<String>, PartitionOutput>();
 			}
-		}catch(QueryParseException t){
+		} catch (QueryParseException t) {
 			close();
 			throw t;
 		} catch (Throwable t) {
 			close();
-			Map<String, String> params = new HashMap<String, String> ();
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("msg", t.getMessage());
-			throw new QueryParseException("30303",  -1, -1, params);
-			//throw new QueryParseException("io-error", -1);
+			throw new QueryParseException("30303", -1, -1, params);
+			// throw new QueryParseException("io-error", -1);
 		}
 	}
-	
+
 	@Override
 	public String getName() {
 		return "outputjson";
@@ -296,7 +295,7 @@ public class OutputJson extends QueryCommand {
 		if (!fields.isEmpty())
 			fieldsOption = " " + Strings.join(fields, ", ");
 
-		return "outputjson" + overwriteOption + appendOption + encodingOption + partitionOption + tmpOption + filePathToken
+		return "outputjson" + overwriteOption + appendOption + encodingOption + partitionOption + tmpOption + " " + filePathToken
 				+ fieldsOption;
 	}
 
@@ -320,4 +319,3 @@ public class OutputJson extends QueryCommand {
 		}
 	}
 }
-
