@@ -16,6 +16,7 @@
 package org.araqne.logstorage.engine;
 
 import java.io.IOException;
+import java.io.SyncFailedException;
 import java.nio.BufferUnderflowException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -1290,9 +1291,19 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			OnlineWriter onlineWriter = onlineWriters.get(new OnlineWriterKey(tableName, day, tableId));
 			if (onlineWriter != null) {
 				List<Log> buffer = onlineWriter.getBuffer();
-
-				onlineWriter.sync();
-
+				
+				do {
+					try {
+						onlineWriter.sync();
+						break;
+					} catch (SyncFailedException e) {
+						try {
+							Thread.sleep(10);
+						} catch (InterruptedException ex) {
+						}
+					}
+				} while (false);
+				
 				if (buffer != null && !buffer.isEmpty()) {
 					LogParser parser = null;
 					if (builder != null)
@@ -1371,7 +1382,18 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			OnlineWriter onlineWriter, String tableName, String logFileType, Map<String, Object> options) {
 		if (onlineWriter != null) {
 			try {
-				onlineWriter.sync();
+				do {
+					try {
+						onlineWriter.sync();
+						break;
+					} catch (SyncFailedException e) {
+						try {
+							Thread.sleep(10);
+						} catch (InterruptedException ex) {
+						}
+					}
+				} while (false);
+
 			} catch (IOException e) {
 				logger.error("araqne logstorage: cannot sync online writer", e);
 			}
