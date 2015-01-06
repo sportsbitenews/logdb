@@ -177,6 +177,7 @@ public class LogQueryPlugin {
 			resp.put("error_begin", e.getStartOffset());
 			resp.put("error_end", e.getEndOffset());
 		} catch (Exception e) {
+			logger.error("araqne logdb: cannot create query", e);
 			resp.put("error_code", "99999");
 			resp.put("error_msg", e.getMessage());
 		}
