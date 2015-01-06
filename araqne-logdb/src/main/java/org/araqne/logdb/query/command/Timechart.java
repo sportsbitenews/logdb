@@ -248,17 +248,19 @@ public class Timechart extends QueryCommand {
 	}
 
 	private void flush() throws IOException {
-		for (TimechartKey key : buffer.keySet()) {
-			AggregationFunction[] fs = buffer.get(key);
-			Object[] l = new Object[fs.length];
-			int i = 0;
-			for (AggregationFunction f : fs)
-				l[i++] = f.serialize();
+		if (buffer != null) {
+			for (TimechartKey key : buffer.keySet()) {
+				AggregationFunction[] fs = buffer.get(key);
+				Object[] l = new Object[fs.length];
+				int i = 0;
+				for (AggregationFunction f : fs)
+					l[i++] = f.serialize();
 
-			sorter.add(new Item(new Object[] { key.time, key.key }, l));
+				sorter.add(new Item(new Object[] { key.time, key.key }, l));
+			}
+
+			buffer.clear();
 		}
-
-		buffer.clear();
 	}
 
 	public void onClose(QueryStopReason reason) {
@@ -270,12 +272,15 @@ public class Timechart extends QueryCommand {
 			flush();
 
 			// reclaim buffer (GC support)
-			buffer.clear();
+			if (buffer != null)
+				buffer.clear();
 
 			// sort
-			it = sorter.sort();
+			if (sorter != null) {
+				it = sorter.sort();
 
-			mergeAndWrite(it);
+				mergeAndWrite(it);
+			}
 		} catch (IOException e) {
 			throw new IllegalStateException("timechart sort failed, query " + query, e);
 		} finally {
@@ -360,11 +365,11 @@ public class Timechart extends QueryCommand {
 			pushPipe(new Row(output), pivot);
 		}
 	}
-	
+
 	private void pushPipe(Row r, boolean pivot) {
 		if (pivot) {
 			Object _time = r.get("_time");
-			for (Map.Entry<String, Object> e: r.map().entrySet()) {
+			for (Map.Entry<String, Object> e : r.map().entrySet()) {
 				HashMap<String, Object> m = new HashMap<String, Object>();
 				if (e.getKey().equals("_time"))
 					continue;
@@ -377,7 +382,7 @@ public class Timechart extends QueryCommand {
 			pushPipe(r);
 		}
 	}
-	
+
 	private void setOutputAndReset(Map<String, Object> output, AggregationFunction[] fs, String keyFieldValue) {
 		if (keyField != null) {
 			if (fs.length > 1) {
