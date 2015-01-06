@@ -42,7 +42,7 @@ public class ScheduledQueryInfo {
 	private String mailTo;
 	private String mailSubject;
 
-	private boolean enabled;
+	private boolean enabled = true;
 	private Date created = new Date();
 
 	/**
