@@ -31,16 +31,7 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
 import org.araqne.log.api.LogParserRegistry;
-import org.araqne.logdb.AccountService;
-import org.araqne.logdb.DefaultLogParserBuilder;
-import org.araqne.logdb.DriverQueryCommand;
-import org.araqne.logdb.Permission;
-import org.araqne.logdb.QueryStopReason;
-import org.araqne.logdb.QueryTask;
-import org.araqne.logdb.Row;
-import org.araqne.logdb.RowBatch;
-import org.araqne.logdb.Strings;
-import org.araqne.logdb.TimeSpan;
+import org.araqne.logdb.*;
 import org.araqne.logdb.query.parser.TableSpec;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogCallback;
@@ -75,10 +66,14 @@ public class Table extends DriverQueryCommand {
 
 	@Override
 	public void run() {
-		if (params.window != null)
-			receiveTableInputs();
-		else
-			scanTables();
+		try {
+			if (params.window != null)
+				receiveTableInputs();
+			else
+				scanTables();
+		} catch (Exception e) {
+			throw new RuntimeException(String.format("Exception while running Table command: [%s] ", this.toString()), e);
+		}
 	}
 
 	private void receiveTableInputs() {

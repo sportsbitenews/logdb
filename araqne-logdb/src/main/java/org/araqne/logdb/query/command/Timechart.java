@@ -267,15 +267,17 @@ public class Timechart extends QueryCommand {
 		CloseableIterator it = null;
 		try {
 			// last flush
-			flush();
+			if (buffer != null) {
+				flush();
 
-			// reclaim buffer (GC support)
-			buffer.clear();
+				// reclaim buffer (GC support)
+				buffer.clear();
 
-			// sort
-			it = sorter.sort();
+				// sort
+				it = sorter.sort();
 
-			mergeAndWrite(it);
+				mergeAndWrite(it);
+			}
 		} catch (IOException e) {
 			throw new IllegalStateException("timechart sort failed, query " + query, e);
 		} finally {
