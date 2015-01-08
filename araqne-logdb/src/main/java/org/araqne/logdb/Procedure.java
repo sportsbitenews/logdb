@@ -3,16 +3,23 @@ package org.araqne.logdb;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.api.CollectionTypeHint;
 import org.araqne.api.FieldOption;
 import org.araqne.confdb.CollectionName;
+import org.araqne.msgbus.Marshalable;
+import org.araqne.msgbus.Marshaler;
 
 @CollectionName("procedures")
-public class Procedure {
+public class Procedure implements Marshalable {
 	@FieldOption(nullable = false)
 	private String name;
+
+	@FieldOption(nullable = true)
+	private String description;
 
 	@FieldOption(nullable = false)
 	private String owner;
@@ -32,12 +39,27 @@ public class Procedure {
 	@FieldOption(nullable = false)
 	private Date modified = new Date();
 
+	public boolean canExecute(String loginName) {
+		if (loginName == null)
+			throw new IllegalArgumentException("login name should not be null");
+
+		return loginName.equals(owner) || grants.contains(loginName);
+	}
+
 	public String getName() {
 		return name;
 	}
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
 	}
 
 	public String getOwner() {
@@ -86,6 +108,19 @@ public class Procedure {
 
 	public void setModified(Date modified) {
 		this.modified = modified;
+	}
+
+	@Override
+	public Map<String, Object> marshal() {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("name", name);
+		m.put("owner", owner);
+		m.put("grants", grants);
+		m.put("parameters", Marshaler.marshal(parameters));
+		m.put("query_string", queryString);
+		m.put("created", created);
+		m.put("modified", modified);
+		return m;
 	}
 
 	@Override

@@ -1,8 +1,17 @@
 package org.araqne.logdb;
 
-import org.araqne.api.FieldOption;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-public class ProcedureParameter {
+import org.araqne.api.FieldOption;
+import org.araqne.msgbus.Marshalable;
+
+public class ProcedureParameter implements Marshalable {
+	private static final Set<String> ACCEPTED_TYPES = new HashSet<String>(Arrays.asList("string", "int", "double", "bool"));
+
 	@FieldOption(nullable = false)
 	private String key;
 
@@ -57,7 +66,23 @@ public class ProcedureParameter {
 	}
 
 	public void setType(String type) {
+		if (type == null)
+			throw new IllegalArgumentException("null procedure parameter type");
+
+		if (!ACCEPTED_TYPES.contains(type))
+			throw new IllegalArgumentException("invalid procedure parameter type: " + type);
+
 		this.type = type;
+	}
+
+	@Override
+	public Map<String, Object> marshal() {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("key", key);
+		m.put("type", type);
+		m.put("name", name);
+		m.put("description", description);
+		return m;
 	}
 
 	@Override
