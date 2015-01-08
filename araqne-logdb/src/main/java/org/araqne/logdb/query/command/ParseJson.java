@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.json.JSONArray;
 import org.json.JSONConverter;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -54,11 +55,18 @@ public class ParseJson extends QueryCommand {
 
 		try {
 			Object value = tokenizer.nextValue();
-			Map<String, Object> m = JSONConverter.parse((JSONObject) value);
-			if (overlay)
-				row.map().putAll(m);
-			else
-				row = new Row(m);
+
+			if (value instanceof JSONObject) {
+				Map<String, Object> m = JSONConverter.parse((JSONObject) value);
+				if (overlay)
+					row.map().putAll(m);
+				else
+					row = new Row(m);
+
+			} else if (value instanceof JSONArray) {
+				Object array = JSONConverter.parse((JSONArray) value);
+				row.put(field, array);
+			}
 
 			pushPipe(row);
 		} catch (Throwable t) {
