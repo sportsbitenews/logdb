@@ -271,7 +271,7 @@ public class OutputJson extends QueryCommand {
 
 	@Override
 	public String toString() {
-		String overwriteOption = " ";
+		String overwriteOption = "";
 		if (overwrite)
 			overwriteOption = " overwrite=t ";
 
