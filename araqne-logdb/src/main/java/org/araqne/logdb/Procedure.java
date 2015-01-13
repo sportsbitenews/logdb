@@ -120,6 +120,7 @@ public class Procedure implements Marshalable {
 		m.put("query_string", queryString);
 		m.put("created", created);
 		m.put("modified", modified);
+		m.put("description", description);
 		return m;
 	}
 
