@@ -135,6 +135,7 @@ public class OutputTxt extends QueryCommand {
 			this.append = append;
 			this.flushInterval = flushInterval;
 			this.useRowFlush = useRowFlush;
+			this.holders = holders;
 			
 			if (flushInterval != null)
 				tickService.addTimer(flushTimer);
