@@ -170,4 +170,9 @@ public interface LogStorage {
 
 	<T> void removeFallback(Class<T> clazz, T fallback);
 
+	/*
+	 * @since 2.8.17 
+	 */
+	boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId, 
+			LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException;
 }

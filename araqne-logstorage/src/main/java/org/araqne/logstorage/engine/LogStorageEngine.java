@@ -1269,7 +1269,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		return !c.isEof();
 	}
 
-	private boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId,
+	public boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId,
 			LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException {
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 		int tableId = schema.getId();
