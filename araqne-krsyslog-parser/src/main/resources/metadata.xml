@@ -6,13 +6,13 @@
 	<instance component="geni-nac-snmp-log-parser-factory" />
 	<instance component="geni-nac-sys-log-parser-factory" />
 	<instance component="infosec-anti-web-shell-log-parser-factory" />
+	<instance component="modoos-gateone-parser-factory" />
+	<instance component="secureworks-log-parser-factory" />
 	<instance component="wapples-syslog-parser-factory" />
 	<instance component="piolink-webfront-factory" />
 	<instance component="pnp-dbsafer-parser-factory" />
 	<instance component="mf2-log-parser-factory" />
 	<instance component="nxg-log-parser-factory" />
 	<instance component="sniper-log-parser-factory" />
-	<instance component="secureworks-log-parser-factory" />
-	<instance component="modoos-gateone-parser-factory" />	
 	<instance component="neobox-log-parser-factory" />
 </ipojo>
