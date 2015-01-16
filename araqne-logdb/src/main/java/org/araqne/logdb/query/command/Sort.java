@@ -98,7 +98,9 @@ public class Sort extends QueryCommand {
 						sorter.add(new Item(row.map(), null));
 				}
 			} else {
-				for (Row row : rowBatch.rows) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row row = rowBatch.rows[i];
+					
 					if (top != null)
 						top.add(new Item(row.map(), null));
 					else if (sorter != null) {

@@ -43,8 +43,10 @@ public abstract class GroovyQueryScript {
 				onRow(row);
 			}
 		} else {
-			for (Row row : rowBatch.rows)
+		    for (int i = 0; i < rowBatch.size; i++) {
+		        Row row = rowBatch.rows[i];
 				onRow(row);
+		    }
 		}
 	}
 	

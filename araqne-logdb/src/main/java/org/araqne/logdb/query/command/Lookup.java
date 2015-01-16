@@ -88,7 +88,9 @@ public class Lookup extends QueryCommand implements ThreadSafe {
 				row.put(targetField, handler.lookup(lookupInputField, lookupOutputField, value));
 			}
 		} else {
-			for (Row row : rowBatch.rows) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+				
 				Object value = row.get(sourceField);
 				row.put(targetField, handler.lookup(lookupInputField, lookupOutputField, value));
 			}

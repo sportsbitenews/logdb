@@ -74,8 +74,10 @@ public class Exec extends QueryCommand {
 				runCommand(row);
 			}
 		} else {
-			for (Row row : rowBatch.rows)
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
 				runCommand(row);
+			}
 		}
 
 		pushPipe(rowBatch);

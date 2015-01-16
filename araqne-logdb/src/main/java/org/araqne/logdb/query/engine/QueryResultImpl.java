@@ -154,7 +154,9 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 							writer.write(new Log("$Result$", new Date(), count, row.map()));
 					}
 				} else {
-					for (Row row : rowBatch.rows) {
+					for (int i = 0; i < rowBatch.size; i++) {
+						Row row = rowBatch.rows[i];
+						
 						long count = counter.incrementAndGet();
 						if (!streaming)
 							writer.write(new Log("$Result$", new Date(), count, row.map()));

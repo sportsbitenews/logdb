@@ -66,8 +66,10 @@ public class Evalc extends QueryCommand implements ThreadSafe {
 				constants.put(constantName, expr.eval(row));
 			}
 		} else {
-			for (Row row : rowBatch.rows)
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
 				constants.put(constantName, expr.eval(row));
+			}
 		}
 
 		pushPipe(rowBatch);

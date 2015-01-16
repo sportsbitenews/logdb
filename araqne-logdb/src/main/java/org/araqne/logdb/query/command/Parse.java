@@ -63,8 +63,10 @@ public class Parse extends QueryCommand implements ThreadSafe {
 					onPush(row);
 				}
 			} else {
-				for (Row row : rowBatch.rows)
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row row = rowBatch.rows[i];
 					onPush(row);
+				}
 			}
 
 			return;

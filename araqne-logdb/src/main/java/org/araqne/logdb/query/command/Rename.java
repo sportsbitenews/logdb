@@ -60,7 +60,9 @@ public class Rename extends QueryCommand implements ThreadSafe {
 					row.put(to, row.remove(from));
 			}
 		} else {
-			for (Row row : rowBatch.rows) {
+		    for (int i = 0; i < rowBatch.size; i++) {
+		        Row row = rowBatch.rows[i];
+
 				if (row.containsKey(from))
 					row.put(to, row.remove(from));
 			}
