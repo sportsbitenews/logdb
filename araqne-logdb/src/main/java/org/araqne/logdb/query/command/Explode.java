@@ -84,8 +84,10 @@ public class Explode extends QueryCommand {
 			}
 
 		} else {
-			for (Row r : rowBatch.rows) {
-				Object o = r.get(arrayFieldName);
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+
+				Object o = row.get(arrayFieldName);
 				if (o == null)
 					continue;
 
@@ -126,7 +128,9 @@ public class Explode extends QueryCommand {
 				}
 			}
 		} else {
-			for (Row row : rowBatch.rows) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+
 				Object o = row.get(arrayFieldName);
 				if (o == null)
 					continue;

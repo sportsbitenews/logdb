@@ -53,7 +53,9 @@ public class Signature extends QueryCommand implements ThreadSafe {
 				row.put("signature", sig);
 			}
 		} else {
-			for (Row row : rowBatch.rows) {
+		    for (int i = 0; i < rowBatch.size; i++) {
+		        Row row = rowBatch.rows[i];
+
 				String line = (String) row.get("line");
 				if (line == null)
 					continue;

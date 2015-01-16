@@ -99,8 +99,10 @@ public class Import extends QueryCommand implements ThreadSafe {
 				logs.add(convertToLog(row));
 			}
 		} else {
-			for (Row row : rowBatch.rows)
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
 				logs.add(convertToLog(row));
+			}
 		}
 
 		try {

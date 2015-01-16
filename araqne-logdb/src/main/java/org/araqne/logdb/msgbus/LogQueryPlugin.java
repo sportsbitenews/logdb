@@ -652,8 +652,10 @@ public class LogQueryPlugin {
 						rows.add(row.map());
 					}
 				} else {
-					for (Row row : rowBatch.rows)
+					for (int i = 0; i < rowBatch.size; i++) {
+						Row row = rowBatch.rows[i];
 						rows.add(row.map());
+					}
 				}
 
 				if (rows.size() >= streamFlushSize)

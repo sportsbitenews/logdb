@@ -195,8 +195,10 @@ public class Timechart extends QueryCommand {
 					f.apply(row);
 			}
 		} else {
-			for (Row row : rowBatch.rows) {
-				Date time = (Date) row.get("_time");
+		    for (int i = 0; i < rowBatch.size; i++) {
+		        Row row = rowBatch.rows[i];
+
+		        Date time = (Date) row.get("_time");
 				if (time == null)
 					return;
 
@@ -216,12 +218,12 @@ public class Timechart extends QueryCommand {
 				AggregationFunction[] fs = buffer.get(key);
 				if (fs == null) {
 					fs = new AggregationFunction[funcs.length];
-					for (int i = 0; i < fs.length; i++) {
-						fs[i] = funcs[i].clone();
+					for (int j = 0; j < fs.length; j++) {
+						fs[j] = funcs[j].clone();
 
 						// set span milliseconds for average evaluation per span
-						if (fs[i] instanceof PerTime)
-							((PerTime) fs[i]).setAmount(spanMillis);
+						if (fs[j] instanceof PerTime)
+							((PerTime) fs[j]).setAmount(spanMillis);
 					}
 
 					buffer.put(key, fs);

@@ -93,8 +93,10 @@ public abstract class QueryCommand {
 				onPush(row);
 			}
 		} else {
-			for (Row row : rowBatch.rows)
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
 				onPush(row);
+			}
 		}
 	}
 

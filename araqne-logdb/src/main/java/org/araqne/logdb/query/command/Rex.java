@@ -110,7 +110,9 @@ public class Rex extends QueryCommand implements ThreadSafe {
 				}
 			}
 		} else {
-			for (Row row : rowBatch.rows) {
+		    for (int i = 0; i < rowBatch.size; i++) {
+		        Row row = rowBatch.rows[i];
+
 				Object o = row.get(field);
 				if (o == null)
 					continue;

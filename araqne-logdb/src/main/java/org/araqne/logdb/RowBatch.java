@@ -15,6 +15,24 @@
  */
 package org.araqne.logdb;
 
+/**
+ * RowBatch iterate example
+ * <pre>
+ * {@code
+if (rowBatch.selectedInUse) {
+    for (int i = 0; i < rowBatch.size; i++) {
+        int p = rowBatch.selected[i];
+        Row row = rowBatch.rows[p];
+        operate(row);
+    }
+} else {
+    for (int i = 0; i < rowBatch.size; i++) {
+        Row row = rowBatch.rows[i];
+        operate(row);
+    }
+}
+}</pre>
+*/
 public class RowBatch {
 	public boolean selectedInUse;
 	public int[] selected;
