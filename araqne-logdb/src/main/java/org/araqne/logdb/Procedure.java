@@ -39,7 +39,7 @@ public class Procedure implements Marshalable {
 	@FieldOption(nullable = false)
 	private Date modified = new Date();
 
-	public boolean canExecute(String loginName) {
+	public boolean isGranted(String loginName) {
 		if (loginName == null)
 			throw new IllegalArgumentException("login name should not be null");
 
