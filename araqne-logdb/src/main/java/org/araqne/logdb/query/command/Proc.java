@@ -16,17 +16,21 @@
 package org.araqne.logdb.query.command;
 
 import java.util.List;
+import java.util.Map;
 
+import org.araqne.logdb.AccountService;
 import org.araqne.logdb.DefaultQuery;
 import org.araqne.logdb.Procedure;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.RowPipe;
+import org.araqne.logdb.Session;
 import org.araqne.logdb.StreamResultFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,10 +42,21 @@ public class Proc extends QueryCommand {
 	private ProcTask procTask = new ProcTask();
 	private Query subQuery;
 	private String commandString;
+	
+	private AccountService accountService;
+	private Session session;
 
-	public Proc(QueryContext procCtx, Procedure procedure, QueryParserService parserService, String commandString) {
+	public Proc(Procedure procedure, Map<String, Object> procParams, String commandString, QueryParserService parserService,
+			AccountService accountService) {
+		this.accountService = accountService;
 		this.commandString = commandString;
-		
+
+		session = accountService.newSession(procedure.getOwner());
+		QueryContext procCtx = new QueryContext(session);
+		for (String key : procParams.keySet()) {
+			procCtx.getConstants().put(key, procParams.get(key));
+		}
+
 		List<QueryCommand> procCommands = parserService.parseCommands(procCtx, procedure.getQueryString());
 		this.subQuery = new DefaultQuery(procCtx, procedure.getQueryString(), procCommands, new StreamResultFactory(procPipe));
 
@@ -61,6 +76,12 @@ public class Proc extends QueryCommand {
 	@Override
 	public void onStart() {
 		subQuery.preRun();
+	}
+
+	@Override
+	public void onClose(QueryStopReason reason) {
+		if (session != null)
+			accountService.logout(session);
 	}
 
 	@Override

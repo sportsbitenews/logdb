@@ -161,16 +161,21 @@ public class LogQueryPlugin {
 
 	@MsgbusMethod
 	public void createQuery(Request req, Response resp) {
+		String queryString = req.getString("query");
 		try {
 			org.araqne.logdb.Session dbSession = getDbSession(req);
 			if (req.get("source") != null)
 				dbSession.setProperty("araqne_logdb_query_source", req.getString("source"));
 
-			Query query = service.createQuery(dbSession, req.getString("query"));
+			Query query = service.createQuery(dbSession, queryString);
 			resp.put("id", query.getId());
 		} catch (QueryParseException e) {
-			if (e.getParams() == null || !req.getBoolean("use_error_return"))
+			Boolean useErrorReturn = req.getBoolean("use_error_return");
+			if (e.getParams() == null || (useErrorReturn != null && useErrorReturn)) {
+				if (logger.isDebugEnabled())
+					logger.debug("araqne logdb: query failure for [" + queryString + "]", e);
 				throw new MsgbusException("logdb", e.getMessage());
+			}
 
 			resp.put("error_code", e.getType());
 			resp.put("error_msg", e.getMessage());
@@ -389,18 +394,18 @@ public class LogQueryPlugin {
 		Integer limit = req.getInteger("limit");
 
 		List<SavedResult> l = savedResultManager.getResultList(dbSession.getLoginName());
-		
+
 		Collections.sort(l, new Comparator<SavedResult>() {
 			@Override
 			public int compare(SavedResult first, SavedResult second) {
 				int compared = first.getCreated().compareTo(second.getCreated());
-		        if (compared > 0) {
-		            return -1;
-		        } else if (compared < 0) {
-		            return 1;
-		        } else {
-		            return 0;
-		        }
+				if (compared > 0) {
+					return -1;
+				} else if (compared < 0) {
+					return 1;
+				} else {
+					return 0;
+				}
 			}
 		});
 
@@ -688,7 +693,7 @@ public class LogQueryPlugin {
 					rows.clear();
 				} else {
 					List<Map<String, Object>> bins = streamingEncoder.encode(rows, useGzip);
-					
+
 					Map<String, Object> m = new HashMap<String, Object>();
 					m.put("bins", bins);
 					m.put("last", last);

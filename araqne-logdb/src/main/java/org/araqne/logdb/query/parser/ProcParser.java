@@ -62,14 +62,15 @@ public class ProcParser extends AbstractQueryCommandParser {
 	@Override
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
-		m.put("11000", new QueryErrorMessage("procedure-not-found","프로시저를 찾을 수 없습니다."));
-		m.put("11001", new QueryErrorMessage("procedure-variable-type-mismatch [Type]","프로시저 변수가 타입이 맞지 않습니다. [param]는 [type] 타입이여야 합니다."));
-		m.put("11002", new QueryErrorMessage("procedure-owner-not-found","프로시저 소유자를 찾을 수 없습니다."));
-		m.put("11003", new QueryErrorMessage("procedure-parameter-mismatch","프로시저의 인자 수가 맞지 않습니다. [preset]개의 인자가 필요한데 [params]개의 인자가 입력 됐습니다."));
+		m.put("11000", new QueryErrorMessage("procedure-not-found", "프로시저를 찾을 수 없습니다."));
+		m.put("11001", new QueryErrorMessage("procedure-variable-type-mismatch [Type]",
+				"프로시저 변수가 타입이 맞지 않습니다. [param]는 [type] 타입이여야 합니다."));
+		m.put("11002", new QueryErrorMessage("procedure-owner-not-found", "프로시저 소유자를 찾을 수 없습니다."));
+		m.put("11003", new QueryErrorMessage("procedure-parameter-mismatch",
+				"프로시저의 인자 수가 맞지 않습니다. [preset]개의 인자가 필요한데 [params]개의 인자가 입력 됐습니다."));
 		return m;
 	}
-	
-	
+
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ProcFunction procFunc = (ProcFunction) ExpressionParser.parse(context, commandString.substring(4),
@@ -77,9 +78,9 @@ public class ProcParser extends AbstractQueryCommandParser {
 
 		Procedure procedure = procedureRegistry.getProcedure(procFunc.procedureName);
 		if (procedure == null)
-		//	throw new QueryParseException("procedure-not-found", -1);
-			throw new QueryParseException("11000",  getCommandName().length() + 1, commandString.length() - 1, null);
-			
+			// throw new QueryParseException("procedure-not-found", -1);
+			throw new QueryParseException("11000", getCommandName().length() + 1, commandString.length() - 1, null);
+
 		// parameter evaluation
 		List<Object> params = new ArrayList<Object>();
 		for (Expression e : procFunc.exprs)
@@ -93,60 +94,68 @@ public class ProcParser extends AbstractQueryCommandParser {
 				Map<String, String> parameter = new HashMap<String, String>();
 				parameter.put("param", param.toString());
 				parameter.put("type", "string");
-				int offset = QueryTokenizer.findKeyword(commandString,  procedure.getName()) +  procedure.getName().length();
+				int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
 				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
-				//throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
+				// throw new
+				// QueryParseException("procedure-variable-type-mismatch", -1,
+				// param.toString());
 			} else if (var.getType().equals("int") && param != null && !(param instanceof Integer)) {
 				Map<String, String> parameter = new HashMap<String, String>();
 				parameter.put("param", param.toString());
 				parameter.put("type", "int");
-				int offset = QueryTokenizer.findKeyword(commandString,  procedure.getName()) +  procedure.getName().length();
+				int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
 				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
-			//	throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
+				// throw new
+				// QueryParseException("procedure-variable-type-mismatch", -1,
+				// param.toString());
 			} else if (var.getType().equals("double") && param != null && !(param instanceof Double)) {
 				Map<String, String> parameter = new HashMap<String, String>();
 				parameter.put("param", param.toString());
 				parameter.put("type", "double");
-				int offset = QueryTokenizer.findKeyword(commandString,  procedure.getName()) +  procedure.getName().length();
+				int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
 				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
-				//throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
+				// throw new
+				// QueryParseException("procedure-variable-type-mismatch", -1,
+				// param.toString());
 			} else if (var.getType().equals("bool") && param != null && !(param instanceof Boolean)) {
 				Map<String, String> parameter = new HashMap<String, String>();
 				parameter.put("param", param.toString());
 				parameter.put("type", "bool");
-				int offset = QueryTokenizer.findKeyword(commandString,  procedure.getName()) +  procedure.getName().length();
+				int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
 				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
-				//throw new QueryParseException("procedure-variable-type-mismatch", -1, param.toString());
+				// throw new
+				// QueryParseException("procedure-variable-type-mismatch", -1,
+				// param.toString());
 			}
 		}
 
 		// owner delegation
 		Account account = accountService.getAccount(procedure.getOwner());
-		if (account == null){
-		//	throw new QueryParseException("procedure-owner-not-found", -1);
+		if (account == null) {
+			// throw new QueryParseException("procedure-owner-not-found", -1);
 			Map<String, String> parameter = new HashMap<String, String>();
-			parameter.put("owner", procedure.getOwner() );
+			parameter.put("owner", procedure.getOwner());
 			throw new QueryParseException("11002", -1, -1, parameter);
 		}
-		
-		QueryContext procCtx = new QueryContext(new DummySession(account));
 
-		if (procedure.getParameters().size() != procFunc.exprs.size()){
-		//	throw new QueryParseException("procedure-parameter-mismatch", -1);
+		if (procedure.getParameters().size() != procFunc.exprs.size()) {
+			// throw new QueryParseException("procedure-parameter-mismatch",
+			// -1);
 			Map<String, String> parameter = new HashMap<String, String>();
 			parameter.put("params", procFunc.exprs.size() + "");
 			parameter.put("preset", procedure.getParameters().size() + "");
-			
+
 			throw new QueryParseException("11003", getCommandName().length() + 1, commandString.length() - 1, parameter);
 		}
 
+		Map<String, Object> procParams = new HashMap<String, Object>();
 		i = 0;
 		for (Object param : params) {
 			ProcedureParameter v = procedure.getParameters().get(i++);
-			procCtx.getConstants().put(v.getKey(), param);
+			procParams.put(v.getKey(), param);
 		}
 
-		return new Proc(procCtx, procedure, parserService, commandString);
+		return new Proc(procedure, procParams, commandString, parserService, accountService);
 	}
 
 	private class ProcFunctionRegistry implements FunctionRegistry {
@@ -193,13 +202,13 @@ public class ProcParser extends AbstractQueryCommandParser {
 		private String guid;
 		private Account account;
 		private Map<String, Object> props;
-		
+
 		public DummySession(Account account) {
 			this.guid = UUID.randomUUID().toString();
 			this.account = account;
 			props = new ConcurrentHashMap<String, Object>();
 		}
-		
+
 		@Override
 		public String getGuid() {
 			return guid;
@@ -219,7 +228,7 @@ public class ProcParser extends AbstractQueryCommandParser {
 		public boolean isAdmin() {
 			return account.isAdmin();
 		}
-		
+
 		@Override
 		public Set<String> getPropertyKeys() {
 			return props.keySet();
@@ -237,7 +246,7 @@ public class ProcParser extends AbstractQueryCommandParser {
 
 		@Override
 		public void unsetProperty(String name) {
-			if(props.containsKey(name))
+			if (props.containsKey(name))
 				props.remove(name);
 		}
 	}
