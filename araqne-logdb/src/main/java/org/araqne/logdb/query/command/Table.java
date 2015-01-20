@@ -38,6 +38,7 @@ import org.araqne.logstorage.LogCallback;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogTraverseCallback;
+import org.araqne.logstorage.TableScanRequest;
 import org.araqne.logstorage.WrongTimeTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,7 +116,9 @@ public class Table extends DriverQueryCommand {
 						builder.suppressBugAlert();
 				}
 
-				storage.search(tableName.getTable(), params.from, params.to, builder, new LogTraverseCallbackImpl(sink));
+				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder,
+						new LogTraverseCallbackImpl(sink));
+				storage.search(req);
 
 				isSuppressedBugAlert = isSuppressedBugAlert || (builder != null && builder.isBugAlertSuppressed());
 				if (sink.isEof())
@@ -317,6 +320,7 @@ public class Table extends DriverQueryCommand {
 		private long offset;
 		private long limit;
 		private boolean ordered = true;
+		private boolean asc;
 		private Date from;
 		private Date to;
 		private TimeSpan window;
@@ -387,6 +391,14 @@ public class Table extends DriverQueryCommand {
 			this.ordered = ordered;
 		}
 
+		public boolean isAsc() {
+			return asc;
+		}
+
+		public void setAsc(boolean asc) {
+			this.asc = asc;
+		}
+
 		public boolean isRaw() {
 			return raw;
 		}
@@ -418,6 +430,9 @@ public class Table extends DriverQueryCommand {
 
 		if (params.isRaw())
 			s += " raw=t";
+
+		if (params.isAsc())
+			s += " order=asc";
 
 		return s + " " + Strings.join(getTableNames(), ", ");
 	}

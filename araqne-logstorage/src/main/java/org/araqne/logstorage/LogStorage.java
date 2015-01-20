@@ -119,18 +119,14 @@ public interface LogStorage {
 	void removeEventListener(LogStorageEventListener listener);
 
 	/**
-	 * 
-	 * @since 2.3.1
+	 * @since 2.8.17
 	 */
-	boolean search(String tableName, Date from, Date to, LogParserBuilder builder, LogTraverseCallback c)
-			throws InterruptedException;
+	boolean search(TableScanRequest req) throws InterruptedException;
 
-	boolean searchTablet(
-			String tableName, Date day, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c,
-			boolean doParallel) throws InterruptedException;
-
-	boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder,
-			LogTraverseCallback c, boolean doParallel) throws InterruptedException;
+	/**
+	 * @since 2.8.17
+	 */
+	boolean searchTablet(TableScanRequest req, Date day) throws InterruptedException;
 
 	/*
 	 * @since 2.5.3
@@ -169,10 +165,4 @@ public interface LogStorage {
 	<T> void addFallback(Class<T> clazz, T fallback);
 
 	<T> void removeFallback(Class<T> clazz, T fallback);
-
-	/*
-	 * @since 2.8.17 
-	 */
-	boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, long maxId, 
-			LogParserBuilder builder, LogTraverseCallback c, boolean doParallel) throws InterruptedException;
 }

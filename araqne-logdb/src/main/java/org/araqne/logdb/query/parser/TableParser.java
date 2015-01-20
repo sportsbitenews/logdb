@@ -80,7 +80,7 @@ public class TableParser extends AbstractQueryCommandParser {
 		m.put("10608", new QueryErrorMessage("no-read-permission", "테이블 [table] 읽기 권한이 없습니다."));
 		return m;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
@@ -101,6 +101,7 @@ public class TableParser extends AbstractQueryCommandParser {
 		long limit = 0;
 		String parser = null;
 		boolean ordered = true;
+		boolean asc = false;
 		TimeSpan window = null;
 
 		if (options.containsKey("window"))
@@ -147,11 +148,14 @@ public class TableParser extends AbstractQueryCommandParser {
 		}
 
 
-		if (options.containsKey("parser"))
+		if (options.get("parser") != null)
 			parser = options.get("parser");
 
-		if (options.containsKey("order"))
-			ordered = !options.get("order").equals("f");
+		String orderOpt = options.get("order");
+		if (orderOpt != null) {
+			ordered = !orderOpt.equals("f");
+			asc = orderOpt.equals("asc");
+		}
 
 		TableParams params = new TableParams();
 		params.setTableSpecs(tableNames);
@@ -390,13 +394,14 @@ public class TableParser extends AbstractQueryCommandParser {
 				try {
 					this.patterns.add(new WildcardTableSpec(e.eval(new Row()).toString()));
 				} catch (IllegalArgumentException exc) {
-					//throw new QueryParseException("invalid-table-spec", -1, e.toString());
+					// throw new QueryParseException("invalid-table-spec", -1,
+					// e.toString());
 
 					Map<String, String> param = new HashMap<String, String>();
-					try{
+					try {
 						param.put("options", args.toString());
 						param.put("exp", e.toString());
-					}catch(Throwable t){
+					} catch (Throwable t) {
 					}
 					throw new QueryParseException("10603", -1, -1, param);
 				}
@@ -483,9 +488,9 @@ public class TableParser extends AbstractQueryCommandParser {
 			addTableSpec(tableNames, context, evalResult);
 		}
 
-		if (tableNames.isEmpty()){
-			//	throw new QueryParseException("no-table-data-source", -1);
-			Map<String, String> params = new HashMap<String, String> ();
+		if (tableNames.isEmpty()) {
+			// throw new QueryParseException("no-table-data-source", -1);
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("value", tableTokens);
 			throw new QueryParseException("10604", -1, -1, params);
 		}
@@ -507,18 +512,21 @@ public class TableParser extends AbstractQueryCommandParser {
 
 				if (son.getNamespace() == null) {
 					// check only local tables
-					if (!son.isOptional() && !tableRegistry.exists(son.getTable())){
-						//						throw new QueryParseException("table-not-found", -1, "table=" + son.toString());
+					if (!son.isOptional() && !tableRegistry.exists(son.getTable())) {
+						// throw new QueryParseException("table-not-found", -1,
+						// "table=" + son.toString());
 						String table = son.toString();
 						Map<String, String> param = new HashMap<String, String>();
 						param.put("table", table);
 						throw new QueryParseException("10605", -1, -1, param);
-					}if (!accountService.checkPermission(context.getSession(), son.getTable(), Permission.READ)){
-						//	throw new QueryParseException("no-read-permission", -1, "table=" + son.toString());
+					}
+					if (!accountService.checkPermission(context.getSession(), son.getTable(), Permission.READ)) {
+						// throw new QueryParseException("no-read-permission",
+						// -1, "table=" + son.toString());
 						String table = son.toString();
 						Map<String, String> param = new HashMap<String, String>();
 						param.put("table", table);
-						throw new QueryParseException("10606",-1, -1, param);
+						throw new QueryParseException("10606", -1, -1, param);
 					}
 				}
 			}
@@ -549,16 +557,18 @@ public class TableParser extends AbstractQueryCommandParser {
 
 		if (namespace == null && !name.contains("*")) {
 			// check only local tables
-			if (!tableRegistry.exists(name)){
-				//	throw new QueryParseException("table-not-found", -1, "table=" + fqdn);
-				Map<String, String> params = new HashMap<String, String> ();
+			if (!tableRegistry.exists(name)) {
+				// throw new QueryParseException("table-not-found", -1, "table="
+				// + fqdn);
+				Map<String, String> params = new HashMap<String, String>();
 				params.put("table", fqdn);
 				throw new QueryParseException("10607", -1, -1, params);
 			}
 
-			if (!accountService.checkPermission(context.getSession(), name, Permission.READ)){
-				//	throw new QueryParseException("no-read-permission", -1, "table=" + fqdn);
-				Map<String, String> params = new HashMap<String, String> ();
+			if (!accountService.checkPermission(context.getSession(), name, Permission.READ)) {
+				// throw new QueryParseException("no-read-permission", -1,
+				// "table=" + fqdn);
+				Map<String, String> params = new HashMap<String, String>();
 				params.put("table", fqdn);
 				throw new QueryParseException("10608", -1, -1, params);
 			}
