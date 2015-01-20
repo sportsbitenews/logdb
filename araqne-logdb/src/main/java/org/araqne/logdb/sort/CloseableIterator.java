@@ -19,4 +19,5 @@ import java.io.Closeable;
 import java.util.Iterator;
 
 public interface CloseableIterator extends Iterator<Item>, Closeable {
+	public void reset();
 }

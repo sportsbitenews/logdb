@@ -78,4 +78,19 @@ public class MultiRunIterator implements CloseableIterator {
 			}
 		}
 	}
+
+	@Override
+	public void reset() {
+		for (RunInput run : runs) {
+			try {
+				run.reset();
+			} catch (IOException e) {
+				throw new IllegalStateException("MultiRunIterator reset fail");
+			}
+		}
+
+		this.current = runs.get(0);
+		this.runIndex = 0;
+		this.prefetch = null;
+	}
 }

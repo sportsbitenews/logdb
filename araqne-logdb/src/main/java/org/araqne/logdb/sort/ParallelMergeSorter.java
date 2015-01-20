@@ -372,7 +372,7 @@ public class ParallelMergeSorter {
 	private CloseableIterator concat(List<Run> finalRuns) throws IOException {
 		// empty iterator for no item scenario
 		if (finalRuns.size() == 0)
-			return new CacheRunIterator(new ArrayList<Item>().iterator());
+			return new CacheRunIterator(new ArrayList<Item>());
 
 		List<RunInput> iters = new ArrayList<RunInput>();
 		for (Run run : finalRuns)

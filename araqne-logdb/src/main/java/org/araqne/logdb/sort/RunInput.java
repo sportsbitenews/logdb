@@ -18,6 +18,7 @@ package org.araqne.logdb.sort;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -152,4 +153,24 @@ class RunInput {
 		}
 	}
 
+	public void reset() throws IOException {
+		loadCount = 0;
+		prefetch = null;
+		
+		purge();
+
+		if (run.cached != null) {
+			cachedIt = run.cached.iterator();
+		} else {
+			this.fis = new FileInputStream(run.dataFile);
+			if (run.offset > 0) {
+				logger.debug("araqne logdb: run input #{}, offset #{}", run.id, run.offset);
+				// index file must exists here
+				long skip = readSkipLength(run.indexFile, run.offset);
+				fis.skip(skip);
+			}
+
+			this.bis = new BufferedInputStream(fis, READ_BUFFER_SIZE);
+		}
+	}
 }

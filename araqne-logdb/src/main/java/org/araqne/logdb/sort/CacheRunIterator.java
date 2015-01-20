@@ -17,12 +17,15 @@ package org.araqne.logdb.sort;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 
 class CacheRunIterator implements CloseableIterator {
+	private List<Item> list;
 	private Iterator<Item> it;
 
-	public CacheRunIterator(Iterator<Item> it) {
-		this.it = it;
+	public CacheRunIterator(List<Item> list) {
+		this.list = list;
+		this.it = list.iterator();
 	}
 
 	@Override
@@ -42,5 +45,10 @@ class CacheRunIterator implements CloseableIterator {
 
 	@Override
 	public void close() throws IOException {
+	}
+	
+	@Override
+	public void reset() {
+		this.it = list.iterator();
 	}
 }

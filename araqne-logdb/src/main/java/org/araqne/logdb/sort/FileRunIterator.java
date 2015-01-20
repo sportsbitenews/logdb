@@ -18,6 +18,7 @@ package org.araqne.logdb.sort;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -84,5 +85,25 @@ class FileRunIterator implements CloseableIterator {
 	public void close() throws IOException {
 		bis.close();
 		f.delete();
+	}
+	
+	@Override
+	public void reset() {
+		try {
+			close();
+		} catch (IOException e1) {
+			logger.error("araqne logdb: cannot close file", e1);
+		}
+	
+		try {
+			bis = new BufferedInputStream(new FileInputStream(f), READ_BUFFER_SIZE);
+		} catch (FileNotFoundException e) {
+			try {
+				close();
+			} catch (IOException e1) {
+				logger.error("araqne logdb: cannot close file", e1);
+			}
+		}
+		next = null;
 	}
 }
