@@ -13,6 +13,8 @@ import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.RowPipe;
 import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.command.Sort.SortField;
 import org.slf4j.Logger;
@@ -39,9 +41,13 @@ public class Join extends QueryCommand {
 	private SortField[] sortFields;
 
 	private Query subQuery;
+	
+	private SortMergeJoiner sortMergeJoiner;
 
 	// tasks
 	private SubQueryTask subQueryTask = new SubQueryTask();
+	private List<RowBatch> rowBatches;
+	private static final int ROW_BATCH_BUFFER_SIZE = 10;
 
 	public Join(JoinType joinType, SortField[] sortFields, Query subQuery) {
 		this.joinType = joinType;
@@ -51,6 +57,8 @@ public class Join extends QueryCommand {
 		this.sortJoinKeys2 = new Object[sortFields.length];
 		this.sortFields = sortFields;
 		this.subQuery = subQuery;
+		this.sortMergeJoiner = new SortMergeJoiner(joinType, sortFields);
+		this.rowBatches = new ArrayList<RowBatch>(10);
 
 		logger.debug("araqne logdb: join subquery created [{}:{}]", subQuery.getId(), subQuery.getQueryString());
 		
@@ -62,6 +70,11 @@ public class Join extends QueryCommand {
 				subQueryTask.addSubTask(cmd.getMainTask());
 			}
 		}
+	}
+	
+	public void setOutput(RowPipe output) {
+		this.output = output;
+		sortMergeJoiner.setOutput(output);
 	}
 
 	@Override
@@ -92,8 +105,38 @@ public class Join extends QueryCommand {
 		} finally {
 			subQuery.purge();
 		}
+		
+		try {
+			sortMergeJoiner.setR(rowBatches);
+		} catch (IOException e) {
+			throw new IllegalStateException("Join's onPUsh(RowBatch) fail");
+		}
+	
+		try {
+			sortMergeJoiner.merge();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		rowBatches.clear();
 	}
 
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		rowBatches.add(rowBatch);
+		
+		if(rowBatches.size() >= ROW_BATCH_BUFFER_SIZE) {
+			try {
+				System.out.println(sortMergeJoiner.getOutputCount());
+				sortMergeJoiner.setR(rowBatches);
+			} catch (IOException e) {
+				throw new IllegalStateException("Join's onPUsh(RowBatch) fail");
+			}
+			
+			rowBatches.clear();
+		} 
+	}
+	
 	@Override
 	public void onPush(Row m) {
 		if (hashJoinMap != null) {
@@ -199,7 +242,7 @@ public class Join extends QueryCommand {
 				if (rs.size() <= HASH_JOIN_THRESHOLD)
 					buildHashJoinTable(rs);
 				else
-					subQueryResultSet = rs;
+					sortMergeJoiner.setS(rs);
 
 			} catch (IOException e) {
 				logger.error("araqne logdb: cannot get subquery result of query " + query.getId(), e);

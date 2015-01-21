@@ -17,6 +17,7 @@ package org.araqne.logdb.sort;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -92,5 +93,43 @@ public class MultiRunIterator implements CloseableIterator {
 		this.current = runs.get(0);
 		this.runIndex = 0;
 		this.prefetch = null;
+	}
+
+	private boolean isItemInRun(Item item, Comparator<Item> comparator, RunInput runInput) throws IOException {
+		runInput.getFirstItem();
+		Item lastItem = runInput.getLastItem();
+		
+		int compareReulst2 = comparator.compare(item, lastItem);
+
+		boolean result = compareReulst2 <= 0;
+		return result;
+	}
+	
+	public MultiRunIterator jump(Item item, Comparator<Item> comparator) throws IOException {
+		if(isItemInRun(item, comparator, current)) {
+			//do not jump to another run
+			//stay at current run
+			
+			this.current.search(item, comparator);
+			//this.current.reset();
+			return this;
+		} else {
+			this.runIndex = 0;
+			for(int i = 0; i < runs.size(); i++) {
+				RunInput runInput = this.runs.get(i);
+				if(isItemInRun(item, comparator, runInput)){
+					this.runIndex = i;
+					this.current = runInput;
+					this.current.search(item, comparator);
+					//this.current.reset();
+					return this;
+				}
+			}
+		}
+		
+		this.current = this.runs.get(this.runs.size() -1);
+		this.current.search(item, comparator);
+		//this.current.reset();
+		return this;
 	}
 }

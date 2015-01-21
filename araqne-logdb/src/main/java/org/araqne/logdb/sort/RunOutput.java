@@ -49,7 +49,8 @@ class RunOutput {
 	public RunOutput(int id, int length, AtomicInteger cacheCount, boolean noIndexWrite) throws IOException {
 		this.noIndexWrite = noIndexWrite;
 
-		int remainCacheSize = cacheCount.addAndGet(-length);
+		//int remainCacheSize = cacheCount.addAndGet(-length);
+		int remainCacheSize = -1;
 		if (remainCacheSize >= 0) {
 			this.run = new Run(id, new LinkedList<Item>());
 		} else {

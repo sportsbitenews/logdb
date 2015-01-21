@@ -2,6 +2,7 @@ package org.araqne.logdb.query.command;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -20,7 +21,7 @@ import org.araqne.logdb.sort.MultiRunIterator;
 import org.araqne.logdb.sort.ParallelMergeSorter;
 
 public class SortMergeJoiner {
-	CloseableIterator rIt;
+	Iterator<Item> rIt;
 	CloseableIterator sIt;
 
 	private final JoinType joinType;
@@ -29,42 +30,38 @@ public class SortMergeJoiner {
 
 	protected RowPipe output;
 	private long outputCount;
+	private ParallelMergeSorter rSorter;
 
-	SortMergeJoiner(JoinType joinType, SortField[] sortFields, RowPipe output) {
+	SortMergeJoiner(JoinType joinType, SortField[] sortFields) {
 		this.joinType = joinType;
 		this.sortFields = sortFields;
 		this.joinKeyCount = sortFields.length;
+		rSorter = new ParallelMergeSorter(new DefaultComparator());
+	}
 
+	void setOutput(RowPipe output) {
 		this.output = output;
 	}
-
-	void setR(RowBatch rowBatch) throws IOException {
-		this.rIt = sortR(rowBatch);
+	
+	void setR(List<RowBatch> rowBatches) throws IOException {
+		for(RowBatch rowBatch : rowBatches) {
+			if (rowBatch.selectedInUse) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row row = rowBatch.rows[rowBatch.selected[i]];
+					Item item = getItem(row.map());
+					rSorter.add(item);
+				}
+			} else {
+				for (Row row : rowBatch.rows) {
+					Item item = getItem(row.map());
+					rSorter.add(item);
+				}
+			}
+		}
 	}
 
-	private CloseableIterator sortR(RowBatch rowBatch) throws IOException {
-		ParallelMergeSorter sorter = new ParallelMergeSorter(new DefaultComparator());
-
-		Item item = null;
-		if (rowBatch.selectedInUse) {
-			for (int i = 0; i < rowBatch.size; i++) {
-				Row row = rowBatch.rows[rowBatch.selected[i]];
-				item = getItem(row);
-				sorter.add(item);
-			}
-		} else {
-			for (Row row : rowBatch.rows) {
-				item = getItem(row);
-				sorter.add(item);
-			}
-		}
-
-		CloseableIterator ret;
-		synchronized (sorter) {
-			ret = sorter.sort();
-		}
-
-		return ret;
+	private void sortR() throws IOException {
+		rIt = rSorter.sort();
 	}
 
 	void setS(Iterator<Map<String, Object>> unsortedS) throws IOException {
@@ -76,19 +73,7 @@ public class SortMergeJoiner {
 
 		while (it.hasNext()) {
 			Map<String, Object> sm = it.next();
-
-			Object[] keys = new Object[joinKeyCount];
-			for (int i = 0; i < joinKeyCount; i++) {
-				Object joinValue = sm.get(sortFields[i].getName());
-				if (joinValue instanceof Integer || joinValue instanceof Short) {
-					joinValue = ((Number) joinValue).longValue();
-				}
-				keys[i] = joinValue;
-			}
-
-			JoinKeys joinKeys = new JoinKeys(keys);
-
-			Item item = new Item(joinKeys.hashCode(), sm);
+			Item item = getItem(sm);
 			sorter.add(item);
 		}
 
@@ -101,8 +86,8 @@ public class SortMergeJoiner {
 	}
 
 	//NOT THREAD SAFE
-	void merge() {
-		sIt.reset();
+	void merge() throws IOException {
+		sortR();
 		
 		Item rItem = null;
 		Integer rJoinKey = 0;
@@ -112,6 +97,18 @@ public class SortMergeJoiner {
 		}
 		else
 			return;
+		
+		
+		sIt.reset();
+		if(sIt instanceof MultiRunIterator) {
+			try {
+				((MultiRunIterator) sIt).jump(rItem, new DefaultComparator());
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new IllegalStateException("MultiRunIterator's jump fail1");
+			}
+		}
+		
 
 		Item sItem = null;
 		Integer sJoinKey = 0;
@@ -167,15 +164,6 @@ public class SortMergeJoiner {
 				}
 			}
 		}
-
-		/*
-		 * int joinKey = rJoinKey; ArrayList<Item> sameJoinKeyItems = new ArrayList<Item>();
-		 * while(sIt.hasNext() && sJoinKey == joinKey) { sameJoinKeyItems.add(sItem); sItem = sIt.next();
-		 * sJoinKey = (Integer) sItem.getKey(); }
-		 * 
-		 * while(rItem != null && rJoinKey == joinKey) { //밖으로 합쳐서 뿌려준다.j pushMergedItem(rItem,
-		 * sameJoinKeyItems); rItem = null; }
-		 */
 	}
 
 	private void pushMergedItem(Item rItem, List<Item> sItems) {
@@ -183,12 +171,19 @@ public class SortMergeJoiner {
 			rItem.getValue();
 			sItem.getValue();
 
-			Map<String, Object> rLog = new HashMap<String, Object>(((Row) rItem.getValue()).map());
-			Map<String, Object> sLog = (Map<String, Object>) sItem.getValue();
+			//Map<String, Object> rLog = new HashMap<String, Object>(((Row) rItem.getValue()).map());
+			Map<String, Object> rLog = new HashMap<String, Object> ((Map<String, Object>) rItem.getValue());
+			Map<String, Object> sLog = new HashMap<String, Object> ((Map<String, Object>) sItem.getValue());
+
+			//Map<String, Object> sLog = new HashMap<String, Object>(((Row) sItem.getValue()).map());
 			rLog.putAll(sLog);
 			pushPipe(new Row(rLog));
 		}
 	}
+	
+   long getOutputCount() {
+	   return outputCount;
+   }
 
 	private void pushPipe(Row row) {
 		outputCount++;
@@ -204,10 +199,22 @@ public class SortMergeJoiner {
 		}
 	}
 	
-	long getOutputCount() {
-		return outputCount;
-	}
+	private Item getItem(Map<String, Object> log) {
+		Object[] keys = new Object[joinKeyCount];
+		for (int i = 0; i < joinKeyCount; i++) {
+			Object joinValue = log.get(sortFields[i].getName());
+			if (joinValue instanceof Integer || joinValue instanceof Short) {
+				joinValue = ((Number) joinValue).longValue();
+			}
+			keys[i] = joinValue;
+		}
 
+		JoinKeys joinKeys = new JoinKeys(keys);
+
+		Item item = new Item(joinKeys.hashCode(), log);
+		return item;
+	}
+	
 	private Item getItem(Row row) {
 		Object[] keys = new Object[joinKeyCount];
 		for (int i = 0; i < joinKeyCount; i++) {
@@ -219,6 +226,7 @@ public class SortMergeJoiner {
 		}
 
 		JoinKeys joinKeys = new JoinKeys(keys);
+		
 		Item item = new Item(joinKeys.hashCode(), row);
 		return item;
 	}
@@ -228,7 +236,7 @@ public class SortMergeJoiner {
 		public int compare(Item o1, Item o2) {
 			int key1 = (Integer) o1.getKey();
 			int key2 = (Integer) o2.getKey();
-			return key1 - key2;
+			return (key1 < key2) ? -1 : ((key1 == key2) ? 0 : 1);
 		}
 
 	}

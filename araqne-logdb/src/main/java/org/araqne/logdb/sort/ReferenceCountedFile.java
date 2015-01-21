@@ -44,5 +44,8 @@ public class ReferenceCountedFile extends File {
 		if (count <= 0)
 			super.deleteOnExit();
 	}
-
+	
+	public int getCount() {
+		return count;
+	}
 }

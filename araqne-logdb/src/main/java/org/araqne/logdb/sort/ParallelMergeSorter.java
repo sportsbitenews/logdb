@@ -401,7 +401,7 @@ public class ParallelMergeSorter {
 			}
 
 			int id = runIndexer.incrementAndGet();
-			r3 = new RunOutput(id, total, cacheCount, true);
+			r3 = new RunOutput(id, total, cacheCount, false);
 
 			while (!canceled) {
 				// load next inputs
