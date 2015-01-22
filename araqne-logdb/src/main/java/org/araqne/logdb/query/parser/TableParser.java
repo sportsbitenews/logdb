@@ -165,6 +165,7 @@ public class TableParser extends AbstractQueryCommandParser {
 		params.setTo(to);
 		params.setParserName(parser);
 		params.setOrdered(ordered);
+		params.setAsc(asc);
 		params.setWindow(window);
 		params.setRaw(CommandOptions.parseBoolean(options.get("raw")));
 

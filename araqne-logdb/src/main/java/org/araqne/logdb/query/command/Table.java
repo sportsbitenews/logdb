@@ -118,6 +118,7 @@ public class Table extends DriverQueryCommand {
 
 				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder,
 						new LogTraverseCallbackImpl(sink));
+				req.setAsc(params.isAsc());
 				storage.search(req);
 
 				isSuppressedBugAlert = isSuppressedBugAlert || (builder != null && builder.isBugAlertSuppressed());

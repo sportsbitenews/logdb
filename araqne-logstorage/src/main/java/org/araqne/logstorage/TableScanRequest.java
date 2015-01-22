@@ -13,6 +13,10 @@ public class TableScanRequest {
 	private LogParserBuilder parserBuilder;
 	private LogTraverseCallback callback;
 	private boolean useSerialScan;
+	private boolean isAsc;
+	
+	public TableScanRequest() {
+	}
 	
 	public TableScanRequest(String tableName, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback callback) {
 		this.tableName = tableName;
@@ -38,6 +42,20 @@ public class TableScanRequest {
 		this.maxId = maxId;
 		this.parserBuilder = builder;
 		this.callback = callback;
+	}
+	
+	public TableScanRequest clone() {
+		TableScanRequest cloned = new TableScanRequest();
+		cloned.tableName = tableName;
+		cloned.from = from;
+		cloned.to = to;
+		cloned.minId = minId;
+		cloned.maxId = maxId;
+		cloned.parserBuilder = parserBuilder;
+		cloned.callback = callback;
+		cloned.useSerialScan = useSerialScan;
+		cloned.isAsc = isAsc;
+		return cloned;
 	}
 
 	public String getTableName() {
@@ -102,5 +120,13 @@ public class TableScanRequest {
 
 	public void setUseSerialScan(boolean useSerialScan) {
 		this.useSerialScan = useSerialScan;
+	}
+
+	public boolean isAsc() {
+		return isAsc;
+	}
+
+	public void setAsc(boolean isAsc) {
+		this.isAsc = isAsc;
 	}
 }

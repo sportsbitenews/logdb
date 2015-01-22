@@ -33,6 +33,7 @@ import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogTraverseCallback;
+import org.araqne.logstorage.TableScanRequest;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
 import org.slf4j.Logger;
@@ -522,8 +523,14 @@ public class LogFileReaderV2 extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback callback,
-			boolean doParallel) throws IOException, InterruptedException {
+	public void traverse(TableScanRequest req) throws IOException, InterruptedException {
+		Date from = req.getFrom();
+		Date to = req.getTo();
+		long minId = req.getMinId();
+		long maxId = req.getMaxId();
+		LogParserBuilder builder = req.getParserBuilder();
+		LogTraverseCallback callback = req.getTraverseCallback();
+		
 		LogParser parser = null;
 		if (builder != null)
 			parser = builder.build();

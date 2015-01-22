@@ -812,7 +812,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getPrimaryStorage(), schema.getMetadata(),
 				tableName, basePath, indexPath, dataPath, keyPath);
 		options.put("day", day);
-		LogFileReader reader = newReader(onlineWriter, tableName, logFileType, options);
+
+		syncOnlineWriter(onlineWriter);
+		LogFileReader reader = lfsRegistry.newReader(tableName, logFileType, options);
 
 		return new LogCursorImpl(tableName, day, buffer, reader, ascending);
 	}
@@ -1280,6 +1282,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 		List<Date> filtered = DateUtil.filt(days, req.getFrom(), req.getTo());
 		logger.trace("araqne logstorage: searching {} tablets of table [{}]", filtered.size(), tableName);
+		
+		if (req.isAsc())
+			Collections.sort(filtered);
 
 		for (Date day : filtered) {
 			if (logger.isTraceEnabled())
@@ -1293,27 +1298,16 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		return !req.getTraverseCallback().isEof();
 	}
 
-	private LogFileReader newReader(OnlineWriter onlineWriter, String tableName, String logFileType, Map<String, Object> options) {
+	private void syncOnlineWriter(OnlineWriter onlineWriter) {
 		if (onlineWriter != null) {
 			try {
-				do {
-					try {
-						onlineWriter.sync();
-						break;
-					} catch (SyncFailedException e) {
-						try {
-							Thread.sleep(10);
-						} catch (InterruptedException ex) {
-						}
-					}
-				} while (false);
-
+				onlineWriter.sync();
+			} catch (SyncFailedException e) {
+				logger.debug("araqne logstorage: sync failed", e);
 			} catch (IOException e) {
 				logger.error("araqne logstorage: cannot sync online writer", e);
 			}
 		}
-
-		return lfsRegistry.newReader(tableName, logFileType, options);
 	}
 
 	@Override
@@ -1339,6 +1333,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		LogFileReader reader = null;
 
 		long onlineMinId = -1;
+		List<Log> logs = null;
 
 		try {
 			// do NOT use getOnlineWriter() here (it loads empty writer on cache
@@ -1347,17 +1342,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			if (onlineWriter != null) {
 				List<Log> buffer = onlineWriter.getBuffer();
 
-				do {
-					try {
-						onlineWriter.sync();
-						break;
-					} catch (SyncFailedException e) {
-						try {
-							Thread.sleep(10);
-						} catch (InterruptedException ex) {
-						}
-					}
-				} while (false);
+				syncOnlineWriter(onlineWriter);
 
 				if (buffer != null && !buffer.isEmpty()) {
 					LogParser parser = null;
@@ -1367,25 +1352,44 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 					if (logger.isTraceEnabled())
 						logger.trace("araqne logstorage: {} logs in writer buffer.", buffer.size());
 
-					List<Log> logs = new ArrayList<Log>(buffer.size());
-					ListIterator<Log> li = buffer.listIterator(buffer.size());
+					logs = new ArrayList<Log>(buffer.size());
 
-					while (li.hasPrevious()) {
-						Log logData = li.previous();
-						onlineMinId = logData.getId(); // reversed traversing
-						if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
-								&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
-							List<Log> result = null;
-							try {
-								result = LogFileReader.parse(tableName, parser, logData);
-							} catch (LogParserBugException e) {
-								result = Arrays.asList(new Log[] { new Log(e.tableName, e.date, e.id, e.logMap) });
-								c.setFailure(e);
+					if (req.isAsc()) {
+						for (Log logData : buffer) {
+							if (onlineMinId == -1)
+								onlineMinId = logData.getId();
+
+							if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
+									&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
+								List<Log> result = null;
+								try {
+									result = LogFileReader.parse(tableName, parser, logData);
+								} catch (LogParserBugException e) {
+									result = Arrays.asList(new Log[] { new Log(e.tableName, e.date, e.id, e.logMap) });
+									c.setFailure(e);
+								}
+								logs.addAll(result);
 							}
-							logs.addAll(result);
+						}
+					} else {
+						ListIterator<Log> li = buffer.listIterator(buffer.size());
+
+						while (li.hasPrevious()) {
+							Log logData = li.previous();
+							onlineMinId = logData.getId();
+							if ((from == null || !logData.getDate().before(from)) && (to == null || logData.getDate().before(to))
+									&& (minId < 0 || minId <= logData.getId()) && (maxId < 0 || maxId >= logData.getId())) {
+								List<Log> result = null;
+								try {
+									result = LogFileReader.parse(tableName, parser, logData);
+								} catch (LogParserBugException e) {
+									result = Arrays.asList(new Log[] { new Log(e.tableName, e.date, e.id, e.logMap) });
+									c.setFailure(e);
+								}
+								logs.addAll(result);
+							}
 						}
 					}
-					c.writeLogs(logs);
 
 					if (c.isEof())
 						return false;
@@ -1396,12 +1400,29 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getPrimaryStorage(), schema.getMetadata(),
 					tableName, basePath, indexPath, dataPath, keyPath);
 			options.put("day", day);
-			reader = newReader(onlineWriter, tableName, logFileType, options);
+
+			syncOnlineWriter(onlineWriter);
+			reader = lfsRegistry.newReader(tableName, logFileType, options);
 
 			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
 			long readerMaxId = maxId != -1 ? Math.min(flushedMaxId, maxId) : flushedMaxId;
-			if (minId < 0 || readerMaxId < 0 || readerMaxId >= minId)
-				reader.traverse(from, to, minId, readerMaxId, builder, c, !req.isUseSerialScan());
+
+			if (minId < 0 || readerMaxId < 0 || readerMaxId >= minId) {
+				if (req.isAsc()) {
+					TableScanRequest tabletReq = req.clone();
+					tabletReq.setMaxId(readerMaxId);
+					reader.traverse(tabletReq);
+					if (logs != null)
+						c.writeLogs(logs);
+				} else {
+					if (logs != null)
+						c.writeLogs(logs);
+
+					TableScanRequest tabletReq = req.clone();
+					tabletReq.setMaxId(readerMaxId);
+					reader.traverse(tabletReq);
+				}
+			}
 
 		} catch (InterruptedException e) {
 			throw e;
