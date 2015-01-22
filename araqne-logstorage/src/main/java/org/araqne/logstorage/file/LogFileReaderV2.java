@@ -535,24 +535,26 @@ public class LogFileReaderV2 extends LogFileReader {
 		if (builder != null)
 			parser = builder.build();
 
-		for (int i = indexBlockHeaders.size() - 1; i >= 0; i--) {
-			IndexBlockHeader index = indexBlockHeaders.get(i);
+		int max = indexBlockHeaders.size();
+		for (int i = 0; i < max; i++) {
+			int idx = req.isAsc() ? i : max - i - 1;
+			IndexBlockHeader index = indexBlockHeaders.get(idx);
 
 			if ((maxId >= 0 && index.firstId > maxId) || (minId >= 0 && index.firstId + index.logCount <= minId))
 				continue;
 
-			DataBlockHeader data = dataBlockHeaders.get(i);
+			DataBlockHeader data = dataBlockHeaders.get(idx);
 			Long fromTime = (from == null) ? null : from.getTime();
 			Long toTime = (to == null) ? null : to.getTime();
 			if ((fromTime == null || data.endDate >= fromTime) && (toTime == null || data.startDate < toTime)) {
-				if (!readBlock(index, data, fromTime, toTime, minId, maxId, parser, callback))
+				if (!readBlock(index, data, fromTime, toTime, minId, maxId, parser, callback, req.isAsc()))
 					return;
 			}
 		}
 	}
 
 	private boolean readBlock(IndexBlockHeader index, DataBlockHeader data, Long from, Long to, long minId, long maxId,
-			LogParser parser, LogTraverseCallback callback) throws IOException, InterruptedException {
+			LogParser parser, LogTraverseCallback callback, boolean asc) throws IOException, InterruptedException {
 		List<Integer> offsets = new ArrayList<Integer>();
 		boolean suppressBugAlert = false;
 
@@ -562,16 +564,19 @@ public class LogFileReaderV2 extends LogFileReader {
 		for (int i = 0; i < index.logCount; i++)
 			offsets.add(indexBuffer.getInt());
 
-		// reverse order
 		List<Log> logs = new ArrayList<Log>();
-		for (int i = offsets.size() - 1; i >= 0; i--) {
-			long date = getLogRecordDate(data, offsets.get(i));
+		int max = offsets.size();
+		
+		for (int i = 0; i < max; i++) {
+			int idx = asc ? i : max - i - 1;
+			
+			long date = getLogRecordDate(data, offsets.get(idx));
 			if (from != null && date < from)
 				continue;
 			if (to != null && date >= to)
 				continue;
 
-			LogRecord record = getLogRecord(data, offsets.get(i));
+			LogRecord record = getLogRecord(data, offsets.get(idx));
 			if (minId > 0 && record.getId() < minId)
 				continue;
 			if (maxId > 0 && record.getId() > maxId)
