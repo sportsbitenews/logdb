@@ -30,354 +30,221 @@ import org.junit.Test;
  */
 public class Mf2LogParserTest {
 	@Test
-	public void parseSample1() {
+	public void csvTest2_1_1() {
 		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:35.002198Z [ha_status] [23.1.3.10] "
-				+ "2013-05-28 09:56:35,1,localhost-M,16,master"));
-		assertEquals("ha_status", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:35", m.get("event_at"));
-		assertEquals("1,localhost-M,16,master", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample2() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:35.002181Z [ha_traffic] [23.1.3.10] "
-				+ "2013-05-28 09:56:35,localhost-M,0,0,0,0,1"));
-
-		assertEquals("ha_traffic", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:35", m.get("event_at"));
-		assertEquals("localhost-M,0,0,0,0,1", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample3() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:35.001997Z [fw6_traffic] [23.1.3.10] "
-				+ "2013-05-28 09:56:35,localhost-M,0,0,0,0,0,0"));
-
-		assertEquals("fw6_traffic", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:35", m.get("event_at"));
-		assertEquals("localhost-M,0,0,0,0,0,0", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample4() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:35.008528Z [mng_qos] [23.1.3.10] "
-				+ "2013-05-28 09:56:35,localhost-M,TCP,tun0,0,0,0,0,0"));
-
-		assertEquals("mng_qos", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:35", m.get("event_at"));
-		assertEquals("localhost-M,TCP,tun0,0,0,0,0,0", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample5() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:00.112555Z [mng_daemon] [23.1.3.10] "
-				+ "2013-05-28 09:56:00,localhost-M,secuicmlogd,0.0,6724,3152"));
-
-		assertEquals("mng_daemon", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:00", m.get("event_at"));
-		assertEquals("localhost-M,secuicmlogd,0.0,6724,3152", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample6() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:35.022091Z [mng_resource] [23.1.3.10] "
-				+ "2013-05-28 09:56:35,localhost-M,63,2.3,24682592,21.1,1912537148,3.0"));
-
-		assertEquals("mng_resource", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:35", m.get("event_at"));
-		assertEquals("localhost-M,63,2.3,24682592,21.1,1912537148,3.0", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample7() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:30.583105Z [mng_oversubscription] [23.1.3.10] "
-				+ "2013-05-28 09:56:30,localhost-M,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0"));
-
-		assertEquals("mng_oversubscription", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:30", m.get("event_at"));
-		assertEquals("localhost-M,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample8() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:35.008512Z [mng_qos] [23.1.3.10] "
-				+ "2013-05-28 09:56:35,localhost-M,20130105_Qos,tun0,0,0,0,0,0"));
-
-		assertEquals("mng_qos", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:35", m.get("event_at"));
-		assertEquals("localhost-M,20130105_Qos,tun0,0,0,0,0,0", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample9() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:00.112537Z [mng_daemon]"
-				+ " [23.1.3.10] 2013-05-28 09:56:00,localhost-M,report_smrd,0.0,125160,10712"));
-
-		assertEquals("mng_daemon", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:00", m.get("event_at"));
-		assertEquals("localhost-M,report_smrd,0.0,125160,10712", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample10() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:00.112395Z [mng_daemon]"
-				+ " [23.1.3.10] 2013-05-28 09:56:00,localhost-M,ssl_gate_fast,0.0,50968,2252"));
-
-		assertEquals("mng_daemon", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:00", m.get("event_at"));
-		assertEquals("localhost-M,ssl_gate_fast,0.0,50968,2252", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample11() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:40:26.255516Z [fw4_allow] [23.1.3.2] "
-				+ "start_time=\"2013-05-28 09:40:15\" end_time=\"2013-05-28 09:40:19\" "
-				+ "duration=4 machine_name=localhost-M fw_rule_id=Local Out nat_rule_id=Undefined "
-				+ "src_ip=23.1.3.4 src_port=48057 dst_ip=11.4.9.152 dst_port=1194 protocol=TCP "
-				+ "ingres_if=LOCAL packets_forward=1 packets_backward=1 bytes_forward=70 "
-				+ "bytes_backward=64 fragment_info=  flag_record=SYN Only / RST [S:AR] terminate_reason=-"));
-
+		Map<String, Object> m = p
+				.parse(line("[fw4_allow] [...] 2015-01-14 09:21:41,2015-01-14 09:21:46,5,KNIAFWIN1,93,Undefined,42.1.52.79,53363,172.18.1.20,33008,TCP,EXT,4,5,366,704, ,3Way OK / FIN2 [SAF:SAF],-"));
 		assertEquals("fw4_allow", m.get("type"));
-		assertEquals("23.1.3.2", m.get("device"));
-		assertEquals("2013-05-28 09:40:15", m.get("start_time"));
-		assertEquals("2013-05-28 09:40:19", m.get("end_time"));
-		assertEquals(4, m.get("duration"));
-		assertEquals("localhost-M", m.get("machine_name"));
+		assertEquals("...", m.get("from_ip"));
+		assertEquals("2015-01-14 09:21:41", m.get("start_time"));
+		assertEquals("2015-01-14 09:21:46", m.get("end_time"));
+		assertEquals("5", m.get("duration"));
+		assertEquals("KNIAFWIN1", m.get("machine_name"));
+		assertEquals("93", m.get("fw_rule_id"));
+		assertEquals("Undefined", m.get("nat_rule_id"));
+		assertEquals("42.1.52.79", m.get("src_ip"));
+		assertEquals("53363", m.get("src_port"));
+		assertEquals("172.18.1.20", m.get("dst_ip"));
+		assertEquals("33008", m.get("dst_port"));
+		assertEquals("TCP", m.get("protocol"));
+		assertEquals("EXT", m.get("ingres_if"));
+		assertEquals("4", m.get("tx_packets"));
+		assertEquals("5", m.get("rx_packets"));
+		assertEquals("366", m.get("tx_bytes"));
+		assertEquals("704", m.get("rx_bytes"));
+		assertEquals(" ", m.get("fragment_info"));
+		assertEquals("3Way OK / FIN2 [SAF:SAF]", m.get("flag_record"));
+		assertEquals("-", m.get("terminate_reason"));
+	}
+	
+	@Test
+	public void csvTest2_1_2() {
+		Mf2LogParser p = new Mf2LogParser();
+		Map<String, Object> m = p
+				.parse(line("[fw4_allow] [...] 2015-01-14 09:21:43,2015-01-14 09:21:50,7,KNIAFWIN1,93,Undefined,42.1.52.81,50346,172.18.1.20,38108,TCP,EXT,6,7,494,3729, ,3Way OK / FIN2 [SAF:SAF],-"));
+		assertEquals("fw4_allow", m.get("type"));
+		assertEquals("...", m.get("from_ip"));
+		assertEquals("2015-01-14 09:21:43", m.get("start_time"));
+		assertEquals("2015-01-14 09:21:50", m.get("end_time"));
+		assertEquals("7", m.get("duration"));
+		assertEquals("KNIAFWIN1", m.get("machine_name"));
+		assertEquals("93", m.get("fw_rule_id"));
+		assertEquals("Undefined", m.get("nat_rule_id"));
+		assertEquals("42.1.52.81", m.get("src_ip"));
+		assertEquals("50346", m.get("src_port"));
+		assertEquals("172.18.1.20", m.get("dst_ip"));
+		assertEquals("38108", m.get("dst_port"));
+		assertEquals("TCP", m.get("protocol"));
+		assertEquals("EXT", m.get("ingres_if"));
+		assertEquals("6", m.get("tx_packets"));
+		assertEquals("7", m.get("rx_packets"));
+		assertEquals("494", m.get("tx_bytes"));
+		assertEquals("3729", m.get("rx_bytes"));
+		assertEquals(" ", m.get("fragment_info"));
+		assertEquals("3Way OK / FIN2 [SAF:SAF]", m.get("flag_record"));
+		assertEquals("-", m.get("terminate_reason"));
+	}
+	
+	// TODO csvTest2_1_3, csvTest2_1_4
+	@Test
+	public void csvTest2_1_3() {
+		Mf2LogParser p = new Mf2LogParser();
+		Map<String, Object> m = p
+				.parse(line("[fw4_allow] [...] 2015-01-14 09:21:14,2015-01-14 09:21:45,31,KNIAFWIN1,Local Out,Undefined,172.100.11.4,-,172.16.33.5,3,ICMP,LOCAL,6,0,580,0, ,-,-"));
+		assertEquals("fw4_allow", m.get("type"));
+		assertEquals("...", m.get("from_ip"));
+		assertEquals("2015-01-14 09:21:14", m.get("start_time"));
+		assertEquals("2015-01-14 09:21:45", m.get("end_time"));
+		assertEquals("31", m.get("duration"));
+		assertEquals("KNIAFWIN1", m.get("machine_name"));
 		assertEquals("Local Out", m.get("fw_rule_id"));
 		assertEquals("Undefined", m.get("nat_rule_id"));
-		assertEquals("23.1.3.4", m.get("src_ip"));
-		assertEquals(48057, m.get("src_port"));
-		assertEquals("11.4.9.152", m.get("dst_ip"));
-		assertEquals(1194, m.get("dst_port"));
-		assertEquals("TCP", m.get("protocol"));
-		assertEquals("LOCAL", m.get("ingres_if"));
-		assertEquals(1, m.get("packets_forward"));
-		assertEquals(1, m.get("packets_backward"));
-		assertEquals(70, m.get("bytes_forward"));
-		assertEquals(64, m.get("bytes_backward"));
-		assertNull(m.get("fragment_info"));
-		assertEquals("SYN Only / RST [S:AR]", m.get("flag_record"));
-		assertNull(m.get("terminate_reason"));
-	}
-
-	@Test
-	public void parseSample12() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:40:26.255351Z [fw4_allow] [23.1.3.2] "
-				+ "start_time=\"2013-05-28 09:40:06\" end_time=\"2013-05-28 09:40:21\" "
-				+ "duration=15 machine_name=localhost-M fw_rule_id=55 nat_rule_id=Undefined "
-				+ "src_ip=11.4.9.69 src_port=38826 dst_ip=23.1.3.2 dst_port=10003 protocol=TCP "
-				+ "ingres_if=INT packets_forward=10 packets_backward=7 bytes_forward=1108 "
-				+ "bytes_backward=1648 fragment_info=  flag_record=3Way OK / FIN2 [SAF:SAF] terminate_reason=-"));
-
-		assertEquals("fw4_allow", m.get("type"));
-		assertEquals("23.1.3.2", m.get("device"));
-		assertEquals("2013-05-28 09:40:06", m.get("start_time"));
-		assertEquals("2013-05-28 09:40:21", m.get("end_time"));
-		assertEquals(15, m.get("duration"));
-		assertEquals("localhost-M", m.get("machine_name"));
-		assertEquals("55", m.get("fw_rule_id"));
-		assertEquals("Undefined", m.get("nat_rule_id"));
-		assertEquals("11.4.9.69", m.get("src_ip"));
-		assertEquals(38826, m.get("src_port"));
-		assertEquals("23.1.3.2", m.get("dst_ip"));
-		assertEquals(10003, m.get("dst_port"));
-		assertEquals("TCP", m.get("protocol"));
-		assertEquals("INT", m.get("ingres_if"));
-		assertEquals(10, m.get("packets_forward"));
-		assertEquals(7, m.get("packets_backward"));
-		assertEquals(1108, m.get("bytes_forward"));
-		assertEquals(1648, m.get("bytes_backward"));
-		assertNull(m.get("fragment_info"));
-		assertEquals("3Way OK / FIN2 [SAF:SAF]", m.get("flag_record"));
-		assertNull(m.get("terminate_reason"));
-	}
-
-	@Test
-	public void parseSample13() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:40:36.932214Z [fw4_allow] [23.1.3.2] "
-				+ "start_time=\"2013-05-28 09:40:26\" end_time=\"2013-05-28 09:40:36\" duration=10 "
-				+ "machine_name=localhost-M fw_rule_id=55 nat_rule_id=Undefined src_ip=11.4.9.69 src_port=- "
-				+ "dst_ip=23.1.3.3 dst_port=8 protocol=ICMP ingres_if=INT packets_forward=1 "
-				+ "packets_backward=0 bytes_forward=102 bytes_backward=0 fragment_info=  flag_record=- terminate_reason=-"));
-
-		assertEquals("fw4_allow", m.get("type"));
-		assertEquals("23.1.3.2", m.get("device"));
-		assertEquals("2013-05-28 09:40:26", m.get("start_time"));
-		assertEquals("2013-05-28 09:40:36", m.get("end_time"));
-		assertEquals(10, m.get("duration"));
-		assertEquals("localhost-M", m.get("machine_name"));
-		assertEquals("55", m.get("fw_rule_id"));
-		assertEquals("Undefined", m.get("nat_rule_id"));
-		assertEquals("11.4.9.69", m.get("src_ip"));
-		assertNull(m.get("src_port"));
-		assertEquals("23.1.3.3", m.get("dst_ip"));
-		assertEquals(8, m.get("dst_port"));
+		assertEquals("172.100.11.4", m.get("src_ip"));
+		assertEquals("-", m.get("src_port"));
+		assertEquals("172.16.33.5", m.get("dst_ip"));
+		assertEquals("3", m.get("dst_port"));
 		assertEquals("ICMP", m.get("protocol"));
-		assertEquals("INT", m.get("ingres_if"));
-		assertEquals(1, m.get("packets_forward"));
-		assertEquals(0, m.get("packets_backward"));
-		assertEquals(102, m.get("bytes_forward"));
-		assertEquals(0, m.get("bytes_backward"));
-		assertNull(m.get("fragment_info"));
-		assertNull(m.get("flag_record"));
-		assertNull(m.get("terminate_reason"));
+		assertEquals("LOCAL", m.get("ingres_if"));
+		assertEquals("6", m.get("tx_packets"));
+		assertEquals("0", m.get("rx_packets"));
+		assertEquals("580", m.get("tx_bytes"));
+		assertEquals("0", m.get("rx_bytes"));
+		assertEquals(" ", m.get("fragment_info"));
+		assertEquals("-", m.get("flag_record"));
+		assertEquals("-", m.get("terminate_reason"));
 	}
-
+	
 	@Test
-	public void parseSample14() {
+	public void csvTest2_1_4() {
 		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:35.001947Z [app_cnt_urlblock] [23.1.3.10] "
-				+ "2013-05-28 09:56:35,localhost-M,0"));
-
-		assertEquals("app_cnt_urlblock", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:35", m.get("event_at"));
-		assertEquals("localhost-M,0", m.get("msg"));
+		Map<String, Object> m = p
+				.parse(line("[fw4_allow] [...] 2015-01-14 09:21:37,2015-01-14 09:21:42,5,KNIAFWIN1,93,Undefined,42.1.52.81,50282,172.18.1.20,38108,TCP,EXT,6,7,494,3729, ,3Way OK / FIN2 [SAF:SAF],-"));
+		assertEquals("fw4_allow", m.get("type"));
+		assertEquals("...", m.get("from_ip"));
+		assertEquals("2015-01-14 09:21:37", m.get("start_time"));
+		assertEquals("2015-01-14 09:21:42", m.get("end_time"));
+		assertEquals("5", m.get("duration"));
+		assertEquals("KNIAFWIN1", m.get("machine_name"));
+		assertEquals("93", m.get("fw_rule_id"));
+		assertEquals("Undefined", m.get("nat_rule_id"));
+		assertEquals("42.1.52.81", m.get("src_ip"));
+		assertEquals("50282", m.get("src_port"));
+		assertEquals("172.18.1.20", m.get("dst_ip"));
+		assertEquals("38108", m.get("dst_port"));
+		assertEquals("TCP", m.get("protocol"));
+		assertEquals("EXT", m.get("ingres_if"));
+		assertEquals("6", m.get("tx_packets"));
+		assertEquals("7", m.get("rx_packets"));
+		assertEquals("494", m.get("tx_bytes"));
+		assertEquals("3729", m.get("rx_bytes"));
+		assertEquals(" ", m.get("fragment_info"));
+		assertEquals("3Way OK / FIN2 [SAF:SAF]", m.get("flag_record"));
+		assertEquals("-", m.get("terminate_reason"));
 	}
-
+	
+	
 	@Test
-	public void parseSample15() {
+	public void csvTest2_2_1() {
 		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:06.264569Z [sslvpn3_cnt_tunnel] [23.1.3.10] "
-				+ "2013-05-28 09:56:06,localhost-M,0,0"));
-
-		assertEquals("sslvpn3_cnt_tunnel", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:06", m.get("event_at"));
-		assertEquals("localhost-M,0,0", m.get("msg"));
+		Map<String, Object> m = p
+				.parse(line("[fw4_deny] [...] 2015-01-14 09:21:52,2015-01-14 09:21:52,0,KNIAFWIN1,0,Undefined,0.0.0.0,68,255.255.255.255,67,UDP,EXT,1,335, ,-,Deny by Deny Rule"));
+		assertEquals("fw4_deny", m.get("type"));
+		assertEquals("...", m.get("from_ip"));
+		assertEquals("2015-01-14 09:21:52", m.get("start_time"));
+		assertEquals("2015-01-14 09:21:52", m.get("end_time"));
+		assertEquals("0", m.get("duration"));
+		assertEquals("KNIAFWIN1", m.get("machine_name"));
+		assertEquals("0", m.get("fw_rule_id"));
+		assertEquals("Undefined", m.get("nat_rule_id"));
+		assertEquals("0.0.0.0", m.get("src_ip"));
+		assertEquals("68", m.get("src_port"));
+		assertEquals("255.255.255.255", m.get("dst_ip"));
+		assertEquals("67", m.get("dst_port"));
+		assertEquals("UDP", m.get("protocol"));
+		assertEquals("EXT", m.get("ingres_if"));
+		assertEquals("1", m.get("packets"));
+		assertEquals("335", m.get("bytes"));
+		assertEquals(" ", m.get("fragment_info"));
+		assertEquals("-", m.get("flag_record"));
+		assertEquals("Deny by Deny Rule", m.get("terminate_reason"));
 	}
-
+	
 	@Test
-	public void parseSample16() {
+	public void csvTest2_2_2() {
 		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:06.264542Z [sslvpn3_cnt_traffic] [23.1.3.10] "
-				+ "2013-05-28 09:56:06,localhost-M,0,0,0"));
-
-		assertEquals("sslvpn3_cnt_traffic", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:06", m.get("event_at"));
-		assertEquals("localhost-M,0,0,0", m.get("msg"));
+		Map<String, Object> m = p
+				.parse(line("[fw4_deny] [...] 2015-01-14 09:24:02,2015-01-14 09:24:02,0,master.fw.com,1,Undefined,0.0.0.0,68,255.255.255.255,67,UDP,EXT,1,335, ,-,Deny by Deny Rule"));
+		assertEquals("fw4_deny", m.get("type"));
+		assertEquals("...", m.get("from_ip"));
+		assertEquals("2015-01-14 09:24:02", m.get("start_time"));
+		assertEquals("2015-01-14 09:24:02", m.get("end_time"));
+		assertEquals("0", m.get("duration"));
+		assertEquals("master.fw.com", m.get("machine_name"));
+		assertEquals("1", m.get("fw_rule_id"));
+		assertEquals("Undefined", m.get("nat_rule_id"));
+		assertEquals("0.0.0.0", m.get("src_ip"));
+		assertEquals("68", m.get("src_port"));
+		assertEquals("255.255.255.255", m.get("dst_ip"));
+		assertEquals("67", m.get("dst_port"));
+		assertEquals("UDP", m.get("protocol"));
+		assertEquals("EXT", m.get("ingres_if"));
+		assertEquals("1", m.get("packets"));
+		assertEquals("335", m.get("bytes"));
+		assertEquals(" ", m.get("fragment_info"));
+		assertEquals("-", m.get("flag_record"));
+		assertEquals("Deny by Deny Rule", m.get("terminate_reason"));
 	}
-
 	@Test
-	public void parseSample17() {
+	public void csvTest2_2_3() {
 		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:35.002147Z [app_cnt_antivirus] [23.1.3.10] "
-				+ "2013-05-28 09:56:35,localhost-M,0,0,0,FTP,ToClient"));
-
-		assertEquals("app_cnt_antivirus", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:35", m.get("event_at"));
-		assertEquals("localhost-M,0,0,0,FTP,ToClient", m.get("msg"));
+		Map<String, Object> m = p
+				.parse(line("[fw4_deny] [...] 2015-01-14 08:56:46,2015-01-14 08:56:46,0,localhost,0,Undefined,172.100.40.2,-,224.0.0.18,-,VRRP,EXT,1,70, ,-,Deny by Deny Rule"));
+		assertEquals("fw4_deny", m.get("type"));
+		assertEquals("...", m.get("from_ip"));
+		assertEquals("2015-01-14 08:56:46", m.get("start_time"));
+		assertEquals("2015-01-14 08:56:46", m.get("end_time"));
+		assertEquals("0", m.get("duration"));
+		assertEquals("localhost", m.get("machine_name"));
+		assertEquals("0", m.get("fw_rule_id"));
+		assertEquals("Undefined", m.get("nat_rule_id"));
+		assertEquals("172.100.40.2", m.get("src_ip"));
+		assertEquals("-", m.get("src_port"));
+		assertEquals("224.0.0.18", m.get("dst_ip"));
+		assertEquals("-", m.get("dst_port"));
+		assertEquals("VRRP", m.get("protocol"));
+		assertEquals("EXT", m.get("ingres_if"));
+		assertEquals("1", m.get("packets"));
+		assertEquals("70", m.get("bytes"));
+		assertEquals(" ", m.get("fragment_info"));
+		assertEquals("-", m.get("flag_record"));
+		assertEquals("Deny by Deny Rule", m.get("terminate_reason"));
 	}
-
 	@Test
-	public void parseSample18() {
+	public void csvTest2_2_4() {
 		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:35.027295Z [mng_if_traffic] [23.1.3.10] "
-				+ "2013-05-28 09:56:35,localhost-M,eth2,OFF,0,0,0,0"));
-
-		assertEquals("mng_if_traffic", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:35", m.get("event_at"));
-		assertEquals("localhost-M,eth2,OFF,0,0,0,0", m.get("msg"));
+		Map<String, Object> m = p
+				.parse(line("[fw4_deny] [...] 2015-01-14 09:21:50,2015-01-14 09:21:50,0,KNIAFWIN1,0,Undefined,172.31.0.9,137,172.31.255.255,137,UDP,EXT,1,96, ,-,Deny by Deny Rule"));
+		assertEquals("fw4_deny", m.get("type"));
+		assertEquals("...", m.get("from_ip"));
+		assertEquals("2015-01-14 09:21:50", m.get("start_time"));
+		assertEquals("2015-01-14 09:21:50", m.get("end_time"));
+		assertEquals("0", m.get("duration"));
+		assertEquals("KNIAFWIN1", m.get("machine_name"));
+		assertEquals("0", m.get("fw_rule_id"));
+		assertEquals("Undefined", m.get("nat_rule_id"));
+		assertEquals("172.31.0.9", m.get("src_ip"));
+		assertEquals("137", m.get("src_port"));
+		assertEquals("172.31.255.255", m.get("dst_ip"));
+		assertEquals("137", m.get("dst_port"));
+		assertEquals("UDP", m.get("protocol"));
+		assertEquals("EXT", m.get("ingres_if"));
+		assertEquals("1", m.get("packets"));
+		assertEquals("96", m.get("bytes"));
+		assertEquals(" ", m.get("fragment_info"));
+		assertEquals("-", m.get("flag_record"));
+		assertEquals("Deny by Deny Rule", m.get("terminate_reason"));
 	}
-
-	@Test
-	public void parseSample19() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:35.001980Z [app_cnt_antispam] [23.1.3.10] "
-				+ "2013-05-28 09:56:35,localhost-M,0,0,0,0,0,SMTP,Inbound"));
-
-		assertEquals("app_cnt_antispam", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:35", m.get("event_at"));
-		assertEquals("localhost-M,0,0,0,0,0,SMTP,Inbound", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample20() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:30.924778Z [app_cnt_antivirus] [23.1.3.10] "
-				+ "2013-05-28 09:56:30,localhost-M,0,0,0,NATEON,Bi-direction"));
-
-		assertEquals("app_cnt_antivirus", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:30", m.get("event_at"));
-		assertEquals("localhost-M,0,0,0,NATEON,Bi-direction", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample21() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:32.510417Z [ips_ddos_traffic] [23.1.3.10] "
-				+ "2013-05-28 09:56:32,localhost-M,0.0,0.0,0.0,0.0,0.1,0.0,260.8,0.0"));
-
-		assertEquals("ips_ddos_traffic", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:32", m.get("event_at"));
-		assertEquals("localhost-M,0.0,0.0,0.0,0.0,0.1,0.0,260.8,0.0", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample22() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:35.002029Z [app_cnt_webclient_limit] [23.1.3.10] "
-				+ "2013-05-28 09:56:35,localhost-M,0,0"));
-
-		assertEquals("app_cnt_webclient_limit", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:35", m.get("event_at"));
-		assertEquals("localhost-M,0,0", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample23() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:32.068001Z [vpn_cnt_tunnel_use] [23.1.3.10] "
-				+ "2013-05-28 09:56:32,localhost-M,0,0,0"));
-
-		assertEquals("vpn_cnt_tunnel_use", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:32", m.get("event_at"));
-		assertEquals("localhost-M,0,0,0", m.get("msg"));
-	}
-
-	@Test
-	public void parseSample24() {
-		Mf2LogParser p = new Mf2LogParser();
-		Map<String, Object> m = p.parse(line("<14>1 2013-05-28T00:56:32.509973Z [app_cnt_webserver_protect] [23.1.3.10] "
-				+ "2013-05-28 09:56:32,localhost-M,0,0,0,0"));
-
-		assertEquals("app_cnt_webserver_protect", m.get("type"));
-		assertEquals("23.1.3.10", m.get("device"));
-		assertEquals("2013-05-28 09:56:32", m.get("event_at"));
-		assertEquals("localhost-M,0,0,0,0", m.get("msg"));
-	}
-
+	
 	private Map<String, Object> line(String line) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("line", line);
