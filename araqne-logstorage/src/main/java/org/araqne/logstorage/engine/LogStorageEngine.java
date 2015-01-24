@@ -1396,7 +1396,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				}
 			}
 			
-			logger.debug("#buffer flush bug# logs size: {}", logs.size());
+			if (logs != null && logger.isDebugEnabled())
+				logger.debug("#buffer flush bug# logs size: {}", logs.size());
 
 			String logFileType = schema.getPrimaryStorage().getType();
 			LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getPrimaryStorage(), schema.getMetadata(),
