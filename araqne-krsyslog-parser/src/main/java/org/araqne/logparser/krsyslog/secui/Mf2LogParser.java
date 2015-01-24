@@ -16,7 +16,6 @@
 package org.araqne.logparser.krsyslog.secui;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 import org.araqne.log.api.V1LogParser;
@@ -27,19 +26,6 @@ import org.araqne.log.api.V1LogParser;
  * 
  */
 public class Mf2LogParser extends V1LogParser {
-
-	private static HashSet<String> numFields = new HashSet<String>();
-
-	static {
-		numFields.add("duration");
-		numFields.add("src_port");
-		numFields.add("dst_port");
-		numFields.add("packets_forward");
-		numFields.add("packets_backward");
-		numFields.add("bytes_forward");
-		numFields.add("bytes_backward");
-	}
-
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
 		String line = (String) params.get("line");
@@ -55,80 +41,154 @@ public class Mf2LogParser extends V1LogParser {
 
 		b = line.indexOf('[', e + 1);
 		e = line.indexOf(']', b + 1);
-		String device = line.substring(b + 1, e);
-
-		b = e + 2;
+		String fromIp = line.substring(b + 1, e);
 
 		Map<String, Object> m = new HashMap<String, Object>();
-		if (type.equals("fw4_allow")) {
-			b = e + 2;
-
-			int end = line.length();
-
-			while (b < end) {
-				e = line.indexOf('=', b);
-				String key = line.substring(b, e);
-
-				b = e + 1;
-				if (line.charAt(b) == '"') {
-					b++;
-					e = line.indexOf('"', b);
-					String value = line.substring(b, e);
-
-					if (numFields.contains(key)) {
-						long l = Long.valueOf(value);
-						if (Integer.MIN_VALUE <= l && l <= Integer.MAX_VALUE)
-							m.put(key, (int) l);
-						else
-							m.put(key, l);
-					} else
-						m.put(key, value);
-					b = e + 2;
-				} else {
-					e = line.indexOf(' ', b);
-					if (b != e) {
-						if (key.equals("flag_record"))
-							e = line.indexOf(" te", e);
-						else if (key.equals("fw_rule_id"))
-							e = line.indexOf(" nat_rule_id=");
-
-						if (e > 0) {
-							String value = line.substring(b, e);
-
-							if (value.equals("-"))
-								m.put(key, null);
-							else {
-								if (numFields.contains(key)) {
-									long l = Long.valueOf(value);
-									if (Integer.MIN_VALUE <= l && l <= Integer.MAX_VALUE)
-										m.put(key, (int) l);
-									else
-										m.put(key, l);
-								} else {
-									m.put(key, value);
-								}
-							}
-							b = e + 1;
-						} else
-							break;
-					} else {
-						m.put(key, null);
-						b = e + 2;
-					}
-				}
-			}
-
-		} else {
-			e = line.indexOf(',', e + 1);
-			String eventAt = line.substring(b, e);
-
-			m.put("msg", line.substring(e + 1));
-			m.put("event_at", eventAt);
-		}
-
 		m.put("type", type);
-		m.put("device", device);
+		m.put("from_ip", fromIp);
+		
+		if(type.equals("fw4_allow")) {
+			parseFw4AllowCsv(line, m, e);
+		} else if(type.equals("fw4_deny")) {
+			parseFw4DenyCsv(line, m, e);
+		}
+		
 		return m;
 	}
-
+	
+	private void parseFw4AllowCsv(String line, Map<String, Object> m, int e) {
+		int loopCount = 0;
+		int b = e + 2;
+		while((e = line.indexOf(',', b + 1)) != -1) {
+			String content = line.substring(b, e);
+			
+			switch(loopCount) {
+			case 0:
+				m.put("start_time", content);
+				break;
+			case 1:
+				m.put("end_time", content);
+				break;
+			case 2: 
+				m.put("duration", content);
+				break;
+			case 3:
+				m.put("machine_name", content);
+				break;
+			case 4:
+				m.put("fw_rule_id", content);
+				break;
+			case 5:
+				m.put("nat_rule_id", content);
+				break;
+			case 6:
+				m.put("src_ip", content);
+				break;
+			case 7:
+				m.put("src_port", content);
+				break;
+			case 8:
+				m.put("dst_ip", content);
+				break;
+			case 9:
+				m.put("dst_port", content);
+				break;
+			case 10:
+				m.put("protocol", content);
+				break;
+			case 11:
+				m.put("ingres_if", content);
+				break;
+			case 12:
+				m.put("tx_packets", content);
+				break;
+			case 13:
+				m.put("rx_packets", content);
+				break;
+			case 14:
+				m.put("tx_bytes", content);
+				break;
+			case 15:
+				m.put("rx_bytes", content);
+				break;
+			case 16:
+				m.put("fragment_info", content);
+				break;
+			case 17:
+				m.put("flag_record", content);
+				break;
+			}
+			
+			b = e + 1;
+			loopCount++;
+		}
+		
+		String content = line.substring(b);
+		m.put("terminate_reason", content);
+	}
+	
+	private void parseFw4DenyCsv(String line, Map<String, Object> m, int e) {
+		int loopCount = 0;
+		int b = e + 2;
+		while((e = line.indexOf(',', b + 1)) != -1) {
+			String content = line.substring(b, e);
+			
+			switch(loopCount) {
+			case 0:
+				m.put("start_time", content);
+				break;
+			case 1:
+				m.put("end_time", content);
+				break;
+			case 2: 
+				m.put("duration", content);
+				break;
+			case 3:
+				m.put("machine_name", content);
+				break;
+			case 4:
+				m.put("fw_rule_id", content);
+				break;
+			case 5:
+				m.put("nat_rule_id", content);
+				break;
+			case 6:
+				m.put("src_ip", content);
+				break;
+			case 7:
+				m.put("src_port", content);
+				break;
+			case 8:
+				m.put("dst_ip", content);
+				break;
+			case 9:
+				m.put("dst_port", content);
+				break;
+			case 10:
+				m.put("protocol", content);
+				break;
+			case 11:
+				m.put("ingres_if", content);
+				break;
+			case 12:
+				m.put("packets", content);
+				break;
+			case 13:
+				m.put("bytes", content);
+				break;
+			case 14:
+				m.put("fragment_info", content);
+				break;
+			case 15:
+				m.put("flag_record", content);
+				break;
+			}
+			
+			b = e + 1;
+			loopCount++;
+		}
+		
+		String content = line.substring(b);
+		m.put("terminate_reason", content);
+	}
 }
