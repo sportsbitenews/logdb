@@ -1396,7 +1396,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				}
 			}
 			
-			logger.debug("#buffer flush bug# logs size: {}", logs.size());
+			if (logs != null && logger.isDebugEnabled())
+				logger.debug("#buffer flush bug# logs size: {}", logs.size());
 
 			String logFileType = schema.getPrimaryStorage().getType();
 			LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getPrimaryStorage(), schema.getMetadata(),
@@ -1412,17 +1413,19 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			logger.debug("#buffer flush bug# minId: {}, readerMaxId: {}", minId, readerMaxId);
 			logger.debug("#buffer flush bug# maxId: {}, onlineMinId: {}", maxId, flushedMaxId);
 
-			if (minId < 0 || readerMaxId < 0 || readerMaxId >= minId) {
-				if (req.isAsc()) {
+			if (req.isAsc()) {
+				if (minId < 0 || readerMaxId < 0 || readerMaxId >= minId) {
 					TableScanRequest tabletReq = req.clone();
 					tabletReq.setMaxId(readerMaxId);
 					reader.traverse(tabletReq);
-					if (logs != null)
-						c.writeLogs(logs);
-				} else {
-					if (logs != null)
-						c.writeLogs(logs);
+				}
+				if (logs != null)
+					c.writeLogs(logs);
+			} else {
+				if (logs != null)
+					c.writeLogs(logs);
 
+				if (minId < 0 || readerMaxId < 0 || readerMaxId >= minId) {
 					TableScanRequest tabletReq = req.clone();
 					tabletReq.setMaxId(readerMaxId);
 					reader.traverse(tabletReq);
