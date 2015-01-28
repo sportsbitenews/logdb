@@ -4,37 +4,22 @@
 package org.araqne.logstorage.file;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 
-import org.araqne.codec.Base64;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
-import org.araqne.logstorage.Crypto;
 import org.araqne.logstorage.Log;
-import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogTraverseCallback;
-import org.araqne.logstorage.file.DataBlockV3;
-import org.araqne.logstorage.file.DataBlockV3Params;
-import org.araqne.logstorage.file.IndexBlockV3Header;
-import org.araqne.logstorage.file.InvalidLogFileHeaderException;
-import org.araqne.logstorage.file.LogBlockCursor;
-import org.araqne.logstorage.file.LogFileHeader;
-import org.araqne.logstorage.file.LogFileReader;
-import org.araqne.logstorage.file.LogRecord;
-import org.araqne.logstorage.file.LogRecordCursor;
+import org.araqne.logstorage.TableScanRequest;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
 import org.slf4j.Logger;
@@ -706,9 +691,8 @@ public class LogFileReaderV3o extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback callback,
-			boolean doParallel) throws IOException, InterruptedException {
-		traverseNonParallel(from, to, minId, maxId, builder, callback);
+	public void traverse(TableScanRequest req) throws IOException, InterruptedException {
+		traverseNonParallel(req);
 	}
 
 	private void handleParseError(LogParserBuilder builder, LogParseResult parseResult) {
@@ -745,8 +729,14 @@ public class LogFileReaderV3o extends LogFileReader {
 		}
 	}
 
-	private void traverseNonParallel(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
-			LogTraverseCallback callback) throws IOException, InterruptedException {
+	private void traverseNonParallel(TableScanRequest req) throws IOException, InterruptedException {
+		Date from = req.getFrom();
+		Date to = req.getTo();
+		long minId = req.getMinId();
+		long maxId = req.getMaxId();
+		LogParserBuilder builder = req.getParserBuilder();
+		LogTraverseCallback callback = req.getTraverseCallback();
+		
 		boolean suppressBugAlert = false;
 		LogParser parser = null;
 		if (builder != null)

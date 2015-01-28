@@ -21,10 +21,6 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Date;
 
-import org.araqne.logstorage.LogCryptoProfile;
-import org.araqne.logstorage.file.DatapathUtil;
-import org.araqne.logstorage.file.IndexBlockV3Header;
-import org.araqne.logstorage.file.LogFileHeader;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
 import org.araqne.storage.api.StorageUtil;
@@ -32,34 +28,34 @@ import org.araqne.storage.filepair.CloseableEnumeration;
 import org.araqne.storage.filepair.FilePair;
 
 // TODO : handling encryption
-public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataBlock> implements Closeable{
+public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataBlock> implements Closeable {
 	private static final short FILE_VERSION = 3;
-	
+
 	private StorageInputStream dataStream;
 	private LogFileHeader ifileHeader;
 	private LogFileHeader dfileHeader;
-	
+
 	private String compression;
 	private int compressionLevel;
-	
+
 	public LogFileV3o(FilePath indexFile, FilePath dataFile) throws IOException {
 		this(indexFile, dataFile, "deflate");
 	}
-	
+
 	public LogFileV3o(int id, Date day, FilePath basePath) throws IOException {
 		this(id, day, basePath, "deflate");
 	}
-	
+
 	public LogFileV3o(int id, Date day, FilePath basePath, String compression) throws IOException {
 		this(DatapathUtil.getIndexFile(id, day, basePath), DatapathUtil.getDataFile(id, day, basePath), compression);
 	}
-	
+
 	public LogFileV3o(FilePath indexFile, FilePath dataFile, String compression) throws IOException {
-		super(indexFile, dataFile);
+		super(indexFile, dataFile, IndexBlockV3Header.class, RawDataBlock.class);
 		this.compression = compression;
 		this.compressionLevel = 3;
 	}
-	
+
 	private StorageInputStream getDataStream() throws IOException {
 		if (dataStream == null) {
 			try {
@@ -71,7 +67,7 @@ public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataB
 				throw new IOException();
 			}
 		}
-		
+
 		return dataStream;
 	}
 
@@ -80,7 +76,7 @@ public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataB
 			ifileHeader = LogFileHeader.extractHeader(ifile);
 		return ifileHeader;
 	}
-	
+
 	// for test
 	void setIndexFileHeader(LogFileHeader header) {
 		if (ifileHeader != null)
@@ -93,7 +89,7 @@ public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataB
 			dfileHeader = LogFileHeader.extractHeader(dfile);
 		return dfileHeader;
 	}
-	
+
 	// for test
 	void setDataFileHeader(LogFileHeader header) {
 		if (dfileHeader != null)
@@ -110,7 +106,7 @@ public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataB
 	@Override
 	public void writeIndexFileHeader(OutputStream os) throws IOException {
 		LogFileHeader indexFileHeader = null;
-		try { 
+		try {
 			indexFileHeader = getIndexFileHeader();
 		} catch (IOException e) {
 			indexFileHeader = new LogFileHeader(FILE_VERSION, LogFileHeader.MAGIC_STRING_INDEX);
@@ -156,7 +152,7 @@ public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataB
 	public int getIndexBlockCount() throws IOException {
 		if (!ifile.exists())
 			return 0;
-		
+
 		return (int) ((getIndexFile().length() - getIndexFileHeaderLength()) / IndexBlockV3Header.ITEM_SIZE);
 	}
 
@@ -164,12 +160,12 @@ public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataB
 	public IndexBlockV3Header getIndexBlock(int id) throws IOException {
 		StorageInputStream inputStream = null;
 		try {
-			IndexBlockV3Header unserializer = new IndexBlockV3Header(); 
+			IndexBlockV3Header unserializer = new IndexBlockV3Header();
 			inputStream = ifile.newInputStream();
 
 			inputStream.seek(getIndexFileHeaderLength() + IndexBlockV3Header.ITEM_SIZE * id);
 			IndexBlockV3Header ret = unserializer.unserialize(id, inputStream);
-			
+
 			if (getIndexFileHeaderLength() + IndexBlockV3Header.ITEM_SIZE * (id + 1) >= getIndexFile().length()) {
 				ret.setDataBlockLen(getDataFile().length() - ret.getPosOnData());
 			} else {
@@ -177,7 +173,7 @@ public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataB
 				ret.setDataBlockLen(next.getPosOnData() - ret.getPosOnData());
 			}
 
-			return ret; 
+			return ret;
 		} finally {
 			StorageUtil.ensureClose(inputStream);
 		}
@@ -185,22 +181,21 @@ public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataB
 
 	@Override
 	public RawDataBlock getRawDataBlock(IndexBlockV3Header indexBlock) throws IOException {
-		ByteBuffer dataBuffer = ByteBuffer.allocate((int)indexBlock.getDataBlockLen());
+		ByteBuffer dataBuffer = ByteBuffer.allocate((int) indexBlock.getDataBlockLen());
 		StorageInputStream stream = getDataStream();
 		stream.seek(indexBlock.getPosOnData());
 		stream.readFully(dataBuffer.array());
 		return new RawDataBlock(indexBlock.getId(), dataBuffer);
 	}
-	
+
 	public CloseableEnumeration<IndexBlockV3Header> getIndexBlocks() throws IOException {
-		return getIndexBlocks(IndexBlockV3Header.class);
+		return super.getIndexBlocks();
 	}
-	
-	
+
 	public static class RawDataBlock extends org.araqne.storage.filepair.RawDataBlock<RawDataBlock> {
 		private int id;
 		private ByteBuffer blockBuffer;
-		
+
 		public RawDataBlock(int id, ByteBuffer blockBuffer) {
 			this.id = id;
 			this.blockBuffer = blockBuffer;
@@ -210,17 +205,16 @@ public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataB
 		public void serialize(OutputStream os) throws IOException {
 			os.write(blockBuffer.array());
 		}
-		
+
 		public int getId() {
 			return id;
 		}
-		
+
 		public String getDigest() {
 			return calcHash(blockBuffer);
 		}
-		
-	}
 
+	}
 
 	@Override
 	public int getIndexBlockSize() {

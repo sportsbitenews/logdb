@@ -268,8 +268,7 @@ public class LogFileWriterV3o extends LogFileWriter {
 		if (logger.isDebugEnabled())
 			logger.debug(
 					"araqne logstorage: write new log, idx [{}], dat [{}], id {}, time {}",
-					new Object[] { indexPath.getAbsolutePath(), dataPath.getAbsolutePath(), log.getId(),
-							log.getDate().toString() });
+					new Object[] { indexPath.getAbsolutePath(), dataPath.getAbsolutePath(), log.getId(), log.getDate().toString() });
 
 		// check validity
 		long newKey = log.getId();
@@ -386,7 +385,8 @@ public class LogFileWriterV3o extends LogFileWriter {
 		if (compressionMethod.equals("snappy"))
 			return new SnappyCompression();
 		else
-			return new DeflaterCompression(compressLevel); // "deflater" or "deflate"
+			return new DeflaterCompression(compressLevel); // "deflater" or
+															// "deflate"
 	}
 
 	public class ParaSlotItem implements ParaFlushable {
@@ -410,8 +410,7 @@ public class LogFileWriterV3o extends LogFileWriter {
 
 		@Override
 		public String toString() {
-			return "ParaSlotItem [ready=" + ready + ", serialNumber=" + serialNumber + ", minId=" + minId + ", maxId="
-					+ maxId
+			return "ParaSlotItem [ready=" + ready + ", serialNumber=" + serialNumber + ", minId=" + minId + ", maxId=" + maxId
 					+ ", segment=" + segment + "]";
 		}
 
@@ -619,10 +618,9 @@ public class LogFileWriterV3o extends LogFileWriter {
 				if (callbackSet != null) {
 					for (BlockPairWriteCallback cb : callbackSet.get(BlockPairWriteCallback.class)) {
 						try {
-							cb.onWriteCompleted(new BlockPairWriteCallbackArgs(
-									"v3o", LogFileWriterV3o.this.tableName, LogFileWriterV3o.this.day,
-									(int) ((ipos - indexFileHeader.size()) / INDEX_HEADER_SIZE),
-									ipos, imStream.toByteArray(), dpos, dmStream.toByteArray()));
+							cb.onWriteCompleted(new BlockPairWriteCallbackArgs("v3o", LogFileWriterV3o.this.tableName,
+									LogFileWriterV3o.this.day, (int) ((ipos - indexFileHeader.size()) / INDEX_HEADER_SIZE), ipos,
+									imStream.toByteArray(), dpos, dmStream.toByteArray()));
 						} catch (Throwable t) {
 							logger.warn("BlockPairWriteCallback should not throw an exception", t);
 						}
@@ -815,6 +813,16 @@ public class LogFileWriterV3o extends LogFileWriter {
 
 		result = dataPath.delete();
 		logger.debug("logpresso logstorage: delete [{}] file => {}", dataPath, result);
+	}
+
+	@Override
+	public CallbackSet getCallbackSet() {
+		return callbackSet;
+	}
+
+	@Override
+	public void setCallbackSet(CallbackSet callbackSet) {
+		this.callbackSet = callbackSet;
 	}
 
 	public String toString() {
