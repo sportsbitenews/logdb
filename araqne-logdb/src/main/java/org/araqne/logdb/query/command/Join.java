@@ -15,6 +15,7 @@ import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.command.Sort.SortField;
+import org.araqne.logdb.query.command.SortMergeJoiner.SortMergeJoinerListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,10 +27,6 @@ public class Join extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(Join.class);
 	private final JoinType joinType;
 	private QueryResultSet subQueryResultSet;
-
-	// for later sort-merge join
-	private Object[] sortJoinKeys1;
-	private Object[] sortJoinKeys2;
 
 	// for hash join
 	private HashMap<JoinKeys, List<Object>> hashJoinMap;
@@ -43,17 +40,18 @@ public class Join extends QueryCommand {
 	// tasks
 	private SubQueryTask subQueryTask = new SubQueryTask();
 
+	private SortMergeJoiner sortMergeJoiner;
+
 	public Join(JoinType joinType, SortField[] sortFields, Query subQuery) {
 		this.joinType = joinType;
 		this.joinKeyCount = sortFields.length;
 		this.joinKeys = new JoinKeys(new Object[joinKeyCount]);
-		this.sortJoinKeys1 = new Object[sortFields.length];
-		this.sortJoinKeys2 = new Object[sortFields.length];
 		this.sortFields = sortFields;
 		this.subQuery = subQuery;
+		this.sortMergeJoiner = new SortMergeJoiner(joinType, sortFields, new SortMergeJoinerCallback(this));
 
 		logger.debug("araqne logdb: join subquery created [{}:{}]", subQuery.getId(), subQuery.getQueryString());
-		
+
 		QueryHelper.setJoinAndUnionDependencies(subQuery.getCommands());
 
 		for (QueryCommand cmd : subQuery.getCommands()) {
@@ -76,6 +74,20 @@ public class Join extends QueryCommand {
 
 	@Override
 	public void onClose(QueryStopReason reason) {
+		if (hashJoinMap != null) {
+			hashJoinMap = null;
+		} else {
+			if (reason == QueryStopReason.PartialFetch || reason == QueryStopReason.End) {
+				sortMergeJoiner.merge();
+			} else {
+				try {
+					sortMergeJoiner.cancel();
+				} catch (Throwable t) {
+					logger.error("araqne logdb: can not cancel sortMergeJoiner", t);
+				}
+			}
+		}
+
 		try {
 			subQuery.stop(reason);
 		} catch (Throwable t) {
@@ -120,39 +132,13 @@ public class Join extends QueryCommand {
 				pushPipe(new Row(joinMap));
 			}
 			return;
-		}
-
-		subQueryResultSet.reset();
-		int i = 0;
-		for (SortField f : sortFields) {
-			Object joinValue = m.get(f.getName());
-			if (joinValue instanceof Integer || joinValue instanceof Short)
-				joinValue = ((Number) joinValue).longValue();
-			sortJoinKeys1[i++] = joinValue;
-		}
-
-		boolean found = false;
-		while (subQueryResultSet.hasNext()) {
-			Map<String, Object> sm = subQueryResultSet.next();
-
-			i = 0;
-			for (SortField f : sortFields) {
-				Object joinValue = sm.get(f.getName());
-				if (joinValue instanceof Integer || joinValue instanceof Short)
-					joinValue = ((Number) joinValue).longValue();
-				sortJoinKeys2[i++] = joinValue;
-			}
-
-			if (Arrays.equals(sortJoinKeys1, sortJoinKeys2)) {
-				Map<String, Object> joinMap = new HashMap<String, Object>(m.map());
-				joinMap.putAll(sm);
-				pushPipe(new Row(joinMap));
-				found = true;
+		} else {
+			try {
+				sortMergeJoiner.setR(m);
+			} catch (Throwable t) {
+				logger.error("araqne logdb: cannot setR on sortMergeJoiner[" + m.toString() + "]", t);
 			}
 		}
-
-		if (joinType == JoinType.Left && !found)
-			pushPipe(m);
 	}
 
 	@Override
@@ -199,7 +185,7 @@ public class Join extends QueryCommand {
 				if (rs.size() <= HASH_JOIN_THRESHOLD)
 					buildHashJoinTable(rs);
 				else
-					subQueryResultSet = rs;
+					sortMergeJoiner.setS(rs);
 
 			} catch (IOException e) {
 				logger.error("araqne logdb: cannot get subquery result of query " + query.getId(), e);
@@ -262,6 +248,19 @@ public class Join extends QueryCommand {
 			if (!Arrays.equals(keys, other.keys))
 				return false;
 			return true;
+		}
+	}
+
+	class SortMergeJoinerCallback implements SortMergeJoinerListener {
+		Join join;
+
+		SortMergeJoinerCallback(Join join) {
+			this.join = join;
+		}
+
+		@Override
+		public void onPushPipe(Row row) {
+			join.pushPipe(row);
 		}
 	}
 }
