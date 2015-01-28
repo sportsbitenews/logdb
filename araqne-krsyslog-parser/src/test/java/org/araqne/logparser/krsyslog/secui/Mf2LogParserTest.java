@@ -177,11 +177,11 @@ public class Mf2LogParserTest {
 		assertEquals("2015-01-14 08:56:45", m.get("time"));
 		assertEquals("localhost", m.get("machine_name"));
 		assertEquals("30", m.get("cpu_cores"));
-		assertEquals("2.8", m.get("cpu_usages(%)"));
-		assertEquals("3973452", m.get("memory_capacity(KB)"));
-		assertEquals("26.4", m.get("memory_usages(%)"));
-		assertEquals("230041436", m.get("disk_capacity(KB)"));
-		assertEquals("6.4", m.get("disk_usages(%)"));
+		assertEquals("2.8", m.get("cpu_usages"));
+		assertEquals("3973452", m.get("memory_capacity"));
+		assertEquals("26.4", m.get("memory_usages"));
+		assertEquals("230041436", m.get("disk_capacity"));
+		assertEquals("6.4", m.get("disk_usages"));
 	}
 
 	@Test
@@ -194,11 +194,11 @@ public class Mf2LogParserTest {
 		assertEquals("2015-01-14 09:21:50", m.get("time"));
 		assertEquals("KNIAFWIN2", m.get("machine_name"));
 		assertEquals("20", m.get("cpu_cores"));
-		assertEquals("1.6", m.get("cpu_usages(%)"));
-		assertEquals("8062584", m.get("memory_capacity(KB)"));
-		assertEquals("21.0", m.get("memory_usages(%)"));
-		assertEquals("470397848", m.get("disk_capacity(KB)"));
-		assertEquals("0.0", m.get("disk_usages(%)"));
+		assertEquals("1.6", m.get("cpu_usages"));
+		assertEquals("8062584", m.get("memory_capacity"));
+		assertEquals("21.0", m.get("memory_usages"));
+		assertEquals("470397848", m.get("disk_capacity"));
+		assertEquals("0.0", m.get("disk_usages"));
 	}
 
 	@Test
@@ -211,11 +211,11 @@ public class Mf2LogParserTest {
 		assertEquals("2015-01-14 09:21:50", m.get("time"));
 		assertEquals("KNIAFWIN1", m.get("machine_name"));
 		assertEquals("15", m.get("cpu_cores"));
-		assertEquals("2.2", m.get("cpu_usages(%)"));
-		assertEquals("8062584", m.get("memory_capacity(KB)"));
-		assertEquals("23.4", m.get("memory_usages(%)"));
-		assertEquals("470397848", m.get("disk_capacity(KB)"));
-		assertEquals("80.0", m.get("disk_usages(%)"));
+		assertEquals("2.2", m.get("cpu_usages"));
+		assertEquals("8062584", m.get("memory_capacity"));
+		assertEquals("23.4", m.get("memory_usages"));
+		assertEquals("470397848", m.get("disk_capacity"));
+		assertEquals("80.0", m.get("disk_usages"));
 	}
 
 	@Test
@@ -228,11 +228,11 @@ public class Mf2LogParserTest {
 		assertEquals("2015-01-14 08:56:45", m.get("time"));
 		assertEquals("mindori", m.get("machine_name"));
 		assertEquals("30", m.get("cpu_cores"));
-		assertEquals("2.8234234234234", m.get("cpu_usages(%)"));
-		assertEquals("3973452", m.get("memory_capacity(KB)"));
-		assertEquals("26.4", m.get("memory_usages(%)"));
-		assertEquals(" ", m.get("disk_capacity(KB)"));
-		assertEquals("16.4", m.get("disk_usages(%)"));
+		assertEquals("2.8234234234234", m.get("cpu_usages"));
+		assertEquals("3973452", m.get("memory_capacity"));
+		assertEquals("26.4", m.get("memory_usages"));
+		assertEquals(" ", m.get("disk_capacity"));
+		assertEquals("16.4", m.get("disk_usages"));
 	}
 
 	@Test
@@ -244,9 +244,9 @@ public class Mf2LogParserTest {
 		assertEquals("2015-01-14 08:56:45", m.get("time"));
 		assertEquals("mindori", m.get("machine_name"));
 		assertEquals("foo", m.get("daemon_name"));
-		assertEquals("2.222", m.get("cpu_usages(%)"));
-		assertEquals("50", m.get("virtual_memmory_usages(KB)"));
-		assertEquals("26.4", m.get("real_memory_usages(KB)"));
+		assertEquals("2.222", m.get("cpu_usages"));
+		assertEquals("50", m.get("virtual_memmory_usages"));
+		assertEquals("26.4", m.get("real_memory_usages"));
 	}
 
 	@Test
@@ -296,11 +296,11 @@ public class Mf2LogParserTest {
 		assertEquals("mindori", m.get("machine_name"));
 		assertEquals("mindori_q", m.get("queue_name"));
 		assertEquals("-", m.get("interface"));
-		assertEquals("30000", m.get("use_bandwidth(Kbps)"));
+		assertEquals("30000", m.get("use_bandwidth"));
 		assertEquals("4", m.get("allow_packets"));
-		assertEquals("55", m.get("allow_rate(%)"));
+		assertEquals("55", m.get("allow_rate"));
 		assertEquals("6", m.get("loss_packets"));
-		assertEquals("77", m.get("loss_rate(%)"));
+		assertEquals("77", m.get("loss_rate"));
 	}
 
 	@Test
@@ -1533,12 +1533,12 @@ public class Mf2LogParserTest {
 		assertEquals("mindori", m.get("machine_name"));
 		assertEquals("202.1.45.60", m.get("connection_ip"));
 		assertEquals("2", m.get("interface"));
-		assertEquals("30", m.get("tx_speed(Kbps)"));
-		assertEquals("40", m.get("rx_speed(Kbps)"));
+		assertEquals("30", m.get("tx_speed"));
+		assertEquals("40", m.get("rx_speed"));
 		assertEquals("1005", m.get("tx_bytes"));
 		assertEquals("4096", m.get("rx_bytes"));
-		assertEquals("80", m.get("tx_usages(%)"));
-		assertEquals("70", m.get("rx_usages(%)"));
+		assertEquals("80", m.get("tx_usages"));
+		assertEquals("70", m.get("rx_usages"));
 		assertEquals("5 sec", m.get("fault_duration"));
 		assertEquals("OK", m.get("connection_status"));
 	}
@@ -1601,7 +1601,7 @@ public class Mf2LogParserTest {
 		assertEquals("1", m.get("connection_name"));
 		assertEquals("2", m.get("remote_gateway"));
 		assertEquals("3", m.get("src_interface"));
-		assertEquals("4", m.get("Round-Trip Time(usec)"));
+		assertEquals("4", m.get("round_trip_time"));
 	}
 
 	@Test
@@ -1615,8 +1615,8 @@ public class Mf2LogParserTest {
 		assertEquals("1", m.get("interface"));
 		assertEquals("2", m.get("src_ip"));
 		assertEquals("3", m.get("dst_ip"));
-		assertEquals("4", m.get("tx_speed(Kbps)"));
-		assertEquals("5", m.get("rx_speed(Kbps)"));
+		assertEquals("4", m.get("tx_speed"));
+		assertEquals("5", m.get("rx_speed"));
 	}
 
 	@Test
@@ -1937,7 +1937,7 @@ public class Mf2LogParserTest {
 		assertEquals("3", m.get("dst_ip"));
 		assertEquals("4", m.get("category"));
 		assertEquals("5", m.get("dst_name"));
-		assertEquals("6", m.get("URI"));
+		assertEquals("6", m.get("uri"));
 	}
 
 	@Test
@@ -2182,7 +2182,7 @@ public class Mf2LogParserTest {
 		assertEquals("1", m.get("action"));
 		assertEquals("2", m.get("block_ip"));
 		assertEquals("3", m.get("server"));
-		assertEquals("4", m.get("Redirect URL"));
+		assertEquals("4", m.get("redirect_url"));
 	}
 
 	@Test
@@ -2195,7 +2195,7 @@ public class Mf2LogParserTest {
 		assertEquals("mindori", m.get("machine_name"));
 		assertEquals("1", m.get("src_ip"));
 		assertEquals("2", m.get("action"));
-		assertEquals("3", m.get("Redirect URL"));
+		assertEquals("3", m.get("redirect_url"));
 	}
 
 	private Map<String, Object> line(String line) {

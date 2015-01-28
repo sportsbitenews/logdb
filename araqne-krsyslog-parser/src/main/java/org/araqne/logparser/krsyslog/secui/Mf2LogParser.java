@@ -67,13 +67,13 @@ public class Mf2LogParser extends V1LogParser {
 				"time,machine_name,src_ip,src_port,dst_ip,dst_port,protocol,block_period,packets,bytes,type,reason");
 		add("mng_line", "time,machine_name,interface,msg");
 		add("mng_resource",
-				"time,machine_name,cpu_cores,cpu_usages(%),memory_capacity(KB),memory_usages(%),disk_capacity(KB),disk_usages(%)");
-		add("mng_daemon", "time,machine_name,daemon_name,cpu_usages(%),virtual_memmory_usages(KB),real_memory_usages(KB)");
+				"time,machine_name,cpu_cores,cpu_usages,memory_capacity,memory_usages,disk_capacity,disk_usages");
+		add("mng_daemon", "time,machine_name,daemon_name,cpu_usages,virtual_memmory_usages,real_memory_usages");
 		add("mng_if_traffic", "time,machine_name,interface,link_status,rx_frames,tx_frames,rx_bytes,tx_bytes");
 		add("mng_oversubscription",
 				"time,machine_name,incoming_bypass_pps,incoming_bypass_bps,incoming_drop_pps,incoming_drop_bps,outgoing_bypass_pps,outgoing_bypass_bps,outgoing_drop_pps,outgoing_drop_bps");
 		add("mng_qos",
-				"time,machine_name,queue_name,interface,use_bandwidth(Kbps),allow_packets,allow_rate(%),loss_packets,loss_rate(%)");
+				"time,machine_name,queue_name,interface,use_bandwidth,allow_packets,allow_rate,loss_packets,loss_rate");
 		add("mng_fqdn_object_management", "time,machine_name,object_name,before,after");
 		add("mng_user_object_management", "time,machine_name,user_name,before,after");
 		// 2.1 - 2.11
@@ -119,14 +119,14 @@ public class Mf2LogParser extends V1LogParser {
 		add("vpn_act_ipsec", "start_time,machine_name,remote_gateway,direction,protocol,priority,spi,action,msg");
 		add("vpn_act_event", "start_time,machine_name,msg");
 		add("vpn_cnt_line_use",
-				"time,machine_name,connection_ip,interface,tx_speed(Kbps),rx_speed(Kbps),tx_bytes,rx_bytes,tx_usages(%),rx_usages(%),fault_duration,connection_status");
+				"time,machine_name,connection_ip,interface,tx_speed,rx_speed,tx_bytes,rx_bytes,tx_usages,rx_usages,fault_duration,connection_status");
 		add("vpn_cnt_tunnel_use", "time,machine_name,tunnels,normal_tunnels,abnormal_tunnels");
 		addOverlapped("vpn_cnt_traffic_remotegw",
 				"time,machine_name,remote_gateway,encryption_packets,encryption_bytes,decryption_packets,decryption_bytes,usage");
 		addOverlapped("vpn_cnt_traffic_remotegw",
 				"time,machine_name,tunnel_id,encryption_packets,encryption_bytes,decryption_packets,decryption_bytes,usage");
-		add("vpn_cnt_status_remotegw", "time,machine_name,connection_name,remote_gateway,src_interface,Round-Trip Time(usec)");
-		add("vpn_cnt_speed_if", "time,machine_name,interface,src_ip,dst_ip,tx_speed(Kbps),rx_speed(Kbps)");
+		add("vpn_cnt_status_remotegw", "time,machine_name,connection_name,remote_gateway,src_interface,round_trip_time");
+		add("vpn_cnt_speed_if", "time,machine_name,interface,src_ip,dst_ip,tx_speed,rx_speed");
 		add("sslvpn3_act_access", "time,machine_name,server_ip,server_port,user_id,user_ip,assign_ip");
 		add("sslvpn3_act_auth", "time,machine_name,user_id,user_ip,assign_ip,action,desc");
 		add("sslvpn3_act_cert_issue", "time,machine_name,user_id,user_dn,certtime,status");
@@ -153,7 +153,7 @@ public class Mf2LogParser extends V1LogParser {
 				"start_time,machine_name,fw_rule_id,client_ip,server_ip,tx_bytes,rx_bytes,http_command,transaction_id,result,msg");
 		add("app_act_webclient_limit",
 				"start_time,machine_name,fw_rule_id,client_ip,server_ip,tx_bytes,rx_bytes,http_command,transaction_id,result,msg");
-		add("app_act_urlblock", "start_time,machine_name,fw_rule_id,src_ip,dst_ip,category,dst_name,URI");
+		add("app_act_urlblock", "start_time,machine_name,fw_rule_id,src_ip,dst_ip,category,dst_name,uri");
 		add("app_cnt_antispam",
 				"start_time,machine_name,all_counts,allow_counts,detect_counts,alarm_counts,block_counts,protocol,direction");
 		add("app_cnt_ftp", "start_time,machine_name,all_counts,upload_counts,download_counts,etc_counts,detect_counts");
@@ -172,8 +172,8 @@ public class Mf2LogParser extends V1LogParser {
 		add("app_act_webserver_protect",
 				"time,machine_name,fw_rule_id,profile_id,attack_id,attack_description,src_ip,src_port,dst_ip,dst_port,dst_url,packets,bytes,priority,action,mails,dump_id");
 		add("app_cnt_webserver_protect", "time,machine_name,all_counts,all_bytes,detect_counts,detect_bytes");
-		addOverlapped("app_act_officekeeper_list", "time,machine_name,action,block_ip,server,Redirect URL");
-		addOverlapped("app_act_officekeeper_list", "time,machine_name,src_ip,action,Redirect URL");
+		addOverlapped("app_act_officekeeper_list", "time,machine_name,action,block_ip,server,redirect_url");
+		addOverlapped("app_act_officekeeper_list", "time,machine_name,src_ip,action,redirect_url");
 	}
 
 	public Mf2LogParser(Mode mode) {
