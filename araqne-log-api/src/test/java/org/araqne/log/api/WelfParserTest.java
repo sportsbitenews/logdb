@@ -155,4 +155,22 @@ public class WelfParserTest {
 		assertEquals("19 %", m.get("MEMORY_Usage"));
 		assertEquals("6.18 K", m.get("SessionPerSecond"));
 	}
+	
+	@Test
+	public void testSecuiHaEventLog() {
+		String line = "time=\"2015-01-27 19:38:00\" machine_name=mindori_machine "
+				+ "event_name=mindori_event msg=HAHAHA";
+
+		HashMap<String, Object> log = new HashMap<String, Object>();
+		log.put("line", line);
+
+		WelfParser p = new WelfParser();
+		Map<String, Object> m = p.parse(log);
+		assertEquals(4, m.size());
+
+		assertEquals("2015-01-27 19:38:00", m.get("time"));
+		assertEquals("mindori_machine", m.get("machine_name"));
+		assertEquals("mindori_event", m.get("event_name"));
+		assertEquals("HAHAHA", m.get("msg"));
+	}
 }
