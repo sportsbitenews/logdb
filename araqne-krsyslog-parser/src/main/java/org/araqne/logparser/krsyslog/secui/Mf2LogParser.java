@@ -33,6 +33,12 @@ public class Mf2LogParser extends V1LogParser {
 	private static Map<String, List<String[]>> overlappedFieldMap = new HashMap<String, List<String[]>>();
 	private static Map<String, String[]> typeFieldMap = new HashMap<String, String[]>();
 
+	public enum Mode {
+		CSV, TSV
+	};
+
+	private Mode mode;
+
 	static void add(String type, String fields) {
 		String[] tokens = fields.split(",");
 		typeFieldMap.put(type, tokens);
@@ -170,6 +176,10 @@ public class Mf2LogParser extends V1LogParser {
 		addOverlapped("app_act_officekeeper_list", "time,machine_name,src_ip,action,Redirect URL");
 	}
 
+	public Mf2LogParser(Mode mode) {
+		this.mode = mode;
+	}
+
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
 		String line = (String) params.get("line");
@@ -192,9 +202,10 @@ public class Mf2LogParser extends V1LogParser {
 		m.put("log_type", type);
 		m.put("from_ip", fromIp);
 
-		int delimiter = ',';
-		String mode = (String) params.get("mode");
-		if (mode != null && mode.equals("tsv")) {
+		int delimiter;
+		if (mode == Mode.CSV) {
+			delimiter = ',';
+		} else {
 			delimiter = '\t';
 		}
 
@@ -208,6 +219,7 @@ public class Mf2LogParser extends V1LogParser {
 				return params;
 			} else {
 				String newLine = line.substring(e + 2);
+
 				String splitStr = (delimiter == ',') ? "," : "\t";
 				int numOfFields = newLine.split(splitStr).length;
 
@@ -223,6 +235,7 @@ public class Mf2LogParser extends V1LogParser {
 
 		parse(line, m, fields, e, delimiter);
 		return m;
+
 	}
 
 	private void parse(String line, Map<String, Object> m, String[] fields, int e, int delimiter) {
