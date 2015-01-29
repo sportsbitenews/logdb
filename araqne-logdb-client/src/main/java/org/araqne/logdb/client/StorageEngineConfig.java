@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Eediom Inc.
+ * Copyright 2015 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,44 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logstorage;
+package org.araqne.logdb.client;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.araqne.api.CollectionTypeHint;
-import org.araqne.api.FieldOption;
-import org.araqne.msgbus.Marshalable;
-
-public class StorageConfig implements Marshalable {
-	/**
-	 * engine type
-	 */
-	@FieldOption(nullable = false)
+public class StorageEngineConfig {
 	private String type;
-
-	@FieldOption(nullable = true)
 	private String basePath;
-
-	@CollectionTypeHint(TableConfig.class)
 	private List<TableConfig> configs = new ArrayList<TableConfig>();
 
-	public StorageConfig() {
+	public StorageEngineConfig() {
 	}
 
-	public StorageConfig(String type) {
+	public StorageEngineConfig(String type) {
 		this.type = type;
 	}
 
-	public StorageConfig(String type, String basePath) {
+	public StorageEngineConfig(String type, String basePath) {
 		this.type = type;
 		this.basePath = basePath;
 	}
 
-	public StorageConfig clone() {
-		StorageConfig c = new StorageConfig();
+	public StorageEngineConfig clone() {
+		StorageEngineConfig c = new StorageEngineConfig();
 		c.setType(type);
 		c.setBasePath(basePath);
 		c.setConfigs(clone(configs));
@@ -96,19 +82,15 @@ public class StorageConfig implements Marshalable {
 	}
 
 	@Override
-	public Map<String, Object> marshal() {
-		Map<String, Object> cm = new HashMap<String, Object>();
-		for (TableConfig c : this.configs) {
-			if (c.getValues().size() < 2)
-				cm.put(c.getKey(), c.getValue());
-			else
-				cm.put(c.getKey(), c.getValues());
-		}
-		
-		Map<String, Object> m = new HashMap<String, Object>();
-		m.put("type", type);
-		m.put("base_path", basePath);
-		m.put("configs", cm);
-		return m;
+	public String toString() {
+		String bp = "";
+		if (basePath != null)
+			bp = ", base_path=" + basePath;
+
+		String c = "";
+		if (!configs.isEmpty())
+			c = ", configs=" + configs;
+
+		return "type=" + type + c + bp;
 	}
 }

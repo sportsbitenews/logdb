@@ -21,8 +21,17 @@ import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -99,7 +108,6 @@ public class LogDbClient implements TrapListener, Closeable {
 
 	// milliseconds
 	private int indexFlushInterval = 1000;
-	private int indexFlushIntervalMin = 10;
 
 	// table name to row list mappings
 	private Map<String, List<QueuedRows>> flushBuffers = new HashMap<String, List<QueuedRows>>();
@@ -799,20 +807,93 @@ public class LogDbClient implements TrapListener, Closeable {
 	 * @return 테이블 정보를 담은 TableInfo 개체의 리스트
 	 */
 	@SuppressWarnings("unchecked")
-	public List<TableInfo> listTables() throws IOException {
+	public List<TableSchemaInfo> listTables() throws IOException {
 		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.listTables");
-		List<TableInfo> tables = new ArrayList<TableInfo>();
-		Map<String, Object> metadataMap = (Map<String, Object>) resp.getParameters().get("tables");
-		Map<String, Object> fieldsMap = (Map<String, Object>) resp.getParameters().get("fields");
+		List<TableSchemaInfo> tables = new ArrayList<TableSchemaInfo>();
 
-		for (String tableName : metadataMap.keySet()) {
-			Map<String, Object> params = (Map<String, Object>) metadataMap.get(tableName);
-			List<Object> fields = (List<Object>) fieldsMap.get(tableName);
-			TableInfo tableInfo = getTableInfo(tableName, params, fields);
-			tables.add(tableInfo);
+		Map<String, Object> schemaMap = (Map<String, Object>) resp.get("schemas");
+		if (schemaMap != null) {
+
+			for (String tableName : schemaMap.keySet()) {
+				Map<String, Object> schema = (Map<String, Object>) schemaMap.get(tableName);
+				tables.add(parseSchema(schema));
+			}
+		} else {
+			// support backward-compatibility
+			Map<String, Object> metadataMap = (Map<String, Object>) resp.get("tables");
+			Map<String, Object> fieldsMap = (Map<String, Object>) resp.get("fields");
+
+			for (String tableName : metadataMap.keySet()) {
+				Map<String, Object> params = (Map<String, Object>) metadataMap.get(tableName);
+				List<Object> fields = (List<Object>) fieldsMap.get(tableName);
+				TableSchemaInfo tableInfo = getTableInfo(tableName, params, fields);
+				tables.add(tableInfo);
+			}
 		}
 
 		return tables;
+	}
+
+	@SuppressWarnings("unchecked")
+	private TableSchemaInfo parseSchema(Map<String, Object> schema) {
+		TableSchemaInfo s = new TableSchemaInfo();
+		s.setName((String) schema.get("name"));
+		if (schema.get("id") != null)
+			s.setId((Integer) schema.get("id"));
+
+		s.setMetadata((Map<String, String>) schema.get("metadata"));
+		s.setPrimaryStorage(parseStorageConfig((Map<String, Object>) schema.get("primary_storage")));
+		s.setReplicaStorage(parseStorageConfig((Map<String, Object>) schema.get("replica_storage")));
+
+		List<Map<String, Object>> l = (List<Map<String, Object>>) schema.get("secondary_storages");
+		if (l != null) {
+			List<StorageEngineConfig> secondaryStorages = new ArrayList<StorageEngineConfig>();
+			for (Map<String, Object> m : l)
+				secondaryStorages.add(parseStorageConfig(m));
+
+			s.setSecondaryStorages(secondaryStorages);
+		}
+
+		List<String> fieldList = (List<String>) schema.get("fields");
+		if (fieldList != null) {
+			List<FieldInfo> fields = new ArrayList<FieldInfo>();
+			for (String def : fieldList)
+				fields.add(FieldInfo.parse(def));
+
+			s.setFieldDefinitions(fields);
+		}
+
+		return s;
+	}
+
+	@SuppressWarnings("unchecked")
+	private StorageEngineConfig parseStorageConfig(Map<String, Object> m) {
+		if (m == null)
+			return null;
+
+		List<TableConfig> configs = new ArrayList<TableConfig>();
+
+		// parse configs
+		Map<String, Object> configMap = (Map<String, Object>) m.get("configs");
+		for (String key : configMap.keySet()) {
+			Object o = configMap.get(key);
+			if (o instanceof String) {
+				configs.add(new TableConfig(key, o.toString()));
+			} else {
+				TableConfig c = new TableConfig();
+				c.setKey(key);
+				for (Object s : (List<Object>) o)
+					c.getValues().add(s.toString());
+
+				configs.add(c);
+			}
+		}
+
+		StorageEngineConfig c = new StorageEngineConfig();
+		c.setType((String) m.get("type"));
+		c.setBasePath((String) m.get("base_path"));
+		c.setConfigs(configs);
+		return c;
 	}
 
 	/**
@@ -823,15 +904,21 @@ public class LogDbClient implements TrapListener, Closeable {
 	 * @return 테이블 이름과 대응되는 테이블 정보
 	 */
 	@SuppressWarnings("unchecked")
-	public TableInfo getTableInfo(String tableName) throws IOException {
+	public TableSchemaInfo getTableInfo(String tableName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
 		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.getTableInfo", params);
 
-		return getTableInfo(tableName, (Map<String, Object>) resp.get("table"), (List<Object>) resp.get("fields"));
+		Map<String, Object> schema = (Map<String, Object>) resp.get("schema");
+		if (schema != null) {
+			return parseSchema(schema);
+		} else {
+			// support backward compatibility
+			return getTableInfo(tableName, (Map<String, Object>) resp.get("table"), (List<Object>) resp.get("fields"));
+		}
 	}
 
-	private TableInfo getTableInfo(String tableName, Map<String, Object> params, List<Object> fields) {
+	private TableSchemaInfo getTableInfo(String tableName, Map<String, Object> params, List<Object> fields) {
 		Map<String, String> metadata = new HashMap<String, String>();
 		for (Entry<String, Object> pair : params.entrySet())
 			metadata.put(pair.getKey(), pair.getValue() == null ? null : pair.getValue().toString());
@@ -851,8 +938,8 @@ public class LogDbClient implements TrapListener, Closeable {
 			}
 		}
 
-		TableInfo t = new TableInfo(tableName, metadata);
-		t.getSchema().setFieldDefinitions(fieldDefs);
+		TableSchemaInfo t = new TableSchemaInfo(tableName, metadata);
+		t.setFieldDefinitions(fieldDefs);
 		return t;
 	}
 
@@ -926,29 +1013,117 @@ public class LogDbClient implements TrapListener, Closeable {
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.unsetTableMetadata", params);
 	}
 
+	@SuppressWarnings("unchecked")
+	public List<StorageEngineInfo> listStorageEngines() throws IOException {
+		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.getStorageEngines");
+		List<StorageEngineInfo> l = new ArrayList<StorageEngineInfo>();
+
+		List<Map<String, Object>> engines = (List<Map<String, Object>>) resp.get("engines");
+		for (Map<String, Object> engine : engines) {
+			String name = (String) engine.get("name");
+			List<StorageEngineConfigSpec> primaryConfigSpecs = parseStorageConfigSpecs((List<Object>) engine
+					.get("primary_config_specs"));
+			List<StorageEngineConfigSpec> replicaConfigSpecs = parseStorageConfigSpecs((List<Object>) engine
+					.get("replica_config_specs"));
+
+			l.add(new StorageEngineInfo(name, primaryConfigSpecs, replicaConfigSpecs));
+		}
+
+		return l;
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<StorageEngineConfigSpec> parseStorageConfigSpecs(List<Object> specs) {
+		if (specs == null)
+			return null;
+
+		List<StorageEngineConfigSpec> l = new ArrayList<StorageEngineConfigSpec>();
+		for (Object o : specs) {
+			Map<String, Object> m = (Map<String, Object>) o;
+			StorageEngineConfigSpec spec = new StorageEngineConfigSpec();
+			spec.setKey((String) m.get("key"));
+			spec.setType((String) m.get("type"));
+			spec.setOptional((Boolean) m.get("optional"));
+			spec.setUpdatable((Boolean) m.get("updatable"));
+			spec.setDisplayName((String) m.get("display_name"));
+			spec.setEnums((String) m.get("enums"));
+			l.add(spec);
+		}
+
+		return l;
+	}
+
 	/**
+	 * 경고: createTable(테이블이름, 타입)으로 된 새 메소드를 사용하세요. 이 메소드는 곧 폐기됩니다.새 테이블을 생성합니다.
 	 * 새 테이블을 생성합니다. 관리자 권한이 없거나 테이블 이름이 중복되는 경우 예외가 발생합니다.
 	 * 
 	 * @param tableName
 	 *            테이블 이름 (NULL 허용 안 함)
 	 */
+	@Deprecated
 	public void createTable(String tableName) throws IOException {
-		createTable(tableName, null);
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("table", tableName);
+		params.put("type", "v3p");
+		try {
+			rpc("org.araqne.logdb.msgbus.ManagementPlugin.createTable", params);
+		} catch (MessageException e) {
+			if (e.getMessage().contains("not supported engine")) {
+				params.put("type", "v2");
+				rpc("org.araqne.logdb.msgbus.ManagementPlugin.createTable", params);
+			} else
+				throw e;
+		}
 	}
 
 	/**
-	 * 새 테이블을 생성합니다. 관리자 권한이 없거나 테이블 이름이 중복되는 경우 예외가 발생합니다.
+	 * 경고: createTable(테이블이름, 타입)으로 된 새 메소드를 사용하세요. 이 메소드는 곧 폐기됩니다.새 테이블을 생성합니다.
+	 * 관리자 권한이 없거나 테이블 이름이 중복되는 경우 예외가 발생합니다.
 	 * 
 	 * @param tableName
 	 *            테이블 이름 (NULL 허용 안 함)
 	 * @param metadata
 	 *            테이블 초기 메타데이터 설정 (NULL 허용)
 	 */
+	@Deprecated
 	public void createTable(String tableName, Map<String, String> metadata) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
+		params.put("type", "v3p");
 		params.put("metadata", metadata);
-		rpc("org.araqne.logdb.msgbus.ManagementPlugin.createTable", params);
+
+		try {
+			rpc("org.araqne.logdb.msgbus.ManagementPlugin.createTable", params);
+		} catch (MessageException e) {
+			if (e.getMessage().contains("not supported engine")) {
+				params.put("type", "v2");
+				rpc("org.araqne.logdb.msgbus.ManagementPlugin.createTable", params);
+			} else
+				throw e;
+		}
+	}
+
+	/**
+	 * 새 테이블을 생성합니다. 관리자 권한이 없거나 테이블 이름이 중복되는 경우 예외가 발생합니다.
+	 * 
+	 * @param tableName
+	 *            테이블 이름
+	 * @param type
+	 *            주 스토리지 엔진 타입
+	 * @throws IOException
+	 */
+	public void createTable(String tableName, String type) throws IOException {
+		createTable(new TableSchemaInfo(tableName, type));
+	}
+
+	/**
+	 * 새 테이블을 생성합니다. 관리자 권한이 없거나 테이블 이름이 중복되는 경우 예외가 발생합니다.
+	 * 
+	 * @param schema
+	 *            테이블 스키마. 테이블 이름을 비롯하여 스토리지 엔진과 메타데이터 상세 설정이 포함됩니다.
+	 */
+	public void createTable(TableSchemaInfo schema) throws IOException {
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.createTable", schema.toMap());
 	}
 
 	/**
@@ -1748,7 +1923,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		Map<String, Object> c = (Map<String, Object>) m.get("config");
 
 		StreamQueryInfo query = new StreamQueryInfo();
-		
+
 		query.setName((String) c.get("name"));
 		query.setDescription((String) c.get("description"));
 		query.setInterval((Integer) c.get("interval"));
@@ -1756,9 +1931,9 @@ public class LogDbClient implements TrapListener, Closeable {
 		query.setOwner((String) c.get("owner"));
 		String sourceType = (String) c.get("source_type");
 		query.setSourceType(sourceType);
-		if(sourceType.equals("table")) 
+		if (sourceType.equals("table"))
 			query.setSources((List<String>) c.get("table"));
-		else if(sourceType.equals("logger")) 
+		else if (sourceType.equals("logger"))
 			query.setSources((List<String>) c.get("logger"));
 		else if (sourceType.equals("stream"))
 			query.setSources((List<String>) c.get("stream"));
@@ -2034,15 +2209,13 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	private static class QueuedRows implements Future<Integer> {
-		private String tableName;
 		private List<Row> rows;
 
 		CountDownLatch l = new CountDownLatch(1);
 		private volatile Throwable t;
 		private Flusher flusher;
 
-		public QueuedRows(String tableName, List<Row> rows, Flusher flusher) {
-			this.tableName = tableName;
+		public QueuedRows(List<Row> rows, Flusher flusher) {
 			this.rows = rows;
 			this.flusher = flusher;
 		}
@@ -2082,8 +2255,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		}
 
 		@Override
-		public Integer get(long timeout, TimeUnit unit)
-				throws InterruptedException, ExecutionException, TimeoutException {
+		public Integer get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 			flusher.signal();
 			if (l.await(timeout, unit)) {
 				if (t != null)
@@ -2125,7 +2297,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		synchronized (flushBuffers) {
 			if (!flushBuffers.containsKey(tableName))
 				flushBuffers.put(tableName, new ArrayList<QueuedRows>());
-			QueuedRows qr = new QueuedRows(tableName, rows, flusher.get());
+			QueuedRows qr = new QueuedRows(rows, flusher.get());
 			flushBuffers.get(tableName).add(qr);
 			ret = qr;
 			counter += rows.size();
@@ -2161,7 +2333,7 @@ public class LogDbClient implements TrapListener, Closeable {
 			if (!flushBuffers.containsKey(tableName))
 				flushBuffers.put(tableName, new ArrayList<QueuedRows>());
 
-			QueuedRows qr = new QueuedRows(tableName, Arrays.asList(row), flusher.get());
+			QueuedRows qr = new QueuedRows(Arrays.asList(row), flusher.get());
 			flushBuffers.get(tableName).add(qr);
 			ret = qr;
 			counter++;
@@ -2239,7 +2411,7 @@ public class LogDbClient implements TrapListener, Closeable {
 			try {
 				List<Object> l = new ArrayList<Object>(items.size());
 				for (QueuedRows rows : items) {
-					for (Row row: rows.getRows())
+					for (Row row : rows.getRows())
 						l.add(row.map());
 				}
 
@@ -2248,13 +2420,13 @@ public class LogDbClient implements TrapListener, Closeable {
 				params.put("table", entry.getKey());
 				params.put("bins", bins);
 				rpc("org.araqne.logdb.msgbus.LogQueryPlugin.insertBatch", params);
-				for (QueuedRows rows: items) {
+				for (QueuedRows rows : items) {
 					rows.setDone();
 				}
 			} catch (Throwable t) {
 				logger.debug("araqne logdb client: cannot insert data", t);
-				
-				for (QueuedRows rows: items) {
+
+				for (QueuedRows rows : items) {
 					rows.setDone(t);
 					for (FailureListener c : failureListeners) {
 						try {

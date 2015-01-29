@@ -1282,7 +1282,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 		List<Date> filtered = DateUtil.filt(days, req.getFrom(), req.getTo());
 		logger.trace("araqne logstorage: searching {} tablets of table [{}]", filtered.size(), tableName);
-		
+
 		if (req.isAsc())
 			Collections.sort(filtered);
 
@@ -1395,9 +1395,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 						return false;
 				}
 			}
-			
+
 			if (logs != null && logger.isDebugEnabled())
-				logger.debug("#buffer flush bug# logs size: {}", logs.size());
+				logger.debug("araqne logstorage: buffer flush logs size: {}", logs.size());
 
 			String logFileType = schema.getPrimaryStorage().getType();
 			LogFileServiceV2.Option options = new LogFileServiceV2.Option(schema.getPrimaryStorage(), schema.getMetadata(),

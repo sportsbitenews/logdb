@@ -327,6 +327,8 @@ public class Console {
 					createArchiveConfig(tokens);
 				else if (cmd.equals("remove_archive"))
 					removeArchiveConfig(tokens);
+				else if (cmd.equals("engines"))
+					engines();
 				else
 					w("syntax error");
 
@@ -612,13 +614,13 @@ public class Console {
 			return;
 		}
 
-		if (tokens.length < 2) {
-			w("Usage: create_table <table_name>");
+		if (tokens.length < 3) {
+			w("Usage: create_table <table_name> <engine_type>");
 			return;
 		}
 
 		try {
-			client.createTable(tokens[1]);
+			client.createTable(tokens[1], tokens[2]);
 			w("created");
 		} catch (Throwable t) {
 			w(t.getMessage());
@@ -651,7 +653,7 @@ public class Console {
 		}
 
 		try {
-			for (TableInfo table : client.listTables()) {
+			for (TableSchemaInfo table : client.listTables()) {
 				w("Table [" + table.getName() + "]");
 				for (Entry<String, String> e : table.getMetadata().entrySet())
 					w(" * " + e.getKey() + "=" + e.getValue());
@@ -675,15 +677,41 @@ public class Console {
 		try {
 			String tableName = tokens[1];
 			if (tokens.length == 2) {
-				TableInfo table = client.getTableInfo(tableName);
+				TableSchemaInfo table = client.getTableInfo(tableName);
 				w("Table [" + table.getName() + "]");
-				if (table.getMetadata().isEmpty()) {
-					w("no metadata");
-					return;
+				w("");
+
+				// old version don't return primary storage config
+				if (table.getPrimaryStorage() != null) {
+					w("Primary Storage: type " + table.getPrimaryStorage().getType());
+					w("------------------------------");
+					if (table.getPrimaryStorage().getBasePath() != null)
+						w("Base Path: " + table.getPrimaryStorage().getBasePath());
+
+					for (TableConfig config : table.getPrimaryStorage().getConfigs()) {
+						w(config.toString());
+					}
 				}
 
-				for (Entry<String, String> e : table.getMetadata().entrySet())
-					w(" * " + e.getKey() + "=" + e.getValue());
+				if (table.getReplicaStorage() != null) {
+					w("");
+					w("Replica Storage: type " + table.getReplicaStorage().getType());
+					w("------------------------------");
+					if (table.getReplicaStorage().getBasePath() != null)
+						w("Base Path: " + table.getReplicaStorage().getBasePath());
+
+					for (TableConfig config : table.getReplicaStorage().getConfigs()) {
+						w(config.toString());
+					}
+				}
+
+				if (!table.getMetadata().isEmpty()) {
+					w("");
+					w("Metadata");
+					w("----------");
+					for (Entry<String, String> e : table.getMetadata().entrySet())
+						w(" * " + e.getKey() + "=" + e.getValue());
+				}
 			} else {
 				String key = tokens[2];
 				if (tokens.length == 3) {
@@ -1487,6 +1515,21 @@ public class Console {
 		try {
 			client.removeArchiveConfig(tokens[1]);
 			w("removed");
+		} catch (Throwable t) {
+			w(t.getMessage());
+		}
+	}
+
+	private void engines() {
+		if (client == null) {
+			w("connect first please");
+			return;
+		}
+
+		try {
+			List<StorageEngineInfo> engines = client.listStorageEngines();
+			for (StorageEngineInfo e : engines)
+				w(e.toString());
 		} catch (Throwable t) {
 			w(t.getMessage());
 		}

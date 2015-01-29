@@ -309,12 +309,13 @@ public class ManagementPlugin {
 	@MsgbusMethod
 	public void listTables(Request req, Response resp) {
 		org.araqne.logdb.Session session = ensureDbSession(req);
-
+		Map<String, Object> schemas = new HashMap<String, Object>();
 		Map<String, Object> tables = new HashMap<String, Object>();
 		Map<String, Object> fields = new HashMap<String, Object>();
 
 		if (session.isAdmin()) {
 			for (TableSchema schema : tableRegistry.getTableSchemas()) {
+				schemas.put(schema.getName(), schema.marshal());
 				tables.put(schema.getName(), getTableMetadata(schema));
 				List<FieldDefinition> defs = schema.getFieldDefinitions();
 				if (defs != null)
@@ -325,17 +326,19 @@ public class ManagementPlugin {
 			for (Privilege p : privileges) {
 				if (p.getPermissions().size() > 0 && tableRegistry.exists(p.getTableName())) {
 					TableSchema schema = tableRegistry.getTableSchema(p.getTableName(), true);
-					tables.put(p.getTableName(), getTableMetadata(schema));
+					schemas.put(p.getTableName(), schema.marshal());
+					tables.put(schema.getName(), getTableMetadata(schema));
 					List<FieldDefinition> defs = schema.getFieldDefinitions();
 					if (defs != null)
-						fields.put(p.getTableName(), PrimitiveConverter.serialize(defs));
+						fields.put(schema.getName(), PrimitiveConverter.serialize(defs));
 				}
 			}
 		}
 
-		resp.put("tables", tables);
+		resp.put("schemas", schemas);
 
-		// @since 2.0.2
+		// for backward compatibility
+		resp.put("tables", tables);
 		resp.put("fields", fields);
 	}
 
@@ -345,6 +348,12 @@ public class ManagementPlugin {
 		checkTableAccess(req, tableName, Permission.READ);
 
 		TableSchema schema = tableRegistry.getTableSchema(tableName);
+		if (schema == null)
+			throw new MsgbusException("logdb", "table-not-found");
+
+		resp.put("schema", schema.marshal());
+
+		// for backward compatibility
 		List<FieldDefinition> defs = schema.getFieldDefinitions();
 		if (defs != null)
 			resp.put("fields", PrimitiveConverter.serialize(defs));
@@ -454,8 +463,6 @@ public class ManagementPlugin {
 			primaryConfigs = new HashMap<String, String>();
 
 		Map<String, String> replicaConfigs = (Map<String, String>) req.get("replica_configs");
-		if (replicaConfigs == null)
-			replicaConfigs = new HashMap<String, String>();
 
 		Map<String, String> metadata = (Map<String, String>) req.get("metadata");
 
@@ -474,18 +481,20 @@ public class ManagementPlugin {
 				throw new MsgbusException("logdb", "table-config-missing");
 		}
 
-		// TODO check replica storage initiation
-		StorageConfig replicaStorage = primaryStorage.clone();
-		for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
-			String value = replicaConfigs.get(spec.getKey());
+		StorageConfig replicaStorage = null;
+		if (replicaConfigs != null) {
+			replicaStorage = primaryStorage.clone();
+			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
+				String value = replicaConfigs.get(spec.getKey());
 
-			if (value != null) {
-				if (spec.getValidator() != null)
-					spec.getValidator().validate(spec.getKey(), Arrays.asList(value));
+				if (value != null) {
+					if (spec.getValidator() != null)
+						spec.getValidator().validate(spec.getKey(), Arrays.asList(value));
 
-				replicaStorage.getConfigs().add(new TableConfig(spec.getKey(), value));
-			} else if (!spec.isOptional())
-				throw new MsgbusException("logdb", "table-config-missing");
+					replicaStorage.getConfigs().add(new TableConfig(spec.getKey(), value));
+				} else if (!spec.isOptional())
+					throw new MsgbusException("logdb", "table-config-missing");
+			}
 		}
 
 		TableSchema schema = new TableSchema();
@@ -671,15 +680,15 @@ public class ManagementPlugin {
 
 		List<Object> engines = new ArrayList<Object>();
 
-		for (String type : lfsRegistry.getInstalledTypes()) {
+		for (String name : lfsRegistry.getInstalledTypes()) {
 			// prevent hang
-			if (type.equals("v1"))
+			if (name.equals("v1"))
 				continue;
 
-			LogFileService lfs = lfsRegistry.getLogFileService(type);
+			LogFileService lfs = lfsRegistry.getLogFileService(name);
 
 			Map<String, Object> engine = new HashMap<String, Object>();
-			engine.put("type", type);
+			engine.put("name", name);
 
 			List<Object> primarySpecs = new ArrayList<Object>();
 			for (TableConfigSpec spec : lfs.getConfigSpecs())

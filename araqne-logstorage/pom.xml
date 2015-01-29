@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logstorage</artifactId>
-	<version>2.10.0</version>
+	<version>2.10.1</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log Storage</name>
 	<build>
@@ -24,11 +24,13 @@
 						<Export-Package>
 							org.araqne.logstorage;version=${project.version},
 							org.araqne.logstorage.file;version=${project.version},
+							org.araqne.logstorage.dump;version=${project.version},
 							org.araqne.logstorage.backup;version=${project.version},
 							org.araqne.logstorage.repair;version=${project.version}
 						</Export-Package>
 						<Private-Package>
 							org.araqne.logstorage.engine,
+							org.araqne.logstorage.dump.engine,
 							org.araqne.logstorage.script
 						</Private-Package>
 						<Import-Package>
@@ -80,11 +82,6 @@
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.felix</groupId>
 			<artifactId>org.apache.felix.ipojo.annotations</artifactId>
 		</dependency>
@@ -95,7 +92,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-codec</artifactId>
-			<version>2.2.2</version>
+			<version>2.4.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
@@ -134,6 +131,11 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>14.0.1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>1.5.6</version>
 		</dependency>
 	</dependencies>
 </project>

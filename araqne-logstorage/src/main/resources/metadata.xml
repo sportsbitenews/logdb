@@ -11,7 +11,7 @@
 	<instance component="logstorage-log-file-repairer-registry" />
 	<instance component="logstorage-log-file-service-v1" />
 	<instance component="logstorage-log-file-service-v2" />
-	<instance component="logstorage-log-file-service-v3" />
+	<!-- instance component="logstorage-log-file-service-v3" / -->
 	<instance component="logstorage-log-file-service-registry" />
 	<instance component="logstorage-crypto-profile-registry" />
 	<instance component="logstorage-backup-manager" />
