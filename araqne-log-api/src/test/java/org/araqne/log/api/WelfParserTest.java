@@ -30,8 +30,8 @@ public class WelfParserTest {
 	@Test
 	public void testSample() {
 		// from https://www.trustwave.com/support/kb/article.aspx?id=10899
-		String line = "id=firewall time=\"2000-2-4 12:01:01\" fw=192.168.0.238 pri=6 rule=3 " +
-				"proto=http src=192.168.0.23 dst 6.1.0.36 rg=www.webtrends.com/index.html op=GET result 0 rcvd=1426";
+		String line = "id=firewall time=\"2000-2-4 12:01:01\" fw=192.168.0.238 pri=6 rule=3 "
+				+ "proto=http src=192.168.0.23 dst 6.1.0.36 rg=www.webtrends.com/index.html op=GET result 0 rcvd=1426";
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
@@ -90,11 +90,11 @@ public class WelfParserTest {
 
 	@Test
 	public void parseTessPacketLog() {
-		String line = "EventName=\"http sql injection keyword %252e\" SigIndex=8110 Severity=Middle " +
-				"Time=\"2013/09/24 13:30:58\" Protocol=TCP AttackerIP=192.168.13.10 AttackerPort=3887 " +
-				"VictimIP=1.2.3.4 VictimPort=80 Count=1 PktCount=1 Pattern=\"%252E\" " +
-				"Direct= SensorIP=192.168.10.1 Sensor=demo Network=NODATA " +
-				"VSensor=demo Packet=\"00 09 0F 09 00 07 00 1B ED AD ";
+		String line = "EventName=\"http sql injection keyword %252e\" SigIndex=8110 Severity=Middle "
+				+ "Time=\"2013/09/24 13:30:58\" Protocol=TCP AttackerIP=192.168.13.10 AttackerPort=3887 "
+				+ "VictimIP=1.2.3.4 VictimPort=80 Count=1 PktCount=1 Pattern=\"%252E\" "
+				+ "Direct= SensorIP=192.168.10.1 Sensor=demo Network=NODATA "
+				+ "VSensor=demo Packet=\"00 09 0F 09 00 07 00 1B ED AD ";
 
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
@@ -142,7 +142,7 @@ public class WelfParserTest {
 		assertEquals("info", m.get("Health"));
 		assertEquals("1", m.get("Connection"));
 		assertEquals("0.00  (0.00)", m.get("MaliciousTraffic"));
-		
+
 		// NOTE: space in quote should be preserved
 		assertEquals("0.00 ", m.get("EventPerSecond"));
 		assertEquals("2.35 K", m.get("TotalTrafficPps"));
@@ -154,5 +154,21 @@ public class WelfParserTest {
 		assertEquals("0.00 %", m.get("PacketLossRate"));
 		assertEquals("19 %", m.get("MEMORY_Usage"));
 		assertEquals("6.18 K", m.get("SessionPerSecond"));
+	}
+
+	@Test
+	public void testSecuiHaEventLog() {
+		String line = "start_time=\"2015-01-14 09:21:39\" end_time=\"2015-01-14 09:21:44\" duration=5 machine_name=KNIAFWIN1 fw_rule_id=93 nat_rule_id=Undefined src_ip=42.1.52.81 src_port=50310 dst_ip=172.18.1.20 dst_port=38108 protocol=TCP ingres_if=EXT tx_packets=4 rx_packets=4 tx_bytes=366 rx_bytes=1443 fragment_info=0 flag_record=3Way terminate_reason=-";
+
+		HashMap<String, Object> log = new HashMap<String, Object>();
+		log.put("line", line);
+
+		WelfParser p = new WelfParser();
+		Map<String, Object> m = p.parse(log);
+		assertEquals(19, m.size());
+
+		assertEquals("2015-01-14 09:21:39", m.get("start_time"));
+		assertEquals("3Way", m.get("flag_record"));
+		assertEquals("0", m.get("fragment_info"));
 	}
 }

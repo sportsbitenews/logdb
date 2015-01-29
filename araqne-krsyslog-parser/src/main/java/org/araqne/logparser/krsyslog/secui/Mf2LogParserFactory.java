@@ -17,6 +17,7 @@ package org.araqne.logparser.krsyslog.secui;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -24,6 +25,9 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
+import org.araqne.log.api.LoggerConfigOption;
+import org.araqne.log.api.StringConfigType;
+import org.araqne.logparser.krsyslog.secui.Mf2LogParser.Mode;
 
 /**
  * @since 1.9.2
@@ -64,7 +68,29 @@ public class Mf2LogParserFactory extends AbstractLogParserFactory {
 	}
 
 	@Override
+	public Collection<LoggerConfigOption> getConfigOptions() {
+		LoggerConfigOption mode = new StringConfigType("mode", t("Format", "로그 포맷"),
+				t("CSV or TSV", "CSV, TSV 중 하나"), true);
+		return Arrays.asList(mode);
+	}
+
+	private Map<Locale, String> t(String en, String ko) {
+		Map<Locale, String> m = new HashMap<Locale, String>();
+		m.put(Locale.ENGLISH, en);
+		m.put(Locale.KOREAN, ko);
+		return m;
+	}
+
+	@Override
 	public LogParser createParser(Map<String, String> config) {
-		return new Mf2LogParser();
+		String s = config.get("mode");
+		
+		Mode mode = Mode.CSV;
+		if (s.equalsIgnoreCase("csv"))
+			mode = Mode.CSV;
+		else if (s.equalsIgnoreCase("tsv"))
+			mode = Mode.TSV;
+
+		return new Mf2LogParser(mode);
 	}
 }

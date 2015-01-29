@@ -15,17 +15,15 @@
  */
 package org.araqne.logdb.query.command;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.araqne.log.api.Log;
@@ -34,9 +32,7 @@ import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.MultilineLogExtractor;
 import org.araqne.logdb.DriverQueryCommand;
-import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.slf4j.LoggerFactory;
 
 public class TextFile extends DriverQueryCommand {
@@ -101,6 +97,28 @@ public class TextFile extends DriverQueryCommand {
 			i++;
 		}
 
+		private void pushRows(List<Row> rows) {
+			int pushCount = 0;
+			for (int i = 0; i < rows.size(); ++i) {
+				if (limit > 0 && pushCount >= limit) {
+					throw new LimitReachedException();
+				}
+
+				Row row = rows.get(i);
+				Map<String, Object> parsed = null;
+				if (parser != null) {
+					parsed = parser.parse(row.map());
+					if (parsed == null)
+						return;
+				}
+
+				if (i >= offset) {
+					pushPipe(new Row(parsed != null ? parsed : row.map()));
+					pushCount++;
+				}
+			}
+		}
+
 		private Row buildRow(Log log) {
 			Row row = new Row();
 			row.put("_time", log.getDate());
@@ -111,13 +129,18 @@ public class TextFile extends DriverQueryCommand {
 
 		@Override
 		public void onLogBatch(Logger logger, Log[] logs) {
+			if (logs.length <= 0)
+				return;
+
+			List<Row> rows = new ArrayList<Row>(logs.length);
 			for (Log log : logs) {
 				if (log == null)
 					continue;
 
-				Row row = buildRow(log);
-				pushRow(row);
+				rows.add(buildRow(log));
 			}
+
+			pushRows(rows);
 		}
 	}
 
@@ -141,7 +164,8 @@ public class TextFile extends DriverQueryCommand {
 			extractor.setCharset(Charset.forName(charset).name());
 			extractor.extract(is, new AtomicLong());
 
-			// br = new BufferedReader(new InputStreamReader(new BufferedInputStream(is), utf8));
+			// br = new BufferedReader(new InputStreamReader(new
+			// BufferedInputStream(is), utf8));
 		} catch (LimitReachedException e) {
 			// ignore;
 		} catch (Throwable t) {
