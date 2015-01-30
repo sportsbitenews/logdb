@@ -1020,7 +1020,7 @@ public class LogDbClient implements TrapListener, Closeable {
 
 		List<Map<String, Object>> engines = (List<Map<String, Object>>) resp.get("engines");
 		for (Map<String, Object> engine : engines) {
-			String name = (String) engine.get("name");
+			String name = (String) engine.get("type");
 			List<StorageEngineConfigSpec> primaryConfigSpecs = parseStorageConfigSpecs((List<Object>) engine
 					.get("primary_config_specs"));
 			List<StorageEngineConfigSpec> replicaConfigSpecs = parseStorageConfigSpecs((List<Object>) engine
