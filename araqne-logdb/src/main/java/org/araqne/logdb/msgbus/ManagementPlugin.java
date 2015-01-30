@@ -688,7 +688,7 @@ public class ManagementPlugin {
 			LogFileService lfs = lfsRegistry.getLogFileService(name);
 
 			Map<String, Object> engine = new HashMap<String, Object>();
-			engine.put("name", name);
+			engine.put("type", name);
 
 			List<Object> primarySpecs = new ArrayList<Object>();
 			for (TableConfigSpec spec : lfs.getConfigSpecs())
