@@ -144,6 +144,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("groups", Groups.class);
 			define("signature", Signature.class);
 			define("mod", Mod.class);
+			define("nvl", Nvl.class);
 		}
 
 		private void define(String name, Class<?> clazz) {
@@ -162,8 +163,9 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 		@Override
 		public Expression newFunction(QueryContext ctx, String name, List<Expression> exprs) {
 			Constructor<?> c = constructors.get(name);
-			if (c == null){
-				//		throw new QueryParseException("unsupported-function", -1, name);
+			if (c == null) {
+				// throw new QueryParseException("unsupported-function", -1,
+				// name);
 				Map<String, String> params = new HashMap<String, String>();
 				params.put("function", name);
 				throw new QueryParseException("90900", -1, -1, params);
@@ -175,21 +177,25 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 					throw (QueryParseException) e.getTargetException();
 				else if (e.getTargetException() instanceof QueryParseException)
 					throw (QueryParseException) e.getTargetException();
-				else{
-					//	throw new QueryParseException("cannot create function instance", -1, e.getTargetException().toString());
+				else {
+					// throw new
+					// QueryParseException("cannot create function instance",
+					// -1, e.getTargetException().toString());
 					Map<String, String> params = new HashMap<String, String>();
 					params.put("function", name);
-					params.put("msg", e.getTargetException().toString() );
+					params.put("msg", e.getTargetException().toString());
 					throw new QueryParseException("90901", -1, -1, params);
 				}
-			}catch(QueryParseException e){
+			} catch (QueryParseException e) {
 				throw e;
-			}catch (Throwable t) {
+			} catch (Throwable t) {
 				Map<String, String> params = new HashMap<String, String>();
 				params.put("function", name);
 				params.put("msg", t.toString());
-				//throw new QueryParseException("cannot create function instance", -1, t.toString());
-				throw new QueryParseException("90902", -1, -1,  params);
+				// throw new
+				// QueryParseException("cannot create function instance", -1,
+				// t.toString());
+				throw new QueryParseException("90902", -1, -1, params);
 			}
 		}
 	}
@@ -197,8 +203,9 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 	@Override
 	public Expression newFunction(QueryContext ctx, String functionName, List<Expression> exprs) {
 		FunctionFactory ff = factories.get(functionName);
-		if (ff == null){
-		//	throw new QueryParseException("unsupported-function", -1, functionName);
+		if (ff == null) {
+			// throw new QueryParseException("unsupported-function", -1,
+			// functionName);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("function", functionName);
 			throw new QueryParseException("90903", -1, -1, params);
