@@ -45,7 +45,9 @@ public class TextFile extends DriverQueryCommand {
 	private String dateFormat;
 	private String datePattern;
 	private String charset;
-
+	private int currentOffset;
+	private int pushCount;
+	
 	public TextFile(String filePath, LogParser parser, int offset, int limit, String startrex, String dateFormat,
 			String datePattern, String charset) {
 		this.filePath = filePath;
@@ -56,6 +58,8 @@ public class TextFile extends DriverQueryCommand {
 		this.dateFormat = dateFormat;
 		this.datePattern = datePattern;
 		this.charset = charset;
+		currentOffset = 0;
+		pushCount = 0;
 	}
 
 	@Override
@@ -77,9 +81,7 @@ public class TextFile extends DriverQueryCommand {
 		}
 
 		private void pushRow(Row row) {
-			int i = 0;
-			int count = 0;
-			if (limit > 0 && count >= limit) {
+			if (limit > 0 && pushCount >= limit) {
 				throw new LimitReachedException();
 			}
 
@@ -90,21 +92,19 @@ public class TextFile extends DriverQueryCommand {
 					return;
 			}
 
-			if (i >= offset) {
+			if (currentOffset >= offset) {
 				pushPipe(new Row(parsed != null ? parsed : row.map()));
-				count++;
+				pushCount++;
 			}
-			i++;
+			currentOffset++;
 		}
 
 		private void pushRows(List<Row> rows) {
-			int pushCount = 0;
-			for (int i = 0; i < rows.size(); ++i) {
+			for(Row row : rows) {
 				if (limit > 0 && pushCount >= limit) {
 					throw new LimitReachedException();
 				}
 
-				Row row = rows.get(i);
 				Map<String, Object> parsed = null;
 				if (parser != null) {
 					parsed = parser.parse(row.map());
@@ -112,10 +112,11 @@ public class TextFile extends DriverQueryCommand {
 						return;
 				}
 
-				if (i >= offset) {
+				if (currentOffset >= offset) {
 					pushPipe(new Row(parsed != null ? parsed : row.map()));
 					pushCount++;
 				}
+				currentOffset++;
 			}
 		}
 
