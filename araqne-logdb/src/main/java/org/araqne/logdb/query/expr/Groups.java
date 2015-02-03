@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.expr;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,10 +31,9 @@ public class Groups extends FunctionExpression {
 
 	public Groups(QueryContext ctx, List<Expression> exprs) {
 		super("groups", exprs, 2);
-		
-		//if (exprs.size() < 2)
-		//	throw new QueryParseException("missing-groups-args", -1);
-		
+
+		// if (exprs.size() < 2)
+		// throw new QueryParseException("missing-groups-args", -1);
 
 		this.target = exprs.get(0);
 		this.matcher = Pattern.compile(exprs.get(1).eval(null).toString()).matcher("");
@@ -46,15 +46,31 @@ public class Groups extends FunctionExpression {
 			return null;
 
 		matcher.reset(o.toString());
-		if (!matcher.find())
-			return null;
+		ArrayList<String> groups = null;
+		while (matcher.find()) {
+			int count = matcher.groupCount();
+			if (groups == null)
+				groups = new ArrayList<String>(count);
+			for (int i = 1; i <= count; i++)
+				groups.add(matcher.group(i));
 
-		int count = matcher.groupCount();
-		ArrayList<String> groups = new ArrayList<String>(count);
-		for (int i = 1; i <= count; i++)
-			groups.add(matcher.group(i));
-
+		}
 		return groups;
+	}
+
+	public static void main(String[] args) {
+		String a =
+				"sda               0.01     0.96    0.23    8.32     4.09    70.47     8.72     0.00    0.41   0.23   0.20";
+		String p = "\\s+([0-9\\.]+)";
+		Groups g = new Groups(null, Arrays.<Expression> asList(new EvalField("line"), new StringConstant(p)));
+		Row r = new Row();
+		r.put("line", a);
+		ArrayList<String> result = (ArrayList<String>) g.eval(r);
+		if (result != null)
+			for (String s : result)
+				System.out.println(s);
+		else
+			System.out.println("not found");
 	}
 
 }
