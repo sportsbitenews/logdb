@@ -94,4 +94,9 @@ public class CopyOnWriteMap implements Map<String, Object> {
 	public Set<java.util.Map.Entry<String, Object>> entrySet() {
 		return m.entrySet();
 	}
+
+	@Override
+	public String toString() {
+		return m.toString();
+	}
 }
