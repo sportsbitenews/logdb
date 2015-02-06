@@ -165,52 +165,53 @@ public class Join extends QueryCommand {
 		public void run() {
 			logger.debug("araqne logdb: join subquery end, main query [{}] sub query [{}]", query.getId(), subQuery.getId());
 
+			QueryResultSet rs = null;
 			try {
 				subQuery.postRun();
 
-				QueryResultSet rs = subQuery.getResultSet();
+				rs = subQuery.getResultSet();
 
-				logger.debug("araqne logdb: join fetch subquery result of query [{}:{}]", query.getId(), query.getQueryString());
+				logger.debug(
+						"araqne logdb: join fetch subquery result of query [{}:{}]", query.getId(),
+						query.getQueryString());
 
 				if (rs.size() <= HASH_JOIN_THRESHOLD)
 					buildHashJoinTable(rs);
 				else
 					sortMergeJoiner.setS(rs);
 
-				rs.close();
-			} catch (IOException e) {
+			} catch (Throwable e) {
 				logger.error("araqne logdb: cannot get subquery result of query " + query.getId(), e);
+			} finally {
+				if (rs != null) {
+					rs.close();
+				}
 			}
-
 		}
 
 		private void buildHashJoinTable(QueryResultSet rs) {
-			try {
-				hashJoinMap = new HashMap<JoinKeys, List<Object>>(HASH_JOIN_THRESHOLD);
+			hashJoinMap = new HashMap<JoinKeys, List<Object>>(HASH_JOIN_THRESHOLD);
 
-				while (rs.hasNext()) {
-					Map<String, Object> sm = rs.next();
+			while (rs.hasNext()) {
+				Map<String, Object> sm = rs.next();
 
-					Object[] keys = new Object[joinKeyCount];
-					for (int i = 0; i < joinKeyCount; i++) {
-						Object joinValue = sm.get(sortFields[i].getName());
-						if (joinValue instanceof Integer || joinValue instanceof Short) {
-							joinValue = ((Number) joinValue).longValue();
-						}
-						keys[i] = joinValue;
+				Object[] keys = new Object[joinKeyCount];
+				for (int i = 0; i < joinKeyCount; i++) {
+					Object joinValue = sm.get(sortFields[i].getName());
+					if (joinValue instanceof Integer || joinValue instanceof Short) {
+						joinValue = ((Number) joinValue).longValue();
 					}
-
-					JoinKeys joinKeys = new JoinKeys(keys);
-					List<Object> l = hashJoinMap.get(joinKeys);
-					if (l == null) {
-						l = new ArrayList<Object>(2);
-						hashJoinMap.put(joinKeys, l);
-					}
-
-					l.add(sm);
+					keys[i] = joinValue;
 				}
-			} finally {
-				rs.close();
+
+				JoinKeys joinKeys = new JoinKeys(keys);
+				List<Object> l = hashJoinMap.get(joinKeys);
+				if (l == null) {
+					l = new ArrayList<Object>(2);
+					hashJoinMap.put(joinKeys, l);
+				}
+
+				l.add(sm);
 			}
 		}
 	}
