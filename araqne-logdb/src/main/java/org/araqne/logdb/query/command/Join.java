@@ -26,7 +26,6 @@ public class Join extends QueryCommand {
 
 	private final Logger logger = LoggerFactory.getLogger(Join.class);
 	private final JoinType joinType;
-	private QueryResultSet subQueryResultSet;
 
 	// for hash join
 	private HashMap<JoinKeys, List<Object>> hashJoinMap;
@@ -92,15 +91,6 @@ public class Join extends QueryCommand {
 			subQuery.stop(reason);
 		} catch (Throwable t) {
 			logger.error("araqne logdb: cannot stop subquery [" + subQuery.getQueryString() + "]", t);
-		}
-
-		try {
-			if (subQueryResultSet != null) {
-				subQueryResultSet.close();
-				subQueryResultSet = null;
-			}
-		} catch (Throwable t) {
-			logger.error("araqne logdb: cannot close result set of subquery [" + subQuery.getQueryString() + "]", t);
 		} finally {
 			subQuery.purge();
 		}
@@ -187,6 +177,7 @@ public class Join extends QueryCommand {
 				else
 					sortMergeJoiner.setS(rs);
 
+				rs.close();
 			} catch (IOException e) {
 				logger.error("araqne logdb: cannot get subquery result of query " + query.getId(), e);
 			}
