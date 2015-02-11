@@ -34,9 +34,13 @@ if (rowBatch.selectedInUse) {
 }</pre>
 */
 public class RowBatch {
+	/** A flag whether selected is used or not. default value is false. check RowBatch example code. */
 	public boolean selectedInUse;
+	/** An array holding seletected row index. check RowBatch example code. */
 	public int[] selected;
+	/** valid row count */
 	public int size;
+	/** An array holding rows */
 	public Row[] rows;
 
 	/**
