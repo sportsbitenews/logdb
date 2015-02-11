@@ -30,6 +30,7 @@ public class CsvParser {
 		boolean containEscape = false;
 		boolean openQuote = false;
 		boolean openChar = false;
+		boolean checkEnd = false;
 		int startIndex = 0;
 		int endIndex = 0;
 		int length = line.length();
@@ -54,8 +55,10 @@ public class CsvParser {
 			} else if (c == qoute) {
 				if (!openQuote)
 					startIndex = i + 1;
-				else
+				else {
 					endIndex = i;
+					checkEnd = true;
+				}
 
 				openQuote = !openQuote;
 			} else if (c == delimiter) {
@@ -68,13 +71,14 @@ public class CsvParser {
 				startIndex = i + 1;
 				endIndex = i + 1;
 				openChar = false;
+				checkEnd = false;
 			} else {
 				if (!openQuote && !openChar) {
 					startIndex = i;
 					openChar = true;
 				}
 
-				if (openChar)
+				if (!checkEnd && openChar)
 					endIndex = i + 1;
 			}
 		}
