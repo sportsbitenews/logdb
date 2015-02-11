@@ -783,6 +783,7 @@ public class ManagementPlugin {
 		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
 		ConfigCollection col = db.ensureCollection("global_settings");
 		Config c = col.findOne(null);
+		Map<String, Object> reqParams = req.getParams();
 
 		Map<String, Object> m = new HashMap<String, Object>();
 		if (c != null)
@@ -792,8 +793,14 @@ public class ManagementPlugin {
 		if (minFreeDiskSpaceType != null) {
 			if (!minFreeDiskSpaceType.equals("Percentage") && !minFreeDiskSpaceType.equals("Megabyte"))
 				throw new MsgbusException("logdb", "invalid-unit");
-			else
+			else {
 				m.put("min_free_disk_space_type", minFreeDiskSpaceType);
+				if (minFreeDiskSpaceType.equals("Percentage")) {
+					reqParams.put("disk_space_unit", "%");
+				} else {
+					reqParams.put("disk_space_unit", "MB");
+				}
+			}
 		}
 
 		String minFreeDiskSpaceValue = (String) req.get("min_free_disk_space_value");
@@ -810,8 +817,16 @@ public class ManagementPlugin {
 		if (diskLackAction != null) {
 			if ((!diskLackAction.equals("StopLogging") && !diskLackAction.equals("RemoveOldLog")))
 				throw new MsgbusException("logdb", "invalid-disk-lack-action");
-			else
+			else {
 				m.put("disk_lack_action", diskLackAction);
+				if (diskLackAction.equals("StopLogging")) {
+					reqParams.put("lack_action_ko", "수집을 중단하도록 설정합니다.");
+					reqParams.put("lack_action_en", "stop loggers.");
+				} else {
+					reqParams.put("lack_action_ko", "과거 데이터를 자동 삭제하도록 설정합니다.");
+					reqParams.put("lack_action_en", "automatically delete existing data.");
+				}
+			}
 		}
 
 		if (c != null) {
