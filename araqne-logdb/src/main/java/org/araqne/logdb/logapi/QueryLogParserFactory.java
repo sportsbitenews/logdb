@@ -79,8 +79,8 @@ public class QueryLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption query = new StringConfigType("query", t("Query string", "쿼리문자열", "查询字符串"), t("Query string for log parsing",
-				"로그 파싱에 사용할 쿼리문자열", "用于日志解析的查询字符串"), true);
+		LoggerConfigOption query = new StringConfigType("query", t("Query string", "쿼리", "查询字符串"), t("Query string for log parsing",
+				"로그 파싱에 사용할 쿼리", "用于日志解析的查询字符串"), true);
 		return Arrays.asList(query);
 	}
 

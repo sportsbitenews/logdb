@@ -84,9 +84,9 @@ public class QueryLogTransformerFactory extends AbstractLogTransformerFactory {
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption querystring = new StringConfigType("querystring", t("Query string", "쿼리 문자열", "查询语句"), t(
+		LoggerConfigOption querystring = new StringConfigType("querystring", t("Query string", "쿼리", "查询语句"), t(
 				"Configure query string to evaluating and transforming input log data",
-				"입력 로그를 변환하여 출력하는데 사용할 쿼리 문자열을 설정합니다. 그룹 함수 사용은 허용되지 않습니다.", "基于查询语句变换输入数据并输出(不支持组函数)。"), true);
+				"입력 로그를 변환하여 출력하는데 사용할 쿼리를 설정합니다. 그룹 함수 사용은 허용되지 않습니다.", "基于查询语句变换输入数据并输出(不支持组函数)。"), true);
 
 		return Arrays.asList(querystring);
 	}
