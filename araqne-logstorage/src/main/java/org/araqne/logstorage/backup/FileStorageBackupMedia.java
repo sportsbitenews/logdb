@@ -207,7 +207,7 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 			os = new FileOutputStream(dstTmp);
 			FileChannel srcChannel = is.getChannel();
 			FileChannel dstChannel = os.getChannel();
-			srcChannel.transferTo(0, req.getMediaFile().getLength(), dstChannel);
+			ensureTransferTo(srcChannel, dstChannel, req.getMediaFile().getLength());
 
 		} finally {
 			close(is);
@@ -217,6 +217,13 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 		if (!dstTmp.renameTo(dst.getFile())) {
 			dstTmp.delete();
 			throw new IOException("rename failed, " + dstTmp.getAbsolutePath());
+		}
+	}
+
+	private void ensureTransferTo(FileChannel srcChannel, FileChannel dstChannel, long length) throws IOException {
+		long copied = 0;
+		while (copied < length) {
+			copied += srcChannel.transferTo(copied, length - copied, dstChannel);
 		}
 	}
 
@@ -243,7 +250,7 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 				os = new FileOutputStream(dstTmp);
 				FileChannel srcChannel = is.getChannel();
 				FileChannel dstChannel = os.getChannel();
-				srcChannel.transferTo(0, req.getStorageFile().getLength(), dstChannel);
+				ensureTransferTo(srcChannel, dstChannel, req.getStorageFile().getLength());
 			} finally {
 				close(is);
 				close(os);
