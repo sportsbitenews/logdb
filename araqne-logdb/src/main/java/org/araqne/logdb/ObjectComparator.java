@@ -37,20 +37,20 @@ public class ObjectComparator implements Comparator<Object> {
 		if (cmpResult == 0) {
 			if (o1TypeGroup == typeGroup.NULL)
 				return 0;
-			else if (o1TypeGroup == typeGroup.BOOLEAN)
-				return compareBool(o1, o2);
 			else if (o1TypeGroup == typeGroup.NUM)
 				return compareNum(o1, o2);
-			else if (o1TypeGroup == typeGroup.DATE)
-				return compareDate(o1, o2);
-			else if (o1TypeGroup == typeGroup.IPV4)
-				return compareIpv4(o1, o2);
-			else if (o1TypeGroup == typeGroup.IPV6)
-				return compareIpv6(o1, o2);
 			else if (o1TypeGroup == typeGroup.STRING)
 				return compareString(o1, o2);
 			else if (o1TypeGroup == typeGroup.ARRAY)
 				return compareArray(o1, o2);
+			else if (o1TypeGroup == typeGroup.IPV4)
+				return compareIpv4(o1, o2);
+			else if (o1TypeGroup == typeGroup.BOOLEAN)
+				return compareBool(o1, o2);
+			else if (o1TypeGroup == typeGroup.DATE)
+				return compareDate(o1, o2);
+			else if (o1TypeGroup == typeGroup.IPV6)
+				return compareIpv6(o1, o2);
 			else if (o1TypeGroup == typeGroup.MAP)
 				return compareMap(o1, o2);
 			else if (o1TypeGroup == typeGroup.BLOB)
@@ -65,20 +65,20 @@ public class ObjectComparator implements Comparator<Object> {
 	private typeGroup getTypeGroup(Object o1) {
 		if (o1 == null)
 			return typeGroup.NULL;
-		else if (o1 instanceof Boolean)
-			return typeGroup.BOOLEAN;
 		else if (o1 instanceof Long || o1 instanceof Integer || o1 instanceof Short || o1 instanceof Double || o1 instanceof Float)
 			return typeGroup.NUM;
-		else if (o1 instanceof Date)
-			return typeGroup.DATE;
-		else if (o1 instanceof Inet4Address)
-			return typeGroup.IPV4;
-		else if (o1 instanceof Inet6Address)
-			return typeGroup.IPV6;
 		else if (o1 instanceof String)
 			return typeGroup.STRING;
 		else if (o1 instanceof Object[])
 			return typeGroup.ARRAY;
+		else if (o1 instanceof Inet4Address)
+			return typeGroup.IPV4;
+		else if (o1 instanceof Boolean)
+			return typeGroup.BOOLEAN;
+		else if (o1 instanceof Date)
+			return typeGroup.DATE;
+		else if (o1 instanceof Inet6Address)
+			return typeGroup.IPV6;
 		else if (o1 instanceof Map)
 			return typeGroup.MAP;
 		else if (o1 instanceof byte[])
