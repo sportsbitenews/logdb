@@ -15,15 +15,18 @@
  */
 package org.araqne.logdb.query.command;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
 
-public class Rex extends QueryCommand implements ThreadSafe {
+public class Rex extends QueryCommand implements ThreadSafe, FieldOrdering {
 
 	private final String field;
 	private final Pattern p;
@@ -50,6 +53,14 @@ public class Rex extends QueryCommand implements ThreadSafe {
 	@Override
 	public String getName() {
 		return "rex";
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		List<String> l = new ArrayList<String>();
+		for (String name : names)
+			l.add(name);
+		return l;
 	}
 
 	public String getInputField() {
@@ -110,8 +121,8 @@ public class Rex extends QueryCommand implements ThreadSafe {
 				}
 			}
 		} else {
-		    for (int i = 0; i < rowBatch.size; i++) {
-		        Row row = rowBatch.rows[i];
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
 
 				Object o = row.get(field);
 				if (o == null)

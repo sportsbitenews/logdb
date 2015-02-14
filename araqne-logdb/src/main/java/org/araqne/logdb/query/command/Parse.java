@@ -17,11 +17,13 @@ package org.araqne.logdb.query.command;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
@@ -34,7 +36,7 @@ import org.slf4j.LoggerFactory;
  * @author xeraph
  * 
  */
-public class Parse extends QueryCommand implements ThreadSafe {
+public class Parse extends QueryCommand implements ThreadSafe, FieldOrdering {
 	private final Logger logger = LoggerFactory.getLogger(Parse.class);
 	private final int parserVersion;
 	private final String parserName;
@@ -51,6 +53,13 @@ public class Parse extends QueryCommand implements ThreadSafe {
 	@Override
 	public String getName() {
 		return "parse";
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		if (parser instanceof FieldOrdering)
+			return ((FieldOrdering) parser).getFieldOrder();
+		return null;
 	}
 
 	@Override
@@ -179,7 +188,7 @@ public class Parse extends QueryCommand implements ThreadSafe {
 	@Override
 	public String toString() {
 		if (parser instanceof ParseWithAnchor) {
-			return ((ParseWithAnchor)parser).toQueryCommandString();
+			return ((ParseWithAnchor) parser).toQueryCommandString();
 		} else {
 			return "parse " + parserName;
 		}

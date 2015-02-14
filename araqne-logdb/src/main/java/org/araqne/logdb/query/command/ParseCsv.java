@@ -4,11 +4,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.CsvParser;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.slf4j.LoggerFactory;
 
-public class ParseCsv extends QueryCommand {
+public class ParseCsv extends QueryCommand implements FieldOrdering {
 	private final org.slf4j.Logger slog = LoggerFactory.getLogger(ParseCsv.class);
 	private String field;
 	private boolean overlay;
@@ -27,6 +28,11 @@ public class ParseCsv extends QueryCommand {
 	@Override
 	public String getName() {
 		return "parsecsv";
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return fieldNames;
 	}
 
 	@Override

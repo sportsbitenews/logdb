@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.DefaultQuery;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.Procedure;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
@@ -35,7 +36,7 @@ import org.araqne.logdb.StreamResultFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Proc extends QueryCommand {
+public class Proc extends QueryCommand implements FieldOrdering {
 	private final Logger slog = LoggerFactory.getLogger(Proc.class);
 
 	private Procedure procedure;
@@ -75,6 +76,7 @@ public class Proc extends QueryCommand {
 		return "proc";
 	}
 
+	@Override
 	public List<String> getFieldOrder() {
 		return procedure.getFieldOrder();
 	}

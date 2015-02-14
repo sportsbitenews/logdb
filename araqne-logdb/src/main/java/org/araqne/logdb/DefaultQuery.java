@@ -24,8 +24,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.QueryCommand.Status;
-import org.araqne.logdb.query.command.Fields;
-import org.araqne.logdb.query.command.Proc;
 import org.araqne.logdb.query.engine.QueryTaskScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,16 +59,10 @@ public class DefaultQuery implements Query {
 		this.scheduler = new QueryTaskScheduler(this, commands);
 
 		for (QueryCommand cmd : commands) {
-			if (cmd instanceof Proc) {
-				Proc proc = (Proc) cmd;
-				if (proc.getFieldOrder() != null)
-					fieldOrder = proc.getFieldOrder();
-			}
-
-			if (cmd instanceof Fields) {
-				Fields fields = (Fields) cmd;
-				if (fields.isSelector())
-					fieldOrder = fields.getFields();
+			if (cmd instanceof FieldOrdering) {
+				FieldOrdering f = (FieldOrdering) cmd;
+				if (f.getFieldOrder() != null)
+					fieldOrder = f.getFieldOrder();
 			}
 
 			cmd.setQuery(this);
