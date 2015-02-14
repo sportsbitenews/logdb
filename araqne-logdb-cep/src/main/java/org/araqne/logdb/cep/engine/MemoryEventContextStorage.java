@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -204,6 +205,8 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	private class RealClockTask extends AbstractTickTimer {
+		private AtomicBoolean running = new AtomicBoolean();
+
 		@Override
 		public int getInterval() {
 			return 100;
@@ -211,7 +214,13 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 		@Override
 		public void onTick() {
-			realClock.setTime(System.currentTimeMillis(), false);
+			if (running.compareAndSet(false, true)) {
+				try {
+					realClock.setTime(System.currentTimeMillis(), false);
+				} finally {
+					running.set(false);
+				}
+			}
 		}
 	}
 
