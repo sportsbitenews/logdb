@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
@@ -30,9 +31,12 @@ import org.araqne.log.api.Log;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.Logger;
+import org.araqne.log.api.LoggerStatus;
 import org.araqne.log.api.MultilineLogExtractor;
 import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.impl.DummyLogger;
 import org.slf4j.LoggerFactory;
 
 public class TextFile extends DriverQueryCommand {
@@ -47,7 +51,9 @@ public class TextFile extends DriverQueryCommand {
 	private String charset;
 	private int currentOffset;
 	private int pushCount;
-	
+	private DummyLogger dummyLogger = new DummyLogger();
+	private Semaphore closeSignal;
+
 	public TextFile(String filePath, LogParser parser, int offset, int limit, String startrex, String dateFormat,
 			String datePattern, String charset) {
 		this.filePath = filePath;
@@ -63,11 +69,23 @@ public class TextFile extends DriverQueryCommand {
 	}
 
 	@Override
+	public void onClose(QueryStopReason reason) {
+		dummyLogger.setStatus(LoggerStatus.Stopped);
+		if (closeSignal != null) {
+			try {
+				closeSignal.acquire();
+			} catch (InterruptedException e) {
+			}
+		}
+	}
+
+	@Override
 	public String getName() {
 		return "textfile";
 	}
 
 	private static class LimitReachedException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
 	}
 
 	private class RowPipe implements LogPipe {
@@ -100,7 +118,7 @@ public class TextFile extends DriverQueryCommand {
 		}
 
 		private void pushRows(List<Row> rows) {
-			for(Row row : rows) {
+			for (Row row : rows) {
 				if (limit > 0 && pushCount >= limit) {
 					throw new LimitReachedException();
 				}
@@ -147,6 +165,7 @@ public class TextFile extends DriverQueryCommand {
 
 	@Override
 	public void run() {
+		closeSignal = new Semaphore(0);
 		status = Status.Running;
 
 		FileInputStream is = null;
@@ -155,7 +174,7 @@ public class TextFile extends DriverQueryCommand {
 			RowPipe pipe = new RowPipe();
 			is = new FileInputStream(new File(filePath));
 
-			MultilineLogExtractor extractor = new MultilineLogExtractor(null, pipe);
+			MultilineLogExtractor extractor = new MultilineLogExtractor(dummyLogger, pipe);
 			if (startRex != null)
 				extractor.setBeginMatcher(Pattern.compile(startRex).matcher(""));
 			if (datePattern != null)
@@ -164,9 +183,6 @@ public class TextFile extends DriverQueryCommand {
 				extractor.setDateFormat(new SimpleDateFormat(dateFormat));
 			extractor.setCharset(Charset.forName(charset).name());
 			extractor.extract(is, new AtomicLong());
-
-			// br = new BufferedReader(new InputStreamReader(new
-			// BufferedInputStream(is), utf8));
 		} catch (LimitReachedException e) {
 			// ignore;
 		} catch (Throwable t) {
@@ -174,6 +190,7 @@ public class TextFile extends DriverQueryCommand {
 		} finally {
 			IoHelper.close(br);
 			IoHelper.close(is);
+			closeSignal.release();
 		}
 	}
 
@@ -206,4 +223,5 @@ public class TextFile extends DriverQueryCommand {
 	private String quote(String s) {
 		return "\"" + s.replaceAll("\"", "\\\"") + "\"";
 	}
+
 }
