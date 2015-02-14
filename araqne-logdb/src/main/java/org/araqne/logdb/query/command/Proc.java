@@ -38,16 +38,18 @@ import org.slf4j.LoggerFactory;
 public class Proc extends QueryCommand {
 	private final Logger slog = LoggerFactory.getLogger(Proc.class);
 
+	private Procedure procedure;
 	private ProcPipe procPipe = new ProcPipe();
 	private ProcTask procTask = new ProcTask();
 	private Query subQuery;
 	private String commandString;
-	
+
 	private AccountService accountService;
 	private Session session;
 
 	public Proc(Procedure procedure, Map<String, Object> procParams, String commandString, QueryParserService parserService,
 			AccountService accountService) {
+		this.procedure = procedure;
 		this.accountService = accountService;
 		this.commandString = commandString;
 
@@ -71,6 +73,10 @@ public class Proc extends QueryCommand {
 	@Override
 	public String getName() {
 		return "proc";
+	}
+
+	public List<String> getFieldOrder() {
+		return procedure.getFieldOrder();
 	}
 
 	@Override

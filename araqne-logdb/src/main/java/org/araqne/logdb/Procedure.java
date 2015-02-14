@@ -25,6 +25,9 @@ public class Procedure implements Marshalable {
 	private String owner;
 
 	@CollectionTypeHint(String.class)
+	private List<String> fieldOrder;
+
+	@CollectionTypeHint(String.class)
 	private List<String> grants = new ArrayList<String>();
 
 	@CollectionTypeHint(ProcedureParameter.class)
@@ -68,6 +71,14 @@ public class Procedure implements Marshalable {
 
 	public void setOwner(String owner) {
 		this.owner = owner;
+	}
+
+	public List<String> getFieldOrder() {
+		return fieldOrder;
+	}
+
+	public void setFieldOrder(List<String> fieldOrder) {
+		this.fieldOrder = fieldOrder;
 	}
 
 	public List<String> getGrants() {

@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.QueryCommand.Status;
+import org.araqne.logdb.query.command.Fields;
+import org.araqne.logdb.query.command.Proc;
 import org.araqne.logdb.query.engine.QueryTaskScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,14 +52,29 @@ public class DefaultQuery implements Query {
 
 	private AtomicLong stamp = new AtomicLong(1);
 
+	private List<String> fieldOrder;
+
 	public DefaultQuery(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory) {
 		this.context = context;
 		this.queryString = queryString;
 		this.commands = commands;
 		this.scheduler = new QueryTaskScheduler(this, commands);
 
-		for (QueryCommand cmd : commands)
+		for (QueryCommand cmd : commands) {
+			if (cmd instanceof Proc) {
+				Proc proc = (Proc) cmd;
+				if (proc.getFieldOrder() != null)
+					fieldOrder = proc.getFieldOrder();
+			}
+
+			if (cmd instanceof Fields) {
+				Fields fields = (Fields) cmd;
+				if (fields.isSelector())
+					fieldOrder = fields.getFields();
+			}
+
 			cmd.setQuery(this);
+		}
 
 		if (resultFactory != null)
 			openResult(resultFactory);
@@ -325,6 +342,11 @@ public class DefaultQuery implements Query {
 	@Override
 	public long getNextStamp() {
 		return stamp.incrementAndGet();
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return fieldOrder;
 	}
 
 	@Override

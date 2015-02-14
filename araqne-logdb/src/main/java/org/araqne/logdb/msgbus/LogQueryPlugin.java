@@ -169,6 +169,10 @@ public class LogQueryPlugin {
 
 			Query query = service.createQuery(dbSession, queryString);
 			resp.put("id", query.getId());
+
+			if (query.getFieldOrder() != null)
+				resp.put("field_order", query.getFieldOrder());
+
 		} catch (QueryParseException e) {
 			Boolean useErrorReturn = req.getBoolean("use_error_return");
 			if (e.getParams() == null || (useErrorReturn != null && useErrorReturn)) {
@@ -302,9 +306,16 @@ public class LogQueryPlugin {
 		String compression = req.getString("compression");
 		boolean useGzip = compression != null && compression.equals("gzip");
 
+		Query query = service.getQuery(id);
+		if (query == null)
+			return;
+
 		Map<String, Object> m = QueryHelper.getResultData(service, id, offset, limit);
 		if (m == null)
 			return;
+
+		if (query.getFieldOrder() != null)
+			resp.put("field_order", query.getFieldOrder());
 
 		FastEncodingRule enc = new FastEncodingRule();
 		if (binaryEncode != null && binaryEncode) {
