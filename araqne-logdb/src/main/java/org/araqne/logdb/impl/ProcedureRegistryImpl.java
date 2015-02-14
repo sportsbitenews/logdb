@@ -91,6 +91,24 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 	}
 
 	@Override
+	public void updateProcedure(Procedure procedure) {
+		if (procedure == null)
+			throw new IllegalArgumentException("procedure should not be null");
+
+		if (procedures.get(procedure.getName()) == null)
+			throw new IllegalStateException("procedure not found: " + procedure.getName());
+
+		procedures.put(procedure.getName(), procedure);
+
+		synchronized (dbLock) {
+			ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
+			Config c = db.findOne(Procedure.class, Predicates.field("name", procedure.getName()));
+			if (c != null)
+				db.update(c, procedure);
+		}
+	}
+
+	@Override
 	public void removeProcedure(String name) {
 		if (name == null)
 			throw new IllegalArgumentException("procedure name should not be null");

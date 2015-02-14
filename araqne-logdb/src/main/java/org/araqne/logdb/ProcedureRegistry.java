@@ -12,5 +12,10 @@ public interface ProcedureRegistry {
 
 	void createProcedure(Procedure procedure);
 
+	/**
+	 * @since 2.4.60
+	 */
+	void updateProcedure(Procedure procedure);
+
 	void removeProcedure(String name);
 }

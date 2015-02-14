@@ -126,6 +126,7 @@ public class Procedure implements Marshalable {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("name", name);
 		m.put("owner", owner);
+		m.put("field_order", fieldOrder);
 		m.put("grants", grants);
 		m.put("parameters", Marshaler.marshal(parameters));
 		m.put("query_string", queryString);
@@ -139,7 +140,7 @@ public class Procedure implements Marshalable {
 	public String toString() {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		return "name=" + name + ", parameters=" + parameters + ", query=" + queryString + ", created=" + df.format(created)
-				+ ", modified=" + df.format(modified) + ", owner=" + owner + ", grants=" + grants;
+				+ ", modified=" + df.format(modified) + ", owner=" + owner + ", grants=" + grants + ", fields=" + fieldOrder;
 	}
 
 }

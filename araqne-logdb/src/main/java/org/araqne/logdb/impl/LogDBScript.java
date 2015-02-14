@@ -40,6 +40,7 @@ import org.araqne.logdb.QueryService;
 import org.araqne.logdb.SavedResult;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
+import org.araqne.logdb.Strings;
 
 public class LogDBScript implements Script {
 	private QueryService qs;
@@ -305,28 +306,7 @@ public class LogDBScript implements Script {
 
 	public void createProcedure(String[] args) {
 		try {
-			Procedure proc = new Procedure();
-
-			proc.setName(readLine("name"));
-			proc.setOwner(readLine("owner"));
-			proc.setQueryString(readLine("query"));
-
-			List<ProcedureParameter> parameters = new ArrayList<ProcedureParameter>();
-			context.println("Type parameter definitions in \"type name\" format. e.g. \"string opt\", press enter to end.");
-			while (true) {
-				context.print("parameter? ");
-				String line = context.readLine();
-				if (line.isEmpty())
-					break;
-
-				int p = line.indexOf(" ");
-				String type = line.substring(0, p).trim();
-				String key = line.substring(p + 1).trim();
-
-				parameters.add(new ProcedureParameter(key, type));
-			}
-
-			proc.setParameters(parameters);
+			Procedure proc = inputProcedure(null);
 
 			procedureRegistry.createProcedure(proc);
 			context.println("created");
@@ -336,9 +316,85 @@ public class LogDBScript implements Script {
 		}
 	}
 
-	private String readLine(String prompt) throws InterruptedException {
+	public void updateProcedure(String[] args) {
+		try {
+			String name = readLine("name", null);
+			Procedure old = procedureRegistry.getProcedure(name);
+			if (old == null) {
+				context.println("procedure not found: " + name);
+				return;
+			}
+
+			Procedure proc = inputProcedure(old);
+			procedureRegistry.updateProcedure(proc);
+			context.println("updated");
+		} catch (InterruptedException e) {
+			context.println("");
+			context.println("interrupted");
+		}
+	}
+
+	private Procedure inputProcedure(Procedure old) throws InterruptedException {
+		Procedure proc = new Procedure();
+
+		if (old == null)
+			proc.setName(readLine("name", null));
+		else
+			proc.setName(old.getName());
+
+		proc.setOwner(readLine("owner", old != null ? old.getOwner() : null));
+		proc.setQueryString(readLine("query", old != null ? old.getQueryString() : null));
+
+		List<ProcedureParameter> parameters = new ArrayList<ProcedureParameter>();
+		context.println("Type parameter definitions in \"type name\" format. e.g. \"string opt\", press enter to end.");
+		int idx = 0;
+		while (true) {
+			ProcedureParameter oldParam = null;
+			if (old != null && idx < old.getParameters().size()) {
+				oldParam = old.getParameters().get(idx);
+			}
+
+			context.print("parameter? ");
+			String line = context.readLine(oldParam != null ? oldParam.toString() : null);
+			if (line.isEmpty())
+				break;
+
+			int p = line.indexOf(" ");
+			String type = line.substring(0, p).trim();
+			String key = line.substring(p + 1).trim();
+
+			parameters.add(new ProcedureParameter(key, type));
+			idx++;
+		}
+
+		proc.setParameters(parameters);
+
+		String oldFieldOrder = null;
+		if (old != null && old.getFieldOrder() != null)
+			oldFieldOrder = Strings.join(old.getFieldOrder(), ",");
+
+		proc.setFieldOrder(parseFieldOrder(readLine("field order", oldFieldOrder)));
+		return proc;
+	}
+
+	private List<String> parseFieldOrder(String s) {
+		if (s == null)
+			return null;
+
+		List<String> l = new ArrayList<String>();
+		for (String field : s.split(",")) {
+			field = field.trim();
+			if (field.isEmpty())
+				continue;
+
+			l.add(field);
+		}
+		return l;
+	}
+
+	private String readLine(String prompt, String old) throws InterruptedException {
 		context.print(prompt + "? ");
-		return context.readLine();
+		return context.readLine(old);
 	}
 
 	@ScriptUsage(description = "remove procedure", arguments = { @ScriptArgument(name = "procedure name", type = "string", description = "procedure name") })
@@ -353,13 +409,13 @@ public class LogDBScript implements Script {
 		procedureRegistry.removeProcedure(name);
 		context.println("removed");
 	}
-	
+
 	@ScriptUsage(description = "set hash join threshold", arguments = { @ScriptArgument(name = "threshold", type = "int", description = "hash join threshold") })
 	public void setHashJoinThreshold(String[] args) {
 		System.setProperty("araqne.hashjointhreshold", args[0]);
 		context.println("set hash join threshold");
 	}
-	
+
 	@ScriptUsage(description = "get hash join threshold")
 	public void getHashJoinThreshold(String[] args) {
 		context.println("hash join threshold :" + System.getProperty("araqne.hashjointhreshold", "100000"));
