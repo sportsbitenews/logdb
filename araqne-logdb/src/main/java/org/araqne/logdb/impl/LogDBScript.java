@@ -31,8 +31,8 @@ import org.araqne.logdb.CsvLookupRegistry;
 import org.araqne.logdb.ExternalAuthService;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.Procedure;
-import org.araqne.logdb.ProcedureRegistry;
 import org.araqne.logdb.ProcedureParameter;
+import org.araqne.logdb.ProcedureRegistry;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryScriptFactory;
 import org.araqne.logdb.QueryScriptRegistry;
@@ -40,7 +40,6 @@ import org.araqne.logdb.QueryService;
 import org.araqne.logdb.SavedResult;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
-import org.araqne.logdb.Strings;
 
 public class LogDBScript implements Script {
 	private QueryService qs;
@@ -369,27 +368,7 @@ public class LogDBScript implements Script {
 
 		proc.setParameters(parameters);
 
-		String oldFieldOrder = null;
-		if (old != null && old.getFieldOrder() != null)
-			oldFieldOrder = Strings.join(old.getFieldOrder(), ",");
-
-		proc.setFieldOrder(parseFieldOrder(readLine("field order", oldFieldOrder)));
 		return proc;
-	}
-
-	private List<String> parseFieldOrder(String s) {
-		if (s == null)
-			return null;
-
-		List<String> l = new ArrayList<String>();
-		for (String field : s.split(",")) {
-			field = field.trim();
-			if (field.isEmpty())
-				continue;
-
-			l.add(field);
-		}
-		return l;
 	}
 
 	private String readLine(String prompt, String old) throws InterruptedException {

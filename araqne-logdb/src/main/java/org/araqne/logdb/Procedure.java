@@ -25,9 +25,6 @@ public class Procedure implements Marshalable {
 	private String owner;
 
 	@CollectionTypeHint(String.class)
-	private List<String> fieldOrder;
-
-	@CollectionTypeHint(String.class)
 	private List<String> grants = new ArrayList<String>();
 
 	@CollectionTypeHint(ProcedureParameter.class)
@@ -71,14 +68,6 @@ public class Procedure implements Marshalable {
 
 	public void setOwner(String owner) {
 		this.owner = owner;
-	}
-
-	public List<String> getFieldOrder() {
-		return fieldOrder;
-	}
-
-	public void setFieldOrder(List<String> fieldOrder) {
-		this.fieldOrder = fieldOrder;
 	}
 
 	public List<String> getGrants() {
@@ -126,7 +115,6 @@ public class Procedure implements Marshalable {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("name", name);
 		m.put("owner", owner);
-		m.put("field_order", fieldOrder);
 		m.put("grants", grants);
 		m.put("parameters", Marshaler.marshal(parameters));
 		m.put("query_string", queryString);
@@ -140,7 +128,6 @@ public class Procedure implements Marshalable {
 	public String toString() {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		return "name=" + name + ", parameters=" + parameters + ", query=" + queryString + ", created=" + df.format(created)
-				+ ", modified=" + df.format(modified) + ", owner=" + owner + ", grants=" + grants + ", fields=" + fieldOrder;
+				+ ", modified=" + df.format(modified) + ", owner=" + owner + ", grants=" + grants;
 	}
-
 }

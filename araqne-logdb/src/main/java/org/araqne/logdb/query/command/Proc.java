@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory;
 public class Proc extends QueryCommand implements FieldOrdering {
 	private final Logger slog = LoggerFactory.getLogger(Proc.class);
 
-	private Procedure procedure;
 	private ProcPipe procPipe = new ProcPipe();
 	private ProcTask procTask = new ProcTask();
 	private Query subQuery;
@@ -50,7 +49,6 @@ public class Proc extends QueryCommand implements FieldOrdering {
 
 	public Proc(Procedure procedure, Map<String, Object> procParams, String commandString, QueryParserService parserService,
 			AccountService accountService) {
-		this.procedure = procedure;
 		this.accountService = accountService;
 		this.commandString = commandString;
 
@@ -78,7 +76,7 @@ public class Proc extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public List<String> getFieldOrder() {
-		return procedure.getFieldOrder();
+		return subQuery.getFieldOrder();
 	}
 
 	@Override
