@@ -42,7 +42,7 @@ public class LocalFileMover implements FileMover {
 				fromChannel = fis.getChannel();
 				toChannel = fos.getChannel();
 
-				fromChannel.transferTo(0, fromChannel.size(), toChannel);
+				ensureTransferTo(fromChannel, toChannel, fromChannel.size());
 				copied = true;
 			} finally {
 				IoHelper.close(fromChannel);
@@ -59,4 +59,12 @@ public class LocalFileMover implements FileMover {
 			}
 		}
 	}
+	
+	private void ensureTransferTo(FileChannel srcChannel, FileChannel dstChannel, long length) throws IOException {
+		long copied = 0;
+		while (copied < length) {
+			copied += srcChannel.transferTo(copied, length - copied, dstChannel);
+		}
+	}
+
 }
