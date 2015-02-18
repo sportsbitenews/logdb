@@ -60,17 +60,10 @@ public class JoinParser extends AbstractQueryCommandParser {
 
 		List<SortField> sortFields = SortField.parseSortFields(fieldToken, r);
 
-		// add sort command to end
 		SortField[] sortFieldArray = sortFields.toArray(new SortField[0]);
-		Sort sort = new Sort(null, sortFieldArray);
-		sort.onStart();
-
 		List<QueryCommand> subCommands = parserService.parseCommands(context, subQueryString);
-		QueryCommand lastCmd = subCommands.get(subCommands.size() - 1);
-		lastCmd.setOutput(new QueryCommandPipe(sort));
-		subCommands.add(sort);
-
 		Query subQuery = new DefaultQuery(context, subQueryString, subCommands, resultFactory);
+
 		return new Join(joinType, sortFieldArray, subQuery);
 	}
 }

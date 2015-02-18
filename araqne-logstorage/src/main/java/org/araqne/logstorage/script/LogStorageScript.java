@@ -691,6 +691,19 @@ public class LogStorageScript implements Script {
 			context.println(c.getName() + ": " + ConfigUtil.get(conf, c));
 		}
 	}
+	
+	@ScriptUsage(description = "set parameters", arguments = {
+			@ScriptArgument(name = "key", type = "string", description = "parameter key") })
+	public void unsetParameter(String[] args) {
+		Constants configKey = Constants.parse(args[0]);
+		if (configKey == null) {
+			context.println("invalid key name");
+			return;
+		}
+
+		ConfigUtil.set(conf, configKey, null);
+		context.println("unset");
+	}
 
 	@ScriptUsage(description = "set parameters", arguments = {
 			@ScriptArgument(name = "key", type = "string", description = "parameter key"),

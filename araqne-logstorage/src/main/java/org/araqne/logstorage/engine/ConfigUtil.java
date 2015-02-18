@@ -48,7 +48,11 @@ public class ConfigUtil {
 		if (c != null)
 			doc = (Map<String, Object>) c.getDocument();
 
-		doc.put(key.getName(), value);
+		if (value != null) {
+			doc.put(key.getName(), value);
+		} else {
+			doc.remove(key.getName());
+		}
 
 		if (c == null)
 			col.add(doc);
