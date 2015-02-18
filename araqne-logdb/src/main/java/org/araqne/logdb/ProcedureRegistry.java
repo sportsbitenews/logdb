@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Set;
 
 public interface ProcedureRegistry {
+	boolean isGranted(String procedureName, String loginName);
+
 	Set<String> getProcedureNames();
 
 	List<Procedure> getProcedures();
@@ -13,7 +15,7 @@ public interface ProcedureRegistry {
 	void createProcedure(Procedure procedure);
 
 	/**
-	 * @since 2.4.60
+	 * @since 2.6.0
 	 */
 	void updateProcedure(Procedure procedure);
 

@@ -15,8 +15,10 @@
  */
 package org.araqne.logdb;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -42,12 +44,13 @@ public class Strings {
 					sb.append('\n');
 				else if (c == 't')
 					sb.append('\t');
-				else{
-					//throw new QueryParseException("invalid-escape-sequence", -1, "char=" + c);
+				else {
+					// throw new QueryParseException("invalid-escape-sequence",
+					// -1, "char=" + c);
 					Map<String, String> params = new HashMap<String, String>();
 					params.put("value", s);
-					params.put("char","\\" + c);
-					throw new QueryParseException("90400", i -1 , i, params);
+					params.put("char", "\\" + c);
+					throw new QueryParseException("90400", i - 1, i, params);
 				}
 				escape = false;
 			} else {
@@ -59,6 +62,21 @@ public class Strings {
 		}
 
 		return sb.toString();
+	}
+
+	public static List<String> tokenize(String s, String sep) {
+		if (s == null)
+			return new ArrayList<String>();
+
+		List<String> l = new ArrayList<String>();
+		for (String t : s.split(sep)) {
+			t = t.trim();
+			if (t.isEmpty())
+				continue;
+
+			l.add(t);
+		}
+		return l;
 	}
 
 	public static String join(Object[] tokens, String sep) {

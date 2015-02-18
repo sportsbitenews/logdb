@@ -4,8 +4,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.araqne.api.CollectionTypeHint;
 import org.araqne.api.FieldOption;
@@ -25,7 +27,7 @@ public class Procedure implements Marshalable {
 	private String owner;
 
 	@CollectionTypeHint(String.class)
-	private List<String> grants = new ArrayList<String>();
+	private Set<String> grants = new HashSet<String>();
 
 	@CollectionTypeHint(ProcedureParameter.class)
 	private List<ProcedureParameter> parameters = new ArrayList<ProcedureParameter>();
@@ -38,6 +40,24 @@ public class Procedure implements Marshalable {
 
 	@FieldOption(nullable = false)
 	private Date modified = new Date();
+
+	public Procedure clone() {
+		Procedure p = new Procedure();
+		p.setName(name);
+		p.setDescription(description);
+		p.setOwner(owner);
+		p.setGrants(new HashSet<String>(grants));
+
+		List<ProcedureParameter> params = new ArrayList<ProcedureParameter>();
+		for (ProcedureParameter pp : parameters)
+			params.add(pp.clone());
+
+		p.setParameters(params);
+		p.setQueryString(queryString);
+		p.setCreated(created);
+		p.setModified(modified);
+		return p;
+	}
 
 	public boolean isGranted(String loginName) {
 		if (loginName == null)
@@ -70,11 +90,13 @@ public class Procedure implements Marshalable {
 		this.owner = owner;
 	}
 
-	public List<String> getGrants() {
+	public Set<String> getGrants() {
 		return grants;
 	}
 
-	public void setGrants(List<String> grants) {
+	public void setGrants(Set<String> grants) {
+		if (grants == null)
+			this.grants = new HashSet<String>();
 		this.grants = grants;
 	}
 

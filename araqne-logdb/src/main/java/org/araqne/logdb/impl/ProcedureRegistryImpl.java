@@ -58,13 +58,26 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 	}
 
 	@Override
+	public boolean isGranted(String procedureName, String loginName) {
+		Procedure p = procedures.get(procedureName);
+		if (p == null)
+			throw new IllegalStateException("procedure not found: " + procedureName);
+
+		return p.getOwner().equals(loginName) || p.getGrants().contains(loginName);
+	}
+
+	@Override
 	public Set<String> getProcedureNames() {
 		return new HashSet<String>(procedures.keySet());
 	}
 
 	@Override
 	public List<Procedure> getProcedures() {
-		return new ArrayList<Procedure>(procedures.values());
+		List<Procedure> l = new ArrayList<Procedure>();
+		for (Procedure p : procedures.values())
+			l.add(p.clone());
+
+		return l;
 	}
 
 	@Override
@@ -72,7 +85,11 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 		if (name == null)
 			return null;
 
-		return procedures.get(name);
+		Procedure p = procedures.get(name);
+		if (p == null)
+			return null;
+
+		return p.clone();
 	}
 
 	@Override

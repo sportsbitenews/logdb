@@ -38,6 +38,15 @@ public class ProcedureParameter implements Marshalable {
 		this.type = type;
 	}
 
+	public ProcedureParameter clone() {
+		ProcedureParameter pp = new ProcedureParameter();
+		pp.setKey(key);
+		pp.setType(type);
+		pp.setName(name);
+		pp.setDescription(description);
+		return pp;
+	}
+
 	public String getKey() {
 		return key;
 	}

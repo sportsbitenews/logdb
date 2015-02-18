@@ -65,11 +65,12 @@ public class ProcParser extends AbstractQueryCommandParser {
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
 		m.put("11000", new QueryErrorMessage("procedure-not-found", "프로시저를 찾을 수 없습니다."));
-		m.put("11001", new QueryErrorMessage("procedure-variable-type-mismatch [Type]",
+		m.put("11001", new QueryErrorMessage("procedure-variable-type-mismatch [type]",
 				"프로시저 변수가 타입이 맞지 않습니다. [param]는 [type] 타입이여야 합니다."));
 		m.put("11002", new QueryErrorMessage("procedure-owner-not-found", "프로시저 소유자를 찾을 수 없습니다."));
 		m.put("11003", new QueryErrorMessage("procedure-parameter-mismatch",
 				"프로시저의 인자 수가 맞지 않습니다. [preset]개의 인자가 필요한데 [params]개의 인자가 입력 됐습니다."));
+		m.put("11004", new QueryErrorMessage("procedure-is-not-granted", "프로시저 실행 권한이 없습니다."));
 		return m;
 	}
 
@@ -82,6 +83,9 @@ public class ProcParser extends AbstractQueryCommandParser {
 		if (procedure == null)
 			// throw new QueryParseException("procedure-not-found", -1);
 			throw new QueryParseException("11000", getCommandName().length() + 1, commandString.length() - 1, null);
+
+		if (!isGranted(context, procedure))
+			throw new QueryParseException("11004", getCommandName().length() + 1);
 
 		// parameter evaluation
 		List<Object> params = new ArrayList<Object>();
@@ -123,6 +127,13 @@ public class ProcParser extends AbstractQueryCommandParser {
 		}
 
 		return new Proc(procedure, procParams, commandString, parserService, accountService);
+	}
+
+	private boolean isGranted(QueryContext context, Procedure p) {
+		if (context.getSession() == null)
+			return true;
+
+		return procedureRegistry.isGranted(p.getName(), context.getSession().getLoginName());
 	}
 
 	private Object convertDateAndTime(Object param, ProcedureParameter v) {

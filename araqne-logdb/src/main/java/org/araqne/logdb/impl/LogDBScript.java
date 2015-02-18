@@ -18,6 +18,7 @@ package org.araqne.logdb.impl;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import org.araqne.api.PathAutoCompleter;
@@ -40,6 +41,7 @@ import org.araqne.logdb.QueryService;
 import org.araqne.logdb.SavedResult;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
+import org.araqne.logdb.Strings;
 
 public class LogDBScript implements Script {
 	private QueryService qs;
@@ -325,12 +327,52 @@ public class LogDBScript implements Script {
 			}
 
 			Procedure proc = inputProcedure(old);
+			proc.setCreated(old.getCreated());
 			procedureRegistry.updateProcedure(proc);
 			context.println("updated");
 		} catch (InterruptedException e) {
 			context.println("");
 			context.println("interrupted");
 		}
+	}
+
+	@ScriptUsage(description = "grant procedure", arguments = {
+			@ScriptArgument(name = "procedure name", type = "string", description = "procedure name"),
+			@ScriptArgument(name = "login name", type = "string", description = "login name") })
+	public void grantProcedure(String[] args) {
+		String procName = args[0];
+		String loginName = args[1];
+
+		Procedure p = procedureRegistry.getProcedure(procName);
+		if (p == null) {
+			context.println("procedure not found");
+			return;
+		}
+
+		if (!p.getGrants().contains(loginName)) {
+			p.getGrants().add(loginName);
+			procedureRegistry.updateProcedure(p);
+		}
+
+		context.println("granted");
+	}
+
+	@ScriptUsage(description = "revoke procedure", arguments = {
+			@ScriptArgument(name = "procedure name", type = "string", description = "procedure name"),
+			@ScriptArgument(name = "login name", type = "string", description = "login name") })
+	public void revokeProcedure(String[] args) {
+		String procName = args[0];
+		String loginName = args[1];
+
+		Procedure p = procedureRegistry.getProcedure(procName);
+		if (p == null) {
+			context.println("procedure not found");
+			return;
+		}
+
+		p.getGrants().remove(loginName);
+		procedureRegistry.updateProcedure(p);
+		context.println("revoked");
 	}
 
 	private Procedure inputProcedure(Procedure old) throws InterruptedException {
@@ -342,6 +384,8 @@ public class LogDBScript implements Script {
 			proc.setName(old.getName());
 
 		proc.setOwner(readLine("owner", old != null ? old.getOwner() : null));
+		proc.setGrants(new HashSet<String>(Strings.tokenize(
+				readLine("grants", old != null ? Strings.join(old.getGrants(), ", ") : null), ",")));
 		proc.setQueryString(readLine("query", old != null ? old.getQueryString() : null));
 
 		List<ProcedureParameter> parameters = new ArrayList<ProcedureParameter>();
