@@ -19,7 +19,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.text.Normalizer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +51,12 @@ public class ExpressionParser {
 			Object o = contextReference.eval(null);
 			if (o == null)
 				return "";
+			
+			if (o instanceof Date) {
+				SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
+				return df.format(o);
+			}
+
 			return o.toString();
 		}
 

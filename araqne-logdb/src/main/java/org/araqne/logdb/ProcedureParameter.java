@@ -10,14 +10,15 @@ import org.araqne.api.FieldOption;
 import org.araqne.msgbus.Marshalable;
 
 public class ProcedureParameter implements Marshalable {
-	private static final Set<String> ACCEPTED_TYPES = new HashSet<String>(Arrays.asList("string", "int", "double", "bool"));
+	private static final Set<String> ACCEPTED_TYPES = new HashSet<String>(Arrays.asList("string", "int", "double", "bool",
+			"datetime", "date"));
 
 	@FieldOption(nullable = false)
 	private String key;
 
 	/**
-	 * string, int, double, bool (do not support date, short, long, float
-	 * variables)
+	 * string, int, double, bool, datetime, date (do not support short, long,
+	 * float variables)
 	 */
 	@FieldOption(nullable = false)
 	private String type;

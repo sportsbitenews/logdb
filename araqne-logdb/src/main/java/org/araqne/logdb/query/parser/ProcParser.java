@@ -15,14 +15,17 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.text.ParseException;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.Account;
@@ -38,7 +41,6 @@ import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.Session;
 import org.araqne.logdb.query.command.Proc;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -90,43 +92,7 @@ public class ProcParser extends AbstractQueryCommandParser {
 		int i = 0;
 		for (ProcedureParameter var : procedure.getParameters()) {
 			Object param = params.get(i++);
-			if (var.getType().equals("string") && param != null && !(param instanceof String)) {
-				Map<String, String> parameter = new HashMap<String, String>();
-				parameter.put("param", param.toString());
-				parameter.put("type", "string");
-				int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
-				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
-				// throw new
-				// QueryParseException("procedure-variable-type-mismatch", -1,
-				// param.toString());
-			} else if (var.getType().equals("int") && param != null && !(param instanceof Integer)) {
-				Map<String, String> parameter = new HashMap<String, String>();
-				parameter.put("param", param.toString());
-				parameter.put("type", "int");
-				int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
-				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
-				// throw new
-				// QueryParseException("procedure-variable-type-mismatch", -1,
-				// param.toString());
-			} else if (var.getType().equals("double") && param != null && !(param instanceof Double)) {
-				Map<String, String> parameter = new HashMap<String, String>();
-				parameter.put("param", param.toString());
-				parameter.put("type", "double");
-				int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
-				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
-				// throw new
-				// QueryParseException("procedure-variable-type-mismatch", -1,
-				// param.toString());
-			} else if (var.getType().equals("bool") && param != null && !(param instanceof Boolean)) {
-				Map<String, String> parameter = new HashMap<String, String>();
-				parameter.put("param", param.toString());
-				parameter.put("type", "bool");
-				int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
-				throw new QueryParseException("11001", offset, commandString.length() - 1, parameter);
-				// throw new
-				// QueryParseException("procedure-variable-type-mismatch", -1,
-				// param.toString());
-			}
+			verifyParameterType(commandString, procedure, var, param);
 		}
 
 		// owner delegation
@@ -152,10 +118,87 @@ public class ProcParser extends AbstractQueryCommandParser {
 		i = 0;
 		for (Object param : params) {
 			ProcedureParameter v = procedure.getParameters().get(i++);
+			param = convertDateAndTime(param, v);
 			procParams.put(v.getKey(), param);
 		}
 
 		return new Proc(procedure, procParams, commandString, parserService, accountService);
+	}
+
+	private Object convertDateAndTime(Object param, ProcedureParameter v) {
+		if (v.getType().equals("date")) {
+			if (param instanceof String) {
+				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+				param = df.parse(param.toString(), new ParsePosition(0));
+			} else if (param instanceof Date) {
+				// truncate to 00:00:00
+				Calendar c = Calendar.getInstance();
+				c.setTime((Date) param);
+				c.set(Calendar.HOUR_OF_DAY, 0);
+				c.set(Calendar.MINUTE, 0);
+				c.set(Calendar.SECOND, 0);
+				c.set(Calendar.MILLISECOND, 0);
+				param = c.getTime();
+			}
+		}
+
+		if (v.getType().equals("datetime") && param instanceof String) {
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			param = df.parse(param.toString(), new ParsePosition(0));
+		}
+
+		return param;
+	}
+
+	private void verifyParameterType(String commandString, Procedure procedure, ProcedureParameter var, Object param) {
+		if (var.getType().equals("string") && param != null && !(param instanceof String)) {
+			int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
+			throw new QueryParseException("11001", offset, commandString.length() - 1, errorParams("string", param));
+		} else if (var.getType().equals("datetime") && param != null && !(param instanceof String) && !(param instanceof Date)) {
+			int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
+			throw new QueryParseException("11001", offset, commandString.length() - 1, errorParams("datetime", param));
+		} else if (var.getType().equals("int") && param != null && !(param instanceof Integer)) {
+			int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
+			throw new QueryParseException("11001", offset, commandString.length() - 1, errorParams("int", param));
+		} else if (var.getType().equals("double") && param != null && !(param instanceof Double)) {
+			int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
+			throw new QueryParseException("11001", offset, commandString.length() - 1, errorParams("double", param));
+		} else if (var.getType().equals("bool") && param != null && !(param instanceof Boolean)) {
+			int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
+			throw new QueryParseException("11001", offset, commandString.length() - 1, errorParams("bool", param));
+		}
+
+		// check string in date format
+		if (var.getType().equals("date") && param != null && param instanceof String) {
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+			try {
+				df.parse(param.toString());
+			} catch (ParseException e) {
+				int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
+				throw new QueryParseException("11001", offset, commandString.length() - 1, errorParams("date", param));
+			}
+		}
+
+		// check string in datetime format
+		if (var.getType().equals("datetime") && param != null && param instanceof String) {
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			try {
+				df.parse(param.toString());
+			} catch (ParseException e) {
+				int offset = QueryTokenizer.findKeyword(commandString, procedure.getName()) + procedure.getName().length();
+				throw new QueryParseException("11001", offset, commandString.length() - 1, errorParams("datetime", param));
+			}
+		}
+
+		// throw new QueryParseException("procedure-variable-type-mismatch", -1,
+		// param.toString());
+	}
+
+	private Map<String, String> errorParams(String type, Object value) {
+		Map<String, String> m = new HashMap<String, String>();
+		m.put("type", type);
+		m.put("param", value.toString());
+		return m;
 	}
 
 	private class ProcFunctionRegistry implements FunctionRegistry {
@@ -165,11 +208,20 @@ public class ProcParser extends AbstractQueryCommandParser {
 
 		@Override
 		public Set<String> getFunctionNames() {
-			return procedureRegistry.getProcedureNames();
+			Set<String> set = new HashSet<String>(parserService.getFunctionRegistry().getFunctionNames());
+			set.addAll(procedureRegistry.getProcedureNames());
+			return set;
 		}
 
 		@Override
 		public Expression newFunction(QueryContext ctx, String functionName, List<Expression> exprs) {
+			// parser service or function registry can be null at unit test
+			if (parserService != null) {
+				FunctionRegistry funcRegistry = parserService.getFunctionRegistry();
+				if (funcRegistry != null && funcRegistry.getFunctionNames().contains(functionName))
+					return funcRegistry.newFunction(ctx, functionName, exprs);
+			}
+
 			return new ProcFunction(functionName, exprs);
 		}
 
@@ -195,59 +247,6 @@ public class ProcParser extends AbstractQueryCommandParser {
 		@Override
 		public Object eval(Row row) {
 			return null;
-		}
-	}
-
-	private class DummySession implements Session {
-		private String guid;
-		private Account account;
-		private Map<String, Object> props;
-
-		public DummySession(Account account) {
-			this.guid = UUID.randomUUID().toString();
-			this.account = account;
-			props = new ConcurrentHashMap<String, Object>();
-		}
-
-		@Override
-		public String getGuid() {
-			return guid;
-		}
-
-		@Override
-		public String getLoginName() {
-			return account.getLoginName();
-		}
-
-		@Override
-		public Date getCreated() {
-			return new Date();
-		}
-
-		@Override
-		public boolean isAdmin() {
-			return account.isAdmin();
-		}
-
-		@Override
-		public Set<String> getPropertyKeys() {
-			return props.keySet();
-		}
-
-		@Override
-		public Object getProperty(String name) {
-			return props.get(name);
-		}
-
-		@Override
-		public void setProperty(String name, Object value) {
-			props.put(name, value);
-		}
-
-		@Override
-		public void unsetProperty(String name) {
-			if (props.containsKey(name))
-				props.remove(name);
 		}
 	}
 }
