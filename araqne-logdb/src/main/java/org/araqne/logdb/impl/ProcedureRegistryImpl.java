@@ -30,15 +30,27 @@ import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
+import org.araqne.logdb.AbstractAccountEventListener;
+import org.araqne.logdb.Account;
+import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Procedure;
 import org.araqne.logdb.ProcedureRegistry;
+import org.araqne.logdb.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component(name = "logdb-procedure-registry")
 @Provides
 public class ProcedureRegistryImpl implements ProcedureRegistry {
+	private final Logger slog = LoggerFactory.getLogger(ProcedureRegistryImpl.class);
 
 	@Requires
 	private ConfigService conf;
+
+	@Requires
+	private AccountService accountService;
+
+	private OrphanCleaner cleaner = new OrphanCleaner();
 
 	private ConcurrentHashMap<String, Procedure> procedures = new ConcurrentHashMap<String, Procedure>();
 
@@ -50,10 +62,15 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 		for (Procedure p : db.findAll(Procedure.class).getDocuments(Procedure.class)) {
 			procedures.put(p.getName(), p);
 		}
+
+		accountService.addListener(cleaner);
 	}
 
 	@Invalidate
 	public void stop() {
+		if (accountService != null)
+			accountService.removeListener(cleaner);
+
 		procedures.clear();
 	}
 
@@ -139,6 +156,27 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 			Config c = db.findOne(Procedure.class, Predicates.field("name", name));
 			if (c != null) {
 				c.remove();
+			}
+		}
+	}
+
+	private class OrphanCleaner extends AbstractAccountEventListener {
+
+		@Override
+		public void onRemoveAccount(Session session, Account account) {
+			for (Procedure p : procedures.values()) {
+				if (p.getOwner().equals(account.getLoginName())) {
+					removeProcedure(p.getName());
+					slog.info("araqne logdb: dropped procedure [{}] by remove cascade of user [{}]", p.getName(),
+							account.getLoginName());
+				}
+
+				if (p.getGrants().contains(account.getLoginName())) {
+					p.getGrants().remove(account.getLoginName());
+					updateProcedure(p);
+					slog.info("araqne logdb: revoked procedure [{}] by remove cascade of user [{}]", p.getName(),
+							account.getLoginName());
+				}
 			}
 		}
 	}

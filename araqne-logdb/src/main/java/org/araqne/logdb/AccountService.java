@@ -87,6 +87,16 @@ public interface AccountService {
 	void unregisterAuthService(ExternalAuthService auth);
 
 	/**
+	 * @since 2.6.0
+	 */
+	void addListener(AccountEventListener listener);
+
+	/**
+	 * @since 2.6.0
+	 */
+	void removeListener(AccountEventListener listener);
+
+	/**
 	 * @since 0.17.0
 	 */
 	void addListener(SessionEventListener listener);
@@ -95,7 +105,7 @@ public interface AccountService {
 	 * @since 0.17.0
 	 */
 	void removeListener(SessionEventListener listener);
-	
+
 	/**
 	 * @since add-storage-layer
 	 */

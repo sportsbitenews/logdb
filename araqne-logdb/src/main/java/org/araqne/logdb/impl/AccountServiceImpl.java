@@ -40,6 +40,7 @@ import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
 import org.araqne.logdb.Account;
+import org.araqne.logdb.AccountEventListener;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.ExternalAuthService;
 import org.araqne.logdb.Permission;
@@ -72,6 +73,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 
 	private String selectedExternalAuth;
 	private CopyOnWriteArraySet<SessionEventListener> sessionListeners;
+	private CopyOnWriteArraySet<AccountEventListener> accountListeners;
 	private String instanceGuid;
 
 	public AccountServiceImpl() {
@@ -79,6 +81,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		localAccounts = new ConcurrentHashMap<String, Account>();
 		authServices = new ConcurrentHashMap<String, ExternalAuthService>();
 		sessionListeners = new CopyOnWriteArraySet<SessionEventListener>();
+		accountListeners = new CopyOnWriteArraySet<AccountEventListener>();
 	}
 
 	@Validate
@@ -155,6 +158,14 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		Account account = ensureAccount(loginName);
 		account.setAdmin(true);
 		updateAccount(account);
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onGrantAdmin(session, account);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -168,6 +179,14 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		Account account = ensureAccount(loginName);
 		account.setAdmin(false);
 		updateAccount(account);
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onRevokeAdmin(session, account);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -365,6 +384,14 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			throw new IllegalStateException("duplicated login name");
 
 		db.add(account);
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onCreateAccount(session, account);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -422,7 +449,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 				throw new IllegalStateException("no permission");
 		}
 
-		localAccounts.remove(loginName);
+		Account account = localAccounts.remove(loginName);
 
 		// drop all sessions
 		for (Session s : new ArrayList<Session>(sessions.values())) {
@@ -435,6 +462,14 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		Config c = db.findOne(Account.class, Predicates.field("login_name", loginName));
 		if (c != null)
 			c.remove();
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onRemoveAccount(session, account);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -481,6 +516,14 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 
 		account.getReadableTables().add(tableName);
 		updateAccount(account);
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onGrantPrivilege(session, loginName, tableName, permissions);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -510,6 +553,14 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 
 		account.getReadableTables().remove(tableName);
 		updateAccount(account);
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onRevokePrivilege(session, loginName, tableName, permissions);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	private Account ensureAccount(String loginName) {
@@ -609,6 +660,16 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	@Override
 	public void unregisterAuthService(ExternalAuthService auth) {
 		authServices.remove(auth.getName(), auth);
+	}
+
+	@Override
+	public void addListener(AccountEventListener listener) {
+		accountListeners.add(listener);
+	}
+
+	@Override
+	public void removeListener(AccountEventListener listener) {
+		accountListeners.remove(listener);
 	}
 
 	@Override
