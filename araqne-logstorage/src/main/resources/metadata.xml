@@ -18,4 +18,6 @@
 	<instance component="logstorage-backup-media-registry" />
 	<instance component="logstorage-file-backup-media-factory" />
 	<instance component="logstorage-backup-script-factory" />
+	<instance component="logstorage-dump-service" />
+	<instance component="logstorage-local-dump-driver" />
 </ipojo>

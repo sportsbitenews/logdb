@@ -17,6 +17,7 @@ package org.araqne.logstorage.script;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -37,6 +38,9 @@ import org.araqne.logstorage.backup.StorageBackupMediaFactory;
 import org.araqne.logstorage.backup.StorageBackupMediaRegistry;
 import org.araqne.logstorage.backup.StorageBackupRequest;
 import org.araqne.logstorage.backup.StorageBackupType;
+import org.araqne.logstorage.dump.DumpService;
+import org.araqne.logstorage.dump.ExportRequest;
+import org.araqne.logstorage.dump.ExportTask;
 
 /**
  * @since 2.3.0
@@ -46,18 +50,65 @@ public class LogStorageBackupScript implements Script {
 	private LogTableRegistry tableRegistry;
 	private StorageBackupManager backupManager;
 	private StorageBackupMediaRegistry mediaRegistry;
+	private DumpService dumpService;
 	private ScriptContext context;
 
 	public LogStorageBackupScript(LogTableRegistry tableRegistry, StorageBackupManager backupManager,
-			StorageBackupMediaRegistry mediaRegistry) {
+			StorageBackupMediaRegistry mediaRegistry, DumpService dumpService) {
 		this.tableRegistry = tableRegistry;
 		this.backupManager = backupManager;
 		this.mediaRegistry = mediaRegistry;
+		this.dumpService = dumpService;
 	}
 
 	@Override
 	public void setScriptContext(ScriptContext context) {
 		this.context = context;
+	}
+
+	public void exportTasks(String[] args) {
+		context.println("Export Tasks");
+		context.println("--------------");
+
+		for (ExportTask task : dumpService.getExportTasks()) {
+			context.println(task);
+		}
+	}
+
+	public void beginExport(String[] args) {
+		try {
+			context.print("Tables? ");
+			Set<String> tableNames = split(context.readLine());
+
+			SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+			context.print("From (yyyyMMdd)? ");
+			Date from = df.parse(context.readLine().trim());
+			context.print("To (yyyyMMdd)? ");
+			Date to = df.parse(context.readLine().trim());
+
+			context.print("Dump Path? ");
+			String path = context.readLine().trim();
+
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("path", path);
+			dumpService.beginExport(new ExportRequest("local", tableNames, from, to, params));
+			context.println("export started");
+		} catch (InterruptedException e) {
+			context.println("");
+			context.println("interrupted");
+		} catch (ParseException e) {
+			context.println("invalid date format");
+		}
+	}
+
+	private Set<String> split(String line) {
+		Set<String> s = new HashSet<String>();
+		for (String table : line.split(",")) {
+			table = table.trim();
+			if (!table.isEmpty())
+				s.add(table);
+		}
+		return s;
 	}
 
 	public void backup(String[] args) throws InterruptedException, IOException {
