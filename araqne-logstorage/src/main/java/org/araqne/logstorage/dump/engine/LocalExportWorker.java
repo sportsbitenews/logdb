@@ -7,8 +7,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -17,6 +19,7 @@ import java.util.zip.ZipOutputStream;
 import org.araqne.codec.FastEncodingRule;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogTraverseCallback;
 import org.araqne.logstorage.LogTraverseCallback.Sink;
 import org.araqne.logstorage.TableScanRequest;
@@ -26,6 +29,7 @@ import org.araqne.logstorage.dump.ExportTableKey;
 import org.araqne.logstorage.dump.ExportTabletTask;
 import org.araqne.logstorage.dump.ExportTask;
 import org.araqne.logstorage.dump.ExportWorker;
+import org.json.JSONConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,11 +59,15 @@ public class LocalExportWorker implements ExportWorker {
 
 	@Override
 	public void run() {
+		Map<Integer, String> tableIdMap = new HashMap<Integer, String>();
+
 		slog.info("araqne logstorage: start export estimation [{}]", req.getGuid());
 		List<ExportTabletTask> tabletTasks = dumpService.estimate(req);
 		Map<ExportTableKey, ExportTabletTask> m = task.getTabletTasks();
-		for (ExportTabletTask t : tabletTasks)
+		for (ExportTabletTask t : tabletTasks) {
 			m.put(new ExportTableKey(t.getTableName(), t.getDay()), t);
+			tableIdMap.put(t.getTableId(), t.getTableName());
+		}
 
 		slog.info("araqne logstorage: start export job [{}]", req.getGuid());
 
@@ -74,11 +82,11 @@ public class LocalExportWorker implements ExportWorker {
 			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 			for (ExportTabletTask task : tabletTasks) {
 				if (lastTableName == null || !lastTableName.equals(task.getTableName())) {
-					zos.putNextEntry(new ZipEntry(task.getTableName() + "/"));
+					zos.putNextEntry(new ZipEntry(task.getTableId() + "/"));
 					lastTableName = task.getTableName();
 				}
 
-				String entryPath = task.getTableName() + "/" + df.format(task.getDay()) + ".dmp";
+				String entryPath = task.getTableId() + "/" + df.format(task.getDay()) + ".dmp";
 				zos.putNextEntry(new ZipEntry(entryPath));
 
 				OutputLoader loader = new OutputLoader(new OutputSink(0, 0), task);
@@ -101,6 +109,12 @@ public class LocalExportWorker implements ExportWorker {
 
 				zos.closeEntry();
 			}
+
+			String manifest = JSONConverter.jsonize(buildManifest(tabletTasks, tableIdMap));
+			zos.putNextEntry(new ZipEntry("manifest.json"));
+			zos.write(manifest.getBytes("utf-8"));
+			zos.closeEntry();
+
 		} catch (Throwable t) {
 			slog.error("araqne logstorage: export failed", t);
 		} finally {
@@ -110,6 +124,20 @@ public class LocalExportWorker implements ExportWorker {
 			task.setCompleted();
 			slog.info("araqne logstorage: export completed");
 		}
+	}
+
+	private Map<String, Object> buildManifest(List<ExportTabletTask> tasks, Map<Integer, String> tableIdMap) {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("version", 1);
+		m.put("tables", tableIdMap);
+
+		List<Object> l = new ArrayList<Object>();
+		for (ExportTabletTask task : tasks) {
+			l.add(task.marshal());
+		}
+
+		m.put("tablets", l);
+		return m;
 	}
 
 	private Date nextDay(Date d) {

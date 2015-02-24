@@ -187,7 +187,8 @@ public class DumpServiceImpl implements DumpService {
 					continue;
 
 				count += getMemoryCount(memoryBuffers, tableName, day);
-				ExportTabletTask task = new ExportTabletTask(tableName, day);
+				TableSchema schema = tableRegistry.getTableSchema(tableName);
+				ExportTabletTask task = new ExportTabletTask(tableName, day, schema.getId());
 				task.setEstimatedCount(count);
 				tasks.add(task);
 			}

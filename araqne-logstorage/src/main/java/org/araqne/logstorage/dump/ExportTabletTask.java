@@ -1,21 +1,28 @@
 package org.araqne.logstorage.dump;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
-public class ExportTabletTask {
+import org.araqne.msgbus.Marshalable;
+
+public class ExportTabletTask implements Marshalable {
 	private String tableName;
 	private Date day;
+	private int tableId;
 	private long estimatedCount;
 	private long actualCount;
 	private boolean completed;
 
-	public ExportTabletTask(String tableName, Date day) {
+	public ExportTabletTask(String tableName, Date day, int tableId) {
 		this.tableName = tableName;
 		this.day = day;
+		this.tableId = tableId;
 	}
 
 	public ExportTabletTask clone() {
-		ExportTabletTask c = new ExportTabletTask(tableName, day);
+		ExportTabletTask c = new ExportTabletTask(tableName, day, tableId);
 		c.estimatedCount = estimatedCount;
 		c.actualCount = actualCount;
 		c.completed = completed;
@@ -28,6 +35,10 @@ public class ExportTabletTask {
 
 	public Date getDay() {
 		return day;
+	}
+
+	public int getTableId() {
+		return tableId;
 	}
 
 	public long getEstimatedCount() {
@@ -52,5 +63,15 @@ public class ExportTabletTask {
 
 	public void setCompleted(boolean completed) {
 		this.completed = completed;
+	}
+
+	@Override
+	public Map<String, Object> marshal() {
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("table", tableName);
+		m.put("day", df.format(day));
+		m.put("count", actualCount);
+		return m;
 	}
 }

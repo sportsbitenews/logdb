@@ -13,6 +13,7 @@ public class ExportTask implements Marshalable {
 	private long createdTime;
 	private long estimationDoneTime;
 	private long completedTime;
+	private boolean cancelled;
 	private Map<ExportTableKey, ExportTabletTask> tabletTasks = new ConcurrentHashMap<ExportTableKey, ExportTabletTask>();
 
 	public ExportTask(String guid) {
@@ -34,6 +35,10 @@ public class ExportTask implements Marshalable {
 
 	public long getCompletedTime() {
 		return completedTime;
+	}
+
+	public boolean isCancelled() {
+		return cancelled;
 	}
 
 	public ExportTask clone() {
@@ -63,6 +68,10 @@ public class ExportTask implements Marshalable {
 
 	public void setCompleted() {
 		this.completedTime = System.currentTimeMillis();
+	}
+
+	public void cancel() {
+		this.cancelled = true;
 	}
 
 	public Map<ExportTableKey, ExportTabletTask> getTabletTasks() {
