@@ -29,7 +29,7 @@ import org.araqne.logdb.client.http.impl.WebSocketSession;
  * 
  */
 public class WebSocketTransport implements LogDbTransport {
-
+	private boolean skipCertCheck;
 	private boolean secure;
 
 	/**
@@ -50,19 +50,34 @@ public class WebSocketTransport implements LogDbTransport {
 		this.secure = secure;
 	}
 
+	/**
+	 * 암호화 채널을 통하여 접속하려는 경우 첫 번째 생성자 매개변수를 true로 전달합니다.
+	 * 또한, 인증서 유효성 검사를 하지 않을 경우 두 번째 생성자 매개변수를 true로 전달합니다.
+	 * 
+	 * @param secure
+	 *            wss:// 스키마를 사용하는 경우 true
+	 * @param skipCertCheck
+	 * 		      인증서 유효성 검사를 하지 않을 경우 true
+	 * @since 0.9.7
+	 */
+	public WebSocketTransport(boolean secure, boolean skipCertCheck) {
+		this.secure = secure;
+		this.skipCertCheck = skipCertCheck;
+	}
+	
 	@Override
 	public LogDbSession newSession(String host, int port) throws IOException {
-		return new WebSocketSession(host, port, secure);
+		return new WebSocketSession(host, port, secure, skipCertCheck);
 	}
 	
 	@Override
 	public LogDbSession newSession(String host, int port, int connectTimeout) throws IOException {
-		return new WebSocketSession(host, port, secure, connectTimeout);
+		return new WebSocketSession(host, port, secure, skipCertCheck, connectTimeout);
 	}
 
 	@Override
 	public LogDbSession newSession(String host, int port, int connectTimeout, int readTimeout) throws IOException {
-		return new WebSocketSession(host, port, secure, connectTimeout, readTimeout);
+		return new WebSocketSession(host, port, secure, skipCertCheck, connectTimeout, readTimeout);
 	}
 
 }

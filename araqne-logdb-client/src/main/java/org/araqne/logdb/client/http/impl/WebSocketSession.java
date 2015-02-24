@@ -27,6 +27,7 @@ import org.araqne.logdb.client.Message;
 import org.araqne.logdb.client.MessageException;
 import org.araqne.logdb.client.Message.Type;
 import org.araqne.websocket.WebSocket;
+import org.araqne.websocket.WebSocketConfig;
 import org.araqne.websocket.WebSocketListener;
 import org.araqne.websocket.WebSocketMessage;
 import org.slf4j.Logger;
@@ -48,23 +49,25 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 	private final Timer timer;
 
 	public WebSocketSession(String host, int port) throws IOException {
-		this(host, port, false, 0);
+		this(host, port, false, false, 0);
 	}
 
-	public WebSocketSession(String host, int port, boolean secure) throws IOException {
-		this(host, port, secure, 0);
+	public WebSocketSession(String host, int port, boolean secure, boolean skipCertCheck) throws IOException {
+		this(host, port, secure, skipCertCheck, 0);
 	}
 
-	public WebSocketSession(String host, int port, boolean secure, int connectTimeout) throws IOException {
-		this(host, port, secure, connectTimeout, DEFAULT_READ_TIMEOUT);
+	public WebSocketSession(String host, int port, boolean secure, boolean skipCertCheck, int connectTimeout) throws IOException {
+		this(host, port, secure, skipCertCheck, connectTimeout, DEFAULT_READ_TIMEOUT);
 	}
 
-	public WebSocketSession(String host, int port, boolean secure, int connectTimeout, int readTimeout) throws IOException {
+	public WebSocketSession(String host, int port, boolean secure, boolean skipCertCheck, int connectTimeout, int readTimeout)
+			throws IOException {
 		URI uri = null;
 		try {
 			String scheme = secure ? "wss://" : "ws://";
 			uri = new URI(scheme + host + ":" + port + "/websocket");
-			this.websocket = new WebSocket(uri, connectTimeout, readTimeout);
+			this.websocket = new WebSocket(new WebSocketConfig().setUri(uri).setSkipCertCheck(skipCertCheck)
+					.setConnectTimeout(connectTimeout).setReadTimeout(readTimeout));
 			websocket.addListener(this);
 		} catch (URISyntaxException e) {
 			throw new IllegalArgumentException("invalid host: " + host);
