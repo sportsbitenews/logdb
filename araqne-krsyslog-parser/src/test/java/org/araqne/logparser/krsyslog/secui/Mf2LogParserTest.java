@@ -35,6 +35,26 @@ import org.junit.Test;
  */
 public class Mf2LogParserTest {
 	@Test
+	public void testBrokenLogParse() {
+		String line = "<190>1 2015-02-17T04:35:41.384736Z [ips_ddos_incident] [210.223.182.1] 2015-02-17 13:35:37,2015-02-17 13:35:37,DaeYang,#14715(HTTP Authorization Login Brute Force Attempt-1/3(count 10, seconds 1)),Low,#0(IPS_DDOS占쏙옙占?,1,1518,detect,10425309775129";
+
+		Mf2LogParser p = new Mf2LogParser(Mode.CSV);	
+		Map<String, Object> m = p.parse(line(line));
+		System.out.println(m);
+
+	}
+	
+	@Test
+	public void testBrokenLogParse2() {
+		String line = "<190>1 2015-02-16T09:17:33.113629Z [vpn_act_ike] [210.223.182.1] 2015-02-16 18:17:33,DaeYang,-,0.0.0.0,-,SUCCESS,DEBUG,[exchange_free_aux:L2372] exchange (ptr=0x1c27c80, name=nil, remote_addr=0.0.0.0, phase=1) released.";
+
+		Mf2LogParser p = new Mf2LogParser(Mode.CSV);	
+		Map<String, Object> m = p.parse(line(line));
+		System.out.println(m);
+
+	}
+	
+	@Test
 	public void csvTest1_1() {
 		Mf2LogParser p = new Mf2LogParser(Mode.TSV);
 		Map<String, Object> m = p

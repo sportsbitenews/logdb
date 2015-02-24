@@ -31,15 +31,14 @@ public class CyberoamParser extends V1LogParser {
 					b = e + 20;
 				} else {
 					if (builder.charAt(e + 1) == '"') {
-						char ch = '\0';
 						String value = "";
 						int i = e + 2;
 
 						while (true) {
-							ch = builder.charAt(i);
+							char ch = builder.charAt(i);
 							try {
 								if (ch == '\\') {
-									builder.delete(i, i + 1);
+									builder.delete(i, i  + 1);
 									continue;
 								} else if (ch == '"' && builder.charAt(i + 1) == ' ') {
 									value = builder.substring(e + 2, i);

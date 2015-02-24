@@ -66,14 +66,12 @@ public class Mf2LogParser extends V1LogParser {
 		add("mng_blacklist_ipv6",
 				"time,machine_name,src_ip,src_port,dst_ip,dst_port,protocol,block_period,packets,bytes,type,reason");
 		add("mng_line", "time,machine_name,interface,msg");
-		add("mng_resource",
-				"time,machine_name,cpu_cores,cpu_usages,memory_capacity,memory_usages,disk_capacity,disk_usages");
+		add("mng_resource", "time,machine_name,cpu_cores,cpu_usages,memory_capacity,memory_usages,disk_capacity,disk_usages");
 		add("mng_daemon", "time,machine_name,daemon_name,cpu_usages,virtual_memmory_usages,real_memory_usages");
 		add("mng_if_traffic", "time,machine_name,interface,link_status,rx_frames,tx_frames,rx_bytes,tx_bytes");
 		add("mng_oversubscription",
 				"time,machine_name,incoming_bypass_pps,incoming_bypass_bps,incoming_drop_pps,incoming_drop_bps,outgoing_bypass_pps,outgoing_bypass_bps,outgoing_drop_pps,outgoing_drop_bps");
-		add("mng_qos",
-				"time,machine_name,queue_name,interface,use_bandwidth,allow_packets,allow_rate,loss_packets,loss_rate");
+		add("mng_qos", "time,machine_name,queue_name,interface,use_bandwidth,allow_packets,allow_rate,loss_packets,loss_rate");
 		add("mng_fqdn_object_management", "time,machine_name,object_name,before,after");
 		add("mng_user_object_management", "time,machine_name,user_name,before,after");
 		// 2.1 - 2.11
@@ -182,77 +180,85 @@ public class Mf2LogParser extends V1LogParser {
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
-		String line = (String) params.get("line");
-		if (line == null)
-			return params;
-
-		int b = line.indexOf('[');
-		int e = line.indexOf(']', b);
-		if (b < 0 || e < 0)
-			return params;
-		String type = line.substring(b + 1, e);
-
-		b = line.indexOf('[', e + 1);
-		e = line.indexOf(']', b + 1);
-		if (b < 0 || e < 0)
-			return params;
-		String fromIp = line.substring(b + 1, e);
-
-		Map<String, Object> m = new HashMap<String, Object>();
-		m.put("log_type", type);
-		m.put("from_ip", fromIp);
-
-		int delimiter;
-		if (mode == Mode.CSV) {
-			delimiter = ',';
-		} else {
-			delimiter = '\t';
-		}
-
-		String[] fields = typeFieldMap.get(type);
-		if (fields == null) {
-			List<String[]> fieldsList = overlappedFieldMap.get(type);
-
-			if (fieldsList == null) {
-				if (slog.isDebugEnabled())
-					slog.debug("krsyslog parser: unknown mf2 log type [{}], line [{}]", type, line);
+		try {
+			String line = (String) params.get("line");
+			if (line == null)
 				return params;
+
+			int b = line.indexOf('[');
+			int e = line.indexOf(']', b);
+			if (b < 0 || e < 0)
+				return params;
+			String type = line.substring(b + 1, e);
+
+			b = line.indexOf('[', e + 1);
+			e = line.indexOf(']', b + 1);
+			if (b < 0 || e < 0)
+				return params;
+			String fromIp = line.substring(b + 1, e);
+
+			Map<String, Object> m = new HashMap<String, Object>();
+			m.put("log_type", type);
+			m.put("from_ip", fromIp);
+
+			int delimiter;
+			if (mode == Mode.CSV) {
+				delimiter = ',';
 			} else {
-				String newLine = line.substring(e + 2);
-
-				String splitStr = (delimiter == ',') ? "," : "\t";
-				int numOfFields = newLine.split(splitStr).length;
-
-				for (String[] s : fieldsList) {
-					if (s.length == numOfFields) {
-						parse(line, m, s, e, delimiter);
-						return m;
-					}
-				}
-				return params;
+				delimiter = '\t';
 			}
+
+			String[] fields = typeFieldMap.get(type);
+			if (fields == null) {
+				List<String[]> fieldsList = overlappedFieldMap.get(type);
+
+				if (fieldsList == null) {
+					if (slog.isDebugEnabled())
+						slog.debug("krsyslog parser: unknown mf2 log type [{}], line [{}]", type, line);
+					return params;
+				} else {
+					String newLine = line.substring(e + 2);
+
+					String splitStr = (delimiter == ',') ? "," : "\t";
+					int numOfFields = newLine.split(splitStr).length;
+
+					for (String[] s : fieldsList) {
+						if (s.length == numOfFields) {
+							parse(line, m, s, e, delimiter);
+							return m;
+						}
+					}
+					return params;
+				}
+			}
+
+			parse(line, m, fields, e, delimiter);
+			return m;
+		} catch (Throwable t) {
+			if (slog.isDebugEnabled()) {
+				String line = (String) params.get("line");
+				slog.debug("araqne krsyslog parser: cannot parse log [" + line + "]", t);
+			}
+
+			return params;
 		}
-
-		parse(line, m, fields, e, delimiter);
-		return m;
-
 	}
 
 	private void parse(String line, Map<String, Object> m, String[] fields, int e, int delimiter) {
 		int b = e + 2;
 		if (b < 0)
 			return;
-
+		
 		int index = 0;
-		while ((e = line.indexOf(delimiter, b + 1)) != -1) {
-			String content = line.substring(b, e);
-			m.put(fields[index], content);
-
-			b = e + 1;
-			index++;
-		}
-
 		try {
+			while ((e = line.indexOf(delimiter, b + 1)) != -1) {
+				String content = line.substring(b, e);
+				m.put(fields[index], content);
+
+				b = e + 1;
+				index++;
+			}
+
 			String content = line.substring(b);
 			m.put(fields[index], content);
 		} catch (IndexOutOfBoundsException e1) {
