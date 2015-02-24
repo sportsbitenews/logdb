@@ -70,7 +70,7 @@ public class ExportTask implements Marshalable {
 		this.completedTime = System.currentTimeMillis();
 	}
 
-	public void cancel() {
+	public void setCancelled() {
 		this.cancelled = true;
 	}
 

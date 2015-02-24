@@ -19,7 +19,6 @@ import java.util.zip.ZipOutputStream;
 import org.araqne.codec.FastEncodingRule;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
-import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogTraverseCallback;
 import org.araqne.logstorage.LogTraverseCallback.Sink;
 import org.araqne.logstorage.TableScanRequest;
@@ -45,11 +44,15 @@ public class LocalExportWorker implements ExportWorker {
 	private ZipOutputStream zos;
 	private BufferedOutputStream bos;
 
+	private File path;
+
 	public LocalExportWorker(ExportRequest req, DumpService dumpService, LogStorage storage) {
 		this.req = req;
 		this.dumpService = dumpService;
 		this.storage = storage;
 		this.task = new ExportTask(req.getGuid());
+		this.path = new File(req.getParams().get("path"));
+
 	}
 
 	@Override
@@ -59,22 +62,21 @@ public class LocalExportWorker implements ExportWorker {
 
 	@Override
 	public void run() {
-		Map<Integer, String> tableIdMap = new HashMap<Integer, String>();
+		Map<String, Integer> tableIdMap = new HashMap<String, Integer>();
 
 		slog.info("araqne logstorage: start export estimation [{}]", req.getGuid());
 		List<ExportTabletTask> tabletTasks = dumpService.estimate(req);
 		Map<ExportTableKey, ExportTabletTask> m = task.getTabletTasks();
 		for (ExportTabletTask t : tabletTasks) {
 			m.put(new ExportTableKey(t.getTableName(), t.getDay()), t);
-			tableIdMap.put(t.getTableId(), t.getTableName());
+			tableIdMap.put(t.getTableName(), t.getTableId());
 		}
 
 		slog.info("araqne logstorage: start export job [{}]", req.getGuid());
 
 		try {
-			String path = req.getParams().get("path");
 
-			fos = new FileOutputStream(new File(path));
+			fos = new FileOutputStream(path);
 			zos = new ZipOutputStream(fos);
 			bos = new BufferedOutputStream(zos, 8192 * 4);
 
@@ -121,12 +123,15 @@ public class LocalExportWorker implements ExportWorker {
 			ensureClose(bos);
 			ensureClose(zos);
 			ensureClose(fos);
-			task.setCompleted();
 			slog.info("araqne logstorage: export completed");
+
+			if (task.isCancelled()) {
+				path.delete();
+			}
 		}
 	}
 
-	private Map<String, Object> buildManifest(List<ExportTabletTask> tasks, Map<Integer, String> tableIdMap) {
+	private Map<String, Object> buildManifest(List<ExportTabletTask> tasks, Map<String, Integer> tableIdMap) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("version", 1);
 		m.put("tables", tableIdMap);
@@ -181,29 +186,26 @@ public class LocalExportWorker implements ExportWorker {
 
 	private class OutputLoader extends LogTraverseCallback {
 		private long count = 0;
-		private ExportTabletTask task;
+		private ExportTabletTask tabletTask;
 
-		public OutputLoader(Sink sink, ExportTabletTask task) {
+		public OutputLoader(Sink sink, ExportTabletTask tabletTask) {
 			super(sink);
-			this.task = task;
+			this.tabletTask = tabletTask;
 		}
-
-		private volatile boolean doStop;
 
 		@Override
 		public void interrupt() {
-			doStop = true;
 		}
 
 		@Override
 		public boolean isInterrupted() {
-			return doStop;
+			return task.isCancelled();
 		}
 
 		@Override
 		protected List<Log> filter(List<Log> logs) {
 			count += logs.size();
-			task.setActualCount(count);
+			tabletTask.setActualCount(count);
 			return logs;
 		}
 	}

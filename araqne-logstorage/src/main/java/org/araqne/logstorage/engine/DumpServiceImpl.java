@@ -9,12 +9,8 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.felix.ipojo.annotations.Component;
-import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
-import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.cron.AbstractTickTimer;
-import org.araqne.cron.TickService;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
@@ -48,25 +44,9 @@ public class DumpServiceImpl implements DumpService {
 	@Requires
 	private LogFileServiceRegistry logFileServiceRegistry;
 
-	@Requires
-	private TickService tick;
-
 	private ConcurrentHashMap<String, DumpDriver> drivers = new ConcurrentHashMap<String, DumpDriver>();
 	private ConcurrentHashMap<String, ExportWorker> exportWorkers = new ConcurrentHashMap<String, ExportWorker>();
 	private ConcurrentHashMap<String, ImportWorker> importWorkers = new ConcurrentHashMap<String, ImportWorker>();
-
-	private TaskCleaner cleaner = new TaskCleaner();
-
-	@Validate
-	public void start() {
-		tick.addTimer(cleaner);
-	}
-
-	@Invalidate
-	public void stop() {
-		if (tick != null)
-			tick.removeTimer(cleaner);
-	}
 
 	@Override
 	public List<ExportTask> getExportTasks() {
@@ -78,12 +58,30 @@ public class DumpServiceImpl implements DumpService {
 	}
 
 	@Override
+	public ExportTask getExportTask(String guid) {
+		ExportWorker worker = exportWorkers.get(guid);
+		if (worker == null)
+			return null;
+
+		return worker.getTask().clone();
+	}
+
+	@Override
 	public List<ImportTask> getImportTasks() {
 		List<ImportTask> tasks = new ArrayList<ImportTask>();
 		for (ImportWorker worker : importWorkers.values()) {
 			tasks.add(worker.getTask().clone());
 		}
 		return tasks;
+	}
+
+	@Override
+	public ImportTask getImportTask(String guid) {
+		ImportWorker worker = importWorkers.get(guid);
+		if (worker == null)
+			return null;
+
+		return worker.getTask().clone();
 	}
 
 	@Override
@@ -100,9 +98,24 @@ public class DumpServiceImpl implements DumpService {
 		if (old != null)
 			throw new IllegalStateException("duplicated export job guid: " + req.getGuid());
 
-		new Thread(worker, "Data Exporter [" + req.getGuid() + "]").start();
+		new SafeExportWorker(worker).start();
 
 		return req.getGuid();
+	}
+
+	@Override
+	public void cancelExport(String guid) {
+		ExportWorker worker = exportWorkers.get(guid);
+		if (worker == null)
+			throw new IllegalStateException("export job not found: " + guid);
+
+		worker.getTask().setCancelled();
+	}
+
+	@Override
+	public void cancelImport(String guid) {
+		// TODO Auto-generated method stub
+
 	}
 
 	@Override
@@ -195,21 +208,25 @@ public class DumpServiceImpl implements DumpService {
 		}
 	}
 
-	private class TaskCleaner extends AbstractTickTimer {
+	private class SafeExportWorker extends Thread {
+		private ExportWorker worker;
 
-		@Override
-		public int getInterval() {
-			return 1000;
+		public SafeExportWorker(ExportWorker worker) {
+			super("Table Exporter [" + worker.getTask().getGuid() + "]");
+			this.worker = worker;
 		}
 
 		@Override
-		public void onTick() {
-			for (String guid : new ArrayList<String>(exportWorkers.keySet())) {
-				ExportWorker worker = exportWorkers.get(guid);
-				if (worker != null && worker.getTask().isCompleted()) {
-					exportWorkers.remove(guid);
-					slog.info("araqne logstorage: export job [{}] completed", guid);
-				}
+		public void run() {
+			ExportTask task = worker.getTask();
+			try {
+				worker.run();
+			} catch (Throwable t) {
+				slog.error("araqne logstorage: export job [" + task.getGuid() + "] failed", t);
+				task.setCancelled();
+			} finally {
+				task.setCompleted();
+				exportWorkers.remove(task.getGuid());
 			}
 		}
 	}

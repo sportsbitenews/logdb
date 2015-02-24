@@ -28,7 +28,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.araqne.api.Script;
+import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
+import org.araqne.api.ScriptUsage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.TableWildcardMatcher;
 import org.araqne.logstorage.backup.StorageBackupConfigSpec;
@@ -99,6 +101,13 @@ public class LogStorageBackupScript implements Script {
 		} catch (ParseException e) {
 			context.println("invalid date format");
 		}
+	}
+
+	@ScriptUsage(description = "cancel export", arguments = { @ScriptArgument(name = "guid", type = "string", description = "the guid of export job") })
+	public void cancelExport(String[] args) {
+		String guid = args[0];
+		dumpService.cancelExport(guid);
+		context.println("cancelled");
 	}
 
 	private Set<String> split(String line) {
