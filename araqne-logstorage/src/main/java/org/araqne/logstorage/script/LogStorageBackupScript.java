@@ -40,9 +40,13 @@ import org.araqne.logstorage.backup.StorageBackupMediaFactory;
 import org.araqne.logstorage.backup.StorageBackupMediaRegistry;
 import org.araqne.logstorage.backup.StorageBackupRequest;
 import org.araqne.logstorage.backup.StorageBackupType;
+import org.araqne.logstorage.dump.DumpConfigSpec;
+import org.araqne.logstorage.dump.DumpDriver;
 import org.araqne.logstorage.dump.DumpService;
 import org.araqne.logstorage.dump.ExportRequest;
 import org.araqne.logstorage.dump.ExportTask;
+import org.araqne.logstorage.dump.ImportRequest;
+import org.araqne.logstorage.dump.ImportTask;
 
 /**
  * @since 2.3.0
@@ -77,6 +81,15 @@ public class LogStorageBackupScript implements Script {
 		}
 	}
 
+	public void importTasks(String[] args) {
+		context.println("Import Tasks");
+		context.println("--------------");
+
+		for (ImportTask task : dumpService.getImportTasks()) {
+			context.println(task);
+		}
+	}
+
 	public void beginExport(String[] args) {
 		try {
 			context.print("Tables? ");
@@ -100,6 +113,37 @@ public class LogStorageBackupScript implements Script {
 			context.println("interrupted");
 		} catch (ParseException e) {
 			context.println("invalid date format");
+		}
+	}
+
+	@ScriptUsage(description = "import data", arguments = { @ScriptArgument(name = "type", type = "string", description = "driver type") })
+	public void beginImport(String[] args) {
+		String type = args[0];
+		try {
+			DumpDriver driver = dumpService.getDumpDriver(type);
+			if (driver == null) {
+				context.println("unknown driver type: " + type);
+				return;
+			}
+
+			ImportRequest req = new ImportRequest();
+			for (DumpConfigSpec spec : driver.getImportSpecs()) {
+				String value = input(spec);
+			}
+
+			dumpService.beginImport(req);
+		} catch (InterruptedException e) {
+			context.println("");
+			context.println("interrupted");
+		}
+	}
+
+	public void dumpDrivers(String[] args) {
+		context.println("Dump Drivers");
+		context.println("--------------");
+
+		for (DumpDriver driver : dumpService.getDumpDrivers()) {
+			context.println(driver.getName(Locale.ENGLISH) + ": " + driver.getDescription(Locale.ENGLISH));
 		}
 	}
 
@@ -267,4 +311,20 @@ public class LogStorageBackupScript implements Script {
 		return formatter.format(bytes);
 	}
 
+	private String input(DumpConfigSpec spec) throws InterruptedException {
+		String s = spec.isRequired() ? " (required)?" : " (optional)?";
+		String value = null;
+		while (true) {
+			context.println(spec.getDisplayName(Locale.ENGLISH) + s);
+			value = context.readLine();
+			if (value.trim().isEmpty()) {
+				if (spec.isRequired())
+					continue;
+				return null;
+			}
+			break;
+		}
+
+		return value;
+	}
 }

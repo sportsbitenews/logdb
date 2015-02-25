@@ -35,12 +35,28 @@ public class DumpConfigSpec {
 		this.key = key;
 	}
 
+	public String getDisplayName(Locale locale) {
+		String text = displayNames.get(locale);
+		if (text != null)
+			return text;
+
+		return displayNames.get(Locale.ENGLISH);
+	}
+
 	public Map<Locale, String> getDisplayNames() {
 		return displayNames;
 	}
 
 	public void setDisplayNames(Map<Locale, String> displayNames) {
 		this.displayNames = displayNames;
+	}
+
+	public String getDescription(Locale locale) {
+		String text = descriptions.get(locale);
+		if (text != null)
+			return text;
+
+		return descriptions.get(Locale.ENGLISH);
 	}
 
 	public Map<Locale, String> getDescriptions() {

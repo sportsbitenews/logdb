@@ -41,19 +41,6 @@ public class ExportTask implements Marshalable {
 		return cancelled;
 	}
 
-	public ExportTask clone() {
-		ExportTask c = new ExportTask(guid);
-		c.createdTime = createdTime;
-		c.estimationDoneTime = estimationDoneTime;
-		c.completedTime = completedTime;
-		c.tabletTasks = new ConcurrentHashMap<ExportTableKey, ExportTabletTask>();
-		for (ExportTableKey key : tabletTasks.keySet()) {
-			ExportTabletTask task = tabletTasks.get(key);
-			c.tabletTasks.put(key, task.clone());
-		}
-		return c;
-	}
-
 	public String getGuid() {
 		return guid;
 	}
@@ -80,6 +67,20 @@ public class ExportTask implements Marshalable {
 
 	public void setTabletTasks(Map<ExportTableKey, ExportTabletTask> tabletTasks) {
 		this.tabletTasks = tabletTasks;
+	}
+
+	public ExportTask clone() {
+		ExportTask c = new ExportTask(guid);
+		c.createdTime = createdTime;
+		c.estimationDoneTime = estimationDoneTime;
+		c.completedTime = completedTime;
+		c.cancelled = cancelled;
+		c.tabletTasks = new ConcurrentHashMap<ExportTableKey, ExportTabletTask>();
+		for (ExportTableKey key : tabletTasks.keySet()) {
+			ExportTabletTask task = tabletTasks.get(key);
+			c.tabletTasks.put(key, task.clone());
+		}
+		return c;
 	}
 
 	@Override

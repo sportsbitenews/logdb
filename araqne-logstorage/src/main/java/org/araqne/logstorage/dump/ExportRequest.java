@@ -6,27 +6,27 @@ import java.util.Set;
 import java.util.UUID;
 
 public class ExportRequest {
-	private String driverName;
+	private String driverType;
 	private String guid = UUID.randomUUID().toString();
 	private Set<String> tableNames;
 	private Date from;
 	private Date to;
 	private Map<String, String> params;
 
-	public ExportRequest(String driverName, Set<String> tableNames, Date from, Date to, Map<String, String> params) {
-		this.driverName = driverName;
+	public ExportRequest(String driverType, Set<String> tableNames, Date from, Date to, Map<String, String> params) {
+		this.driverType = driverType;
 		this.tableNames = tableNames;
 		this.from = from;
 		this.to = to;
 		this.params = params;
 	}
 
-	public String getDriverName() {
-		return driverName;
+	public String getDriverType() {
+		return driverType;
 	}
 
-	public void setDriverName(String driverName) {
-		this.driverName = driverName;
+	public void setDriverType(String driverName) {
+		this.driverType = driverName;
 	}
 
 	public String getGuid() {

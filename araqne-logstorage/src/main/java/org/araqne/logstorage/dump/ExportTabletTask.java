@@ -64,6 +64,14 @@ public class ExportTabletTask implements Marshalable {
 	public void setCompleted(boolean completed) {
 		this.completed = completed;
 	}
+	
+	public DumpTabletEntry toEntry() {
+		DumpTabletEntry e = new DumpTabletEntry();
+		e.setTableName(tableName);
+		e.setDay(day);
+		e.setCount(actualCount);
+		return e;
+	}
 
 	@Override
 	public Map<String, Object> marshal() {

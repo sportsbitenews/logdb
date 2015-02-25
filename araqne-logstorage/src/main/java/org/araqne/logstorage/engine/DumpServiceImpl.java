@@ -1,11 +1,13 @@
 package org.araqne.logstorage.engine;
 
+import java.io.IOException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -18,6 +20,7 @@ import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogWriterStatus;
 import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.dump.DumpDriver;
+import org.araqne.logstorage.dump.DumpManifest;
 import org.araqne.logstorage.dump.DumpService;
 import org.araqne.logstorage.dump.ExportRequest;
 import org.araqne.logstorage.dump.ExportTabletTask;
@@ -86,13 +89,7 @@ public class DumpServiceImpl implements DumpService {
 
 	@Override
 	public String beginExport(ExportRequest req) {
-		if (req.getDriverName() == null)
-			throw new IllegalArgumentException("driver name should not be null");
-
-		DumpDriver driver = drivers.get(req.getDriverName());
-		if (driver == null)
-			throw new IllegalStateException("unsupported driver: " + req.getDriverName());
-
+		DumpDriver driver = ensureDriver(req.getDriverType());
 		ExportWorker worker = driver.newExportWorker(req);
 		ExportWorker old = exportWorkers.putIfAbsent(req.getGuid(), worker);
 		if (old != null)
@@ -113,9 +110,20 @@ public class DumpServiceImpl implements DumpService {
 	}
 
 	@Override
-	public void cancelImport(String guid) {
-		// TODO Auto-generated method stub
+	public DumpManifest readManifest(String driverType, Map<String, String> params) throws IOException {
+		DumpDriver driver = ensureDriver(driverType);
+		return driver.readManifest(params);
+	}
 
+	private DumpDriver ensureDriver(String type) {
+		if (type == null)
+			throw new IllegalArgumentException("driver name should not be null");
+
+		DumpDriver driver = drivers.get(type);
+		if (driver == null)
+			throw new IllegalStateException("unsupported driver: " + type);
+
+		return driver;
 	}
 
 	@Override
@@ -125,20 +133,34 @@ public class DumpServiceImpl implements DumpService {
 	}
 
 	@Override
+	public void cancelImport(String guid) {
+		ImportWorker worker = importWorkers.get(guid);
+		if (worker == null)
+			throw new IllegalStateException("import job not found: " + guid);
+
+		worker.getTask().setCancelled();
+	}
+
+	@Override
 	public List<DumpDriver> getDumpDrivers() {
 		return new ArrayList<DumpDriver>(drivers.values());
 	}
 
 	@Override
+	public DumpDriver getDumpDriver(String name) {
+		return drivers.get(name);
+	}
+
+	@Override
 	public void registerDriver(DumpDriver driver) {
-		DumpDriver old = drivers.putIfAbsent(driver.getName(), driver);
+		DumpDriver old = drivers.putIfAbsent(driver.getType(), driver);
 		if (old != null)
-			throw new IllegalStateException("duplicated dump driver: " + driver.getName());
+			throw new IllegalStateException("duplicated dump driver: " + driver.getType());
 	}
 
 	@Override
 	public void unregisterDriver(DumpDriver driver) {
-		drivers.remove(driver.getName(), driver);
+		drivers.remove(driver.getType(), driver);
 	}
 
 	@Override
