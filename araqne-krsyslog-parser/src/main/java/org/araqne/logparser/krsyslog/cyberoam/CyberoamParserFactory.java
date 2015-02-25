@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Eediom Inc
+ * Copyright 2015 Eediom Inc
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ public class CyberoamParserFactory extends AbstractLogParserFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "사이버롬 UTM";
-		return "Cyberoam";
+		return "Cyberoam UTM";
 	}
 
 	@Override

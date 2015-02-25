@@ -822,9 +822,11 @@ public class ManagementPlugin {
 				if (diskLackAction.equals("StopLogging")) {
 					reqParams.put("lack_action_ko", "수집을 중단하도록 설정합니다.");
 					reqParams.put("lack_action_en", "stop loggers.");
+					reqParams.put("lack_action_zh", "停止采集数据.");
 				} else {
 					reqParams.put("lack_action_ko", "과거 데이터를 자동 삭제하도록 설정합니다.");
 					reqParams.put("lack_action_en", "automatically delete existing data.");
+					reqParams.put("lack_action_zh", "将自动删除旧数据.");
 				}
 			}
 		}
