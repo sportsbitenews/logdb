@@ -3,11 +3,11 @@ package org.araqne.logstorage.dump;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class ExportTableKey {
+public class DumpTabletKey {
 	private String tableName;
 	private Date day;
 
-	public ExportTableKey(String tableName, Date day) {
+	public DumpTabletKey(String tableName, Date day) {
 		this.tableName = tableName;
 		this.day = day;
 	}
@@ -37,7 +37,7 @@ public class ExportTableKey {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ExportTableKey other = (ExportTableKey) obj;
+		DumpTabletKey other = (DumpTabletKey) obj;
 		if (day == null) {
 			if (other.day != null)
 				return false;

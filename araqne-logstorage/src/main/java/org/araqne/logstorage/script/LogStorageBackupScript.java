@@ -42,7 +42,9 @@ import org.araqne.logstorage.backup.StorageBackupRequest;
 import org.araqne.logstorage.backup.StorageBackupType;
 import org.araqne.logstorage.dump.DumpConfigSpec;
 import org.araqne.logstorage.dump.DumpDriver;
+import org.araqne.logstorage.dump.DumpManifest;
 import org.araqne.logstorage.dump.DumpService;
+import org.araqne.logstorage.dump.DumpTabletEntry;
 import org.araqne.logstorage.dump.ExportRequest;
 import org.araqne.logstorage.dump.ExportTask;
 import org.araqne.logstorage.dump.ImportRequest;
@@ -127,14 +129,37 @@ public class LogStorageBackupScript implements Script {
 			}
 
 			ImportRequest req = new ImportRequest();
+			req.setDriverType(type);
+
 			for (DumpConfigSpec spec : driver.getImportSpecs()) {
 				String value = input(spec);
+				req.getParams().put(spec.getKey(), value);
 			}
 
+			DumpManifest manifest = dumpService.readManifest(type, req.getParams());
+
+			long total = 0;
+			for (DumpTabletEntry e : manifest.getEntries()) {
+				context.println(e.toString());
+				total += e.getCount();
+			}
+
+			context.print("Total " + total + " rows. proceed (y/N)? ");
+			String proceed = context.readLine().trim();
+			if (!proceed.equalsIgnoreCase("y")) {
+				context.println("cancelled");
+				return;
+			}
+
+			req.setEntries(manifest.getEntries());
+
 			dumpService.beginImport(req);
+			context.println("import started");
 		} catch (InterruptedException e) {
 			context.println("");
 			context.println("interrupted");
+		} catch (IOException e) {
+			context.println(e.getMessage());
 		}
 	}
 
@@ -312,10 +337,10 @@ public class LogStorageBackupScript implements Script {
 	}
 
 	private String input(DumpConfigSpec spec) throws InterruptedException {
-		String s = spec.isRequired() ? " (required)?" : " (optional)?";
+		String s = spec.isRequired() ? " (required)? " : " (optional)? ";
 		String value = null;
 		while (true) {
-			context.println(spec.getDisplayName(Locale.ENGLISH) + s);
+			context.print(spec.getDisplayName(Locale.ENGLISH) + s);
 			value = context.readLine();
 			if (value.trim().isEmpty()) {
 				if (spec.isRequired())

@@ -128,8 +128,15 @@ public class DumpServiceImpl implements DumpService {
 
 	@Override
 	public String beginImport(ImportRequest req) {
-		// TODO Auto-generated method stub
-		return null;
+		DumpDriver driver = ensureDriver(req.getDriverType());
+		ImportWorker worker = driver.newImportWorker(req);
+		ImportWorker old = importWorkers.putIfAbsent(req.getGuid(), worker);
+		if (old != null)
+			throw new IllegalStateException("duplicated import job guid: " + req.getGuid());
+
+		new SafeImportWorker(worker).start();
+
+		return req.getGuid();
 	}
 
 	@Override
@@ -226,6 +233,29 @@ public class DumpServiceImpl implements DumpService {
 				ExportTabletTask task = new ExportTabletTask(tableName, day, schema.getId());
 				task.setEstimatedCount(count);
 				tasks.add(task);
+			}
+		}
+	}
+
+	private class SafeImportWorker extends Thread {
+		private ImportWorker worker;
+
+		public SafeImportWorker(ImportWorker worker) {
+			super("Table Importer [" + worker.getTask().getGuid() + "]");
+			this.worker = worker;
+		}
+
+		@Override
+		public void run() {
+			ImportTask task = worker.getTask();
+			try {
+				worker.run();
+			} catch (Throwable t) {
+				slog.error("araqne logstorage: import job [" + task.getGuid() + "] failed", t);
+				task.setCancelled();
+			} finally {
+				task.setCompleted();
+				importWorkers.remove(task.getGuid());
 			}
 		}
 	}

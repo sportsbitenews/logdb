@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -23,7 +24,7 @@ import org.araqne.logstorage.TableScanRequest;
 import org.araqne.logstorage.dump.DumpManifest;
 import org.araqne.logstorage.dump.DumpService;
 import org.araqne.logstorage.dump.ExportRequest;
-import org.araqne.logstorage.dump.ExportTableKey;
+import org.araqne.logstorage.dump.DumpTabletKey;
 import org.araqne.logstorage.dump.ExportTabletTask;
 import org.araqne.logstorage.dump.ExportTask;
 import org.araqne.logstorage.dump.ExportWorker;
@@ -65,37 +66,39 @@ public class LocalExportWorker implements ExportWorker {
 
 		slog.info("araqne logstorage: start export estimation [{}]", req.getGuid());
 		List<ExportTabletTask> tabletTasks = dumpService.estimate(req);
-		Map<ExportTableKey, ExportTabletTask> m = task.getTabletTasks();
+		Map<DumpTabletKey, ExportTabletTask> m = task.getTabletTasks();
 		for (ExportTabletTask t : tabletTasks) {
-			m.put(new ExportTableKey(t.getTableName(), t.getDay()), t);
+			m.put(new DumpTabletKey(t.getTableName(), t.getDay()), t);
 			manifest.getTables().put(t.getTableName(), t.getTableId());
 		}
 
 		slog.info("araqne logstorage: start export job [{}]", req.getGuid());
 
 		try {
-
 			fos = new FileOutputStream(path);
 			zos = new ZipOutputStream(fos);
 			bos = new BufferedOutputStream(zos, 8192 * 4);
 
 			String lastTableName = null;
 			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-			for (ExportTabletTask task : tabletTasks) {
-				if (lastTableName == null || !lastTableName.equals(task.getTableName())) {
-					zos.putNextEntry(new ZipEntry(task.getTableId() + "/"));
-					lastTableName = task.getTableName();
+			for (ExportTabletTask t : tabletTasks) {
+				if (task.isCancelled())
+					return;
+				
+				if (lastTableName == null || !lastTableName.equals(t.getTableName())) {
+					zos.putNextEntry(new ZipEntry(t.getTableId() + "/"));
+					lastTableName = t.getTableName();
 				}
 
-				String entryPath = task.getTableId() + "/" + df.format(task.getDay()) + ".dmp";
+				String entryPath = t.getTableId() + "/" + df.format(t.getDay()) + ".dmp";
 				zos.putNextEntry(new ZipEntry(entryPath));
 
-				OutputLoader loader = new OutputLoader(new OutputSink(0, 0), task);
+				OutputLoader loader = new OutputLoader(new OutputSink(0, 0), t);
 
 				TableScanRequest scanReq = new TableScanRequest();
-				scanReq.setTableName(task.getTableName());
-				scanReq.setFrom(task.getDay());
-				scanReq.setTo(nextDay(task.getDay()));
+				scanReq.setTableName(t.getTableName());
+				scanReq.setFrom(t.getDay());
+				scanReq.setTo(nextDay(t.getDay()));
 				scanReq.setUseSerialScan(true);
 				scanReq.setAsc(true);
 				scanReq.setTraverseCallback(loader);
@@ -105,10 +108,10 @@ public class LocalExportWorker implements ExportWorker {
 				} catch (InterruptedException e) {
 				}
 
-				task.setActualCount(loader.count);
-				task.setCompleted(true);
+				t.setActualCount(loader.count);
+				t.setCompleted(true);
 
-				manifest.getEntries().add(task.toEntry());
+				manifest.getEntries().add(t.toEntry());
 
 				zos.closeEntry();
 			}
@@ -156,16 +159,27 @@ public class LocalExportWorker implements ExportWorker {
 		@Override
 		protected void processLogs(List<Log> logs) {
 			FastEncodingRule enc = new FastEncodingRule();
+			List<Object> l = new ArrayList<Object>();
 			for (Log log : logs) {
 				Map<String, Object> data = log.getData();
 				data.put("_time", log.getDate());
+				l.add(data);
+			}
 
-				try {
-					ByteBuffer bb = enc.encode(data);
-					bos.write(bb.array());
-				} catch (IOException e) {
-					slog.error("araqne logstorage: output failure", e);
-				}
+			try {
+				ByteBuffer bb = enc.encode(l);
+				int len = bb.array().length;
+
+				byte[] b = new byte[4];
+				b[0] = (byte) ((len >> 24) & 0xff);
+				b[1] = (byte) ((len >> 16) & 0xff);
+				b[2] = (byte) ((len >> 8) & 0xff);
+				b[3] = (byte) (len & 0xff);
+
+				bos.write(b);
+				bos.write(bb.array());
+			} catch (IOException e) {
+				slog.error("araqne logstorage: output failure", e);
 			}
 		}
 	}

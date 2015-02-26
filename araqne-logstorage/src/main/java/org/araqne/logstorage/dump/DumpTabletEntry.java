@@ -45,4 +45,10 @@ public class DumpTabletEntry implements Marshalable {
 		m.put("count", count);
 		return m;
 	}
+
+	@Override
+	public String toString() {
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+		return "table=" + tableName + ", day=" + df.format(day) + ", count=" + count;
+	}
 }

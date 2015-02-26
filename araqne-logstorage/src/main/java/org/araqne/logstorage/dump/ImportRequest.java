@@ -1,21 +1,23 @@
 package org.araqne.logstorage.dump;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public class ImportRequest {
-	private String driverName;
+	private String driverType;
 	private String guid = UUID.randomUUID().toString();
-	private Map<String, String> params;
-	private List<DumpTabletEntry> entries;
+	private Map<String, String> params = new HashMap<String, String>();
+	private List<DumpTabletEntry> entries = new ArrayList<DumpTabletEntry>();
 
-	public String getDriverName() {
-		return driverName;
+	public String getDriverType() {
+		return driverType;
 	}
 
-	public void setDriverName(String driverName) {
-		this.driverName = driverName;
+	public void setDriverType(String driverType) {
+		this.driverType = driverType;
 	}
 
 	public String getGuid() {

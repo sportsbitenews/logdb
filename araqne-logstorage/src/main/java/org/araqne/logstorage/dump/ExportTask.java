@@ -14,7 +14,7 @@ public class ExportTask implements Marshalable {
 	private long estimationDoneTime;
 	private long completedTime;
 	private boolean cancelled;
-	private Map<ExportTableKey, ExportTabletTask> tabletTasks = new ConcurrentHashMap<ExportTableKey, ExportTabletTask>();
+	private Map<DumpTabletKey, ExportTabletTask> tabletTasks = new ConcurrentHashMap<DumpTabletKey, ExportTabletTask>();
 
 	public ExportTask(String guid) {
 		this.guid = guid;
@@ -61,11 +61,11 @@ public class ExportTask implements Marshalable {
 		this.cancelled = true;
 	}
 
-	public Map<ExportTableKey, ExportTabletTask> getTabletTasks() {
+	public Map<DumpTabletKey, ExportTabletTask> getTabletTasks() {
 		return tabletTasks;
 	}
 
-	public void setTabletTasks(Map<ExportTableKey, ExportTabletTask> tabletTasks) {
+	public void setTabletTasks(Map<DumpTabletKey, ExportTabletTask> tabletTasks) {
 		this.tabletTasks = tabletTasks;
 	}
 
@@ -75,8 +75,8 @@ public class ExportTask implements Marshalable {
 		c.estimationDoneTime = estimationDoneTime;
 		c.completedTime = completedTime;
 		c.cancelled = cancelled;
-		c.tabletTasks = new ConcurrentHashMap<ExportTableKey, ExportTabletTask>();
-		for (ExportTableKey key : tabletTasks.keySet()) {
+		c.tabletTasks = new ConcurrentHashMap<DumpTabletKey, ExportTabletTask>();
+		for (DumpTabletKey key : tabletTasks.keySet()) {
 			ExportTabletTask task = tabletTasks.get(key);
 			c.tabletTasks.put(key, task.clone());
 		}
