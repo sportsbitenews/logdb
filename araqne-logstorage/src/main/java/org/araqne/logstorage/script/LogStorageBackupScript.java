@@ -92,8 +92,16 @@ public class LogStorageBackupScript implements Script {
 		}
 	}
 
+	@ScriptUsage(description = "export data", arguments = { @ScriptArgument(name = "type", type = "string", description = "driver type") })
 	public void beginExport(String[] args) {
+		String type = args[0];
 		try {
+			DumpDriver driver = dumpService.getDumpDriver(type);
+			if (driver == null) {
+				context.println("unknown driver type: " + type);
+				return;
+			}
+
 			context.print("Tables? ");
 			Set<String> tableNames = split(context.readLine());
 
@@ -103,11 +111,12 @@ public class LogStorageBackupScript implements Script {
 			context.print("To (yyyyMMdd)? ");
 			Date to = df.parse(context.readLine().trim());
 
-			context.print("Dump Path? ");
-			String path = context.readLine().trim();
-
 			Map<String, String> params = new HashMap<String, String>();
-			params.put("path", path);
+			for (DumpConfigSpec spec : driver.getExportSpecs()) {
+				String value = input(spec);
+				params.put(spec.getKey(), value);
+			}
+
 			dumpService.beginExport(new ExportRequest("local", tableNames, from, to, params));
 			context.println("export started");
 		} catch (InterruptedException e) {
