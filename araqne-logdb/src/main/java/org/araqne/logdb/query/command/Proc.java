@@ -33,6 +33,7 @@ import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.RowPipe;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.StreamResultFactory;
+import org.araqne.logdb.impl.QueryHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +61,7 @@ public class Proc extends QueryCommand implements FieldOrdering {
 
 		List<QueryCommand> procCommands = parserService.parseCommands(procCtx, procedure.getQueryString());
 		this.subQuery = new DefaultQuery(procCtx, procedure.getQueryString(), procCommands, new StreamResultFactory(procPipe));
+		QueryHelper.setJoinAndUnionDependencies(subQuery.getCommands());
 
 		for (QueryCommand cmd : subQuery.getCommands()) {
 			if (cmd.getMainTask() != null) {

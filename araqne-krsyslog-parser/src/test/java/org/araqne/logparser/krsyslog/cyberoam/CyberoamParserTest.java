@@ -17,7 +17,7 @@ public class CyberoamParserTest {
 
 		CyberoamParser p = new CyberoamParser();
 		Map<String, Object> m = p.parse(log);
-
+		
 		assertEquals("2015-02-05", m.get("date"));
 		assertEquals("C\"R15iNG", m.get("device_name"));
 		assertEquals("Firewall Rule", m.get("log_component"));
@@ -32,10 +32,10 @@ public class CyberoamParserTest {
 
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
-
+		
 		CyberoamParser p = new CyberoamParser();
 		Map<String, Object> m = p.parse(log);
-
+		
 		assertEquals("2015-02-05", m.get("date"));
 		assertEquals("C\"R15iNG", m.get("device_name"));
 		assertEquals("Firewall Rule", m.get("log_component"));
