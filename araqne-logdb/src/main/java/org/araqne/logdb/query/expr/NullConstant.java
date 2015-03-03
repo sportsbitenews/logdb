@@ -16,15 +16,11 @@
 
 package org.araqne.logdb.query.expr;
 
-import java.util.List;
-
-import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
 public class NullConstant implements Expression {
 
-
-	public NullConstant(QueryContext ctx, List<Expression> exprs) {
+	public NullConstant() {
 	}
 
 	@Override
@@ -34,6 +30,6 @@ public class NullConstant implements Expression {
 
 	@Override
 	public String toString() {
-		return "null()";
+		return "null";
 	}
 }

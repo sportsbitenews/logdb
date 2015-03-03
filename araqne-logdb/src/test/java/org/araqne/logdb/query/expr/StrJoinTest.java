@@ -108,7 +108,7 @@ public class StrJoinTest {
 
 		for(Object o: object){
 			if(o == null)
-				expr.add( new NullConstant(null, null));
+				expr.add(new NullConstant());
 			if(o instanceof Expression)
 				expr.add((Expression)o);
 			else if(o instanceof String)
