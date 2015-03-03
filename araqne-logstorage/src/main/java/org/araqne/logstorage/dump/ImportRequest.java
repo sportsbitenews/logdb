@@ -12,6 +12,15 @@ public class ImportRequest {
 	private Map<String, String> params = new HashMap<String, String>();
 	private List<DumpTabletEntry> entries = new ArrayList<DumpTabletEntry>();
 
+	public ImportRequest() {
+	}
+
+	public ImportRequest(String driverType, Map<String, String> params, List<DumpTabletEntry> entries) {
+		this.driverType = driverType;
+		this.params = params;
+		this.entries = entries;
+	}
+
 	public String getDriverType() {
 		return driverType;
 	}

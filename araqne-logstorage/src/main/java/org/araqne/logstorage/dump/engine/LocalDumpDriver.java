@@ -95,7 +95,9 @@ public class LocalDumpDriver implements DumpDriver {
 		try {
 			zipFile = new ZipFile(path);
 			is = zipFile.getInputStream(new ZipEntry("manifest.json"));
-			return DumpManifest.parseJSON(is);
+			DumpManifest manifest = DumpManifest.parseJSON(is);
+			manifest.setDriverType("local");
+			return manifest;
 		} finally {
 			if (is != null) {
 				try {

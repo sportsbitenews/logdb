@@ -127,7 +127,7 @@ public class LogStorageBackupScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "import data", arguments = { @ScriptArgument(name = "type", type = "string", description = "driver type") })
+	@ScriptUsage(description = "import data", arguments = { @ScriptArgument(name = "driver", type = "string", description = "driver type") })
 	public void beginImport(String[] args) {
 		String type = args[0];
 		try {

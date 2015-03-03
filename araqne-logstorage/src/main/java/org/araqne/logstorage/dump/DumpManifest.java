@@ -10,11 +10,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.msgbus.Marshalable;
 import org.json.JSONConverter;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class DumpManifest {
+public class DumpManifest implements Marshalable {
 
 	private int version;
 	private String driverType;
@@ -93,20 +94,25 @@ public class DumpManifest {
 	}
 
 	public String toJSON() {
-		Map<String, Object> m = new HashMap<String, Object>();
-		m.put("version", 1);
-		m.put("tables", tables);
+		try {
+			return JSONConverter.jsonize(marshal());
+		} catch (JSONException e) {
+			return null;
+		}
+	}
 
+	@Override
+	public Map<String, Object> marshal() {
 		List<Object> l = new ArrayList<Object>();
 		for (DumpTabletEntry task : entries) {
 			l.add(task.marshal());
 		}
 
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("version", 1);
+		m.put("driver", driverType);
+		m.put("tables", tables);
 		m.put("entries", l);
-		try {
-			return JSONConverter.jsonize(m);
-		} catch (JSONException e) {
-			return null;
-		}
+		return m;
 	}
 }

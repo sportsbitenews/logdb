@@ -1,5 +1,6 @@
 package org.araqne.logstorage.dump;
 
+import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -11,6 +12,15 @@ public class DumpTabletEntry implements Marshalable {
 	private String tableName;
 	private Date day;
 	private long count;
+
+	public static DumpTabletEntry parse(Map<String, Object> m) {
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+		DumpTabletEntry e = new DumpTabletEntry();
+		e.tableName = (String) m.get("table");
+		e.day = df.parse((String) m.get("day"), new ParsePosition(0));
+		e.count = Long.parseLong(m.get("count").toString());
+		return e;
+	}
 
 	public String getTableName() {
 		return tableName;
