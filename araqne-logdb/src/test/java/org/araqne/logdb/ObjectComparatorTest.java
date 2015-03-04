@@ -84,7 +84,9 @@ public class ObjectComparatorTest {
 
 		Calendar cal = Calendar.getInstance();
 		DATE2 = cal.getTime();
-		cal.add(Calendar.DATE, -1);
+		// diff should be larger than 25 days because 
+		// when 25 days converted to millisec, it's becomes larger than INT_MAX (2160000000 > 2147483647)  
+		cal.add(Calendar.MONTH, -1);
 		DATE1 = cal.getTime();
 
 		DATE1 = cal.getTime();
@@ -633,7 +635,7 @@ public class ObjectComparatorTest {
 		assertTrue(cmp.compare(BLOB, ARRAY) > 0);
 		assertTrue(cmp.compare(BLOB, MAP) > 0);
 	}
-
+	
 	@SuppressWarnings("rawtypes")
 	abstract class Fruit implements Comparable {
 		abstract public int getType();
