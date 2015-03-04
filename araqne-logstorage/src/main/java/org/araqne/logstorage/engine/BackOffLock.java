@@ -25,7 +25,7 @@ public class BackOffLock {
 
 	public BackOffLock(Lock l) {
 		this.lock = l;
-		to = -1;
+		to = Integer.MIN_VALUE;
 		this.min = 0;
 		this.max = MAX_WAIT;
 	}
@@ -49,7 +49,8 @@ public class BackOffLock {
 	public boolean tryLock() throws InterruptedException {
 		if (tryCnt != 0) {
 			long cbo = nextBackOff();
-			to -= cbo;
+			if (to != Integer.MIN_VALUE)
+				to -= cbo;
 			return (locked = lock.tryLock(cbo, TimeUnit.NANOSECONDS));
 		} else {
 			return (locked = lock.tryLock());
@@ -61,7 +62,7 @@ public class BackOffLock {
 	}
 
 	public boolean isDone() {
-		return locked || to < 0;
+		return locked || (to != Integer.MIN_VALUE && to < 0);
 	}
 
 	public boolean hasLocked() {

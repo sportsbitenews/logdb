@@ -1410,8 +1410,10 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
 			long readerMaxId = maxId != -1 ? Math.min(flushedMaxId, maxId) : flushedMaxId;
 
-			logger.debug("#buffer flush bug# minId: {}, readerMaxId: {}", minId, readerMaxId);
-			logger.debug("#buffer flush bug# maxId: {}, onlineMinId: {}", maxId, flushedMaxId);
+			if (logger.isDebugEnabled()) {
+				logger.debug("#buffer flush bug# minId: {}, readerMaxId: {}", minId, readerMaxId);
+				logger.debug("#buffer flush bug# maxId: {}, onlineMinId: {}", maxId, flushedMaxId);
+			}
 
 			if (req.isAsc()) {
 				if (minId < 0 || readerMaxId < 0 || readerMaxId >= minId) {
