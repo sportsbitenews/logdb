@@ -1,22 +1,11 @@
-/*
- * Copyright 2011 Future Systems
- * 
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * 
- * http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.araqne.logdb.query.command;
 
+import java.util.Map;
+
 import org.araqne.logdb.LookupHandler;
+import org.araqne.logdb.LookupHandler2;
 import org.araqne.logdb.LookupHandlerRegistry;
+import org.araqne.logdb.LookupTable;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
@@ -27,19 +16,19 @@ public class Lookup extends QueryCommand implements ThreadSafe {
 	private final String handlerName;
 	private final String lookupInputField;
 	private final String sourceField;
-	private final String lookupOutputField;
-	private final String targetField;
 
-	public Lookup(String handlerName, String srcField, String dstField) {
-		this(handlerName, srcField, srcField, dstField, dstField);
-	}
+	// original output field to user defined field
+	private final Map<String, String> outputFields;
+	private LookupHandler handler;
+	private LookupTable table;
 
-	public Lookup(String handlerName, String sourceField, String lookupInputField, String lookupOutputField, String targetField) {
+	public Lookup(LookupHandlerRegistry registry, String handlerName, String sourceField, String lookupInputField,
+			Map<String, String> outputFields) {
+		this.registry = registry;
 		this.handlerName = handlerName;
 		this.sourceField = sourceField;
 		this.lookupInputField = lookupInputField;
-		this.lookupOutputField = lookupOutputField;
-		this.targetField = targetField;
+		this.outputFields = outputFields;
 	}
 
 	@Override
@@ -59,21 +48,18 @@ public class Lookup extends QueryCommand implements ThreadSafe {
 		return lookupInputField;
 	}
 
-	public String getLookupOutputField() {
-		return lookupOutputField;
+	public Map<String, String> getOutputFields() {
+		return outputFields;
 	}
 
-	public String getTargetField() {
-		return targetField;
-	}
-
-	public void setLogQueryService(LookupHandlerRegistry registry) {
+	public void setLookupHandlerRegistry(LookupHandlerRegistry registry) {
 		this.registry = registry;
 	}
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
-		LookupHandler handler = registry.getLookupHandler(handlerName);
+		if (handler == null)
+			handler = registry.getLookupHandler(handlerName);
 
 		if (handler == null) {
 			// bypass without lookup
@@ -81,18 +67,35 @@ public class Lookup extends QueryCommand implements ThreadSafe {
 			return;
 		}
 
+		if (table == null && handler instanceof LookupHandler2)
+			table = ((LookupHandler2) handler).newTable(sourceField, outputFields);
+
+		if (table != null) {
+			table.lookup(rowBatch);
+			pushPipe(rowBatch);
+			return;
+		}
+
+		// support old lookup handler
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[rowBatch.selected[i]];
-				Object value = row.get(sourceField);
-				row.put(targetField, handler.lookup(lookupInputField, lookupOutputField, value));
+				Object lookupKey = row.get(sourceField);
+
+				for (String lookupOutputField : outputFields.keySet()) {
+					String rowOutputField = outputFields.get(lookupOutputField);
+					row.put(rowOutputField, handler.lookup(lookupInputField, lookupOutputField, lookupKey));
+				}
 			}
 		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-				
-				Object value = row.get(sourceField);
-				row.put(targetField, handler.lookup(lookupInputField, lookupOutputField, value));
+
+				Object lookupKey = row.get(sourceField);
+				for (String lookupOutputField : outputFields.keySet()) {
+					String rowOutputField = outputFields.get(lookupOutputField);
+					row.put(rowOutputField, handler.lookup(lookupInputField, lookupOutputField, lookupKey));
+				}
 			}
 		}
 
@@ -100,17 +103,33 @@ public class Lookup extends QueryCommand implements ThreadSafe {
 	}
 
 	@Override
-	public void onPush(Row m) {
-		Object value = m.get(sourceField);
-		LookupHandler handler = registry.getLookupHandler(handlerName);
-		if (handler != null)
-			m.put(targetField, handler.lookup(lookupInputField, lookupOutputField, value));
-		pushPipe(m);
-	}
+	public void onPush(Row row) {
+		Object lookupKey = row.get(sourceField);
 
-	@Override
-	public boolean isReducer() {
-		return false;
+		if (handler == null)
+			handler = registry.getLookupHandler(handlerName);
+
+		if (handler == null) {
+			// bypass without lookup
+			pushPipe(row);
+			return;
+		}
+
+		if (table == null && handler instanceof LookupHandler2)
+			table = ((LookupHandler2) handler).newTable(sourceField, outputFields);
+
+		if (table != null) {
+			table.lookup(row);
+			pushPipe(row);
+			return;
+		}
+
+		for (String lookupOutputField : outputFields.keySet()) {
+			String rowOutputField = outputFields.get(lookupOutputField);
+			row.put(rowOutputField, handler.lookup(lookupInputField, lookupOutputField, lookupKey));
+		}
+
+		pushPipe(row);
 	}
 
 	@Override
@@ -119,10 +138,20 @@ public class Lookup extends QueryCommand implements ThreadSafe {
 		if (!lookupInputField.equals(sourceField))
 			input += " as " + lookupInputField;
 
-		String output = lookupOutputField;
-		if (!lookupOutputField.equals(targetField))
-			output += " as " + targetField;
+		int i = 0;
+		String output = "";
+		for (String lookupOutputField : outputFields.keySet()) {
+			if (i++ != 0)
+				output += ", ";
+
+			output += lookupOutputField;
+			String targetField = outputFields.get(lookupOutputField);
+
+			if (!lookupOutputField.equals(targetField))
+				output += " as " + targetField;
+		}
 
 		return "lookup " + handlerName + " " + input + " output " + output;
 	}
+
 }

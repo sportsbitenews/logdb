@@ -32,8 +32,7 @@ public class LookupParserTest {
 		assertEquals("sample", lookup.getHandlerName());
 		assertEquals("code", lookup.getSourceField());
 		assertEquals("code", lookup.getLookupInputField());
-		assertEquals("auth_code_desc", lookup.getLookupOutputField());
-		assertEquals("auth_code_desc", lookup.getTargetField());
+		assertEquals("auth_code_desc", lookup.getOutputFields().get("auth_code_desc"));
 	}
 
 	@Test
@@ -45,8 +44,7 @@ public class LookupParserTest {
 		assertEquals("sample", lookup.getHandlerName());
 		assertEquals("code", lookup.getSourceField());
 		assertEquals("in", lookup.getLookupInputField());
-		assertEquals("auth_code_desc", lookup.getLookupOutputField());
-		assertEquals("out", lookup.getTargetField());
+		assertEquals("out", lookup.getOutputFields().get("auth_code_desc"));
 	}
 	
 	@Test
@@ -120,8 +118,8 @@ public class LookupParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("20703", e.getType());
-			assertEquals(47, e.getStartOffset());
-			assertEquals(49, e.getEndOffset());	
+			assertEquals(32, e.getStartOffset());
+			assertEquals(54, e.getEndOffset());	
 		}
 	}
 	
