@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +32,17 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
 import org.araqne.log.api.LogParserRegistry;
-import org.araqne.logdb.*;
+import org.araqne.logdb.AccountService;
+import org.araqne.logdb.DefaultLogParserBuilder;
+import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.FieldOrdering;
+import org.araqne.logdb.Permission;
+import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.Strings;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.parser.TableSpec;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogCallback;
@@ -43,7 +54,7 @@ import org.araqne.logstorage.WrongTimeTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Table extends DriverQueryCommand {
+public class Table extends DriverQueryCommand implements FieldOrdering {
 	private final Logger logger = LoggerFactory.getLogger(Table.class);
 	private AccountService accountService;
 	private LogStorage storage;
@@ -63,6 +74,11 @@ public class Table extends DriverQueryCommand {
 	@Override
 	public String getName() {
 		return "table";
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return getParserFieldOrder();
 	}
 
 	@Override
@@ -99,6 +115,37 @@ public class Table extends DriverQueryCommand {
 		} finally {
 			storage.removeLogListener(receiver);
 		}
+	}
+
+	private List<String> getParserFieldOrder() {
+		// support unit test
+		if (tableRegistry == null)
+			return null;
+
+		LogParserBuilder builder = null;
+		for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
+			if (!params.raw) {
+				builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry, tableName.getTable());
+			}
+		}
+
+		if (builder == null)
+			return null;
+
+		LogParser parser = builder.build();
+		if (parser instanceof FieldOrdering) {
+			LinkedList<String> l = new LinkedList<String>(((FieldOrdering) parser).getFieldOrder());
+			// remove potentially duplicated field name first
+			l.remove("_time");
+			l.remove("_table");
+			l.remove("_id");
+			
+			l.addFirst("_id");
+			l.addFirst("_time");
+			l.addFirst("_table");
+			return l;
+		}
+		return null;
 	}
 
 	private void scanTables() {
@@ -239,6 +286,10 @@ public class Table extends DriverQueryCommand {
 	}
 
 	private boolean isAccessible(StorageObjectName name) {
+		// support unit test
+		if (query == null)
+			return true;
+
 		return accountService.checkPermission(query.getContext().getSession(), name.getTable(), Permission.READ);
 	}
 
