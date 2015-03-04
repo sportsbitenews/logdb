@@ -115,7 +115,13 @@ public class ObjectComparator implements Comparator<Object> {
 				return 1;
 		}
 
-		return blob1.length - blob2.length;
+		int lhs = blob1.length;
+		int rhs = blob2.length;
+		if (lhs == rhs) {
+			return 0;
+		} else {
+			return lhs < rhs ? -1 : 1;
+		}
 	}
 
 	private int compareMap(Object o1, Object o2) {
@@ -135,7 +141,11 @@ public class ObjectComparator implements Comparator<Object> {
 				return cmp;
 		}
 
-		return arr1.length - arr2.length;
+		if (arr1.length == arr2.length) {
+			return 0;
+		} else {
+			return arr1.length < arr2.length ? -1 : 1;
+		}
 	}
 
 	private int compareString(Object o1, Object o2) {
@@ -149,9 +159,9 @@ public class ObjectComparator implements Comparator<Object> {
 		byte[] ip1 = ((Inet4Address) o1).getAddress();
 		byte[] ip2 = ((Inet4Address) o2).getAddress();
 		for (int i = 0; i < 4; i++) {
-			int c = ip1[i] - ip2[i];
-			if (c != 0)
-				return c;
+			if (ip1[i] != ip2[i]) {
+				return ip1[i] < ip2[i] ? -1 : 1;
+			}
 		}
 		return 0;
 	}
@@ -160,9 +170,9 @@ public class ObjectComparator implements Comparator<Object> {
 		byte[] ip1 = ((Inet6Address) o1).getAddress();
 		byte[] ip2 = ((Inet6Address) o2).getAddress();
 		for (int i = 0; i < 16; i++) {
-			int c = ip1[i] - ip2[i];
-			if (c != 0)
-				return c;
+			if (ip1[i] != ip2[i]) {
+				return ip1[i] < ip2[i] ? -1 : 1;
+			}
 		}
 		return 0;
 	}
@@ -192,7 +202,11 @@ public class ObjectComparator implements Comparator<Object> {
 			else if (o2 instanceof Short)
 				rhs = (Short) o2;
 
-			return (int) (lhs - rhs);
+			if (lhs == rhs) {
+				return 0;
+			} else {
+				return lhs < rhs ? -1 : 1;
+			}
 		} else {
 			double lhs = 0;
 			if (o1 instanceof Double)
@@ -227,6 +241,10 @@ public class ObjectComparator implements Comparator<Object> {
 		long lhs = ((Date) o1).getTime();
 		long rhs = ((Date) o2).getTime();
 
-		return (int) (lhs - rhs);
+		if (lhs == rhs) {
+			return 0;
+		} else {
+			return lhs < rhs ? -1 : 1;
+		}
 	}
 }
