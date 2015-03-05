@@ -134,7 +134,11 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 		LogParser parser = builder.build();
 		if (parser instanceof FieldOrdering) {
-			LinkedList<String> l = new LinkedList<String>(((FieldOrdering) parser).getFieldOrder());
+			LinkedList<String> l = new LinkedList<String>();
+			List<String> fo = ((FieldOrdering) parser).getFieldOrder();
+			if (fo != null) {
+				l.addAll(fo);
+			}
 			// remove potentially duplicated field name first
 			l.remove("_time");
 			l.remove("_table");
