@@ -16,14 +16,15 @@
 package org.araqne.logdb;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class QueryContext {
 	private Session session;
 	private ParserContext parserContext = new ParserContext();
-	private Map<String, Object> constants = new ConcurrentHashMap<String, Object>();
+	private Map<String, Object> constants = Collections.synchronizedMap(new HashMap<String, Object>());
 
 	/**
 	 * includes main and dynamic sub queries

@@ -56,7 +56,9 @@ public class Proc extends QueryCommand implements FieldOrdering {
 		session = accountService.newSession(procedure.getOwner());
 		QueryContext procCtx = new QueryContext(session);
 		for (String key : procParams.keySet()) {
-			procCtx.getConstants().put(key, procParams.get(key));
+			Object value = procParams.get(key);
+			Map<String, Object> constants = procCtx.getConstants();
+			constants.put(key, value);
 		}
 
 		List<QueryCommand> procCommands = parserService.parseCommands(procCtx, procedure.getQueryString());
