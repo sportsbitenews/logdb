@@ -33,5 +33,15 @@ public class StorageUtil {
 			total += ret;
 		}
 	}
+	
+	public static boolean deleteRecursive(FilePath p) {
+		if (p.isDirectory()) {
+			for (FilePath f : p.listFiles()) {
+				deleteRecursive(f);
+			}
+		}
+		
+		return p.delete();
+	}
 
 }

@@ -21,7 +21,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
