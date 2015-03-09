@@ -48,9 +48,9 @@ public class LoggerMetadataProvider implements MetadataProvider {
 
 	@Override
 	public void verify(QueryContext context, String queryString) {
-		if (!context.getSession().isAdmin()){
-		//	throw new QueryParseException("no-read-permission", -1);
-			throw new QueryParseException("90510",  -1,  -1 ,  null);
+		if (!context.getSession().isAdmin()) {
+			// throw new QueryParseException("no-read-permission", -1);
+			throw new QueryParseException("90510", -1, -1, null);
 		}
 	}
 
@@ -63,7 +63,7 @@ public class LoggerMetadataProvider implements MetadataProvider {
 				m.put("name", logger.getName());
 				m.put("factory_namespace", logger.getFactoryNamespace());
 				m.put("factory_name", logger.getFactoryName());
-				m.put("status", logger.getStatus().toString());
+				m.put("status", logger.isRunning() ? "running" : "stopped");
 				m.put("interval", logger.getInterval());
 				m.put("log_count", logger.getLogCount());
 				m.put("drop_count", logger.getDropCount());
@@ -76,10 +76,9 @@ public class LoggerMetadataProvider implements MetadataProvider {
 		} catch (Throwable t) {
 			slog.error("araqne logdb: failed to load logger status");
 			Map<String, String> params = new HashMap<String, String>();
-			params.put("msg",  t.getMessage());
-			throw new QueryParseException("95011",  -1,  -1, params);
-			//throw new QueryParseException("logger-load-fail", -1);
+			params.put("msg", t.getMessage());
+			throw new QueryParseException("95011", -1, -1, params);
+			// throw new QueryParseException("logger-load-fail", -1);
 		}
 	}
-
 }
