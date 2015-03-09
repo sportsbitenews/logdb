@@ -50,7 +50,7 @@ public class GenianNacSnmpLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "지니네크웍스 NAC SNMP";
+			return "지니네트웍스 NAC SNMP";
 		return "Genian NAC Suite SNMP";
 	}
 
