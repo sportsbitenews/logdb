@@ -209,7 +209,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			// functionName);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("function", functionName);
-			throw new QueryParseException("90903", -1, -1, params);
+			throw new QueryParseException("90900", -1, -1, params);
 		}
 		return ff.newFunction(ctx, functionName, exprs);
 	}
