@@ -17,9 +17,9 @@ public class CyberoamParserTest {
 
 		CyberoamParser p = new CyberoamParser();
 		Map<String, Object> m = p.parse(log);
-		
+
 		assertEquals("2015-02-05", m.get("date"));
-		assertEquals("C\"R15iNG", m.get("device_name"));
+		assertEquals("C\\\"R15iNG", m.get("device_name"));
 		assertEquals("Firewall Rule", m.get("log_component"));
 		assertEquals("00: 0:00: 0:00: 0", m.get("src_mac"));
 		assertEquals("", m.get("srczonetype"));
@@ -35,9 +35,9 @@ public class CyberoamParserTest {
 		
 		CyberoamParser p = new CyberoamParser();
 		Map<String, Object> m = p.parse(log);
-		
+
 		assertEquals("2015-02-05", m.get("date"));
-		assertEquals("C\"R15iNG", m.get("device_name"));
+		assertEquals("C\\\"R15iNG", m.get("device_name"));
 		assertEquals("Firewall Rule", m.get("log_component"));
 		assertEquals("00: 0:00: 0:00: 0", m.get("src_mac"));
 		assertEquals("", m.get("srczonetype"));

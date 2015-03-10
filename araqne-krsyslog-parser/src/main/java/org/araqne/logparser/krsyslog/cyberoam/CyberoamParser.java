@@ -37,10 +37,7 @@ public class CyberoamParser extends V1LogParser {
 						while (true) {
 							char ch = builder.charAt(i);
 							try {
-								if (ch == '\\') {
-									builder.delete(i, i  + 1);
-									continue;
-								} else if (ch == '"' && builder.charAt(i + 1) == ' ') {
+								if (ch == '"' && builder.charAt(i + 1) == ' ') {
 									value = builder.substring(e + 2, i);
 									break;
 								}
