@@ -17,7 +17,6 @@ import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.command.Join.JoinType;
 import org.araqne.logdb.query.command.Sort.SortField;
 import org.araqne.logdb.query.command.SortMergeJoiner;
-import org.araqne.logdb.query.command.StreamSortMergeJoiner.SortMergeJoinerListener;
 import org.araqne.logdb.query.engine.QueryTaskRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +26,7 @@ public class StreamJoin extends QueryCommand {
 	private final JoinType joinType;
 	private final SortField[] sortFields;
 	private final Query subQuery;
-	private final StreamSortMergeJoiner sortMergeJoiner;
+	private final HashJoiner hashJoiner;
 
 	private SubQueryTask subQueryTask = new SubQueryTask();
 	long lastFlushedTime;
@@ -40,7 +39,7 @@ public class StreamJoin extends QueryCommand {
 		this.subQuery = subQuery;
 		this.queryService = queryService;
 
-		this.sortMergeJoiner = new StreamSortMergeJoiner(joinType, sortFields, new SortMergeJoinerCallback(this), tickService);
+		this.hashJoiner = new HashJoiner(joinType, sortFields);
 
 		lastFlushedTime = System.currentTimeMillis();
 
@@ -64,7 +63,7 @@ public class StreamJoin extends QueryCommand {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		if (reason == QueryStopReason.PartialFetch || reason == QueryStopReason.End) {
-			synchronized (sortMergeJoiner) {
+			synchronized (hashJoiner) {
 				sortMergeJoiner.close();
 			}
 		} else {
@@ -89,24 +88,11 @@ public class StreamJoin extends QueryCommand {
 	@Override
 	public void onPush(Row m) {
 		try {
-			synchronized (sortMergeJoiner) {
-				sortMergeJoiner.setR(m);
+			synchronized (hashJoiner) {
+				hashJoiner.probe(m);
 			}
 		} catch (Throwable t) {
 			logger.error("araqne logdb: cannot setR on sortMergeJoiner[" + m.toString() + "]", t);
-		}
-	}
-
-	class SortMergeJoinerCallback implements SortMergeJoinerListener {
-		StreamJoin join;
-
-		SortMergeJoinerCallback(StreamJoin join) {
-			this.join = join;
-		}
-
-		@Override
-		public void onPushPipe(Row row) {
-			join.pushPipe(row);
 		}
 	}
 
@@ -130,8 +116,8 @@ public class StreamJoin extends QueryCommand {
 
 				// logger.debug("logpresso query: StreamJoin fetch subquery result of query [{}:{}]",
 				// query.getId(), query.getQueryString());
-				synchronized (sortMergeJoiner) {
-					sortMergeJoiner.setS(rs);
+				synchronized (hashJoiner) {
+					hashJoiner.build(rs);
 				}
 			} catch (IOException e) {
 				logger.error("logpresso query: cannot get subquery result of query " + query.getId(), e);
