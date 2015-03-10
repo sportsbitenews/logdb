@@ -36,6 +36,7 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.codec.Base64;
+import org.araqne.codec.EncodingRule;
 import org.araqne.codec.FastEncodingRule;
 import org.araqne.cron.AbstractTickTimer;
 import org.araqne.cron.TickService;
@@ -168,6 +169,16 @@ public class LogQueryPlugin {
 				dbSession.setProperty("araqne_logdb_query_source", req.getString("source"));
 
 			Query query = service.createQuery(dbSession, queryString);
+
+			// supported since araqne-logdb-client 1.0.7
+			String queryContextEncoded = req.getString("context");
+			if (queryContextEncoded != null) {
+				Map<String, Object> ctx = EncodingRule.decodeMap(ByteBuffer.wrap(Base64.decode(queryContextEncoded)));
+				for (String key : ctx.keySet()) {
+					query.getContext().getConstants().put(key, ctx.get(key));
+				}
+			}
+
 			resp.put("id", query.getId());
 
 			if (query.getFieldOrder() != null)
@@ -313,9 +324,6 @@ public class LogQueryPlugin {
 		Map<String, Object> m = QueryHelper.getResultData(service, id, offset, limit);
 		if (m == null)
 			return;
-
-		if (query.getFieldOrder() != null)
-			resp.put("field_order", query.getFieldOrder());
 
 		FastEncodingRule enc = new FastEncodingRule();
 		if (binaryEncode != null && binaryEncode) {

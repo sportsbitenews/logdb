@@ -46,6 +46,7 @@ import java.util.zip.Inflater;
 
 import org.araqne.api.PrimitiveConverter;
 import org.araqne.codec.EncodingRule;
+import org.araqne.codec.FastEncodingRule;
 import org.araqne.logdb.client.http.WebSocketTransport;
 import org.araqne.logdb.client.http.impl.StreamingResultDecoder;
 import org.araqne.logdb.client.http.impl.StreamingResultEncoder;
@@ -2113,7 +2114,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	 * @return 새로 생성된 쿼리 ID가 반환됩니다.
 	 */
 	public int createQuery(String queryString) throws IOException {
-		return createQuery(queryString, null);
+		return createQuery(queryString, null, null);
 	}
 
 	/**
@@ -2127,9 +2128,34 @@ public class LogDbClient implements TrapListener, Closeable {
 	 * @since 0.9.1
 	 */
 	public int createQuery(String queryString, StreamingResultSet rs) throws IOException {
+		return createQuery(queryString, rs, null);
+	}
+
+	/**
+	 * 주어진 쿼리 문자열을 사용하여 스트리밍 쿼리를 생성합니다. 권한이 없거나 문법이 틀린 경우 예외가 발생합니다.
+	 * 
+	 * @param queryString
+	 *            쿼리 문자열 (NULL 허용 안 함)
+	 * @param rs
+	 *            쿼리 결과 스트리밍에 사용할 콜백 인스턴스, NULL인 경우 스트리밍 모드로 전환되지 않습니다.
+	 * @param queryContext
+	 *            쿼리 컨텍스트, 가령 프로시저에서 메인 쿼리의 쿼리 컨텍스트를 서브 쿼리로 전달하는데 사용됩니다.
+	 * @return 새로 생성된 쿼리 ID가 반환됩니다.
+	 * @since 0.9.1
+	 */
+	public int createQuery(String queryString, StreamingResultSet rs, Map<String, Object> queryContext) throws IOException {
+
+		String queryContextEncoded = null;
+		if (queryContext != null) {
+			ByteBuffer bb = new FastEncodingRule().encode(queryContext);
+			queryContextEncoded = new String(Base64.encode(bb.array()));
+		}
+
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("query", queryString);
 		params.put("source", "java-client");
+		params.put("context", queryContextEncoded);
+
 		Message resp = rpc("org.araqne.logdb.msgbus.LogQueryPlugin.createQuery", params);
 		int id = resp.getInt("id");
 		session.registerTrap("logdb-query-" + id);
