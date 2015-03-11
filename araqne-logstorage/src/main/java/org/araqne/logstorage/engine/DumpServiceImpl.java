@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.felix.ipojo.annotations.Component;
+import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.logstorage.LogFileService;
@@ -50,6 +51,21 @@ public class DumpServiceImpl implements DumpService {
 	private ConcurrentHashMap<String, DumpDriver> drivers = new ConcurrentHashMap<String, DumpDriver>();
 	private ConcurrentHashMap<String, ExportWorker> exportWorkers = new ConcurrentHashMap<String, ExportWorker>();
 	private ConcurrentHashMap<String, ImportWorker> importWorkers = new ConcurrentHashMap<String, ImportWorker>();
+
+	@Invalidate
+	public void stop() {
+		for (ExportWorker worker : exportWorkers.values()) {
+			worker.getTask().setCancelled();
+		}
+
+		for (ImportWorker worker : importWorkers.values()) {
+			worker.getTask().setCancelled();
+		}
+
+		exportWorkers.clear();
+		importWorkers.clear();
+		drivers.clear();
+	}
 
 	@Override
 	public List<ExportTask> getExportTasks() {
