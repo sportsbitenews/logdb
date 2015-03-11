@@ -15,7 +15,6 @@
  */
 package org.araqne.logdb.query.engine;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -332,31 +331,36 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	@Override
 	public Query createQuery(Session session, String queryString) {
+		return createQuery(new QueryContext(session), queryString);
+	}
+
+	@Override
+	public Query createQuery(QueryContext context, String queryString) {
+		Session session = context.getSession();
 		if (logger.isDebugEnabled())
 			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]",
 					new Object[] { queryString, session.getGuid(), session.getLoginName() });
 
 		List<QueryCommand> commands = null;
-		QueryContext context = new QueryContext(session);		
 		try {
 			commands = queryParserService.parseCommands(context, queryString);
-		} catch(QueryParseException e) {
+		} catch (QueryParseException e) {
 			// write log(query execution failed)
 			HashMap<String, Object> m = new HashMap<String, Object>();
 			String source = (String) session.getProperty("araqne_logdb_query_source");
-			if(source != null)
+			if (source != null)
 				m.put("source", source);
 			m.put("query_string", queryString);
 			m.put("error_code", e.getType());
 			m.put("error_msg", e.getMessage());
 			m.put("login_name", session.getLoginName());
-					
+
 			Date now = new Date();
 			writeLog(now, m);
-			
+
 			throw e;
 		}
-		
+
 		for (QueryPlanner planner : planners)
 			commands = planner.plan(context, commands);
 
@@ -367,7 +371,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		queries.put(query.getId(), query);
 		query.getCallbacks().getStatusCallbacks().add(new EofReceiver());
 		invokeCallbacks(query, QueryStatus.CREATED);
-		
+
 		return query;
 	}
 
@@ -539,10 +543,10 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			}
 		}
 	}
-	
+
 	private void serializeQuery(Query query, Date now, HashMap<String, Object> m) {
 		Session session = query.getContext().getSession();
-		
+
 		m.put("query_id", query.getId());
 		m.put("query_string", query.getQueryString());
 		try {
@@ -554,19 +558,19 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		m.put("eof_at", now);
 		m.put("login_name", session.getLoginName());
 		m.put("cancelled", query.isCancelled());
-		if(query.getStopReason() != null)
+		if (query.getStopReason() != null)
 			m.put("stop_reason", query.getStopReason().toString());
-		
+
 		if (query.isStarted())
 			m.put("duration", (query.getFinishTime() - query.getStartTime()) / 1000.0);
 		else
 			m.put("duration", 0);
-		
+
 		String source = (String) session.getProperty("araqne_logdb_query_source");
-		if(source != null)
+		if (source != null)
 			m.put("source", source);
 	}
-	
+
 	private void writeLog(Date now, HashMap<String, Object> m) {
 		try {
 			storage.write(new Log(QUERY_LOG_TABLE, now, m));
@@ -580,7 +584,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			}
 		}
 	}
-	
+
 	private class EofReceiver implements QueryStatusCallback {
 		@Override
 		public void onChange(Query query) {
@@ -589,7 +593,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 			// prevent duplicated logging
 			query.getCallbacks().getStatusCallbacks().remove(this);
-			
+
 			Date now = new Date();
 			HashMap<String, Object> m = new HashMap<String, Object>();
 			serializeQuery(query, now, m);
@@ -597,6 +601,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 			invokeCallbacks(query, QueryStatus.EOF);
 		}
-		
+
 	}
 }

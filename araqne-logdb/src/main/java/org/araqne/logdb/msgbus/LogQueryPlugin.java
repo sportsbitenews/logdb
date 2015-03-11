@@ -168,16 +168,18 @@ public class LogQueryPlugin {
 			if (req.get("source") != null)
 				dbSession.setProperty("araqne_logdb_query_source", req.getString("source"));
 
-			Query query = service.createQuery(dbSession, queryString);
+			QueryContext context = new QueryContext(dbSession);
 
 			// supported since araqne-logdb-client 1.0.7
 			String queryContextEncoded = req.getString("context");
 			if (queryContextEncoded != null) {
 				Map<String, Object> ctx = EncodingRule.decodeMap(ByteBuffer.wrap(Base64.decode(queryContextEncoded)));
 				for (String key : ctx.keySet()) {
-					query.getContext().getConstants().put(key, ctx.get(key));
+					context.getConstants().put(key, ctx.get(key));
 				}
 			}
+
+			Query query = service.createQuery(context, queryString);
 
 			resp.put("id", query.getId());
 
