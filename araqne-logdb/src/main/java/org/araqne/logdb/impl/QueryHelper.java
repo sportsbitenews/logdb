@@ -23,13 +23,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.QueryService;
-import org.araqne.logdb.QueryResultSet;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryResultSet;
+import org.araqne.logdb.QueryService;
 import org.araqne.logdb.RunMode;
 import org.araqne.logdb.Session;
-import org.araqne.logdb.query.command.Fields;
 
 public class QueryHelper {
 	private static final int GENERAL_QUERY_FAILURE_CODE = 1;
@@ -166,15 +166,17 @@ public class QueryHelper {
 			m.put("result", getPage(query, offset, limit));
 			m.put("count", query.getResultCount());
 
-			Fields fields = null;
+			List<String> fields = null;
 			for (QueryCommand command : query.getCommands()) {
-				if (command instanceof Fields) {
-					if (!((Fields) command).isSelector())
-						fields = (Fields) command;
+				if (command instanceof FieldOrdering) {
+					FieldOrdering f = (FieldOrdering) command;
+					if (f.getFieldOrder() != null)
+						fields = f.getFieldOrder();
 				}
 			}
+			
 			if (fields != null)
-				m.put("fields", fields.getFields());
+				m.put("field_order", fields);
 
 			return m;
 		}
