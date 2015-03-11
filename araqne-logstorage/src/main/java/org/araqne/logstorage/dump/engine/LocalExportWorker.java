@@ -84,7 +84,7 @@ public class LocalExportWorker implements ExportWorker {
 			for (ExportTabletTask t : tabletTasks) {
 				if (task.isCancelled())
 					return;
-				
+
 				if (lastTableName == null || !lastTableName.equals(t.getTableName())) {
 					zos.putNextEntry(new ZipEntry(t.getTableId() + "/"));
 					lastTableName = t.getTableName();
@@ -136,6 +136,7 @@ public class LocalExportWorker implements ExportWorker {
 
 	private Date nextDay(Date d) {
 		Calendar c = Calendar.getInstance();
+		c.setTime(d);
 		c.add(Calendar.DAY_OF_MONTH, 1);
 		c.set(Calendar.HOUR_OF_DAY, 0);
 		c.set(Calendar.MINUTE, 0);
@@ -204,6 +205,9 @@ public class LocalExportWorker implements ExportWorker {
 
 		@Override
 		protected List<Log> filter(List<Log> logs) {
+			if (logs.isEmpty())
+				return logs;
+
 			count += logs.size();
 			tabletTask.setActualCount(count);
 			return logs;
