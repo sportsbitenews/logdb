@@ -60,14 +60,6 @@ public class QueryHelper {
 					union.getMainTask().addDependency(cmd.getMainTask());
 			}
 		}
-
-		QueryCommand prevUnion = null;
-		for (QueryCommand union : unionCmds) {
-			if (prevUnion != null)
-				union.getMainTask().addDependency(prevUnion.getMainTask());
-
-			prevUnion = union;
-		}
 	}
 
 	public static List<Object> getQueries(Session session, QueryService service) {
