@@ -34,6 +34,10 @@ public abstract class QueryCommand {
 		return null;
 	}
 
+	public QueryTask getDependency() {
+		return getMainTask();
+	}
+
 	public long getOutputCount() {
 		return outputCount;
 	}

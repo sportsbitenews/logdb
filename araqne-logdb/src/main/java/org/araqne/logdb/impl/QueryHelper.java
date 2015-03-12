@@ -52,12 +52,12 @@ public class QueryHelper {
 		for (QueryCommand cmd : commands) {
 			if (cmd.isDriver() && !cmd.getName().equals("join") && cmd.getMainTask() != null) {
 				for (QueryCommand join : joinCmds)
-					cmd.getMainTask().addDependency(join.getMainTask());
+					cmd.getDependency().addDependency(join.getMainTask());
 			}
 
 			if (cmd.isDriver() && !cmd.getName().equals("join") && !cmd.getName().equals("union") && cmd.getMainTask() != null) {
 				for (QueryCommand union : unionCmds)
-					union.getMainTask().addDependency(cmd.getMainTask());
+					union.getDependency().addDependency(cmd.getMainTask());
 			}
 		}
 	}
