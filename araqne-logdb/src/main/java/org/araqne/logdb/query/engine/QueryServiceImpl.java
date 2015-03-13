@@ -105,6 +105,7 @@ import org.araqne.logdb.query.parser.SetParser;
 import org.araqne.logdb.query.parser.SignatureParser;
 import org.araqne.logdb.query.parser.SortParser;
 import org.araqne.logdb.query.parser.StatsParser;
+import org.araqne.logdb.query.parser.StreamJoinParser;
 import org.araqne.logdb.query.parser.SystemCommandParser;
 import org.araqne.logdb.query.parser.TableParser;
 import org.araqne.logdb.query.parser.TextFileParser;
@@ -120,6 +121,7 @@ import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableNotFoundException;
 import org.araqne.logstorage.TableSchema;
+import org.araqne.storage.api.RCDirectBufferManager;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -181,6 +183,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	@Requires
 	private ProcedureRegistry procedureRegistry;
+	
+	@Requires
+	private RCDirectBufferManager rcDirectBufferManager;
 
 	private BundleContext bc;
 	private ConcurrentMap<Integer, Query> queries;
@@ -261,6 +266,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new RateLimitParser(tickService));
 		parsers.add(new MemLookupParser(lookupRegistry));
 		parsers.add(new BypassParser());
+		parsers.add(new StreamJoinParser(queryParserService, tickService, resultFactory, this, rcDirectBufferManager));
+
 		
 		parsers.add(new RepeatParser());
 

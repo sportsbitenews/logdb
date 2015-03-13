@@ -6,31 +6,32 @@ import java.util.Map;
 
 import org.araqne.cron.TickService;
 import org.araqne.logdb.AbstractQueryCommandParser;
+import org.araqne.logdb.ByteBufferResultFactory;
 import org.araqne.logdb.DefaultQuery;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryCommandPipe;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryResultFactory;
 import org.araqne.logdb.QueryService;
-import org.araqne.logdb.query.command.Join;
 import org.araqne.logdb.query.command.Join.JoinType;
-import org.araqne.logdb.query.command.Sort;
 import org.araqne.logdb.query.command.Sort.SortField;
 import org.araqne.logdb.query.command.StreamJoin;
+import org.araqne.storage.api.RCDirectBufferManager;
 
 public class StreamJoinParser extends AbstractQueryCommandParser {
 	private QueryParserService parserService;
 	private QueryService queryService;
 	private TickService tickService;
 	private QueryResultFactory resultFactory;
+	private RCDirectBufferManager rcDirectBufferManager;
 
-	public StreamJoinParser(QueryParserService parserService, TickService tickService, QueryResultFactory resultFactory, QueryService queryService) {
+	public StreamJoinParser(QueryParserService parserService, TickService tickService, QueryResultFactory resultFactory, QueryService queryService, RCDirectBufferManager rcDirectBufferManager) {
 		this.parserService = parserService;
 		this.tickService = tickService;
 		this.resultFactory = resultFactory;
 		this.queryService = queryService;
+		this.rcDirectBufferManager = rcDirectBufferManager;
 	}
 
 	@Override
@@ -38,6 +39,11 @@ public class StreamJoinParser extends AbstractQueryCommandParser {
 		return "streamjoin";
 	}
 
+	//TODO:
+	// Make capcity as a query arqument
+	// CAPACITY MUST BE PASSED WITH PARSING ARGUMENT
+	private static final int CAPACITY = 1024 * 1024 * 700;
+	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		int b = commandString.indexOf('[');
@@ -67,8 +73,8 @@ public class StreamJoinParser extends AbstractQueryCommandParser {
 
 		SortField[] sortFieldArray = sortFields.toArray(new SortField[0]);
 		List<QueryCommand> subCommands = parserService.parseCommands(context, subQueryString);
-		Query subQuery = new DefaultQuery(context, subQueryString, subCommands, resultFactory);
+		Query subQuery = new DefaultQuery(context, subQueryString, subCommands, new ByteBufferResultFactory(rcDirectBufferManager, CAPACITY));
 
-		return new StreamJoin(joinType, sortFieldArray, subQuery, tickService, queryService);
+		return new StreamJoin(joinType, sortFieldArray, subQuery, tickService, queryService, rcDirectBufferManager);
 	}
 }

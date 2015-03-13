@@ -2,10 +2,10 @@ package org.araqne.logdb.query.command;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 import org.araqne.codec.EncodingRule;
+import org.araqne.logdb.ByteBufferResult.ByteBufferResultSet;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.Join.JoinKeys;
 import org.araqne.logdb.query.command.Join.JoinType;
@@ -13,30 +13,28 @@ import org.araqne.logdb.query.command.Sort.SortField;
 
 public class HashJoiner {
 	// TODO: fix the number;
-	private static final int CAPACITY = 1024 * 1;
+	private static final int CAPACITY = 1024 * 1024 * 700;
 	private JoinType joinType;
 	private SortField[] sortFields;
 
 	private Map<JoinKeys, Integer> map;
-	private ByteBuffer logByteBuffer;
+	private ByteBuffer byteBuffer;
 	private boolean buildComplete;
 
 	public HashJoiner(JoinType joinType, SortField[] sortFields) {
 		this.joinType = joinType;
 		this.sortFields = sortFields;
 
-		this.map = new HashMap<JoinKeys, Integer>();
-		//TODO:
-		//should be changed to allocate direct.
-		logByteBuffer = ByteBuffer.allocate(CAPACITY);
+		this.map = new HashMap<JoinKeys, Integer>(CAPACITY / 1024);
 	}
 
-	public void build(Iterator<Map<String, Object>> it) {
+	private int count;
+	public void build(ByteBufferResultSet it) {
+		this.byteBuffer = it.getByteBuffer();
 		while (it.hasNext()) {
+			int writePosition = it.getPosition();
 			Map<String, Object> log = it.next();
-
 			JoinKeys key = extractKey(log);
-			int writePosition = writeLog(log);
 			map.put(key, writePosition);
 		}
 
@@ -59,9 +57,16 @@ public class HashJoiner {
 		if (writePosition == null)
 			return null;
 		else {
-			logByteBuffer.position(writePosition);
-			return (Map<String, Object>) EncodingRule.decode(logByteBuffer);
+			byteBuffer.position(writePosition);
+			return (Map<String, Object>) EncodingRule.decode(byteBuffer);
 		}
+	}
+	
+	public void close() {
+	}
+	
+	public void cancel() {
+		this.close();
 	}
 
 	private JoinKeys extractKey(Map<String, Object> log) {
@@ -72,12 +77,5 @@ public class HashJoiner {
 		}
 
 		return new JoinKeys(keys);
-	}
-
-	private int writeLog(Map<String, Object> log) {
-		int result = logByteBuffer.position();
-		EncodingRule.encode(logByteBuffer, log);
-
-		return result;
 	}
 }
