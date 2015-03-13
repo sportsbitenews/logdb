@@ -21,6 +21,7 @@
 	<instance component="logdb-topthread-metadata" />
 	<instance component="logdb-log-metadata" />
 	<instance component="logdb-lookup-metadata" />
+	<instance component="logdb-memory-metadata" />
 	<instance component="csv-import-script-factory" />
 	<instance component="query-log-parser-factory" />
 	<instance component="saved-result-manager" />
