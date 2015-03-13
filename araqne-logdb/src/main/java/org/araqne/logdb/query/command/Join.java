@@ -59,7 +59,7 @@ public class Join extends QueryCommand {
 			}
 		}
 	}
-
+	
 	@Override
 	public String getName() {
 		return "join";
