@@ -57,7 +57,7 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 
 	@Override
 	public String getType() {
-		return "block";
+		return "logblock";
 	}
 
 	@Override
@@ -105,6 +105,8 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 				m.put("compressed_size", data.get("compressed_size"));
 				m.put("iv", data.get("iv"));
 				m.put("signature", data.get("signature"));
+				Object reserved = data.get("reserved");
+				m.put("reserved", reserved == null? false: reserved);
 				callback.onPush(new Row(m));
 			}
 		} catch (IOException e) {
