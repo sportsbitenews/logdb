@@ -17,8 +17,8 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.storage.api.RCDirectBufferManager;
 
-@Component(name = "logpresso-rcdirectbuffer-metadata")
-public class RCDirectBufferMetadataProvider implements MetadataProvider {
+@Component(name = "logdb-memory-metadata")
+public class MemoryMetadataProvider implements MetadataProvider {
 	@Requires
 	private MetadataService metadataService;
 	
@@ -27,7 +27,7 @@ public class RCDirectBufferMetadataProvider implements MetadataProvider {
 
 	@Override
 	public String getType() {
-		return "rcdirectbuffer";
+		return "memory";
 	}
 
 	@Validate
@@ -47,10 +47,18 @@ public class RCDirectBufferMetadataProvider implements MetadataProvider {
 
 	@Override
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
-		Map<String, Object> m = new HashMap<String, Object>();
-		m.put("totalCapacity", manager.getTotalCapacity());
-		m.put("objectCount", manager.getObjectCount());
-		callback.onPush(new Row(m));
+		Map<String, Object> heap = new HashMap<String, Object>();
+		Runtime runtime = Runtime.getRuntime();
+		heap.put("type", "heap");
+		heap.put("free", runtime.freeMemory());
+		heap.put("total", runtime.totalMemory());
+		callback.onPush(new Row(heap));
+		
+		Map<String, Object> rc = new HashMap<String, Object>();
+		rc.put("type", "rcdirectbuffer");
+		rc.put("total_capacity", manager.getTotalCapacity());
+		rc.put("object_count", manager.getObjectCount());
+		callback.onPush(new Row(rc));
 	}
 
 }
