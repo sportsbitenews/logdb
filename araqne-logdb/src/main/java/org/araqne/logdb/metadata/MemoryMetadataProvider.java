@@ -55,7 +55,7 @@ public class MemoryMetadataProvider implements MetadataProvider {
 		callback.onPush(new Row(heap));
 		
 		Map<String, Object> rc = new HashMap<String, Object>();
-		rc.put("type", "rcdirectbuffer");
+		rc.put("type", "offheap");
 		rc.put("total_capacity", manager.getTotalCapacity());
 		rc.put("object_count", manager.getObjectCount());
 		callback.onPush(new Row(rc));
