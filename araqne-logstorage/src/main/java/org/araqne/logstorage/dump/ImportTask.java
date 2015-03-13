@@ -6,14 +6,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ImportTask {
 
-	private String guid;
+	private ImportRequest req;
 	private long createdTime;
 	private long completedTime;
 	private boolean cancelled;
 	private Map<DumpTabletKey, ImportTabletTask> tabletTasks = new ConcurrentHashMap<DumpTabletKey, ImportTabletTask>();
 
-	public ImportTask(String guid) {
-		this.guid = guid;
+	public ImportTask(ImportRequest req) {
+		this.req = req;
 		this.createdTime = System.currentTimeMillis();
 	}
 
@@ -22,11 +22,11 @@ public class ImportTask {
 	}
 
 	public String getGuid() {
-		return guid;
+		return req.getGuid();
 	}
 
-	public void setGuid(String guid) {
-		this.guid = guid;
+	public ImportRequest getRequest() {
+		return req.clone();
 	}
 
 	public long getCreatedTime() {
@@ -66,7 +66,7 @@ public class ImportTask {
 	}
 
 	public ImportTask clone() {
-		ImportTask c = new ImportTask(guid);
+		ImportTask c = new ImportTask(req.clone());
 		c.createdTime = createdTime;
 		c.completedTime = completedTime;
 		c.cancelled = cancelled;
@@ -99,8 +99,9 @@ public class ImportTask {
 		if (totalCount != 0)
 			progressPercent = importCount * 100 / totalCount;
 
-		return String.format("guid=%s, created=%s (%d sec), rows=%d/%d (%d%%), tablets=%d/%d", guid, df.format(createdTime),
-				(elapsed / 1000), importCount, totalCount, progressPercent, completedTablet, tabletTasks.size());
+		return String.format("guid=%s, created=%s (%d sec), rows=%d/%d (%d%%), tablets=%d/%d", req.getGuid(),
+				df.format(createdTime), (elapsed / 1000), importCount, totalCount, progressPercent, completedTablet,
+				tabletTasks.size());
 	}
 
 }

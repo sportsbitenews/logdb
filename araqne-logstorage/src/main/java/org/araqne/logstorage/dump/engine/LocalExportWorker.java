@@ -49,7 +49,7 @@ public class LocalExportWorker implements ExportWorker {
 		this.req = req;
 		this.dumpService = dumpService;
 		this.storage = storage;
-		this.task = new ExportTask(req.getGuid());
+		this.task = new ExportTask(req);
 		this.path = new File(req.getParams().get("path"));
 
 	}

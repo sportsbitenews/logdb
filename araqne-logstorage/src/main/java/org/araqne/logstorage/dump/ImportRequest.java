@@ -21,6 +21,14 @@ public class ImportRequest {
 		this.entries = entries;
 	}
 
+	public ImportRequest clone() {
+		List<DumpTabletEntry> l = new ArrayList<DumpTabletEntry>();
+		for (DumpTabletEntry e : entries)
+			l.add(e.clone());
+
+		return new ImportRequest(driverType, new HashMap<String, String>(params), l);
+	}
+
 	public String getDriverType() {
 		return driverType;
 	}

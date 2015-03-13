@@ -45,7 +45,7 @@ public class LocalImportWorker implements ImportWorker {
 		this.req = req;
 		this.dumpService = dumpService;
 		this.storage = storage;
-		this.task = new ImportTask(req.getGuid());
+		this.task = new ImportTask(req);
 		for (DumpTabletEntry e : req.getEntries()) {
 			DumpTabletKey key = new DumpTabletKey(e.getTableName(), e.getDay());
 			ImportTabletTask val = new ImportTabletTask(e.getTableName(), e.getDay(), e.getCount());
@@ -119,7 +119,7 @@ public class LocalImportWorker implements ImportWorker {
 				int readBytes = Io.ensureRead(is, blen, 4);
 				if (readBytes <= 0)
 					break;
-					
+
 				int len = Io.decodeInt(blen);
 
 				byte[] b = new byte[len];

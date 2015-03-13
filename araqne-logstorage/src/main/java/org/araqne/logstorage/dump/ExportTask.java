@@ -9,15 +9,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.araqne.msgbus.Marshalable;
 
 public class ExportTask implements Marshalable {
-	private String guid;
+	private ExportRequest req;
 	private long createdTime;
 	private long estimationDoneTime;
 	private long completedTime;
 	private boolean cancelled;
 	private Map<DumpTabletKey, ExportTabletTask> tabletTasks = new ConcurrentHashMap<DumpTabletKey, ExportTabletTask>();
 
-	public ExportTask(String guid) {
-		this.guid = guid;
+	public ExportTask(ExportRequest req) {
+		this.req = req;
 		this.createdTime = System.currentTimeMillis();
 	}
 
@@ -42,11 +42,11 @@ public class ExportTask implements Marshalable {
 	}
 
 	public String getGuid() {
-		return guid;
+		return req.getGuid();
 	}
 
-	public void setGuid(String guid) {
-		this.guid = guid;
+	public ExportRequest getRequest() {
+		return req.clone();
 	}
 
 	public void setEstimationDone() {
@@ -70,7 +70,7 @@ public class ExportTask implements Marshalable {
 	}
 
 	public ExportTask clone() {
-		ExportTask c = new ExportTask(guid);
+		ExportTask c = new ExportTask(req.clone());
 		c.createdTime = createdTime;
 		c.estimationDoneTime = estimationDoneTime;
 		c.completedTime = completedTime;
@@ -130,7 +130,8 @@ public class ExportTask implements Marshalable {
 		if (estimatedTotal != 0)
 			progressPercent = actualTotal * 100 / estimatedTotal;
 
-		return String.format("guid=%s, created=%s (%d sec), rows=%d/%d (%d%%), tablets=%d/%d", guid, df.format(createdTime),
-				(elapsed / 1000), actualTotal, estimatedTotal, progressPercent, completedTablet, tabletTasks.size());
+		return String.format("guid=%s, created=%s (%d sec), rows=%d/%d (%d%%), tablets=%d/%d", req.getGuid(),
+				df.format(createdTime), (elapsed / 1000), actualTotal, estimatedTotal, progressPercent, completedTablet,
+				tabletTasks.size());
 	}
 }

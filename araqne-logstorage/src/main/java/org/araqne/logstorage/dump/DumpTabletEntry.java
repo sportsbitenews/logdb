@@ -22,6 +22,19 @@ public class DumpTabletEntry implements Marshalable {
 		return e;
 	}
 
+	public DumpTabletEntry() {
+	}
+
+	public DumpTabletEntry(String tableName, Date day, long count) {
+		this.tableName = tableName;
+		this.day = day;
+		this.count = count;
+	}
+
+	public DumpTabletEntry clone() {
+		return new DumpTabletEntry(tableName, day, count);
+	}
+
 	public String getTableName() {
 		return tableName;
 	}

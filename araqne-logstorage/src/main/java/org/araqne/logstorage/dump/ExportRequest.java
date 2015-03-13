@@ -1,6 +1,8 @@
 package org.araqne.logstorage.dump;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -19,6 +21,12 @@ public class ExportRequest {
 		this.from = from;
 		this.to = to;
 		this.params = params;
+	}
+
+	public ExportRequest clone() {
+		HashSet<String> clonedTableNames = new HashSet<String>(tableNames);
+		return new ExportRequest(driverType, clonedTableNames, (Date) from.clone(), (Date) to.clone(),
+				new HashMap<String, String>(params));
 	}
 
 	public String getDriverType() {
