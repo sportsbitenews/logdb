@@ -16,6 +16,7 @@
 package org.araqne.logdb.impl;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -23,6 +24,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
@@ -73,6 +75,18 @@ public class MetadataServiceImpl implements MetadataService {
 		if (provider == null)
 			throw new IllegalArgumentException("metadata provider should not be null");
 		providers.remove(provider.getType(), provider);
+	}
+	
+	@Override
+	public List<String> getFieldOrder(String type) {
+		MetadataProvider provider = providers.get(type);
+		if (provider == null)
+			throw new IllegalStateException("metadata provider not found: " + type);
+		
+		if (provider instanceof FieldOrdering)
+			return FieldOrdering.class.cast(provider).getFieldOrder();
+		
+		return null;
 	}
 
 }

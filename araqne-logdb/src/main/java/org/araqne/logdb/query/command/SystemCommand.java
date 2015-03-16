@@ -15,14 +15,17 @@
  */
 package org.araqne.logdb.query.command;
 
+import java.util.List;
+
 import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 
-public class SystemCommand extends DriverQueryCommand {
+public class SystemCommand extends DriverQueryCommand implements FieldOrdering {
 	private QueryContext context;
 	private String commandName;
 	private String objectType;
@@ -83,5 +86,10 @@ public class SystemCommand extends DriverQueryCommand {
 		if (!arguments.isEmpty())
 			arguments = " " + arguments;
 		return commandName + " " + objectType + arguments;
+	}
+	
+	@Override
+	public List<String> getFieldOrder() {
+		return metadataService.getFieldOrder(objectType);
 	}
 }
