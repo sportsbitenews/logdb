@@ -1,9 +1,7 @@
 package org.araqne.logstorage.file;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
@@ -11,9 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import org.araqne.codec.Base64;
-import org.araqne.logstorage.Crypto;
-import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.logstorage.file.DataBlockV3;
 import org.araqne.logstorage.file.DataBlockV3Params;
 import org.araqne.logstorage.file.IndexBlockV3Header;
@@ -155,6 +150,7 @@ public class LogBlockCursorV3o implements LogBlockCursor {
 		m.put("min_time", new Date(indexHeader.minTime));
 		m.put("max_time", new Date(indexHeader.maxTime));
 		m.put("log_count", indexHeader.logCount);
+		m.put("reserved", indexHeader.isReserved());
 
 		currentBlockIndex++;
 
