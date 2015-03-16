@@ -25,8 +25,11 @@ public class ExportRequest {
 
 	public ExportRequest clone() {
 		HashSet<String> clonedTableNames = new HashSet<String>(tableNames);
-		return new ExportRequest(driverType, clonedTableNames, (Date) from.clone(), (Date) to.clone(),
-				new HashMap<String, String>(params));
+		return new ExportRequest(driverType, clonedTableNames, cloneDate(from), cloneDate(to), new HashMap<String, String>(params));
+	}
+
+	private Date cloneDate(Date d) {
+		return d == null ? null : (Date) d.clone();
 	}
 
 	public String getDriverType() {
