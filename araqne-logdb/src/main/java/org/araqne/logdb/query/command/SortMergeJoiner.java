@@ -32,7 +32,7 @@ public class SortMergeJoiner {
 
 	SortMergeJoinerListener listener;
 
-	SortMergeJoiner(JoinType joinType, SortField[] sortFields, SortMergeJoinerListener listener) {
+	public SortMergeJoiner(JoinType joinType, SortField[] sortFields, SortMergeJoinerListener listener) {
 		this.joinType = joinType;
 		this.sortFields = sortFields;
 
@@ -45,14 +45,14 @@ public class SortMergeJoiner {
 		this.listener = listener;
 	}
 
-	void setR(Row row) throws IOException {
+	public void setR(Row row) throws IOException {
 		Item item = getItem(row.map());
 		synchronized (rSorter) {
 			rSorter.add(item);
 		}
 	}
 
-	void setS(Iterator<Map<String, Object>> it) throws IOException {
+	public void setS(Iterator<Map<String, Object>> it) throws IOException {
 		while (it.hasNext()) {
 			Map<String, Object> sm = it.next();
 			Item item = getItem(sm);
@@ -62,7 +62,7 @@ public class SortMergeJoiner {
 		}
 	}
 
-	void merge() {
+	public void merge() {
 		CloseableIterator rIt = null;
 		CloseableIterator sIt = null;
 
@@ -92,7 +92,7 @@ public class SortMergeJoiner {
 		}
 	}
 
-	void cancel() throws IOException {
+	public void cancel() throws IOException {
 		this.canceled = true;
 
 		rSorter.cancel();
@@ -280,9 +280,4 @@ public class SortMergeJoiner {
 			return 0;
 		}
 	}
-
-	interface SortMergeJoinerListener {
-		public void onPushPipe(Row row);
-	}
-
 }

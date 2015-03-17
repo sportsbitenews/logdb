@@ -51,19 +51,19 @@ public class QueryHelper {
 			if (cmd.getName().equals("union"))
 				unionCmds.add(cmd);
 		}
-
+		
 		for (QueryCommand cmd : commands) {
-			if (cmd.isDriver() && !cmd.getName().equals("join") && cmd.getMainTask() != null) {
+			if (cmd.isDriver() && cmd.getMainTask() != null) {
 				for (QueryCommand join : joinCmds) {
 					cmd.getDependency().addDependency(join.getMainTask());
 					logger.debug("cmd [{}] now depends on task [{}]", cmd.getMainTask().getID(), join.getMainTask().getID());
 				}
 			}
 
-			if (cmd.isDriver() && !cmd.getName().equals("join") && !cmd.getName().equals("union") && cmd.getMainTask() != null) {
+			if (cmd.isDriver() && cmd.getMainTask() != null) {
 				for (QueryCommand union : unionCmds) {
 					union.getDependency().addDependency(cmd.getMainTask());
-					logger.debug("cmd [{}] now depends on task [{}]", cmd.getMainTask().getID(), union.getMainTask().getID());
+					logger.debug("cmd [{}] now depends on task [{}]", union.getMainTask().getID(), cmd.getMainTask().getID());
 				}
 			}
 		}

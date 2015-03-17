@@ -14,7 +14,6 @@ import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.command.Sort.SortField;
-import org.araqne.logdb.query.command.SortMergeJoiner.SortMergeJoinerListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
