@@ -49,15 +49,6 @@ public class Join extends QueryCommand {
 		this.sortMergeJoiner = new SortMergeJoiner(joinType, sortFields, new SortMergeJoinerCallback(this));
 
 		logger.debug("araqne logdb: join subquery created [{}:{}]", subQuery.getId(), subQuery.getQueryString());
-
-		QueryHelper.setJoinAndUnionDependencies(subQuery.getCommands());
-
-		for (QueryCommand cmd : subQuery.getCommands()) {
-			if (cmd.getMainTask() != null) {
-				subQueryTask.addDependency(cmd.getMainTask());
-				subQueryTask.addSubTask(cmd.getMainTask());
-			}
-		}
 	}
 	
 	@Override
@@ -67,6 +58,15 @@ public class Join extends QueryCommand {
 
 	@Override
 	public void onStart() {
+		QueryHelper.setJoinAndUnionDependencies(subQuery.getCommands());
+
+		for (QueryCommand cmd : subQuery.getCommands()) {
+			if (cmd.getMainTask() != null) {
+				subQueryTask.addDependency(cmd.getMainTask());
+				subQueryTask.addSubTask(cmd.getMainTask());
+			}
+		}
+		
 		subQuery.preRun();
 	}
 
