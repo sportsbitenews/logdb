@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public class ImportRequest {
 	private String driverType;
-	private String guid = UUID.randomUUID().toString();
+	private String guid;
 	private Map<String, String> params = new HashMap<String, String>();
 	private List<DumpTabletEntry> entries = new ArrayList<DumpTabletEntry>();
 
@@ -16,6 +16,11 @@ public class ImportRequest {
 	}
 
 	public ImportRequest(String driverType, Map<String, String> params, List<DumpTabletEntry> entries) {
+		this(UUID.randomUUID().toString(), driverType, params, entries);
+	}
+
+	public ImportRequest(String guid, String driverType, Map<String, String> params, List<DumpTabletEntry> entries) {
+		this.guid = guid;
 		this.driverType = driverType;
 		this.params = params;
 		this.entries = entries;
@@ -26,7 +31,7 @@ public class ImportRequest {
 		for (DumpTabletEntry e : entries)
 			l.add(e.clone());
 
-		return new ImportRequest(driverType, new HashMap<String, String>(params), l);
+		return new ImportRequest(guid, driverType, new HashMap<String, String>(params), l);
 	}
 
 	public String getDriverType() {

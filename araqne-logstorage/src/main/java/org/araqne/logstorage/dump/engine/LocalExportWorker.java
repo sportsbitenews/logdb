@@ -66,6 +66,8 @@ public class LocalExportWorker implements ExportWorker {
 
 		slog.info("araqne logstorage: start export estimation [{}]", req.getGuid());
 		List<ExportTabletTask> tabletTasks = dumpService.estimate(req);
+		task.setEstimationDone();
+
 		Map<DumpTabletKey, ExportTabletTask> m = task.getTabletTasks();
 		for (ExportTabletTask t : tabletTasks) {
 			m.put(new DumpTabletKey(t.getTableName(), t.getDay()), t);

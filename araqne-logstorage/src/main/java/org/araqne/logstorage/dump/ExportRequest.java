@@ -9,13 +9,18 @@ import java.util.UUID;
 
 public class ExportRequest {
 	private String driverType;
-	private String guid = UUID.randomUUID().toString();
+	private String guid;
 	private Set<String> tableNames;
 	private Date from;
 	private Date to;
 	private Map<String, String> params;
 
 	public ExportRequest(String driverType, Set<String> tableNames, Date from, Date to, Map<String, String> params) {
+		this(UUID.randomUUID().toString(), driverType, tableNames, from, to, params);
+	}
+
+	public ExportRequest(String guid, String driverType, Set<String> tableNames, Date from, Date to, Map<String, String> params) {
+		this.guid = guid;
 		this.driverType = driverType;
 		this.tableNames = tableNames;
 		this.from = from;
@@ -25,7 +30,8 @@ public class ExportRequest {
 
 	public ExportRequest clone() {
 		HashSet<String> clonedTableNames = new HashSet<String>(tableNames);
-		return new ExportRequest(driverType, clonedTableNames, cloneDate(from), cloneDate(to), new HashMap<String, String>(params));
+		HashMap<String, String> clonedParams = new HashMap<String, String>(params);
+		return new ExportRequest(guid, driverType, clonedTableNames, cloneDate(from), cloneDate(to), clonedParams);
 	}
 
 	private Date cloneDate(Date d) {
