@@ -33,8 +33,9 @@ public class SpectraGuardLogParser extends V1LogParser {
 			return null;
 
 		HashMap<String, Object> m = new HashMap<String, Object>();
+		Scanner sc = null;
 		try {
-			Scanner sc = new Scanner(line);
+			sc = new Scanner(line);
 			sc.useDelimiter(": ");
 
 			String sensor = sc.next();
@@ -113,6 +114,9 @@ public class SpectraGuardLogParser extends V1LogParser {
 		} catch (Throwable t) {
 			logger.trace("cannot parse spectraguard log - " + line, t);
 			m.put("line", line);
+		} finally {
+			if (sc != null)
+				sc.close();
 		}
 
 		return m;

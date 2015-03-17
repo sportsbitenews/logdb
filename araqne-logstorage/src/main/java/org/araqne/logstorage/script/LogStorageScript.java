@@ -868,23 +868,28 @@ public class LogStorageScript implements Script {
 		if (args.length > 4)
 			limit = Integer.valueOf(args[4]);
 
-		ZipFile zipFile = new ZipFile(file);
-		ZipEntry entry = zipFile.getEntry(entryPath);
-		if (entry == null) {
-			context.println("entry [" + entryPath + "] not found in zip file [" + filePath + "]");
-			return;
-		}
-
-		InputStream is = null;
+		ZipFile zipFile = null;
 		try {
-			is = zipFile.getInputStream(entry);
-			importFromStream(tableName, is, offset, limit);
-		} catch (Exception e) {
-			context.println("import failed, " + e.getMessage());
-			logger.error("araqne logstorage: cannot import zipped text file " + file.getAbsolutePath(), e);
+			zipFile = new ZipFile(file);
+			ZipEntry entry = zipFile.getEntry(entryPath);
+			if (entry == null) {
+				context.println("entry [" + entryPath + "] not found in zip file [" + filePath + "]");
+				return;
+			}
+
+			InputStream is = null;
+			try {
+				is = zipFile.getInputStream(entry);
+				importFromStream(tableName, is, offset, limit);
+			} catch (Exception e) {
+				context.println("import failed, " + e.getMessage());
+				logger.error("araqne logstorage: cannot import zipped text file " + file.getAbsolutePath(), e);
+			} finally {
+				if (is != null)
+					is.close();
+			}
 		} finally {
-			if (is != null)
-				is.close();
+			zipFile.close();
 		}
 	}
 
@@ -977,7 +982,9 @@ public class LogStorageScript implements Script {
 		int count;
 		long minId = Long.MAX_VALUE;
 		long maxId = Long.MIN_VALUE;
+		@SuppressWarnings("unused")
 		long rsvCnt = 0;
+		@SuppressWarnings("unused")
 		long fixCnt = 0;
 
 		public CounterSink(long limit) {

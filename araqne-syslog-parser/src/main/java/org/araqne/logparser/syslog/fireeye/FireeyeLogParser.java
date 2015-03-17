@@ -37,14 +37,17 @@ public class FireeyeLogParser extends V1LogParser {
 
 			int b = 0;
 			int e = line.indexOf('|');
+			@SuppressWarnings("unused")
 			String s0 = line.substring(b, e);
 
 			b = e + 1;
 			e = line.indexOf('|', b);
+			@SuppressWarnings("unused")
 			String s1 = line.substring(b, e);
 
 			b = e + 1;
 			e = line.indexOf('|', b);
+			@SuppressWarnings("unused")
 			String s2 = line.substring(b, e);
 
 			b = e + 1;
