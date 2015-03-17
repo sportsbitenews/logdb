@@ -10,7 +10,6 @@ import java.security.PrivateKey;
 import org.araqne.codec.Base64;
 import org.araqne.logstorage.Crypto;
 import org.araqne.logstorage.exporter.CryptoParams;
-import org.araqne.logstorage.exporter.LogBlock;
 
 public class LogKeyFileReader {
 
