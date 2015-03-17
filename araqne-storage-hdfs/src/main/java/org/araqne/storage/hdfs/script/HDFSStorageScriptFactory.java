@@ -12,7 +12,6 @@ import org.araqne.storage.hdfs.HDFSStorageManager;
 @Provides
 public class HDFSStorageScriptFactory implements ScriptFactory {
 
-	@SuppressWarnings("unused")
 	@ServiceProperty(name = "alias", value = "storage")
 	private String alias;
 	

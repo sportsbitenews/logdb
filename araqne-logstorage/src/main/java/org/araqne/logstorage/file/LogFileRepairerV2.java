@@ -54,7 +54,9 @@ public class LogFileRepairerV2 implements LogFileRepairer {
 			indexFile = new RandomAccessFile(indexPath, "rw");
 			dataFile = new RandomAccessFile(dataPath, "rw");
 
+			@SuppressWarnings("deprecation")
 			LogFileHeader indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
+			@SuppressWarnings("deprecation")
 			LogFileHeader dataFileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
 			if (indexFileHeader.version() > 2 && dataFileHeader.version() > 2)
 				return null;
@@ -306,6 +308,7 @@ public class LogFileRepairerV2 implements LogFileRepairer {
 
 	private List<LogDataBlockHeader> readDataBlockHeaders(RandomAccessFile dataFile, File dataPath) throws IOException {
 		long fileLength = dataFile.length();
+		@SuppressWarnings("deprecation")
 		LogFileHeader fileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
 		long pos = fileHeader.size();
 

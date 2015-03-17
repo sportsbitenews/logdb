@@ -189,6 +189,7 @@ public class TableParser extends AbstractQueryCommandParser {
 		private String symbol;
 		private int precedence;
 		private boolean leftAssoc;
+		@SuppressWarnings("unused")
 		private boolean unary;
 		private boolean isAlpha;
 
@@ -502,7 +503,9 @@ public class TableParser extends AbstractQueryCommandParser {
 		if (spec instanceof TableSpec) {
 			target.add((TableSpec) spec);
 		} else if (spec instanceof List) {
-			for (Object o : (List<Object>) spec) {
+			@SuppressWarnings("unchecked")
+			List<Object> specs = (List<Object>) spec;
+			for (Object o : specs) {
 				addTableSpec(target, context, o);
 			}
 		} else {
