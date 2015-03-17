@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Term;
 import org.araqne.logdb.query.command.Term.Operator;
 import org.junit.Test;

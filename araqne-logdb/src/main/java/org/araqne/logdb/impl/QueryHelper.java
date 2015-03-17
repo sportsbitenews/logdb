@@ -30,9 +30,12 @@ import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.QueryService;
 import org.araqne.logdb.RunMode;
 import org.araqne.logdb.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryHelper {
 	private static final int GENERAL_QUERY_FAILURE_CODE = 1;
+	private static Logger logger = LoggerFactory.getLogger(QueryHelper.class);
 
 	private QueryHelper() {
 	}
@@ -48,16 +51,20 @@ public class QueryHelper {
 			if (cmd.getName().equals("union"))
 				unionCmds.add(cmd);
 		}
-
+		
 		for (QueryCommand cmd : commands) {
-			if (cmd.isDriver() && !cmd.getName().equals("join") && cmd.getMainTask() != null) {
-				for (QueryCommand join : joinCmds)
+			if (cmd.isDriver() && cmd.getMainTask() != null) {
+				for (QueryCommand join : joinCmds) {
 					cmd.getDependency().addDependency(join.getMainTask());
+					logger.debug("cmd [{}] now depends on task [{}]", cmd.getMainTask().getID(), join.getMainTask().getID());
+				}
 			}
 
-			if (cmd.isDriver() && !cmd.getName().equals("join") && !cmd.getName().equals("union") && cmd.getMainTask() != null) {
-				for (QueryCommand union : unionCmds)
+			if (cmd.isDriver() && cmd.getMainTask() != null) {
+				for (QueryCommand union : unionCmds) {
 					union.getDependency().addDependency(cmd.getMainTask());
+					logger.debug("cmd [{}] now depends on task [{}]", union.getMainTask().getID(), cmd.getMainTask().getID());
+				}
 			}
 		}
 	}

@@ -272,7 +272,9 @@ public class LogFileRepairerV3o implements LogFileRepairer {
 			indexFile = new RandomAccessFile(indexPath, "rw");
 			dataFile = new RandomAccessFile(dataPath, "rw");
 
+			@SuppressWarnings("deprecation")
 			LogFileHeader indexFileHeader = LogFileHeader.extractHeader(indexFile, indexPath);
+			@SuppressWarnings("deprecation")
 			LogFileHeader dataFileHeader = LogFileHeader.extractHeader(dataFile, dataPath);
 			if (indexFileHeader.version() != FILE_VERSION || dataFileHeader.version() != FILE_VERSION)
 				return null;
@@ -371,6 +373,7 @@ public class LogFileRepairerV3o implements LogFileRepairer {
 		*/
 	}
 	
+	@SuppressWarnings("unused")
 	private long truncateMisConstructedDataBlock(File dataPath, RandomAccessFile dataFile, List<LogDataBlockHeaderV3> dataBlockHeaders) throws IOException {
 		if (dataBlockHeaders.isEmpty())
 			return 0;
@@ -386,6 +389,7 @@ public class LogFileRepairerV3o implements LogFileRepairer {
 		return dataOver; 
 	}
 
+	@SuppressWarnings("unused")
 	private LogFileFixReport truncate(File indexPath, File dataPath, RandomAccessFile indexFile, RandomAccessFile dataFile,
 			List<LogIndexBlockV3> indexBlocks, List<LogDataBlockHeaderV3> dataBlockHeaders) throws IOException {
 		long validLogCount = 0;
@@ -492,6 +496,7 @@ public class LogFileRepairerV3o implements LogFileRepairer {
 		}
 	}
 	
+	@SuppressWarnings("unused") // for fullscan
 	private LogFileFixReport generate(File indexPath, File dataPath, RandomAccessFile indexFile, RandomAccessFile dataFile,
 			List<LogIndexBlockV3> indexBlocks, List<LogDataBlockHeaderV3> dataBlockHeaders) throws IOException {
 		logger.trace("logpresso logstorage: checking incomplete index block, file [{}]", indexPath);
@@ -559,6 +564,7 @@ public class LogFileRepairerV3o implements LogFileRepairer {
 		return report;
 	}
 
+	@SuppressWarnings("unused") // for fullscan
 	private List<LogDataBlockHeaderV3> readDataBlockHeaders(File dataPath, RandomAccessFile dataFile, LogFileHeader dataFileHeader) throws IOException {
 		long pos = dataFileHeader.size();
 		long fileLength = dataFile.length();
@@ -651,6 +657,7 @@ public class LogFileRepairerV3o implements LogFileRepairer {
 		return header;
 	}
 
+	@SuppressWarnings("unused") // for fullscan
 	private List<LogIndexBlockV3> readIndexBlocks(RandomAccessFile indexFile) throws IOException {
 		List<LogIndexBlockV3> indexBlocks = new ArrayList<LogIndexBlockV3>();
 		int index = 0;
@@ -698,6 +705,7 @@ public class LogFileRepairerV3o implements LogFileRepairer {
 	}
 
 	private class LogDataBlockHeaderV3 {
+		@SuppressWarnings("unused")
 		int index;
 		long pos;
 		int blockLength;
@@ -783,10 +791,6 @@ public class LogFileRepairerV3o implements LogFileRepairer {
 			return blockLength;
 		}
 
-		public int getIndex() {
-			return index;
-		}
-
 		public void setIndex(int index) {
 			this.index = index;
 		}
@@ -847,10 +851,12 @@ public class LogFileRepairerV3o implements LogFileRepairer {
 			return count;
 		}
 
+		@SuppressWarnings("unused")
 		public int getIndex() {
 			return index;
 		}
 		
+		@SuppressWarnings("unused")
 		public boolean isReserved() {
 			return isReserved;
 		}

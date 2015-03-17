@@ -40,7 +40,6 @@ public class ByteBufferReader implements Closeable {
 			}
 			boolean eol = false;
 			byte c = 0;
-			int i;
 
 			/* Skip a leftover '\n', if necessary */
 			if (omitLF && (buf.get(buf.position()) == '\n'))

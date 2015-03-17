@@ -1,13 +1,11 @@
 package org.araqne.logdb.query.parser;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
-import org.araqne.logdb.query.command.Explode;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.junit.Before;
 import org.junit.Test;

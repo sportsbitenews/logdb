@@ -35,8 +35,6 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
-import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.Row;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;

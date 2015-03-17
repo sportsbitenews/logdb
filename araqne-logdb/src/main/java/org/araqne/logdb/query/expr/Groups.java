@@ -22,7 +22,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class Groups extends FunctionExpression {
@@ -31,9 +30,6 @@ public class Groups extends FunctionExpression {
 
 	public Groups(QueryContext ctx, List<Expression> exprs) {
 		super("groups", exprs, 2);
-
-		// if (exprs.size() < 2)
-		// throw new QueryParseException("missing-groups-args", -1);
 
 		this.target = exprs.get(0);
 		this.matcher = Pattern.compile(exprs.get(1).eval(null).toString()).matcher("");
@@ -65,6 +61,7 @@ public class Groups extends FunctionExpression {
 		Groups g = new Groups(null, Arrays.<Expression> asList(new EvalField("line"), new StringConstant(p)));
 		Row r = new Row();
 		r.put("line", a);
+		@SuppressWarnings("unchecked")
 		ArrayList<String> result = (ArrayList<String>) g.eval(r);
 		if (result != null)
 			for (String s : result)

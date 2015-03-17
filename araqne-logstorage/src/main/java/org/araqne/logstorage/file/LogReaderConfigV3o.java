@@ -17,7 +17,6 @@ package org.araqne.logstorage.file;
 
 import java.util.Date;
 
-import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.storage.api.FilePath;
 
 public class LogReaderConfigV3o {

@@ -55,6 +55,7 @@ public class TableLockTest {
 		when(ls.lockStatus(any(LockKey.class))).thenAnswer(new Answer<LockStatus>() {
 			@Override
 			public LockStatus answer(InvocationOnMock inv) throws Throwable {
+				@SuppressWarnings("unused")
 				LockKey key = (LockKey) inv.getArguments()[0];
 				return new LockStatus(
 						lock.getOwner(), lock.availableShared(), lock.getReentrantCount(), lock.getPurposes());

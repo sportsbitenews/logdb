@@ -2,8 +2,6 @@ package org.araqne.storage.localfile;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.channels.Channel;
-import java.nio.channels.FileChannel;
 
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageOutputStream;

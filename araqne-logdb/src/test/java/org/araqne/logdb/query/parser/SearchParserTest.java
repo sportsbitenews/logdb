@@ -57,6 +57,7 @@ public class SearchParserTest {
 		Expression expr = search.getExpression();
 
 		assertEquals("search ((field == \"\") or (field == \"\"))", search.toString());
+		assertEquals("((field == \"\") or (field == \"\"))", expr.toString());
 	}
 
 	@Test

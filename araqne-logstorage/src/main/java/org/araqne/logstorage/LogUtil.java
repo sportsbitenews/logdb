@@ -13,12 +13,14 @@ public class LogUtil {
 		long currentTimeMillis = System.currentTimeMillis();
 		System.out.println(getDay(new Date()));
 		for (int i = 0; i < 10000000; ++i) {
+			@SuppressWarnings("unused")
 			Date day = getDay(new Date());
 		}
 		System.out.println(System.currentTimeMillis() - currentTimeMillis);
 		System.out.println(getDay(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse("1987-05-26 03:00:00")));
 		currentTimeMillis = System.currentTimeMillis();
 		for (int i = 0; i < 10000000; ++i) {
+			@SuppressWarnings("unused")
 			Date day = getDay2(new Date());
 		}
 		System.out.println(System.currentTimeMillis() - currentTimeMillis);

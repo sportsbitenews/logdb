@@ -10,8 +10,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserBugException;
@@ -700,32 +698,6 @@ public class LogFileReaderV3o extends LogFileReader {
 			logger.error("araqne logstorage: PARSER BUG! original log => table " + parseResult.parseError.tableName + ", id "
 					+ parseResult.parseError.id + ", data " + parseResult.parseError.logMap, parseResult.parseError.cause);
 			builder.suppressBugAlert();
-		}
-	}
-
-	private void processFetchedLogs(List<Log> result, List<Future<LogParseResult>> fetchQueue, LogParserBuilder builder,
-			boolean isFlush) {
-		while (!fetchQueue.isEmpty()) {
-			if (!isFlush && !fetchQueue.get(0).isDone())
-				return;
-
-			Future<LogParseResult> fetchResult = fetchQueue.remove(0);
-			LogParseResult parseResult = null;
-			try {
-				parseResult = fetchResult.get();
-			} catch (InterruptedException e) {
-			} catch (ExecutionException e) {
-				e.printStackTrace();
-			}
-
-			if (parseResult == null)
-				continue;
-
-			handleParseError(builder, parseResult);
-
-			if (parseResult.result != null && !parseResult.result.isEmpty()) {
-				result.addAll(parseResult.result);
-			}
 		}
 	}
 

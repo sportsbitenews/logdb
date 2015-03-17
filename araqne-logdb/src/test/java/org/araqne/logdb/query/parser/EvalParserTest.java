@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.Eval;

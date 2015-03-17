@@ -1,6 +1,5 @@
 package org.araqne.logdb.query.command;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,7 +14,6 @@ import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.command.Sort.SortField;
-import org.araqne.logdb.query.command.SortMergeJoiner.SortMergeJoinerListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +48,15 @@ public class Join extends QueryCommand {
 		this.sortMergeJoiner = new SortMergeJoiner(joinType, sortFields, new SortMergeJoinerCallback(this));
 
 		logger.debug("araqne logdb: join subquery created [{}:{}]", subQuery.getId(), subQuery.getQueryString());
+	}
+	
+	@Override
+	public String getName() {
+		return "join";
+	}
 
+	@Override
+	public void onStart() {
 		QueryHelper.setJoinAndUnionDependencies(subQuery.getCommands());
 
 		for (QueryCommand cmd : subQuery.getCommands()) {
@@ -59,15 +65,7 @@ public class Join extends QueryCommand {
 				subQueryTask.addSubTask(cmd.getMainTask());
 			}
 		}
-	}
-
-	@Override
-	public String getName() {
-		return "join";
-	}
-
-	@Override
-	public void onStart() {
+		
 		subQuery.preRun();
 	}
 

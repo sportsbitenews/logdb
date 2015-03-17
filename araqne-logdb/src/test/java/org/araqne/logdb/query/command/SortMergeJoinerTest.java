@@ -1,5 +1,7 @@
 package org.araqne.logdb.query.command;
 
+import static org.junit.Assert.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -10,13 +12,9 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.RowPipe;
 import org.araqne.logdb.query.command.Join.JoinType;
-import org.araqne.logdb.query.command.SortMergeJoiner;
-import org.araqne.logdb.query.command.SortMergeJoiner.SortMergeJoinerListener;
+import org.araqne.logdb.query.command.Sort.SortField;
 import org.araqne.logdb.query.parser.JsonParser;
 import org.junit.Test;
-import org.araqne.logdb.query.command.Sort.SortField;
-
-import static org.junit.Assert.*;
 
 public class SortMergeJoinerTest {
 

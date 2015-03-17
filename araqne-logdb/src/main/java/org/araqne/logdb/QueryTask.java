@@ -18,6 +18,7 @@ package org.araqne.logdb;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,10 @@ public abstract class QueryTask implements Runnable {
 	private CopyOnWriteArraySet<QueryTask> subTasks = new CopyOnWriteArraySet<QueryTask>();
 	private CopyOnWriteArraySet<QueryTask> dependencies = new CopyOnWriteArraySet<QueryTask>();
 	private CopyOnWriteArraySet<QueryTaskListener> listeners = new CopyOnWriteArraySet<QueryTaskListener>();
+	
+	private static AtomicLong l = new AtomicLong(1);
+	
+	private long id = l.incrementAndGet();
 
 	public TaskStatus getStatus() {
 		return status;
@@ -134,5 +139,9 @@ public abstract class QueryTask implements Runnable {
 	private void checkNotNull(Object o, String name) {
 		if (o == null)
 			throw new IllegalArgumentException("null " + name + " is not allowed");
+	}
+
+	public long getID() {
+		return id;
 	}
 }
