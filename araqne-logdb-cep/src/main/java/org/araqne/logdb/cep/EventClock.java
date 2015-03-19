@@ -16,14 +16,7 @@
 package org.araqne.logdb.cep;
 
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class EventClock {
@@ -117,7 +110,7 @@ public class EventClock {
 	}
 
 	private void evictContext(long now) {
-		Set<EventKey> expiredEvictees = new HashSet<EventKey>();
+		HashMap<EventKey, EventContext> expiredEvictees = new HashMap<EventKey, EventContext>();
 
 		synchronized (expireQueue) {
 			while (true) {
@@ -127,19 +120,19 @@ public class EventClock {
 
 				if (ctx.getExpireTime() <= now) {
 					expireQueue.poll();
-					expiredEvictees.add(ctx.getKey());
+					expiredEvictees.put(ctx.getKey(), ctx);
 
 				} else
 					break;
 			}
 		}
 
-		for (EventKey key : expiredEvictees)
-			storage.removeContext(key, EventCause.EXPIRE);
+		for (Map.Entry<EventKey, EventContext> e: expiredEvictees.entrySet())
+			storage.removeContext(e.getKey(), e.getValue(), EventCause.EXPIRE);
 
 		expiredEvictees = null;
 
-		Set<EventKey> timeoutEvictees = new HashSet<EventKey>();
+		HashMap<EventKey, EventContext> timeoutEvictees = new HashMap<EventKey, EventContext>();
 
 		synchronized (timeoutQueue) {
 			while (true) {
@@ -149,15 +142,15 @@ public class EventClock {
 
 				if (ctx.getTimeoutTime() <= now) {
 					timeoutQueue.poll();
-					timeoutEvictees.add(ctx.getKey());
+					timeoutEvictees.put(ctx.getKey(), ctx);
 
 				} else
 					break;
 			}
 		}
 
-		for (EventKey key : timeoutEvictees)
-			storage.removeContext(key, EventCause.TIMEOUT);
+		for (Map.Entry<EventKey, EventContext> e : timeoutEvictees.entrySet())
+			storage.removeContext(e.getKey(), e.getValue(), EventCause.TIMEOUT);
 	}
 
 	@Override
