@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class EventClock {
 	private final TimeoutComparator timeoutComparator = new TimeoutComparator();
@@ -33,12 +34,12 @@ public class EventClock {
 	private final PriorityQueue<EventContext> timeoutQueue;
 	private final PriorityQueue<EventContext> expireQueue;
 
-	private volatile long lastTime;
+	private AtomicLong lastTime = new AtomicLong();
 
 	public EventClock(EventContextStorage storage, String host, long lastTime, int initialCapacity) {
 		this.storage = storage;
 		this.host = host;
-		this.lastTime = lastTime;
+		this.lastTime = new AtomicLong(lastTime);
 		this.timeoutQueue = new PriorityQueue<EventContext>(initialCapacity, timeoutComparator);
 		this.expireQueue = new PriorityQueue<EventContext>(initialCapacity, expireComparator);
 	}
@@ -48,7 +49,7 @@ public class EventClock {
 	}
 
 	public Date getTime() {
-		return new Date(lastTime);
+		return new Date(lastTime.get());
 	}
 
 	public List<EventContext> getTimeoutContexts() {
@@ -72,10 +73,17 @@ public class EventClock {
 	}
 
 	public void setTime(long now, boolean force) {
-		if (force || now > lastTime)
-			lastTime = now;
-
-		evictContext(lastTime);
+		if (force) {
+			lastTime.set(now);
+		} else {
+			while (now > lastTime.get()) {
+				long l = lastTime.get();
+				if (lastTime.compareAndSet(l, now)) {
+					evictContext(now);
+					break;
+				}
+			}
+		}
 	}
 
 	public void add(EventContext ctx) {
@@ -156,7 +164,7 @@ public class EventClock {
 	public String toString() {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 		return host + " (timeout: " + timeoutQueue.size() + ", expire: " + expireQueue.size() + ") => "
-				+ df.format(new Date(lastTime));
+				+ df.format(new Date(lastTime.get()));
 	}
 
 	private static class TimeoutComparator implements Comparator<EventContext> {
