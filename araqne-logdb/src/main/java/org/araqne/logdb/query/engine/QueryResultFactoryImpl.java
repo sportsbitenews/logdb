@@ -39,7 +39,7 @@ public class QueryResultFactoryImpl implements QueryResultFactory {
 	
 	@Validate
 	public void start() {
-		FilePath BASE_DIR = storageManager.resolveFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logdb/query/");
+		FilePath BASE_DIR = storageManager.resolveFilePath(System.getProperty("araqne.data.dir", "")).newFilePath("araqne-logdb/query/");
 
 		QueryResultStorageV2 embedded = new QueryResultStorageV2(BASE_DIR);
 		storages.add(embedded);
