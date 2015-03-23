@@ -256,5 +256,6 @@
 		<module>araqne-logdb-crawler</module>
 		<module>araqne-logapi-nio</module>
 		<module>araqne-logdb-jms</module>
+		<module>araqne-logdb-hprof</module>
 	</modules>
 </project>
