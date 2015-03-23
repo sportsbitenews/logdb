@@ -101,7 +101,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		// generate default 'araqne' account if not exists
 		if (!localAccounts.containsKey(DEFAULT_MASTER_ACCOUNT)) {
 			String salt = randomSalt(10);
-			Account account = new Account(DEFAULT_MASTER_ACCOUNT, salt, Sha1.hash(salt));
+			Account account = new Account(DEFAULT_MASTER_ACCOUNT, salt, HashUtils.hash(salt, Account.DEFAULT_HASH_ALGORITHM));
 			db.add(account);
 			localAccounts.put(DEFAULT_MASTER_ACCOUNT, account);
 		}
@@ -275,7 +275,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			String hash = account.getPassword();
 			String salt = account.getSalt();
 
-			return hash.equals(Sha1.hash(password + salt));
+			return hash.equals(HashUtils.hash(password + salt, account.getHashAlgorithm()));
 		} else if (selectedExternalAuth != null) {
 			// try external login
 			ExternalAuthService auth = authServices.get(selectedExternalAuth);
@@ -306,7 +306,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			throw new IllegalStateException("account-not-found");
 
 		String password = account.getPassword();
-		if (!hash.equals(Sha1.hash(password + nonce))) {
+		if (!hash.equals(HashUtils.hash(password + nonce, account.getHashAlgorithm()))) {
 			throw new IllegalStateException("invalid-password");
 		}
 
@@ -376,7 +376,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			throw new IllegalStateException("duplicated login name");
 
 		String salt = randomSalt(10);
-		String hash = Sha1.hash(password + salt);
+		String hash = HashUtils.hash(password + salt, Account.DEFAULT_HASH_ALGORITHM);
 		Account account = new Account(loginName, salt, hash);
 
 		Account old = localAccounts.putIfAbsent(account.getLoginName(), account);
@@ -411,7 +411,8 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			throw new IllegalStateException("no permission");
 
 		Account account = localAccounts.get(loginName);
-		String hash = Sha1.hash(password + account.getSalt());
+		
+		String hash = HashUtils.hash(password + account.getSalt(), account.getHashAlgorithm());
 		account.setPassword(hash);
 
 		updateAccount(account);

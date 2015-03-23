@@ -28,6 +28,9 @@ import org.araqne.confdb.CollectionName;
  */
 @CollectionName("accounts")
 public class Account {
+	public static String DEFAULT_HASH_TYPE = "sha512";
+	public static String DEFAULT_HASH_ALGORITHM = "SHA-512";
+	
 	private String loginName;
 
 	private String salt;
@@ -35,7 +38,7 @@ public class Account {
 	// salt hashed password (hex format)
 	private String password;
 
-	private String hashType = "sha1";
+	private String hashType = DEFAULT_HASH_TYPE;
 
 	// null for local confdb, or external auth service name
 	private String authServiceName;
@@ -79,6 +82,20 @@ public class Account {
 
 	public void setPassword(String password) {
 		this.password = password;
+	}
+	
+	public String getHashAlgorithm() {
+		if (hashType == null)
+			return null;
+		
+		if (hashType.equals("sha1"))
+			return "SHA-1";
+		if (hashType.equals("sha256"))
+			return "SHA-256";
+		if (hashType.equals("sha512"))
+			return "SHA-512";
+		
+		throw new IllegalStateException("unknown hash algorithm: " + hashType);
 	}
 
 	public String getHashType() {

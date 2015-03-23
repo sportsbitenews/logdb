@@ -19,16 +19,16 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class Sha1 {
-	public static String hashPassword(String salt, String password) {
+public class HashUtils {
+	public static String hashPassword(String salt, String password, String algorithm) {
 		if (password == null)
 			return null;
-		return hash(((salt == null) ? "" : salt) + password);
+		return hash(((salt == null) ? "" : salt) + password, algorithm);
 	}
 
-	public static String hash(String text) {
+	public static String hash(String text, String algorithm) {
 		try {
-			MessageDigest md = MessageDigest.getInstance("SHA-1");
+			MessageDigest md = MessageDigest.getInstance(algorithm);
 			md.update(text.getBytes("utf-8"), 0, text.length());
 			byte[] sha1hash = md.digest();
 			return convertToHex(sha1hash);
