@@ -66,15 +66,17 @@ public class CepEventLogger extends AbstractLogger implements EventSubscriber {
 	public void onEvent(Event event) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		List<Object> rows = new ArrayList<Object>(event.getRows().size());
-		
+
 		for (Row row : event.getRows()) {
 			rows.add(row.map());
 		}
-		
+
 		EventKey key = event.getKey();
 		m.put("topic", key.getTopic());
 		m.put("key", key.getKey());
 		m.put("host", key.getHost());
+		m.put("counter", event.getCounter());
+		m.put("vars", event.getVariables());
 		m.put("created", event.getCreated());
 		m.put("cause", event.getCause().toString().toLowerCase());
 		m.put("rows", rows);

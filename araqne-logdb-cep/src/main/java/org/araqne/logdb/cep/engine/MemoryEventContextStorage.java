@@ -227,7 +227,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		if (slog.isDebugEnabled())
 			slog.debug("araqne logdb cep: generate event ctx [{}] cause [{}]", ctx.getKey(), cause);
 
-		Event ev = new Event(ctx.getKey(), cause);
+		Event ev = new Event(ctx, cause);
 		ev.getRows().addAll(ctx.getRows());
 
 		CopyOnWriteArraySet<EventSubscriber> s = subscribers.get(ctx.getKey().getTopic());

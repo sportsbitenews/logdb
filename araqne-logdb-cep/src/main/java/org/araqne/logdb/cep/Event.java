@@ -18,22 +18,29 @@ package org.araqne.logdb.cep;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.Row;
 
 public class Event {
 	private EventKey key;
 	private EventCause cause;
+	private int counter;
+	private Map<String, Object> variables;
 	private List<Row> rows = new ArrayList<Row>();
-	private Date created = new Date();
+	private Date created;
 
-	public Event(EventKey key, EventCause cause) {
+	public Event(EventContext ctx, EventCause cause) {
+		this.key = ctx.getKey();
 		if (key == null)
 			throw new IllegalArgumentException("event key cannot be null");
 
-		this.key = key;
 		this.cause = cause;
+		this.created = new Date(ctx.getCreated());
+		this.counter = ctx.getCounter().get();
+		this.variables = new HashMap<String, Object>(ctx.getVariables());
 	}
 
 	public EventKey getKey() {
@@ -42,6 +49,14 @@ public class Event {
 
 	public EventCause getCause() {
 		return cause;
+	}
+
+	public int getCounter() {
+		return counter;
+	}
+
+	public Map<String, Object> getVariables() {
+		return variables;
 	}
 
 	public List<Row> getRows() {
