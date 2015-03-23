@@ -146,9 +146,8 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public void removeContext(EventKey key, EventCause cause) {
-		EventContext ctx = contexts.remove(key);
-		if (ctx != null) {
+	public void removeContext(EventKey key, EventContext ctx, EventCause cause) {
+		if (contexts.remove(key, ctx)) {
 			ctx.getListeners().remove(this);
 
 			if (key.getHost() != null) {
