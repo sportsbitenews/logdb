@@ -84,6 +84,9 @@ public class ThreadMetadataProvider implements MetadataProvider, FieldOrdering {
 		long[] tids = bean.getAllThreadIds();
 
 		for (ThreadInfo t : bean.getThreadInfo(tids, true, true)) {
+			if (t == null)
+				continue;
+
 			Map<String, Object> m = new HashMap<String, Object>();
 			m.put("tid", t.getThreadId());
 			m.put("name", t.getThreadName());
