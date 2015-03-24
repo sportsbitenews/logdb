@@ -62,6 +62,7 @@ public class Marshaler {
 		m.put("full_name", logger.getFullName());
 		m.put("namespace", logger.getNamespace());
 		m.put("name", logger.getName());
+		m.put("enabled", logger.isEnabled());
 		m.put("factory_full_name", logger.getFactoryFullName());
 		m.put("description", logger.getDescription());
 		m.put("is_passive", logger.isPassive());

@@ -1606,6 +1606,9 @@ public class LogDbClient implements TrapListener, Closeable {
 		LoggerInfo lo = new LoggerInfo();
 		lo.setNamespace((String) m.get("namespace"));
 		lo.setName((String) m.get("name"));
+		if (m.get("enabled") != null)
+			lo.setEnabled((Boolean) m.get("enabled"));
+
 		lo.setFactoryName((String) m.get("factory_full_name"));
 		lo.setDescription((String) m.get("description"));
 		lo.setPassive((Boolean) m.get("is_passive"));

@@ -31,6 +31,12 @@ public class LoggerInfo {
 	private String factoryName;
 	private String namespace;
 	private String name;
+
+	/**
+	 * @since 1.0.8
+	 */
+	private boolean enabled;
+
 	private String description;
 	private boolean passive;
 	private int interval;
@@ -111,6 +117,27 @@ public class LoggerInfo {
 	 */
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	/**
+	 * 로거의 활성화 여부를 반환합니다.
+	 * 
+	 * @since 1.0.8
+	 * @return 활성화 여부
+	 */
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	/**
+	 * 로거의 활성화 여부를 설정합니다.
+	 * 
+	 * @since 1.0.8
+	 * @param enabled
+	 *            활성화 여부
+	 */
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
 	}
 
 	/**
