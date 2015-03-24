@@ -31,6 +31,7 @@ import org.araqne.logdb.client.http.impl.TrapListener;
  */
 public abstract class AbstractLogDbSession implements LogDbSession {
 	protected boolean isClosed;
+	protected boolean isLogin = false;
 	protected CopyOnWriteArraySet<TrapListener> listeners = new CopyOnWriteArraySet<TrapListener>();
 
 	@Override
@@ -45,11 +46,17 @@ public abstract class AbstractLogDbSession implements LogDbSession {
 
 	@Override
 	public void login(String loginName, String password, boolean force) throws IOException {
-		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("login_name", loginName);
-		params.put("password", password);
-
-		rpc("org.araqne.logdb.msgbus.ManagementPlugin.login", params);
+		try {
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("login_name", loginName);
+			params.put("password", password);
+	
+			rpc("org.araqne.logdb.msgbus.ManagementPlugin.login", params);
+			isLogin = true;
+		} catch (IOException t) {
+			isLogin = false;
+			throw t;
+		}
 	}
 
 	@Override
@@ -110,7 +117,8 @@ public abstract class AbstractLogDbSession implements LogDbSession {
 			isClosed = true;
 
 			// do not wait
-			rpc("org.araqne.logdb.msgbus.ManagementPlugin.logout", 1);
+			if (isLogin)
+				rpc("org.araqne.logdb.msgbus.ManagementPlugin.logout", 1);
 		} catch (Throwable t) {
 		}
 	}

@@ -42,6 +42,7 @@ import org.araqne.confdb.Predicates;
 import org.araqne.logdb.Account;
 import org.araqne.logdb.AccountEventListener;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.AuthServiceNotLoadedException;
 import org.araqne.logdb.ExternalAuthService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
@@ -280,7 +281,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			// try external login
 			ExternalAuthService auth = authServices.get(selectedExternalAuth);
 			if (auth == null)
-				throw new IllegalStateException("logdb external auth service is not loaded: " + selectedExternalAuth);
+				throw new AuthServiceNotLoadedException(selectedExternalAuth);
 
 			return auth.verifyPassword(loginName, password);
 		} else
