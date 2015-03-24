@@ -42,7 +42,7 @@ public class QueryParseException extends RuntimeException {
 
 		this.offsetS = -1;
 		this.offsetE = -1;
-		this.params = null;
+		this.params = new HashMap<String, String>();
 		this.offsetList = new ArrayList<Integer>();
 	}
 
