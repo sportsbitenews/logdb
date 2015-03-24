@@ -410,6 +410,10 @@ public class LogDbClient implements TrapListener, Closeable {
 			this.session.close();
 			this.session = null;
 			throw e;
+		} catch (LoginFailureException e) {
+			this.session.close();
+			this.session = null;
+			throw e;
 		} catch (Throwable t) {
 			this.session.close();
 			this.session = null;

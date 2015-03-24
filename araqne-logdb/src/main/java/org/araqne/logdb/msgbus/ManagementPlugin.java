@@ -125,8 +125,14 @@ public class ManagementPlugin {
 			try {
 				dbSession = accountService.login(loginName, password);
 			} catch (AuthServiceNotLoadedException e) {
-				slog.info("logdb external auth service is not loaded: " + e.getAuthService());
-				return;
+				Boolean useErrorReturn = req.getBoolean("use_error_return");
+				if (useErrorReturn != null && useErrorReturn) {
+					slog.info("logdb external auth service is not loaded: " + e.getAuthService());
+					resp.put("error_code", "99000"); // XXX
+					return;
+				} else {
+					throw e;
+				}
 			}
 		}
 
