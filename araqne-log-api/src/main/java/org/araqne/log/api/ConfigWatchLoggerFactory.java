@@ -22,6 +22,8 @@ public class ConfigWatchLoggerFactory extends AbstractLoggerFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "설정 파일 변경 탐지";
+		if (locale.equals(Locale.CHINESE))
+			return "配置文件监控";
 		return "Config File Watcher";
 	}
 
@@ -29,6 +31,8 @@ public class ConfigWatchLoggerFactory extends AbstractLoggerFactory {
 	public String getDescription(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "설정 파일이 변경될 때마다 로그를 발생합니다.";
+		if (locale.equals(Locale.CHINESE))
+			return "检测配置文件变化，并采集日志。";
 		return "Detect config file changes and write logs.";
 	}
 
