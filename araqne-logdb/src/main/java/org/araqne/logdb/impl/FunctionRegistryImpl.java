@@ -146,6 +146,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("mod", Mod.class);
 			define("nvl", Nvl.class);
 			define("whoami", Whoami.class);
+			define("not", Not.class);
 		}
 
 		private void define(String name, Class<?> clazz) {
