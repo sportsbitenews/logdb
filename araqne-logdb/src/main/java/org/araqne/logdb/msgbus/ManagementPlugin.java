@@ -39,6 +39,7 @@ import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.AuthServiceNotLoadedException;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
 import org.araqne.logstorage.LogCryptoProfile;
@@ -121,7 +122,18 @@ public class ManagementPlugin {
 		} else {
 			loginName = req.getString("login_name", true);
 			String password = req.getString("password", true);
-			dbSession = accountService.login(loginName, password);
+			try {
+				dbSession = accountService.login(loginName, password);
+			} catch (AuthServiceNotLoadedException e) {
+				Boolean useErrorReturn = req.getBoolean("use_error_return");
+				if (useErrorReturn != null && useErrorReturn) {
+					slog.info("logdb external auth service is not loaded: " + e.getAuthService());
+					resp.put("error_code", "99000"); // XXX
+					return;
+				} else {
+					throw e;
+				}
+			}
 		}
 
 		if (session.getOrgDomain() == null && session.getAdminLoginName() == null) {
