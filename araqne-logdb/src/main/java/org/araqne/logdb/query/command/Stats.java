@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
@@ -38,7 +39,7 @@ import org.araqne.logdb.sort.ParallelMergeSorter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Stats extends QueryCommand {
+public class Stats extends QueryCommand implements FieldOrdering {
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
 	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
 	private int inputCount;
@@ -55,6 +56,8 @@ public class Stats extends QueryCommand {
 
 	private ConcurrentMap<List<Object>, AggregationFunction[]> buffer;
 
+	private ArrayList<String> fieldOrder;
+
 	public Stats(List<AggregationField> fields, List<String> clause) {
 		this.EMPTY_KEY = new ArrayList<Object>(0);
 		this.clauses = clause;
@@ -64,15 +67,24 @@ public class Stats extends QueryCommand {
 		this.buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
 		this.fields = fields;
 		this.funcs = new AggregationFunction[fields.size()];
+		this.fieldOrder = new ArrayList<String>(clauses);
 
 		// prepare template functions
-		for (int i = 0; i < fields.size(); i++)
-			this.funcs[i] = fields.get(i).getFunction();
+		for (int i = 0; i < fields.size(); i++) {
+			AggregationField f = fields.get(i);
+			this.funcs[i] = f.getFunction();
+			this.fieldOrder.add(f.getName());
+		}
 	}
 
 	@Override
 	public String getName() {
 		return "stats";
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return new ArrayList<String>(fieldOrder);
 	}
 
 	public List<AggregationField> getAggregationFields() {
