@@ -29,14 +29,15 @@ public class ToLong extends FunctionExpression {
 
 	public ToLong(QueryContext ctx, List<Expression> exprs) {
 		super("long", exprs, 1);
-		
+
 		this.valueExpr = exprs.get(0);
 		this.radix = 10;
 		if (exprs.size() > 1)
 			this.radix = (Integer) exprs.get(1).eval(null);
 
 		if (radix != 10)
-	//		throw new QueryParseException("invalid-argument", -1, "radix should be 10");
+			// throw new QueryParseException("invalid-argument", -1,
+			// "radix should be 10");
 			throw new QueryParseException("90840", -1, -1, null);
 	}
 
@@ -46,6 +47,22 @@ public class ToLong extends FunctionExpression {
 			Object v = valueExpr.eval(map);
 			if (v == null)
 				return null;
+
+			if (v instanceof Long)
+				return (Long) v;
+
+			if (v instanceof Short)
+				return (long) (Short) v;
+
+			if (v instanceof Integer)
+				return (long) (Integer) v;
+
+			if (v instanceof Double)
+				return ((Double) v).longValue();
+
+			if (v instanceof Float)
+				return ((Float) v).longValue();
+
 			String s = v.toString();
 			if (s.isEmpty())
 				return null;
