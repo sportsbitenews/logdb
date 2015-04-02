@@ -122,8 +122,16 @@ public class ManagementPlugin {
 		} else {
 			loginName = req.getString("login_name", true);
 			String password = req.getString("password", true);
+
+			if (slog.isDebugEnabled())
+				slog.debug("araqne logdb: trying to login [{}] from [{}]", loginName, session.getRemoteAddress().getHostAddress());
+
 			try {
 				dbSession = accountService.login(loginName, password);
+				if (slog.isDebugEnabled())
+					slog.debug("araqne logdb: [{}] is logged in successfully from [{}]", loginName, session.getRemoteAddress()
+							.getHostAddress());
+
 			} catch (AuthServiceNotLoadedException e) {
 				Boolean useErrorReturn = req.getBoolean("use_error_return");
 				if (useErrorReturn != null && useErrorReturn) {
