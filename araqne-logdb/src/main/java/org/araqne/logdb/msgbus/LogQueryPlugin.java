@@ -188,16 +188,16 @@ public class LogQueryPlugin {
 
 		} catch (QueryParseException e) {
 			Boolean useErrorReturn = req.getBoolean("use_error_return");
-			if (e.getParams() == null || (useErrorReturn != null && useErrorReturn)) {
+			if (useErrorReturn != null && useErrorReturn) {
+				resp.put("error_code", e.getType());
+				resp.put("error_msg", e.getMessage());
+				resp.put("error_begin", e.getStartOffset());
+				resp.put("error_end", e.getEndOffset());
+			} else {
 				if (logger.isDebugEnabled())
 					logger.debug("araqne logdb: query failure for [" + queryString + "]", e);
 				throw new MsgbusException("logdb", e.getMessage());
 			}
-
-			resp.put("error_code", e.getType());
-			resp.put("error_msg", e.getMessage());
-			resp.put("error_begin", e.getStartOffset());
-			resp.put("error_end", e.getEndOffset());
 		} catch (Exception e) {
 			logger.error("araqne logdb: cannot create query", e);
 			resp.put("error_code", "99999");
