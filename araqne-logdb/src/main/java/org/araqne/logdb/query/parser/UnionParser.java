@@ -46,7 +46,6 @@ import org.araqne.logdb.query.command.Union;
 public class UnionParser extends AbstractQueryCommandParser {
 
 	private QueryParserService queryParserService;
-	private List<QueryCommand> subCommands;
 
 	public UnionParser(QueryParserService queryParserService) {
 		this.queryParserService = queryParserService;
@@ -63,7 +62,7 @@ public class UnionParser extends AbstractQueryCommandParser {
 		int e = commandString.lastIndexOf(']');
 
 		String subQueryString = commandString.substring(b + 1, e).trim();
-		subCommands = queryParserService.parseCommands(context, subQueryString);
+		List<QueryCommand> subCommands = queryParserService.parseCommands(context, subQueryString);
 
 		Union union = new Union();
 		Query subQuery = new DefaultQuery(context, subQueryString, subCommands, new BypassResultFactory(union));
