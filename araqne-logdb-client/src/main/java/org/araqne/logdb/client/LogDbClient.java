@@ -2673,17 +2673,33 @@ public class LogDbClient implements TrapListener, Closeable {
 		if (o == null)
 			throw new IllegalArgumentException(name + " parameter should be not null");
 	}
-
-	private Message rpc(String method) throws IOException {
+	
+	private Message rpc(String method, int timeout) throws IOException, TimeoutException {
 		if (session == null)
 			throw new IOException("not connected yet, use connect()");
-		return session.rpc(method);
+		return session.rpc(method, timeout);
 	}
 
-	private Message rpc(String method, Map<String, Object> params) throws IOException {
+	private Message rpc(String method) throws IOException {
+		try {
+			return rpc(method, 0);
+		} catch (TimeoutException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	private Message rpc(String method, Map<String, Object> params, int timeout) throws IOException, TimeoutException {
 		if (session == null)
 			throw new IOException("not connected yet, use connect()");
-		return session.rpc(method, params);
+		return session.rpc(method, params, timeout);
+	}
+	
+	private Message rpc(String method, Map<String, Object> params) throws IOException {
+		try {
+			return rpc(method, params, 0);
+		} catch (TimeoutException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	public Map<String, Object> getNodeByGuid(String instanceGuid) throws IOException {
@@ -2697,18 +2713,18 @@ public class LogDbClient implements TrapListener, Closeable {
 		return nodeInfo;
 	}
 
-	public String getInstanceGuid() throws IOException {
-		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.getInstanceGuid");
+	public String getInstanceGuid(int timeout) throws IOException, TimeoutException {
+		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.getInstanceGuid", timeout);
 		String l = (String) resp.get("instance_guid");
 
 		return l;
 	}
 
-	public PeerStatus getPeerStatus(String instanceGuid) throws IOException {
+	public PeerStatus getPeerStatus(String instanceGuid, int timeout) throws IOException, TimeoutException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("instance_guid", instanceGuid);
 
-		Message resp = rpc("com.logpresso.query.msgbus.FederationPlugin.getPeerStatus", params);
+		Message resp = rpc("com.logpresso.query.msgbus.FederationPlugin.getPeerStatus", params, timeout);
 		return new PeerStatus(resp.get("peer_status"));
 	}
 }

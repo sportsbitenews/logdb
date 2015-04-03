@@ -21,6 +21,7 @@ import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeoutException;
 
 import org.araqne.logdb.client.AbstractLogDbSession;
 import org.araqne.logdb.client.Message;
@@ -83,7 +84,7 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 	}
 
 	@Override
-	public Message rpc(Message req, int timeout) throws IOException {
+	public Message rpc(Message req, int timeout) throws IOException, TimeoutException {
 		WaitingCall call = table.set(req.getGuid());
 
 		String json = MessageCodec.encode(req);

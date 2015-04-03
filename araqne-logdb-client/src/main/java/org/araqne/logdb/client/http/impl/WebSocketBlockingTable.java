@@ -18,6 +18,7 @@ package org.araqne.logdb.client.http.impl;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeoutException;
 
 import org.araqne.logdb.client.Message;
 import org.slf4j.Logger;
@@ -80,7 +81,7 @@ public class WebSocketBlockingTable {
 		return item.getResult();
 	}
 
-	public Message await(WaitingCall item, long timeout) throws InterruptedException {
+	public Message await(WaitingCall item, long timeout) throws InterruptedException, TimeoutException {
 		long before = new Date().getTime();
 
 		try {
@@ -98,14 +99,16 @@ public class WebSocketBlockingTable {
 
 			if (item.getResult() == interruptSignal)
 				throw new InterruptedException("call cancelled");
+			else if (item.getResult() != null)
+				return item.getResult();
+			else
+				throw new TimeoutException("websocket message read timeout");
 		} finally {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb client: blocking finished for id {}", item.getGuid());
 
 			lockMap.remove(item.getGuid());
 		}
-
-		return item.getResult();
 	}
 
 	public void close() {
