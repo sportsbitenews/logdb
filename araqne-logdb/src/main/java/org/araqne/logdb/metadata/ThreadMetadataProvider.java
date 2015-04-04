@@ -80,6 +80,17 @@ public class ThreadMetadataProvider implements MetadataProvider, FieldOrdering {
 			prettyStack = CommandOptions.parseBoolean(options.get("prettystack").toString());
 		}
 
+		for (int i = 0; i < 3; i++) {
+			try {
+				dumpThreads(callback, prettyStack);
+				break;
+			} catch (NullPointerException e) {
+				// ThreadInfo can throw NPE, retry is required
+			}
+		}
+	}
+
+	private void dumpThreads(MetadataCallback callback, boolean prettyStack) {
 		ThreadMXBean bean = ManagementFactory.getThreadMXBean();
 		long[] tids = bean.getAllThreadIds();
 
