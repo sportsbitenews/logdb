@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.TimeoutException;
 
 import org.araqne.logdb.client.AbstractLogDbSession;
 import org.araqne.logdb.client.Message;
@@ -138,6 +139,13 @@ public class CometSession extends AbstractLogDbSession implements TrapListener {
 	public void close() throws IOException {
 		if (isClosed())
 			return;
+
+		try {
+			// may be hang here.
+			if (isLogin)
+				rpc("org.araqne.logdb.msgbus.ManagementPlugin.logout", 1);
+		} catch (TimeoutException e) {
+		}
 
 		super.close();
 

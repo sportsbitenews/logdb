@@ -131,9 +131,6 @@ public abstract class AbstractLogDbSession implements LogDbSession {
 
 			isClosed = true;
 
-			// do not wait
-			if (isLogin)
-				rpc("org.araqne.logdb.msgbus.ManagementPlugin.logout", 1);
 		} catch (Throwable t) {
 		}
 	}
