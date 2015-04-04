@@ -69,7 +69,7 @@ public class WebSocketBlockingTable {
 			}
 
 			if (item.getResult() == interruptSignal)
-				throw new InterruptedException("call cancelled");
+				throw new InterruptedException("call cancelled: " + item.getGuid());
 
 		} finally {
 			if (logger.isDebugEnabled())
@@ -98,7 +98,7 @@ public class WebSocketBlockingTable {
 			}
 
 			if (item.getResult() == interruptSignal)
-				throw new InterruptedException("call cancelled");
+				throw new InterruptedException("call cancelled: " + item.getGuid());
 			else if (item.getResult() != null)
 				return item.getResult();
 			else

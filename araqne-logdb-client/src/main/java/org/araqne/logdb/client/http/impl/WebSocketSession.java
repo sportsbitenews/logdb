@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 public class WebSocketSession extends AbstractLogDbSession implements WebSocketListener {
 	private static final int DEFAULT_READ_TIMEOUT = 10000;
 	private final Logger logger = LoggerFactory.getLogger(WebSocketSession.class);
+	private final Logger sendLog = LoggerFactory.getLogger("websocket-send");
 	private Object sendLock = new Object();
 	private WebSocket websocket;
 	private WebSocketBlockingTable table = new WebSocketBlockingTable();
@@ -90,6 +91,7 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 		String json = MessageCodec.encode(req);
 
 		synchronized (sendLock) {
+			sendLog.debug("araqne logdb client: send rpc [{}]", json);
 			websocket.send(json);
 		}
 
