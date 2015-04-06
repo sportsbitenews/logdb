@@ -16,10 +16,14 @@ public class RateLimit extends QueryCommand implements ThreadSafe {
 	private CounterReset reset = new CounterReset();
 	private AtomicLong counter = new AtomicLong();
 	private int limit;
+	private boolean splitRowBatch;
+	private int delay;
 
-	public RateLimit(TickService tickService, int limit) {
+	public RateLimit(TickService tickService, int limit, boolean splitRowBatch, int delay) {
 		this.tickService = tickService;
 		this.limit = limit;
+		this.splitRowBatch = splitRowBatch;
+		this.delay = delay;
 	}
 
 	@Override
@@ -45,18 +49,22 @@ public class RateLimit extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
-		long count = counter.addAndGet(rowBatch.size);
-		if (count >= limit) {
-			synchronized (counter) {
-				try {
-					while (counter.get() >= limit)
-						counter.wait(10);
-				} catch (InterruptedException e) {
+		if (splitRowBatch) {
+			super.onPush(rowBatch);
+		} else {
+			long count = counter.addAndGet(rowBatch.size);
+			if (count >= limit) {
+				synchronized (counter) {
+					try {
+						while (counter.get() >= limit)
+							counter.wait(10);
+					} catch (InterruptedException e) {
+					}
 				}
 			}
-		}
 
-		pushPipe(rowBatch);
+			pushPipe(rowBatch);
+		}
 	}
 
 	@Override
@@ -77,7 +85,7 @@ public class RateLimit extends QueryCommand implements ThreadSafe {
 	private class CounterReset extends AbstractTickTimer {
 		@Override
 		public int getInterval() {
-			return 1000;
+			return delay;
 		}
 
 		@Override
