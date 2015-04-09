@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.StringTokenizer;
+import java.util.Vector;
 
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
@@ -446,6 +448,70 @@ public class ExpressionParser {
 
 		return tokens;
 	}
+	
+	// from org.apache.tools.ant.types.Commandline
+	// (apache license)
+	public static String[] translateCommandline(String cmdline) {
+		if (cmdline == null || cmdline.length() == 0) {
+			// no command? no string
+			return new String[0];
+		}
+		// parse with a simple finite state machine
+
+		final int normal = 0;
+		final int inQuote = 1;
+		final int inDoubleQuote = 2;
+		int state = normal;
+		StringTokenizer tok = new StringTokenizer(cmdline, "\"\' ", true);
+		ArrayList<String> v = new ArrayList<String>();
+		StringBuffer current = new StringBuffer();
+		boolean lastTokenHasBeenQuoted = false;
+
+		while (tok.hasMoreTokens()) {
+			String nextTok = tok.nextToken();
+			switch (state) {
+			case inQuote:
+				if ("\'".equals(nextTok)) {
+					lastTokenHasBeenQuoted = true;
+					state = normal;
+				} else {
+					current.append(nextTok);
+				}
+				break;
+			case inDoubleQuote:
+				if ("\"".equals(nextTok)) {
+					lastTokenHasBeenQuoted = true;
+					state = normal;
+				} else {
+					current.append(nextTok);
+				}
+				break;
+			default:
+				if ("\'".equals(nextTok)) {
+					state = inQuote;
+				} else if ("\"".equals(nextTok)) {
+					state = inDoubleQuote;
+				} else if (" ".equals(nextTok)) {
+					if (lastTokenHasBeenQuoted || current.length() != 0) {
+						v.add(current.toString());
+						current = new StringBuffer();
+					}
+				} else {
+					current.append(nextTok);
+				}
+				lastTokenHasBeenQuoted = false;
+				break;
+			}
+		}
+		if (lastTokenHasBeenQuoted || current.length() != 0) {
+			v.add(current.toString());
+		}
+		if (state == inQuote || state == inDoubleQuote) {
+			throw new IllegalArgumentException("unbalanced quotes in [" + cmdline + "]");
+		}
+		return v.toArray(new String[0]);
+	}
+
 
 	private static ParseResult nextToken(String s, int begin, int end, ParsingRule rule) {
 		if (begin > end)
