@@ -3,6 +3,7 @@ package org.araqne.logdb.metadata;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
@@ -21,7 +23,7 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 @Component(name = "logdb-topthread-metadata")
-public class TopThreadMetadataProvider implements MetadataProvider {
+public class TopThreadMetadataProvider implements MetadataProvider, FieldOrdering {
 	@Requires
 	private MetadataService metadataService;
 
@@ -37,6 +39,11 @@ public class TopThreadMetadataProvider implements MetadataProvider {
 	public void stop() {
 		if (metadataService != null)
 			metadataService.removeProvider(this);
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return Arrays.asList("tid", "name", "state", "priority", "usage", "stacktrace");
 	}
 
 	@Override

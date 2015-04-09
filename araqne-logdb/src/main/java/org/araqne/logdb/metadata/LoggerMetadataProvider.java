@@ -1,6 +1,8 @@
 package org.araqne.logdb.metadata;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -9,6 +11,7 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
@@ -18,7 +21,7 @@ import org.araqne.logdb.Row;
 import org.slf4j.LoggerFactory;
 
 @Component(name = "logdb-logger-metadata")
-public class LoggerMetadataProvider implements MetadataProvider {
+public class LoggerMetadataProvider implements MetadataProvider, FieldOrdering {
 	private final org.slf4j.Logger slog = LoggerFactory.getLogger(LoggerMetadataProvider.class);
 
 	@Requires
@@ -39,6 +42,12 @@ public class LoggerMetadataProvider implements MetadataProvider {
 	public void stop() {
 		if (metadataService != null)
 			metadataService.removeProvider(this);
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return Arrays.asList("namespace", "name", "factory_namespace", "factory_name", "status", "interval", "log_count",
+				"drop_count", "last_start_at", "last_run_at", "last_log_at", "last_write_at");
 	}
 
 	@Override
