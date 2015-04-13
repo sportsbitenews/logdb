@@ -256,10 +256,13 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void onUpdateTimeout(EventContext ctx) {
-		// update per-host case only
-		if (ctx.getHost() == null)
+		// update real clock queue
+		if (ctx.getHost() == null) {
+			realClock.updateTimeout(ctx);
 			return;
+		}
 
+		// update per-host case only
 		EventClock clock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
 		if (clock == null)
 			return;

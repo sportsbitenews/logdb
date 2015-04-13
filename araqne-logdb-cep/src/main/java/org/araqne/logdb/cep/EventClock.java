@@ -19,7 +19,12 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class EventClock {
+	private final Logger slog = LoggerFactory.getLogger(EventClock.class);
+
 	private final TimeoutComparator timeoutComparator = new TimeoutComparator();
 	private final ExpireComparator expireComparator = new ExpireComparator();
 	private final EventContextStorage storage;
@@ -92,6 +97,12 @@ public class EventClock {
 	}
 
 	public void updateTimeout(EventContext ctx) {
+		if (slog.isDebugEnabled()) {
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			slog.debug("araqne logdb cep: update timeout [{}] of context [{}]", df.format(new Date(ctx.getTimeoutTime())),
+					ctx.getKey());
+		}
+
 		synchronized (timeoutQueue) {
 			// reorder
 			timeoutQueue.remove(ctx);
@@ -121,13 +132,12 @@ public class EventClock {
 				if (ctx.getExpireTime() <= now) {
 					expireQueue.poll();
 					expiredEvictees.put(ctx.getKey(), ctx);
-
 				} else
 					break;
 			}
 		}
 
-		for (Map.Entry<EventKey, EventContext> e: expiredEvictees.entrySet())
+		for (Map.Entry<EventKey, EventContext> e : expiredEvictees.entrySet())
 			storage.removeContext(e.getKey(), e.getValue(), EventCause.EXPIRE);
 
 		expiredEvictees = null;

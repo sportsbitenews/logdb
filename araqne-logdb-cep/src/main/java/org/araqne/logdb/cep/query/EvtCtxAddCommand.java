@@ -128,16 +128,21 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			if (timeout != null)
 				timeoutTime = created + timeout.unit.getMillis() * timeout.amount;
 
+			boolean newContext = false;
 			EventContext ctx = storage.getContext(eventKey);
 			if (ctx == null) {
 				ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
-				ctx = storage.addContext(ctx);
+				EventContext oldCtx = storage.addContext(ctx);
+				newContext = ctx == oldCtx;
+				ctx = oldCtx;
 			}
 
 			ctx.getCounter().incrementAndGet();
 
 			// extend timeout
-			ctx.setTimeoutTime(timeoutTime);
+			if (!newContext)
+				ctx.setTimeoutTime(timeoutTime);
+
 			ctx.addRow(row);
 		}
 
