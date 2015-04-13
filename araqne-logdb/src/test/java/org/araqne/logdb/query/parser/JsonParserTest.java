@@ -97,7 +97,7 @@ public class JsonParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10201", e.getType());
-			assertEquals(5, e.getStartOffset());
+			assertEquals(6, e.getStartOffset());
 			assertEquals(12, e.getEndOffset());
 		}
 	}
@@ -117,7 +117,7 @@ public class JsonParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("10202", e.getType());
-			assertEquals(5, e.getStartOffset());
+			assertEquals(6, e.getStartOffset());
 			assertEquals(12, e.getEndOffset());
 		}
 	}

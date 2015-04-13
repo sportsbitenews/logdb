@@ -15,6 +15,8 @@ public abstract class AbstractQueryCommandParser implements QueryCommandParser {
 	}
 
 	public FunctionRegistry getFunctionRegistry() {
+		if (queryParserService == null)
+			return null;
 		return queryParserService.getFunctionRegistry();
 	}
 	

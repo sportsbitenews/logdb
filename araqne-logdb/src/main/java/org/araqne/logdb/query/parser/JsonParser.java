@@ -24,32 +24,35 @@ public class JsonParser extends AbstractQueryCommandParser {
 	public String getCommandName() {
 		return "json";
 	}
-	
+
 	@Override
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
-		m.put("10200", new QueryErrorMessage("missing-json-quotation","json 문자열은 큰 따옴표(\")로 시작하고 끝나야 합니다."));
-		m.put("10201", new QueryErrorMessage("invalid-json-type","json 형태의 문자열을 입력하십시오."));
-		m.put("10202", new QueryErrorMessage("invalid-json","json 파싱에 실패하였습니다. [msg]"));
+		m.put("10200", new QueryErrorMessage("missing-json-quotation", "json 문자열은 큰 따옴표(\")로 시작하고 끝나야 합니다."));
+		m.put("10201", new QueryErrorMessage("invalid-json-type", "json 형태의 문자열을 입력하십시오."));
+		m.put("10202", new QueryErrorMessage("invalid-json", "json 파싱에 실패하였습니다. [msg]"));
 		return m;
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		String text = commandString.substring(getCommandName().length()).trim();
+		String literal = commandString.substring(getCommandName().length()).trim();
+		boolean isConstant = !ExpressionParser.isContextReference(literal);
+		String json = ExpressionParser.evalContextReference(context, literal, getFunctionRegistry());
 
-		if (!text.startsWith("\"") || !text.endsWith("\""))
-		//throw new QueryParseException("missing-json-quotation", -1);
-			throw new QueryParseException("10200", getCommandName().length() + 1, commandString.length() -1 , null);
+		if (isConstant) {
+			if (!json.startsWith("\"") || !json.endsWith("\""))
+				// throw new QueryParseException("missing-json-quotation", -1);
+				throw new QueryParseException("10200", getCommandName().length() + 1, commandString.length() - 1, null);
 
-		String json = text;
-		text = text.substring(1, text.length() - 1);
-		text = text.replaceAll("\\\\\\\\", "\\\\").replaceAll("\\\\\"", "\"");
+			json = json.substring(1, json.length() - 1);
+			json = json.replaceAll("\\\\\\\\", "\\\\").replaceAll("\\\\\"", "\"");
+		}
 
 		List<Row> logs = new ArrayList<Row>();
 		try {
-			JSONTokener tokenizer = new JSONTokener(new StringReader(text));
+			JSONTokener tokenizer = new JSONTokener(new StringReader(json));
 			Object value = tokenizer.nextValue();
 
 			if (value instanceof JSONObject) {
@@ -59,18 +62,18 @@ public class JsonParser extends AbstractQueryCommandParser {
 				for (Object o : l)
 					if (o instanceof Map)
 						logs.add(new Row((Map<String, Object>) o));
-			} else{
-				//throw new QueryParseException("invalid-json-type", -1);
-				throw new QueryParseException("10201", commandString.indexOf(json.charAt(0)), commandString.length() -1, null);
+			} else {
+				// throw new QueryParseException("invalid-json-type", -1);
+				throw new QueryParseException("10201", commandString.indexOf(json.charAt(0)), commandString.length() - 1, null);
 			}
-		}catch(QueryParseException e){
+		} catch (QueryParseException e) {
 			throw e;
-		}catch (Throwable t) {
-			//throw new QueryParseException("invalid-json", -1);
+		} catch (Throwable t) {
+			// throw new QueryParseException("invalid-json", -1);
 			Map<String, String> param = new HashMap<String, String>();
 			param.put("msg", t.getMessage());
-			throw new QueryParseException("10202", commandString.indexOf(json.charAt(0)) , commandString.length() -1, param);
+			throw new QueryParseException("10202", commandString.indexOf(json.charAt(0)), commandString.length() - 1, param);
 		}
-		return new Json(logs, json);
+		return new Json(logs, literal);
 	}
 }
