@@ -20,7 +20,7 @@ import java.util.Map;
 
 public class JuniperSessionLogParser {
 	private static final String DEVICE_ID = "device_id";
-	private static final String CategoryHint = "[Root]system-notification";
+	private static final String CategoryHint = "system-notification";
 
 	private JuniperSessionLogParser() {
 	}
@@ -37,8 +37,11 @@ public class JuniperSessionLogParser {
 		pos = parseDeviceId(line, map, pos);
 		limit = parseCategory(line, map, pos);
 
-		if (pos == -1 || limit == -1)
+		if (pos == -1)
 			return null;
+
+		if (limit == -1)
+			return map;
 
 		String oldKey = null;
 
@@ -69,8 +72,8 @@ public class JuniperSessionLogParser {
 			String value = line.substring(pos, limit);
 			// System.out.println(key+"="+value);
 			oldKey = key;
-			key = key.replace(' ','_');
-			key = key.replace('-','_');
+			key = key.replace(' ', '_');
+			key = key.replace('-', '_');
 			map.put(key, value);
 		}
 
@@ -92,8 +95,11 @@ public class JuniperSessionLogParser {
 
 	private static int parseCategory(String line, Map<String, Object> map, int pos) {
 		int offset = line.indexOf(CategoryHint, pos);
-		if (offset == -1)
+		if (offset == -1) {
+			offset = line.indexOf(':', pos) + 1;
+			map.put("message", line.substring(offset));
 			return -1;
+		}
 		offset += CategoryHint.length();
 		offset = line.indexOf('(', offset) + 1;
 		int limit = line.indexOf(')', offset);
