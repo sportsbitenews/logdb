@@ -86,9 +86,7 @@ public class Mf2LogParserFactory extends AbstractLogParserFactory {
 		String s = config.get("mode");
 		
 		Mode mode = Mode.CSV;
-		if (s.equalsIgnoreCase("csv"))
-			mode = Mode.CSV;
-		else if (s.equalsIgnoreCase("tsv"))
+		if (s.equalsIgnoreCase("tsv"))
 			mode = Mode.TSV;
 
 		return new Mf2LogParser(mode);
