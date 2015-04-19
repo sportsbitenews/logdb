@@ -63,7 +63,7 @@ public class NxgLogParserTest {
 		assertEquals("0/icmp", m.get("protocol"));
 		assertEquals("211.181.254.201", m.get("src_ip"));
 		assertEquals("130.1.194.69", m.get("dst_ip"));
-		assertEquals("External", m.get("zone"));
+		assertEquals("External", m.get("interface"));
 	}
 
 	@Test
@@ -77,7 +77,7 @@ public class NxgLogParserTest {
 		assertEquals("130.1.111.210", m.get("src_ip"));
 		assertEquals("211.181.255.1", m.get("dst_ip"));
 		assertEquals("3/icmp", m.get("protocol"));
-		assertEquals("Internal", m.get("zone"));
+		assertEquals("Internal", m.get("interface"));
 	}
 
 	@Test
@@ -93,7 +93,7 @@ public class NxgLogParserTest {
 		assertEquals("211.115.106.203", m.get("dst_ip"));
 		assertEquals(54576, m.get("src_port"));
 		assertEquals(80, m.get("dst_port"));
-		assertEquals("Internal", m.get("zone"));
+		assertEquals("Internal", m.get("interface"));
 	}
 
 	@Test
@@ -110,7 +110,25 @@ public class NxgLogParserTest {
 		assertEquals("211.181.253.38", m.get("nat_src_ip"));
 		assertEquals(55526, m.get("nat_src_port"));
 	}
+	
+	@Test
+	public void testPocSample7() {
+		String log = "<382>[LOG_DENIED] 2015-04-14 20:17:18,1,176.34.254.176,137.68.247.120,15094/tcp,80,15094,DENY,1,External";
+		NxgLogParser p = new NxgLogParser();
+		Map<String, Object> m = p.parse(line(log));
 
+		assertEquals("deny", m.get("type"));
+		assertEquals(1, m.get("rule_id"));
+		assertEquals("176.34.254.176", m.get("src_ip"));
+		assertEquals("137.68.247.120", m.get("dst_ip"));
+		assertEquals("15094/tcp", m.get("protocol"));
+		assertEquals(80, m.get("src_port"));
+		assertEquals(15094, m.get("dst_port"));
+		assertEquals("DENY", m.get("denied_action"));
+		assertEquals(1, m.get("count"));
+		assertEquals("External", m.get("interface"));
+	}
+	
 	private Date date(int year, int mon, int day, int hour, int min, int sec) {
 		Calendar c = Calendar.getInstance();
 		c.set(Calendar.YEAR, 2013);

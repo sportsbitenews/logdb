@@ -33,6 +33,16 @@ public class TippingPointIpsLogParser extends V1LogParser {
 		String, Integer
 	};
 
+	public enum Mode {
+		CSV, TSV
+	};
+	
+	public enum QuoteState { 
+		FRONT, END 
+	};
+	
+	private Mode mode;
+
 	private static final String[] Keys = new String[] { "serverity", "policy_uuid", "sig_uuid", "sig_name", "sig_no", "protocol",
 			"src_ip", "src_port", "dst_ip", "dst_port", "hit", "src_zone", "dst_zone", "device_name", "taxonomy_id",
 			"event_timestamp", "comments", "event_seqno" };
@@ -41,6 +51,10 @@ public class TippingPointIpsLogParser extends V1LogParser {
 			FieldType.String, FieldType.Integer, FieldType.String, FieldType.String, FieldType.Integer, FieldType.String,
 			FieldType.Integer, FieldType.Integer, FieldType.String, FieldType.String, FieldType.String, FieldType.String,
 			FieldType.String, FieldType.String, FieldType.String };
+
+	public TippingPointIpsLogParser(Mode mode) {
+		this.mode = mode;
+	}
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> log) {
@@ -52,11 +66,21 @@ public class TippingPointIpsLogParser extends V1LogParser {
 		int i = 0;
 		Map<String, Object> m = new HashMap<String, Object>();
 
-		parseHeader(m, line.substring(0, line.indexOf('\t')));
-		line = line.substring(line.indexOf('\t'));
+		int delimiter;
+		String delimiterStr = "";
+		if (mode == Mode.CSV) {
+			delimiter = ',';
+			delimiterStr = ",";
+		} else {
+			delimiter = '\t';
+			delimiterStr = "\t";
+		}
 
+		parseHeader(m, line.substring(0, line.indexOf(delimiter)));
+		line = line.substring(line.indexOf(delimiter));
+		line = removeCommaInQuotes(line);
 		try {
-			StringTokenizer tok = new StringTokenizer(line, "\t");
+			StringTokenizer tok = new StringTokenizer(line, delimiterStr);
 
 			while (tok.hasMoreTokens()) {
 				if (i >= 21)
@@ -64,9 +88,19 @@ public class TippingPointIpsLogParser extends V1LogParser {
 				String key = Keys[i];
 				FieldType type = Types[i++];
 				String token = tok.nextToken().trim();
+
+				if (token.startsWith("\""))
+					token = token.substring(1, token.lastIndexOf("\""));
+
 				if (!token.equals("")) {
-					if (type == FieldType.Integer)
-						m.put(key, Integer.valueOf(token));
+					if (type == FieldType.Integer) {
+						try { 
+							m.put(key, Integer.valueOf(token));
+						} catch(NumberFormatException e) {
+							// e.g. ..,${taxonomyID},.. 
+							m.put(key, "");
+						}
+					}
 					else
 						m.put(key, token);
 				}
@@ -87,4 +121,26 @@ public class TippingPointIpsLogParser extends V1LogParser {
 		m.put("action", Integer.valueOf(line.substring(a).trim()));
 	}
 
+	private String removeCommaInQuotes(String line) {
+		char[] c = line.toCharArray();
+		QuoteState state = QuoteState.FRONT;
+
+		int b = 0;
+		for(int i = 0; i < c.length - 1; ++i) {
+			if(c[i] == '\"') {
+				if(state == QuoteState.FRONT) {
+					b = i;
+					state = QuoteState.END;
+				} else {
+					for(int j = b + 1; j < i; ++j) {
+						if(c[j] == ',')
+							c[j] = ' ';
+					}
+					state = QuoteState.FRONT;
+				}
+			}
+		}
+		
+		return new String(c);
+	}
 }

@@ -17,4 +17,7 @@
 	<instance component="neobox-log-parser-factory" />
 	<instance component="cyber-oam-parser-factory" />
 	<instance component="watch-guard-parser-factory" />
+	<instance component="watch-guard-parser-factory" />
+	<instance component="hansol-fw-parser-factory" />
+	<instance component="hansol-vforce-parser-factory" />
 </ipojo>

@@ -54,11 +54,16 @@ public class NxgLogParser extends V1LogParser {
 			DelimiterParser p = new DelimiterParser(",", null);
 			Map<String, Object> dm = p.parse(params);
 
+			m.put("ui", dm.get("column1"));
 			m.put("src_ip", dm.get("column2"));
-			m.put("dst_ip", dm.get("column5"));
+			m.put("src_port", Integer.valueOf((String)dm.get("column3")));
 			m.put("protocol", dm.get("column4"));
-			m.put("zone", dm.get("column10"));
-
+			m.put("dst_ip", dm.get("column5"));
+			m.put("dst_port", Integer.valueOf((String)dm.get("column6")));
+			m.put("send_byte", dm.get("column7"));
+			m.put("rcv_bytes", dm.get("column8"));
+			m.put("duration", dm.get("column9"));
+			m.put("interface", dm.get("column10"));
 		} else if (type.equals("[LOG_DENIED]")) {
 			m.put("type", "deny");
 			Date d = df.parse(line, new ParsePosition(e + 1));
@@ -67,13 +72,15 @@ public class NxgLogParser extends V1LogParser {
 
 			Map<String, Object> dm = p.parse(params);
 
+			m.put("rule_id", Integer.valueOf((String)dm.get("column1")));
 			m.put("src_ip", dm.get("column2"));
-			m.put("src_port", Integer.valueOf((String) dm.get("column5")));
 			m.put("dst_ip", dm.get("column3"));
-			m.put("dst_port", Integer.valueOf((String) dm.get("column6")));
 			m.put("protocol", dm.get("column4"));
-			m.put("zone", dm.get("column9"));
-
+			m.put("src_port", Integer.valueOf((String) dm.get("column5")));
+			m.put("dst_port", Integer.valueOf((String) dm.get("column6")));
+			m.put("denied_action", dm.get("column7"));
+			m.put("count", Integer.valueOf((String)dm.get("column8")));
+			m.put("interface", dm.get("column9"));
 		} else if (type.equals("[LOG_NAT]")) {
 			m.put("type", "nat");
 			Date d = df.parse(line, new ParsePosition(e + 1));
