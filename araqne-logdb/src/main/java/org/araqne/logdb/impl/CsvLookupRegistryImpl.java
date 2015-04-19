@@ -238,9 +238,6 @@ public class CsvLookupRegistryImpl implements CsvLookupRegistry {
 			if (srcValue == null)
 				return null;
 			
-			if (!srcField.equals(keyFieldName))
-				return null;
-
 			if (!valueFieldNames.contains(dstField))
 				return null;
 
