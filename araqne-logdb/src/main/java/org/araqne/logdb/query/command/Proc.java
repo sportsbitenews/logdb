@@ -48,10 +48,15 @@ public class Proc extends QueryCommand implements FieldOrdering {
 	private AccountService accountService;
 	private Session session;
 
+	// depend and wait outer commands
+	private Trigger triggerTask = new Trigger();
+
 	public Proc(Procedure procedure, Map<String, Object> procParams, String commandString, QueryParserService parserService,
 			AccountService accountService) {
 		this.accountService = accountService;
 		this.commandString = commandString;
+
+		procTask.addSubTask(triggerTask);
 
 		session = accountService.newSession(procedure.getOwner());
 		QueryContext procCtx = new QueryContext(session);
@@ -68,6 +73,7 @@ public class Proc extends QueryCommand implements FieldOrdering {
 		for (QueryCommand cmd : subQuery.getCommands()) {
 			if (cmd.getMainTask() != null) {
 				procTask.addDependency(cmd.getMainTask());
+				cmd.getMainTask().addDependency(triggerTask);
 				procTask.addSubTask(cmd.getMainTask());
 			}
 		}
@@ -84,6 +90,11 @@ public class Proc extends QueryCommand implements FieldOrdering {
 	}
 
 	@Override
+	public boolean isDriver() {
+		return true;
+	}
+
+	@Override
 	public void onStart() {
 		subQuery.preRun();
 	}
@@ -97,6 +108,11 @@ public class Proc extends QueryCommand implements FieldOrdering {
 	@Override
 	public QueryTask getMainTask() {
 		return procTask;
+	}
+
+	@Override
+	public QueryTask getDependency() {
+		return triggerTask;
 	}
 
 	private class ProcPipe implements RowPipe {
@@ -121,6 +137,14 @@ public class Proc extends QueryCommand implements FieldOrdering {
 	@Override
 	public String toString() {
 		return commandString;
+	}
+
+	private class Trigger extends QueryTask {
+		@Override
+		public void run() {
+			slog.debug("araqne logdb: proc subquery started (dependency resolved), main query [{}] sub query [{}]",
+					query.getId(), subQuery.getId());
+		}
 	}
 
 	private class ProcTask extends QueryTask {
