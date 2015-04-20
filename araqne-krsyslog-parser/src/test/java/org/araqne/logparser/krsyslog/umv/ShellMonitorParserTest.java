@@ -1,10 +1,11 @@
-package org.araqne.logparser.krsyslog.kyrgyzstan;
+package org.araqne.logparser.krsyslog.umv;
 
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import org.araqne.logparser.krsyslog.umv.ShellMonitorParser;
 import org.junit.Test;
 
 public class ShellMonitorParserTest {

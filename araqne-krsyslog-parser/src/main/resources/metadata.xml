@@ -15,9 +15,8 @@
 	<instance component="nxg-log-parser-factory" />
 	<instance component="sniper-log-parser-factory" />
 	<instance component="neobox-log-parser-factory" />
-	<instance component="cyber-oam-parser-factory" />
+	<instance component="cyberoam-parser-factory" />
 	<instance component="watch-guard-parser-factory" />
-	<instance component="watch-guard-parser-factory" />
-	<instance component="hansol-fw-parser-factory" />
-	<instance component="hansol-vforce-parser-factory" />
+	<instance component="nexg-fw-parser-factory" />
+	<instance component="vforce-utm-parser-factory" />
 </ipojo>

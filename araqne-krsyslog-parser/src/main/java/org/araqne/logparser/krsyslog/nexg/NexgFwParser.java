@@ -1,12 +1,12 @@
-package org.araqne.logparser.krsyslog.hansolnexg;
+package org.araqne.logparser.krsyslog.nexg;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.V1LogParser;
 
-public class HansolFwParser extends V1LogParser {
-	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(HansolFwParser.class);
+public class NexgFwParser extends V1LogParser {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(NexgFwParser.class);
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logparser.krsyslog.hansolnexg;
+package org.araqne.logparser.krsyslog.nexg;
 
 import java.util.Locale;
 import java.util.Map;
@@ -23,31 +23,31 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
-@Component(name = "hansol-fw-parser-factory")
+@Component(name = "vforce-utm-parser-factory")
 @Provides
-public class HansolFwParserFactory extends AbstractLogParserFactory {
+public class VForceUtmParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
-		return "hansolfw";
+		return "vforce";
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
-			return "한솔 NEXG 방화벽";
-		return "Hansol NEXG Firewall";
+			return "한솔 넥스지 VForce UTM";
+		return "Hansol NEXG VForce Logs";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "한솔 NEXG 방화벽 로그를 파싱합니다.";
-		return "Parse Hansol NEXG Firewall logs.";
+			return "한솔 NEXG VForce 로그를 파싱합니다.";
+		return "Parse Hansol NEXG VForce logs.";
 	}
 
 	@Override
 	public LogParser createParser(Map<String, String> configs) {
-		return new HansolFwParser();
+		return new VForceUtmParser();
 	}
 }

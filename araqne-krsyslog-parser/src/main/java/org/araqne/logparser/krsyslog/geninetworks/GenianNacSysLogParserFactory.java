@@ -50,14 +50,14 @@ public class GenianNacSysLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "지니네크웍스 NAC 시스로그";
+			return "지니안 NAC 시스로그";
 		return "Genian NAC Suite SysLog";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "지니 네트웍스의 Genian NAC 시스템 로그를 파싱합니다.";
+			return "지니네트웍스의 지니안 NAC 시스템 로그를 파싱합니다.";
 		return "Parse Geni Networks Genian NAC System logs.";
 	}
 
@@ -65,5 +65,4 @@ public class GenianNacSysLogParserFactory extends AbstractLogParserFactory {
 	public LogParser createParser(Map<String, String> config) {
 		return new GenianNacSysLogParser();
 	}
-
 }

@@ -1,13 +1,14 @@
-package org.araqne.logparser.krsyslog.hansolnexg;
+package org.araqne.logparser.krsyslog.nexg;
 
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import org.araqne.logparser.krsyslog.nexg.NexgFwParser;
 import org.junit.Test;
 
-public class HansolFwParserTest {
+public class NexgFwParserTest {
 	@Test
 	public void testSample() {
 		String line = "2015-04-14 14:00:05 INET-NOTICE: NAME=모두허용 PROTO=TCP IN=eth1 SRC=200.200.200.1 SPT=37328 OUT=eth0 DST=125.209.222.142 DPT=80 ACT=OPEN USER=NONE APP=naver-service/host-access NAT_NAME=200.200.200.0/24_외부 SNAT_SRC=10.200.6.29 SNAT_SPT=10328 REASON='Application Detect' START=05/21/2014-17:20:22 PACKETS=4 BYTES=776";
@@ -15,7 +16,7 @@ public class HansolFwParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		HansolFwParser p = new HansolFwParser();
+		NexgFwParser p = new NexgFwParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("2015-04-14 14:00:05", m.get("DATETIME"));
@@ -47,7 +48,7 @@ public class HansolFwParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		HansolFwParser p = new HansolFwParser();
+		NexgFwParser p = new NexgFwParser();
 		Map<String, Object> m = p.parse(log);
 		
 		assertEquals("2015-04-14 14:00:05", m.get("DATETIME"));
@@ -64,7 +65,7 @@ public class HansolFwParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		HansolFwParser p = new HansolFwParser();
+		NexgFwParser p = new NexgFwParser();
 		Map<String, Object> m = p.parse(log);
 		
 		assertEquals("2015-04-14 13:59:33", m.get("DATETIME"));
@@ -84,7 +85,7 @@ public class HansolFwParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		HansolFwParser p = new HansolFwParser();
+		NexgFwParser p = new NexgFwParser();
 		Map<String, Object> m = p.parse(log);
 		
 		assertEquals("2015-04-14 13:59:33", m.get("DATETIME"));
@@ -100,7 +101,7 @@ public class HansolFwParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		HansolFwParser p = new HansolFwParser();
+		NexgFwParser p = new NexgFwParser();
 		Map<String, Object> m = p.parse(log);
 		
 		assertEquals("2015-04-14 13:59:33", m.get("DATETIME"));

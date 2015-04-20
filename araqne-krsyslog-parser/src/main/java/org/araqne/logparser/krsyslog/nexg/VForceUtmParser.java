@@ -1,11 +1,11 @@
-package org.araqne.logparser.krsyslog.hansolnexg;
+package org.araqne.logparser.krsyslog.nexg;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.V1LogParser;
 
-public class HansolVForceParser extends V1LogParser {
+public class VForceUtmParser extends V1LogParser {
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
 		String line = (String) params.get("line");

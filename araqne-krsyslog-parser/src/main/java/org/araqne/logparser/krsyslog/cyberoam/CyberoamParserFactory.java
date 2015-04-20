@@ -23,7 +23,7 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
-@Component(name = "cyber-oam-parser-factory")
+@Component(name = "cyberoam-parser-factory")
 @Provides
 public class CyberoamParserFactory extends AbstractLogParserFactory {
 

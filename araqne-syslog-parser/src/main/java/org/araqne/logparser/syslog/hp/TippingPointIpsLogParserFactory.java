@@ -54,7 +54,7 @@ public class TippingPointIpsLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "티핑포인트 아이피에스";
+			return "티핑포인트 IPS";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "Tipping Point IPS";
 		return "Tipping Point IPS";
@@ -63,7 +63,7 @@ public class TippingPointIpsLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "HP 티핑포인트 아이피에스의 로그를 파싱합니다.";
+			return "HP 티핑포인트 IPS의 로그를 파싱합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "解析HP TippingPoint IPS日志。";
 		return "Parse HP Tipping Point IPS logs.";
