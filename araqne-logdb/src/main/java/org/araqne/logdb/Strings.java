@@ -69,7 +69,7 @@ public class Strings {
 			return new ArrayList<String>();
 
 		List<String> l = new ArrayList<String>();
-		for (String t : s.split(sep)) {
+		for (String t : s.split(Pattern.quote(sep))) {
 			t = t.trim();
 			if (t.isEmpty())
 				continue;
