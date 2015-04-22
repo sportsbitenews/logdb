@@ -30,6 +30,7 @@ public class EventClock {
 	private final EventContextStorage storage;
 	private final String host;
 	private final PriorityQueue<Expirable> timeoutQueue;
+	private final HashSet<EventContext> timeoutSet;
 	private final PriorityQueue<EventContext> expireQueue;
 
 	private AtomicLong lastTime = new AtomicLong();
@@ -40,6 +41,7 @@ public class EventClock {
 		this.lastTime = new AtomicLong(lastTime);
 		this.timeoutQueue = new PriorityQueue<Expirable>(initialCapacity);
 		this.expireQueue = new PriorityQueue<EventContext>(initialCapacity, expireComparator);
+		this.timeoutSet = new HashSet<EventContext>(initialCapacity);
 	}
 
 	public String getHost() {
@@ -88,15 +90,15 @@ public class EventClock {
 	}
 
 	public void add(EventContext ctx) {
-		synchronized (expireQueue) {
-			if (ctx.getExpireTime() != 0)
+		if (ctx.getExpireTime() != 0)
+			synchronized (expireQueue) {
 				expireQueue.add(ctx);
-		}
+			}
 
-		synchronized (timeoutQueue) {
-			if (ctx.getTimeoutTime() != 0)
-				timeoutQueue.add(new Expirable(ctx, ctx.getTimeoutTime()));
-		}
+		if (ctx.getTimeoutTime() != 0)
+			synchronized (timeoutQueue) {
+				addTimeout(ctx);
+			}
 	}
 
 	public void updateTimeout(EventContext ctx) {
@@ -107,7 +109,13 @@ public class EventClock {
 					df.format(new Date(ctx.getTimeoutTime())),
 					ctx.getKey());
 		}
-
+		
+		synchronized(timeoutQueue) {
+			if (!timeoutSet.contains(ctx)) {
+				addTimeout(ctx);
+			}
+		}
+		
 		// The ctx object will be added into the timeoutQueue again when ORIGINAL timeout has met;
 		// so following O(n) operation (remove) can be avoided.
 		
@@ -116,6 +124,11 @@ public class EventClock {
 		// timeoutQueue.remove(ctx);
 		// timeoutQueue.add(ctx);
 		// }
+	}
+
+	private void addTimeout(EventContext ctx) {
+		timeoutQueue.add(new Expirable(ctx, ctx.getTimeoutTime()));
+		timeoutSet.add(ctx);
 	}
 	
 	// This class caches ORIGINAL timeout time of EventContext.
@@ -181,6 +194,7 @@ public class EventClock {
 
 		synchronized (timeoutQueue) {
 			timeoutQueue.remove(new Expirable(ctx));
+			timeoutSet.remove(ctx);
 		}
 	}
 
@@ -216,9 +230,10 @@ public class EventClock {
 
 				if (e.getExpireTime() <= now) {
 					timeoutQueue.poll();
+					timeoutSet.remove(e.ctx);
 					// if timeout time has updated, don't evict and add again;
 					if (e.ctx.getTimeoutTime() > e.getExpireTime()) {
-						timeoutQueue.add(new Expirable(e.ctx, e.ctx.getTimeoutTime()));
+						addTimeout(e.ctx);
 					} else {
 						timeoutEvictees.put(e.ctx.getKey(), e.ctx);
 					}
