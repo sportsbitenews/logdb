@@ -29,7 +29,8 @@ public class EventClock {
 	private final ExpireComparator expireComparator = new ExpireComparator();
 	private final EventContextStorage storage;
 	private final String host;
-	private final PriorityQueue<EventContext> timeoutQueue;
+	private final PriorityQueue<Expirable> timeoutQueue;
+	private final HashSet<EventContext> timeoutSet;
 	private final PriorityQueue<EventContext> expireQueue;
 
 	private AtomicLong lastTime = new AtomicLong();
@@ -38,8 +39,9 @@ public class EventClock {
 		this.storage = storage;
 		this.host = host;
 		this.lastTime = new AtomicLong(lastTime);
-		this.timeoutQueue = new PriorityQueue<EventContext>(initialCapacity, timeoutComparator);
+		this.timeoutQueue = new PriorityQueue<Expirable>(initialCapacity);
 		this.expireQueue = new PriorityQueue<EventContext>(initialCapacity, expireComparator);
+		this.timeoutSet = new HashSet<EventContext>(initialCapacity);
 	}
 
 	public String getHost() {
@@ -51,7 +53,10 @@ public class EventClock {
 	}
 
 	public List<EventContext> getTimeoutContexts() {
-		List<EventContext> l = Arrays.asList(timeoutQueue.toArray(new EventContext[0]));
+		List<EventContext> l = new ArrayList<EventContext>(timeoutQueue.size());
+		for (Expirable e: timeoutQueue) {
+			l.add(e.ctx);
+		}
 		Collections.sort(l, timeoutComparator);
 		return l;
 	}
@@ -85,38 +90,111 @@ public class EventClock {
 	}
 
 	public void add(EventContext ctx) {
-		synchronized (expireQueue) {
-			if (ctx.getExpireTime() != 0)
+		if (ctx.getExpireTime() != 0)
+			synchronized (expireQueue) {
 				expireQueue.add(ctx);
-		}
+			}
 
-		synchronized (timeoutQueue) {
-			if (ctx.getTimeoutTime() != 0)
-				timeoutQueue.add(ctx);
-		}
+		if (ctx.getTimeoutTime() != 0)
+			synchronized (timeoutQueue) {
+				addTimeout(ctx);
+			}
 	}
 
 	public void updateTimeout(EventContext ctx) {
 		if (slog.isDebugEnabled()) {
 			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-			slog.debug("araqne logdb cep: update timeout [{}] of context [{}]", df.format(new Date(ctx.getTimeoutTime())),
+			slog.debug(
+					"araqne logdb cep: update timeout [{}] of context [{}]",
+					df.format(new Date(ctx.getTimeoutTime())),
 					ctx.getKey());
 		}
-
-		synchronized (timeoutQueue) {
-			// reorder
-			timeoutQueue.remove(ctx);
-			timeoutQueue.add(ctx);
+		
+		synchronized(timeoutQueue) {
+			if (!timeoutSet.contains(ctx)) {
+				addTimeout(ctx);
+			}
 		}
+		
+		// The ctx object will be added into the timeoutQueue again when ORIGINAL timeout has met;
+		// so following O(n) operation (remove) can be avoided.
+		
+		// synchronized (timeoutQueue) {
+		// // reorder
+		// timeoutQueue.remove(ctx);
+		// timeoutQueue.add(ctx);
+		// }
 	}
 
+	private void addTimeout(EventContext ctx) {
+		timeoutQueue.add(new Expirable(ctx, ctx.getTimeoutTime()));
+		timeoutSet.add(ctx);
+	}
+	
+	// This class caches ORIGINAL timeout time of EventContext.
+	// It helps timeoutQueue always to be sorted by timeout time.
+	// If the timeout time of an EventContext has updated, 
+	// EventClock attempts once to evict the EventContext by ORIGINAL timeout time, 
+	// but add it again into the queue.
+	private static class Expirable implements Comparable<Expirable> {
+		private long expireTime;
+		private EventContext ctx;
+
+		public Expirable(EventContext ctx, long timeoutTime) {
+			this.expireTime = timeoutTime;
+			this.ctx = ctx;
+		}
+
+		public Expirable(EventContext ctx) {
+			this.expireTime = -1;
+			this.ctx = ctx;
+		}
+
+		public long getExpireTime() {
+			return expireTime;
+		}
+
+		@Override
+		public int compareTo(Expirable o) {
+			long d = this.expireTime - o.expireTime;
+			return d < 0 ? -1 : (d > 0 ? +1 : 0);
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((ctx == null) ? 0 : ctx.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			Expirable other = (Expirable) obj;
+			if (ctx == null) {
+				if (other.ctx != null)
+					return false;
+			} else if (ctx != other.ctx)
+				return false;
+			return true;
+		}
+
+	}
+	
 	public void remove(EventContext ctx) {
 		synchronized (expireQueue) {
 			expireQueue.remove(ctx);
 		}
 
 		synchronized (timeoutQueue) {
-			timeoutQueue.remove(ctx);
+			timeoutQueue.remove(new Expirable(ctx));
+			timeoutSet.remove(ctx);
 		}
 	}
 
@@ -146,14 +224,19 @@ public class EventClock {
 
 		synchronized (timeoutQueue) {
 			while (true) {
-				EventContext ctx = timeoutQueue.peek();
-				if (ctx == null)
+				Expirable e = timeoutQueue.peek();
+				if (e == null)
 					break;
 
-				if (ctx.getTimeoutTime() <= now) {
+				if (e.getExpireTime() <= now) {
 					timeoutQueue.poll();
-					timeoutEvictees.put(ctx.getKey(), ctx);
-
+					timeoutSet.remove(e.ctx);
+					// if timeout time has updated, don't evict and add again;
+					if (e.ctx.getTimeoutTime() > e.getExpireTime()) {
+						addTimeout(e.ctx);
+					} else {
+						timeoutEvictees.put(e.ctx.getKey(), e.ctx);
+					}
 				} else
 					break;
 			}
