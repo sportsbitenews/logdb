@@ -25,7 +25,7 @@ public class LogKey implements Comparable<LogKey> {
 
 	public LogKey(int tableId, Date day, int logId) {
 		this.tableId = tableId;
-		this.day = day;
+		this.day = DateUtil.getDay(day);
 		this.logId = logId;
 	}
 

@@ -19,6 +19,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import org.araqne.logstorage.DateUtil;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.localfile.LocalFilePath;
 
@@ -90,7 +91,7 @@ public class DatapathUtil {
 
 	private static String getDayText(Date day) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-		String dateText = dateFormat.format(day);
+		String dateText = dateFormat.format(DateUtil.getDay(day));
 		return dateText;
 	}
 }

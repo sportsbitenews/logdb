@@ -188,7 +188,7 @@ public class LogFileServiceV3o implements Runnable, LogFileService, LogStatsList
 		if (files != null) {
 			for (FilePath file : files) {
 				try {
-					dates.add(dateFormat.parse(file.getName().split("\\.")[0]));
+					dates.add(DateUtil.getDay(dateFormat.parse(file.getName().split("\\.")[0])));
 				} catch (ParseException e) {
 					logger.error("araqne logstorage: invalid log filename, table {}, {}", tableName, file.getName());
 				}

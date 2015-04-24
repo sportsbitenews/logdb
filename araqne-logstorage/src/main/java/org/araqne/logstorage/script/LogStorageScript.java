@@ -302,7 +302,7 @@ public class LogStorageScript implements Script {
 			else if (options.has("replica"))
 				desc = replicaConfigStr(schema);
 			else
-				desc = lastDay != null ? dateFormat.format(lastDay) : "none";
+				desc = lastDay != null ? dateFormat.format(DateUtil.getDay(lastDay)) : "none";
 
 			tables.add(new TableInfo(tableId, "[" + tableId + "] " + tableName + ": " + desc));
 		}
@@ -1208,7 +1208,7 @@ public class LogStorageScript implements Script {
 		@Override
 		public void onPurge(String tableName, Date day) {
 			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-			context.println("purging table " + tableName + " day " + df.format(day));
+			context.println("purging table " + tableName + " day " + df.format(DateUtil.getDay(day)));
 		}
 
 		@Override

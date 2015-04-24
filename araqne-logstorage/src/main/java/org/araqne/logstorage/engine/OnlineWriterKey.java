@@ -18,6 +18,8 @@ package org.araqne.logstorage.engine;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import org.araqne.logstorage.DateUtil;
+
 public class OnlineWriterKey {
 	private String tableName;
 	private Date day;
@@ -25,7 +27,7 @@ public class OnlineWriterKey {
 
 	public OnlineWriterKey(String tableName, Date day, int tableId) {
 		this.tableName = tableName;
-		this.day = day;
+		this.day = DateUtil.getDay(day);
 		this.tableId = tableId;
 	}
 

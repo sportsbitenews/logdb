@@ -37,7 +37,7 @@ public class LogWriterStatus {
 	}
 
 	public void setDay(Date day) {
-		this.day = day;
+		this.day = DateUtil.getDay(day);
 	}
 
 	public Date getLastWrite() {

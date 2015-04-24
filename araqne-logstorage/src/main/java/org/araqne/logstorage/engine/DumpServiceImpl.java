@@ -14,6 +14,7 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
+import org.araqne.logstorage.DateUtil;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
@@ -191,8 +192,10 @@ public class DumpServiceImpl implements DumpService {
 		List<ExportTabletTask> tasks = new ArrayList<ExportTabletTask>();
 
 		List<LogWriterStatus> memoryBuffers = storage.getWriterStatuses();
+		Date fromDay = DateUtil.getDay(req.getFrom());
+		Date toDay = DateUtil.getDay(req.getTo());
 		for (String tableName : req.getTableNames())
-			countFiles(tableName, req.getFrom(), req.getTo(), memoryBuffers, tasks);
+			countFiles(tableName, fromDay, toDay, memoryBuffers, tasks);
 
 		return tasks;
 	}
@@ -237,6 +240,8 @@ public class DumpServiceImpl implements DumpService {
 				Date day = df.parse(path.getName().substring(0, path.getName().length() - 4), new ParsePosition(0));
 				if (day == null)
 					continue;
+
+				day = DateUtil.getDay(day);
 
 				if (from != null && day.before(from))
 					continue;

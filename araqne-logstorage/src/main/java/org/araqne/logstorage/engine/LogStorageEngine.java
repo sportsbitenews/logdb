@@ -676,7 +676,6 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 	@Override
 	public void purge(String tableName, Date day, boolean skipArgCheck) {
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 		FilePath dir = getTableDirectory(tableName);
 
@@ -691,7 +690,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		if (writer != null)
 			writer.close();
 
-		String fileName = dateFormat.format(day);
+		String fileName = DateUtil.getDayText(day);
 		FilePath idxFile = dir.newFilePath(fileName + ".idx");
 		FilePath datFile = dir.newFilePath(fileName + ".dat");
 
@@ -730,6 +729,9 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		String to = "unbound";
 		if (toDay != null)
 			to = dateFormat.format(toDay);
+		
+		fromDay = DateUtil.getDay(fromDay);
+		toDay = DateUtil.getDay(toDay);
 
 		logger.debug("araqne logstorage: try to purge log data of table [{}], range [{}~{}]",
 				new Object[] { tableName, from, to });
@@ -743,7 +745,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			if (toDay != null && day.after(toDay))
 				continue;
 
-			purgeDays.add(day);
+			purgeDays.add(DateUtil.getDay(day));
 		}
 
 		for (Date day : purgeDays) {
@@ -1216,8 +1218,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 		@Override
 		public String toString() {
-			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-			return "log cursor for table " + tableName + ", day " + dateFormat.format(day);
+			return "log cursor for table " + tableName + ", day " + DateUtil.getDayText(day);
 		}
 	}
 
