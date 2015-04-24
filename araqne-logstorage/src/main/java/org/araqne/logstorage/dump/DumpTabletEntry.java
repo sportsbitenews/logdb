@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.araqne.logstorage.DateUtil;
 import org.araqne.msgbus.Marshalable;
 
 public class DumpTabletEntry implements Marshalable {
@@ -17,7 +18,7 @@ public class DumpTabletEntry implements Marshalable {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 		DumpTabletEntry e = new DumpTabletEntry();
 		e.tableName = (String) m.get("table");
-		e.day = df.parse((String) m.get("day"), new ParsePosition(0));
+		e.day = DateUtil.getDay(df.parse((String) m.get("day"), new ParsePosition(0)));
 		e.count = Long.parseLong(m.get("count").toString());
 		return e;
 	}

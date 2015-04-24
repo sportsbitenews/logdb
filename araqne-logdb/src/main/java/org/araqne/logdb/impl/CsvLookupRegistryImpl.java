@@ -16,12 +16,7 @@
 package org.araqne.logdb.impl;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.RandomAccessFile;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -38,12 +33,9 @@ import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
 import org.araqne.logdb.CsvLookupRegistry;
-import org.araqne.logdb.LookupHandler;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * If you need per-user csv lookup management, implement or use other service
@@ -157,95 +149,5 @@ public class CsvLookupRegistryImpl implements CsvLookupRegistry {
 
 	private String getLookupName(File f) {
 		return "csv$" + f.getName();
-	}
-
-	private class CsvLookupHandler implements LookupHandler {
-		private String keyFieldName;
-		private ArrayList<String> valueFieldNames;
-		private Map<String, Map<String, String>> mappings = new HashMap<String, Map<String, String>>();
-
-		public CsvLookupHandler(File f) throws IOException {
-			CSVReader reader = null;
-			FileInputStream is = null;
-
-			try {
-				int skipBytes = getBomLength(f);
-
-				is = new FileInputStream(f);
-				is.skip(skipBytes);
-
-				reader = new CSVReader(new InputStreamReader(is, "utf-8"));
-
-				String[] nextLine = reader.readNext();
-				if (nextLine == null)
-					throw new IllegalStateException("header columns not found");
-
-				if (nextLine.length < 2)
-					throw new IllegalStateException("not enough columns (should be 2 or more)");
-
-				keyFieldName = nextLine[0];
-				valueFieldNames = new ArrayList<String>(nextLine.length - 1);
-				for (int i = 1; i < nextLine.length; i++)
-					valueFieldNames.add(nextLine[i]);
-
-				if (logger.isDebugEnabled())
-					logger.debug("araqne logdb: key field [{}] value fields [{}]", keyFieldName, valueFieldNames);
-
-				while ((nextLine = reader.readNext()) != null) {
-					Map<String, String> values = new HashMap<String, String>();
-					for (int i = 1; i < nextLine.length; i++) {
-						String valueFieldName = valueFieldNames.get(i - 1);
-						String value = nextLine[i];
-						values.put(valueFieldName, value);
-					}
-
-					mappings.put(nextLine[0], values);
-				}
-			} finally {
-				if (reader != null)
-					reader.close();
-			}
-		}
-
-		// support utf8 BOM only
-		private int getBomLength(File f) throws IOException {
-			if (f.length() < 3)
-				return 0;
-
-			byte[] buf = new byte[3];
-			byte[] bom = new byte[] { (byte) 0xef, (byte) 0xbb, (byte) 0xbf };
-			RandomAccessFile raf = null;
-			try {
-				raf = new RandomAccessFile(f, "r");
-				raf.readFully(buf);
-
-				if (Arrays.equals(buf, bom))
-					return 3;
-			} finally {
-				if (raf != null) {
-					try {
-						raf.close();
-					} catch (IOException e) {
-					}
-				}
-			}
-
-			return 0;
-		}
-
-		@Override
-		public Object lookup(String srcField, String dstField, Object srcValue) {
-			if (srcValue == null)
-				return null;
-			
-			if (!valueFieldNames.contains(dstField))
-				return null;
-
-			Map<String, String> valueMappings = mappings.get(srcValue.toString());
-			if (valueMappings == null)
-				return null;
-
-			return valueMappings.get(dstField);
-		}
 	}
 }

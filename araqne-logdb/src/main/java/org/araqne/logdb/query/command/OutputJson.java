@@ -281,7 +281,7 @@ public class OutputJson extends QueryCommand {
 
 		String encodingOption = "";
 		if (encoding != null)
-			encoding = " encoding=" + encoding;
+			encodingOption = " encoding=" + encoding;
 
 		String partitionOption = "";
 		if (usePartition)

@@ -19,6 +19,7 @@ import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logstorage.DateUtil;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
@@ -86,8 +87,7 @@ public class LogBlockMetadataProvider implements MetadataProvider, FieldOrdering
 
 		FilePath dir = storage.getTableDirectory(tableName);
 
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-		String dateText = dateFormat.format(day);
+		String dateText = DateUtil.getDayText(day);
 
 		FilePath indexPath = dir.newFilePath(dateText + ".idx");
 		FilePath dataPath = dir.newFilePath(dateText + ".dat");

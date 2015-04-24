@@ -28,6 +28,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logstorage.CallbackSet;
+import org.araqne.logstorage.DateUtil;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.TableConfig;
@@ -82,7 +83,7 @@ public class OnlineWriter {
 		this.logFileService = logFileService;
 		this.schema = schema;
 		this.tableId = schema.getId();
-		this.day = day;
+		this.day = DateUtil.getDay(day);
 		this.closeReserved = false;
 	}
 

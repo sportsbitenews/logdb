@@ -34,6 +34,7 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.confdb.ConfigService;
 import org.araqne.logstorage.CallbackSet;
+import org.araqne.logstorage.DateUtil;
 import org.araqne.logstorage.LogFileService;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogTableRegistry;
@@ -146,7 +147,7 @@ public class LogFileServiceV2 implements LogFileService {
 		if (files != null) {
 			for (FilePath file : files) {
 				try {
-					dates.add(dateFormat.parse(file.getName().split("\\.")[0]));
+					dates.add(DateUtil.getDay(dateFormat.parse(file.getName().split("\\.")[0])));
 				} catch (ParseException e) {
 					logger.error("araqne logstorage: invalid log filename, table {}, {}", tableName, file.getName());
 				}
