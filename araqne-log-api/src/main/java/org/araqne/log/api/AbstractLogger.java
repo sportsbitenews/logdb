@@ -816,7 +816,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		if (this.slog.isDebugEnabled()) {
 			this.slog.debug("araqne log api: logger [{}] has resolved logger [{}]", getFullName(), fullName);
 		}
-		this.unresolvedLoggers.remove(fullName);
+		
+		if (!this.unresolvedLoggers.remove(fullName))
+			return;
 
 		boolean transformerResolved = config.get("transformer") == null || transformer != null;
 		if (status != LoggerStatus.Running && enabled && transformerResolved && unresolvedLoggers.isEmpty()) {

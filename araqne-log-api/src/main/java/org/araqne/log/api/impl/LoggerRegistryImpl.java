@@ -385,7 +385,7 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 
 		public void onStart(Logger logger) {
 			log.debug("aranqe log api: dependency resolver detected logger [{}] start", logger.getFullName());
-			for (org.araqne.log.api.Logger l : loggers.values()) {
+			for (Logger l : loggers.values()) {
 				if ((l != logger) && (!l.getFullName().equals(logger.getFullName()))) {
 					l.removeUnresolvedLogger(logger.getFullName());
 				}
