@@ -24,7 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.RandomAccessFile;
+import java.io.Writer;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -332,6 +332,10 @@ public class LastStateServiceImpl implements LastStateService {
 			slog.error(
 					"araqne log api: cannot write state [" + state.getLoggerName() + "] to file [" + f.getAbsolutePath() + "]", e);
 		} finally {
+			ensureFlush(bw);
+			ensureFlush(ow);
+			ensureFsync(fos);
+
 			ensureClose(bw);
 			ensureClose(ow);
 			ensureClose(fos);
@@ -339,8 +343,6 @@ public class LastStateServiceImpl implements LastStateService {
 
 		// prevent broken file writing caused by low disk space
 		if (success) {
-			forceFsync(tmp);
-
 			boolean rename = (f.delete() || !f.exists()) && tmp.renameTo(f);
 			if (!rename) {
 				slog.error("araqne log api: cannot delete last state file [{}] to [{}]", tmp.getAbsolutePath(),
@@ -353,20 +355,29 @@ public class LastStateServiceImpl implements LastStateService {
 	}
 
 	/**
-	 * enforce fsync for ext4 (zero file problem)
+	 * enforce fsync for ext4 (zero-length file problem)
+	 * 
+	 * @see http://lwn.net/Articles/323169/
 	 */
-	private void forceFsync(File f) {
-		RandomAccessFile raf = null;
-		try {
-			raf = new RandomAccessFile(f, "rws");
-			raf.getFD().sync();
-		} catch (Throwable t) {
-		} finally {
-			if (raf != null) {
-				try {
-					raf.close();
-				} catch (IOException e) {
-				}
+	private void ensureFsync(FileOutputStream o) {
+		if (o != null) {
+			try {
+				o.flush();
+			} catch (Throwable t) {
+			}
+
+			try {
+				o.getFD().sync();
+			} catch (Throwable t) {
+			}
+		}
+	}
+
+	private void ensureFlush(Writer w) {
+		if (w != null) {
+			try {
+				w.flush();
+			} catch (Throwable t) {
 			}
 		}
 	}
