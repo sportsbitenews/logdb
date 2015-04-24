@@ -54,7 +54,7 @@ public class EventClock {
 
 	public List<EventContext> getTimeoutContexts() {
 		List<EventContext> l = new ArrayList<EventContext>(timeoutQueue.size());
-		for (Expirable e: timeoutQueue) {
+		for (Expirable e : timeoutQueue) {
 			l.add(e.ctx);
 		}
 		Collections.sort(l, timeoutComparator);
@@ -90,15 +90,15 @@ public class EventClock {
 	}
 
 	public void add(EventContext ctx) {
-		if (ctx.getExpireTime() != 0)
-			synchronized (expireQueue) {
+		synchronized (expireQueue) {
+			if (ctx.getExpireTime() != 0)
 				expireQueue.add(ctx);
-			}
+		}
 
-		if (ctx.getTimeoutTime() != 0)
-			synchronized (timeoutQueue) {
+		synchronized (timeoutQueue) {
+			if (ctx.getTimeoutTime() != 0)
 				addTimeout(ctx);
-			}
+		}
 	}
 
 	public void updateTimeout(EventContext ctx) {
@@ -109,16 +109,16 @@ public class EventClock {
 					df.format(new Date(ctx.getTimeoutTime())),
 					ctx.getKey());
 		}
-		
-		synchronized(timeoutQueue) {
-			if (!timeoutSet.contains(ctx)) {
+
+		synchronized (timeoutQueue) {
+			if (ctx.getTimeoutTime() != 0 && !timeoutSet.contains(ctx)) {
 				addTimeout(ctx);
 			}
 		}
-		
+
 		// The ctx object will be added into the timeoutQueue again when ORIGINAL timeout has met;
 		// so following O(n) operation (remove) can be avoided.
-		
+
 		// synchronized (timeoutQueue) {
 		// // reorder
 		// timeoutQueue.remove(ctx);
@@ -130,11 +130,11 @@ public class EventClock {
 		timeoutQueue.add(new Expirable(ctx, ctx.getTimeoutTime()));
 		timeoutSet.add(ctx);
 	}
-	
+
 	// This class caches ORIGINAL timeout time of EventContext.
 	// It helps timeoutQueue always to be sorted by timeout time.
-	// If the timeout time of an EventContext has updated, 
-	// EventClock attempts once to evict the EventContext by ORIGINAL timeout time, 
+	// If the timeout time of an EventContext has updated,
+	// EventClock attempts once to evict the EventContext by ORIGINAL timeout time,
 	// but add it again into the queue.
 	private static class Expirable implements Comparable<Expirable> {
 		private long expireTime;
@@ -186,7 +186,7 @@ public class EventClock {
 		}
 
 	}
-	
+
 	public void remove(EventContext ctx) {
 		synchronized (expireQueue) {
 			expireQueue.remove(ctx);
@@ -232,7 +232,7 @@ public class EventClock {
 					timeoutQueue.poll();
 					timeoutSet.remove(e.ctx);
 					// if timeout time has updated, don't evict and add again;
-					if (e.ctx.getTimeoutTime() > e.getExpireTime()) {
+					if (e.ctx.getTimeoutTime() != 0 && e.ctx.getTimeoutTime() > e.getExpireTime()) {
 						addTimeout(e.ctx);
 					} else {
 						timeoutEvictees.put(e.ctx.getKey(), e.ctx);
@@ -249,7 +249,8 @@ public class EventClock {
 	@Override
 	public String toString() {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-		return host + " (timeout: " + timeoutQueue.size() + ", expire: " + expireQueue.size() + ") => "
+		return host + " (timeout: " + timeoutQueue.size() + ", expire: " + expireQueue.size()
+				+ ") => "
 				+ df.format(new Date(lastTime.get()));
 	}
 
