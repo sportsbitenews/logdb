@@ -49,7 +49,7 @@ public class OutputJsonParserTest {
 			assertEquals("sip", json.getFields().get(0));
 			assertEquals("dip", json.getFields().get(1));
 
-			assertEquals("outputjson logexport.json sip, dip", json.toString());
+			assertEquals("outputjson encoding=utf-8 logexport.json sip, dip", json.toString());
 		} finally {
 			if (json != null)
 				json.onClose(QueryStopReason.End);
