@@ -58,6 +58,13 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 	private ArrayList<String> fieldOrder;
 
+	private static final boolean discardNullGroup;
+
+	static {
+		String s = System.getProperty("araqne.logdb.discard_null_group");
+		discardNullGroup = s != null && s.equalsIgnoreCase("enabled");
+	}
+
 	public Stats(List<AggregationField> fields, List<String> clause) {
 		this.EMPTY_KEY = new ArrayList<Object>(0);
 		this.clauses = clause;
@@ -118,7 +125,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 					boolean isNullGroup = false;
 					for (String clause : clauses) {
 						Object keyValue = row.get(clause);
-						if (keyValue == null) {
+						if (discardNullGroup && keyValue == null) {
 							isNullGroup = true;
 							break;
 						}
@@ -151,7 +158,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 					boolean isNullGroup = false;
 					for (String clause : clauses) {
 						Object keyValue = m.get(clause);
-						if (keyValue == null) {
+						if (discardNullGroup && keyValue == null) {
 							isNullGroup = true;
 							break;
 						}
@@ -196,7 +203,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 			for (String clause : clauses) {
 				Object keyValue = m.get(clause);
-				if (keyValue == null)
+				if (discardNullGroup && keyValue == null)
 					return;
 
 				keys.add(keyValue);
