@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.engine;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -130,7 +131,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 		QueryErrorMessage m = errorMappings.get(errorCode);
 		if (m == null)
 			return null;
-		
+
 		return m.format(locale, params);
 	}
 
@@ -297,4 +298,8 @@ public class QueryParserServiceImpl implements QueryParserService {
 		errorMappings.put(code, new QueryErrorMessage(en, ko));
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		return new HashMap<String, QueryErrorMessage>(errorMappings);
+	}
 }

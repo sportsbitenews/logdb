@@ -26,12 +26,14 @@ public interface QueryParserService {
 	QueryCommandParser getCommandParser(String name);
 
 	List<QueryCommand> parseCommands(QueryContext context, String queryString);
-	
+
 	String formatErrorMessage(String errorCode, Locale locale, Map<String, String> params);
 
 	void addCommandParser(QueryCommandParser parser);
 
 	void removeCommandParser(QueryCommandParser parser);
-	
+
 	FunctionRegistry getFunctionRegistry();
+
+	Map<String, QueryErrorMessage> getErrorMessages();
 }

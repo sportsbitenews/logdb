@@ -19,9 +19,13 @@ public class QueryErrorMessage {
 			templates.put(Locale.CHINESE, zh);
 	}
 
+	public Map<Locale, String> getTemplates() {
+		return templates;
+	}
+
 	public String format(Locale locale, Map<String, String> params) {
 		String template = templates.get(locale);
-		if (template == null) 
+		if (template == null)
 			template = templates.get(Locale.ENGLISH);
 
 		if (template == null)
@@ -29,14 +33,10 @@ public class QueryErrorMessage {
 
 		if (params == null)
 			return template;
-		
-		// while     param replace
-		// template.replaceAll(regex, replacement)
-		for (Map.Entry<String, String> entry : params.entrySet()) {
-			template = template.replace("[" + entry.getKey() + "]", entry.getValue());
-		}
 
-		//포맷 UI담당자랑 협의 후 수정
+		for (Map.Entry<String, String> entry : params.entrySet())
+			template = template.replace("[" + entry.getKey() + "]", entry.getValue());
+
 		return template;
 	}
 }
