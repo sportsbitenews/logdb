@@ -42,6 +42,7 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.AuthServiceNotLoadedException;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
+import org.araqne.logdb.UploadDataHandler;
 import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.logstorage.LogCryptoProfileRegistry;
 import org.araqne.logstorage.LogFileService;
