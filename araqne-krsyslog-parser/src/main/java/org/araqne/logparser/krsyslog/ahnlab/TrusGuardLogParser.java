@@ -103,7 +103,410 @@ public class TrusGuardLogParser extends V1LogParser {
 			parseProxyLogV3(tokenizedLine, m);
 		} else if (moduleFlag == 1160) {// system quarantine
 			parseSystemQuarantineLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3010) {
+			parseManagementOperaionLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3011) {
+			parseManagementStatLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3012) {
+			parseManagementNetworkPortLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3020) {
+			parseIPSLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3030 || moduleFlag == 3080 || moduleFlag == 3120 || moduleFlag == 3150) {
+			parseUntrustedTrafficBlockFilterStatusLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3031 || moduleFlag == 3041 || moduleFlag == 3051 || moduleFlag == 3061 || moduleFlag == 3071
+				|| moduleFlag == 3121 || moduleFlag == 3131 || moduleFlag == 3141 || moduleFlag == 3151 || moduleFlag == 3191
+				|| moduleFlag == 3211 || moduleFlag == 3182 || moduleFlag == 3210) {
+			parseUntrustedTrafficBlockFilterBlockLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3040 || moduleFlag == 3090 || moduleFlag == 3100 || moduleFlag == 3110 || moduleFlag == 3130
+				|| moduleFlag == 3140) {
+			parseNetworkProtectionbySegmentStatusLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3050 || moduleFlag == 3060 || moduleFlag == 3210) {
+			parseAntiSpoofingProtectionStatusLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3052 || moduleFlag == 3212 || moduleFlag == 3062) {
+			parseAntiSpoofingProtectionAuthLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3070) {
+			parseStatefulPacketInspectionStatusLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3160) {
+			parseSegmentProtectionFilterStatusLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 3170 || moduleFlag == 3171) {
+			parseAttackLogV3(tokenizedLine, m);
 		}
+	}
+
+	private void parseManagementOperaionLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module flag 3010
+		int index = 8;
+		int severity = Integer.valueOf(tokenizedLine[index++]);
+		String protocolToken = tokenizedLine[index++];
+		String srcIpToken = tokenizedLine[index++];
+		String srcPortToken = tokenizedLine[index++];
+		String dstIpToken = tokenizedLine[index++];
+		String dstPortToken = tokenizedLine[index++];
+
+		m.put("severity", severity);
+		m.put("protocol", protocolToken.isEmpty() ? null : protocolToken);
+		m.put("src_ip", srcIpToken.isEmpty() ? null : srcIpToken);
+		m.put("src_port", srcPortToken.isEmpty() ? null : Integer.valueOf(srcPortToken));
+		m.put("dst_ip", dstIpToken.isEmpty() ? null : dstIpToken);
+		m.put("dst_port", dstPortToken.isEmpty() ? null : Integer.valueOf(dstPortToken));
+		String action = tokenizedLine[index++];
+		if (action.equals("0"))
+			action = "격리";
+		else if (action.equals("1"))
+			action = "웹리디렉션";
+		else if (action.equals("2"))
+			action = "세션차단";
+		m.put("action", action);
+		String userToken = tokenizedLine[index++];
+		m.put("user", userToken.isEmpty() ? null : userToken);
+		m.put("module_name", tokenizedLine[index++]);
+		m.put("description", tokenizedLine[index++]);
+	}
+
+	private void parseManagementStatLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module flag 3011
+		int index = 8;
+		m.put("module_name", tokenizedLine[index++]);
+		m.put("cpu", Integer.valueOf(tokenizedLine[index++]));
+		m.put("mem", Integer.valueOf(tokenizedLine[index++]));
+		m.put("hdd", Integer.valueOf(tokenizedLine[index++]));
+		m.put("session", Integer.valueOf(tokenizedLine[index++]));
+		m.put("in_data", Long.parseLong(tokenizedLine[index++]));
+		m.put("out_data", Long.parseLong(tokenizedLine[index++]));
+		m.put("in_pkt", Long.parseLong(tokenizedLine[index++]));
+		m.put("out_pkt", Long.parseLong(tokenizedLine[index++]));
+		m.put("ha", tokenizedLine[index++]);
+	}
+
+	private void parseManagementNetworkPortLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module flag 3012
+		int index = 8;
+		m.put("zone_name", tokenizedLine[index++]);
+		String nifType = tokenizedLine[index++];
+		if (nifType.equals("0"))
+			nifType = "physical";
+		else if (nifType.equals("1"))
+			nifType = "bridge";
+		m.put("nif_type", nifType);
+		m.put("nif_name", tokenizedLine[index++]);
+
+		m.put("in_rx_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_rx_udp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_rx_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_rx_etc_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_rx_total_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_rx_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_rx_udp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_rx_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_rx_etc_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_rx_total_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_tx_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_tx_udp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_tx_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_tx_etc_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_tx_total_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_tx_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_tx_udp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_tx_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_tx_etc_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_tx_total_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_drop_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_drop_udp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_drop_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_drop_etc_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_drop_total_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_drop_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_drop_udp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_drop_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_drop_etc_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("in_drop_total_pps", Integer.parseInt(tokenizedLine[index++]));
+
+		m.put("out_rx_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_rx_udp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_rx_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_rx_etc_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_rx_total_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_rx_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_rx_udp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_rx_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_rx_etc_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_rx_total_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_tx_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_tx_udp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_tx_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_tx_etc_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_tx_total_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_tx_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_tx_udp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_tx_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_tx_etc_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_tx_total_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_drop_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_drop_udp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_drop_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_drop_etc_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_drop_total_bps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_drop_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_drop_udp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_drop_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_drop_etc_pps", Integer.parseInt(tokenizedLine[index++]));
+		m.put("out_drop_total_pps", Integer.parseInt(tokenizedLine[index++]));
+	}
+
+	private void parseIPSLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module flag 3020
+		int index = 8;
+		int severity = Integer.valueOf(tokenizedLine[index++]);
+		String protocolToken = tokenizedLine[index++];
+		String srcIpToken = tokenizedLine[index++];
+		String srcPortToken = tokenizedLine[index++];
+		String dstIpToken = tokenizedLine[index++];
+		String dstPortToken = tokenizedLine[index++];
+
+		m.put("severity", severity);
+		m.put("protocol", protocolToken.isEmpty() ? null : protocolToken);
+		m.put("src_ip", srcIpToken.isEmpty() ? null : srcIpToken);
+		m.put("src_port", srcPortToken.isEmpty() ? null : Integer.valueOf(srcPortToken));
+		m.put("dst_ip", dstIpToken.isEmpty() ? null : dstIpToken);
+		m.put("dst_port", dstPortToken.isEmpty() ? null : Integer.valueOf(dstPortToken));
+
+		m.put("pkt_len", Integer.valueOf(tokenizedLine[index++]));
+
+		String action = tokenizedLine[index++];
+		if (action.equals("3001"))
+			action = "차단";
+		else if (action.equals("3002"))
+			action = "시스템 격리";
+		else if (action.equals("3003"))
+			action = "허용";
+		else if (action.equals("3006"))
+			action = "세션 끊기";
+		else if (action.equals("3007"))
+			action = "출발지 IP기준 사용량 제한";
+		else if (action.equals("3008"))
+			action = "목적지 IP기준 사용량 제한";
+		else if (action.equals("3009"))
+			action = "DDos 공격 차단";
+		else if (action.equals("3010"))
+			action = "일괄차단";
+		m.put("action", action);
+
+		String userToken = tokenizedLine[index++];
+		m.put("user", userToken.isEmpty() ? null : userToken);
+		m.put("module_name", tokenizedLine[index++]);
+		m.put("reason", tokenizedLine[index++]);
+		m.put("nif", tokenizedLine[index++]);
+		m.put("eth_protocol", tokenizedLine[index++]);
+		m.put("src_mac", tokenizedLine[index++]);
+		m.put("rule_id", Long.parseLong(tokenizedLine[index++]));
+		m.put("vlan_id", tokenizedLine[index++]);
+
+		String status = tokenizedLine[index++].toLowerCase();
+		if (status.equals("s"))
+			status = "최초 공격탐지";
+		else if (status.equals("c"))
+			status = "탐지 후 주기적인 이벤트 전송";
+		else if (status.equals("f"))
+			status = "공격 종료";
+		m.put("status", status);
+
+		String duration = tokenizedLine[index++];
+		m.put("duration", duration.isEmpty() ? null : duration);
+		m.put("msg", tokenizedLine[index++]);
+		m.put("slice_seconds", Long.parseLong(tokenizedLine[index++]));
+		m.put("threshold_packets", Long.parseLong(tokenizedLine[index++]));
+		m.put("threshold_bytes", Long.parseLong(tokenizedLine[index++]));
+		m.put("attack_rate", tokenizedLine[index++]);
+		String zoneName = tokenizedLine[index++];
+		m.put("zone_name", zoneName.isEmpty() ? null : zoneName);
+
+		String attackId = tokenizedLine[index++];
+		m.put("attack_id", attackId.isEmpty() ? null : attackId);
+	}
+
+	private void parseUntrustedTrafficBlockFilterStatusLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module flag 3030,3080,3120,3150
+		int index = 8;
+		String duration = tokenizedLine[index++];
+		m.put("duration", duration.isEmpty() ? null : duration);
+		m.put("drop_tcp_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_tcp_bps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_udp_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_udp_bps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_icmp_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_icmp_bps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_etc_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_etc_bps", Long.parseLong(tokenizedLine[index++]));
+
+		String zoneName = tokenizedLine[index++];
+		m.put("zone_name", zoneName.isEmpty() ? null : zoneName);
+		String attackId = tokenizedLine[index++];
+		m.put("attack_id", attackId.isEmpty() ? null : attackId);
+
+		String filterStatus = tokenizedLine[index++];
+		if (filterStatus.equals("0"))
+			filterStatus = "off";
+		else if (filterStatus.equals("1"))
+			filterStatus = "차단없음";
+		else if (filterStatus.equals("2"))
+			filterStatus = "차단중";
+		else if (filterStatus.equals("3"))
+			filterStatus = "허용보다 차단이 많음";
+		m.put("filter_status", filterStatus);
+	}
+
+	private void parseUntrustedTrafficBlockFilterBlockLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module flag 3031,3041,3051,3061,3071,3121,3131,3141,3151,3191,3211 ||
+		// 3182,3210
+		Integer moduleFlag = (Integer) m.get("module_flag");
+
+		int index = 8;
+		String duration = tokenizedLine[index++];
+		m.put("duration", duration.isEmpty() ? null : duration);
+		m.put("protocol", tokenizedLine[index++]);
+		m.put("src_ip", tokenizedLine[index++]);
+		m.put("dst_ip", tokenizedLine[index++]);
+		m.put("dst_port", Integer.parseInt(tokenizedLine[index++]));
+
+		if (moduleFlag == 3182 || moduleFlag == 3210) {
+			m.put("allow_packets", Long.parseLong(tokenizedLine[index++]));
+			m.put("allow_bytes", Long.parseLong(tokenizedLine[index++]));
+		} else {
+			m.put("drop_packets", Long.parseLong(tokenizedLine[index++]));
+			m.put("drop_bytes", Long.parseLong(tokenizedLine[index++]));
+		}
+
+		String zoneName = tokenizedLine[index++];
+		m.put("zone_name", zoneName.isEmpty() ? null : zoneName);
+	}
+
+	private void parseNetworkProtectionbySegmentStatusLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module flag 3040,3090,3100,3110,3130,3140
+		int index = 8;
+		String duration = tokenizedLine[index++];
+		m.put("duration", duration.isEmpty() ? null : duration);
+		m.put("drop_tcp_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_tcp_bps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_udp_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_udp_bps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_icmp_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_icmp_bps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_etc_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("drop_etc_bps", Long.parseLong(tokenizedLine[index++]));
+		m.put("allow_tcp_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("allow_tcp_bps", Long.parseLong(tokenizedLine[index++]));
+		m.put("allow_udp_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("allow_udp_bps", Long.parseLong(tokenizedLine[index++]));
+		m.put("allow_icmp_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("allow_icmp_bps", Long.parseLong(tokenizedLine[index++]));
+		m.put("allow_etc_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("allow_etc_bps", Long.parseLong(tokenizedLine[index++]));
+
+		String zoneName = tokenizedLine[index++];
+		m.put("zone_name", zoneName.isEmpty() ? null : zoneName);
+		String attackId = tokenizedLine[index++];
+		m.put("attack_id", attackId.isEmpty() ? null : attackId);
+		String filterStatus = tokenizedLine[index++];
+		if (filterStatus.equals("0"))
+			filterStatus = "off";
+		else if (filterStatus.equals("1"))
+			filterStatus = "차단없음";
+		else if (filterStatus.equals("2"))
+			filterStatus = "차단중";
+		else if (filterStatus.equals("3"))
+			filterStatus = "허용보다 차단이 많음";
+		m.put("filter_status", filterStatus);
+	}
+
+	private void parseAntiSpoofingProtectionStatusLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module flag 3050,3060,3210
+		int index = 8;
+		String duration = tokenizedLine[index++];
+		m.put("duration", duration.isEmpty() ? null : duration);
+		m.put("block_session", tokenizedLine[index++]);
+		m.put("allow_session", tokenizedLine[index++]);
+
+		String zoneName = tokenizedLine[index++];
+		m.put("zone_name", zoneName.isEmpty() ? null : zoneName);
+		String attackId = tokenizedLine[index++];
+		m.put("attack_id", attackId.isEmpty() ? null : attackId);
+		String filterStatus = tokenizedLine[index++];
+		if (filterStatus.equals("0"))
+			filterStatus = "off";
+		else if (filterStatus.equals("1"))
+			filterStatus = "차단없음";
+		else if (filterStatus.equals("2"))
+			filterStatus = "차단중";
+		else if (filterStatus.equals("3"))
+			filterStatus = "허용보다 차단이 많음";
+		m.put("filter_status", filterStatus);
+	}
+
+	private void parseAntiSpoofingProtectionAuthLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module_flag 3052,3212,3062
+		Integer moduleFlag = (Integer) m.get("module_flag");
+		int index = 8;
+		String duration = tokenizedLine[index++];
+		m.put("duration", duration.isEmpty() ? null : duration);
+		m.put("protocol", tokenizedLine[index++]);
+		m.put("src_ip", tokenizedLine[index++]);
+		m.put("dst_ip", tokenizedLine[index++]);
+		m.put("dst_port", Integer.parseInt(tokenizedLine[index++]));
+		if (moduleFlag == 3062)
+			m.put("request_count", Integer.parseInt(tokenizedLine[index++]));
+		else
+			m.put("connection_count", Integer.parseInt(tokenizedLine[index++]));
+		m.put("expire_time", tokenizedLine[index++] + " " + tokenizedLine[index++]);
+
+		String zoneName = tokenizedLine[index++];
+		m.put("zone_name", zoneName.isEmpty() ? null : zoneName);
+	}
+
+	private void parseStatefulPacketInspectionStatusLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module_flag 3070
+		int index = 8;
+		String duration = tokenizedLine[index++];
+		m.put("duration", duration.isEmpty() ? null : duration);
+		m.put("drop_tcp_pps", Long.parseLong(tokenizedLine[index++]));
+		m.put("allow_tcp_pps", Long.parseLong(tokenizedLine[index++]));
+
+		String zoneName = tokenizedLine[index++];
+		m.put("zone_name", zoneName.isEmpty() ? null : zoneName);
+		String attackId = tokenizedLine[index++];
+		m.put("attack_id", attackId.isEmpty() ? null : attackId);
+		String filterStatus = tokenizedLine[index++];
+		if (filterStatus.equals("0"))
+			filterStatus = "off";
+		else if (filterStatus.equals("1"))
+			filterStatus = "차단없음";
+		else if (filterStatus.equals("2"))
+			filterStatus = "차단중";
+		else if (filterStatus.equals("3"))
+			filterStatus = "허용보다 차단이 많음";
+		m.put("filter_status", filterStatus);
+	}
+
+	private void parseSegmentProtectionFilterStatusLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module_flag 3160
+		int index = 8;
+		String duration = tokenizedLine[index++];
+		m.put("duration", duration.isEmpty() ? null : duration);
+		m.put("ip", tokenizedLine[index++]);
+		m.put("mask", Integer.parseInt(tokenizedLine[index++]));
+		m.put("rate_limit", tokenizedLine[index++]);
+		String zoneName = tokenizedLine[index++];
+		m.put("zone_name", zoneName.isEmpty() ? null : zoneName);
+	}
+
+	private void parseAttackLogV3(String[] tokenizedLine, Map<String, Object> m) {
+		// module_flag 3170,3171
+		int index = 8;
+		String duration = tokenizedLine[index++];
+		m.put("duration", duration.isEmpty() ? null : duration);
+		String zoneName = tokenizedLine[index++];
+		m.put("zone_name", zoneName.isEmpty() ? null : zoneName);
+		String attackId = tokenizedLine[index++];
+		m.put("attack_id", attackId.isEmpty() ? null : attackId);
 	}
 
 	private void parseSystemQuarantineLogV3(String[] tokenizedLine, Map<String, Object> m) {
