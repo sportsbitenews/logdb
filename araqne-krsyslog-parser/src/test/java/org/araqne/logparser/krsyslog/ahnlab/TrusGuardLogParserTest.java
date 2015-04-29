@@ -27,6 +27,508 @@ import org.junit.Test;
 
 public class TrusGuardLogParserTest {
 
+	public void testFilteringExceptionsFilterAllowLogV3() {
+		String line = "3`0`2`1`000000`3181`20090911`18:45:52`10540`6`172.16.32.34`192.168.16.15`80`1234`16000`zone0`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		assertEquals(3181, m.get("module_flag"));
+		assertEquals(10540L, m.get("duration"));
+		assertEquals("6", m.get("protocol"));
+		assertEquals("172.16.32.34", m.get("src_ip"));
+		assertEquals("192.168.16.15", m.get("dst_ip"));
+		assertEquals(80, m.get("dst_port"));
+		assertEquals(1234L, m.get("allow_packets"));
+		assertEquals(16000L, m.get("allow_bytes"));
+		assertEquals("zone0", m.get("zone_name"));
+	}
+
+	@Test
+	public void testAttackLogV3() {
+		String line = "3`0`2`1`000000`3171`20090911`18:45:52`1800000``11364f4a-aa0e-42bc-92ea-0fe6a8e01744`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		assertEquals(3171, m.get("module_flag"));
+		assertEquals("1800000", m.get("duration"));
+		assertEquals(null, m.get("zone_name"));
+		assertEquals("11364f4a-aa0e-42bc-92ea-0fe6a8e01744", m.get("attack_id"));
+	}
+
+	@Test
+	public void testSegmentProtectionFilterStatusLogV3() {
+		String line = "3`0`2`1`000000`3160`20090911`18:45:52`10540`912.168.10.0`24`64`zone`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		assertEquals(3160, m.get("module_flag"));
+		assertEquals("10540", m.get("duration"));
+		assertEquals("912.168.10.0", m.get("ip"));
+		assertEquals(24, m.get("mask"));
+		assertEquals("zone", m.get("zone_name"));
+	}
+
+	@Test
+	public void testStatefulPacketInspectionStatusLogV3() {
+		String line = "3`0`2`1`000000`3070`20090911`18:45:52`10540`1024`2048``11364f4a-aa0e-42bc-92ea-0fe6a8e01744`0`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		assertEquals(3070, m.get("module_flag"));
+		assertEquals("10540", m.get("duration"));
+		assertEquals(1024L, m.get("drop_tcp_pps"));
+		assertEquals(2048L, m.get("allow_tcp_pps"));
+		assertEquals(null, m.get("zone_name"));
+		assertEquals("11364f4a-aa0e-42bc-92ea-0fe6a8e01744", m.get("attack_id"));
+		assertEquals("off", m.get("filter_status"));
+	}
+
+	@Test
+	public void testHttpAccessAuthenticationIPLogV3() {
+		String line = "3`0`2`1`000000`3062`20090911`18:45:52`10540`6`172.16.32.34`192.168.16.15`80`11`20090911`18:55:52`zone0`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		assertEquals(3062, m.get("module_flag"));
+		assertEquals("10540", m.get("duration"));
+		assertEquals("6", m.get("protocol"));
+		assertEquals("172.16.32.34", m.get("src_ip"));
+		assertEquals("192.168.16.15", m.get("dst_ip"));
+		assertEquals(80, m.get("dst_port"));
+		assertEquals(11, m.get("request_count"));
+		assertEquals("20090911 18:55:52", m.get("expire_time"));
+		assertEquals("zone0", m.get("zone_name"));
+	}
+
+	@Test
+	public void testAntiSpoofingProtectionAuthLogV3() {
+		String line = "3`0`2`1`000000`3052`20090911`18:45:52`10540`6`172.16.32.34`192.168.16.15`80`11`20090911`18:55:52`zone0`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		assertEquals(3052, m.get("module_flag"));
+		assertEquals("10540", m.get("duration"));
+		assertEquals("6", m.get("protocol"));
+		assertEquals("172.16.32.34", m.get("src_ip"));
+		assertEquals("192.168.16.15", m.get("dst_ip"));
+		assertEquals(80, m.get("dst_port"));
+		assertEquals(11, m.get("connection_count"));
+		assertEquals("20090911 18:55:52", m.get("expire_time"));
+		assertEquals("zone0", m.get("zone_name"));
+	}
+
+	@Test
+	public void testAntiSpoofingProtectionStatusLogV3() {
+		String line = "3`0`2`1`000000`3050`20090911`18:45:52`10540`1024`2048``11364f4a-aa0e-42bc-92ea-0fe6a8e01744`0`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		assertEquals(3050, m.get("module_flag"));
+		assertEquals("1024", m.get("block_session"));
+		assertEquals("2048", m.get("allow_session"));
+
+		assertEquals(null, m.get("zone_name"));
+		assertEquals("11364f4a-aa0e-42bc-92ea-0fe6a8e01744", m.get("attack_id"));
+		assertEquals("off", m.get("filter_status"));
+	}
+
+	@Test
+	public void testNetworkProtectionbySegmentStatusLogV3() {
+		String line = "3`0`2`1`000000`3040`20090911`18:45:52`10540`100`200`100`200`100`200`100`200`10`20`10`20`10`20`10`20``11364f4a-aa0e-42bc-92ea-0fe6a8e01744`0`";
+
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		assertEquals(3040, m.get("module_flag"));
+		assertEquals("10540", m.get("duration"));
+
+		assertEquals(100L, m.get("drop_tcp_pps"));
+		assertEquals(200L, m.get("drop_tcp_bps"));
+		assertEquals(100L, m.get("drop_udp_pps"));
+		assertEquals(200L, m.get("drop_udp_bps"));
+		assertEquals(100L, m.get("drop_icmp_pps"));
+		assertEquals(200L, m.get("drop_icmp_bps"));
+		assertEquals(100L, m.get("drop_etc_pps"));
+		assertEquals(200L, m.get("drop_etc_bps"));
+		assertEquals(10L, m.get("allow_tcp_pps"));
+		assertEquals(20L, m.get("allow_tcp_bps"));
+		assertEquals(10L, m.get("allow_udp_pps"));
+		assertEquals(20L, m.get("allow_udp_bps"));
+		assertEquals(10L, m.get("allow_icmp_pps"));
+		assertEquals(20L, m.get("allow_icmp_bps"));
+		assertEquals(10L, m.get("allow_etc_pps"));
+		assertEquals(20L, m.get("allow_etc_bps"));
+
+		assertEquals(null, m.get("zone_name"));
+		assertEquals("11364f4a-aa0e-42bc-92ea-0fe6a8e01744", m.get("attack_id"));
+		assertEquals("off", m.get("filter_status"));
+	}
+
+	@Test
+	public void testUntrustedTrafficBlockFilterBlockLogV3() {
+		String line = "3`0`2`1`000000`3031`20090911`18:45:52`10540`6`172.16.32.34`192.168.16.15`80`1234`16000`zone0`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		assertEquals(3031, m.get("module_flag"));
+		assertEquals("10540", m.get("duration"));
+		assertEquals("6", m.get("protocol"));
+		assertEquals("172.16.32.34", m.get("src_ip"));
+		assertEquals("192.168.16.15", m.get("dst_ip"));
+		assertEquals(80, m.get("dst_port"));
+		assertEquals(1234L, m.get("drop_packets"));
+		assertEquals(16000L, m.get("drop_bytes"));
+		assertEquals("zone0", m.get("zone_name"));
+	}
+
+	@Test
+	public void testUntrustedTrafficBlockFilterStatusLogV3() {
+		String line = "3`0`2`1`000000`3030`20090911`18:45:52`10540`100`200`100`200`100`200`100`200``11364f4a-aa0e-42bc-92ea-0fe6a8e01744`0`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		assertEquals(3030, m.get("module_flag"));
+		assertEquals("10540", m.get("duration"));
+		assertEquals(100L, m.get("drop_tcp_pps"));
+		assertEquals(200L, m.get("drop_tcp_bps"));
+		assertEquals(100L, m.get("drop_udp_pps"));
+		assertEquals(200L, m.get("drop_udp_bps"));
+		assertEquals(100L, m.get("drop_icmp_pps"));
+		assertEquals(200L, m.get("drop_icmp_bps"));
+		assertEquals(100L, m.get("drop_etc_pps"));
+		assertEquals(200L, m.get("drop_etc_bps"));
+		assertEquals(null, m.get("zone_name"));
+		assertEquals("11364f4a-aa0e-42bc-92ea-0fe6a8e01744", m.get("attack_id"));
+		assertEquals("off", m.get("filter_status"));
+	}
+
+	@Test
+	public void testIPSLogV3() {
+		String line = "3`0`2`1`000000`3020`20110401`16:36:58`2`6`30.9.32.245`31142`74.117.56.131`4598`58`3003``DPX`2009`3`0800`00:10:F3:13:61:FC`2303097471`-1`s`0`hskim(2303097471)`0`0`0`0```";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		assertEquals(3020, m.get("module_flag"));
+		assertEquals(2, m.get("severity"));
+		assertEquals("6", m.get("protocol"));
+		assertEquals("30.9.32.245", m.get("src_ip"));
+		assertEquals(31142, m.get("src_port"));
+		assertEquals("74.117.56.131", m.get("dst_ip"));
+		assertEquals(4598, m.get("dst_port"));
+		assertEquals(58, m.get("pkt_len"));
+		assertEquals("허용", m.get("action"));
+		assertEquals(null, m.get("user"));
+		assertEquals("DPX", m.get("module_name"));
+		assertEquals("2009", m.get("reason"));
+		assertEquals("3", m.get("nif"));
+		assertEquals("0800", m.get("eth_protocol"));
+		assertEquals("00:10:F3:13:61:FC", m.get("src_mac"));
+		assertEquals(2303097471L, m.get("rule_id"));
+
+		assertEquals("-1", m.get("vlan_id"));
+		assertEquals("최초 공격탐지", m.get("status"));
+		assertEquals("0", m.get("duration"));
+		assertEquals("hskim(2303097471)", m.get("msg"));
+		assertEquals(0L, m.get("slice_seconds"));
+		assertEquals(0L, m.get("threshold_packets"));
+		assertEquals(0L, m.get("threshold_bytes"));
+		assertEquals("0", m.get("attack_rate"));
+		assertEquals(null, m.get("zone_name"));
+		assertEquals(null, m.get("attack_id"));
+
+	}
+
+	@Test
+	public void testManagementNetworkPortBridgeLogV3() {
+		String line = "3`0`2`1`000000`3012`20100704`12:46:35`zone2`1`all`181`158`159`185`757`153`158`75`159`528`212`313`119`151`64`31`8`71`19`118`21`212`31`24`12`26`117`218`59`710`410`92`128`227`622`52`422`231`22`12`151`522`36`146`56`516`67`58`169`10`111`22`312`214`135`316`731`318`319`190`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		// check log data
+		assertEquals(3012, m.get("module_flag"));
+		assertEquals("zone2", m.get("zone_name"));
+		assertEquals("bridge", m.get("nif_type"));
+		assertEquals("all", m.get("nif_name"));
+		assertEquals(181, m.get("in_rx_tcp_bps"));
+		assertEquals(158, m.get("in_rx_udp_bps"));
+		assertEquals(159, m.get("in_rx_icmp_bps"));
+		assertEquals(185, m.get("in_rx_etc_bps"));
+		assertEquals(757, m.get("in_rx_total_bps"));
+		assertEquals(153, m.get("in_rx_tcp_pps"));
+		assertEquals(158, m.get("in_rx_udp_pps"));
+		assertEquals(75, m.get("in_rx_icmp_pps"));
+		assertEquals(159, m.get("in_rx_etc_pps"));
+		assertEquals(528, m.get("in_rx_total_pps"));
+		assertEquals(212, m.get("in_tx_tcp_bps"));
+		assertEquals(313, m.get("in_tx_udp_bps"));
+		assertEquals(119, m.get("in_tx_icmp_bps"));
+		assertEquals(151, m.get("in_tx_etc_bps"));
+		assertEquals(64, m.get("in_tx_total_bps"));
+		assertEquals(31, m.get("in_tx_tcp_pps"));
+		assertEquals(8, m.get("in_tx_udp_pps"));
+		assertEquals(71, m.get("in_tx_icmp_pps"));
+		assertEquals(19, m.get("in_tx_etc_pps"));
+		assertEquals(118, m.get("in_tx_total_pps"));
+		assertEquals(21, m.get("in_drop_tcp_bps"));
+		assertEquals(212, m.get("in_drop_udp_bps"));
+		assertEquals(31, m.get("in_drop_icmp_bps"));
+		assertEquals(24, m.get("in_drop_etc_bps"));
+		assertEquals(12, m.get("in_drop_total_bps"));
+		assertEquals(26, m.get("in_drop_tcp_pps"));
+		assertEquals(117, m.get("in_drop_udp_pps"));
+		assertEquals(218, m.get("in_drop_icmp_pps"));
+		assertEquals(59, m.get("in_drop_etc_pps"));
+		assertEquals(710, m.get("in_drop_total_pps"));
+		assertEquals(410, m.get("out_rx_tcp_bps"));
+		assertEquals(92, m.get("out_rx_udp_bps"));
+		assertEquals(128, m.get("out_rx_icmp_bps"));
+		assertEquals(227, m.get("out_rx_etc_bps"));
+		assertEquals(622, m.get("out_rx_total_bps"));
+		assertEquals(52, m.get("out_rx_tcp_pps"));
+		assertEquals(422, m.get("out_rx_udp_pps"));
+		assertEquals(231, m.get("out_rx_icmp_pps"));
+		assertEquals(22, m.get("out_rx_etc_pps"));
+		assertEquals(12, m.get("out_rx_total_pps"));
+		assertEquals(151, m.get("out_tx_tcp_bps"));
+		assertEquals(522, m.get("out_tx_udp_bps"));
+		assertEquals(36, m.get("out_tx_icmp_bps"));
+		assertEquals(146, m.get("out_tx_etc_bps"));
+		assertEquals(56, m.get("out_tx_total_bps"));
+		assertEquals(516, m.get("out_tx_tcp_pps"));
+		assertEquals(67, m.get("out_tx_udp_pps"));
+		assertEquals(58, m.get("out_tx_icmp_pps"));
+		assertEquals(169, m.get("out_tx_etc_pps"));
+		assertEquals(10, m.get("out_tx_total_pps"));
+		assertEquals(111, m.get("out_drop_tcp_bps"));
+		assertEquals(22, m.get("out_drop_udp_bps"));
+		assertEquals(312, m.get("out_drop_icmp_bps"));
+		assertEquals(214, m.get("out_drop_etc_bps"));
+		assertEquals(135, m.get("out_drop_total_bps"));
+		assertEquals(316, m.get("out_drop_tcp_pps"));
+		assertEquals(731, m.get("out_drop_udp_pps"));
+		assertEquals(318, m.get("out_drop_icmp_pps"));
+		assertEquals(319, m.get("out_drop_etc_pps"));
+		assertEquals(190, m.get("out_drop_total_pps"));
+	}
+
+	@Test
+	public void testManagementNetworkPortPhysicalLogV3() {
+		String line = "3`0`2`1`000000`3012`20100704`12:46:35`zone1`0`eth0`28`38`19`18`77`13`18`7`19`28`5`6`7`8`9`4`5`6`7`7`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`0`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		// check log data
+		assertEquals(3012, m.get("module_flag"));
+		assertEquals("zone1", m.get("zone_name"));
+		assertEquals("physical", m.get("nif_type"));
+		assertEquals("eth0", m.get("nif_name"));
+		assertEquals(28, m.get("in_rx_tcp_bps"));
+		assertEquals(38, m.get("in_rx_udp_bps"));
+		assertEquals(19, m.get("in_rx_icmp_bps"));
+		assertEquals(18, m.get("in_rx_etc_bps"));
+		assertEquals(77, m.get("in_rx_total_bps"));
+		assertEquals(13, m.get("in_rx_tcp_pps"));
+		assertEquals(18, m.get("in_rx_udp_pps"));
+		assertEquals(7, m.get("in_rx_icmp_pps"));
+		assertEquals(19, m.get("in_rx_etc_pps"));
+		assertEquals(28, m.get("in_rx_total_pps"));
+		assertEquals(5, m.get("in_tx_tcp_bps"));
+		assertEquals(6, m.get("in_tx_udp_bps"));
+		assertEquals(7, m.get("in_tx_icmp_bps"));
+		assertEquals(8, m.get("in_tx_etc_bps"));
+		assertEquals(9, m.get("in_tx_total_bps"));
+		assertEquals(4, m.get("in_tx_tcp_pps"));
+		assertEquals(5, m.get("in_tx_udp_pps"));
+		assertEquals(6, m.get("in_tx_icmp_pps"));
+		assertEquals(7, m.get("in_tx_etc_pps"));
+		assertEquals(7, m.get("in_tx_total_pps"));
+		assertEquals(0, m.get("in_drop_tcp_bps"));
+		assertEquals(0, m.get("in_drop_udp_bps"));
+		assertEquals(0, m.get("in_drop_icmp_bps"));
+		assertEquals(0, m.get("in_drop_etc_bps"));
+		assertEquals(0, m.get("in_drop_total_bps"));
+		assertEquals(0, m.get("in_drop_tcp_pps"));
+		assertEquals(0, m.get("in_drop_udp_pps"));
+		assertEquals(0, m.get("in_drop_icmp_pps"));
+		assertEquals(0, m.get("in_drop_etc_pps"));
+		assertEquals(0, m.get("in_drop_total_pps"));
+		assertEquals(0, m.get("out_rx_tcp_bps"));
+		assertEquals(0, m.get("out_rx_udp_bps"));
+		assertEquals(0, m.get("out_rx_icmp_bps"));
+		assertEquals(0, m.get("out_rx_etc_bps"));
+		assertEquals(0, m.get("out_rx_total_bps"));
+		assertEquals(0, m.get("out_rx_tcp_pps"));
+		assertEquals(0, m.get("out_rx_udp_pps"));
+		assertEquals(0, m.get("out_rx_icmp_pps"));
+		assertEquals(0, m.get("out_rx_etc_pps"));
+		assertEquals(0, m.get("out_rx_total_pps"));
+		assertEquals(0, m.get("out_tx_tcp_bps"));
+		assertEquals(0, m.get("out_tx_udp_bps"));
+		assertEquals(0, m.get("out_tx_icmp_bps"));
+		assertEquals(0, m.get("out_tx_etc_bps"));
+		assertEquals(0, m.get("out_tx_total_bps"));
+		assertEquals(0, m.get("out_tx_tcp_pps"));
+		assertEquals(0, m.get("out_tx_udp_pps"));
+		assertEquals(0, m.get("out_tx_icmp_pps"));
+		assertEquals(0, m.get("out_tx_etc_pps"));
+		assertEquals(0, m.get("out_tx_total_pps"));
+		assertEquals(0, m.get("out_drop_tcp_bps"));
+		assertEquals(0, m.get("out_drop_udp_bps"));
+		assertEquals(0, m.get("out_drop_icmp_bps"));
+		assertEquals(0, m.get("out_drop_etc_bps"));
+		assertEquals(0, m.get("out_drop_total_bps"));
+		assertEquals(0, m.get("out_drop_tcp_pps"));
+		assertEquals(0, m.get("out_drop_udp_pps"));
+		assertEquals(0, m.get("out_drop_icmp_pps"));
+		assertEquals(0, m.get("out_drop_etc_pps"));
+		assertEquals(0, m.get("out_drop_total_pps"));
+	}
+
+	@Test
+	public void testManagementStatLogV3() {
+		String line = "3`0`2`1`000000`3011`20100704`12:46:35`Status로그`2`22`30`8`378000`224000`53`19`OFF`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		// check log data
+		assertEquals(3011, m.get("module_flag"));
+		assertEquals("Status로그", m.get("module_name"));
+		assertEquals(2, m.get("cpu"));
+		assertEquals(22, m.get("mem"));
+		assertEquals(30, m.get("hdd"));
+		assertEquals(8, m.get("session"));
+		assertEquals(378000L, m.get("in_data"));
+		assertEquals(224000L, m.get("out_data"));
+		assertEquals(53L, m.get("in_pkt"));
+		assertEquals(19L, m.get("out_pkt"));
+		assertEquals("OFF", m.get("ha"));
+	}
+
+	@Test
+	public void testManagementOperaionLogV3() {
+		String line = "3`0`2`1`000000`3010`20100704`12:46:35`4``````3001``운영로그`관리자가 로그인했습니다 : apcadmin`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("000000", m.get("utm_id"));
+
+		// check log data
+		assertEquals(3010, m.get("module_flag"));
+		assertEquals(4, m.get("severity"));
+		assertEquals(null, m.get("protocol"));
+		assertEquals(null, m.get("src_ip"));
+		assertEquals(null, m.get("src_port"));
+		assertEquals(null, m.get("dst_ip"));
+		assertEquals(null, m.get("dst_port"));
+		assertEquals("3001", m.get("action"));
+		assertEquals(null, m.get("user"));
+		assertEquals("운영로그", m.get("module_name"));
+		assertEquals("관리자가 로그인했습니다 : apcadmin", m.get("description"));
+	}
+
 	@Test
 	public void testSystemQuarantineLogV3() {
 		String line = "3`0`2`1`000000`1160`20071001`16:55:10`0``1.1.1.1`123`2.2.2.2`321`0``IPS`시스템을 격리 해제했습니다.`기관코드`";
