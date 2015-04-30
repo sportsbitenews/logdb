@@ -27,6 +27,346 @@ import org.junit.Test;
 
 public class TrusGuardLogParserTest {
 
+	@Test
+	public void testCncDetectionLogV3() {
+		String line = "3`0`2`1`100000`6060`20140116`12:30:10`0``1.1.1.1`123`2.2.2.2`321`CNC탐지`profile1`2`1`0`3`0`1`1`3`0`Malware`Trojan/Win32.Scar`기관코드`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("100000", m.get("utm_id"));
+
+		assertEquals(6060, m.get("module_flag"));
+		assertEquals(0, m.get("severity"));
+		assertEquals(null, m.get("protocol"));
+		assertEquals("1.1.1.1", m.get("src_ip"));
+		assertEquals(123, m.get("src_port"));
+		assertEquals("2.2.2.2", m.get("dst_ip"));
+		assertEquals(321, m.get("dst_port"));
+		assertEquals("CNC탐지", m.get("module_name"));
+		assertEquals("profile1", m.get("profile_name"));
+		assertEquals("보통", m.get("risk_score_db"));
+		assertEquals("낮음", m.get("risk_score_user"));
+		assertEquals("허용", m.get("risk_action_user"));
+		assertEquals("높음", m.get("diffusion_score_db"));
+		assertEquals("사용안함", m.get("diffusion_score_user"));
+		assertEquals("차단", m.get("diffusion_action_user"));
+		assertEquals("낮음", m.get("accuracy_score_db"));
+		assertEquals("높음", m.get("accuracy_score_user"));
+		assertEquals("허용", m.get("accuracy_action_user"));
+		assertEquals("Malware", m.get("botnet_name"));
+		assertEquals("Trojan/Win32.Scar", m.get("diag_name"));
+		assertEquals("기관코드", m.get("inst_code"));
+	}
+
+	@Test
+	public void testSystemIsolationLogV3() {
+		String line = "3`0`2`1`100000`6050`20071001`16:55:10`0``1.1.1.1`123`2.2.2.2`321`0``IPS`시스템을격리 해제했습니다.`기관코드`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("100000", m.get("utm_id"));
+
+		assertEquals(6050, m.get("module_flag"));
+		assertEquals(0, m.get("severity"));
+		assertEquals(null, m.get("protocol"));
+		assertEquals("1.1.1.1", m.get("src_ip"));
+		assertEquals(123, m.get("src_port"));
+		assertEquals("2.2.2.2", m.get("dst_ip"));
+		assertEquals(321, m.get("dst_port"));
+		assertEquals("격리", m.get("action"));
+		assertEquals(null, m.get("user"));
+		assertEquals("IPS", m.get("module_name"));
+		assertEquals("시스템을격리 해제했습니다.", m.get("desc"));
+		assertEquals("기관코드", m.get("inst_code"));
+	}
+
+	@Test
+	public void testIpxQosLBQoSLogV3() {
+		String line = "3`0`1`1`100000`6041`20080328`01:57:51`4`17`192.168.1.1`4993`211.41.4.33`13568`3007``대용량 웹 트래픽`Apply 제한QoS`1234567`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(1, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("100000", m.get("utm_id"));
+
+		// check log data
+		assertEquals(6041, m.get("module_flag"));
+		assertEquals(4, m.get("severity"));
+		assertEquals("17", m.get("protocol"));
+		assertEquals("192.168.1.1", m.get("src_ip"));
+		assertEquals(4993, m.get("src_port"));
+		assertEquals("211.41.4.33", m.get("dst_ip"));
+		assertEquals(13568, m.get("dst_port"));
+		assertEquals("3007", m.get("action"));
+		assertEquals(null, m.get("user"));
+		assertEquals("대용량 웹 트래픽", m.get("module_name"));
+		assertEquals("Apply 제한QoS", m.get("description"));
+		assertEquals("1234567", m.get("inst_code"));
+	}
+
+	@Test
+	public void testIpxQosLogV3() {
+		String line = "3`0`2`1`100000`6040`20100526`12:46:35`0``````3009``QoS 모니터`100K`eth2`64000`1000` 기관코드`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("100000", m.get("utm_id"));
+
+		assertEquals(6040, m.get("module_flag"));
+		assertEquals(0, m.get("severity"));
+		assertEquals(null, m.get("protocol"));
+		assertEquals(null, m.get("src_ip"));
+		assertEquals(null, m.get("src_port"));
+		assertEquals(null, m.get("dst_ip"));
+		assertEquals(null, m.get("dst_port"));
+		assertEquals("3009", m.get("action"));
+		assertEquals(null, m.get("user"));
+		assertEquals("QoS 모니터", m.get("module_name"));
+		assertEquals("100K", m.get("qos_name"));
+		assertEquals("eth2", m.get("eth_name"));
+		assertEquals(64000L, m.get("bps"));
+		assertEquals(1000L, m.get("pps"));
+		assertEquals(" 기관코드", m.get("inst_code"));
+	}
+
+	@Test
+	public void testIpxApplicationControlLogV3() {
+		String line = "3`0`2`1`100000`6031`20071025`09:16:38`3`6`172.16.108.144`3204`121.140.211.81`9101`3003`user`module_name`profile1`group1`IDS_Social``desc`1133`9000`기관코드`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("100000", m.get("utm_id"));
+
+		assertEquals(6031, m.get("module_flag"));
+		assertEquals(3, m.get("severity"));
+		assertEquals("6", m.get("protocol"));
+		assertEquals("172.16.108.144", m.get("src_ip"));
+		assertEquals(3204, m.get("src_port"));
+		assertEquals("121.140.211.81", m.get("dst_ip"));
+		assertEquals(9101, m.get("dst_port"));
+		assertEquals("허용", m.get("action"));
+		assertEquals("user", m.get("user"));
+		assertEquals("module_name", m.get("module_name"));
+		assertEquals("profile1", m.get("profile_name"));
+		assertEquals("group1", m.get("group_name"));
+		assertEquals("IDS_Social", m.get("app_name"));
+		assertEquals(null, m.get("alarm_type"));
+		assertEquals("desc", m.get("desc"));
+		assertEquals(1133L, m.get("rule_id"));
+		assertEquals(9000L, m.get("log_id"));
+		assertEquals("기관코드", m.get("inst_code"));
+	}
+
+	@Test
+	public void testIpxIPSLogV3() {
+		String line = "3`0`2`1`100000`6030`20070515`15:45:41`2`17`5.5.5.1`10409`4.4.4.5`31335`3001``IPS`2012`eth0`0800`00:03:47:B5:B0:7`10231`65535`DDOS Trin00 Daemon to Mastermessage detected`기관코드`eth1`ICES`Zone1`1001`Profile1`Group1`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("100000", m.get("utm_id"));
+
+		assertEquals(6030, m.get("module_flag"));
+		assertEquals(2, m.get("severity"));
+		assertEquals("17", m.get("protocol"));
+		assertEquals("5.5.5.1", m.get("src_ip"));
+		assertEquals(10409, m.get("src_port"));
+		assertEquals("4.4.4.5", m.get("dst_ip"));
+		assertEquals(31335, m.get("dst_port"));
+		assertEquals("차단", m.get("action"));
+		assertEquals(null, m.get("user"));
+		assertEquals("IPS", m.get("module_name"));
+		assertEquals("2012", m.get("reason"));
+		assertEquals("eth0", m.get("rx_nif"));
+		assertEquals("0800", m.get("eth_protocol"));
+		assertEquals("00:03:47:B5:B0:7", m.get("src_mac"));
+		assertEquals(10231L, m.get("rule_id"));
+		assertEquals("65535", m.get("vlan_id"));
+
+		assertEquals("DDOS Trin00 Daemon to Mastermessage detected", m.get("message"));
+		assertEquals("기관코드", m.get("inst_code"));
+		assertEquals("eth1", m.get("tx_nif"));
+		assertEquals("ICES", m.get("network_direction"));
+		assertEquals("Zone1", m.get("network_id"));
+		assertEquals(1001L, m.get("log_id"));
+		assertEquals("Profile1", m.get("profile_name"));
+		assertEquals("Group1", m.get("group_name"));
+
+	}
+
+	@Test
+	public void testIpxFirewallLogV3() {
+		String line = "3`0`1`1`100000`6020`20071025`17:46:26`3`6`UTM_ADMINHOST`172.16.108.152`4430`172.16.108.211`50005`eth0`unknown````1021`8`724`7``31`2`기관코드`1`DMZ`INTERNAL`111111`222`4````";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(1, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("100000", m.get("utm_id"));
+
+		assertEquals(6020, m.get("module_flag"));
+		assertEquals("Expire", m.get("logtype"));
+		assertEquals("6", m.get("protocol"));
+		assertEquals("UTM_ADMINHOST", m.get("policy_id"));
+		assertEquals("172.16.108.152", m.get("src_ip"));
+		assertEquals(4430, m.get("src_port"));
+		assertEquals("172.16.108.211", m.get("dst_ip"));
+		assertEquals(50005, m.get("dst_port"));
+		assertEquals("eth0", m.get("in_nic"));
+		assertEquals("unknown", m.get("out_nic"));
+		assertEquals(null, m.get("snat_type"));
+		assertEquals(null, m.get("snat_ip"));
+		assertEquals(null, m.get("snat_port"));
+		assertEquals(1021L, m.get("sent_data"));
+		assertEquals(8L, m.get("sent_pkt"));
+		assertEquals(724L, m.get("rcvd_data"));
+		assertEquals(7L, m.get("rcvd_pkt"));
+		assertEquals(null, m.get("duration"));
+		assertEquals("31", m.get("state"));
+		assertEquals("2", m.get("reason"));
+		assertEquals("기관코드", m.get("inst_code"));
+		assertEquals("1", m.get("tcp_flag"));
+		assertEquals("DMZ", m.get("in_zone"));
+		assertEquals("INTERNAL", m.get("out_zone"));
+		assertEquals(111111L, m.get("rule_id"));
+		assertEquals("222", m.get("nat_id"));
+		assertEquals(4, m.get("ip_ver"));
+		assertEquals(null, m.get("dnat_type"));
+		assertEquals(null, m.get("dnat_ip"));
+		assertEquals(null, m.get("dnat_port"));
+	}
+
+	@Test
+	public void testManagementSystemStatusLogV3() {
+		String line = "3`0`2`1`100000`6011`20100704`12:46:35`Status로그`2`22`30`8`378000`224000`53`19`OFF`기관코드`100`50`1234000`34020`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("100000", m.get("utm_id"));
+
+		// check log data
+		assertEquals(6011, m.get("module_flag"));
+		assertEquals("Status로그", m.get("module_name"));
+		assertEquals(2, m.get("cpu"));
+		assertEquals(22, m.get("mem"));
+		assertEquals(30, m.get("hdd"));
+		assertEquals(8, m.get("session"));
+		assertEquals(378000L, m.get("in_data"));
+		assertEquals(224000L, m.get("out_data"));
+		assertEquals(53L, m.get("in_pkt"));
+		assertEquals(19L, m.get("out_pkt"));
+		assertEquals("OFF", m.get("ha"));
+
+		assertEquals("기관코드", m.get("inst_code"));
+		assertEquals(100L, m.get("allow_pps"));
+		assertEquals(50L, m.get("deny_pps"));
+		assertEquals(1234000L, m.get("allow_bps"));
+		assertEquals(34020L, m.get("deny_bps"));
+	}
+
+	@Test
+	public void testManagementSystemNewLogV3() {
+		String line = "3`0`2`1`100000`6010`20071026`12:48:08`5``````0`user1`운영 로그`TrusGuard UTM의정책을 적용했습니다.`기관코드`1`1222`1`10`1.1.1.1`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("100000", m.get("utm_id"));
+
+		// check log data
+		assertEquals(6010, m.get("module_flag"));
+		assertEquals(5, m.get("severity"));
+		assertEquals(null, m.get("protocol"));
+		assertEquals(null, m.get("src_ip"));
+		assertEquals(null, m.get("src_port"));
+		assertEquals(null, m.get("dst_ip"));
+		assertEquals(null, m.get("dst_port"));
+		assertEquals("격리", m.get("action"));
+		assertEquals("user1", m.get("user"));
+		assertEquals("운영 로그", m.get("module_name"));
+		assertEquals("TrusGuard UTM의정책을 적용했습니다.", m.get("description"));
+		assertEquals("기관코드", m.get("inst_code"));
+		assertEquals("일반관리자", m.get("user_type"));
+		assertEquals(1222, m.get("alert_id"));
+		assertEquals(1, m.get("log_type"));
+		assertEquals(10, m.get("log_sub_type"));
+		assertEquals("1.1.1.1", m.get("user_addr"));
+	}
+
+	@Test
+	public void testManagementSystemOldLogV3() {
+		String line = "3`0`2`1`100000`6010`20071026`12:48:08`5``````0`user1`운영 로그`TrusGuard UTM의정책을 적용했습니다.`기관코드`1`1222`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals(3, m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("100000", m.get("utm_id"));
+
+		// check log data
+		assertEquals(6010, m.get("module_flag"));
+		assertEquals(5, m.get("severity"));
+		assertEquals(null, m.get("protocol"));
+		assertEquals(null, m.get("src_ip"));
+		assertEquals(null, m.get("src_port"));
+		assertEquals(null, m.get("dst_ip"));
+		assertEquals(null, m.get("dst_port"));
+		assertEquals("격리", m.get("action"));
+		assertEquals("user1", m.get("user"));
+		assertEquals("운영 로그", m.get("module_name"));
+		assertEquals("TrusGuard UTM의정책을 적용했습니다.", m.get("description"));
+		assertEquals("기관코드", m.get("inst_code"));
+		assertEquals("일반관리자", m.get("user_type"));
+		assertEquals(1222, m.get("alert_id"));
+		assertEquals(null, m.get("log_type"));
+		assertEquals(null, m.get("log_sub_type"));
+		assertEquals(null, m.get("user_addr"));
+	}
+
+	@Test
 	public void testFilteringExceptionsFilterAllowLogV3() {
 		String line = "3`0`2`1`000000`3181`20090911`18:45:52`10540`6`172.16.32.34`192.168.16.15`80`1234`16000`zone0`";
 		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
@@ -40,7 +380,7 @@ public class TrusGuardLogParserTest {
 		assertEquals("000000", m.get("utm_id"));
 
 		assertEquals(3181, m.get("module_flag"));
-		assertEquals(10540L, m.get("duration"));
+		assertEquals("10540", m.get("duration"));
 		assertEquals("6", m.get("protocol"));
 		assertEquals("172.16.32.34", m.get("src_ip"));
 		assertEquals("192.168.16.15", m.get("dst_ip"));
@@ -273,7 +613,7 @@ public class TrusGuardLogParserTest {
 	}
 
 	@Test
-	public void testIPSLogV3() {
+	public void testDpxIPSLogV3() {
 		String line = "3`0`2`1`000000`3020`20110401`16:36:58`2`6`30.9.32.245`31142`74.117.56.131`4598`58`3003``DPX`2009`3`0800`00:10:F3:13:61:FC`2303097471`-1`s`0`hskim(2303097471)`0`0`0`0```";
 		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
 
