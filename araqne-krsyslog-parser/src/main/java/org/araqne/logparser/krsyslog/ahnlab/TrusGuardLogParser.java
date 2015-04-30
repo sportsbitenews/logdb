@@ -18,6 +18,7 @@ package org.araqne.logparser.krsyslog.ahnlab;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -574,67 +575,23 @@ public class TrusGuardLogParser extends V1LogParser {
 		m.put("nif_type", nifType);
 		m.put("nif_name", tokenizedLine[index++]);
 
-		m.put("in_rx_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_rx_udp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_rx_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_rx_etc_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_rx_total_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_rx_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_rx_udp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_rx_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_rx_etc_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_rx_total_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_tx_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_tx_udp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_tx_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_tx_etc_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_tx_total_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_tx_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_tx_udp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_tx_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_tx_etc_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_tx_total_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_drop_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_drop_udp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_drop_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_drop_etc_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_drop_total_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_drop_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_drop_udp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_drop_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_drop_etc_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("in_drop_total_pps", Integer.parseInt(tokenizedLine[index++]));
+		List<String> columns = Arrays.asList("in_rx_tcp_bps", "in_rx_udp_bps", "in_rx_icmp_bps", "in_rx_etc_bps",
+				"in_rx_total_bps", "in_rx_tcp_pps",
+				"in_rx_udp_pps", "in_rx_icmp_pps", "in_rx_etc_pps", "in_rx_total_pps", "in_tx_tcp_bps", "in_tx_udp_bps",
+				"in_tx_icmp_bps", "in_tx_etc_bps", "in_tx_total_bps", "in_tx_tcp_pps", "in_tx_udp_pps", "in_tx_icmp_pps",
+				"in_tx_etc_pps", "in_tx_total_pps", "in_drop_tcp_bps", "in_drop_udp_bps", "in_drop_icmp_bps", "in_drop_etc_bps",
+				"in_drop_total_bps", "in_drop_tcp_pps", "in_drop_udp_pps", "in_drop_icmp_pps", "in_drop_etc_pps",
+				"in_drop_total_pps", "out_rx_tcp_bps", "out_rx_udp_bps", "out_rx_icmp_bps", "out_rx_etc_bps", "out_rx_total_bps",
+				"out_rx_tcp_pps", "out_rx_udp_pps", "out_rx_icmp_pps", "out_rx_etc_pps", "out_rx_total_pps", "out_tx_tcp_bps",
+				"out_tx_udp_bps", "out_tx_icmp_bps", "out_tx_etc_bps", "out_tx_total_bps", "out_tx_tcp_pps", "out_tx_udp_pps",
+				"out_tx_icmp_pps", "out_tx_etc_pps", "out_tx_total_pps", "out_drop_tcp_bps", "out_drop_udp_bps",
+				"out_drop_icmp_bps", "out_drop_etc_bps", "out_drop_total_bps", "out_drop_tcp_pps", "out_drop_udp_pps",
+				"out_drop_icmp_pps", "out_drop_etc_pps", "out_drop_total_pps");
 
-		m.put("out_rx_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_rx_udp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_rx_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_rx_etc_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_rx_total_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_rx_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_rx_udp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_rx_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_rx_etc_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_rx_total_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_tx_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_tx_udp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_tx_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_tx_etc_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_tx_total_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_tx_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_tx_udp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_tx_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_tx_etc_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_tx_total_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_drop_tcp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_drop_udp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_drop_icmp_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_drop_etc_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_drop_total_bps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_drop_tcp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_drop_udp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_drop_icmp_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_drop_etc_pps", Integer.parseInt(tokenizedLine[index++]));
-		m.put("out_drop_total_pps", Integer.parseInt(tokenizedLine[index++]));
+		for (String column : columns) {
+			String value = tokenizedLine[index++];
+			m.put(column, value.isEmpty() ? null : Long.parseLong(value));
+		}
 	}
 
 	private void parseDpxIpsLogV3(String[] tokenizedLine, Map<String, Object> m) {
