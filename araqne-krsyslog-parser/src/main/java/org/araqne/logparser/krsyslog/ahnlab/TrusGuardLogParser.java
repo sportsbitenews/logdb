@@ -115,7 +115,7 @@ public class TrusGuardLogParser extends V1LogParser {
 			parseUntrustedTrafficBlockFilterStatusLogV3(tokenizedLine, m);
 		} else if (moduleFlag == 3031 || moduleFlag == 3041 || moduleFlag == 3051 || moduleFlag == 3061 || moduleFlag == 3071
 				|| moduleFlag == 3121 || moduleFlag == 3131 || moduleFlag == 3141 || moduleFlag == 3151 || moduleFlag == 3191
-				|| moduleFlag == 3211 || moduleFlag == 3181 || moduleFlag == 3210) {
+				|| moduleFlag == 3211 || moduleFlag == 3181 || moduleFlag == 3201) {
 			parseUntrustedTrafficBlockFilterBlockLogV3(tokenizedLine, m);
 		} else if (moduleFlag == 3040 || moduleFlag == 3090 || moduleFlag == 3100 || moduleFlag == 3110 || moduleFlag == 3130
 				|| moduleFlag == 3140) {
@@ -741,7 +741,7 @@ public class TrusGuardLogParser extends V1LogParser {
 
 	private void parseUntrustedTrafficBlockFilterBlockLogV3(String[] tokenizedLine, Map<String, Object> m) {
 		// module flag 3031,3041,3051,3061,3071,3121,3131,3141,3151,3191,3211 ||
-		// 3181,3210
+		// 3181,3201
 		Integer moduleFlag = (Integer) m.get("module_flag");
 
 		int index = 8;
@@ -752,7 +752,7 @@ public class TrusGuardLogParser extends V1LogParser {
 		m.put("dst_ip", tokenizedLine[index++]);
 		m.put("dst_port", Integer.parseInt(tokenizedLine[index++]));
 
-		if (moduleFlag == 3181 || moduleFlag == 3210) {
+		if (moduleFlag == 3181 || moduleFlag == 3201) {
 			m.put("allow_packets", Long.parseLong(tokenizedLine[index++]));
 			m.put("allow_bytes", Long.parseLong(tokenizedLine[index++]));
 		} else {
