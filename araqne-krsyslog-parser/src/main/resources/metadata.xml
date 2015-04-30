@@ -19,4 +19,6 @@
 	<instance component="watch-guard-parser-factory" />
 	<instance component="nexg-fw-parser-factory" />
 	<instance component="vforce-utm-parser-factory" />
+	<instance component="iwall-parser-factory" />
+	<instance component="wisg-parser-factory" />
 </ipojo>

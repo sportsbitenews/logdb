@@ -38,6 +38,9 @@
 							org.araqne.logparser.krsyslog.watchguard;version=${project.version},
 							org.araqne.logparser.krsyslog.winstechnet;version=${project.version},
 							org.araqne.logparser.krsyslog.xnsystems;version=${project.version}
+							org.araqne.logparser.krsyslog.itcis;version=${project.version}
+							org.araqne.logparser.krsyslog.monirotapp;version=${project.version}
+							
 						</Export-Package>
 						<Import-Package>
 							!org.junit,
