@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logparser.krsyslog.monitorapp;
+package org.araqne.logparser.krsyslog.umv;
 
 import java.util.Locale;
 import java.util.Map;
@@ -23,31 +23,31 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
-@Component(name = "webinsight-parser-factory")
+@Component(name = "shellmonitor-parser-factory")
 @Provides
-public class WebInsightParserFactory extends AbstractLogParserFactory {
+public class ShellMonitorParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
-		return "webinsight";
+		return "shellmonitor";
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
-			return "모니터랩 웹인사이트";
-		return "Monitorapp WebInsight";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "UMV기술 쉘모니터";
+		return "UMV Shell Monitor";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "모니터랩 웹인사이트의 로그를 파싱합니다.";
-		return "Parse Monitorapp WebInsight";
+			return "UMV기술 쉘모니터 시스로그를 파싱합니다.";
+		return "Parse UMV Shell Monitor logs";
 	}
 
 	@Override
 	public LogParser createParser(Map<String, String> configs) {
-		return new WebInsightParser();
+		return new ShellMonitorParser();
 	}
 }
