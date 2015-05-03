@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logparser.krsyslog.monitorapp;
+package org.araqne.logparser.krsyslog.ictis;
 
 import java.util.Locale;
 import java.util.Map;
@@ -23,31 +23,31 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
-@Component(name = "wisg-parser-factory")
+@Component(name = "iwall-parser-factory")
 @Provides
-public class WisgParserFactory extends AbstractLogParserFactory {
+public class IWallParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
-		return "wisg";
+		return "iwall";
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
-			return "모니터랩 WISG";
-		return "Monitorapp WISG";
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "한국통신인터넷기술 i-Wall";
+		return "ICTIS iWall";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "모니터랩 WISG의 로그를 파싱합니다.";
-		return "Parse Monitorapp WISG";
+			return "한국통신인터넷기술 i-Wall 방화벽의 로그를 파싱합니다.";
+		return "Parse ICTIS i-Wall logs";
 	}
 
 	@Override
 	public LogParser createParser(Map<String, String> configs) {
-		return new WisgParser();
+		return new IWallParser();
 	}
 }

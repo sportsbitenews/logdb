@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Future Systems
+/**
+ * Copyright 2015 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,34 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logparser.krsyslog.itcis;
+package org.araqne.logparser.krsyslog.ictis;
 
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import org.araqne.logarser.krsyslog.itcis.IwallFireWallParser;
+import org.araqne.logparser.krsyslog.ictis.IWallParser;
 import org.junit.Test;
 
-public class IwallFireWallParserTest {
-	
+public class IWallParserTest {
+
 	@Test
 	public void testAuditLog() {
 		String line = "2015-04-13 11:23:56 logtest.ictis.kr UI: prefix=AAL type=audit "
 				+ "msg=\"2015-04-13 11:23:56;admin;10.0.0.2;3;SM;System Setting;Update System Information - Host Name : logtest / Domain : ictis.com;Success\"";
-		
-		IwallFireWallParser parser = new IwallFireWallParser();
+
+		IWallParser parser = new IWallParser();
 		Map<String, Object> args = new HashMap<String, Object>();
 		args.put("line", line);
 		Map<String, Object> m = parser.parse(args);
-		
+
 		assertEquals("2015-04-13 11:23:56", m.get("time"));
 		assertEquals("logtest.ictis.kr", m.get("machine_name"));
 		assertEquals("UI", m.get("system_name"));
 		assertEquals("AAL", m.get("prefix"));
 		assertEquals("audit", m.get("type"));
-		assertEquals("2015-04-13 11:23:56;admin;10.0.0.2;3;SM;System Setting;Update System Information - Host Name : logtest / Domain : ictis.com;Success", m.get("msg"));
+		assertEquals(
+				"2015-04-13 11:23:56;admin;10.0.0.2;3;SM;System Setting;Update System Information - Host Name : logtest / Domain : ictis.com;Success",
+				m.get("msg"));
 		assertEquals("2015-04-13 11:23:56", m.get("log_time"));
 		assertEquals("admin", m.get("user"));
 		assertEquals("10.0.0.2", m.get("user_ip"));
@@ -51,17 +53,16 @@ public class IwallFireWallParserTest {
 		assertEquals("Success", m.get("result"));
 	}
 
-
 	@Test
-	public void testDefenceLog(){
+	public void testDefenceLog() {
 		String line = "2015-04-13 11:44:37 logtest.ictis.com LogDaemon: prefix=LDA type=defence "
 				+ "ruleid=1 in=eth4 out=eth5 srcip=192.168.0.99 spt=9401 dstip=192.168.0.159 dpt=56707 protocol=UDP len=51";
 
-		IwallFireWallParser parser = new IwallFireWallParser();
+		IWallParser parser = new IWallParser();
 		Map<String, Object> args = new HashMap<String, Object>();
 		args.put("line", line);
 		Map<String, Object> m = parser.parse(args);
-		
+
 		assertEquals("2015-04-13 11:44:37", m.get("time"));
 		assertEquals("logtest.ictis.com", m.get("machine_name"));
 		assertEquals("LogDaemon", m.get("system_name"));
@@ -77,17 +78,17 @@ public class IwallFireWallParserTest {
 		assertEquals("UDP", m.get("protocol"));
 		assertEquals("51", m.get("len"));
 	}
-	
+
 	@Test
-	public void testPacketLog(){
+	public void testPacketLog() {
 		String line = "2015-04-13 11:50:20 logtest.ictis.com LogDaemon: prefix=LAM type=deny ruleid=65535 in=eth4 out=eth5 "
 				+ "srcip=192.168.0.130 spt=137 dstip=192.168.0.255 dpt=137 protocol=UDP len=78";
 
-		IwallFireWallParser parser = new IwallFireWallParser();
+		IWallParser parser = new IWallParser();
 		Map<String, Object> args = new HashMap<String, Object>();
 		args.put("line", line);
 		Map<String, Object> m = parser.parse(args);
-		
+
 		assertEquals("2015-04-13 11:50:20", m.get("time"));
 		assertEquals("logtest.ictis.com", m.get("machine_name"));
 		assertEquals("LogDaemon", m.get("system_name"));
@@ -103,6 +104,5 @@ public class IwallFireWallParserTest {
 		assertEquals("UDP", m.get("protocol"));
 		assertEquals("78", m.get("len"));
 	}
-	
 
 }

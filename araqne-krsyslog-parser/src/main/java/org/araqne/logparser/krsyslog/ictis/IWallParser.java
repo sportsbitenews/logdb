@@ -1,12 +1,12 @@
-package org.araqne.logarser.krsyslog.itcis;
+package org.araqne.logparser.krsyslog.ictis;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.V1LogParser;
 
-public class IwallFireWallParser extends V1LogParser {
-	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(IwallFireWallParser.class);
+public class IWallParser extends V1LogParser {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(IWallParser.class);
 	private final static String[] auditFields = {"log_time", "user", "user_ip", "authority", "main_category", "sub_category", "action", "result"};
 
 	@Override
