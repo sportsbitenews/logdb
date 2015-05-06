@@ -22,4 +22,5 @@
 	<instance component="iwall-parser-factory" />
 	<instance component="webinsight-parser-factory" />
 	<instance component="shellmonitor-parser-factory" />
+	<instance component="secuwiz-sslvpn-log-parser-factory" />
 </ipojo>
