@@ -40,8 +40,13 @@ public class TrusGuardLogParser extends V1LogParser {
 		try {
 			Map<String, Object> m = new HashMap<String, Object>();
 			int index = 0;
-			int version = Integer.parseInt(tokenizedLine[index++]);
-			m.put("version", version);
+			String versionString = tokenizedLine[index++];
+			if (versionString.equals("DPX1")) {
+				m.put("version", versionString);
+			} else {
+				int version = Integer.parseInt(versionString);
+				m.put("version", version);
+			}
 			m.put("encrypt", Integer.valueOf(tokenizedLine[index++]));
 
 			int type = Integer.valueOf(tokenizedLine[index++]);
@@ -49,13 +54,13 @@ public class TrusGuardLogParser extends V1LogParser {
 			m.put("count", Integer.valueOf(tokenizedLine[index++]));
 			m.put("utm_id", tokenizedLine[index++]);
 
-			if (version == 1) {
+			if (versionString.equals("1")) {
 				if (type == 1) { // kernel log (packet filter)
 					parseFirewallLogV1(tokenizedLine, m);
 				} else if (type == 2) { // application log
 					parseApplicationLogV1(tokenizedLine, m);
 				}
-			} else if (version == 3) {
+			} else if (versionString.equals("3") || versionString.equals("DPX1")) {
 				Integer moduleFlag = Integer.valueOf(tokenizedLine[index++]);
 				m.put("module_flag", moduleFlag);
 				// log data
@@ -104,32 +109,36 @@ public class TrusGuardLogParser extends V1LogParser {
 			parseProxyLogV3(tokenizedLine, m);
 		} else if (moduleFlag == 1160) {// system quarantine
 			parseSystemQuarantineLogV3(tokenizedLine, m);
-		} else if (moduleFlag == 3010) {
+		} else if (moduleFlag == 3010 || moduleFlag == 1) {
 			parseManagementOperaionLogV3(tokenizedLine, m);
 		} else if (moduleFlag == 3011) {
 			parseManagementStatLogV3(tokenizedLine, m);
+		} else if (moduleFlag == 100) {
+			parseManagementStatLogV2(tokenizedLine, m);
 		} else if (moduleFlag == 3012) {
 			parseManagementNetworkPortLogV3(tokenizedLine, m);
-		} else if (moduleFlag == 3020) {
+		} else if (moduleFlag == 3020 || moduleFlag == 9) {
 			parseDpxIpsLogV3(tokenizedLine, m);
-		} else if (moduleFlag == 3030 || moduleFlag == 3080 || moduleFlag == 3120 || moduleFlag == 3150) {
+		} else if (moduleFlag == 3030 || moduleFlag == 3080 || moduleFlag == 3120 || moduleFlag == 3150
+				|| moduleFlag == 101 || moduleFlag == 107 || moduleFlag == 108 || moduleFlag == 109
+				|| moduleFlag == 110 || moduleFlag == 111 || moduleFlag == 113 || moduleFlag == 114) {
 			parseUntrustedTrafficBlockFilterStatusLogV3(tokenizedLine, m);
 		} else if (moduleFlag == 3031 || moduleFlag == 3041 || moduleFlag == 3051 || moduleFlag == 3061 || moduleFlag == 3071
 				|| moduleFlag == 3121 || moduleFlag == 3131 || moduleFlag == 3141 || moduleFlag == 3151 || moduleFlag == 3191
 				|| moduleFlag == 3211 || moduleFlag == 3181 || moduleFlag == 3201) {
 			parseUntrustedTrafficBlockFilterBlockLogV3(tokenizedLine, m);
 		} else if (moduleFlag == 3040 || moduleFlag == 3090 || moduleFlag == 3100 || moduleFlag == 3110 || moduleFlag == 3130
-				|| moduleFlag == 3140) {
+				|| moduleFlag == 3140 || moduleFlag == 103 || moduleFlag == 112) {
 			parseNetworkProtectionbySegmentStatusLogV3(tokenizedLine, m);
-		} else if (moduleFlag == 3050 || moduleFlag == 3060 || moduleFlag == 3210) {
+		} else if (moduleFlag == 3050 || moduleFlag == 3060 || moduleFlag == 3210 || moduleFlag == 104 || moduleFlag == 105) {
 			parseAntiSpoofingProtectionStatusLogV3(tokenizedLine, m);
 		} else if (moduleFlag == 3052 || moduleFlag == 3212 || moduleFlag == 3062) {
 			parseAntiSpoofingProtectionAuthLogV3(tokenizedLine, m);
-		} else if (moduleFlag == 3070) {
+		} else if (moduleFlag == 3070 || moduleFlag == 106) {
 			parseStatefulPacketInspectionStatusLogV3(tokenizedLine, m);
-		} else if (moduleFlag == 3160) {
+		} else if (moduleFlag == 3160 || moduleFlag == 201) {
 			parseSegmentProtectionFilterStatusLogV3(tokenizedLine, m);
-		} else if (moduleFlag == 3170 || moduleFlag == 3171) {
+		} else if (moduleFlag == 3170 || moduleFlag == 3171 || moduleFlag == 210 || moduleFlag == 211) {
 			parseAttackLogV3(tokenizedLine, m);
 		} else if (moduleFlag == 6010) {
 			parseManagementSystemLogV3(tokenizedLine, m);
@@ -520,6 +529,7 @@ public class TrusGuardLogParser extends V1LogParser {
 
 	private void parseManagementOperaionLogV3(String[] tokenizedLine, Map<String, Object> m) {
 		// module flag 3010
+		// DPX1 1
 		int index = 8;
 		int severity = Integer.valueOf(tokenizedLine[index++]);
 		String protocolToken = tokenizedLine[index++];
@@ -548,9 +558,61 @@ public class TrusGuardLogParser extends V1LogParser {
 		m.put("description", tokenizedLine[index++]);
 	}
 
+	private void parseManagementStatLogV2(String[] tokenizedLine, Map<String, Object> m) {
+		int index = 8;
+
+		int severity = Integer.valueOf(tokenizedLine[index++]);
+		String protocolToken = tokenizedLine[index++];
+		String srcIpToken = tokenizedLine[index++];
+		String srcPortToken = tokenizedLine[index++];
+		String dstIpToken = tokenizedLine[index++];
+		String dstPortToken = tokenizedLine[index++];
+		m.put("severity", severity);
+		m.put("protocol", protocolToken.isEmpty() ? null : protocolToken);
+		m.put("src_ip", srcIpToken.isEmpty() ? null : srcIpToken);
+		m.put("src_port", srcPortToken.isEmpty() ? null : Integer.valueOf(srcPortToken));
+		m.put("dst_ip", dstIpToken.isEmpty() ? null : dstIpToken);
+		m.put("dst_port", dstPortToken.isEmpty() ? null : Integer.valueOf(dstPortToken));
+		String action = tokenizedLine[index++];
+		if (action.equals("0"))
+			action = "격리";
+		else if (action.equals("1"))
+			action = "웹리디렉션";
+		else if (action.equals("2"))
+			action = "세션차단";
+		m.put("action", action);
+		String userToken = tokenizedLine[index++];
+		m.put("user", userToken.isEmpty() ? null : userToken);
+
+		m.put("module_name", tokenizedLine[index++]);
+
+		String[] msgs = tokenizeLine(tokenizedLine[index++], ",");
+		List<String> columns = Arrays.asList("cpu", "mem", "hdd", "session", "in_data", "out_data", "in_pkt", "out_pkt", "ha");
+		for (int i = 0; i < msgs.length; i++) {
+			String[] tokens = tokenizeLine(msgs[i], ":");
+			String key = tokens[0];
+			String value = tokens[1];
+			if (i < columns.size())
+				key = columns.get(i);
+
+			if (key.endsWith("data"))
+				value = value.substring(0, value.indexOf("M"));
+			else if (key.endsWith("pkt"))
+				value = value.substring(0, value.indexOf("p"));
+			if (key.equals("ha"))
+				m.put(key, value);
+			else
+				m.put(key, Double.parseDouble(value));
+
+		}
+	}
+
 	private void parseManagementStatLogV3(String[] tokenizedLine, Map<String, Object> m) {
 		// module flag 3011
+		// DPX1 100
+
 		int index = 8;
+
 		m.put("module_name", tokenizedLine[index++]);
 		m.put("cpu", Integer.valueOf(tokenizedLine[index++]));
 		m.put("mem", Integer.valueOf(tokenizedLine[index++]));
@@ -596,6 +658,7 @@ public class TrusGuardLogParser extends V1LogParser {
 
 	private void parseDpxIpsLogV3(String[] tokenizedLine, Map<String, Object> m) {
 		// module flag 3020
+		// DPX1 9
 		int index = 8;
 		int severity = Integer.valueOf(tokenizedLine[index++]);
 		String protocolToken = tokenizedLine[index++];
@@ -667,6 +730,7 @@ public class TrusGuardLogParser extends V1LogParser {
 
 	private void parseUntrustedTrafficBlockFilterStatusLogV3(String[] tokenizedLine, Map<String, Object> m) {
 		// module flag 3030,3080,3120,3150
+		// DPX1 101,107,108,109,110,111,113,114
 		int index = 8;
 		String duration = tokenizedLine[index++];
 		m.put("duration", duration.isEmpty() ? null : duration);
@@ -693,7 +757,7 @@ public class TrusGuardLogParser extends V1LogParser {
 			filterStatus = "차단중";
 		else if (filterStatus.equals("3"))
 			filterStatus = "허용보다 차단이 많음";
-		m.put("filter_status", filterStatus);
+		m.put("filter_status", filterStatus.isEmpty() ? null : filterStatus);
 	}
 
 	private void parseUntrustedTrafficBlockFilterBlockLogV3(String[] tokenizedLine, Map<String, Object> m) {
@@ -723,6 +787,7 @@ public class TrusGuardLogParser extends V1LogParser {
 
 	private void parseNetworkProtectionbySegmentStatusLogV3(String[] tokenizedLine, Map<String, Object> m) {
 		// module flag 3040,3090,3100,3110,3130,3140
+		// DPX1 103,112
 		int index = 8;
 		String duration = tokenizedLine[index++];
 		m.put("duration", duration.isEmpty() ? null : duration);
@@ -756,11 +821,12 @@ public class TrusGuardLogParser extends V1LogParser {
 			filterStatus = "차단중";
 		else if (filterStatus.equals("3"))
 			filterStatus = "허용보다 차단이 많음";
-		m.put("filter_status", filterStatus);
+		m.put("filter_status", filterStatus.isEmpty() ? null : filterStatus);
 	}
 
 	private void parseAntiSpoofingProtectionStatusLogV3(String[] tokenizedLine, Map<String, Object> m) {
 		// module flag 3050,3060,3210
+		// DPX1 104, 105
 		int index = 8;
 		String duration = tokenizedLine[index++];
 		m.put("duration", duration.isEmpty() ? null : duration);
@@ -780,7 +846,7 @@ public class TrusGuardLogParser extends V1LogParser {
 			filterStatus = "차단중";
 		else if (filterStatus.equals("3"))
 			filterStatus = "허용보다 차단이 많음";
-		m.put("filter_status", filterStatus);
+		m.put("filter_status", filterStatus.isEmpty() ? null : filterStatus);
 	}
 
 	private void parseAntiSpoofingProtectionAuthLogV3(String[] tokenizedLine, Map<String, Object> m) {
@@ -805,6 +871,7 @@ public class TrusGuardLogParser extends V1LogParser {
 
 	private void parseStatefulPacketInspectionStatusLogV3(String[] tokenizedLine, Map<String, Object> m) {
 		// module_flag 3070
+		// DPX1 106
 		int index = 8;
 		String duration = tokenizedLine[index++];
 		m.put("duration", duration.isEmpty() ? null : duration);
@@ -824,11 +891,12 @@ public class TrusGuardLogParser extends V1LogParser {
 			filterStatus = "차단중";
 		else if (filterStatus.equals("3"))
 			filterStatus = "허용보다 차단이 많음";
-		m.put("filter_status", filterStatus);
+		m.put("filter_status", filterStatus.isEmpty() ? null : filterStatus);
 	}
 
 	private void parseSegmentProtectionFilterStatusLogV3(String[] tokenizedLine, Map<String, Object> m) {
 		// module_flag 3160
+		// DPX1 201
 		int index = 8;
 		String duration = tokenizedLine[index++];
 		m.put("duration", duration.isEmpty() ? null : duration);
@@ -841,6 +909,7 @@ public class TrusGuardLogParser extends V1LogParser {
 
 	private void parseAttackLogV3(String[] tokenizedLine, Map<String, Object> m) {
 		// module_flag 3170,3171
+		// DPX1 210, 211
 		int index = 8;
 		String duration = tokenizedLine[index++];
 		m.put("duration", duration.isEmpty() ? null : duration);

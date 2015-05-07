@@ -28,6 +28,33 @@ import org.junit.Test;
 public class TrusGuardLogParserTest {
 
 	@Test
+	public void testManagementStatLogV2() {
+		String line = "DPX1`0`2`1`39463f`100`20150506`22:58:33`0``````3011``운영 로그`CPU:1.048735, MEM:30.389515, HDD:61, CONN:13, IN:5.3Mbps, OUT:5.3Mbps, IN:1877 pps, OUT:1874 pps, HA:OFF`";
+		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
+
+		// check log header
+		assertNotNull(m);
+		assertEquals("DPX1", m.get("version"));
+		assertEquals(0, m.get("encrypt"));
+		assertEquals(2, m.get("type"));
+		assertEquals(1, m.get("count"));
+		assertEquals("39463f", m.get("utm_id"));
+
+		// check log data
+		assertEquals(100, m.get("module_flag"));
+		assertEquals("운영 로그", m.get("module_name"));
+		assertEquals(1.048735, m.get("cpu"));
+		assertEquals(30.389515, m.get("mem"));
+		assertEquals(61D, m.get("hdd"));
+		assertEquals(13D, m.get("session"));
+		assertEquals(5.3, m.get("in_data"));
+		assertEquals(5.3, m.get("out_data"));
+		assertEquals(1877D, m.get("in_pkt"));
+		assertEquals(1874D, m.get("out_pkt"));
+		assertEquals("OFF", m.get("ha"));
+	}
+
+	@Test
 	public void testCncDetectionLogV3() {
 		String line = "3`0`2`1`100000`6060`20140116`12:30:10`0``1.1.1.1`123`2.2.2.2`321`CNC탐지`profile1`2`1`0`3`0`1`1`3`0`Malware`Trojan/Win32.Scar`기관코드`";
 		Map<String, Object> m = new TrusGuardLogParser().parse(line(line));
