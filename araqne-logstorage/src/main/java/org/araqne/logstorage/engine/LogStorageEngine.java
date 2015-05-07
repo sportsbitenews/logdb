@@ -1343,7 +1343,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			if (onlineWriter != null) {
 				List<Log> buffer = onlineWriter.getBuffer();
 
-				syncOnlineWriter(onlineWriter);
+				if (req.syncFirst())
+					syncOnlineWriter(onlineWriter);
 
 				if (buffer != null && !buffer.isEmpty()) {
 					LogParser parser = null;

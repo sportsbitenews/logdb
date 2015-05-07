@@ -14,6 +14,7 @@ public class TableScanRequest {
 	private LogTraverseCallback callback;
 	private boolean useSerialScan;
 	private boolean isAsc;
+	private boolean syncFirst = false;
 	
 	public TableScanRequest() {
 	}
@@ -128,5 +129,13 @@ public class TableScanRequest {
 
 	public void setAsc(boolean isAsc) {
 		this.isAsc = isAsc;
+	}
+	
+	public boolean syncFirst() {
+		return syncFirst;
+	}
+	
+	public void setSyncFirst(boolean syncFirst) {
+		this.syncFirst = syncFirst;
 	}
 }
