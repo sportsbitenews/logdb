@@ -151,7 +151,7 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 		LockStatus status = storage.lockStatus(new LockKey("script", tableName, null));
 		if (status.isLocked()) {
 			m.put("lock_owner", status.getOwner());
-			m.put("lock_purpose", status.getPurposes());
+			m.put("lock_purpose", status.getPurposes().toArray(new String[0]));
 			m.put("lock_reentcnt", status.getReentrantCount());
 		} else {
 			m.put("lock_owner", null);
