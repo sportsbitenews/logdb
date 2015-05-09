@@ -29,7 +29,20 @@ public class WtmpEntry {
 	private String host;
 	private int session;
 	private Date date;
+	
+	
+	/**
+	 * @since 3.4.16
+	 */
+	private String deviceName;
 
+	/**
+	 * @since 3.4.16
+	 */
+	private String initTabId;
+	
+	
+	
 	public WtmpEntry(Type type, Date date, int pid, String user, String host, int session) {
 		this.type = type;
 		this.date = date;
@@ -39,6 +52,18 @@ public class WtmpEntry {
 		this.session = session;
 	}
 
+	public WtmpEntry(Type type, Date date, int pid, String user, String host, int session, String deviceName, String initTabId) {
+		this.type = type;
+		this.date = date;
+		this.pid = pid;
+		this.user = user;
+		this.host = host;
+		this.session = session;
+		this.deviceName = deviceName;
+		this.initTabId = initTabId;
+	}
+	
+	
 	public Type getType() {
 		return type;
 	}
@@ -63,11 +88,19 @@ public class WtmpEntry {
 		return date;
 	}
 
+	public String getDeviceName(){
+		return deviceName;
+	}
+	
+	public String getInitTabId(){
+		return initTabId;
+	}
+	
 	@Override
 	public String toString() {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		return String.format("type=%s, date=%s, pid=%d, user=%s, host=%s", type, dateFormat.format(date), pid, user,
-				host);
+		return String.format("type=%s, date=%s, pid=%d, user=%s, host=%s, deviceName=%s, initTabId=%s", type, dateFormat.format(date), pid, user,
+				host, deviceName, initTabId );
 	}
 
 }
