@@ -30,16 +30,15 @@ public class WtmpEntry {
 	private int session;
 	private Date date;
 	
-	
 	/**
 	 * @since 3.4.16
 	 */
-	private String deviceName;
+	private String deviceName;	/* ut_line */
 
 	/**
 	 * @since 3.4.16
 	 */
-	private String initTabId;
+	private String initTabId;		/* ut_id */
 	
 	
 	
