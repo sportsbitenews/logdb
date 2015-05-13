@@ -2397,11 +2397,10 @@ public class LogDbClient implements TrapListener, Closeable {
 			try {
 				wCalls.put(r, r);
 				signal();
-				r.l.await(timeout, unit);
+				return r.l.await(timeout, unit);
 			} finally {
 				wCalls.remove(r, r);
 			}
-			return false;
 		}
 
 		public void await(QueuedRows r) throws InterruptedException {
