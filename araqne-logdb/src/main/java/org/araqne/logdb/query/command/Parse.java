@@ -86,22 +86,32 @@ public class Parse extends QueryCommand implements ThreadSafe, FieldOrdering {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				Row parsed = parseV1(row);
-				if (parsed != null) {
-					rowBatch.selected[n] = p;
-					rowBatch.rows[p] = parsed;
-					n++;
+				try {
+					Row parsed = parseV1(row);
+					if (parsed != null) {
+						rowBatch.selected[n] = p;
+						rowBatch.rows[p] = parsed;
+						n++;
+					}
+				} catch (Throwable t) {
+					if (logger.isDebugEnabled())
+						logger.debug("araqne logdb: cannot parse " + row.map() + ", query - " + toString(), t);
 				}
 			}
 		} else {
 			rowBatch.selected = new int[rowBatch.size];
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-				Row parsed = parseV1(row);
-				if (parsed != null) {
-					rowBatch.selected[n] = i;
-					rowBatch.rows[i] = parsed;
-					n++;
+				try {
+					Row parsed = parseV1(row);
+					if (parsed != null) {
+						rowBatch.selected[n] = i;
+						rowBatch.rows[i] = parsed;
+						n++;
+					}
+				} catch (Throwable t) {
+					if (logger.isDebugEnabled())
+						logger.debug("araqne logdb: cannot parse " + row.map() + ", query - " + toString(), t);
 				}
 			}
 		}
