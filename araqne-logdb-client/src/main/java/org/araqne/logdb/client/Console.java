@@ -36,6 +36,7 @@ import java.util.Set;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.PatternLayout;
+import org.araqne.logdb.client.http.WebSocketTransport;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -75,7 +76,6 @@ public class Console {
 		try {
 			LogDbClient client = null;
 			try {
-				client = new LogDbClient();
 				String query = null;
 				String queryPath = opts.get("-f");
 				if (queryPath != null) {
@@ -101,6 +101,8 @@ public class Console {
 				String password = getOpt(opts, "-p", "Error: -p, password is required");
 				String port = getOpt(opts, "-P", "Error: -P, port is required");
 				String cols = opts.get("-c");
+				String useSsl = opts.get("-s");
+				String skipCertCheck = opts.get("-S");
 
 				String[] headers = null;
 				String[] line = null;
@@ -110,6 +112,19 @@ public class Console {
 						headers[i] = headers[i].trim();
 
 					line = new String[headers.length];
+				}
+
+				if(useSsl != null) {
+					if(skipCertCheck != null)
+						client = new LogDbClient(new WebSocketTransport(true, true));
+					else
+						client = new LogDbClient(new WebSocketTransport(true));
+
+				} else {
+					if(skipCertCheck != null)
+						throw new IllegalArgumentException("Error: -S, must be used with -s(SSL) option");
+					else
+						client = new LogDbClient();
 				}
 
 				client.connect(host, Integer.valueOf(port), loginName, password);
