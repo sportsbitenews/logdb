@@ -96,6 +96,10 @@ public class Parse extends QueryCommand implements ThreadSafe, FieldOrdering {
 				} catch (Throwable t) {
 					if (logger.isDebugEnabled())
 						logger.debug("araqne logdb: cannot parse " + row.map() + ", query - " + toString(), t);
+					// set as original
+					rowBatch.selected[n] = p;
+					rowBatch.rows[p] = row;
+					n++;
 				}
 			}
 		} else {
@@ -112,6 +116,10 @@ public class Parse extends QueryCommand implements ThreadSafe, FieldOrdering {
 				} catch (Throwable t) {
 					if (logger.isDebugEnabled())
 						logger.debug("araqne logdb: cannot parse " + row.map() + ", query - " + toString(), t);
+					// set as original
+					rowBatch.selected[n] = i;
+					rowBatch.rows[i] = row;
+					n++;
 				}
 			}
 		}
