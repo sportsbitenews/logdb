@@ -724,14 +724,16 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	public void purge(String tableName, Date fromDay, Date toDay) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		String from = "unbound";
-		if (fromDay != null)
+		if (fromDay != null) {
+			fromDay = DateUtil.getDay(fromDay);
 			from = dateFormat.format(fromDay);
-		String to = "unbound";
-		if (toDay != null)
-			to = dateFormat.format(toDay);
+		}
 		
-		fromDay = DateUtil.getDay(fromDay);
-		toDay = DateUtil.getDay(toDay);
+		String to = "unbound";
+		if (toDay != null) {
+			toDay = DateUtil.getDay(toDay);
+			to = dateFormat.format(toDay);
+		}
 
 		logger.debug("araqne logstorage: try to purge log data of table [{}], range [{}~{}]",
 				new Object[] { tableName, from, to });
