@@ -42,12 +42,8 @@ public class TableLockImpl {
 
 		@Override
 		public void lock() {
-			try {
-				sem.acquire();
-				ownerTid = Thread.currentThread().getId();
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
-			}
+			sem.acquireUninterruptibly();
+			ownerTid = Thread.currentThread().getId();
 		}
 
 		@Override
@@ -121,16 +117,12 @@ public class TableLockImpl {
 
 		@Override
 		public void lock() {
-			try {
-				assert acquierer != null;
-				if (checkReentrant()) {
-					return;
-				}
-				sem.acquire(EXCLUSIVE);
-				onLockAcquired();
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
+			assert acquierer != null;
+			if (checkReentrant()) {
+				return;
 			}
+			sem.acquireUninterruptibly(EXCLUSIVE);
+			onLockAcquired();
 		}
 
 		private void onLockAcquired() {

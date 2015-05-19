@@ -39,7 +39,7 @@ public interface LoggerRegistry {
 
 	void removeListener(LoggerRegistryEventListener callback);
 
-	Set<String> getDependencies(String paramString);
+	Set<String> getDependencies(String fullName);
 
 	boolean hasDependency(String fullName, String sourceFullName);
 

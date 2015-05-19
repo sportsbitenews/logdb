@@ -43,6 +43,8 @@ import org.araqne.logdb.AuthServiceNotLoadedException;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
 import org.araqne.logdb.UploadDataHandler;
+import org.araqne.logstorage.LockKey;
+import org.araqne.logstorage.LockStatus;
 import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.logstorage.LogCryptoProfileRegistry;
 import org.araqne.logstorage.LogFileService;
@@ -333,11 +335,20 @@ public class ManagementPlugin {
 		Map<String, Object> schemas = new HashMap<String, Object>();
 		Map<String, Object> tables = new HashMap<String, Object>();
 		Map<String, Object> fields = new HashMap<String, Object>();
+		Map<String, Object> locks = new HashMap<String, Object>();
+		Map<String, Object> owners = new HashMap<String, Object>();
+		Map<String, Object> purposes = new HashMap<String, Object>();
 
 		if (session.isAdmin()) {
 			for (TableSchema schema : tableRegistry.getTableSchemas()) {
 				schemas.put(schema.getName(), schema.marshal());
 				tables.put(schema.getName(), getTableMetadata(schema));
+				
+				LockStatus s = storage.lockStatus(new LockKey("script", schema.getName(), null));
+				locks.put(schema.getName(), s.isLocked());
+				owners.put(schema.getName(), s.getOwner());
+				purposes.put(schema.getName(), s.getPurposes());				
+				
 				List<FieldDefinition> defs = schema.getFieldDefinitions();
 				if (defs != null)
 					fields.put(schema.getName(), PrimitiveConverter.serialize(defs));
@@ -349,6 +360,12 @@ public class ManagementPlugin {
 					TableSchema schema = tableRegistry.getTableSchema(p.getTableName(), true);
 					schemas.put(p.getTableName(), schema.marshal());
 					tables.put(schema.getName(), getTableMetadata(schema));
+					
+					LockStatus s = storage.lockStatus(new LockKey("script", schema.getName(), null));
+					locks.put(schema.getName(), s.isLocked());
+					owners.put(schema.getName(), s.getOwner());
+					purposes.put(schema.getName(), s.getPurposes());
+					
 					List<FieldDefinition> defs = schema.getFieldDefinitions();
 					if (defs != null)
 						fields.put(schema.getName(), PrimitiveConverter.serialize(defs));
@@ -361,6 +378,9 @@ public class ManagementPlugin {
 		// for backward compatibility
 		resp.put("tables", tables);
 		resp.put("fields", fields);
+		resp.put("locks", locks);
+		resp.put("owners", owners);
+		resp.put("purposes", purposes);
 	}
 
 	@MsgbusMethod

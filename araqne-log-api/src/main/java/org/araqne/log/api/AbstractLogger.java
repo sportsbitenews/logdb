@@ -746,7 +746,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		this.transformer = transformer;
 
 		boolean transformerResolved = (config.get("transformer") == null) || (transformer != null);
-		if ((enabled) && (isPending()) && (transformerResolved) && (unresolvedLoggers.isEmpty())) {
+		if (!manualStart && enabled && isPending() && transformerResolved && unresolvedLoggers.isEmpty()) {
 			start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
 		}
 		if ((enabled) && (!transformerResolved)) {
@@ -816,12 +816,12 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		if (this.slog.isDebugEnabled()) {
 			this.slog.debug("araqne log api: logger [{}] has resolved logger [{}]", getFullName(), fullName);
 		}
-		
+
 		if (!this.unresolvedLoggers.remove(fullName))
 			return;
 
 		boolean transformerResolved = config.get("transformer") == null || transformer != null;
-		if (status != LoggerStatus.Running && enabled && transformerResolved && unresolvedLoggers.isEmpty()) {
+		if (!manualStart && status != LoggerStatus.Running && enabled && transformerResolved && unresolvedLoggers.isEmpty()) {
 			start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
 		}
 	}

@@ -2279,8 +2279,7 @@ public class LogDbClient implements TrapListener, Closeable {
 
 		@Override
 		public Integer get() throws InterruptedException, ExecutionException {
-			flusher.signal();
-			l.await();
+			flusher.await(this);
 			if (t != null)
 				throw new ExecutionException(t);
 			else
@@ -2289,8 +2288,7 @@ public class LogDbClient implements TrapListener, Closeable {
 
 		@Override
 		public Integer get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-			flusher.signal();
-			if (l.await(timeout, unit)) {
+			if (flusher.await(this, timeout, unit)) {
 				if (t != null)
 					throw new ExecutionException(t);
 				else
@@ -2383,12 +2381,35 @@ public class LogDbClient implements TrapListener, Closeable {
 	public class Flusher implements Runnable {
 		Thread th;
 
+		ConcurrentHashMap<QueuedRows, QueuedRows> wCalls =
+				new ConcurrentHashMap<QueuedRows, QueuedRows>();
+
 		public void start() {
 			synchronized (this) {
 				if (th == null) {
 					th = new Thread(this, "Insert flush thread");
 					th.start();
 				}
+			}
+		}
+
+		public boolean await(QueuedRows r, long timeout, TimeUnit unit) throws InterruptedException {
+			try {
+				wCalls.put(r, r);
+				signal();
+				return r.l.await(timeout, unit);
+			} finally {
+				wCalls.remove(r, r);
+			}
+		}
+
+		public void await(QueuedRows r) throws InterruptedException {
+			try {
+				wCalls.put(r, r);
+				signal();
+				r.l.await();
+			} finally {
+				wCalls.remove(r, r);
 			}
 		}
 
@@ -2400,8 +2421,9 @@ public class LogDbClient implements TrapListener, Closeable {
 				try {
 					long started = System.nanoTime();
 					flush();
-					long nextWaitMillis = indexFlushInterval - (System.nanoTime() - started) / 1000000L;
-					if (nextWaitMillis > 0)
+					long nextWaitMillis =
+							indexFlushInterval - (System.nanoTime() - started) / 1000000L;
+					if (wCalls.size() == 0 && nextWaitMillis > 0)
 						synchronized (this) {
 							this.wait(nextWaitMillis);
 						}

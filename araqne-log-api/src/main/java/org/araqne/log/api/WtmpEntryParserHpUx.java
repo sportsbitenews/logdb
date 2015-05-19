@@ -39,7 +39,8 @@ public class WtmpEntryParserHpUx extends WtmpEntryParser {
 		byte[] hostBlob = new byte[257];
 		bb.get(hostBlob);
 
-		return new WtmpEntry(getEntryType(type), new Date(time * 1000L), pid, readString(ut_user), readString(hostBlob), 0);
+		return new WtmpEntry(getEntryType(type), new Date(time * 1000L), pid, readString(ut_user), readString(hostBlob), 0,
+				readString(lineBlob), readString(idBlob));
 	}
 
 	private Type getEntryType(int d) {

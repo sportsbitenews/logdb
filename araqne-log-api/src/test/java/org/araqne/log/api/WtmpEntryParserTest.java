@@ -48,6 +48,8 @@ public class WtmpEntryParserTest {
 		assertEquals(7801, e.getPid());
 		assertEquals(0, e.getSession());
 		assertEquals("root", e.getUser());
+		assertEquals("pts/2", e.getDeviceName());
+		assertEquals("t200", e.getInitTabId());
 
 		e = l.get(1);
 		assertEquals("UserProcess", e.getType().toString());
@@ -55,6 +57,8 @@ public class WtmpEntryParserTest {
 		assertEquals(7814, e.getPid());
 		assertEquals(0, e.getSession());
 		assertEquals("root", e.getUser());
+		assertEquals("ftp7814", e.getDeviceName());
+		assertEquals("ftp", e.getInitTabId());
 	}
 
 	@Test
@@ -68,6 +72,8 @@ public class WtmpEntryParserTest {
 		assertEquals(1380588, e.getPid());
 		assertEquals(0, e.getSession());
 		assertEquals("bjkim", e.getUser());
+		assertEquals("pts/0", e.getInitTabId());
+		assertEquals("pts/0", e.getDeviceName());
 
 		e = l.get(1);
 		assertEquals("DeadProcess", e.getType().toString());
@@ -75,6 +81,8 @@ public class WtmpEntryParserTest {
 		assertEquals(294944, e.getPid());
 		assertEquals(0, e.getSession());
 		assertEquals("root", e.getUser());
+		assertEquals("ftp294944", e.getDeviceName());
+		assertEquals("ftp294944", e.getInitTabId());
 	}
 
 	@Test
@@ -88,6 +96,8 @@ public class WtmpEntryParserTest {
 		assertEquals(1454278, e.getPid());
 		assertEquals(0, e.getSession());
 		assertEquals("root", e.getUser());
+		assertEquals("pts/0", e.getDeviceName());
+		assertEquals("pts/0", e.getInitTabId());
 
 		e = l.get(1);
 		assertEquals("UserProcess", e.getType().toString());
@@ -95,6 +105,8 @@ public class WtmpEntryParserTest {
 		assertEquals(417800, e.getPid());
 		assertEquals(0, e.getSession());
 		assertEquals("root", e.getUser());
+		assertEquals("ftp417800", e.getDeviceName());
+		assertEquals("ftp417800", e.getInitTabId());
 	}
 
 	@Test
@@ -108,6 +120,8 @@ public class WtmpEntryParserTest {
 		assertEquals(2486, e.getPid());
 		assertEquals(0, e.getSession());
 		assertEquals("root", e.getUser());
+		assertEquals("ftpd2486", e.getDeviceName());
+		assertEquals("", e.getInitTabId());
 
 		e = l.get(1);
 		assertEquals("LoginProcess", e.getType().toString());
@@ -115,6 +129,8 @@ public class WtmpEntryParserTest {
 		assertEquals(2854, e.getPid());
 		assertEquals(0, e.getSession());
 		assertEquals("LOGIN", e.getUser());
+		assertEquals("pts/tb", e.getDeviceName());
+		assertEquals("tb", e.getInitTabId());
 	}
 
 	@Test
@@ -128,6 +144,8 @@ public class WtmpEntryParserTest {
 		assertEquals(13430, e.getPid());
 		assertEquals(0, e.getSession());
 		assertEquals("dunhill", e.getUser());
+		assertEquals("pts/tc", e.getDeviceName());
+		assertEquals("tc", e.getInitTabId());
 
 		e = l.get(1);
 		assertEquals("DeadProcess", e.getType().toString());
@@ -135,6 +153,8 @@ public class WtmpEntryParserTest {
 		assertEquals(26155, e.getPid());
 		assertEquals(0, e.getSession());
 		assertEquals("root", e.getUser());
+		assertEquals("pts/ta", e.getDeviceName());
+		assertEquals("ta", e.getInitTabId());
 	}
 
 	private List<WtmpEntry> parse(WtmpEntryParser parse, String path) {

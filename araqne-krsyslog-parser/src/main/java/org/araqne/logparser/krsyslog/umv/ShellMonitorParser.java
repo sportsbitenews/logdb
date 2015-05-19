@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Eediom Inc.
+/**
+ * Copyright 2015 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,9 @@
  */
 package org.araqne.logparser.krsyslog.umv;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.V1LogParser;
@@ -28,86 +30,173 @@ import org.araqne.log.api.V1LogParser;
 public class ShellMonitorParser extends V1LogParser {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(ShellMonitorParser.class.getName());
 
-	private static Map<String, String[]> typeFieldMap = new HashMap<String, String[]>();
-	private final int DELIMITER = ':';
+	public final static String[] DETECTION_FIELDS = new String[] { "svr_id", "svr_name", "log_type", "agent_num", "agent_name",
+			"agent_ip", "group_id", "group_name", "svr_time", "agent_time", "detect_type", "file_type", "file_path", "encoded",
+			"new_file_time", "new_file_size", "old_file_time", "old_file_size", "line_num", "offset", "pattern_len",
+			"pattern_string", "known" };
 
-	static void add(String type, String fields) {
-		String[] tokens = fields.split(",");
-		typeFieldMap.put(type, tokens);
-	}
+	public final static String[] STATUS_FIELDS = new String[] { "svr_id", "svr_name", "log_type", "host_type", "host_id",
+			"host_name", "host_ip", "group_id", "group_name", "status", "msg_code", "msg" };
 
-	static {
-		add("D",
-				"server_id,server_name,syslog_type,agent_number,agent_name,agent_ip,group_id,group_name,server_time,agent_time,detection_type,file_type,file,is_encoding,modified_at(current),file_size(current),modified_at(before),file_size(before),line_number,offset,detection_string_length,detection_string,is_famous_webshell");
-	}
+	public final static String[] TRANSACTION_FIELDS = new String[] { "svr_id", "svr_name", "log_type", "tx_id", "tx_type",
+			"send_type", "send_id", "send_name", "send_ip", "send_group_id", "send_group_name", "recv_type", "recv_id",
+			"recv_name", "recv_ip", "recv_group_id", "recv_group_name" };
+
+	public final static String[] FILTERING_FIELDS = new String[] { "svr_id", "svr_name", "log_type", "agent_num", "agent_name",
+			"agent_ip", "group_id", "group_name", "svr_time", "agent_time", "result", "file_path", "quarantined",
+			"quarantine_time", "new_file_time", "new_file_size", "old_file_time", "old_file_size" };
+
+	public final static String[] ALERT_FIELDS = new String[] { "svr_id", "svr_name", "log_type", "agent_num", "agent_name",
+			"agent_ip", "group_id", "group_name", "svr_time", "pdu", "pdu_msg", "raw_data" };
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
+		String line = (String) params.get("line");
+		if (line == null)
+			return params;
+
 		try {
-			String line = (String) params.get("line");
-			if (line == null)
+
+			int b = line.indexOf(':');
+			if (b < 0)
 				return params;
 
-			int b = 0;
-			int e = 0;
-			int timeOffset = 0;
-			for (int i = 0; i < 5; ++i) {
-				e = line.indexOf(':', b);
-				if (i == 2)
-					timeOffset = e;
-				b = e + 1;
+			// e.g. skip agent time Apr 17 12:50:24
+			int e = line.indexOf(' ', b);
+			if (e < 0)
+				return params;
+
+			b = e + 1;
+			e = line.indexOf(' ', b);
+			if (e < 0)
+				return params;
+
+			e = line.indexOf(':', e + 1);
+			if (e < 0)
+				return params;
+
+			List<String> tokens = new ArrayList<String>(30);
+			StringBuilder sb = new StringBuilder();
+			int len = line.length();
+			int p = e + 1;
+			while (p < len) {
+				// skip whitespace
+				char c = '\0';
+				while (p < len) {
+					c = line.charAt(p++);
+					if (c != ' ' && c != '\t')
+						break;
+				}
+
+				if (c == ':') {
+					tokens.add(null);
+					continue;
+				}
+
+				boolean quoted = c == '"';
+				boolean bracket = c == '[';
+
+				if (bracket) {
+					// find closing bracket (fucking shellmonitor bug)
+					e = line.indexOf(']', p + 1);
+					String token = line.substring(p, e);
+					tokens.add(token);
+					p = e + 1;
+				}
+				if (quoted) {
+					// find next quote
+					char lastChar = '\0';
+					p++;
+					while (p < len) {
+						c = line.charAt(p++);
+						if (c == '"' && lastChar != '\\')
+							break;
+
+						if (c != '\\' || lastChar == '\\')
+							sb.append(c);
+
+						lastChar = c;
+					}
+
+					if (lastChar == ']')
+						sb.deleteCharAt(sb.length() - 1);
+
+					String token = sb.toString();
+					sb.delete(0, token.length());
+					tokens.add(token);
+				} else {
+					// find end of string
+					b = p - 1;
+					while (p < len) {
+						c = line.charAt(p);
+						if (c == ' ' || c == '\t' || c == ':')
+							break;
+						p++;
+					}
+
+					if (p == len) {
+						tokens.add(line.substring(b));
+					} else if (p > b) {
+						tokens.add(line.substring(b, p));
+					}
+				}
+
+				// skip whitespace and next colon
+				boolean broken = false;
+				while (p < len) {
+					c = line.charAt(p++);
+					if (c == ':')
+						break;
+
+					if (c == ' ' || c == '\t')
+						continue;
+
+					broken = true;
+				}
+
+				// fix fucking shellmonitor bug at alert log
+				if (broken) {
+					String fixed = line.substring(b, p - 1).trim();
+					tokens.remove(tokens.size() - 1);
+					tokens.add(fixed);
+				}
 			}
 
-			Map<String, Object> m = new HashMap<String, Object>();
-			m.put("syslog_server_time, send_address, management_server_time", line.substring(0, timeOffset));
+			if (tokens.isEmpty())
+				return params;
 
-			String type = line.substring(b, b + 1);
-			String[] fields = typeFieldMap.get(type);
+			String logType = tokens.get(2);
 
-			int fieldStarted = timeOffset + 1;
-			parse(line, m, fields, fieldStarted, type);
-			return m;
+			if (logType.equals("D")) {
+				return map(tokens, DETECTION_FIELDS);
+			} else if (logType.equals("S")) {
+				return map(tokens, STATUS_FIELDS);
+			} else if (logType.equals("T")) {
+				return map(tokens, TRANSACTION_FIELDS);
+			} else if (logType.equals("F")) {
+				return map(tokens, FILTERING_FIELDS);
+			} else if (logType.equals("A")) {
+				return map(tokens, ALERT_FIELDS);
+			}
+
+			return params;
 		} catch (Throwable t) {
-			if (slog.isDebugEnabled()) {
-				String line = (String) params.get("line");
-				slog.debug("araqne krsyslog parser: cannot parse log [" + line + "]", t);
-			}
-
+			if (slog.isDebugEnabled())
+				slog.debug("araqne log api: cannot parse umv shellmonitor log - line [{}]", line);
 			return params;
 		}
 	}
 
-	private void parse(String line, Map<String, Object> m, String[] fields, int begin, String type) {
-		int b = begin;
-		if (b < 0)
-			return;
-
-		int index = 0;
-		int e = 0;
-
-		try {
-			while ((e = line.indexOf(DELIMITER, b + 1)) != -1) {
-				String content = line.substring(b, e);
-				m.put(fields[index], content);
-
-				b = e + 1;
-				++index;
-				
-				if (line.charAt(e + 1) == '"') {
-					b = e + 2;
-					e = line.indexOf("\"", b);
-					
-					content = line.substring(b, e);
-					m.put(fields[index], content);
-					
-					b = e + 1;
-					++index;
-				}
-			}
-
-			String content = line.substring(b);
-			m.put(fields[index], content);
-		} catch (IndexOutOfBoundsException e1) {
+	private Map<String, Object> map(List<String> tokens, String[] fieldNames) {
+		Map<String, Object> m = new HashMap<String, Object>();
+		int i = 0;
+		int len = fieldNames.length;
+		for (String token : tokens) {
+			String field = fieldNames[i++];
+			m.put(field, token);
+			if (i >= len)
+				break;
 		}
+		return m;
 	}
 }

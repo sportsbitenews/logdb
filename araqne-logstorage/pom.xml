@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logstorage</artifactId>
-	<version>3.0.2</version>
+	<version>3.0.4</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log Storage</name>
 	<build>
@@ -107,7 +107,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.4.14</version>
+			<version>3.4.15</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jcraft</groupId>
@@ -116,7 +116,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-storage</artifactId>
-			<version>0.0.7</version>
+			<version>0.0.8</version>
 		</dependency>
 		<dependency>
 			<groupId>org.xerial.snappy</groupId>

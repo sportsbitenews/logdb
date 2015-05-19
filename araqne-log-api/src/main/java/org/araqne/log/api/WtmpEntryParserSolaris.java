@@ -39,7 +39,9 @@ public class WtmpEntryParserSolaris extends WtmpEntryParser {
 		byte[] hostBlob = new byte[257];
 		bb.get(hostBlob);
 
-		return new WtmpEntry(getEntryType(type), new Date(time * 1000L), pid, readString(ut_user), readString(hostBlob), session);
+		return new WtmpEntry(getEntryType(type), new Date(time * 1000L), pid, readString(ut_user), readString(hostBlob), session,
+		readString(lineBlob), readString(idBlob));
+	
 	}
 
 	private Type getEntryType(int d) {

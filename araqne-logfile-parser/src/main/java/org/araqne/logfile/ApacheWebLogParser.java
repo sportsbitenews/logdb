@@ -15,8 +15,13 @@
  */
 package org.araqne.logfile;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -205,7 +210,7 @@ public class ApacheWebLogParser extends V1LogParser {
 					lineBegin++;
 				} else {
 					// wrong line variable
-					throw new IllegalArgumentException();
+					throw new IllegalArgumentException(Character.toString(line.charAt(lineBegin)));
 				}
 				continue;
 			}

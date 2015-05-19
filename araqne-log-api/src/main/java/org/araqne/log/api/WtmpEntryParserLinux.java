@@ -18,8 +18,8 @@ public class WtmpEntryParserLinux extends WtmpEntryParser {
 		int type = Short.reverseBytes(bb.getShort());
 		bb.getShort();
 		int pid = Integer.reverseBytes(bb.getInt());
-		byte[] b = new byte[32];
-		bb.get(b);
+		byte[] line = new byte[32];
+		bb.get(line);
 		byte[] id = new byte[4];
 		bb.get(id);
 		byte[] user = new byte[32];
@@ -32,7 +32,8 @@ public class WtmpEntryParserLinux extends WtmpEntryParser {
 		bb.getInt();
 		bb.get(new byte[36]);
 
-		return new WtmpEntry(Type.values()[type], new Date(seconds * 1000L), pid, readString(user), readString(host), session);
+		return new WtmpEntry(Type.values()[type], new Date(seconds * 1000L), pid, readString(user), readString(host), session
+				,readString(line), readString(id));
 
 	}
 }
