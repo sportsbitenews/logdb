@@ -124,7 +124,8 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 		LogParserBuilder builder = null;
 		for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
-			if (!params.raw) {
+			// table may not exist in federation query mode
+			if (!params.raw && tableRegistry.exists(tableName.getTable())) {
 				builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry, tableName.getTable());
 			}
 		}
@@ -158,8 +159,12 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 			boolean isSuppressedBugAlert = false;
 
 			for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
-				LogParserBuilder builder = null;
+				// table may not exist in federation query mode
+				if (!tableRegistry.exists(tableName.getTable()))
+					continue;
 
+				LogParserBuilder builder = null;
+				
 				if (!params.raw) {
 					builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
 							tableName.getTable());
