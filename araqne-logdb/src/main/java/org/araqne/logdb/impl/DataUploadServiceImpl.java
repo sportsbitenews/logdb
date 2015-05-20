@@ -1,5 +1,4 @@
-package org.araqne.logdb;
-
+package org.araqne.logdb.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -14,28 +13,21 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.araqne.codec.Base64;
 import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.MultilineLogExtractor;
+import org.araqne.logdb.DataUploadService;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
-import org.araqne.msgbus.Request;
-import org.araqne.msgbus.Response;
 
-public class UploadDataHandler {
-	private static final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(UploadDataHandler.class);
-
+public class DataUploadServiceImpl implements DataUploadService {
+	private static final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(DataUploadServiceImpl.class);
 	private ConcurrentMap<String, UploadState> states = new ConcurrentHashMap<String, UploadState>();
 
-	public void loadTextFile(LogStorage storage, Request req, Response resp) throws IOException {
-		String ticket = (String) req.get("ticket", true);
-		boolean last = (Boolean) req.get("last", true);
-		String data = (String) req.get("data", true);
-
+	@Override
+	public void loadTextFile(LogStorage storage, String ticket, boolean last, String data, String datePattern, String dateFormat,
+			String dateLocale, String beginRegex, String endRegex, String tableName, String charset) throws IOException {
 		// decode base64 data uri
 		int p = data.indexOf(",");
 		String s = data.substring(p + 1);
@@ -44,7 +36,7 @@ public class UploadDataHandler {
 		// get upload state
 		UploadState state = states.get(ticket);
 		if (state == null) {
-			state = new UploadState(storage, req);
+			state = new UploadState(storage, datePattern, dateFormat, dateLocale, beginRegex, endRegex, tableName, charset);
 			states.put(ticket, state);
 		}
 
@@ -54,50 +46,11 @@ public class UploadDataHandler {
 		// transfer decoded input
 		state.input.write(b);
 
-		ByteArrayInputStream is = new ByteArrayInputStream(state.input.toByteArray());
+		byte[] stateByteArray = state.input.toByteArray();
+		ByteArrayInputStream is = new ByteArrayInputStream(stateByteArray);
 		extractor.extract(is, lastPosition);
 
-		byte[] lastBuffer = state.input.toByteArray();
-		ByteArrayOutputStream nextBuffer = new ByteArrayOutputStream(lastBuffer.length);
-		int offset = (int) lastPosition.get();
-		nextBuffer.write(lastBuffer, offset, lastBuffer.length - offset);
-		state.input = nextBuffer;
-
-		if (last) {
-			states.remove(ticket);
-
-			if (nextBuffer.size() > 0)
-				slog.warn("araqne logdb: upload ticket [{}] closed, non-written bytes [{}]", ticket, nextBuffer.size());
-		}
-	}
-	
-	public void loadTextFile(LogStorage storage, HttpServletRequest req, HttpServletResponse resp) throws IOException {
-		String ticket = req.getParameter("ticket");
-		boolean last = Boolean.getBoolean(req.getParameter("last"));
-		String data = req.getParameter("data");
-
-		// decode base64 data uri
-		int p = data.indexOf(",");
-		String s = data.substring(p + 1);
-		byte[] b = Base64.decode(s);
-
-		// get upload state
-		UploadState state = states.get(ticket);
-		if (state == null) {
-			state = new UploadState(storage, req);
-			states.put(ticket, state);
-		}
-
-		MultilineLogExtractor extractor = state.extractor;
-		AtomicLong lastPosition = new AtomicLong();
-
-		// transfer decoded input
-		state.input.write(b);
-
-		ByteArrayInputStream is = new ByteArrayInputStream(state.input.toByteArray());
-		extractor.extract(is, lastPosition);
-
-		byte[] lastBuffer = state.input.toByteArray();
+		byte[] lastBuffer = stateByteArray;
 		ByteArrayOutputStream nextBuffer = new ByteArrayOutputStream(lastBuffer.length);
 		int offset = (int) lastPosition.get();
 		nextBuffer.write(lastBuffer, offset, lastBuffer.length - offset);
@@ -111,16 +64,16 @@ public class UploadDataHandler {
 		}
 	}
 
-	public List<Map<String, Object>> previewTextFile(Request req, Response resp) throws IOException {
-		String data = (String) req.get("data", true);
-
+	@Override
+	public List<Map<String, Object>> previewTextFile(String data, String datePattern, String dateFormat, String dateLocale,
+			String beginRegex, String endRegex, String charset) throws IOException {
 		// decode base64 data uri
 		int p = data.indexOf(",");
 		String s = data.substring(p + 1);
 		byte[] b = Base64.decode(s);
 
 		// get preview state
-		PreviewState state = new PreviewState(req);
+		PreviewState state = new PreviewState(datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset);
 
 		MultilineLogExtractor extractor = state.extractor;
 		AtomicLong lastPosition = new AtomicLong();
@@ -128,63 +81,19 @@ public class UploadDataHandler {
 		// transfer decoded input
 		state.input.write(b);
 
-		ByteArrayInputStream is = new ByteArrayInputStream(state.input.toByteArray());
+		byte[] stateByteArray = state.input.toByteArray();
+		ByteArrayInputStream is = new ByteArrayInputStream(stateByteArray);
 		extractor.extract(is, lastPosition);
 
-		return state.previews;			
+		return state.previews;
 	}
 
-	public List<Map<String, Object>> previewTextFile(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-		String data = (String) req.getParameter("data");
-
-		// decode base64 data uri
-		int p = data.indexOf(",");
-		String s = data.substring(p + 1);
-		byte[] b = Base64.decode(s);
-
-		// get preview state
-		PreviewState state = new PreviewState(req);
-
-		MultilineLogExtractor extractor = state.extractor;
-		AtomicLong lastPosition = new AtomicLong();
-
-		// transfer decoded input
-		state.input.write(b);
-
-		ByteArrayInputStream is = new ByteArrayInputStream(state.input.toByteArray());
-		extractor.extract(is, lastPosition);
-
-		return state.previews;			
-	}
-	
 	private static class UploadState {
 		public MultilineLogExtractor extractor;
 		public ByteArrayOutputStream input = new ByteArrayOutputStream();
 
-		public UploadState(LogStorage storage, Request req) {
-			String datePattern = (String) req.get("date_pattern");
-			String dateFormat = (String) req.get("date_format");
-			String dateLocale = (String) req.get("date_locale");
-			String beginRegex = (String) req.get("begin_regex");
-			String endRegex = (String) req.get("end_regex");
-			String tableName = (String) req.get("table", true);
-			String charset = (String) req.get("charset", true);
-
-			DummyLogger logger = new DummyLogger();
-			UploadPipe pipe = new UploadPipe(storage, tableName);
-			this.extractor = newMultilineExtractor(datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset, logger,
-					pipe);
-		}
-		
-		public UploadState(LogStorage storage, HttpServletRequest req) {
-			String datePattern = (String) req.getParameter("date_pattern");
-			String dateFormat = (String) req.getParameter("date_format");
-			String dateLocale = (String) req.getParameter("date_locale");
-			String beginRegex = (String) req.getParameter("begin_regex");
-			String endRegex = (String) req.getParameter("end_regex");
-			String tableName = (String) req.getParameter("table");
-			String charset = (String) req.getParameter("charset");
-
+		public UploadState(LogStorage storage, String datePattern, String dateFormat, String dateLocale, String beginRegex,
+				String endRegex, String tableName, String charset) {
 			DummyLogger logger = new DummyLogger();
 			UploadPipe pipe = new UploadPipe(storage, tableName);
 			this.extractor = newMultilineExtractor(datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset, logger,
@@ -266,34 +175,13 @@ public class UploadDataHandler {
 		public ByteArrayOutputStream input = new ByteArrayOutputStream();
 		public List<Map<String, Object>> previews = new ArrayList<Map<String, Object>>();
 
-		public PreviewState(Request req) {
-			String datePattern = (String) req.get("date_pattern");
-			String dateFormat = (String) req.get("date_format");
-			String dateLocale = (String) req.get("date_locale");
-			String beginRegex = (String) req.get("begin_regex");
-			String endRegex = (String) req.get("end_regex");
-			String charset = (String) req.get("charset", true);
-
+		public PreviewState(String datePattern, String dateFormat, String dateLocale, String beginRegex, String endRegex, String charset) {
 			DummyLogger logger = new DummyLogger();
 			PreviewPipe pipe = new PreviewPipe(previews);
 			this.extractor = newMultilineExtractor(datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset, logger,
 					pipe);
 		}
 
-		public PreviewState(HttpServletRequest req) {
-			String datePattern = (String) req.getParameter("date_pattern");
-			String dateFormat = (String) req.getParameter("date_format");
-			String dateLocale = (String) req.getParameter("date_locale");
-			String beginRegex = (String) req.getParameter("begin_regex");
-			String endRegex = (String) req.getParameter("end_regex");
-			String charset = (String) req.getParameter("charset");
-
-			DummyLogger logger = new DummyLogger();
-			PreviewPipe pipe = new PreviewPipe(previews);
-			this.extractor = newMultilineExtractor(datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset, logger,
-					pipe);
-		}
-		
 		private MultilineLogExtractor newMultilineExtractor(String datePattern, String dateFormat, String dateLocale,
 				String beginRegex, String endRegex, String charset, DummyLogger logger, PreviewPipe pipe) {
 
@@ -332,7 +220,7 @@ public class UploadDataHandler {
 		public void onLog(Logger logger, org.araqne.log.api.Log log) {
 			if (log == null)
 				return;
-			
+
 			Map<String, Object> m = log.getParams();
 			m.put("_time", log.getDate());
 			previews.add(m);
@@ -342,7 +230,7 @@ public class UploadDataHandler {
 		public void onLogBatch(Logger logger, org.araqne.log.api.Log[] logs) {
 			if (logs == null)
 				return;
-			
+
 			for (org.araqne.log.api.Log log : logs)
 				if (log != null) {
 					Map<String, Object> m = log.getParams();
@@ -351,4 +239,5 @@ public class UploadDataHandler {
 				}
 		}
 	}
+
 }
