@@ -47,7 +47,12 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 	private final Logger sendLog = LoggerFactory.getLogger("websocket-send");
 	private Object sendLock = new Object();
 	private WebSocket websocket;
-	private WebSocketBlockingTable table = new WebSocketBlockingTable();
+	private WebSocketBlockingTable table = new WebSocketBlockingTable(this);
+	@Override
+	public String toString() {
+		return "WebSocketSession [" + websocket + "]";
+	}
+
 	private final Timer timer;
 
 	public WebSocketSession(String host, int port) throws IOException {
@@ -75,7 +80,9 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 			throw new IllegalArgumentException("invalid host: " + host);
 		}
 
-		this.timer = new Timer("WebSocket [" + uri + "] Ping Timer", true);
+		int localPort = websocket.getLocalPort();
+		this.timer = new Timer(
+				String.format("WebSocket Ping Timer [:%d<->%s]", localPort, uri), true);
 		timer.scheduleAtFixedRate(new PingTask(), new Date(), 2000);
 	}
 
