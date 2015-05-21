@@ -152,7 +152,8 @@ public class Stats extends QueryCommand implements FieldOrdering {
 					f.apply(row);
 			}
 		} else {
-			for (Row m : rowBatch.rows) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row m = rowBatch.rows[i];
 				if (useClause) {
 					keys.clear();
 					boolean isNullGroup = false;
@@ -175,8 +176,8 @@ public class Stats extends QueryCommand implements FieldOrdering {
 				AggregationFunction[] fs = buffer.get(keys);
 				if (fs == null) {
 					fs = new AggregationFunction[funcs.length];
-					for (int i = 0; i < fs.length; i++)
-						fs[i] = funcs[i].clone();
+					for (int j = 0; j < fs.length; j++)
+						fs[j] = funcs[j].clone();
 
 					buffer.put(new ArrayList<Object>(keys), fs);
 				}

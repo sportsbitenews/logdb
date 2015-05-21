@@ -1,4 +1,4 @@
-package org.araqne.storage.engine;
+package org.araqne.storage.api;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -8,8 +8,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.storage.api.RCDirectBuffer;
-import org.araqne.storage.api.RCDirectBufferManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

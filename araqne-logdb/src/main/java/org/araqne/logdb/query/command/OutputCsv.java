@@ -211,7 +211,8 @@ public class OutputCsv extends QueryCommand {
 					writeLog(m);
 				}
 			} else {
-				for (Row m : rowBatch.rows) {
+			    for (int i = 0; i < rowBatch.size; i++) {
+			        Row m = rowBatch.rows[i];
 					writeLog(m);
 				}
 			}
