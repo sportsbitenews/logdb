@@ -296,7 +296,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	@Override
 	public void ensureTable(TableSchema schema) {
 		if (!tableRegistry.exists(schema.getName()))
-			createTable(schema);
+			tableRegistry.ensureTable(schema);
 	}
 
 	@Override
@@ -728,7 +728,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			fromDay = DateUtil.getDay(fromDay);
 			from = dateFormat.format(fromDay);
 		}
-		
+
 		String to = "unbound";
 		if (toDay != null) {
 			toDay = DateUtil.getDay(toDay);

@@ -69,6 +69,8 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 	private CopyOnWriteArraySet<TableEventListener> callbacks;
 
+	private Object ensureTableLock = new Object();
+
 	public LogTableRegistryImpl() {
 		tableSchemas = new ConcurrentHashMap<Integer, TableSchema>();
 		tableIDs = new ConcurrentHashMap<String, Integer>();
@@ -179,15 +181,28 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 	}
 
 	@Override
+	public void ensureTable(TableSchema schema) {
+		synchronized (ensureTableLock) {
+			try {
+				createTable(schema);
+			} catch (TableAlreadyExistsException e) {
+			}
+		}
+	}
+
+	@Override
 	public void createTable(TableSchema schema) {
 		if (tableIDs.containsKey(schema.getName()))
-			throw new IllegalStateException("table already exists: " + schema.getName());
+			throw new TableAlreadyExistsException("table already exists: " + schema.getName());
 
 		verifyInputSchema(schema);
 		String tableName = schema.getName();
 
 		// set unique id
 		int newId = nextTableId.incrementAndGet();
+		if (tableIDs.putIfAbsent(tableName, newId) != null)
+			throw new TableAlreadyExistsException("table already exists: " + schema.getName());
+
 		TableSchema newSchema = schema.clone();
 		newSchema.setId(newId);
 
@@ -195,10 +210,8 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 		db.add(newSchema, "araqne-logstorage", "created " + tableName + " table");
 
 		// tableNames.put(newSchema.getId(), tableName);
-		tableIDs.put(tableName, newSchema.getId());
 		tableSchemas.put(newSchema.getId(), newSchema);
 		tableLocks.put(newSchema.getId(), new TableLockImpl(newSchema.getId()));
-
 		// invoke callbacks
 		for (TableEventListener callback : callbacks) {
 			try {

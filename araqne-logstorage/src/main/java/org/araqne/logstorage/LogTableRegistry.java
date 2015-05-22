@@ -43,13 +43,18 @@ public interface LogTableRegistry {
 	TableLock getSharedTableLock(String tableName);
 
 	LockStatus getTableLockStatus(String tableName);
-	
+
 	/**
 	 * @since 2.8.13
 	 */
 	TableSchema getTableSchema(int tableId);
 
 	TableSchema getTableSchema(int tableId, boolean required);
-	
+
 	String getTableName(int tableId);
+
+	/**
+	 * @since 3.0.5
+	 */
+	void ensureTable(TableSchema schema);
 }
