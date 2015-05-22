@@ -15,7 +15,9 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
@@ -43,26 +45,41 @@ public class RenameParser extends AbstractQueryCommandParser {
 	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
-		if (tokens.size() < 2)
-			//throw new QueryParseException("as-token-not-found", commandString.length());
-			throw new QueryParseException("20800",  getCommandName().length() + 1,  commandString.length() - 1, null);
+		List<Rename.Pair> pairs = new ArrayList<Rename.Pair>();
+		
+		int s = getCommandName().length();
+		
+		while (true) {
+			int e = commandString.indexOf(',', s);
+			String tokenString = (e < 0)? commandString.substring(s): commandString.substring(s, e);
+			QueryTokens tokens = QueryTokenizer.tokenize(tokenString);
+			if (tokens.size() < 1)
+				// throw new QueryParseException("as-token-not-found", tokenString.length());
+				throw new QueryParseException("20800", s + 1, s + tokenString.length() - 1, null);
 
-		if (tokens.size() < 4)
-			//throw new QueryParseException("to-field-not-found", commandString.length());
-			throw new QueryParseException("20801", QueryTokenizer.findIndexOffset(tokens, 1),  commandString.length() - 1, null);
+			if (tokens.size() < 3)
+				// throw new QueryParseException("to-field-not-found", tokenString.length());
+				throw new QueryParseException("20801", 
+						s + QueryTokenizer.findIndexOffset(tokens, 0), s + tokenString.length() - 1, null);
 
-		if (!tokens.string(2).equalsIgnoreCase("as")){
-		//throw new QueryParseException("invalid-as-position", -1);
-			String AS = tokens.string(2);
-			Map<String, String> params = new HashMap<String, String>();
-			params.put("AS", AS);
-			int offset = QueryTokenizer.findIndexOffset(tokens, 2);
-			throw new QueryParseException("20802", offset , offset + AS.length() - 1, params);
-		}
+			if (!tokens.string(1).equalsIgnoreCase("as")) {
+				// throw new QueryParseException("invalid-as-position", -1);
+				String AS = tokens.string(1);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("AS", AS);
+				int offset = QueryTokenizer.findIndexOffset(tokens, 1);
+				throw new QueryParseException("20802", s + offset, s + offset + AS.length() - 1, params);
+			}
+
+			String from = tokens.string(0);
+			String to = tokens.string(2);
+			pairs.add(new Rename.Pair(from, to));
 			
-		String from = tokens.firstArg();
-		String to = tokens.lastArg();
-		return new Rename(from, to);
+			if (e < 0)
+				break;
+			
+			s = e + 1;
+		}
+		return new Rename(pairs);
 	}
 }
