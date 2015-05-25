@@ -47,6 +47,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 	private final List<String> clauses;
 	private final int clauseCount;
 	private final boolean useClause;
+	private final boolean rollup;
 	private final List<Object> EMPTY_KEY;
 
 	// clone template
@@ -66,6 +67,10 @@ public class Stats extends QueryCommand implements FieldOrdering {
 	}
 
 	public Stats(List<AggregationField> fields, List<String> clause) {
+		this(fields, clause, false);
+	}
+
+	public Stats(List<AggregationField> fields, List<String> clause, boolean rollup) {
 		this.EMPTY_KEY = new ArrayList<Object>(0);
 		this.clauses = clause;
 		this.clauseCount = clauses.size();
@@ -75,6 +80,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		this.fields = fields;
 		this.funcs = new AggregationFunction[fields.size()];
 		this.fieldOrder = new ArrayList<String>(clauses);
+		this.rollup = rollup;
 
 		// prepare template functions
 		for (int i = 0; i < fields.size(); i++) {
@@ -275,6 +281,10 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 			Object[] lastKeys = null;
 			AggregationFunction[] fs = null;
+
+			// depth to rollup entry
+			Map<Integer, RollupEntry> rollBuffer = new HashMap<Integer, RollupEntry>();
+
 			Item item = null;
 			int count = 0;
 			while (it.hasNext()) {
@@ -289,7 +299,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 					// finalize last record (only if changing set)
 					if (fs != null) {
-						pass(fs, lastKeys);
+						pass(fs, lastKeys, rollBuffer);
 					}
 
 					// load new record
@@ -318,13 +328,22 @@ public class Stats extends QueryCommand implements FieldOrdering {
 			}
 
 			// write last merge set
-			if (item != null)
-				pass(fs, lastKeys);
+			if (item != null) {
+				pass(fs, lastKeys, rollBuffer);
+
+				// write last roll entries
+				if (rollup) {
+					for (int i = clauseCount - 1; i >= 0; i--) {
+						RollupEntry rollupEntry = rollBuffer.get(i);
+						writeRecord(rollupEntry.keys, rollupEntry.funcs);
+					}
+				}
+			}
 
 			// write result for empty data set (only for no group clause)
 			if (inputCount == 0 && clauses.size() == 0) {
 				// write initial function values
-				pass(funcs, null);
+				pass(funcs, null, null);
 			}
 
 			logger.debug("araqne logdb: sorted stats input [{}]", count);
@@ -344,16 +363,78 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		}
 	}
 
-	private void pass(AggregationFunction[] fs, Object[] keys) {
+	private void pass(AggregationFunction[] fs, Object[] keys, Map<Integer, RollupEntry> rollupEntries) {
+		if (rollup)
+			rollup(fs, keys, rollupEntries);
+
+		writeRecord(keys, fs);
+	}
+
+	private void writeRecord(Object[] keys, AggregationFunction[] fs) {
 		Map<String, Object> m = new HashMap<String, Object>();
 
-		for (int i = 0; i < clauses.size(); i++)
+		for (int i = 0; i < keys.length; i++)
 			m.put(clauses.get(i), keys[i]);
 
 		for (int i = 0; i < funcs.length; i++)
 			m.put(fields.get(i).getName(), fs[i].eval());
 
 		pushPipe(new Row(m));
+	}
+
+	private void rollup(AggregationFunction[] fs, Object[] keys, Map<Integer, RollupEntry> rollupEntries) {
+		for (int depth = clauseCount - 1; depth >= 0; depth--) {
+			RollupEntry rollupEntry = rollupEntries.get(depth);
+			if (rollupEntry == null) {
+				// create rollup entry if depth key not found
+				rollupEntry = resetRollupEntry(this.funcs, keys, rollupEntries, depth);
+			}
+
+			// if old key is not same with current key, write rollup entry.
+			// otherwise, merge it.
+			int len = rollupEntry.funcs.length;
+			if (isSameRollupKey(keys, rollupEntry.keys, depth)) {
+				for (int i = 0; i < len; i++)
+					rollupEntry.funcs[i].merge(fs[i]);
+			} else {
+				writeRecord(rollupEntry.keys, rollupEntry.funcs);
+				for (int i = 0; i < len; i++)
+					resetRollupEntry(fs, keys, rollupEntries, depth);
+			}
+		}
+	}
+
+	private boolean isSameRollupKey(Object[] lhs, Object[] rhs, int depth) {
+		if (lhs.length < depth || rhs.length < depth)
+			return false;
+
+		for (int i = 0; i < depth; i++) {
+			Object l = lhs[i];
+			Object r = rhs[i];
+
+			if (l == null && r != null)
+				return false;
+			else if (l != null && r == null)
+				return false;
+			else if (!l.equals(r))
+				return false;
+		}
+
+		return true;
+	}
+
+	private RollupEntry resetRollupEntry(AggregationFunction[] fs, Object[] keys, Map<Integer, RollupEntry> rollupEntries,
+			int depth) {
+		int len = fs.length;
+
+		RollupEntry rollupEntry = new RollupEntry();
+		rollupEntry.keys = Arrays.copyOf(keys, depth);
+		rollupEntry.funcs = new AggregationFunction[len];
+		for (int i = 0; i < len; i++)
+			rollupEntry.funcs[i] = fs[i].clone();
+
+		rollupEntries.put(depth, rollupEntry);
+		return rollupEntry;
 	}
 
 	private static class ItemComparer implements Comparator<Item> {
@@ -386,7 +467,12 @@ public class Stats extends QueryCommand implements FieldOrdering {
 			}
 		}
 
-		return "stats" + aggregation + clause;
+		return getName() + aggregation + clause;
+	}
+
+	private class RollupEntry {
+		private Object[] keys;
+		private AggregationFunction[] funcs;
 	}
 
 }

@@ -29,12 +29,11 @@ import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.command.Stats;
 
 public class StatsParser extends AbstractQueryCommandParser {
-	private static final String COMMAND = "stats";
 	private static final String BY = "by";
 
 	@Override
 	public String getCommandName() {
-		return COMMAND;
+		return "stats";
 	}
 
 	@Override
@@ -71,7 +70,7 @@ public class StatsParser extends AbstractQueryCommandParser {
 			} catch (QueryParseException e) {
 				Map<String, String> params = e.getParams();
 				if(params == null || !params.containsKey("value") || params.get("value") == null)
-					throw new QueryParseException(e.getType(), COMMAND.length() + 1, commandString.length() -1, params);
+					throw new QueryParseException(e.getType(), getCommandName().length() + 1, commandString.length() -1, params);
 
 				String subQuery = params.get("value");
 				int offset = commandString.indexOf(subQuery);
@@ -82,7 +81,7 @@ public class StatsParser extends AbstractQueryCommandParser {
 
 		if (fields.isEmpty())
 			//	throw new QueryParseException("missing-stats-function", -1);
-			throw new QueryParseException("21700", COMMAND.length() + 1, commandString.length() -1 ,null);
+			throw new QueryParseException("21700", getCommandName().length() + 1, commandString.length() -1 ,null);
 
 		return new Stats(fields, pr.clauses);
 	} 
@@ -91,17 +90,17 @@ public class StatsParser extends AbstractQueryCommandParser {
 		// stats <aggregation function holder> by <stats-fields>
 
 		List<String> clauses = new ArrayList<String>();
-		String aggsPart = commandString.substring(COMMAND.length());
+		String aggsPart = commandString.substring(getCommandName().length());
 
 		// parse clauses
 		int byPos = QueryTokenizer.findKeyword(commandString, BY, 0, true);
 		if (byPos > 0) {
-			aggsPart = commandString.substring(COMMAND.length(), byPos);
+			aggsPart = commandString.substring(getCommandName().length(), byPos);
 			String clausePart = commandString.substring(byPos + BY.length());
 
 			if (clausePart.trim().endsWith(","))
 				//	throw new QueryParseException("missing-clause", commandString.length());
-				throw new QueryParseException("21701", COMMAND.length() + 1, commandString.length() -1 ,null);
+				throw new QueryParseException("21701", getCommandName().length() + 1, commandString.length() -1 ,null);
 
 			// trim
 			for (String clause : clausePart.split(","))
