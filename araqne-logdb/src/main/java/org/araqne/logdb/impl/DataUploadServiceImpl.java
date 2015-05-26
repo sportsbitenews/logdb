@@ -13,6 +13,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
+import org.apache.felix.ipojo.annotations.Component;
+import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.codec.Base64;
 import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.Logger;
@@ -21,6 +23,8 @@ import org.araqne.logdb.DataUploadService;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
 
+@Component(name = "logdb-data-upload")
+@Provides
 public class DataUploadServiceImpl implements DataUploadService {
 	private static final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(DataUploadServiceImpl.class);
 	private ConcurrentMap<String, UploadState> states = new ConcurrentHashMap<String, UploadState>();
@@ -238,6 +242,13 @@ public class DataUploadServiceImpl implements DataUploadService {
 					previews.add(m);
 				}
 		}
+	}
+
+	@Override
+	public void abortTextFile(String ticket) {
+		if(ticket != null)
+			states.remove(ticket);
+		
 	}
 
 }

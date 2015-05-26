@@ -12,4 +12,6 @@ public interface DataUploadService {
 
 	List<Map<String, Object>> previewTextFile(String data, String datePattern, String dateFormat,
 			String dateLocale, String beginRegex, String endRegex, String charset) throws IOException;
+	
+	void abortTextFile(String guid);
 }
