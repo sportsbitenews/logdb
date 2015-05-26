@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.parser;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +25,7 @@ import org.araqne.log.api.LogParserRegistry;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.junit.Test;
 
@@ -32,6 +33,8 @@ public class ParseParserTest {
 	@Test
 	public void parseSuccessTest() {
 		assertEquals("parse test", getParseResult("parse test"));
+		
+		assertEquals("parse ass", getParseResult("parse ass"));
 
 		assertEquals("parse \"[Test: *]\" as test, \"[Time: *]\" as time", 
 				getParseResult("parse \"[Test: *]\" as test, \"[Time: *]\" as time"));
@@ -39,7 +42,28 @@ public class ParseParserTest {
 
 	@Test
 	public void parseFailureTest() {
-		// assertEquals("parse test", getParseResult("parse test"));
+		try {
+			assertEquals("parse \"t\" for as", getParseResult("parse \"t\" for as"));
+			fail();
+		} catch (QueryParseException e) {
+			assertEquals("21003", e.getType());
+		}
+
+		try {
+			assertEquals("parse t as as", getParseResult("parse t as as"));
+			fail();
+		} catch (QueryParseException e) {
+			assertEquals("21004", e.getType());
+		}
+
+		try {
+			assertEquals("parse \"t\" as \"2\"", getParseResult("parse \"t\" for \"2\""));
+			fail();
+		} catch (QueryParseException e) {
+			assertEquals("21003", e.getType());
+		}
+
+
 	}
 
 	private String getParseResult(String testString) {
@@ -69,8 +93,9 @@ public class ParseParserTest {
 		LogParserRegistry lpr = mock(LogParserRegistry.class);
 
 		when(lpr.getProfile("test")).thenReturn(mock(LogParserProfile.class));
+		when(lpr.getProfile("ass")).thenReturn(mock(LogParserProfile.class));
 		when(lpr.newParser("test")).thenReturn(mock(LogParser.class));
-
+		when(lpr.newParser("ass")).thenReturn(mock(LogParser.class));
 		return lpr;
 	}
 
