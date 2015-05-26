@@ -239,10 +239,15 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public void stop(Throwable cause) {
+		// onClose callback can fail (e.g. sort) even if driver is ended
+		if (this.cause == null && cause != null) {
+			this.cause = cause;
+			this.stopReason = QueryStopReason.CommandFailure;
+		}
+
 		if (stopReason != null)
 			return;
 
-		this.cause = cause;
 		stop(QueryStopReason.CommandFailure);
 	}
 

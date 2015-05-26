@@ -53,7 +53,7 @@ class RunInputRandomAccess {
 
 		dataRaf.seek(pos);
 		int len = dataRaf.readInt();
-
+		
 		byte[] b = IoHelper.ensureBuffer(reuseBuffer, len);
 		int readBytes = dataRaf.read(b, 0, len);
 		if (readBytes != len)
