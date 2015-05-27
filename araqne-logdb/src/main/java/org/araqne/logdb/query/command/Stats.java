@@ -16,9 +16,11 @@
 package org.araqne.logdb.query.command;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +73,14 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		this.clauseCount = clauses.size();
 		this.useClause = clauseCount > 0;
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
+
+		int queryId = 0;
+		if (getQuery() != null)
+			queryId = getQuery().getId();
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
+		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
+
 		this.buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
 		this.fields = fields;
 		this.funcs = new AggregationFunction[fields.size()];
@@ -328,8 +338,9 @@ public class Stats extends QueryCommand implements FieldOrdering {
 			}
 
 			logger.debug("araqne logdb: sorted stats input [{}]", count);
-		} catch (IOException e) {
-			throw new IllegalStateException("sort failed, query " + query, e);
+		} catch (Throwable t) {
+			getQuery().stop(t);
+			throw new IllegalStateException("sort failed, query " + query, t);
 		} finally {
 			if (it != null) {
 				try {

@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 class RunInput {
 	private static final int READ_BUFFER_SIZE = 1024 * 128;
 	private final Logger logger = LoggerFactory.getLogger(RunInput.class);
-	private ThreadLocal<byte[]> readBuffer = new ThreadLocal<byte[]>() {
+	private ThreadLocal<byte[]> reuseBuffer = new ThreadLocal<byte[]>() {
 		@Override
 		protected byte[] initialValue() {
 			return new byte[640 * 1024];
@@ -102,7 +102,8 @@ class RunInput {
 			int readBytes = IoHelper.ensureRead(bis, intbuf, 4);
 			if (readBytes == 4) {
 				int len = IoHelper.decodeInt(intbuf);
-				byte[] buf = readBuffer.get();
+				byte[] buf = IoHelper.ensureBuffer(reuseBuffer.get(), len);
+				
 				readBytes = IoHelper.ensureRead(bis, buf, len);
 				if (readBytes == len)
 					prefetch = (Item) EncodingRule.decode(ByteBuffer.wrap(buf, 0, len), SortCodec.instance);

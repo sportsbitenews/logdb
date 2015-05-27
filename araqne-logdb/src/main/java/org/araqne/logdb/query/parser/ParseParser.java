@@ -76,7 +76,7 @@ public class ParseParser extends AbstractQueryCommandParser {
 		//	throw new QueryParseException("missing-parameter", r.next);
 			throw new QueryParseException("21000", getCommandName().length() + 1, commandString.length() - 1, null);
 		
-		if (QueryTokenizer.findKeyword(remainder, "as") == -1) {
+		if (QueryTokenizer.tokenize(remainder).size() == 1) {
 			return newParserFromRegistry(overlay, remainder);
 		}
 		

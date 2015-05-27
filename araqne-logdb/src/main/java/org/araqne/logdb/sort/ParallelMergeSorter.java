@@ -54,6 +54,7 @@ public class ParallelMergeSorter {
 	private ExecutorService executor;
 	private CountDownLatch mergeLatch;
 	private volatile boolean canceled;
+	private String tag = "";
 
 	// end of input stream, do not allow add()
 	private volatile boolean eos;
@@ -73,6 +74,13 @@ public class ParallelMergeSorter {
 		this.runIndexer = new AtomicInteger();
 		this.executor = new ThreadPoolExecutor(8, 8, 10, TimeUnit.SECONDS, new LimitedQueue<Runnable>(8), new CallerRunsPolicy());
 		this.cacheCount = new AtomicInteger(memoryRunCount);
+	}
+
+	public void setTag(String tag) {
+		if (tag == null)
+			throw new IllegalArgumentException("sort tag should not be null");
+
+		this.tag = tag;
 	}
 
 	public class LimitedQueue<E> extends ArrayBlockingQueue<E> {
@@ -98,7 +106,7 @@ public class ParallelMergeSorter {
 	public void add(Item item) throws IOException {
 		if (eos)
 			throw new IllegalStateException("sort ended");
-		
+
 		buffer.add(item);
 		if (buffer.size() >= runLength)
 			flushRun();
@@ -107,7 +115,7 @@ public class ParallelMergeSorter {
 	public void addAll(List<? extends Item> items) throws IOException {
 		if (eos)
 			throw new IllegalStateException("sort ended");
-		
+
 		buffer.addAll(items);
 		if (buffer.size() >= runLength)
 			flushRun();
@@ -135,8 +143,28 @@ public class ParallelMergeSorter {
 			CloseableIterator it = mergeAll(partitions);
 			logger.trace("merge ended");
 			return it;
+		} catch (IOException e) {
+			purgeAll();
+			throw e;
+		} catch (Throwable t) {
+			purgeAll();
+			String msg = "sort failed - " + t.toString();
+			throw new IOException(msg, t);
 		} finally {
 			executor.shutdown();
+		}
+	}
+
+	/**
+	 * purge all runs if undesired exception occurs
+	 */
+	private void purgeAll() {
+		for (Run run : runs) {
+			if (run.indexFile != null)
+				run.indexFile.delete();
+
+			if (run.dataFile != null)
+				run.dataFile.delete();
 		}
 	}
 
@@ -146,7 +174,7 @@ public class ParallelMergeSorter {
 		sort().close();
 	}
 
-	private List<Partition> buildPartitions() throws IOException, FileNotFoundException {
+	private List<Partition> buildPartitions() throws IOException {
 		// flush rest objects
 		if (!canceled)
 			flushRun();
@@ -176,16 +204,28 @@ public class ParallelMergeSorter {
 		for (Run run : runs)
 			sortedRuns.add(new SortedRunImpl(run));
 
-		runs.clear();
+		try {
+			int partitionCount = getProperPartitionCount();
+			List<Partition> partitions = partitioner.partition(partitionCount, sortedRuns);
+			
+			// run should be purged at caller if partitioning is failed
+			runs.clear();
 
-		int partitionCount = getProperPartitionCount();
-		List<Partition> partitions = partitioner.partition(partitionCount, sortedRuns);
-		for (SortedRun r : sortedRuns)
-			((SortedRunImpl) r).close();
+			long elapsed = new Date().getTime() - begin;
+			logger.trace("araqne logdb: [{}] partitioning completed in {}ms", partitionCount, elapsed);
+			return partitions;
 
-		long elapsed = new Date().getTime() - begin;
-		logger.trace("araqne logdb: [{}] partitioning completed in {}ms", partitionCount, elapsed);
-		return partitions;
+		} catch (RuntimeException e) {
+			throw e;
+		} finally {
+			for (SortedRun r : sortedRuns) {
+				try {
+					((SortedRunImpl) r).close();
+				} catch (Throwable t) {
+					logger.debug("araqne logdb: cannot close sort run", t);
+				}
+			}
+		}
 	}
 
 	private static int getProperPartitionCount() {
@@ -321,7 +361,7 @@ public class ParallelMergeSorter {
 			Collections.sort(buffered, comparator);
 
 			int id = runIndexer.incrementAndGet();
-			RunOutput out = new RunOutput(id, buffered.size(), cacheCount);
+			RunOutput out = new RunOutput(id, buffered.size(), cacheCount, tag);
 			try {
 				for (Item o : buffered)
 					out.write(o);
@@ -401,7 +441,7 @@ public class ParallelMergeSorter {
 			}
 
 			int id = runIndexer.incrementAndGet();
-			r3 = new RunOutput(id, total, cacheCount, true);
+			r3 = new RunOutput(id, total, cacheCount, true, tag);
 
 			while (!canceled) {
 				// load next inputs
