@@ -152,5 +152,10 @@ public class WildcardTableSpec implements TableSpec {
 	public void setNamespace(String ns) {
 		this.namespace = ns;
 	}
+	
+	@Override
+	public void setOptional(boolean optional) {
+		this.optional = optional;
+	}
 }
 

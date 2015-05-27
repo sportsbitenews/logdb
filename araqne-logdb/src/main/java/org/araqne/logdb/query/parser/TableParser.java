@@ -339,7 +339,8 @@ public class TableParser extends AbstractQueryCommandParser {
 		public MetaS(Expression pred, TableSpec pat) {
 			this.predicate = pred;
 			this.pattern = pat;
-			this.mm = new MetadataMatcher<TableSpec>(predicate.eval(new Row()).toString(), Arrays.asList(pattern));
+			this.mm = new MetadataMatcher<TableSpec>(
+					predicate.eval(new Row()).toString(), Arrays.asList(pattern));
 		}
 
 		public Object clone() {
@@ -379,7 +380,19 @@ public class TableParser extends AbstractQueryCommandParser {
 			sb.append(")");
 			return sb.toString();
 		}
+
+		@Override
+		public boolean isOptional() {
+			return true;
+		}
+
+		@Override
+		public void setOptional(boolean optional) {
+			throw new UnsupportedOperationException(
+					"set table-metadata matcher as not-optional is not supported");
+		}
 	}
+	
 
 	private static class Meta implements Expression {
 		private List<TableSpec> patterns;
