@@ -60,6 +60,12 @@ public abstract class AbstractLogDbSession implements LogDbSession {
 				throw new LoginFailureException(errorCode);
 			} else
 				isLogin = true;
+		} catch (MessageException e) {
+			isLogin = false;
+			if (e.getMessage() != null && e.getMessage().contains("msgbus-handler-not-found"))
+				throw new LoginFailureException("msgbus-handler-not-found");
+			else 
+				throw e;
 		} catch (IOException t) {
 			isLogin = false;
 			throw t;

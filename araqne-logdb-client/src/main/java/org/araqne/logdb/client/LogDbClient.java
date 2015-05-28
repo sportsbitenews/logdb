@@ -2387,7 +2387,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		public void start() {
 			synchronized (this) {
 				if (th == null) {
-					th = new Thread(this, "Insert flush thread");
+					th = new Thread(this, String.format("Insert flush thread"));
 					th.start();
 				}
 			}

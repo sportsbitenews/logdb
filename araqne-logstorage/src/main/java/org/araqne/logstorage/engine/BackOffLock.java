@@ -26,7 +26,7 @@ public class BackOffLock {
 	public BackOffLock(Lock l) {
 		this.lock = l;
 		to = Integer.MIN_VALUE;
-		this.min = 0;
+		this.min = 1000;
 		this.max = MAX_WAIT;
 	}
 
@@ -34,13 +34,13 @@ public class BackOffLock {
 		this.lock = l;
 		to = unit.toNanos(time);
 
-		this.min = 0;
+		this.min = 1000;
 		this.max = (int) Math.min(unit.toNanos(time) / 100, MAX_WAIT);
 	}
 
 	private long nextBackOff() {
-		int rmin = 1000;
-		int rmax = Math.max(1001, min);
+		int rmin = 100000;
+		int rmax = Math.max(100100, min);
 		int ni = rmin + rand.get().nextInt(rmax - rmin);
 		min = Math.min(min == 0 ? 1 : min * 2, max);
 		return ni;

@@ -17,4 +17,8 @@ public interface StorageObjectSpec extends Cloneable {
 	public String getTable();
 	
 	public Object clone();
+	
+	public boolean isOptional();
+	
+	public void setOptional(boolean optional);
 }
