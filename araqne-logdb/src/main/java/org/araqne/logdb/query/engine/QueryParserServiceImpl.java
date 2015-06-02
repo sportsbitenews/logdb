@@ -70,6 +70,11 @@ public class QueryParserServiceImpl implements QueryParserService {
 	}
 
 	@Override
+	public List<QueryCommandParser> getCommandParsers() {
+		return new ArrayList<QueryCommandParser>(commandParsers.values());
+	}
+
+	@Override
 	public List<QueryCommand> parseCommands(QueryContext context, String queryString) {
 		List<QueryCommand> commands = new ArrayList<QueryCommand>();
 		int offsetCnt = 0; //
