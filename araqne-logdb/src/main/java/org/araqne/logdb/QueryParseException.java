@@ -30,12 +30,17 @@ public class QueryParseException extends RuntimeException {
 	private int offsetS;
 	private int offsetE;
 	private List<Integer> offsetList;
-
+	
 	public QueryParseException(String type, int offset) {
-		this(type, offset, null);
+		this(type, offset, null, null);
+	}
+	
+	public QueryParseException(String type, int offset, String note) {
+		this(type, offset, note, null);
 	}
 
-	public QueryParseException(String type, int offset, String note) {
+	public QueryParseException(String type, int offset, String note, Throwable t) {
+		super(t);
 		this.type = type;
 		this.offset = offset;
 		this.note = note;
