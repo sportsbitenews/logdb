@@ -59,13 +59,13 @@ public class ExshieldCsvParser extends V1LogParser {
 						m.put(field, value);
 						break;
 					case 1:
-						if (value.isEmpty())
+						if (value.isEmpty() || value.equals("-"))
 							m.put(field, null);
 						else
 							m.put(field, Integer.valueOf(value));
 						break;
 					case 2:
-						if (value.isEmpty())
+						if (value.isEmpty() || value.equals("-"))
 							m.put(field, null);
 						else
 							m.put(field, Long.valueOf(value));
@@ -94,13 +94,13 @@ public class ExshieldCsvParser extends V1LogParser {
 						m.put(field, value);
 						break;
 					case 1:
-						if (value.isEmpty())
+						if (value.isEmpty() || value.equals("-"))
 							m.put(field, null);
 						else
 							m.put(field, Integer.valueOf(value));
 						break;
 					case 2:
-						if (value.isEmpty())
+						if (value.isEmpty() || value.equals("-"))
 							m.put(field, null);
 						else
 							m.put(field, Long.valueOf(value));
