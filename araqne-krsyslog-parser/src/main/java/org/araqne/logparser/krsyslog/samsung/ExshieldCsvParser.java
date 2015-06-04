@@ -113,8 +113,8 @@ public class ExshieldCsvParser extends V1LogParser {
 
 			return m;
 		} catch (Throwable t) {
-			t.printStackTrace();
-			slog.debug("araqne krsyslog parser: cannot parse exshield csv log - " + line, t);
+			if (slog.isDebugEnabled())
+				slog.debug("araqne krsyslog parser: cannot parse exshield csv log - " + line, t);
 			return params;
 		}
 	}
