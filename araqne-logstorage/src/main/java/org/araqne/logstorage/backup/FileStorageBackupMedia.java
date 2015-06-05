@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 public class FileStorageBackupMedia implements StorageBackupMedia {
 	private final Logger logger = LoggerFactory.getLogger(FileStorageBackupMedia.class);
 	private File path;
+	private boolean canceled;
 
 	private Map<String, TableSchema> cachedSchemas;
 
@@ -71,6 +72,11 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 				logger.error("araqne logstorage: cannot load table metadata", e);
 			}
 		}
+	}
+
+	@Override
+	public void cancelCopy() {
+		canceled = true;
 	}
 
 	@Override
@@ -117,6 +123,23 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 				} catch (IOException e) {
 				}
 			}
+		}
+	}
+
+	@Override
+	public boolean exists(String tableName, String fileName) throws IOException {
+		try {
+			List<StorageMediaFile> mediaFiles = getFiles(tableName);
+			if (mediaFiles.size() <= 0)
+				return false;
+
+			for (StorageMediaFile mediaFile : mediaFiles) {
+				if (fileName.equals(mediaFile.getFileName()))
+					return true;
+			}
+			return false;
+		} catch (IOException e) {
+			return false;
 		}
 	}
 
@@ -221,8 +244,14 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 	}
 
 	private void ensureTransferTo(FileChannel srcChannel, FileChannel dstChannel, long length) throws IOException {
-		long copied = 0;
+		ensureTransferTo(srcChannel, dstChannel, length, 0);
+	}
+
+	private void ensureTransferTo(FileChannel srcChannel, FileChannel dstChannel, long length, long copied) throws IOException {
 		while (copied < length) {
+			if (canceled)
+				break;
+
 			copied += srcChannel.transferTo(copied, length - copied, dstChannel);
 		}
 	}
@@ -233,14 +262,18 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 
 		if (src != null) {
 			File dst = new File(path, "table/" + src.getTableId() + "/" + src.getFileName());
-			if (dst.exists())
-				throw new IOException("file already exists: " + dst.getAbsolutePath());
-
+			if (req.isOverwrite())
+				dst.delete();
+			
 			File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
+			if(req.isIncremental() && dst.exists()) 
+				dst.renameTo(dstTmp);
+
 			dstTmp.getParentFile().mkdirs();
 
 			if (logger.isDebugEnabled())
-				logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(), dstTmp.getAbsolutePath());
+				logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(),
+						dstTmp.getAbsolutePath());
 
 			FileInputStream is = null;
 			FileOutputStream os = null;
@@ -250,7 +283,11 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 				os = new FileOutputStream(dstTmp);
 				FileChannel srcChannel = is.getChannel();
 				FileChannel dstChannel = os.getChannel();
-				ensureTransferTo(srcChannel, dstChannel, req.getStorageFile().getLength());
+
+				if (req.isIncremental())
+					ensureTransferTo(srcChannel, dstChannel, req.getStorageFile().getLength(), dst.length());
+				else
+					ensureTransferTo(srcChannel, dstChannel, req.getStorageFile().getLength());
 			} finally {
 				close(is);
 				close(os);
@@ -264,8 +301,8 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 		} else {
 			StorageTransferStream stream = req.getToMediaStream();
 			File dst = new File(path, "table/" + stream.getTableId() + "/" + stream.getMediaFileName());
-			if (dst.exists())
-				throw new IOException("file already exists: " + dst.getAbsolutePath());
+			if (req.isOverwrite())
+				dst.delete();
 
 			dst.getParentFile().mkdirs();
 

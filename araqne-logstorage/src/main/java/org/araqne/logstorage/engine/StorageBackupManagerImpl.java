@@ -29,8 +29,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.felix.ipojo.annotations.Component;
+import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.logstorage.LogStorage;
@@ -75,7 +77,16 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 	@Requires
 	private StorageManager storageManager;
 
+	private ConcurrentHashMap<String, BackupRunner> backupRunners = new ConcurrentHashMap<String, BackupRunner>();
+	private ConcurrentHashMap<String, RestoreRunner> restoreRunners = new ConcurrentHashMap<String, RestoreRunner>();
+
 	public StorageBackupManagerImpl() {
+	}
+
+	@Invalidate
+	public void stop() {
+		backupRunners.clear();
+		restoreRunners.clear();
 	}
 
 	@Override
@@ -169,12 +180,46 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 		if (job.getRequest().getType() == StorageBackupType.BACKUP) {
 			BackupRunner runner = new BackupRunner(job);
 			job.setSubmitAt(new Date());
+
+			backupRunners.putIfAbsent(job.getRequest().getGuid(), runner);
 			runner.start();
 		} else {
 			RestoreRunner runner = new RestoreRunner(job);
 			job.setSubmitAt(new Date());
+
+			restoreRunners.putIfAbsent(job.getRequest().getGuid(), runner);
 			runner.start();
 		}
+	}
+
+	@Override
+	public List<StorageBackupJob> getBackupJobs() {
+		List<StorageBackupJob> backupJobs = new ArrayList<StorageBackupJob>();
+		for(BackupRunner r : backupRunners.values()) {
+			backupJobs.add(r.job);
+		}
+
+		return backupJobs;
+	}
+
+	@Override
+	public List<StorageBackupJob> getRestoreJobs() {
+		List<StorageBackupJob> restoreJobs = new ArrayList<StorageBackupJob>();
+		for(RestoreRunner r : restoreRunners.values()) {
+			restoreJobs.add(r.job);
+		}
+
+		return restoreJobs;
+	}
+
+	@Override
+	public StorageBackupJob getBackupJob(String guid) {
+		return backupRunners.get(guid).job;
+	}
+
+	@Override
+	public StorageBackupJob getRestoreJob(String guid) {
+		return restoreRunners.get(guid).job;
 	}
 
 	private class RestoreRunner extends Thread {
@@ -287,38 +332,47 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 				monitor.onBeginJob(job);
 
 			try {
-				Set<String> tableNames = job.getStorageFiles().keySet();
+				if (job.isOverwrite() && job.isIncremental())
+					throw new IOException("araqne logstorage: invalid backup options(choose overwrite or incremental)");
 
+				Set<String> tableNames = job.getStorageFiles().keySet();
 				for (String tableName : tableNames) {
-					if (monitor != null)
-						monitor.onBeginTable(job, tableName);
+					TableSchema schema = tableRegistry.getTableSchema(tableName);
 
 					// overwrite table metadata file
-					TableSchema schema = tableRegistry.getTableSchema(tableName);
 					Map<String, Object> metadata = new HashMap<String, Object>();
 					metadata.put("table_name", tableName);
 					metadata.put("metadata", schema.getMetadata());
 
-					try {
-						String json = JSONConverter.jsonize(metadata);
-						byte[] b = json.getBytes("utf-8");
-						ByteArrayInputStream is = new ByteArrayInputStream(b);
-						int tableId = schema.getId();
+					String json = JSONConverter.jsonize(metadata);
+					byte[] b = json.getBytes("utf-8");
+					ByteArrayInputStream is = new ByteArrayInputStream(b);
+					int tableId = schema.getId();
+					StorageTransferStream stream = new StorageTransferStream(tableName, tableId, is, TABLE_METADATA_JSON);
 
-						StorageTransferStream stream = new StorageTransferStream(tableName, tableId, is, TABLE_METADATA_JSON);
+					List<StorageFile> files = job.getStorageFiles().get(tableName);
+
+					if ((!job.isOverwrite() && !job.isIncremental()) && files.size() != 0
+							&& !checkValidation(job.getDstFile(), stream, media, tableName, files))
+						throw new IOException("30207");
+
+					if (monitor != null)
+						monitor.onBeginTable(job, tableName);
+
+					try {
 						media.copyToMedia(new StorageTransferRequest(stream));
 					} catch (Exception e) {
 						logger.error("araqne logstorage: table metadata backup failed", e);
 					}
 
 					// transfer files
-					List<StorageFile> files = job.getStorageFiles().get(tableName);
-
 					for (StorageFile storageFile : files) {
 						String subPath = storageFile.getFile().getParentFile().getName() + File.separator
 								+ storageFile.getFile().getName();
 						StorageMediaFile mediaFile = new StorageMediaFile(tableName, subPath, storageFile.getLength());
 						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
+						tr.setOverwrite(job.isOverwrite());
+						tr.setIncremental(job.isIncremental());
 						try {
 							if (monitor != null)
 								monitor.onBeginFile(job, tableName, storageFile.getFileName(), storageFile.getLength());
@@ -330,6 +384,8 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 								logger.debug("araqne logstorage: table backup failed", e);
 						} finally {
 							storageFile.setDone(true);
+							if (job.isMove())
+								storageFile.deleteFile(job.getDstFile());
 
 							if (monitor != null)
 								monitor.onCompleteFile(job, tableName, storageFile.getFileName(), storageFile.getLength());
@@ -343,8 +399,8 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 				logger.error("araqne logstorage: backup job failed", t);
 			} finally {
 				generateReport(job);
-
 				job.setDone(true);
+				backupRunners.remove(job.getRequest().getGuid(), job);
 
 				if (monitor != null)
 					monitor.onCompleteJob(job);
@@ -428,5 +484,14 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 	private void writeLine(Writer writer, String line) throws IOException {
 		String sep = System.getProperty("line.separator");
 		writer.write(line + sep);
+	}
+
+	private boolean checkValidation(File dstPath, StorageTransferStream stream, StorageBackupMedia media, String tableName,
+			List<StorageFile> files) throws IOException {
+		for (StorageFile f : files) {
+			if (media.exists(tableName, f.getFileName()))
+				return false;
+		}
+		return true;
 	}
 }

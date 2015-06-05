@@ -15,6 +15,7 @@
  */
 package org.araqne.logstorage.backup;
 
+import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -29,10 +30,12 @@ public class StorageBackupJob {
 
 	// sum bytes of all data files
 	private long totalBytes;
-
 	private Date submitAt;
-
 	private boolean done;
+	private boolean overwrite;
+	private boolean incremental;
+	private boolean move;
+	private File dstFile;
 
 	// table to files
 	private Map<String, List<StorageFile>> storageFiles;
@@ -68,6 +71,38 @@ public class StorageBackupJob {
 
 	public void setDone(boolean done) {
 		this.done = done;
+	}
+
+	public boolean isOverwrite() {
+		return overwrite;
+	}
+
+	public void setOverwrite(boolean overwrite) {
+		this.overwrite = overwrite;
+	}
+
+	public boolean isIncremental() {
+		return incremental;
+	}
+
+	public void setIncremental(boolean incremental) {
+		this.incremental = incremental;
+	}
+
+	public boolean isMove() {
+		return move;
+	}
+
+	public void setMove(boolean move) {
+		this.move = move;
+	}
+
+	public File getDstFile() {
+		return dstFile;
+	}
+
+	public void setDstPath(File dstFile) {
+		this.dstFile = dstFile;
 	}
 
 	public Map<String, List<StorageFile>> getStorageFiles() {

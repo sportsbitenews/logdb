@@ -17,6 +17,7 @@ package org.araqne.logstorage.backup;
 
 import java.util.Date;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * @since 2.2.7
@@ -24,6 +25,7 @@ import java.util.Set;
  * 
  */
 public class StorageBackupRequest {
+	private String guid;
 	private StorageBackupType type;
 	private Set<String> tableNames;
 	private Date from;
@@ -32,7 +34,12 @@ public class StorageBackupRequest {
 	private StorageBackupProgressMonitor progressMonitor;
 
 	public StorageBackupRequest(StorageBackupType type) {
+		this.guid = UUID.randomUUID().toString();
 		this.type = type;
+	}
+
+	public String getGuid() {
+		return guid;
 	}
 
 	public StorageBackupType getType() {

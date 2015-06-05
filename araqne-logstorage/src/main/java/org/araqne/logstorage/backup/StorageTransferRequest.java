@@ -22,10 +22,11 @@ package org.araqne.logstorage.backup;
  * 
  */
 public class StorageTransferRequest {
-
 	private StorageFile storageFile;
 	private StorageMediaFile mediaFile;
 	private StorageTransferStream transferStream;
+	private boolean overwrite = false;
+	private boolean incremental = false;
 
 	public StorageTransferRequest(StorageTransferStream transferStream) {
 		this.transferStream = transferStream;
@@ -46,5 +47,21 @@ public class StorageTransferRequest {
 
 	public StorageTransferStream getToMediaStream() {
 		return transferStream;
+	}
+
+	public boolean isOverwrite() {
+		return overwrite;
+	}
+
+	public void setOverwrite(boolean overwrite) {
+		this.overwrite = overwrite;
+	}
+
+	public boolean isIncremental() {
+		return incremental;
+	}
+
+	public void setIncremental(boolean incremental) {
+		this.incremental = incremental;
 	}
 }

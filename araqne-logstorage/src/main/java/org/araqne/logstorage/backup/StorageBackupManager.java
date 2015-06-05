@@ -16,6 +16,7 @@
 package org.araqne.logstorage.backup;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * @since 2.2.7
@@ -23,6 +24,14 @@ import java.io.IOException;
  * 
  */
 public interface StorageBackupManager {
+	List<StorageBackupJob> getBackupJobs();
+
+	List<StorageBackupJob> getRestoreJobs();
+
+	StorageBackupJob getBackupJob(String guid);
+
+	StorageBackupJob getRestoreJob(String guid);
+
 	StorageBackupJob prepare(StorageBackupRequest req) throws IOException;
 
 	void execute(StorageBackupJob job);
