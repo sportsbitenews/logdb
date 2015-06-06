@@ -97,6 +97,5 @@ public class StorageFile {
 
 		if (file.length() == f.length())
 			file.delete();
-
 	}
 }

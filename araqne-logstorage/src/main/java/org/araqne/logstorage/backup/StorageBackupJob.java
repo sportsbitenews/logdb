@@ -35,7 +35,7 @@ public class StorageBackupJob {
 	private boolean overwrite;
 	private boolean incremental;
 	private boolean move;
-	private File dstFile;
+	private File tablePath;
 
 	// table to files
 	private Map<String, List<StorageFile>> storageFiles;
@@ -97,12 +97,12 @@ public class StorageBackupJob {
 		this.move = move;
 	}
 
-	public File getDstFile() {
-		return dstFile;
+	public File getTablePath() {
+		return tablePath;
 	}
 
-	public void setDstPath(File dstFile) {
-		this.dstFile = dstFile;
+	public void setTablePath(File tablePath) {
+		this.tablePath = tablePath;
 	}
 
 	public Map<String, List<StorageFile>> getStorageFiles() {

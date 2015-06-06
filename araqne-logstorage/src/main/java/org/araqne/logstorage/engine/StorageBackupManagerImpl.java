@@ -195,7 +195,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 	@Override
 	public List<StorageBackupJob> getBackupJobs() {
 		List<StorageBackupJob> backupJobs = new ArrayList<StorageBackupJob>();
-		for(BackupRunner r : backupRunners.values()) {
+		for (BackupRunner r : backupRunners.values()) {
 			backupJobs.add(r.job);
 		}
 
@@ -205,7 +205,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 	@Override
 	public List<StorageBackupJob> getRestoreJobs() {
 		List<StorageBackupJob> restoreJobs = new ArrayList<StorageBackupJob>();
-		for(RestoreRunner r : restoreRunners.values()) {
+		for (RestoreRunner r : restoreRunners.values()) {
 			restoreJobs.add(r.job);
 		}
 
@@ -337,29 +337,28 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 				Set<String> tableNames = job.getStorageFiles().keySet();
 				for (String tableName : tableNames) {
-					TableSchema schema = tableRegistry.getTableSchema(tableName);
-
-					// overwrite table metadata file
-					Map<String, Object> metadata = new HashMap<String, Object>();
-					metadata.put("table_name", tableName);
-					metadata.put("metadata", schema.getMetadata());
-
-					String json = JSONConverter.jsonize(metadata);
-					byte[] b = json.getBytes("utf-8");
-					ByteArrayInputStream is = new ByteArrayInputStream(b);
-					int tableId = schema.getId();
-					StorageTransferStream stream = new StorageTransferStream(tableName, tableId, is, TABLE_METADATA_JSON);
-
 					List<StorageFile> files = job.getStorageFiles().get(tableName);
 
 					if ((!job.isOverwrite() && !job.isIncremental()) && files.size() != 0
-							&& !checkValidation(job.getDstFile(), stream, media, tableName, files))
+							&& !checkValidation(media, tableName, files))
 						throw new IOException("30207");
 
 					if (monitor != null)
 						monitor.onBeginTable(job, tableName);
 
 					try {
+						TableSchema schema = tableRegistry.getTableSchema(tableName);
+
+						// overwrite table metadata file
+						Map<String, Object> metadata = new HashMap<String, Object>();
+						metadata.put("table_name", tableName);
+						metadata.put("metadata", schema.getMetadata());
+
+						String json = JSONConverter.jsonize(metadata);
+						byte[] b = json.getBytes("utf-8");
+						ByteArrayInputStream is = new ByteArrayInputStream(b);
+						int tableId = schema.getId();
+						StorageTransferStream stream = new StorageTransferStream(tableName, tableId, is, TABLE_METADATA_JSON);
 						media.copyToMedia(new StorageTransferRequest(stream));
 					} catch (Exception e) {
 						logger.error("araqne logstorage: table metadata backup failed", e);
@@ -385,7 +384,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 						} finally {
 							storageFile.setDone(true);
 							if (job.isMove())
-								storageFile.deleteFile(job.getDstFile());
+								storageFile.deleteFile(job.getTablePath());
 
 							if (monitor != null)
 								monitor.onCompleteFile(job, tableName, storageFile.getFileName(), storageFile.getLength());
@@ -486,8 +485,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 		writer.write(line + sep);
 	}
 
-	private boolean checkValidation(File dstPath, StorageTransferStream stream, StorageBackupMedia media, String tableName,
-			List<StorageFile> files) throws IOException {
+	private boolean checkValidation(StorageBackupMedia media, String tableName, List<StorageFile> files) throws IOException {
 		for (StorageFile f : files) {
 			if (media.exists(tableName, f.getFileName()))
 				return false;
