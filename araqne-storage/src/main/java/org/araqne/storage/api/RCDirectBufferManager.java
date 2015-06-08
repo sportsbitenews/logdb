@@ -40,7 +40,7 @@ public interface RCDirectBufferManager {
 
 		@Override
 		public String getMessage() {
-			return "RCDirectBufferManagerImpl : Allocated Offheap size is " + this.size + " but limit is " + this.limit;
+			return "ExceedPoolSizeLimitException : Allocated Offheap size is " + this.size + " but limit is " + this.limit;
 		}
 	}
 }

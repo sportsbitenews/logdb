@@ -65,7 +65,7 @@ public class RCDirectBufferManagerImpl implements RCDirectBufferManager {
 		Long futurePoolSize = poolSize.addAndGet(capacity);
 		if (futurePoolSize > poolSizeLimit) {
 			poolSize.addAndGet(-capacity);
-			throw new ExceedPoolSizeLimitException(futurePoolSize, poolSizeLimit);
+			throw new ExceedPoolSizeLimitException(futurePoolSize + capacity, poolSizeLimit);
 		}
 
 		ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
@@ -166,13 +166,18 @@ public class RCDirectBufferManagerImpl implements RCDirectBufferManager {
 		} catch (Throwable t) {
 			dbLogger.warn("directByteBuffer destruction failed: ", t);
 		} finally {
+			long capacity = buffer.capacity();
 			AtomicLong poolSize = poolSizes.get(poolName);
-			Long usageSize = usageSizes.get(usageName).get();
-			poolSize.addAndGet(-usageSize);
+			poolSize.addAndGet(-capacity);
+
 			if (poolSize.compareAndSet(0, 0))
 				poolSizes.remove(poolName);
 
-			usageSizes.remove(usageName);
+			AtomicLong usageSize = usageSizes.get(usageName);
+			usageSize.addAndGet(-capacity);
+
+			if (usageSize.compareAndSet(0, 0))
+				usageSizes.remove(usageName);
 		}
 
 	}
