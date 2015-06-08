@@ -32,5 +32,6 @@
 	<instance component="logdb-function-registry" />
 	<instance component="logdb-procedure-registry" />
 	<instance component="logdb-selector-parser-factory" />
+	<instance component="logdb-data-upload" />
 	<instance component="logdb-command-metadata" />
 </ipojo>
