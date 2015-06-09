@@ -127,6 +127,10 @@ public class LocalImportWorker implements ImportWorker {
 				if (readBytes <= 0)
 					break;
 
+				if (slog.isDebugEnabled())
+					slog.debug("araqne logstorage: importing table [{}] block len [{}] actual len [{}]", new Object[] {
+							tableName, len, readBytes });
+
 				Object[] arr = (Object[]) EncodingRule.decode(ByteBuffer.wrap(b));
 				List<Log> logs = new ArrayList<Log>();
 

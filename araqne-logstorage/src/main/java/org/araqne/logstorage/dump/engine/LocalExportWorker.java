@@ -115,6 +115,7 @@ public class LocalExportWorker implements ExportWorker {
 
 				manifest.getEntries().add(t.toEntry());
 
+				bos.flush();
 				zos.closeEntry();
 			}
 
