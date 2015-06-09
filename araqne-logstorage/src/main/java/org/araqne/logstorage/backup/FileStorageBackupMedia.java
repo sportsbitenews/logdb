@@ -266,8 +266,12 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 				dst.delete();
 			
 			File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
-			if(req.isIncremental() && dst.exists()) 
-				dst.renameTo(dstTmp);
+			if(req.isIncremental() && dst.exists()) {
+				if(dst.length() == src.getLength())
+					return;
+				else
+					dst.renameTo(dstTmp);
+			}
 
 			dstTmp.getParentFile().mkdirs();
 
@@ -285,9 +289,9 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 				FileChannel dstChannel = os.getChannel();
 
 				if (req.isIncremental())
-					ensureTransferTo(srcChannel, dstChannel, req.getStorageFile().getLength(), dst.length());
+					ensureTransferTo(srcChannel, dstChannel, src.getLength(), dst.length());
 				else
-					ensureTransferTo(srcChannel, dstChannel, req.getStorageFile().getLength());
+					ensureTransferTo(srcChannel, dstChannel, src.getLength());
 			} finally {
 				close(is);
 				close(os);

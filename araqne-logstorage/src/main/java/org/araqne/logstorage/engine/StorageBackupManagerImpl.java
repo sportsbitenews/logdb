@@ -214,12 +214,14 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 	@Override
 	public StorageBackupJob getBackupJob(String guid) {
-		return backupRunners.get(guid).job;
+		BackupRunner r = backupRunners.get(guid);
+		return (r == null) ? null: r.job;
 	}
 
 	@Override
 	public StorageBackupJob getRestoreJob(String guid) {
-		return restoreRunners.get(guid).job;
+		RestoreRunner r = restoreRunners.get(guid);
+		return (r == null) ? null: r.job;
 	}
 
 	private class RestoreRunner extends Thread {
