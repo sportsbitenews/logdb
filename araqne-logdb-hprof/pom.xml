@@ -33,7 +33,10 @@
 						<Export-Package>
 							org.araqne.logdb.hprof;version=${project.version}
 						</Export-Package>
-						<Import-Package>*</Import-Package>
+						<Import-Package>
+							org.araqne.logdb;version="2.6.0",
+							*
+						</Import-Package>
 						<Private-Package>
 							edu.tufts.eaftan.hprofparser,
 							edu.tufts.eaftan.hprofparser.handler,
@@ -72,7 +75,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logdb</artifactId>
-			<version>2.6.23</version>
+			<version>2.6.27</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.guava</groupId>

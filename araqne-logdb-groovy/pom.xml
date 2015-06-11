@@ -64,7 +64,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logdb</artifactId>
-			<version>2.6.23</version>
+			<version>2.6.27</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
@@ -74,7 +74,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.4.15</version>
+			<version>3.4.17</version>
 		</dependency>
 		<dependency>
 			<groupId>org.codehaus.groovy</groupId>

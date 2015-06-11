@@ -99,6 +99,9 @@ public class QueryTaskScheduler implements Runnable {
 		}
 
 		stopRecursively(tracer);
+		
+		finished = true;
+		finishTime = System.currentTimeMillis();
 	}
 
 	private synchronized void startReadyTasks() {

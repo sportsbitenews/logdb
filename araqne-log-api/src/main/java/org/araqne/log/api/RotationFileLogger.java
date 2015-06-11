@@ -126,7 +126,7 @@ public class RotationFileLogger extends AbstractLogger {
 			is.skip(offset);
 			extractor.extract(is, lastPosition);
 		} catch (Throwable t) {
-			slog.error("araqne log api: cannot read file", t);
+			slog.error("araqne log api: rotation logger [" + getFullName() + "] cannot read file", t);
 		} finally {
 			if (is != null) {
 				try {

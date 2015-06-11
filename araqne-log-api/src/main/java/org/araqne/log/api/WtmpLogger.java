@@ -106,8 +106,8 @@ public class WtmpLogger extends AbstractLogger {
 				data.put("session", e.getSession());
 				data.put("user", e.getUser());
 				
-				data.put("deviceName", e.getDeviceName());
-				data.put("initTabId", e.getInitTabId());
+				data.put("device", e.getDeviceName());
+				data.put("inittab_id", e.getInitTabId());
 
 				write(new SimpleLog(e.getDate(), getFullName(), data));
 				pos += blockSize;
