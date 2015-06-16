@@ -15,10 +15,13 @@
  */
 package org.araqne.logparser.krsyslog.monitorapp;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.codec.UnsupportedTypeException;
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.V1LogParser;
 
 public class WebInsightParser extends V1LogParser {
@@ -30,6 +33,29 @@ public class WebInsightParser extends V1LogParser {
 
 	private final static String[] systemFields = { "mgmt_ip", "version", "time", "cpu_avg", "mem_avg", "disk_avg", "link_status",
 			"open_connection", "cps", "tps", "bps", "httpgw_status" };
+
+	private static final List<FieldDefinition> fields;
+
+	static {
+		fields = new ArrayList<FieldDefinition>();
+
+		for (String fields : detectFields) {
+			addField(fields, "string");
+		}
+
+		for (String fields : systemFields) {
+			addField(fields, "string");
+		}
+	}
+
+	private static void addField(String name, String type) {
+		fields.add(new FieldDefinition(name, type));
+	}
+
+	@Override
+	public List<FieldDefinition> getFieldDefinitions() {
+		return fields;
+	}
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {

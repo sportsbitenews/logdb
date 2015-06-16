@@ -16,10 +16,13 @@
 package org.araqne.logparser.krsyslog.infosec;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.V1LogParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +51,24 @@ public class AntiWebShellLogParser extends V1LogParser {
 			FieldType.String, FieldType.String, FieldType.String, FieldType.String, FieldType.String, FieldType.String,
 			FieldType.String, FieldType.String, FieldType.String, FieldType.String, FieldType.String, FieldType.String,
 			FieldType.String, FieldType.String, FieldType.String, FieldType.String };
+
+	private static final List<FieldDefinition> fields;
+
+	static {
+		fields = new ArrayList<FieldDefinition>();
+		for (String key : Keys) {
+			addField(key, "string");
+		}
+	}
+
+	private static void addField(String name, String type) {
+		fields.add(new FieldDefinition(name, type));
+	}
+
+	@Override
+	public List<FieldDefinition> getFieldDefinitions() {
+		return fields;
+	}
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> log) {

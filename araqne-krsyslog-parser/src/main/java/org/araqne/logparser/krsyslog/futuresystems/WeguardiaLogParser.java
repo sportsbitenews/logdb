@@ -15,11 +15,14 @@
  */
 package org.araqne.logparser.krsyslog.futuresystems;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.DelimiterParser;
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.V1LogParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +36,24 @@ public class WeguardiaLogParser extends V1LogParser {
 
 	private DelimiterParser parser;
 	private ThreadLocal<Calendar> dateFormatters;
+
+	private static final List<FieldDefinition> fields;
+
+	static {
+		fields = new ArrayList<FieldDefinition>();
+		for (String columnHeader : columnHeaders) {
+			addField(columnHeader, "string");
+		}
+	}
+
+	private static void addField(String name, String type) {
+		fields.add(new FieldDefinition(name, type));
+	}
+
+	@Override
+	public List<FieldDefinition> getFieldDefinitions() {
+		return fields;
+	}
 
 	public WeguardiaLogParser() {
 		parser = new DelimiterParser(";", columnHeaders);
