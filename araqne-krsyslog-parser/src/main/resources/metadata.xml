@@ -24,4 +24,5 @@
 	<instance component="shellmonitor-parser-factory" />
 	<instance component="secuwiz-sslvpn-log-parser-factory" />
 	<instance component="exshield-csv-parser-factory" />
+	<instance component="mpx8400-parser-factory" />
 </ipojo>
