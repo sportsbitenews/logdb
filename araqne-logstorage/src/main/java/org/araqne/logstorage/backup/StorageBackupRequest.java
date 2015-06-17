@@ -24,7 +24,7 @@ import java.util.UUID;
  * @author xeraph
  * 
  */
-public class StorageBackupRequest {
+public class StorageBackupRequest implements Cloneable {
 	private String guid;
 	private StorageBackupType type;
 	private Set<String> tableNames;
@@ -36,6 +36,13 @@ public class StorageBackupRequest {
 	public StorageBackupRequest(StorageBackupType type) {
 		this.guid = UUID.randomUUID().toString();
 		this.type = type;
+	}
+
+	@Override
+	protected Object clone() throws CloneNotSupportedException {
+		StorageBackupRequest obj = (StorageBackupRequest) super.clone();
+		obj.media = (StorageBackupMedia) (((FileStorageBackupMedia) media).clone());
+		return obj;
 	}
 
 	public String getGuid() {

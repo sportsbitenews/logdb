@@ -91,11 +91,4 @@ public class StorageFile {
 	public File getFile() {
 		return file;
 	}
-
-	public void deleteFile(File mediaPath) {
-		File f = new File(mediaPath, "table/" + tableId + "/" + file.getName());
-
-		if (file.length() == f.length())
-			file.delete();
-	}
 }

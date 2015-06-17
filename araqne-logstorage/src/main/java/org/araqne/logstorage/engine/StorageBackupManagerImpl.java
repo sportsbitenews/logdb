@@ -181,47 +181,57 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 			BackupRunner runner = new BackupRunner(job);
 			job.setSubmitAt(new Date());
 
-			backupRunners.putIfAbsent(job.getRequest().getGuid(), runner);
+			String guid = job.getRequest().getGuid();
+			BackupRunner old = backupRunners.putIfAbsent(guid, runner);
+			if (old != null) {
+				backupRunners.remove(guid, old);
+				backupRunners.putIfAbsent(guid, runner);
+			}
 			runner.start();
 		} else {
 			RestoreRunner runner = new RestoreRunner(job);
 			job.setSubmitAt(new Date());
 
-			restoreRunners.putIfAbsent(job.getRequest().getGuid(), runner);
+			String guid = job.getRequest().getGuid();
+			RestoreRunner old = restoreRunners.putIfAbsent(guid, runner);
+			if (old != null) {
+				restoreRunners.remove(guid, old);
+				restoreRunners.putIfAbsent(guid, runner);
+			}
 			runner.start();
 		}
 	}
 
 	@Override
-	public List<StorageBackupJob> getBackupJobs() {
+	public List<StorageBackupJob> getBackupJobs() throws CloneNotSupportedException {
 		List<StorageBackupJob> backupJobs = new ArrayList<StorageBackupJob>();
 		for (BackupRunner r : backupRunners.values()) {
-			backupJobs.add(r.job);
+			backupJobs.add((StorageBackupJob) r.job.clone());
 		}
 
 		return backupJobs;
 	}
 
 	@Override
-	public List<StorageBackupJob> getRestoreJobs() {
+	public List<StorageBackupJob> getRestoreJobs() throws CloneNotSupportedException {
 		List<StorageBackupJob> restoreJobs = new ArrayList<StorageBackupJob>();
 		for (RestoreRunner r : restoreRunners.values()) {
-			restoreJobs.add(r.job);
+			restoreJobs.add((StorageBackupJob) r.job.clone());
 		}
 
 		return restoreJobs;
 	}
 
 	@Override
-	public StorageBackupJob getBackupJob(String guid) {
+	public StorageBackupJob getBackupJob(String guid) throws CloneNotSupportedException {
 		BackupRunner r = backupRunners.get(guid);
-		return (r == null) ? null: r.job;
+		return (r == null) ? null : (StorageBackupJob) r.job.clone();
 	}
 
 	@Override
-	public StorageBackupJob getRestoreJob(String guid) {
+	public StorageBackupJob getRestoreJob(String guid) throws CloneNotSupportedException {
 		RestoreRunner r = restoreRunners.get(guid);
-		return (r == null) ? null: r.job;
+		return (r == null) ? null : (StorageBackupJob) r.job.clone();
 	}
 
 	private class RestoreRunner extends Thread {
@@ -335,15 +345,15 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 			try {
 				if (job.isOverwrite() && job.isIncremental())
-					throw new IOException("araqne logstorage: invalid backup options(choose overwrite or incremental)");
+					throw new IOException("invalid backup options(choose overwrite or incremental) [guid:"
+							+ job.getRequest().getGuid() + "]");
 
 				Set<String> tableNames = job.getStorageFiles().keySet();
 				for (String tableName : tableNames) {
 					List<StorageFile> files = job.getStorageFiles().get(tableName);
 
-					if ((!job.isOverwrite() && !job.isIncremental()) && files.size() != 0
-							&& !checkValidation(media, tableName, files))
-						throw new IOException("30207");
+					if (!checkValidation(job, media, tableName, files))
+						throw new IOException("backup file already exists");
 
 					if (monitor != null)
 						monitor.onBeginTable(job, tableName);
@@ -386,7 +396,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 						} finally {
 							storageFile.setDone(true);
 							if (job.isMove())
-								storageFile.deleteFile(job.getTablePath());
+								media.deleteFile(tr);
 
 							if (monitor != null)
 								monitor.onCompleteFile(job, tableName, storageFile.getFileName(), storageFile.getLength());
@@ -487,7 +497,14 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 		writer.write(line + sep);
 	}
 
-	private boolean checkValidation(StorageBackupMedia media, String tableName, List<StorageFile> files) throws IOException {
+	private boolean checkValidation(StorageBackupJob job, StorageBackupMedia media, String tableName, List<StorageFile> files)
+			throws IOException {
+		if (job.isOverwrite() || job.isIncremental())
+			return true;
+
+		if (files.size() == 0)
+			return true;
+
 		for (StorageFile f : files) {
 			if (media.exists(tableName, f.getFileName()))
 				return false;

@@ -25,7 +25,7 @@ import java.util.Map;
  * @author xeraph
  * 
  */
-public class StorageBackupJob {
+public class StorageBackupJob implements Cloneable {
 	private StorageBackupRequest request;
 
 	// sum bytes of all data files
@@ -40,6 +40,13 @@ public class StorageBackupJob {
 	// table to files
 	private Map<String, List<StorageFile>> storageFiles;
 	private Map<String, List<StorageMediaFile>> mediaFiles;
+
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		StorageBackupJob obj = (StorageBackupJob) super.clone();
+		obj.request = (StorageBackupRequest) request.clone();
+		return obj;
+	}
 
 	public StorageBackupRequest getRequest() {
 		return request;

@@ -24,13 +24,13 @@ import java.util.List;
  * 
  */
 public interface StorageBackupManager {
-	List<StorageBackupJob> getBackupJobs();
+	List<StorageBackupJob> getBackupJobs() throws CloneNotSupportedException;
 
-	List<StorageBackupJob> getRestoreJobs();
+	List<StorageBackupJob> getRestoreJobs() throws CloneNotSupportedException;
 
-	StorageBackupJob getBackupJob(String guid);
+	StorageBackupJob getBackupJob(String guid) throws CloneNotSupportedException;
 
-	StorageBackupJob getRestoreJob(String guid);
+	StorageBackupJob getRestoreJob(String guid) throws CloneNotSupportedException;
 
 	StorageBackupJob prepare(StorageBackupRequest req) throws IOException;
 

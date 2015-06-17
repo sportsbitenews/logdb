@@ -44,4 +44,8 @@ public interface StorageBackupMedia {
 	void copyFromMedia(StorageTransferRequest req) throws IOException;
 
 	void copyToMedia(StorageTransferRequest req) throws IOException;
+
+	void deleteFile(StorageTransferRequest req) throws IOException;
+	
+	void setWormMedia(boolean isWorm);
 }

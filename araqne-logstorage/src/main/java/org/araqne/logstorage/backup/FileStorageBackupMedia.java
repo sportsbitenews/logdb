@@ -41,11 +41,11 @@ import org.slf4j.LoggerFactory;
  * @author xeraph
  * 
  */
-public class FileStorageBackupMedia implements StorageBackupMedia {
+public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 	private final Logger logger = LoggerFactory.getLogger(FileStorageBackupMedia.class);
 	private File path;
 	private boolean canceled;
-
+	private boolean isWorm;
 	private Map<String, TableSchema> cachedSchemas;
 
 	public FileStorageBackupMedia(File path) {
@@ -72,6 +72,11 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 				logger.error("araqne logstorage: cannot load table metadata", e);
 			}
 		}
+	}
+
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		return super.clone();
 	}
 
 	@Override
@@ -262,46 +267,15 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 
 		if (src != null) {
 			File dst = new File(path, "table/" + src.getTableId() + "/" + src.getFileName());
-			if (req.isOverwrite())
-				dst.delete();
-			
-			File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
-			if(req.isIncremental() && dst.exists()) {
-				if(dst.length() == src.getLength())
-					return;
-				else
-					dst.renameTo(dstTmp);
+			if (req.isOverwrite()) {
+				boolean isDelete = dst.delete();
+				if (!isDelete)
+					throw new IOException("delete failed, " + dst.getAbsolutePath());
 			}
-
-			dstTmp.getParentFile().mkdirs();
-
-			if (logger.isDebugEnabled())
-				logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(),
-						dstTmp.getAbsolutePath());
-
-			FileInputStream is = null;
-			FileOutputStream os = null;
-
-			try {
-				is = new FileInputStream(src.getFile());
-				os = new FileOutputStream(dstTmp);
-				FileChannel srcChannel = is.getChannel();
-				FileChannel dstChannel = os.getChannel();
-
-				if (req.isIncremental())
-					ensureTransferTo(srcChannel, dstChannel, src.getLength(), dst.length());
-				else
-					ensureTransferTo(srcChannel, dstChannel, src.getLength());
-			} finally {
-				close(is);
-				close(os);
-			}
-
-			if (!dstTmp.renameTo(dst)) {
-				dstTmp.delete();
-				throw new IOException("rename failed, " + dstTmp.getAbsolutePath());
-			}
-
+			if (isWorm)
+				copyToWorm(src, dst);
+			else
+				copyToDisk(src, dst, req.isIncremental());
 		} else {
 			StorageTransferStream stream = req.getToMediaStream();
 			File dst = new File(path, "table/" + stream.getTableId() + "/" + stream.getMediaFileName());
@@ -337,6 +311,89 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 			if (c != null)
 				c.close();
 		} catch (IOException e) {
+		}
+	}
+
+	@Override
+	public void deleteFile(StorageTransferRequest req) throws IOException {
+		StorageFile src = req.getStorageFile();
+		if (src == null)
+			return;
+
+		File dst = new File(path, "table/" + src.getTableId() + "/" + src.getFileName());
+		if (src.getFile().length() != dst.length())
+			return;
+
+		boolean isDelete = dst.delete();
+		if (!isDelete)
+			throw new IOException("delete failed, " + dst.getAbsolutePath());
+	}
+
+	@Override
+	public void setWormMedia(boolean isWorm) {
+		this.isWorm = isWorm;
+	}
+
+	private void copyToDisk(StorageFile src, File dst, boolean isIncremental) throws IOException {
+		File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
+		if (isIncremental && dst.exists()) {
+			if (dst.length() == src.getLength())
+				return;
+			else
+				dst.renameTo(dstTmp);
+		}
+
+		dstTmp.getParentFile().mkdirs();
+
+		if (logger.isDebugEnabled())
+			logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(), dstTmp.getAbsolutePath());
+
+		FileInputStream is = null;
+		FileOutputStream os = null;
+
+		try {
+			is = new FileInputStream(src.getFile());
+			os = new FileOutputStream(dstTmp);
+			FileChannel srcChannel = is.getChannel();
+			FileChannel dstChannel = os.getChannel();
+
+			if (isIncremental)
+				ensureTransferTo(srcChannel, dstChannel, src.getLength(), dst.length());
+			else
+				ensureTransferTo(srcChannel, dstChannel, src.getLength());
+		} finally {
+			close(is);
+			close(os);
+		}
+
+		if (!dstTmp.renameTo(dst)) {
+			dstTmp.delete();
+			throw new IOException("rename failed, " + dstTmp.getAbsolutePath());
+		}
+	}
+
+	private void copyToWorm(StorageFile src, File dst) throws IOException {
+		if (dst.exists())
+			throw new IOException("file [" + dst.getAbsolutePath() + "] is already exists");
+
+		dst.getParentFile().mkdirs();
+
+		if (logger.isDebugEnabled())
+			logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(), dst.getAbsolutePath());
+
+		FileInputStream is = null;
+		FileOutputStream os = null;
+
+		try {
+			is = new FileInputStream(src.getFile());
+			os = new FileOutputStream(dst);
+			FileChannel srcChannel = is.getChannel();
+			FileChannel dstChannel = os.getChannel();
+
+			ensureTransferTo(srcChannel, dstChannel, src.getLength());
+		} finally {
+			close(is);
+			close(os);
 		}
 	}
 
