@@ -114,19 +114,9 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> m = (Map<String, Object>) c.getDocument();
 			selectedExternalAuth = (String) m.get("external_auth");
-			instanceGuid = (String) m.get("instance_guid");
-			if (instanceGuid == null) {
-				instanceGuid = UUID.randomUUID().toString();
-				m.put("instance_guid", instanceGuid);
-				c.setDocument(m);
-			}
-		} else {
-			// when global_config does not exists
-			Map<String, Object> doc = new HashMap<String, Object>();
-			instanceGuid = UUID.randomUUID().toString();
-			doc.put("instance_guid", instanceGuid);
-			col.add(doc);
 		}
+		
+		instanceGuid = UUID.randomUUID().toString();
 	}
 
 	@Invalidate

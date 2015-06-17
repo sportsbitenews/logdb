@@ -13,6 +13,7 @@ public class SystemCommandParser extends AbstractQueryCommandParser {
 	public SystemCommandParser(String commandName, MetadataService metadataService) {
 		this.commandName = commandName;
 		this.metadataService = metadataService;
+		help.setCommandName(commandName);
 	}
 
 	@Override

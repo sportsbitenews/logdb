@@ -25,6 +25,8 @@ public interface QueryCommandParser {
 	void setQueryParserService(QueryParserService queryParserService);
 
 	QueryCommand parse(QueryContext context, String commandString);
-	
+
 	Map<String, QueryErrorMessage> getErrorMessages();
+
+	QueryCommandHelp getCommandHelp();
 }

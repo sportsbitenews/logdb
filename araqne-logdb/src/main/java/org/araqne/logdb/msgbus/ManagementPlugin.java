@@ -40,6 +40,7 @@ import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.AuthServiceNotLoadedException;
+import org.araqne.logdb.DataUploadService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
 import org.araqne.logstorage.LockKey;
@@ -96,8 +97,9 @@ public class ManagementPlugin {
 
 	@Requires
 	private TokenApi tokenApi;
-
-	private UploadDataHandler uploadDataHandler = new UploadDataHandler();
+	
+	@Requires
+	private DataUploadService upload;
 
 	@AllowGuestAccess
 	@MsgbusMethod
@@ -342,12 +344,12 @@ public class ManagementPlugin {
 			for (TableSchema schema : tableRegistry.getTableSchemas()) {
 				schemas.put(schema.getName(), schema.marshal());
 				tables.put(schema.getName(), getTableMetadata(schema));
-				
+
 				LockStatus s = storage.lockStatus(new LockKey("script", schema.getName(), null));
 				locks.put(schema.getName(), s.isLocked());
 				owners.put(schema.getName(), s.getOwner());
-				purposes.put(schema.getName(), s.getPurposes());				
-				
+				purposes.put(schema.getName(), s.getPurposes());
+
 				List<FieldDefinition> defs = schema.getFieldDefinitions();
 				if (defs != null)
 					fields.put(schema.getName(), PrimitiveConverter.serialize(defs));
@@ -359,12 +361,12 @@ public class ManagementPlugin {
 					TableSchema schema = tableRegistry.getTableSchema(p.getTableName(), true);
 					schemas.put(p.getTableName(), schema.marshal());
 					tables.put(schema.getName(), getTableMetadata(schema));
-					
+
 					LockStatus s = storage.lockStatus(new LockKey("script", schema.getName(), null));
 					locks.put(schema.getName(), s.isLocked());
 					owners.put(schema.getName(), s.getOwner());
 					purposes.put(schema.getName(), s.getPurposes());
-					
+
 					List<FieldDefinition> defs = schema.getFieldDefinitions();
 					if (defs != null)
 						fields.put(schema.getName(), PrimitiveConverter.serialize(defs));
@@ -703,12 +705,31 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void loadTextFile(Request req, Response resp) throws IOException {
-		uploadDataHandler.loadTextFile(storage, req, resp);
+		String ticket = (String) req.get("ticket", true);
+		boolean last = (Boolean) req.get("last", true);
+		String data = (String) req.get("data", true);
+		String datePattern = (String) req.get("date_pattern");
+		String dateFormat = (String) req.get("date_format");
+		String dateLocale = (String) req.get("date_locale");
+		String beginRegex = (String) req.get("begin_regex");
+		String endRegex = (String) req.get("end_regex");
+		String tableName = (String) req.get("table", true);
+		String charset = (String) req.get("charset", true);
+		
+		upload.loadTextFile(storage, ticket, last, data, datePattern, dateFormat, dateLocale, beginRegex, endRegex, tableName,
+				charset);
 	}
 
 	@MsgbusMethod
 	public void previewTextFile(Request req, Response resp) throws IOException {
-		resp.put("preview", uploadDataHandler.previewTextFile(req, resp));
+		String data = (String) req.get("data", true);
+		String datePattern = (String) req.get("date_pattern");
+		String dateFormat = (String) req.get("date_format");
+		String dateLocale = (String) req.get("date_locale");
+		String beginRegex = (String) req.get("begin_regex");
+		String endRegex = (String) req.get("end_regex");
+		String charset = (String) req.get("charset", true);
+		resp.put("preview", upload.previewTextFile(data, datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset));
 	}
 
 	@MsgbusMethod

@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -350,6 +351,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		} catch (QueryParseException e) {
 			// write log(query execution failed)
 			HashMap<String, Object> m = new HashMap<String, Object>();
+			m.put("state", "parse_failure");
 			String source = (String) session.getProperty("araqne_logdb_query_source");
 			if (source != null)
 				m.put("source", source);
@@ -395,6 +397,22 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		QueryHelper.setJoinAndUnionDependencies(query.getCommands());
 
 		new Thread(query, "Query " + id).start();
+
+		HashMap<String, Object> m = new HashMap<String, Object>();
+		m.put("state", "started");
+		if (session != null) {
+			String source = (String) session.getProperty("araqne_logdb_query_source");
+			if (source != null)
+				m.put("source", source);
+			m.put("login_name", session.getLoginName());
+		} else {
+			m.put("source", null);
+			m.put("login_name", null);
+		}
+		m.put("query_string", query.getQueryString());
+		m.put("query_id", query.getId());
+
+		writeLog(new Date(), m);
 		invokeCallbacks(query, QueryStatus.STARTED);
 	}
 
@@ -559,8 +577,21 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		}
 		m.put("start_at", new Date(query.getStartTime()));
 		m.put("eof_at", now);
-		m.put("login_name", session.getLoginName());
+		if (session != null)
+			m.put("login_name", session.getLoginName());
+		else
+			m.put("login_name", null);
 		m.put("cancelled", query.isCancelled());
+		try {
+			m.put("constants", query.getContext().getConstants());	
+		} catch (Throwable t) {
+			m.put("constants", "N/A");
+		}
+		if (query.isFinished()) {
+			m.put("state", "stopped");
+		} else {
+			m.put("state", "running");
+		}
 		if (query.getStopReason() != null)
 			m.put("stop_reason", query.getStopReason().toString());
 
@@ -568,10 +599,12 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			m.put("duration", (query.getFinishTime() - query.getStartTime()) / 1000.0);
 		else
 			m.put("duration", 0);
-
-		String source = (String) session.getProperty("araqne_logdb_query_source");
-		if (source != null)
-			m.put("source", source);
+		
+		if (session != null) {
+			String source = (String) session.getProperty("araqne_logdb_query_source");
+			if (source != null)
+				m.put("source", source);
+		}
 	}
 
 	private void writeLog(Date now, HashMap<String, Object> m) {
