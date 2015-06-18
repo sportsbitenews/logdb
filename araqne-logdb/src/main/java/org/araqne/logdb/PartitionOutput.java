@@ -41,6 +41,11 @@ public class PartitionOutput {
 
 	public PartitionOutput(LineWriterFactory lineWriterFactory, String path, String tmpPath, Date day, String encoding)
 			throws IOException {
+		this(lineWriterFactory, path, tmpPath, day, encoding, false);
+	}
+
+	public PartitionOutput(LineWriterFactory lineWriterFactory, String path, String tmpPath, Date day, String encoding,
+			boolean overwrite) throws IOException {
 		try {
 			this.tmpPath = tmpPath;
 			this.path = convertPath(path, day);
@@ -50,8 +55,8 @@ public class PartitionOutput {
 				this.f = new File(dir, UUID.randomUUID().toString() + ".part");
 
 				if (logger.isDebugEnabled())
-					logger.debug("araqne logdb: created temp partition output file [{}] for path [{}], day [{}]",
-							new Object[] { f.getAbsolutePath(), path, day });
+					logger.debug("araqne logdb: created temp partition output file [{}] for path [{}], day [{}]", new Object[] {
+							f.getAbsolutePath(), path, day });
 
 				this.tmpPath = f.getAbsolutePath();
 			} else {
@@ -64,7 +69,7 @@ public class PartitionOutput {
 				encoding = "utf-8";
 
 			this.writer = lineWriterFactory.newWriter(f.getAbsolutePath());
-			mover = new LocalFileMover();
+			mover = new LocalFileMover(overwrite);
 		} catch (IOException e) {
 			logger.error("araqne logdb: cannot create partition output [" + f.getAbsolutePath() + "] tmp path [" + tmpPath + "]",
 					e);

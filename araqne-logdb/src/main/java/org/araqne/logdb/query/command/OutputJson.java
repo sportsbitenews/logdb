@@ -67,44 +67,6 @@ public class OutputJson extends QueryCommand {
 	private FileMover mover;
 	private FlushTimer flushTimer = new FlushTimer();
 
-	@Deprecated
-	public OutputJson(File f, String filePathToken, boolean overwrite, List<String> fields, String encoding,
-			boolean usePartition, String tmpPath, List<PartitionPlaceholder> holders, boolean append, TimeSpan flushInterval,
-			TickService tickService) {
-		this.f = f;
-		this.overwrite = overwrite;
-		this.filePathToken = filePathToken;
-		this.fields = fields;
-		this.encoding = encoding;
-		this.usePartition = usePartition;
-		this.tmpPath = tmpPath;
-		this.holders = holders;
-		this.append = append;
-		this.flushInterval = flushInterval;
-
-		this.writerFactory = new JsonLineWriterFactory(fields, encoding, append);
-
-		if (flushInterval != null)
-			tickService.addTimer(flushTimer);
-
-		try {
-			if (!usePartition) {
-				String path = filePathToken;
-				if (tmpPath != null)
-					path = tmpPath;
-
-				this.writer = writerFactory.newWriter(path);
-				mover = new LocalFileMover();
-			} else {
-				this.holders = holders;
-				this.outputs = new HashMap<List<String>, PartitionOutput>();
-			}
-		} catch (Throwable t) {
-			close();
-			throw new QueryParseException("io-error", -1);
-		}
-	}
-
 	public OutputJson(String filePathToken, boolean overwrite, List<String> fields, String encoding, boolean usePartition,
 			String tmpPath, List<PartitionPlaceholder> holders, boolean append, TimeSpan flushInterval, TickService tickService) {
 		this.overwrite = overwrite;
@@ -119,7 +81,6 @@ public class OutputJson extends QueryCommand {
 
 		if (flushInterval != null)
 			tickService.addTimer(flushTimer);
-
 	}
 
 	@Override
@@ -142,7 +103,7 @@ public class OutputJson extends QueryCommand {
 					path = tmpPath;
 
 				this.writer = writerFactory.newWriter(path);
-				mover = new LocalFileMover();
+				mover = new LocalFileMover(overwrite);
 			} else {
 				// this.holders = holders;
 				this.outputs = new HashMap<List<String>, PartitionOutput>();
