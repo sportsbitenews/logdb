@@ -35,4 +35,6 @@ public interface StorageBackupManager {
 	StorageBackupJob prepare(StorageBackupRequest req) throws IOException;
 
 	void execute(StorageBackupJob job);
+
+	void cancel(String guid);
 }

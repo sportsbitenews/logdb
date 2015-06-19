@@ -44,7 +44,6 @@ import org.slf4j.LoggerFactory;
 public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 	private final Logger logger = LoggerFactory.getLogger(FileStorageBackupMedia.class);
 	private File path;
-	private boolean canceled;
 	private boolean isWorm;
 	private Map<String, TableSchema> cachedSchemas;
 
@@ -74,14 +73,16 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 		}
 	}
 
-	@Override
-	public Object clone() throws CloneNotSupportedException {
-		return super.clone();
+	public FileStorageBackupMedia(File path, boolean isWorm) {
+		this(path);
+		this.isWorm = isWorm;
 	}
 
 	@Override
-	public void cancelCopy() {
-		canceled = true;
+	public Object clone() throws CloneNotSupportedException {
+		FileStorageBackupMedia obj = (FileStorageBackupMedia) super.clone();
+		obj.cachedSchemas = new HashMap<String, TableSchema>(cachedSchemas);
+		return obj;
 	}
 
 	@Override
@@ -235,7 +236,7 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 			os = new FileOutputStream(dstTmp);
 			FileChannel srcChannel = is.getChannel();
 			FileChannel dstChannel = os.getChannel();
-			ensureTransferTo(srcChannel, dstChannel, req.getMediaFile().getLength());
+			ensureTransferTo(req, srcChannel, dstChannel, req.getMediaFile().getLength());
 
 		} finally {
 			close(is);
@@ -248,13 +249,13 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 		}
 	}
 
-	private void ensureTransferTo(FileChannel srcChannel, FileChannel dstChannel, long length) throws IOException {
-		ensureTransferTo(srcChannel, dstChannel, length, 0);
+	private void ensureTransferTo(StorageTransferRequest req, FileChannel srcChannel, FileChannel dstChannel, long length) throws IOException {
+		ensureTransferTo(req, srcChannel, dstChannel, length, 0);
 	}
 
-	private void ensureTransferTo(FileChannel srcChannel, FileChannel dstChannel, long length, long copied) throws IOException {
+	private void ensureTransferTo(StorageTransferRequest req, FileChannel srcChannel, FileChannel dstChannel, long length, long copied) throws IOException {
 		while (copied < length) {
-			if (canceled)
+			if (req.isCancel())
 				break;
 
 			copied += srcChannel.transferTo(copied, length - copied, dstChannel);
@@ -272,10 +273,10 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 				if (!isDelete)
 					throw new IOException("delete failed, " + dst.getAbsolutePath());
 			}
-			if (isWorm)
-				copyToWorm(src, dst);
+			if (!isWorm)
+				copyToDisk(req, src, dst);
 			else
-				copyToDisk(src, dst, req.isIncremental());
+				copyToWorm(req, src, dst);
 		} else {
 			StorageTransferStream stream = req.getToMediaStream();
 			File dst = new File(path, "table/" + stream.getTableId() + "/" + stream.getMediaFileName());
@@ -315,28 +316,30 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 	}
 
 	@Override
-	public void deleteFile(StorageTransferRequest req) throws IOException {
-		StorageFile src = req.getStorageFile();
-		if (src == null)
-			return;
+	public void deleteFile(String tableName, String fileName) throws IOException {
+		TableSchema schema = cachedSchemas.get(tableName);
+		if (schema == null)
+			throw new IOException("table [" + tableName + "] not found in backup media");
 
-		File dst = new File(path, "table/" + src.getTableId() + "/" + src.getFileName());
-		if (src.getFile().length() != dst.length())
-			return;
-
+		File dst = new File(schema.dir, fileName);
 		boolean isDelete = dst.delete();
 		if (!isDelete)
-			throw new IOException("delete failed, " + dst.getAbsolutePath());
+			throw new IOException("delete failed [file:" + dst.getAbsolutePath() + "]");
 	}
 
 	@Override
-	public void setWormMedia(boolean isWorm) {
-		this.isWorm = isWorm;
+	public boolean isWormMedia() {
+		return isWorm;
 	}
 
-	private void copyToDisk(StorageFile src, File dst, boolean isIncremental) throws IOException {
+	@Override
+	public boolean isEject() {
+		return !path.exists();
+	}
+
+	private void copyToDisk(StorageTransferRequest req, StorageFile src, File dst) throws IOException {
 		File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
-		if (isIncremental && dst.exists()) {
+		if (req.isIncremental() && dst.exists()) {
 			if (dst.length() == src.getLength())
 				return;
 			else
@@ -357,10 +360,10 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 			FileChannel srcChannel = is.getChannel();
 			FileChannel dstChannel = os.getChannel();
 
-			if (isIncremental)
-				ensureTransferTo(srcChannel, dstChannel, src.getLength(), dst.length());
+			if (req.isIncremental())
+				ensureTransferTo(req, srcChannel, dstChannel, src.getLength(), dst.length());
 			else
-				ensureTransferTo(srcChannel, dstChannel, src.getLength());
+				ensureTransferTo(req, srcChannel, dstChannel, src.getLength());
 		} finally {
 			close(is);
 			close(os);
@@ -372,7 +375,7 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 		}
 	}
 
-	private void copyToWorm(StorageFile src, File dst) throws IOException {
+	private void copyToWorm(StorageTransferRequest req, StorageFile src, File dst) throws IOException {
 		if (dst.exists())
 			throw new IOException("file [" + dst.getAbsolutePath() + "] is already exists");
 
@@ -390,7 +393,7 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 			FileChannel srcChannel = is.getChannel();
 			FileChannel dstChannel = os.getChannel();
 
-			ensureTransferTo(srcChannel, dstChannel, src.getLength());
+			ensureTransferTo(req, srcChannel, dstChannel, src.getLength());
 		} finally {
 			close(is);
 			close(os);

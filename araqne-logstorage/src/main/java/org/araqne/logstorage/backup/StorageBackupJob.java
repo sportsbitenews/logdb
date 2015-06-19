@@ -32,10 +32,8 @@ public class StorageBackupJob implements Cloneable {
 	private long totalBytes;
 	private Date submitAt;
 	private boolean done;
-	private boolean overwrite;
-	private boolean incremental;
-	private boolean move;
 	private File tablePath;
+	private Throwable errorCause;
 
 	// table to files
 	private Map<String, List<StorageFile>> storageFiles;
@@ -80,36 +78,20 @@ public class StorageBackupJob implements Cloneable {
 		this.done = done;
 	}
 
-	public boolean isOverwrite() {
-		return overwrite;
-	}
-
-	public void setOverwrite(boolean overwrite) {
-		this.overwrite = overwrite;
-	}
-
-	public boolean isIncremental() {
-		return incremental;
-	}
-
-	public void setIncremental(boolean incremental) {
-		this.incremental = incremental;
-	}
-
-	public boolean isMove() {
-		return move;
-	}
-
-	public void setMove(boolean move) {
-		this.move = move;
-	}
-
 	public File getTablePath() {
 		return tablePath;
 	}
 
 	public void setTablePath(File tablePath) {
 		this.tablePath = tablePath;
+	}
+
+	public Throwable getErrorCause() {
+		return errorCause;
+	}
+
+	public void setErrorCause(Throwable errorCause) {
+		this.errorCause = errorCause;
 	}
 
 	public Map<String, List<StorageFile>> getStorageFiles() {

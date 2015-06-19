@@ -27,6 +27,7 @@ public class StorageTransferRequest {
 	private StorageTransferStream transferStream;
 	private boolean overwrite = false;
 	private boolean incremental = false;
+	private boolean canceled = false;
 
 	public StorageTransferRequest(StorageTransferStream transferStream) {
 		this.transferStream = transferStream;
@@ -63,5 +64,13 @@ public class StorageTransferRequest {
 
 	public void setIncremental(boolean incremental) {
 		this.incremental = incremental;
+	}
+
+	public boolean isCancel() {
+		return canceled;
+	}
+
+	public void cancelCopy() {
+		canceled = true;
 	}
 }

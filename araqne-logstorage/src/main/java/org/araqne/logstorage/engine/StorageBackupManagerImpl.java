@@ -98,6 +98,10 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 	}
 
 	private StorageBackupJob prepareBackup(StorageBackupRequest req) {
+		if (req.isOverwrite() && req.isIncremental())
+			throw new IllegalArgumentException("invalid backup options(choose overwrite or incremental) [guid:" + req.getGuid()
+					+ "]");
+
 		Map<String, List<StorageFile>> storageFiles = new HashMap<String, List<StorageFile>>();
 		long totalBytes = 0;
 		for (String tableName : req.getTableNames()) {
@@ -234,6 +238,12 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 		return (r == null) ? null : (StorageBackupJob) r.job.clone();
 	}
 
+	@Override
+	public void cancel(String guid) {
+		BackupRunner r = backupRunners.get(guid);
+		r.tr.cancelCopy();
+	}
+
 	private class RestoreRunner extends Thread {
 		private final StorageBackupJob job;
 
@@ -330,6 +340,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 	private class BackupRunner extends Thread {
 		private final StorageBackupJob job;
+		private StorageTransferRequest tr;
 
 		public BackupRunner(StorageBackupJob job) {
 			super("LogStorage Backup");
@@ -344,10 +355,6 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 				monitor.onBeginJob(job);
 
 			try {
-				if (job.isOverwrite() && job.isIncremental())
-					throw new IOException("invalid backup options(choose overwrite or incremental) [guid:"
-							+ job.getRequest().getGuid() + "]");
-
 				Set<String> tableNames = job.getStorageFiles().keySet();
 				for (String tableName : tableNames) {
 					List<StorageFile> files = job.getStorageFiles().get(tableName);
@@ -378,12 +385,17 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 					// transfer files
 					for (StorageFile storageFile : files) {
+						if(media.isEject())
+							throw new IOException("media has been ejected");
+						else if(media.getFreeSpace() == 0)
+							throw new IOException("media storage is full");
+
 						String subPath = storageFile.getFile().getParentFile().getName() + File.separator
 								+ storageFile.getFile().getName();
 						StorageMediaFile mediaFile = new StorageMediaFile(tableName, subPath, storageFile.getLength());
-						StorageTransferRequest tr = new StorageTransferRequest(storageFile, mediaFile);
-						tr.setOverwrite(job.isOverwrite());
-						tr.setIncremental(job.isIncremental());
+						tr = new StorageTransferRequest(storageFile, mediaFile);
+						tr.setOverwrite(job.getRequest().isOverwrite());
+						tr.setIncremental(job.getRequest().isIncremental());
 						try {
 							if (monitor != null)
 								monitor.onBeginFile(job, tableName, storageFile.getFileName(), storageFile.getLength());
@@ -395,8 +407,8 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 								logger.debug("araqne logstorage: table backup failed", e);
 						} finally {
 							storageFile.setDone(true);
-							if (job.isMove())
-								media.deleteFile(tr);
+							if (job.getRequest().isMove())
+								tryDelete(media, tableName, storageFile);
 
 							if (monitor != null)
 								monitor.onCompleteFile(job, tableName, storageFile.getFileName(), storageFile.getLength());
@@ -407,6 +419,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 						monitor.onCompleteTable(job, tableName);
 				}
 			} catch (Throwable t) {
+				job.setErrorCause(t);
 				logger.error("araqne logstorage: backup job failed", t);
 			} finally {
 				generateReport(job);
@@ -416,6 +429,13 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 				if (monitor != null)
 					monitor.onCompleteJob(job);
 			}
+		}
+
+		private void tryDelete(StorageBackupMedia media, String tableName, StorageFile storageFile) throws IOException {
+			File backupFile = new File(job.getTablePath(), "table/" + storageFile.getTableId() + "/" + storageFile.getFileName());
+
+			if (storageFile.getFile().length() == backupFile.length())
+				media.deleteFile(tableName, storageFile.getFileName());
 		}
 
 	}
@@ -499,7 +519,8 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 	private boolean checkValidation(StorageBackupJob job, StorageBackupMedia media, String tableName, List<StorageFile> files)
 			throws IOException {
-		if (job.isOverwrite() || job.isIncremental())
+		StorageBackupRequest req = job.getRequest();
+		if (req.isOverwrite() || req.isIncremental())
 			return true;
 
 		if (files.size() == 0)

@@ -30,6 +30,10 @@ public class StorageBackupRequest implements Cloneable {
 	private Set<String> tableNames;
 	private Date from;
 	private Date to;
+	private boolean overwrite = false;
+	private boolean incremental = false;
+	private boolean move = false;
+
 	private StorageBackupMedia media;
 	private StorageBackupProgressMonitor progressMonitor;
 
@@ -79,6 +83,30 @@ public class StorageBackupRequest implements Cloneable {
 
 	public void setTo(Date to) {
 		this.to = to;
+	}
+
+	public boolean isOverwrite() {
+		return overwrite;
+	}
+
+	public void setOverwrite(boolean overwrite) {
+		this.overwrite = overwrite;
+	}
+
+	public boolean isIncremental() {
+		return incremental;
+	}
+
+	public void setIncremental(boolean incremental) {
+		this.incremental = incremental;
+	}
+
+	public boolean isMove() {
+		return move;
+	}
+
+	public void setMove(boolean move) {
+		this.move = move;
 	}
 
 	public StorageBackupMedia getMedia() {
