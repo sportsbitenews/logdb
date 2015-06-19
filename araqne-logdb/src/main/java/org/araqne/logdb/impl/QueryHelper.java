@@ -40,9 +40,10 @@ public class QueryHelper {
 	private QueryHelper() {
 	}
 
-	public static void setJoinAndUnionDependencies(List<QueryCommand> commands) {
+	public static void setJoinAndAppendDependencies(List<QueryCommand> commands) {
 		List<QueryCommand> joinCmds = new ArrayList<QueryCommand>();
 		List<QueryCommand> unionCmds = new ArrayList<QueryCommand>();
+		List<QueryCommand> appendCmds = new ArrayList<QueryCommand>();
 
 		for (QueryCommand cmd : commands) {
 			if (cmd.getName().equals("join"))
@@ -50,21 +51,32 @@ public class QueryHelper {
 
 			if (cmd.getName().equals("union"))
 				unionCmds.add(cmd);
+
+			if (cmd.getName().equals("append"))
+				appendCmds.add(cmd);
 		}
-		
+
+		QueryCommand lastDriver = null;
+
 		for (QueryCommand cmd : commands) {
-			if (cmd.isDriver() && cmd.getMainTask() != null) {
+			// drivers, union, and append commands should wait join sub-query
+			String cmdName = cmd.getName();
+
+			if ((cmd.isDriver() && cmd.getMainTask() != null) || cmdName.equals("union") || cmdName.equals("append")) {
 				for (QueryCommand join : joinCmds) {
 					cmd.getDependency().addDependency(join.getMainTask());
 					logger.debug("cmd [{}] now depends on task [{}]", cmd.getMainTask().getID(), join.getMainTask().getID());
 				}
 			}
 
-			if (cmd.isDriver() && cmd.getMainTask() != null) {
-				for (QueryCommand union : unionCmds) {
-					union.getDependency().addDependency(cmd.getMainTask());
-					logger.debug("cmd [{}] now depends on task [{}]", union.getMainTask().getID(), cmd.getMainTask().getID());
+			// append should wait previous driver and append commands
+			if ((cmd.isDriver() && cmd.getMainTask() != null) || cmdName.equals("append")) {
+				if (lastDriver != null) {
+					cmd.getDependency().addDependency(lastDriver.getMainTask());
+					logger.debug("cmd [{}] now depends on task [{}]", cmd.getMainTask().getID(), lastDriver.getMainTask().getID());
 				}
+
+				lastDriver = cmd;
 			}
 		}
 	}
@@ -173,7 +185,7 @@ public class QueryHelper {
 						fields = f.getFieldOrder();
 				}
 			}
-			
+
 			if (fields != null)
 				m.put("field_order", fields);
 

@@ -57,7 +57,7 @@ public class Join extends QueryCommand {
 
 	@Override
 	public void onStart() {
-		QueryHelper.setJoinAndUnionDependencies(subQuery.getCommands());
+		QueryHelper.setJoinAndAppendDependencies(subQuery.getCommands());
 
 		for (QueryCommand cmd : subQuery.getCommands()) {
 			if (cmd.getMainTask() != null) {

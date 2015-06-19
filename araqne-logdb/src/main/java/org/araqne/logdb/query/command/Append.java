@@ -24,10 +24,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @since 2.2.13
+ * @since 2.6.30
  * @author xeraph
  */
-public class Union extends QueryCommand {
+public class Append extends QueryCommand {
 	private final Logger slog = LoggerFactory.getLogger(Union.class);
 	private Query subQuery;
 
@@ -37,7 +37,7 @@ public class Union extends QueryCommand {
 	// post-query handler
 	private SubQueryTask subQueryTask = new SubQueryTask();
 
-	public Union() {
+	public Append() {
 		subQueryTask.addSubTask(triggerTask);
 	}
 
@@ -68,7 +68,7 @@ public class Union extends QueryCommand {
 
 	@Override
 	public String getName() {
-		return "union";
+		return "append";
 	}
 
 	@Override
@@ -81,19 +81,19 @@ public class Union extends QueryCommand {
 		try {
 			subQuery.stop(reason);
 		} catch (Throwable t) {
-			slog.error("araqne logdb: cannot stop union subquery [" + subQuery.getQueryString() + "]", t);
+			slog.error("araqne logdb: cannot stop append subquery [" + subQuery.getQueryString() + "]", t);
 		}
 	}
 
 	@Override
 	public String toString() {
-		return "union [ " + subQuery.getQueryString() + " ]";
+		return "append [ " + subQuery.getQueryString() + " ]";
 	}
 
 	private class Trigger extends QueryTask {
 		@Override
 		public void run() {
-			slog.debug("araqne logdb: union subquery started (dependency resolved), main query [{}] sub query [{}]",
+			slog.debug("araqne logdb: append subquery started (dependency resolved), main query [{}] sub query [{}]",
 					query.getId(), subQuery.getId());
 		}
 	}
@@ -102,7 +102,7 @@ public class Union extends QueryCommand {
 
 		@Override
 		public void run() {
-			slog.debug("araqne logdb: union subquery end, main query [{}] sub query [{}]", query.getId(), subQuery.getId());
+			slog.debug("araqne logdb: append subquery end, main query [{}] sub query [{}]", query.getId(), subQuery.getId());
 			subQuery.postRun();
 		}
 	}

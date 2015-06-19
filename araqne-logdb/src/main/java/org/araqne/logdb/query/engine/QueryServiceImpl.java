@@ -65,6 +65,7 @@ import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
 import org.araqne.logdb.impl.QueryHelper;
+import org.araqne.logdb.query.parser.AppendParser;
 import org.araqne.logdb.query.parser.BoxPlotParser;
 import org.araqne.logdb.query.parser.BypassParser;
 import org.araqne.logdb.query.parser.CheckTableParser;
@@ -250,6 +251,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new CheckTableParser("checktable", tableRegistry, storage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService, resultFactory));
 		parsers.add(new UnionParser(queryParserService));
+		parsers.add(new AppendParser(queryParserService));
 		parsers.add(new ImportParser(tableRegistry, storage));
 		parsers.add(new ParseParser(parserRegistry));
 		parsers.add(new LoadParser(savedResultManager));
@@ -399,7 +401,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
-		QueryHelper.setJoinAndUnionDependencies(query.getCommands());
+		QueryHelper.setJoinAndAppendDependencies(query.getCommands());
 
 		new Thread(query, "Query " + id).start();
 
