@@ -15,6 +15,20 @@
  */
 package org.araqne.logdb.nashorn;
 
-public interface NashornParserScriptRegistry {
-	NashornParserScript newScript(String scriptName);
+import org.araqne.logdb.cep.Event;
+import org.osgi.framework.BundleContext;
+
+public class NashornEventScript {
+	protected BundleContext bc;
+
+	public BundleContext getBundleContext() {
+		return bc;
+	}
+
+	public void setBundleContext(BundleContext bc) {
+		this.bc = bc;
+	}
+
+	public void onEvent(NashornEventScript script, Event event) {
+	}
 }

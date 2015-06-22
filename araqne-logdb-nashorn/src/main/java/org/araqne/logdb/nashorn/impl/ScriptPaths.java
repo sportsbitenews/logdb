@@ -13,8 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logdb.nashorn;
+package org.araqne.logdb.nashorn.impl;
 
-public interface NashornParserScriptRegistry {
-	NashornParserScript newScript(String scriptName);
+import java.io.File;
+
+public class ScriptPaths {
+	public static File getPath(String category) {
+		File dir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb-nashorn/" + category);
+		dir.mkdirs();
+		return dir;
+	}
 }
