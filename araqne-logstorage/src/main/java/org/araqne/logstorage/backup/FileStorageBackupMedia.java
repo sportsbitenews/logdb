@@ -81,7 +81,12 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 	@Override
 	public Object clone() throws CloneNotSupportedException {
 		FileStorageBackupMedia obj = (FileStorageBackupMedia) super.clone();
-		obj.cachedSchemas = new HashMap<String, TableSchema>(cachedSchemas);
+		obj.cachedSchemas = new HashMap<String, TableSchema>();
+		Set<String> keys = cachedSchemas.keySet();
+		for (String key : keys) {
+			if(cachedSchemas.get(key) != null)
+				obj.cachedSchemas.put(key, (TableSchema) cachedSchemas.get(key).clone());
+		}
 		return obj;
 	}
 
@@ -249,11 +254,13 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 		}
 	}
 
-	private void ensureTransferTo(StorageTransferRequest req, FileChannel srcChannel, FileChannel dstChannel, long length) throws IOException {
+	private void ensureTransferTo(StorageTransferRequest req, FileChannel srcChannel, FileChannel dstChannel, long length)
+			throws IOException {
 		ensureTransferTo(req, srcChannel, dstChannel, length, 0);
 	}
 
-	private void ensureTransferTo(StorageTransferRequest req, FileChannel srcChannel, FileChannel dstChannel, long length, long copied) throws IOException {
+	private void ensureTransferTo(StorageTransferRequest req, FileChannel srcChannel, FileChannel dstChannel, long length,
+			long copied) throws IOException {
 		while (copied < length) {
 			if (req.isCancel())
 				break;
@@ -410,13 +417,23 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 		return (Map<String, String>) schema.schema.get("metadata");
 	}
 
-	private static class TableSchema {
+	private static class TableSchema implements Cloneable {
 		private Map<String, Object> schema;
 		private File dir;
 
 		public TableSchema(Map<String, Object> schema, File dir) {
 			this.schema = schema;
 			this.dir = dir;
+		}
+
+		@Override
+		public Object clone() throws CloneNotSupportedException {
+			TableSchema obj = (TableSchema) super.clone();
+			obj.schema = new HashMap<String, Object>();
+			for (String key : schema.keySet()) {
+				obj.schema.put(key, schema.get(key));
+			}
+			return obj;
 		}
 	}
 }
