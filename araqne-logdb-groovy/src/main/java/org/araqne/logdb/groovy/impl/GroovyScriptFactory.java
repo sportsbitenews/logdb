@@ -22,7 +22,6 @@ import org.apache.felix.ipojo.annotations.ServiceProperty;
 import org.araqne.api.Script;
 import org.araqne.api.ScriptFactory;
 import org.araqne.logdb.groovy.GroovyEventScriptRegistry;
-import org.araqne.logdb.groovy.GroovyQueryScriptRegistry;
 
 @Component(name = "logdb-groovy-script-factory")
 @Provides
@@ -32,14 +31,10 @@ public class GroovyScriptFactory implements ScriptFactory {
 	private String alias;
 
 	@Requires
-	private GroovyQueryScriptRegistry queryScriptRegistry;
-
-	@Requires
 	private GroovyEventScriptRegistry eventScriptRegistry;
 
 	@Override
 	public Script createScript() {
-		return new GroovyScript(queryScriptRegistry, eventScriptRegistry);
+		return new GroovyScript(eventScriptRegistry);
 	}
-
 }
