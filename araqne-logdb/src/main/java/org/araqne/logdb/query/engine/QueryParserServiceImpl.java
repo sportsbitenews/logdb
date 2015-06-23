@@ -100,6 +100,8 @@ public class QueryParserServiceImpl implements QueryParserService {
 			e.addOffset(offsetCnt);
 			// FIXME : 로케일 하드 코딩 되어 있음
 			String errorMessage = formatErrorMessage(e.getType(), Locale.ENGLISH, e.getParams());
+			if (errorMessage == null)
+				errorMessage = e.getNote();
 			throw new QueryParseException(e.getType(), e.getStartOffset(), errorMessage, e);
 		} catch (Throwable t) {
 			closePrematureCommands(commands);

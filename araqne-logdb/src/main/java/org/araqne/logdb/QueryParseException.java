@@ -87,6 +87,10 @@ public class QueryParseException extends RuntimeException {
 		return offsetList;
 	}
 
+	public String getNote() {
+		return note;
+	}
+
 	public boolean isDebugMode() {
 		return false;
 	}
