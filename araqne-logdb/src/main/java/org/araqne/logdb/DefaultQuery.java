@@ -278,12 +278,7 @@ public class DefaultQuery implements Query {
 		if (result == null)
 			return null;
 
-		try {
-			result.syncWriter();
-		} catch (Throwable t) {
-			logger.debug("araqne logdb: result disk sync failed", t);
-		}
-
+		result.syncWriter();
 		return result.getResultSet();
 	}
 

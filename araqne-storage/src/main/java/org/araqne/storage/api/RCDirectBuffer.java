@@ -7,14 +7,18 @@ public class RCDirectBuffer {
 	private AtomicInteger refCount = new AtomicInteger(0);
 	private ByteBuffer buffer;
 	private boolean destroyed = false;
+	private String poolName;
+	private String usageName;
 
 	private boolean isDestroyed;
 
 	private RCDirectBufferManager manager;
 
-	public RCDirectBuffer(RCDirectBufferManager manager, ByteBuffer buffer) {
+	public RCDirectBuffer(RCDirectBufferManager manager, ByteBuffer buffer, String poolName, String usageName) {
 		this.manager = manager;
 		this.buffer = buffer;
+		this.poolName = poolName;
+		this.usageName = usageName;
 	}
 
 	public ByteBuffer get() {
@@ -28,7 +32,7 @@ public class RCDirectBuffer {
 			if (!buffer.isDirect())
 				return;
 			isDestroyed = true;
-			manager.clean(buffer);
+			manager.clean(buffer, poolName, usageName);
 		} catch (Throwable t) {
 
 		}
