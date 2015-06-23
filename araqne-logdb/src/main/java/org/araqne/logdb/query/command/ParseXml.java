@@ -26,6 +26,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -51,6 +52,49 @@ public class ParseXml extends QueryCommand implements ThreadSafe {
 	@Override
 	public String getName() {
 		return "parsexml";
+	}
+
+	@Override
+	public void onPush(Row row) {
+		pushPipe(parse(row));
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+				rowBatch.rows[p] = parse(row);
+			}
+		} else {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+				rowBatch.rows[i] = parse(row);
+			}
+		}
+
+		pushPipe(rowBatch);
+	}
+
+	private Row parse(Row row) {
+		Object target = row.get(field);
+		if (target == null)
+			return row;
+
+		String xml = target.toString();
+
+		try {
+			if (overlay)
+				row.map().putAll(parse(xml));
+			else
+				row = new Row(parse(xml));
+		} catch (Throwable t) {
+			if (slog.isDebugEnabled())
+				slog.debug("araqne logdb: parsexml failure - " + xml, t);
+		}
+
+		return row;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -124,33 +168,6 @@ public class ParseXml extends QueryCommand implements ThreadSafe {
 			return null;
 
 		return m;
-	}
-
-	@Override
-	public void onPush(Row row) {
-		Object target = row.get(field);
-		if (target == null) {
-			if (overlay)
-				pushPipe(row);
-			return;
-		}
-
-		String xml = target.toString();
-
-		try {
-			if (overlay)
-				row.map().putAll(parse(xml));
-			else
-				row = new Row(parse(xml));
-
-			pushPipe(row);
-		} catch (Throwable t) {
-			if (overlay)
-				pushPipe(row);
-
-			if (slog.isDebugEnabled())
-				slog.debug("araqne logdb: parsexml failure - " + xml, t);
-		}
 	}
 
 	@Override
