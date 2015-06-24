@@ -15,6 +15,6 @@
  */
 package org.araqne.logdb.nashorn;
 
-public interface NashornParserScriptRegistry {
-	NashornParserScript newScript(String scriptName);
+public interface NashornQueryScriptRegistry {
+	NashornQueryScript newScript(String scriptName);
 }

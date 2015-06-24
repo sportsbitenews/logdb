@@ -23,6 +23,7 @@ import java.util.Map;
 
 public class QueryContext {
 	private Session session;
+	private QueryContext parent;
 	private ParserContext parserContext = new ParserContext();
 	private Map<String, Object> constants = Collections.synchronizedMap(new HashMap<String, Object>());
 
@@ -33,6 +34,18 @@ public class QueryContext {
 
 	public QueryContext(Session session) {
 		this.session = session;
+	}
+
+	public QueryContext(Session session, QueryContext parent) {
+		this(session);
+		this.parent = parent;
+	}
+
+	public Query getMainQuery() {
+		if (parent != null)
+			return parent.getMainQuery();
+
+		return this.getQueries().get(0);
 	}
 
 	public Session getSession() {

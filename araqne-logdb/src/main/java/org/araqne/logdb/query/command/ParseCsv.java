@@ -7,9 +7,11 @@ import org.araqne.log.api.CsvParser;
 import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 import org.slf4j.LoggerFactory;
 
-public class ParseCsv extends QueryCommand implements FieldOrdering {
+public class ParseCsv extends QueryCommand implements FieldOrdering, ThreadSafe {
 	private final org.slf4j.Logger slog = LoggerFactory.getLogger(ParseCsv.class);
 	private String field;
 	private boolean overlay;
@@ -37,12 +39,31 @@ public class ParseCsv extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public void onPush(Row row) {
-		String target = (String) row.get(field);
-		if (target == null) {
-			if (overlay)
-				pushPipe(row);
-			return;
+		pushPipe(parse(row));
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+				rowBatch.rows[p] = parse(row);
+			}
+		} else {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+				rowBatch.rows[i] = parse(row);
+			}
 		}
+
+		pushPipe(rowBatch);
+	}
+
+	private Row parse(Row row) {
+		String target = (String) row.get(field);
+		if (target == null)
+			return row;
 
 		try {
 			Map<String, Object> m = parser.parse(target);
@@ -50,15 +71,12 @@ public class ParseCsv extends QueryCommand implements FieldOrdering {
 				row.map().putAll(m);
 			else
 				row = new Row(m);
-
-			pushPipe(row);
 		} catch (Throwable t) {
-			if (overlay)
-				pushPipe(row);
-
 			if (slog.isDebugEnabled())
 				slog.debug("araqne logdb: cannot parse csv [{}], error [{}]", target, t.getMessage());
 		}
+
+		return row;
 	}
 
 	@Override

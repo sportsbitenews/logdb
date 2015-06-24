@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -94,6 +93,7 @@ import org.araqne.logdb.query.parser.ParseJsonParser;
 import org.araqne.logdb.query.parser.ParseKvParser;
 import org.araqne.logdb.query.parser.ParseMapParser;
 import org.araqne.logdb.query.parser.ParseParser;
+import org.araqne.logdb.query.parser.ParseXmlParser;
 import org.araqne.logdb.query.parser.ProcParser;
 import org.araqne.logdb.query.parser.PurgeParser;
 import org.araqne.logdb.query.parser.RateLimitParser;
@@ -222,7 +222,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 				EvalcParser.class, SearchParser.class, StatsParser.class, FieldsParser.class, SortParser.class,
 				TimechartParser.class, RenameParser.class, RexParser.class, JsonParser.class, SignatureParser.class,
 				LimitParser.class, SetParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class,
-				ExplodeParser.class, ParseJsonParser.class, ExecParser.class, ParseMapParser.class);
+				ExplodeParser.class, ParseJsonParser.class, ExecParser.class, ParseMapParser.class, ParseXmlParser.class);
 
 		List<QueryCommandParser> parsers = new ArrayList<QueryCommandParser>();
 		for (Class<? extends AbstractQueryCommandParser> clazz : parserClazzes) {
@@ -262,7 +262,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new RateLimitParser(tickService));
 		parsers.add(new MemLookupParser(lookupRegistry));
 		parsers.add(new BypassParser());
-		
+
 		parsers.add(new RepeatParser());
 
 		if (allowQueryPurge)
@@ -342,11 +342,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	public Query createQuery(QueryContext context, String queryString) {
 		Session session = context.getSession();
 		if (logger.isDebugEnabled())
-			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]",
-					new Object[] {
-							queryString,
-							session == null ? null : session.getGuid(),
-							session == null ? null : session.getLoginName() });
+			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]", new Object[] { queryString,
+					session == null ? null : session.getGuid(), session == null ? null : session.getLoginName() });
 
 		List<QueryCommand> commands = null;
 		try {
@@ -395,7 +392,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		Query query = getQuery(id);
 		if (query == null)
 			throw new IllegalArgumentException("invalid log query id: " + id);
-		
+
 		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
@@ -588,7 +585,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			m.put("login_name", null);
 		m.put("cancelled", query.isCancelled());
 		try {
-			m.put("constants", query.getContext().getConstants());	
+			m.put("constants", query.getContext().getConstants());
 		} catch (Throwable t) {
 			m.put("constants", "N/A");
 		}
@@ -604,7 +601,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			m.put("duration", (query.getFinishTime() - query.getStartTime()) / 1000.0);
 		else
 			m.put("duration", 0);
-		
+
 		if (session != null) {
 			String source = (String) session.getProperty("araqne_logdb_query_source");
 			if (source != null)

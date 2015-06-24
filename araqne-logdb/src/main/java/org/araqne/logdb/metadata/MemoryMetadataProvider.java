@@ -24,16 +24,16 @@ import org.araqne.storage.api.RCDirectBufferManager;
 public class MemoryMetadataProvider implements MetadataProvider, FieldOrdering {
 	@Requires
 	private MetadataService metadataService;
-	
+
 	@Requires
 	private RCDirectBufferManager manager;
 
 	private List<String> fields;
-	
+
 	public MemoryMetadataProvider() {
 		this.fields = Arrays.asList("type", "free", "total");
 	}
-	
+
 	@Override
 	public String getType() {
 		return "memory";
@@ -56,18 +56,39 @@ public class MemoryMetadataProvider implements MetadataProvider, FieldOrdering {
 
 	@Override
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
-		Map<String, Object> heap = new HashMap<String, Object>();
-		Runtime runtime = Runtime.getRuntime();
-		heap.put("type", "heap");
-		heap.put("free", runtime.freeMemory());
-		heap.put("total", runtime.totalMemory());
-		callback.onPush(new Row(heap));
-		
-		Map<String, Object> rc = new HashMap<String, Object>();
-		rc.put("type", "offheap");
-		rc.put("total", manager.getTotalCapacity());
-		rc.put("object_count", manager.getObjectCount());
-		callback.onPush(new Row(rc));
+		if (queryString.equals(" pools")) {
+			Map<String, Object> ret = null;
+			for (String poolName : manager.getPoolNames()) {
+				ret = new HashMap<String, Object>();
+				ret.put("available", manager.getAvailablePoolSize(poolName));
+				ret.put("using", manager.getUsingPoolSize(poolName));
+				ret.put("name", poolName);
+				ret.put("type", "offheap");
+				callback.onPush(new Row(ret));
+			}
+		} else if (queryString.equals(" objects")) {
+			Map<String, Object> ret = null;
+			for (String usageName : manager.getUsagesNames()) {
+				ret = new HashMap<String, Object>();
+				ret.put("using", manager.getUsingObjectSize(usageName));
+				ret.put("name", usageName);
+				ret.put("type", "offheap");
+				callback.onPush(new Row(ret));
+			}
+		} else {
+			Map<String, Object> heap = new HashMap<String, Object>();
+			Runtime runtime = Runtime.getRuntime();
+			heap.put("type", "heap");
+			heap.put("free", runtime.freeMemory());
+			heap.put("total", runtime.totalMemory());
+			callback.onPush(new Row(heap));
+
+			Map<String, Object> rc = new HashMap<String, Object>();
+			rc.put("type", "offheap");
+			rc.put("total", manager.getTotalCapacity());
+			rc.put("object_count", manager.getObjectCount());
+			callback.onPush(new Row(rc));
+		}
 	}
 
 	@Override
