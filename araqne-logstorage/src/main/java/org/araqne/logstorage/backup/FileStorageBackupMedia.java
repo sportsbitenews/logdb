@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -84,7 +85,7 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 		obj.cachedSchemas = new HashMap<String, TableSchema>();
 		Set<String> keys = cachedSchemas.keySet();
 		for (String key : keys) {
-			if(cachedSchemas.get(key) != null)
+			if (cachedSchemas.get(key) != null)
 				obj.cachedSchemas.put(key, (TableSchema) cachedSchemas.get(key).clone());
 		}
 		return obj;
@@ -339,11 +340,6 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 		return isWorm;
 	}
 
-	@Override
-	public boolean isEject() {
-		return !path.exists();
-	}
-
 	private void copyToDisk(StorageTransferRequest req, StorageFile src, File dst) throws IOException {
 		File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
 		if (req.isIncremental() && dst.exists()) {
@@ -358,23 +354,7 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 		if (logger.isDebugEnabled())
 			logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(), dstTmp.getAbsolutePath());
 
-		FileInputStream is = null;
-		FileOutputStream os = null;
-
-		try {
-			is = new FileInputStream(src.getFile());
-			os = new FileOutputStream(dstTmp);
-			FileChannel srcChannel = is.getChannel();
-			FileChannel dstChannel = os.getChannel();
-
-			if (req.isIncremental())
-				ensureTransferTo(req, srcChannel, dstChannel, src.getLength(), dst.length());
-			else
-				ensureTransferTo(req, srcChannel, dstChannel, src.getLength());
-		} finally {
-			close(is);
-			close(os);
-		}
+		copy(req, src, dstTmp, dst.length());
 
 		if (!dstTmp.renameTo(dst)) {
 			dstTmp.delete();
@@ -391,6 +371,11 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 		if (logger.isDebugEnabled())
 			logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(), dst.getAbsolutePath());
 
+		copy(req, src, dst, 0);
+	}
+
+	private void copy(StorageTransferRequest req, StorageFile src, File dst, long copied) throws FileNotFoundException,
+			IOException {
 		FileInputStream is = null;
 		FileOutputStream os = null;
 
@@ -400,7 +385,10 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 			FileChannel srcChannel = is.getChannel();
 			FileChannel dstChannel = os.getChannel();
 
-			ensureTransferTo(req, srcChannel, dstChannel, src.getLength());
+			if (req.isIncremental())
+				ensureTransferTo(req, srcChannel, dstChannel, src.getLength(), copied);
+			else
+				ensureTransferTo(req, srcChannel, dstChannel, src.getLength());
 		} finally {
 			close(is);
 			close(os);
@@ -426,13 +414,17 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 			this.dir = dir;
 		}
 
+		@SuppressWarnings("unchecked")
 		@Override
 		public Object clone() throws CloneNotSupportedException {
 			TableSchema obj = (TableSchema) super.clone();
+			String tableName = (String) schema.get("table_name");
+			Map<String, String> metadata = (Map<String, String>) schema.get("metadata");
+
 			obj.schema = new HashMap<String, Object>();
-			for (String key : schema.keySet()) {
-				obj.schema.put(key, schema.get(key));
-			}
+			obj.schema.put("table_name", tableName);
+			obj.schema.put("metadata", new HashMap<String, String>(metadata));
+
 			return obj;
 		}
 	}

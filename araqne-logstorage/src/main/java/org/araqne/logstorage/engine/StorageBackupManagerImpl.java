@@ -364,31 +364,32 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 					if (monitor != null)
 						monitor.onBeginTable(job, tableName);
+					
+					if (!media.isWormMedia()) {
+						try {
+							TableSchema schema = tableRegistry.getTableSchema(tableName);
 
-					try {
-						TableSchema schema = tableRegistry.getTableSchema(tableName);
+							// overwrite table metadata file
+							Map<String, Object> metadata = new HashMap<String, Object>();
+							metadata.put("table_name", tableName);
+							metadata.put("metadata", schema.getMetadata());
 
-						// overwrite table metadata file
-						Map<String, Object> metadata = new HashMap<String, Object>();
-						metadata.put("table_name", tableName);
-						metadata.put("metadata", schema.getMetadata());
-
-						String json = JSONConverter.jsonize(metadata);
-						byte[] b = json.getBytes("utf-8");
-						ByteArrayInputStream is = new ByteArrayInputStream(b);
-						int tableId = schema.getId();
-						StorageTransferStream stream = new StorageTransferStream(tableName, tableId, is, TABLE_METADATA_JSON);
-						media.copyToMedia(new StorageTransferRequest(stream));
-					} catch (Exception e) {
-						logger.error("araqne logstorage: table metadata backup failed", e);
+							String json = JSONConverter.jsonize(metadata);
+							byte[] b = json.getBytes("utf-8");
+							ByteArrayInputStream is = new ByteArrayInputStream(b);
+							int tableId = schema.getId();
+							StorageTransferStream stream = new StorageTransferStream(tableName, tableId, is, TABLE_METADATA_JSON);
+							media.copyToMedia(new StorageTransferRequest(stream));
+						} catch (Exception e) {
+							logger.error("araqne logstorage: table metadata backup failed", e);
+						}
 					}
 
 					// transfer files
 					for (StorageFile storageFile : files) {
-						if(media.isEject())
-							throw new IOException("media has been ejected");
-						else if(media.getFreeSpace() == 0)
-							throw new IOException("media storage is full");
+						if (storageFile.getLength() > media.getFreeSpace())
+							throw new IOException("not enough media space: free " + media.getFreeSpace() + ", required: "
+									+ storageFile.getLength());
 
 						String subPath = storageFile.getFile().getParentFile().getName() + File.separator
 								+ storageFile.getFile().getName();
@@ -405,6 +406,7 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 							storageFile.setException(e);
 							if (logger.isDebugEnabled())
 								logger.debug("araqne logstorage: table backup failed", e);
+							break;
 						} finally {
 							storageFile.setDone(true);
 							if (job.getRequest().isMove())
