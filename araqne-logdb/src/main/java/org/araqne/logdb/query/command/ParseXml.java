@@ -113,7 +113,7 @@ public class ParseXml extends QueryCommand implements ThreadSafe {
 		NodeList list = node.getChildNodes();
 		NamedNodeMap attrs = node.getAttributes();
 		int childCount = list.getLength();
-		int attrCount = attrs.getLength();
+		int attrCount = attrs != null ? attrs.getLength() : 0;
 
 		if (childCount == 0 && attrCount == 0) {
 			String text = node.getTextContent();
@@ -131,18 +131,18 @@ public class ParseXml extends QueryCommand implements ThreadSafe {
 
 		for (int i = 0; i < attrCount; i++) {
 			Node attr = attrs.item(i);
-			if (attr.getNodeName().equals("xmlns"))
+			if (getNodeName(attr).equals("xmlns"))
 				continue;
 
-			m.put(attr.getNodeName(), attr.getTextContent());
+			m.put(getNodeName(attr), attr.getTextContent());
 		}
 
 		for (int i = 0; i < childCount; i++) {
 			Node child = list.item(i);
-			List<Object> children = (List<Object>) m.get(child.getNodeName());
+			List<Object> children = (List<Object>) m.get(getNodeName(child));
 			if (children == null) {
 				children = new ArrayList<Object>();
-				m.put(child.getNodeName(), children);
+				m.put(getNodeName(child), children);
 			}
 
 			Object content = traverse(child);
@@ -168,6 +168,13 @@ public class ParseXml extends QueryCommand implements ThreadSafe {
 			return null;
 
 		return m;
+	}
+	
+	private static String getNodeName(Node node) {
+		String t = node.getNodeName();
+		if (t.equals("#text"))
+			return "_text";
+		return t;
 	}
 
 	@Override
