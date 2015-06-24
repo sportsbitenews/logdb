@@ -341,34 +341,36 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 	}
 
 	private void copyToDisk(StorageTransferRequest req, StorageFile src, File dst) throws IOException {
-		File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
-		if (req.isIncremental() && dst.exists()) {
-			if (dst.length() == src.getLength())
+		if (req.isIncremental()) {
+			if (dst.exists() && dst.length() == src.getLength())
 				return;
-			else
-				dst.renameTo(dstTmp);
-		}
+			dst.getParentFile().mkdirs();
 
-		dstTmp.getParentFile().mkdirs();
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(), dst.getAbsolutePath());
 
-		if (logger.isDebugEnabled())
-			logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(), dstTmp.getAbsolutePath());
+			copy(req, src, dst, dst.length());
 
-		copy(req, src, dstTmp, dst.length());
+		} else {
+			File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
+			dstTmp.getParentFile().mkdirs();
 
-		if (!dstTmp.renameTo(dst)) {
-			dstTmp.delete();
-			throw new IOException("rename failed, " + dstTmp.getAbsolutePath());
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(),
+						dstTmp.getAbsolutePath());
+
+			copy(req, src, dstTmp, dst.length());
+
+			if (!dstTmp.renameTo(dst)) {
+				dstTmp.delete();
+				throw new IOException("rename failed, " + dstTmp.getAbsolutePath());
+			}
 		}
 	}
 
 	private void copyToWorm(StorageTransferRequest req, StorageFile src, File dst) throws IOException {
-		if (dst.exists()) {
-			if(logger.isDebugEnabled())
-				logger.debug("araqne logstorage: file [" + dst.getAbsolutePath() + "] is already exists");
-
-			return;
-		}
+		if (dst.exists())
+			throw new IOException("file [" + dst.getAbsolutePath() + "] already exists");
 
 		dst.getParentFile().mkdirs();
 
@@ -385,7 +387,10 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 
 		try {
 			is = new FileInputStream(src.getFile());
-			os = new FileOutputStream(dst);
+			if(req.isIncremental())
+				os = new FileOutputStream(dst, true);
+			else
+				os = new FileOutputStream(dst);
 			FileChannel srcChannel = is.getChannel();
 			FileChannel dstChannel = os.getChannel();
 
@@ -393,6 +398,8 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 				ensureTransferTo(req, srcChannel, dstChannel, src.getLength(), copied);
 			else
 				ensureTransferTo(req, srcChannel, dstChannel, src.getLength());
+		} catch (Throwable t) {
+			logger.error("araqne-logstorage: append error" + t);
 		} finally {
 			close(is);
 			close(os);

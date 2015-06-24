@@ -27,7 +27,7 @@ public interface StorageBackupProgressMonitor {
 
 	void onBeginFile(StorageBackupJob job, String tableName, String fileName, long fileLength);
 
-	void onCompleteFile(StorageBackupJob job, String tableName, String fileName, long fileLength);
+	void onCompleteFile(StorageBackupJob job, String tableName, String fileName, long fileLength, Throwable error);
 
 	void onBeginJob(StorageBackupJob job);
 
