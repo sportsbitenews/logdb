@@ -177,7 +177,7 @@ public class SavedResultManagerImpl implements SavedResultManager {
 		public LogCursorImpl(SavedResult result, LogFileReader reader) throws IOException {
 			this.guid = result.getGuid();
 			this.reader = reader;
-			this.c = reader.getCursor();
+			this.c = reader.getCursor(true);
 		}
 
 		@Override

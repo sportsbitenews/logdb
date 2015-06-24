@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
@@ -140,17 +141,31 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 			if (fo != null) {
 				l.addAll(fo);
 			}
-			// remove potentially duplicated field name first
-			l.remove("_time");
-			l.remove("_table");
-			l.remove("_id");
-			
-			l.addFirst("_id");
-			l.addFirst("_time");
-			l.addFirst("_table");
+			reorderSystemFields(l);
 			return l;
+		} else if (parser != null) {
+			List<FieldDefinition> fieldDefinitions = parser.getFieldDefinitions();
+			if (fieldDefinitions != null) {
+				LinkedList<String> l = new LinkedList<String>();
+				for (FieldDefinition def : fieldDefinitions)
+					l.add(def.getName());
+
+				reorderSystemFields(l);
+				return l;
+			}
 		}
 		return null;
+	}
+
+	private void reorderSystemFields(LinkedList<String> l) {
+		// remove potentially duplicated field name first
+		l.remove("_time");
+		l.remove("_table");
+		l.remove("_id");
+
+		l.addFirst("_id");
+		l.addFirst("_time");
+		l.addFirst("_table");
 	}
 
 	private void scanTables() {
@@ -164,7 +179,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 					continue;
 
 				LogParserBuilder builder = null;
-				
+
 				if (!params.raw) {
 					builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
 							tableName.getTable());

@@ -142,7 +142,7 @@ public class ParseParser extends AbstractQueryCommandParser {
 			Map<String, String> params = new HashMap<String, String> ();
 			params.put("parser", parserName);
 			params.put("value", parserName);
-			throw new QueryParseException("21002",-1, -1, params);
+			throw new QueryParseException("21002", -1, t.getMessage(), t);
 		}
 	}
 }

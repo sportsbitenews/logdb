@@ -23,12 +23,178 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.V1LogParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TrusGuardLogParser extends V1LogParser {
 	private final Logger logger = LoggerFactory.getLogger(TrusGuardLogParser.class.getName());
+
+	private static final List<FieldDefinition> fields;
+
+	static {
+		fields = new ArrayList<FieldDefinition>();
+		addField("vlan_id", "string");
+		addField("reason", "string");
+		addField("src_port", "string");
+		addField("allow_pps", "string");
+		addField("risk_score_db", "string");
+		addField("tx_nif", "string");
+		addField("event", "string");
+		addField("threshold_byte", "string");
+		addField("sender_addr", "string");
+		addField("tcp_flag", "string");
+		addField("connection_coun", "string");
+		addField("request_count", "string");
+		addField("accuracy_score_db", "string");
+		addField("user_type", "string");
+		addField("allow_etc_pps", "string");
+		addField("pps", "string");
+		addField("accuracy_action_user", "string");
+		addField("policy_id", "string");
+		addField("in_pkt", "string");
+		addField("deny_bps", "string");
+		addField("ha", "string");
+		addField("qos_name", "string");
+		addField("drop_packets", "string");
+		addField("session", "string");
+		addField("send_spam_log", "string");
+		addField("risk_action_user", "string");
+		addField("src_ip", "string");
+		addField("block_session", "string");
+		addField("log_type", "string");
+		addField("out_zone", "string");
+		addField("rule_id", "string");
+		addField("nat_ip", "string");
+		addField("desc", "string");
+		addField("subject", "string");
+		addField("rx_nif", "string");
+		addField("mac", "string");
+		addField("snat_port", "string");
+		addField("date", "string");
+		addField("spam_filter", "string");
+		addField("allow_bps", "string");
+		addField("version", "string");
+		addField("in_data", "string");
+		addField("drop_udp_bps", "string");
+		addField("utm_id", "string");
+		addField("risk_score_user", "string");
+		addField("src", "string");
+		addField("log_id", "string");
+		addField("group_name", "string");
+		addField("pkt_len", "string");
+		addField("log_sub_type", "string");
+		addField("inst_code", "string");
+		addField("profile_name", "string");
+		addField("sent_data", "string");
+		addField("deny_pps", "string");
+		addField("drop_etc_pps", "string");
+		addField("diffusion_score_db", "string");
+		addField("dnat_port", "string");
+		addField("drop_tcp_bps", "string");
+		addField("network_direction", "string");
+		addField("network_id", "string");
+		addField("nif_name", "string");
+		addField("eth_name", "string");
+		addField("allow_bytes", "string");
+		addField("sent_pkt", "string");
+		addField("drop_bytes", "string");
+		addField("count", "string");
+		addField("dnat_ip", "string");
+		addField("alarm_type", "string");
+		addField("dst_ip", "string");
+		addField("ap_protocol", "string");
+		addField("eth_protocol", "string");
+		addField("virus_name", "string");
+		addField("mask", "string");
+		addField("attack_rate", "string");
+		addField("dst", "string");
+		addField("type", "string");
+		addField("accuracy_score_user", "string");
+		addField("filter_status", "string");
+		addField("drop_icmp_bps", "string");
+		addField("allow_tcp_pps", "string");
+		addField("allow_icmp_pps", "string");
+		addField("encrypt", "string");
+		addField("description", "string");
+		addField("action", "string");
+		addField("rcvd_data", "string");
+		addField("nat_port", "string");
+		addField("allow_tcp_bps", "string");
+		addField("nat_id", "string");
+		addField("user_addr", "string");
+		addField("status", "string");
+		addField("cpu", "string");
+		addField("wf_type", "string");
+		addField("rcvd_pkt", "string");
+		addField("allow_session", "string");
+		addField("code", "string");
+		addField("expire_time", "string");
+		addField("slice_seconds", "string");
+		addField("out_pkt", "string");
+		addField("msg", "string");
+		addField("url", "string");
+		addField("epsec", "string");
+		addField("snat_type", "string");
+		addField("nif_type", "string");
+		addField("threshold_packets", "string");
+		addField("drop_udp_pps", "string");
+		addField("allow_udp_pps", "string");
+		addField("recipients_addr", "string");
+		addField("drop_tcp_pps", "string");
+		addField("module_flag", "string");
+		addField("module_name", "string");
+		addField("in_zone", "string");
+		addField("virus_url", "string");
+		addField("out_data", "string");
+		addField("dst_port", "string");
+		addField("state", "string");
+		addField("in_nic", "string");
+		addField("nat_type", "string");
+		addField("virus_filter", "string");
+		addField("snat_ip", "string");
+		addField("out_nic", "string");
+		addField("app_name", "string");
+		addField("allow_icmp_bps", "string");
+		addField("rate_limit", "string");
+		addField("zone_name", "string");
+		addField("bps", "string");
+		addField("mem", "string");
+		addField("drop_etc_bps", "string");
+		addField("allow_udp_bps", "string");
+		addField("virus_fname", "string");
+		addField("allow_etc_bps", "string");
+		addField("protocol", "string");
+		addField("nif", "string");
+		addField("logtype", "string");
+		addField("src_mac", "string");
+		addField("severity", "string");
+		addField("diag_name", "string");
+		addField("ip", "string");
+		addField("message", "string");
+		addField("ip_ver", "string");
+		addField("diffusion_action_user", "string");
+		addField("dnat_type", "string");
+		addField("duration", "string");
+		addField("diffusion_score_user", "string");
+		addField("hdd", "string");
+		addField("attack_id", "string");
+		addField("drop_icmp_pps", "string");
+		addField("user", "string");
+		addField("allow_packets", "string");
+		addField("botnet_name", "string");
+		addField("alert_id", "string");
+	}
+
+	private static void addField(String name, String type) {
+		fields.add(new FieldDefinition(name, type));
+	}
+
+	@Override
+	public List<FieldDefinition> getFieldDefinitions() {
+		return fields;
+	}
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
@@ -119,9 +285,9 @@ public class TrusGuardLogParser extends V1LogParser {
 			parseManagementNetworkPortLogV3(tokenizedLine, m);
 		} else if (moduleFlag == 3020 || moduleFlag == 9) {
 			parseDpxIpsLogV3(tokenizedLine, m);
-		} else if (moduleFlag == 3030 || moduleFlag == 3080 || moduleFlag == 3120 || moduleFlag == 3150
-				|| moduleFlag == 101 || moduleFlag == 107 || moduleFlag == 108 || moduleFlag == 109
-				|| moduleFlag == 110 || moduleFlag == 111 || moduleFlag == 113 || moduleFlag == 114) {
+		} else if (moduleFlag == 3030 || moduleFlag == 3080 || moduleFlag == 3120 || moduleFlag == 3150 || moduleFlag == 101
+				|| moduleFlag == 107 || moduleFlag == 108 || moduleFlag == 109 || moduleFlag == 110 || moduleFlag == 111
+				|| moduleFlag == 113 || moduleFlag == 114) {
 			parseUntrustedTrafficBlockFilterStatusLogV3(tokenizedLine, m);
 		} else if (moduleFlag == 3031 || moduleFlag == 3041 || moduleFlag == 3051 || moduleFlag == 3061 || moduleFlag == 3071
 				|| moduleFlag == 3121 || moduleFlag == 3131 || moduleFlag == 3141 || moduleFlag == 3151 || moduleFlag == 3191
@@ -638,17 +804,16 @@ public class TrusGuardLogParser extends V1LogParser {
 		m.put("nif_name", tokenizedLine[index++]);
 
 		List<String> columns = Arrays.asList("in_rx_tcp_bps", "in_rx_udp_bps", "in_rx_icmp_bps", "in_rx_etc_bps",
-				"in_rx_total_bps", "in_rx_tcp_pps",
-				"in_rx_udp_pps", "in_rx_icmp_pps", "in_rx_etc_pps", "in_rx_total_pps", "in_tx_tcp_bps", "in_tx_udp_bps",
-				"in_tx_icmp_bps", "in_tx_etc_bps", "in_tx_total_bps", "in_tx_tcp_pps", "in_tx_udp_pps", "in_tx_icmp_pps",
-				"in_tx_etc_pps", "in_tx_total_pps", "in_drop_tcp_bps", "in_drop_udp_bps", "in_drop_icmp_bps", "in_drop_etc_bps",
-				"in_drop_total_bps", "in_drop_tcp_pps", "in_drop_udp_pps", "in_drop_icmp_pps", "in_drop_etc_pps",
-				"in_drop_total_pps", "out_rx_tcp_bps", "out_rx_udp_bps", "out_rx_icmp_bps", "out_rx_etc_bps", "out_rx_total_bps",
-				"out_rx_tcp_pps", "out_rx_udp_pps", "out_rx_icmp_pps", "out_rx_etc_pps", "out_rx_total_pps", "out_tx_tcp_bps",
-				"out_tx_udp_bps", "out_tx_icmp_bps", "out_tx_etc_bps", "out_tx_total_bps", "out_tx_tcp_pps", "out_tx_udp_pps",
-				"out_tx_icmp_pps", "out_tx_etc_pps", "out_tx_total_pps", "out_drop_tcp_bps", "out_drop_udp_bps",
-				"out_drop_icmp_bps", "out_drop_etc_bps", "out_drop_total_bps", "out_drop_tcp_pps", "out_drop_udp_pps",
-				"out_drop_icmp_pps", "out_drop_etc_pps", "out_drop_total_pps");
+				"in_rx_total_bps", "in_rx_tcp_pps", "in_rx_udp_pps", "in_rx_icmp_pps", "in_rx_etc_pps", "in_rx_total_pps",
+				"in_tx_tcp_bps", "in_tx_udp_bps", "in_tx_icmp_bps", "in_tx_etc_bps", "in_tx_total_bps", "in_tx_tcp_pps",
+				"in_tx_udp_pps", "in_tx_icmp_pps", "in_tx_etc_pps", "in_tx_total_pps", "in_drop_tcp_bps", "in_drop_udp_bps",
+				"in_drop_icmp_bps", "in_drop_etc_bps", "in_drop_total_bps", "in_drop_tcp_pps", "in_drop_udp_pps",
+				"in_drop_icmp_pps", "in_drop_etc_pps", "in_drop_total_pps", "out_rx_tcp_bps", "out_rx_udp_bps",
+				"out_rx_icmp_bps", "out_rx_etc_bps", "out_rx_total_bps", "out_rx_tcp_pps", "out_rx_udp_pps", "out_rx_icmp_pps",
+				"out_rx_etc_pps", "out_rx_total_pps", "out_tx_tcp_bps", "out_tx_udp_bps", "out_tx_icmp_bps", "out_tx_etc_bps",
+				"out_tx_total_bps", "out_tx_tcp_pps", "out_tx_udp_pps", "out_tx_icmp_pps", "out_tx_etc_pps", "out_tx_total_pps",
+				"out_drop_tcp_bps", "out_drop_udp_bps", "out_drop_icmp_bps", "out_drop_etc_bps", "out_drop_total_bps",
+				"out_drop_tcp_pps", "out_drop_udp_pps", "out_drop_icmp_pps", "out_drop_etc_pps", "out_drop_total_pps");
 
 		for (String column : columns) {
 			String value = tokenizedLine[index++];

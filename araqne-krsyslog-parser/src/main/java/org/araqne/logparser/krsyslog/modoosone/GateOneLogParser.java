@@ -15,9 +15,12 @@
  */
 package org.araqne.logparser.krsyslog.modoosone;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.V1LogParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +33,24 @@ public class GateOneLogParser extends V1LogParser {
 			"부서", "구분", "사용자그룹", "장비명", "장비ip", "부서2", "팀", "장비그룹", "서비스명", "내부명령어구분코드", "명령어" };
 
 	private final Logger slog = LoggerFactory.getLogger(GateOneLogParser.class.getName());
+
+	private static final List<FieldDefinition> fields;
+
+	static {
+		fields = new ArrayList<FieldDefinition>();
+		for (String key : Keys) {
+			addField(key, "string");
+		}
+	}
+
+	private static void addField(String name, String type) {
+		fields.add(new FieldDefinition(name, type));
+	}
+
+	@Override
+	public List<FieldDefinition> getFieldDefinitions() {
+		return fields;
+	}
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> log) {

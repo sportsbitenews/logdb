@@ -147,6 +147,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("nvl", Nvl.class);
 			define("whoami", Whoami.class);
 			define("not", Not.class);
+			define("datepart", DatePart.class);
 		}
 
 		private void define(String name, Class<?> clazz) {

@@ -343,7 +343,10 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		Session session = context.getSession();
 		if (logger.isDebugEnabled())
 			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]",
-					new Object[] { queryString, session.getGuid(), session.getLoginName() });
+					new Object[] {
+							queryString,
+							session == null ? null : session.getGuid(),
+							session == null ? null : session.getLoginName() });
 
 		List<QueryCommand> commands = null;
 		try {
@@ -352,13 +355,15 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			// write log(query execution failed)
 			HashMap<String, Object> m = new HashMap<String, Object>();
 			m.put("state", "parse_failure");
-			String source = (String) session.getProperty("araqne_logdb_query_source");
-			if (source != null)
-				m.put("source", source);
+			if (session != null) {
+				String source = (String) session.getProperty("araqne_logdb_query_source");
+				if (source != null)
+					m.put("source", source);
+				m.put("login_name", session.getLoginName());
+			}
 			m.put("query_string", queryString);
 			m.put("error_code", e.getType());
 			m.put("error_msg", e.getMessage());
-			m.put("login_name", session.getLoginName());
 
 			Date now = new Date();
 			writeLog(now, m);
@@ -390,7 +395,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		Query query = getQuery(id);
 		if (query == null)
 			throw new IllegalArgumentException("invalid log query id: " + id);
-
+		
 		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 

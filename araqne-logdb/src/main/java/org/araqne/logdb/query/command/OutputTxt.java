@@ -26,6 +26,7 @@ import java.util.Map;
 import org.araqne.cron.AbstractTickTimer;
 import org.araqne.cron.TickService;
 import org.araqne.logdb.FileMover;
+import org.araqne.logdb.LocalFileMover;
 import org.araqne.logdb.PartitionOutput;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
@@ -50,7 +51,6 @@ import org.slf4j.LoggerFactory;
  */
 public class OutputTxt extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(OutputTxt.class.getName());
-	//private String[] fields;
 	private List<String> fields;
 	private String delimiter;
 	private String encoding;
@@ -73,72 +73,25 @@ public class OutputTxt extends QueryCommand {
 	private LineWriter writer;
 	private LineWriterFactory writerFactory;
 
-	@Deprecated
-	public OutputTxt(File f, String filePath, String tmpPath, boolean overwrite, String delimiter, 
-			List<String> fields, 	boolean useRowFlush, boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders, 
+	public OutputTxt(String filePath, String tmpPath, boolean overwrite, String delimiter, List<String> fields,
+			boolean useRowFlush, boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders,
 			boolean append, TimeSpan flushInterval, TickService tickService) {
 
-		try {
-			this.usePartition = usePartition;
-			this.useGzip = useGzip;
-			this.delimiter = delimiter;
-			this.encoding = encoding;
-			this.f = f;
-			this.filePath = filePath;
-			this.tmpPath = tmpPath;
-			this.overwrite = overwrite;
-		//	this.fields = fields.toArray(new String[0]);
-			this.append = append;
-			this.flushInterval = flushInterval;
-						
-			if (useRowFlush)
-				writerFactory = new RowOutputStreamWriterFactory(fields, encoding, append, delimiter);
-			
-			if (useGzip)
-				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding, append);
-			else
-				writerFactory = new PlainLineWriterFactory(fields, encoding, append, delimiter);
+		this.usePartition = usePartition;
+		this.useGzip = useGzip;
+		this.delimiter = delimiter;
+		this.encoding = encoding;
+		this.filePath = filePath;
+		this.tmpPath = tmpPath;
+		this.overwrite = overwrite;
+		this.fields = fields;
+		this.append = append;
+		this.flushInterval = flushInterval;
+		this.useRowFlush = useRowFlush;
+		this.holders = holders;
 
-			if (flushInterval != null)
-				tickService.addTimer(flushTimer);
-
-			if (!usePartition) {
-				String path = filePath;
-				if (tmpPath != null)
-					path = tmpPath;
-
-				this.writer = writerFactory.newWriter(path);
-			} else {
-				this.holders = holders;
-				this.outputs = new HashMap<List<String>, PartitionOutput>();
-			}
-
-		} catch (Throwable t) {
-			close();
-			throw new QueryParseException("io-error", -1);
-		}
-	}
-	
-	public OutputTxt( String filePath, String tmpPath, boolean overwrite, String delimiter,
-			List<String> fields, boolean useRowFlush,  boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders,
-			boolean append, TimeSpan flushInterval, TickService tickService)  {
-		
-			this.usePartition = usePartition;
-			this.useGzip = useGzip;
-			this.delimiter = delimiter;
-			this.encoding = encoding;
-			this.filePath = filePath;
-			this.tmpPath = tmpPath;
-			this.overwrite = overwrite;
-			this.fields = fields;
-			//this.fields = fields.toArray(new String[0]);
-			this.append = append;
-			this.flushInterval = flushInterval;
-			this.useRowFlush = useRowFlush;
-			this.holders = holders;
-			
-			if (flushInterval != null)
-				tickService.addTimer(flushTimer);
+		if (flushInterval != null)
+			tickService.addTimer(flushTimer);
 	}
 
 	@Override
@@ -151,7 +104,7 @@ public class OutputTxt extends QueryCommand {
 	}
 
 	public List<String> getFields() {
-		return fields;// Arrays.asList(fields);
+		return fields;
 	}
 
 	public String getDelimiter() {
@@ -159,48 +112,48 @@ public class OutputTxt extends QueryCommand {
 	}
 
 	@Override
-	public void onStart(){
+	public void onStart() {
 		File jsonFile = new File(filePath);
-		if (jsonFile.exists() && !overwrite  && !append)
+		if (jsonFile.exists() && !overwrite && !append)
 			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
 
 		if (!usePartition && jsonFile.getParentFile() != null)
 			jsonFile.getParentFile().mkdirs();
-		
+
 		this.f = jsonFile;
-		
+
 		try {
-		
 			if (useRowFlush)
 				writerFactory = new RowOutputStreamWriterFactory(fields, encoding, append, delimiter);
-			
+
 			if (useGzip)
 				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding, append);
 			else
 				writerFactory = new PlainLineWriterFactory(fields, encoding, append, delimiter);
-						
+
 			if (!usePartition) {
 				String path = filePath;
 				if (tmpPath != null)
 					path = tmpPath;
 
 				this.writer = writerFactory.newWriter(path);
+				mover = new LocalFileMover(overwrite);
 			} else {
-			//	this.holders = holders;
+				// this.holders = holders;
 				this.outputs = new HashMap<List<String>, PartitionOutput>();
 			}
-		}catch(QueryParseException t){
+		} catch (QueryParseException t) {
 			close();
 			throw t;
 		} catch (Throwable t) {
 			close();
-			Map<String, String> params = new HashMap<String, String> ();
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("msg", t.getMessage());
-			throw new QueryParseException("30406",  -1, -1, params);
-			//throw new QueryParseException("io-error", -1);
+			throw new QueryParseException("30406", -1, -1, params);
+			// throw new QueryParseException("io-error", -1);
 		}
 	}
-	
+
 	@Override
 	public void onPush(RowBatch rowBatch) {
 		try {
@@ -212,8 +165,8 @@ public class OutputTxt extends QueryCommand {
 					writeLog(m);
 				}
 			} else {
-			    for (int i = 0; i < rowBatch.size; i++) {
-			        Row m = rowBatch.rows[i];
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row m = rowBatch.rows[i];
 					writeLog(m);
 				}
 			}
@@ -332,7 +285,7 @@ public class OutputTxt extends QueryCommand {
 		String path = " " + filePath;
 
 		String fieldsOption = "";
-		//if (fields.length > 0)
+		// if (fields.length > 0)
 		if (fields.size() > 0)
 			fieldsOption = " " + Strings.join(getFields(), ", ");
 
