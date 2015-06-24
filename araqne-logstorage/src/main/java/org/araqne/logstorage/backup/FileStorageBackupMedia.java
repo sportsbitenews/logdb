@@ -363,8 +363,12 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 	}
 
 	private void copyToWorm(StorageTransferRequest req, StorageFile src, File dst) throws IOException {
-		if (dst.exists())
-			throw new IOException("file [" + dst.getAbsolutePath() + "] is already exists");
+		if (dst.exists()) {
+			if(logger.isDebugEnabled())
+				logger.debug("araqne logstorage: file [" + dst.getAbsolutePath() + "] is already exists");
+
+			return;
+		}
 
 		dst.getParentFile().mkdirs();
 
