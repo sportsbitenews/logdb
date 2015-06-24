@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Eediom Inc.
+ * Copyright 2015 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,13 @@
 package org.araqne.logdb.cep.query;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryErrorMessage;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
@@ -26,6 +31,8 @@ import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.query.expr.Expression;
+
+import redis.clients.jedis.exceptions.JedisConnectionException;
 
 public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 
@@ -62,26 +69,41 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 		checkEvent(row);
 		pushPipe(row);
 	}
-
+	
 	@Override
 	public void onPush(RowBatch rowBatch) {
+		ConcurrentHashMap<EventKey, EventContext> contexts = new ConcurrentHashMap<EventKey, EventContext>();
+
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				checkEvent(row);
+				checkEvent(row, new BatchCallback(contexts));
 			}
-		} else {
+		}else {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-				checkEvent(row);
+			
+				checkEvent(row, new BatchCallback(contexts));
 			}
-		}
 
+		}
+		storage.addContexts(contexts);
+		
 		pushPipe(rowBatch);
 	}
+	
+	private void checkEvent(Row row){
+		checkEvent(row, new CallbackAdd(){
 
-	private void checkEvent(Row row) {
+			@Override
+			public void addJob(EventContext ctx) {
+				storage.addContext(ctx); //mem cep 수정 여부에 따라 update->add 방식으로 할지 결정
+			}
+		});
+	}
+
+	private void checkEvent(Row row, CallbackAdd callback) {
 		boolean matched = true;
 
 		Object o = matcher.eval(row);
@@ -128,6 +150,7 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			if (timeout != null)
 				timeoutTime = created + timeout.unit.getMillis() * timeout.amount;
 
+			/* redis 관련 수정전
 			boolean newContext = false;
 			EventContext ctx = storage.getContext(eventKey);
 			if (ctx == null) {
@@ -143,7 +166,15 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			if (!newContext)
 				ctx.setTimeoutTime(timeoutTime);
 
-			ctx.addRow(row);
+			ctx.addRow(row); */
+			///
+			
+			EventContext	ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
+			ctx.setTimeoutTime(timeoutTime);
+			ctx.getCounter().incrementAndGet();
+			ctx.addRow(row); 
+
+			callback.addJob(ctx);
 		}
 
 		if (clockHost != null && logTime != null) {
@@ -173,4 +204,39 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 
 		return s;
 	}
+	
+	private interface CallbackAdd{
+		
+		void addJob(EventContext ctx);
+		
+	}
+	
+	private class BatchCallback implements CallbackAdd{
+		ConcurrentHashMap<EventKey, EventContext> contexts;
+
+		private BatchCallback(ConcurrentHashMap<EventKey, EventContext> contexts){
+			this.contexts = contexts;
+		}
+		
+		@Override
+		public void addJob(EventContext ctx) {
+			if(!contexts.contains(ctx)){
+				contexts.put(ctx.getKey(), ctx);
+				return;
+			}
+
+			EventContext oldCtx = contexts.get(ctx);
+			oldCtx.getCounter().incrementAndGet();
+
+			if(ctx.getTimeoutTime()!= 0L)
+				oldCtx.setTimeoutTime(ctx.getTimeoutTime());
+			
+			for(Row row :  ctx.getRows()){
+					oldCtx.addRow(row);
+				}
+			
+			contexts.put(oldCtx.getKey(), oldCtx);
+		}
+	}
+	
 }

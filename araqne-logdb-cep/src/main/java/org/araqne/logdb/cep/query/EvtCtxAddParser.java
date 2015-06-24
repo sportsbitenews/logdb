@@ -89,7 +89,11 @@ public class EvtCtxAddParser extends AbstractQueryCommandParser {
 
 		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next), getFunctionRegistry());
 
-		EventContextStorage storage = eventContextService.getStorage("mem");
+		String engine = System.getProperty("araqne.logdb.cepengine");
+		EventContextStorage storage = eventContextService.getStorage(engine);
+		if(storage == null ) {
+			//throw new U
+		}
 		return new EvtCtxAddCommand(storage, topic, keyField, expire, timeout, maxRows, matcher, hostField);
 	}
 }

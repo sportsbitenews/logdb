@@ -35,7 +35,9 @@ public class EvtCtxListCommand extends DriverQueryCommand implements FieldOrderi
 
 	@Override
 	public void run() {
-		EventContextStorage mem = eventContextService.getStorage("mem");
+		String engine = System.getProperty("araqne.logdb.cepengine");
+		EventContextStorage mem = eventContextService.getStorage(engine);
+		
 
 		for (EventKey key : mem.getContextKeys()) {
 			EventContext ctx = mem.getContext(key);

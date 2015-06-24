@@ -16,6 +16,7 @@
 package org.araqne.logdb.cep.engine;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -269,4 +270,17 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 		clock.updateTimeout(ctx);
 	}
+
+	@Override
+	public void addContexts(Map<EventKey, EventContext> contexts) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

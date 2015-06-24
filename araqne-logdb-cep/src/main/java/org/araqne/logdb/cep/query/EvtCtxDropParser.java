@@ -69,8 +69,8 @@ public class EvtCtxDropParser extends AbstractQueryCommandParser {
 		if (!dropAll && topic == null)
 			throw new QueryParseException("missing-evtctxdrop-topic", -1);
 		
-
-		EventContextStorage storage = eventContextService.getStorage("mem");
+		String engine = System.getProperty("araqne.logdb.cepengine");
+		EventContextStorage storage = eventContextService.getStorage(engine);
 		return new EvtCtxDropCommand(storage, topic, dropAll);
 	}
 

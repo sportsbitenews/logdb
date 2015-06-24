@@ -19,7 +19,8 @@ public class EvtCtxSetVarFunction implements Expression {
 	private EventContextStorage memStorage;
 
 	public EvtCtxSetVarFunction(QueryContext ctx, List<Expression> exprs, EventContextService eventContextService) {
-		this.memStorage = eventContextService.getStorage("mem");
+		String engine = System.getProperty("araqne.logdb.cepengine");
+		this.memStorage = eventContextService.getStorage(engine);
 
 		if (exprs.size() != 4)
 			throw new QueryParseException("invalid-evtctxsetvar-arguments", -1, "argument-count-mismatch");
@@ -43,6 +44,9 @@ public class EvtCtxSetVarFunction implements Expression {
 		Object arg4 = varDataExpr.eval(row);
 
 		ctx.setVariable(arg3.toString(), arg4);
+		
+		memStorage.addContext(ctx);
+		
 		return true;
 	}
 

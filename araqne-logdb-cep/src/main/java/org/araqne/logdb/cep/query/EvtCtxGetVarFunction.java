@@ -18,7 +18,8 @@ public class EvtCtxGetVarFunction implements Expression {
 	private EventContextStorage memStorage;
 
 	public EvtCtxGetVarFunction(QueryContext ctx, List<Expression> exprs, EventContextService eventContextService) {
-		this.memStorage = eventContextService.getStorage("mem");
+		String engine = System.getProperty("araqne.logdb.cepengine");
+		this.memStorage = eventContextService.getStorage(engine);
 
 		if (exprs.size() != 3)
 			throw new QueryParseException("invalid-evtctxgetvar-arguments", -1, "argument-count-mismatch");

@@ -26,7 +26,8 @@ public class EvtCtxGetFunction implements Expression {
 
 	// evtctxget("topic", "key", "counter")
 	public EvtCtxGetFunction(QueryContext ctx, List<Expression> exprs, EventContextService eventContextService) {
-		this.memStorage = eventContextService.getStorage("mem");
+		String engine = System.getProperty("araqne.logdb.cepengine");
+		this.memStorage = eventContextService.getStorage(engine);
 
 		if (exprs.size() != 3)
 			throw new QueryParseException("invalid-evtctxget-arguments", -1, "argument-count-mismatch");

@@ -16,6 +16,7 @@
 package org.araqne.logdb.cep.query;
 
 import java.util.Date;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
@@ -57,23 +58,41 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
+		ConcurrentHashMap <EventKey, EventContext> contexts = new ConcurrentHashMap<EventKey, EventContext> ();
+
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				checkEvent(row);
+				checkEvent(row, new BatchCallbackRemove(contexts));
 			}
 		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-				checkEvent(row);
+				checkEvent(row, new BatchCallbackRemove(contexts));
 			}
 		}
+		storage.removeContexts(contexts, EventCause.REMOVAL);
 
 		pushPipe(rowBatch);
 	}
 
-	private void checkEvent(Row row) {
+	private void checkEvent(Row row){
+		checkEvent(row,  new CallbackRemove(){
+
+			@Override
+			public void removeJob(EventKey eventKey, Row row) {
+				EventContext ctx = storage.getContext(eventKey);
+				if (ctx != null)
+					ctx.addRow(row);
+
+				storage.removeContext(eventKey, ctx, EventCause.REMOVAL);
+			}
+
+		});
+	}
+
+	private void checkEvent(Row row, CallbackRemove callback) {
 		boolean matched = true;
 
 		Object o = matcher.eval(row);
@@ -107,11 +126,15 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 			String key = k.toString();
 			EventKey eventKey = new EventKey(topic, key);
 
+			callback.removeJob(eventKey, row);
+
+			/*
 			EventContext ctx = storage.getContext(eventKey);
 			if (ctx != null)
 				ctx.addRow(row);
 
 			storage.removeContext(eventKey, ctx, EventCause.REMOVAL);
+			 */
 		}
 
 		if (host != null && logTime != null)
@@ -121,5 +144,28 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 	@Override
 	public String toString() {
 		return "evtctxdel topic=" + topic + " key=" + keyField + " " + matcher;
+	}
+
+	private interface CallbackRemove{
+		void removeJob(EventKey key, Row row);
+	}
+
+	private class BatchCallbackRemove implements CallbackRemove {
+		ConcurrentHashMap<EventKey, EventContext> contexts;
+
+		private BatchCallbackRemove(ConcurrentHashMap<EventKey, EventContext> contexts){
+			this.contexts = contexts;
+		}
+
+		@Override
+		public void removeJob(EventKey eventKey, Row row) {
+			EventContext ctx = contexts.get(eventKey);
+			if (ctx == null)
+				ctx = new EventContext(eventKey, 0L, 0L, 0L, 1, null);
+
+			ctx.getCounter().incrementAndGet();
+			ctx.addRow(row);
+			contexts.put(eventKey, ctx);
+		}
 	}
 }

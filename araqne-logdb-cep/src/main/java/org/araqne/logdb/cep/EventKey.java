@@ -15,7 +15,12 @@
  */
 package org.araqne.logdb.cep;
 
-public class EventKey {
+import java.util.HashMap;
+import java.util.Map;
+
+import org.araqne.msgbus.Marshalable;
+
+public class EventKey implements Marshalable {
 	private final String topic;
 	private final String key;
 
@@ -73,4 +78,58 @@ public class EventKey {
 			return "topic=" + topic + ", key=" + key;
 		return "topic=" + topic + ", key=" + key + ", host=" + host;
 	}
+
+	@Override
+	public Map<String, Object> marshal() {
+		HashMap<String, Object> m = new HashMap<String, Object>();
+		m.put("topic", topic);
+		m.put("key", key);
+		m.put("host", host);
+		return m;
+	}
+	
+	public static EventKey parse(Map<String, Object> m){
+		String topic = (String) m.get("topic");
+		String key = (String) m.get("key");
+		String host = (String) m.get("host");
+		
+		EventKey ek = new EventKey(topic, key);
+		ek.setHost(host);
+		return ek;
+	}
+	
+	public static byte[] marshal(EventKey key){
+		StringBuffer sb = new StringBuffer();
+		sb.append(key.getTopic());
+		sb.append(":");
+		sb.append(key.getKey());
+		sb.append(":");
+		sb.append(key.getHost());
+		sb.append(":");
+		
+		return sb.toString().getBytes();
+	}
+	
+	public static EventKey parse(byte[] bs){
+		String keys = new String(bs);
+		
+		String[] fields = new String[3];
+		
+		int e = -1;
+		int s = 0;
+		
+		for(int i = 0; i < fields.length ; i ++){
+			s = e +1;
+			e = keys.indexOf(":", s);
+			fields[i]  = keys.substring(s, e);
+		}
+
+		EventKey evt = new EventKey(fields[0], fields[1]);
+		evt.setHost(fields[2]);
+		
+		return evt;
+	}
+	
+	
+	
 }

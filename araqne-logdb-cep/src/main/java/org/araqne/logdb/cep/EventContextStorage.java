@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.cep;
 
+import java.util.Map;
 import java.util.Set;
 
 public interface EventContextStorage {
@@ -48,4 +49,10 @@ public interface EventContextStorage {
 	void addSubscriber(String topic, EventSubscriber subscriber);
 
 	void removeSubscriber(String topic, EventSubscriber subscriber);
+
+	void addContexts(Map<EventKey, EventContext> contexts);
+
+	void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal);
+
+	//EventContext mergeContext(EventContext ctx);
 }

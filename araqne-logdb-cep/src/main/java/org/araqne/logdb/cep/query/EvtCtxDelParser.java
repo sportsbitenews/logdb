@@ -70,7 +70,8 @@ public class EvtCtxDelParser extends AbstractQueryCommandParser {
 
 		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next), getFunctionRegistry());
 
-		EventContextStorage storage = eventContextService.getStorage("mem");
+		String engine = System.getProperty("araqne.logdb.cepengine");
+		EventContextStorage storage = eventContextService.getStorage(engine);
 		return new EvtCtxDelCommand(storage, topic, keyField, matcher, hostField);
 	}
 
