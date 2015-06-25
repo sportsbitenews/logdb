@@ -17,6 +17,7 @@ package org.araqne.logdb.cep.engine;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -122,6 +123,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public EventContext addContext(EventContext ctx) {
+	
 		EventContext old = contexts.putIfAbsent(ctx.getKey(), ctx);
 		if (old == null) {
 			ctx.getListeners().add(this);
@@ -134,6 +136,8 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 			}
 
 			return ctx;
+		} else {
+			old = EventContext.merge(old, ctx);
 		}
 		return old;
 	}
@@ -273,14 +277,14 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void addContexts(Map<EventKey, EventContext> contexts) {
-		// TODO Auto-generated method stub
-		
+		for(EventContext ctx : contexts.values())
+			addContext(ctx);
 	}
 
 	@Override
 	public void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal) {
-		// TODO Auto-generated method stub
-		
+		for( Entry<EventKey, EventContext> entry : contexts.entrySet())
+			removeContext(entry.getKey(), entry.getValue(), removal);
 	}
 
 }
