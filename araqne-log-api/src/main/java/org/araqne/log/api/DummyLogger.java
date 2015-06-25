@@ -38,6 +38,14 @@ import org.araqne.log.api.TimeRange;
 public class DummyLogger implements Logger {
 
 	private LoggerStatus status;
+	private Map<String, String> configs;
+	
+	public DummyLogger() {
+	}
+	
+	public DummyLogger(Map<String, String> configs) {
+		this.configs = configs;
+	}
 
 	@Override
 	public String getFullName() {
@@ -222,7 +230,11 @@ public class DummyLogger implements Logger {
 
 	@Override
 	public Map<String, String> getConfigs() {
-		return null;
+		return configs;
+	}
+
+	public void setConfigs(Map<String, String> configs) {
+		this.configs = configs;
 	}
 
 	@Override
