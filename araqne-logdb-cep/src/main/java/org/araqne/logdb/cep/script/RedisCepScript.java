@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Eediom Inc.
+ * Copyright 2015 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ public class RedisCepScript implements Script {
 		context.println("host : " + config.getHost());
 		context.println("port : " + config.getPort());
 		context.println("sentinel mode : " + config.isSentinel());
-		context.println("sentinel mode : " + config.isSentinel());
+		context.println("sentinel name : " + config.getSentinelName());
 		context.println("password : " + config.getPassword());
 		context.println("node :" + config.getSentinelNode());
 	}
@@ -115,7 +115,13 @@ public class RedisCepScript implements Script {
 
 		context.print("sentinel mode? ");
 		String s = context.readLine(Boolean.toString(redisConfig.isSentinel())).trim();
-		redisConfig.setSentinel(Boolean.parseBoolean(s));
+		Boolean sentinelMode = Boolean.parseBoolean(s);
+		redisConfig.setSentinel(sentinelMode);
+
+		if(sentinelMode) {
+			context.print("sentinel name? ");
+			redisConfig.setSentinelName(context.readLine(redisConfig.getSentinelName()).trim());
+		}
 
 		context.print("password? ");
 		String enteredPassword1 = context.readPassword();

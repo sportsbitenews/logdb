@@ -29,7 +29,7 @@ public class RedisConfig {
 	private int port = 6379;
 	private boolean isSentinel = false;
 	private String password = null;
-	private String sentinelName = "mysentinel";
+	private String sentinelName = "mymaster";
 	private List<HostAndPort> sentinels = new CopyOnWriteArrayList<HostAndPort>();
 
 	public RedisConfig(){

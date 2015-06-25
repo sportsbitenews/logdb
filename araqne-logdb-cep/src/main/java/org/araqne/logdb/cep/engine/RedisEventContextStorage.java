@@ -151,12 +151,19 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		jedisPool = getPool();
 		jedisForGet = jedisPool.getResource();
 		jedisForSet = jedisPool.getResource();
+		
+		String password = configReg.getConfig().getPassword();
+		if(password != null && !password.trim().isEmpty()){
+			jedisForGet.auth(password);
+			jedisForSet.auth(password);
+		}
+		
 
 	}
 
 	private boolean connectCheck(Jedis jedis){
 		if(jedis == null)
-			throw new JedisConnectionException("Redis server deisconected [" + 
+			throw new JedisConnectionException("Redis server disconected [" + 
 					configReg.getConfig().getHost() + ":" + configReg.getConfig().getPort()+"]") ;
 		return true;
 	}
