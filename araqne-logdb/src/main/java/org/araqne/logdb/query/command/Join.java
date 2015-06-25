@@ -12,6 +12,7 @@ import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.command.Sort.SortField;
 import org.slf4j.Logger;
@@ -49,7 +50,7 @@ public class Join extends QueryCommand {
 
 		logger.debug("araqne logdb: join subquery created [{}:{}]", subQuery.getId(), subQuery.getQueryString());
 	}
-	
+
 	@Override
 	public String getName() {
 		return "join";
@@ -65,7 +66,7 @@ public class Join extends QueryCommand {
 				subQueryTask.addSubTask(cmd.getMainTask());
 			}
 		}
-		
+
 		subQuery.preRun();
 	}
 
@@ -91,6 +92,21 @@ public class Join extends QueryCommand {
 			logger.error("araqne logdb: cannot stop subquery [" + subQuery.getQueryString() + "]", t);
 		} finally {
 			subQuery.purge();
+		}
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[rowBatch.selected[i]];
+				onPush(row);
+			}
+		} else {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+				onPush(row);
+			}
 		}
 	}
 
