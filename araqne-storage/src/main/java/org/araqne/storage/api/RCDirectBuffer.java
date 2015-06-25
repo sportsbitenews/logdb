@@ -59,4 +59,37 @@ public class RCDirectBuffer {
 		return null;
 	}
 
+	public RCDirectBuffer asReadOnlyBuffer() {
+		return new RCDirectBufferReadOnly(manager, buffer.asReadOnlyBuffer(), poolName, usageName);
+	}
+
+	public class RCDirectBufferReadOnly extends RCDirectBuffer {
+
+		public RCDirectBufferReadOnly(RCDirectBufferManager manager, ByteBuffer buffer, String poolName, String usageName) {
+			super(manager, buffer, poolName, usageName);
+		}
+
+		public RCDirectBuffer addRef() {
+			throw new ReadOnlyRCDirectBufferException("addRef");
+		}
+
+		public RCDirectBuffer release() {
+			throw new ReadOnlyRCDirectBufferException("release");
+		}
+
+		public class ReadOnlyRCDirectBufferException extends UnsupportedOperationException {
+			private static final long serialVersionUID = 1L;
+			private String operation;
+
+			ReadOnlyRCDirectBufferException(String operation) {
+				this.operation = operation;
+			}
+
+			@Override
+			public String getMessage() {
+				return "ReadOnly RCDirectBuffer does not support " + operation + " operation";
+			}
+		}
+
+	}
 }

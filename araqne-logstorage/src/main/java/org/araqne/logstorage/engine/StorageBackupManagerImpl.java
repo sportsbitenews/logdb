@@ -438,11 +438,15 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 		private void tryDelete(StorageBackupMedia media, String tableName, StorageFile storageFile) throws IOException {
 			File backupFile = new File(job.getTablePath(), "table/" + storageFile.getTableId() + "/" + storageFile.getFileName());
-
-			if (storageFile.getFile().length() == backupFile.length())
-				media.deleteFile(tableName, storageFile.getFileName());
+			File src = storageFile.getFile();
+			if (src.length() == backupFile.length()) {
+				boolean isDelete = src.delete();
+				if (!isDelete)
+					throw new IOException("delete failed [file:" + src.getAbsolutePath() + "]");
+			} else
+				throw new IOException("move failed [original size: " + src.length() + ", backup size: " + backupFile.length()
+						+ "]");
 		}
-
 	}
 
 	private void generateReport(StorageBackupJob job) {

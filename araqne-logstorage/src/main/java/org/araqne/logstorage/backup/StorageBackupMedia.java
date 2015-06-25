@@ -43,7 +43,5 @@ public interface StorageBackupMedia {
 
 	void copyToMedia(StorageTransferRequest req) throws IOException;
 
-	void deleteFile(String tableName, String fileName) throws IOException;
-
 	boolean isWormMedia();
 }
