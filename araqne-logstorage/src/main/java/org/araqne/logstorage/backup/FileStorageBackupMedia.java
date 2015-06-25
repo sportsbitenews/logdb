@@ -276,11 +276,6 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 
 		if (src != null) {
 			File dst = new File(path, "table/" + src.getTableId() + "/" + src.getFileName());
-			if (req.isOverwrite()) {
-				boolean isDelete = dst.delete();
-				if (!isDelete)
-					throw new IOException("delete failed, " + dst.getAbsolutePath());
-			}
 			if (!isWorm)
 				copyToDisk(req, src, dst);
 			else
@@ -324,18 +319,6 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 	}
 
 	@Override
-	public void deleteFile(String tableName, String fileName) throws IOException {
-		TableSchema schema = cachedSchemas.get(tableName);
-		if (schema == null)
-			throw new IOException("table [" + tableName + "] not found in backup media");
-
-		File dst = new File(schema.dir, fileName);
-		boolean isDelete = dst.delete();
-		if (!isDelete)
-			throw new IOException("delete failed [file:" + dst.getAbsolutePath() + "]");
-	}
-
-	@Override
 	public boolean isWormMedia() {
 		return isWorm;
 	}
@@ -359,7 +342,7 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 				logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(),
 						dstTmp.getAbsolutePath());
 
-			copy(req, src, dstTmp, dst.length());
+			copy(req, src, dstTmp, 0);
 
 			if (!dstTmp.renameTo(dst)) {
 				dstTmp.delete();
@@ -387,7 +370,7 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 
 		try {
 			is = new FileInputStream(src.getFile());
-			if(req.isIncremental())
+			if (req.isIncremental())
 				os = new FileOutputStream(dst, true);
 			else
 				os = new FileOutputStream(dst);
