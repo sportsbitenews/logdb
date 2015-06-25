@@ -3,10 +3,11 @@
  */
 package org.araqne.logdb.metadata;
 
-import java.util.List;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -56,24 +57,29 @@ public class MemoryMetadataProvider implements MetadataProvider, FieldOrdering {
 
 	@Override
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
-		if (queryString.equals(" pools")) {
-			Map<String, Object> ret = null;
-			for (String poolName : manager.getPoolNames()) {
-				ret = new HashMap<String, Object>();
-				ret.put("available", manager.getAvailablePoolSize(poolName));
-				ret.put("using", manager.getUsingPoolSize(poolName));
-				ret.put("name", poolName);
-				ret.put("type", "offheap");
-				callback.onPush(new Row(ret));
-			}
-		} else if (queryString.equals(" objects")) {
-			Map<String, Object> ret = null;
-			for (String usageName : manager.getUsagesNames()) {
-				ret = new HashMap<String, Object>();
-				ret.put("using", manager.getUsingObjectSize(usageName));
-				ret.put("name", usageName);
-				ret.put("type", "offheap");
-				callback.onPush(new Row(ret));
+		StringTokenizer tokenizer = new StringTokenizer(queryString, " ");
+		if (tokenizer.hasMoreTokens()) {
+			String token = tokenizer.nextToken();
+
+			if (token.equals("pools")) {
+				Map<String, Object> ret = null;
+				for (String poolName : manager.getPoolNames()) {
+					ret = new HashMap<String, Object>();
+					ret.put("available", manager.getAvailablePoolSize(poolName));
+					ret.put("using", manager.getUsingPoolSize(poolName));
+					ret.put("name", poolName);
+					ret.put("type", "offheap");
+					callback.onPush(new Row(ret));
+				}
+			} else if (token.equals("objects")) {
+				Map<String, Object> ret = null;
+				for (String usageName : manager.getUsagesNames()) {
+					ret = new HashMap<String, Object>();
+					ret.put("using", manager.getUsingObjectSize(usageName));
+					ret.put("name", usageName);
+					ret.put("type", "offheap");
+					callback.onPush(new Row(ret));
+				}
 			}
 		} else {
 			Map<String, Object> heap = new HashMap<String, Object>();
