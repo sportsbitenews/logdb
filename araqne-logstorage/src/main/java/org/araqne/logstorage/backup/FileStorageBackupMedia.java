@@ -344,6 +344,9 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 
 			copy(req, src, dstTmp, 0);
 
+			if (dst.exists())
+				dst.delete();
+
 			if (!dstTmp.renameTo(dst)) {
 				dstTmp.delete();
 				throw new IOException("rename failed, " + dstTmp.getAbsolutePath());
