@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 import org.araqne.log.api.Log;
+import org.araqne.log.api.DummyLogger;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.Logger;
@@ -36,7 +37,6 @@ import org.araqne.log.api.MultilineLogExtractor;
 import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.impl.DummyLogger;
 import org.slf4j.LoggerFactory;
 
 public class TextFile extends DriverQueryCommand {
