@@ -96,6 +96,9 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	@Validate
 	public void start(){
 		try {
+			if(!redisMode())
+				return;
+			
 			configReg.addListener(this);
 			subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
 			subscribeStopRequested = false;
@@ -142,7 +145,45 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 		eventContextService.registerStorage(this);
 	}
+	
+	@Invalidate
+	public void stop(){
+		if(!redisMode())
+			return;
+		
+		subscribeStopRequested =  true;
+		if(eventContextService != null)
+			eventContextService.unregisterStorage(this);
+		configReg.removeListener(this);
 
+		for( Jedis aliveJedis: aliveJedisServers.values()){
+			closeClient(aliveJedis);
+		}
+
+		aliveJedisServers.clear();
+
+		try {
+			returnResource(jedis);
+			closeClient(jedis);
+
+			if (jedisPool != null) {
+				jedisPool.close();
+				jedisPool.destroy();
+				jedisPool = null;
+			}
+		} catch (Exception e) {
+			slog.debug("araqne logdb cep: failed to close redis storage", e);
+		}
+	}
+
+	private boolean redisMode(){
+		String engine = System.getProperty("araqne.logdb.cepengine");
+		if(engine == null || engine.isEmpty() || !engine.equals("redis"))
+			return false;
+		
+		return true;
+	}
+	
 	private void jedisConnect(){
 		jedisPool = null;
 		jedis = null;
@@ -215,32 +256,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		}
 	}
 
-	@Invalidate
-	public void stop(){
-		subscribeStopRequested =  true;
-		if(eventContextService != null)
-			eventContextService.unregisterStorage(this);
-		configReg.removeListener(this);
 
-		for( Jedis aliveJedis: aliveJedisServers.values()){
-			closeClient(aliveJedis);
-		}
-
-		aliveJedisServers.clear();
-
-		try {
-			returnResource(jedis);
-			closeClient(jedis);
-
-			if (jedisPool != null) {
-				jedisPool.close();
-				jedisPool.destroy();
-				jedisPool = null;
-			}
-		} catch (Exception e) {
-			slog.debug("araqne logdb cep: failed to close redis storage", e);
-		}
-	}
 
 	@Override
 	public Set<String> getHosts(){
