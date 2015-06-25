@@ -16,13 +16,9 @@
 package org.araqne.logdb.cep.query;
 
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryErrorMessage;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
@@ -31,8 +27,6 @@ import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.query.expr.Expression;
-
-import redis.clients.jedis.exceptions.JedisConnectionException;
 
 public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 

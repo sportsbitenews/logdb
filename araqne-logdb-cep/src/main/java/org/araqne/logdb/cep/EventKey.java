@@ -15,12 +15,8 @@
  */
 package org.araqne.logdb.cep;
 
-import java.util.HashMap;
-import java.util.Map;
 
-import org.araqne.msgbus.Marshalable;
-
-public class EventKey implements Marshalable {
+public class EventKey {
 	private final String topic;
 	private final String key;
 
@@ -77,25 +73,6 @@ public class EventKey implements Marshalable {
 		if (host == null)
 			return "topic=" + topic + ", key=" + key;
 		return "topic=" + topic + ", key=" + key + ", host=" + host;
-	}
-
-	@Override
-	public Map<String, Object> marshal() {
-		HashMap<String, Object> m = new HashMap<String, Object>();
-		m.put("topic", topic);
-		m.put("key", key);
-		m.put("host", host);
-		return m;
-	}
-	
-	public static EventKey parse(Map<String, Object> m){
-		String topic = (String) m.get("topic");
-		String key = (String) m.get("key");
-		String host = (String) m.get("host");
-		
-		EventKey ek = new EventKey(topic, key);
-		ek.setHost(host);
-		return ek;
 	}
 	
 	public static byte[] marshal(EventKey key){

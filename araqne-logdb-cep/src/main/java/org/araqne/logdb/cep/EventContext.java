@@ -194,7 +194,7 @@ public class EventContext implements Marshalable{
 	@Override
 	public Map<String, Object> marshal() {
 		HashMap<String, Object> m = new HashMap<String, Object> ();
-		m.put("key", key.marshal());
+		m.put("key", EventKey.marshal(key));
 		m.put("created", created);
 		m.put("expireTime", expireTime);
 		m.put("timeoutTime", timeoutTime);
@@ -208,7 +208,7 @@ public class EventContext implements Marshalable{
 
 	@SuppressWarnings("unchecked")
 	public static EventContext parse(Map<String, Object> m) {
-		EventKey key = EventKey.parse((Map<String, Object>) m.get("key"));
+		EventKey key = EventKey.parse((byte []) m.get("key"));
 		Long created = (Long) m.get("created");
 		Long expireTime = (Long) m.get("expireTime");
 		Long timeoutTime = (Long) m.get("timeoutTime");
@@ -245,8 +245,6 @@ public class EventContext implements Marshalable{
 			oldCtx.setVariable(vKey, ctx.getVariable(vKey));
 
 		oldCtx.getCounter().addAndGet(ctx.getCounter().get());
-		
-		
 		
 		return oldCtx;
 	}
