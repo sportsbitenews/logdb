@@ -40,7 +40,6 @@ import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.AuthServiceNotLoadedException;
-import org.araqne.logdb.DataUploadService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
 import org.araqne.logstorage.LockKey;
@@ -97,9 +96,6 @@ public class ManagementPlugin {
 
 	@Requires
 	private TokenApi tokenApi;
-	
-	@Requires
-	private DataUploadService upload;
 
 	@AllowGuestAccess
 	@MsgbusMethod
@@ -701,35 +697,6 @@ public class ManagementPlugin {
 		l.add("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
 
 		resp.put("cipher_transformers", l);
-	}
-
-	@MsgbusMethod
-	public void loadTextFile(Request req, Response resp) throws IOException {
-		String ticket = (String) req.get("ticket", true);
-		boolean last = (Boolean) req.get("last", true);
-		String data = (String) req.get("data", true);
-		String datePattern = (String) req.get("date_pattern");
-		String dateFormat = (String) req.get("date_format");
-		String dateLocale = (String) req.get("date_locale");
-		String beginRegex = (String) req.get("begin_regex");
-		String endRegex = (String) req.get("end_regex");
-		String tableName = (String) req.get("table", true);
-		String charset = (String) req.get("charset", true);
-		
-		upload.loadTextFile(storage, ticket, last, data, datePattern, dateFormat, dateLocale, beginRegex, endRegex, tableName,
-				charset);
-	}
-
-	@MsgbusMethod
-	public void previewTextFile(Request req, Response resp) throws IOException {
-		String data = (String) req.get("data", true);
-		String datePattern = (String) req.get("date_pattern");
-		String dateFormat = (String) req.get("date_format");
-		String dateLocale = (String) req.get("date_locale");
-		String beginRegex = (String) req.get("begin_regex");
-		String endRegex = (String) req.get("end_regex");
-		String charset = (String) req.get("charset", true);
-		resp.put("preview", upload.previewTextFile(data, datePattern, dateFormat, dateLocale, beginRegex, endRegex, charset));
 	}
 
 	@MsgbusMethod
