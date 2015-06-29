@@ -74,6 +74,10 @@ public class SortMergeJoiner {
 				innerJoinMerge(rIt, sIt);
 			} else if (joinType == JoinType.Left) {
 				leftJoinMerge(rIt, sIt);
+			} else if (joinType == JoinType.Right) {
+				rightJoinMerge(rIt, sIt);
+			} else if (joinType == JoinType.Full) {
+				fullJoinMerge(rIt, sIt);
 			} else {
 				throw new UnsupportedOperationException("Unsupported Join Type " + joinType.toString());
 			}
@@ -136,6 +140,51 @@ public class SortMergeJoiner {
 		}
 
 		return item;
+	}
+
+	private void fullJoinMerge(CloseableIterator rIt, CloseableIterator sIt) {
+		Item rItem = getNextItem(rIt);
+		Item sItem = getNextItem(sIt);
+
+		while (this.canceled == false && rItem != null && sItem != null) {
+			int compareReulst = comparator.compare(rItem, sItem);
+			if (compareReulst < 0) {
+				pushMergedItem(rItem);
+
+				rItem = getNextItem(rIt);
+			} else if (compareReulst > 0) {
+				pushMergedItem(sItem);
+
+				sItem = getNextItem(sIt);
+			} else {
+				Item joinItem = rItem;
+
+				ArrayList<Item> sameJoinKeyItems = new ArrayList<Item>();
+				while (sItem != null && hasSameJoinKey(joinItem, sItem)) {
+					sameJoinKeyItems.add(sItem);
+					sItem = getNextItem(sIt);
+				}
+
+				while (rItem != null && hasSameJoinKey(joinItem, rItem)) {
+					pushMergedItem(rItem, sameJoinKeyItems);
+					rItem = getNextItem(rIt);
+				}
+			}
+		}
+
+		while (this.canceled == false && rItem != null) {
+			pushMergedItem(rItem);
+			rItem = getNextItem(rIt);
+		}
+
+		while (this.canceled == false && sItem != null) {
+			pushMergedItem(sItem);
+			sItem = getNextItem(sIt);
+		}
+	}
+
+	private void rightJoinMerge(CloseableIterator rIt, CloseableIterator sIt) {
+		leftJoinMerge(sIt, rIt);
 	}
 
 	private void leftJoinMerge(CloseableIterator rIt, CloseableIterator sIt) {

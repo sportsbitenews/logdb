@@ -38,24 +38,34 @@ public class JoinParser extends AbstractQueryCommandParser {
 		return "join";
 	}
 
+	private JoinType getJoinType(Map<String, Object> options) {
+		JoinType joinType = JoinType.Inner;
+		if (options.containsKey("type")) {
+			String type = (String) options.get("type");
+
+			if (type.equals("left")) {
+				joinType = JoinType.Left;
+			} else if (type.equals("inner")) {
+				joinType = JoinType.Inner;
+			} else if (type.equals("right")) {
+				joinType = JoinType.Right;
+			} else if (type.equals("full")) {
+				joinType = JoinType.Full;
+			}
+		}
+
+		return joinType;
+	}
+
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("type"), getFunctionRegistry());
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("type"),
+				getFunctionRegistry());
 		@SuppressWarnings("unchecked")
 		Map<String, Object> options = (Map<String, Object>) r.value;
 
-		String type = null;
-		if (options != null) {
-			type = (String) options.get("type");
-		}
+		JoinType joinType = getJoinType(options);
 
-		if (r.next < 0)
-			r.next = 0;
-
-		JoinType joinType = JoinType.Inner;
-		if (type != null && type.equals("left"))
-			joinType = JoinType.Left;
-		
 		// parsing rule for join
 		OpEmitterFactory of = new JoinOpEmitterFactory();
 		TermEmitterFactory tf = new JoinTermEmitterFactory();
@@ -65,45 +75,47 @@ public class JoinParser extends AbstractQueryCommandParser {
 				throw new QueryParseException("unexpected-function", -1, "function is [" + f + "]");
 			}
 		};
-		
+
+		if (r.next < 0)
+			r.next = 0;
+
 		int b = commandString.indexOf('[', r.next);
 		if (b < 0)
 			throw new QueryParseException("no-subquery", -1, "join query has no subquery");
-		
+
 		String fieldString = commandString.substring(r.next, b);
-		
+
 		Expression fExpr = ExpressionParser.parse(context, fieldString, new ParsingRule(JoinOpTerm.NOP, of, ff, tf));
 		SortField[] sortFieldArray = null;
 		if (fExpr instanceof FieldTerm)
 			sortFieldArray = new SortField[] { SortField.class.cast(fExpr.eval(null)) };
 		else if (fExpr instanceof Comma) {
 			@SuppressWarnings("unchecked")
-			List<Object> fl = (List<Object>)fExpr.eval(null);
+			List<Object> fl = (List<Object>) fExpr.eval(null);
 			sortFieldArray = fl.toArray(new SortField[0]);
 		} else {
 			throw new QueryParseException("unexpected-expression", -1, "expression is [" + fieldString + "]");
 		}
-		
+
 		Expression sqExpr = ExpressionParser.parse(context, commandString.substring(b), new ParsingRule(JoinOpTerm.NOP, of, ff, tf));
 		if (!(sqExpr instanceof SubQueryTerm))
 			throw new QueryParseException("no-subquery", -1, "join query has no subquery");
-		
+
 		String subQueryString = SubQueryTerm.class.cast(sqExpr).getSubQuery();
 		List<QueryCommand> subCommands = parserService.parseCommands(context, subQueryString);
 		Query subQuery = new DefaultQuery(context, subQueryString, subCommands, resultFactory);
 		return new Join(joinType, sortFieldArray, subQuery);
 	}
-	
+
 	private static enum JoinOpTerm implements OpTerm {
 		Asc("+", 500, false, true, false), Desc("-", 500, false, true, false),
 		Comma(",", 200), ListEndComma(",", 200),
-		NOP("", 0, true, false, true)
-		;
-		
+		NOP("", 0, true, false, true);
+
 		private JoinOpTerm(String symbol, int precedence) {
 			this(symbol, precedence, true, false, false);
 		}
-		
+
 		private JoinOpTerm(String symbol, int precedence, boolean leftAssoc, boolean unary, boolean isAlpha) {
 			this.symbol = symbol;
 			this.precedence = precedence;
@@ -117,7 +129,7 @@ public class JoinParser extends AbstractQueryCommandParser {
 		public final boolean leftAssoc;
 		public final boolean unary;
 		public final boolean isAlpha;
-		
+
 		@Override
 		public String toString() {
 			return symbol;
@@ -189,24 +201,24 @@ public class JoinParser extends AbstractQueryCommandParser {
 			if (!this.equals(Comma)) {
 				return this;
 			}
-			
+
 			return ListEndComma;
 		}
-		
+
 	}
-	
+
 	private static class JoinOpEmitterFactory implements OpEmitterFactory {
 
 		@Override
 		public void emit(Stack<Expression> exprStack, Term term) {
 			JoinOpTerm op = JoinOpTerm.class.cast(term);
-			
+
 			// is unary op?
 			if (op.isUnary()) {
 				Expression expr = exprStack.pop();
 				if (!(expr instanceof FieldTerm))
 					throw new QueryParseException("unexpected-expression", -1, "expression is [" + expr + "]");
-				
+
 				FieldTerm t = FieldTerm.class.cast(expr);
 				switch (op) {
 				case Asc: {
@@ -223,7 +235,7 @@ public class JoinParser extends AbstractQueryCommandParser {
 				}
 				return;
 			}
-			
+
 			// reversed order by stack
 			if (exprStack.size() < 2)
 				throw new QueryParseException("broken-expression", -1, "operator is [" + op + "]");
@@ -238,26 +250,26 @@ public class JoinParser extends AbstractQueryCommandParser {
 			case ListEndComma:
 				exprStack.add(new Comma(lhs, rhs, true));
 				break;
-				
+
 			default:
 				throw new QueryParseException("unsupported-operator", -1, "unsupported unary operator [" + op.toString() + "]");
 			}
 		}
-		
+
 	}
-	
+
 	private static class SubQueryTerm implements Expression {
 		private final String subquery;
-		
+
 		public SubQueryTerm(String subquery) {
 			this.subquery = subquery;
 		}
-		
+
 		@Override
 		public Object eval(Row row) {
 			return subquery;
 		}
-		
+
 		public String getSubQuery() {
 			return subquery;
 		}
@@ -266,24 +278,24 @@ public class JoinParser extends AbstractQueryCommandParser {
 	private static class FieldTerm implements Expression {
 		private final String field;
 		private boolean asc;
-		
+
 		public FieldTerm(String field) {
 			this.field = field;
 			this.asc = true;
 		}
-		
+
 		public boolean toggleAsc() {
 			asc = !asc;
 			return asc;
 		}
-		
+
 		@Override
 		public Object eval(Row row) {
 			return new SortField(field, asc);
 		}
-		
+
 	}
-	
+
 	private static class JoinTermEmitterFactory implements TermEmitterFactory {
 		@Override
 		public void emit(Stack<Expression> exprStack, TokenTerm t) {
@@ -293,7 +305,7 @@ public class JoinParser extends AbstractQueryCommandParser {
 				exprStack.add(expr);
 			}
 		}
-		
+
 		private Expression parseTokenExpr(Stack<Expression> exprStack, String token) {
 			// sub query
 			if (token.startsWith("[") && token.endsWith("]")) {
@@ -301,7 +313,7 @@ public class JoinParser extends AbstractQueryCommandParser {
 				SubQueryTerm term = new SubQueryTerm(subQueryString);
 				return term;
 			}
-			
+
 			return new FieldTerm(token);
 		}
 	}

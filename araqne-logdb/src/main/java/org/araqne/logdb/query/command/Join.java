@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 public class Join extends QueryCommand {
 	public enum JoinType {
-		Inner, Left
+		Inner, Left, Right, Full
 	}
 
 	private final Logger logger = LoggerFactory.getLogger(Join.class);
@@ -189,7 +189,7 @@ public class Join extends QueryCommand {
 						"araqne logdb: join fetch subquery result of query [{}:{}]", query.getId(),
 						query.getQueryString());
 
-				if (rs.size() <= HASH_JOIN_THRESHOLD)
+				if (rs.size() <= HASH_JOIN_THRESHOLD && (joinType == JoinType.Inner || joinType == JoinType.Left))
 					buildHashJoinTable(rs);
 				else
 					sortMergeJoiner.setS(rs);
