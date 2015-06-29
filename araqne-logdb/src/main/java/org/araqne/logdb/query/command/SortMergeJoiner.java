@@ -100,122 +100,75 @@ public class SortMergeJoiner {
 	}
 
 	private void innerJoinMerge(CloseableIterator rIt, CloseableIterator sIt) {
-		Item rItem = null;
-		if (rIt.hasNext()) {
-			rItem = rIt.next();
-		}
-		else
-			return;
+		Item rItem = getNextItem(rIt);
+		Item sItem = getNextItem(sIt);
 
-		Item sItem = null;
-		if (sIt.hasNext()) {
-			sItem = sIt.next();
-		}
-		else
+		if (rItem == null || sItem == null)
 			return;
 
 		while (this.canceled == false && rItem != null && sItem != null) {
-			int compareResult = comparator.compare(rItem, sItem);
-			if (compareResult < 0) {
-				if (!rIt.hasNext()) {
-					rItem = null;
-				} else {
-					rItem = rIt.next();
-				}
-			} else if (compareResult > 0) {
-				if (!sIt.hasNext()) {
-					sItem = null;
-				} else {
-					sItem = sIt.next();
-				}
+			int compareReulst = comparator.compare(rItem, sItem);
+			if (compareReulst < 0) {
+				rItem = getNextItem(rIt);
+			} else if (compareReulst > 0) {
+				sItem = getNextItem(sIt);
 			} else {
 				Item joinItem = rItem;
 
 				ArrayList<Item> sameJoinKeyItems = new ArrayList<Item>();
 				while (sItem != null && hasSameJoinKey(joinItem, sItem)) {
-					if (!sIt.hasNext() && sItem != null) {
-						sameJoinKeyItems.add(sItem);
-						sItem = null;
-					} else {
-						sameJoinKeyItems.add(sItem);
-						sItem = sIt.next();
-					}
+					sameJoinKeyItems.add(sItem);
+					sItem = getNextItem(sIt);
 				}
 
 				while (rItem != null && hasSameJoinKey(joinItem, rItem)) {
-					if (!rIt.hasNext() && rItem != null) {
-						pushMergedItem(rItem, sameJoinKeyItems);
-						rItem = null;
-					} else {
-						pushMergedItem(rItem, sameJoinKeyItems);
-						rItem = rIt.next();
-					}
+					pushMergedItem(rItem, sameJoinKeyItems);
+					rItem = getNextItem(rIt);
 				}
 			}
 		}
 	}
 
-	private void leftJoinMerge(CloseableIterator rIt, CloseableIterator sIt) {
-		Item rItem = null;
-		if (rIt.hasNext()) {
-			rItem = rIt.next();
+	private Item getNextItem(CloseableIterator it) {
+		Item item = null;
+		if (it.hasNext()) {
+			item = it.next();
 		}
 
-		Item sItem = null;
-		if (sIt.hasNext()) {
-			sItem = sIt.next();
-		}
+		return item;
+	}
+
+	private void leftJoinMerge(CloseableIterator rIt, CloseableIterator sIt) {
+		Item rItem = getNextItem(rIt);
+		Item sItem = getNextItem(sIt);
 
 		while (this.canceled == false && rItem != null && sItem != null) {
 			int compareReulst = comparator.compare(rItem, sItem);
 			if (compareReulst < 0) {
 				pushMergedItem(rItem);
 
-				if (!rIt.hasNext()) {
-					rItem = null;
-				} else {
-					rItem = rIt.next();
-				}
+				rItem = getNextItem(rIt);
 			} else if (compareReulst > 0) {
-				if (!sIt.hasNext()) {
-					sItem = null;
-				} else {
-					sItem = sIt.next();
-				}
+				sItem = getNextItem(sIt);
 			} else {
 				Item joinItem = rItem;
 
 				ArrayList<Item> sameJoinKeyItems = new ArrayList<Item>();
 				while (sItem != null && hasSameJoinKey(joinItem, sItem)) {
-					if (!sIt.hasNext() && sItem != null) {
-						sameJoinKeyItems.add(sItem);
-						sItem = null;
-					} else {
-						sameJoinKeyItems.add(sItem);
-						sItem = sIt.next();
-					}
+					sameJoinKeyItems.add(sItem);
+					sItem = getNextItem(sIt);
 				}
 
 				while (rItem != null && hasSameJoinKey(joinItem, rItem)) {
-					if (!rIt.hasNext() && rItem != null) {
-						pushMergedItem(rItem, sameJoinKeyItems);
-						rItem = null;
-					} else {
-						pushMergedItem(rItem, sameJoinKeyItems);
-						rItem = rIt.next();
-					}
+					pushMergedItem(rItem, sameJoinKeyItems);
+					rItem = getNextItem(rIt);
 				}
 			}
 		}
 
 		while (this.canceled == false && rItem != null) {
 			pushMergedItem(rItem);
-
-			if (!rIt.hasNext()) {
-				rItem = null;
-			} else {
-				rItem = rIt.next();
-			}
+			rItem = getNextItem(rIt);
 		}
 	}
 
