@@ -362,9 +362,6 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 				for (String tableName : tableNames) {
 					List<StorageFile> files = job.getStorageFiles().get(tableName);
 
-					if (!checkValidation(job, media, tableName, files))
-						throw new IOException("backup file already exists");
-
 					if (monitor != null)
 						monitor.onBeginTable(job, tableName);
 
@@ -524,21 +521,5 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 	private void writeLine(Writer writer, String line) throws IOException {
 		String sep = System.getProperty("line.separator");
 		writer.write(line + sep);
-	}
-
-	private boolean checkValidation(StorageBackupJob job, StorageBackupMedia media, String tableName, List<StorageFile> files)
-			throws IOException {
-		StorageBackupRequest req = job.getRequest();
-		if (req.isOverwrite() || req.isIncremental() || media.isWormMedia())
-			return true;
-
-		if (files.size() == 0)
-			return true;
-
-		for (StorageFile f : files) {
-			if (media.exists(tableName, f.getFileName()))
-				return false;
-		}
-		return true;
 	}
 }

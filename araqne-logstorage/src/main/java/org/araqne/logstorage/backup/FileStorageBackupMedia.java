@@ -335,6 +335,9 @@ public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 			copy(req, src, dst, dst.length());
 
 		} else {
+			if (!req.isOverwrite() && dst.exists())
+				throw new IOException("file [" + dst.getAbsolutePath() + "] already exists");
+
 			File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
 			dstTmp.getParentFile().mkdirs();
 
