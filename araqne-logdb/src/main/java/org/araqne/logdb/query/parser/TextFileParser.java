@@ -71,6 +71,10 @@ public class TextFileParser extends AbstractQueryCommandParser {
 			if (options.containsKey("brex"))
 				brex = options.get("brex");
 			
+			String erex = null;
+			if (options.containsKey("erex"))
+				erex = options.get("erex");
+			
 			String df = null;
 			if (options.containsKey("df"))
 				df = options.get("df");
@@ -102,7 +106,7 @@ public class TextFileParser extends AbstractQueryCommandParser {
 				parser = factory.createParser(options);
 			}
 
-			return new TextFile(filePath, parser, offset, limit, brex, df, dp, cs);
+			return new TextFile(filePath, parser, offset, limit, brex, erex, df, dp, cs);
 		}catch(QueryParseException t){
 			throw t;
 		}catch (Throwable t) {

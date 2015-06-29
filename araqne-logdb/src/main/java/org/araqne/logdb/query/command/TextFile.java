@@ -45,7 +45,8 @@ public class TextFile extends DriverQueryCommand {
 	private LogParser parser;
 	private int offset;
 	private int limit;
-	private String startRex;
+	private String beginRegex;
+	private String endRegex;
 	private String dateFormat;
 	private String datePattern;
 	private String charset;
@@ -54,13 +55,14 @@ public class TextFile extends DriverQueryCommand {
 	private DummyLogger dummyLogger = new DummyLogger();
 	private Semaphore closeSignal;
 
-	public TextFile(String filePath, LogParser parser, int offset, int limit, String startrex, String dateFormat,
-			String datePattern, String charset) {
+	public TextFile(String filePath, LogParser parser, int offset, int limit, String beginRegex, String endRegex,
+			String dateFormat, String datePattern, String charset) {
 		this.filePath = filePath;
 		this.parser = parser;
 		this.offset = offset;
 		this.limit = limit;
-		this.startRex = startrex;
+		this.beginRegex = beginRegex;
+		this.endRegex = endRegex;
 		this.dateFormat = dateFormat;
 		this.datePattern = datePattern;
 		this.charset = charset;
@@ -175,8 +177,10 @@ public class TextFile extends DriverQueryCommand {
 			is = new FileInputStream(new File(filePath));
 
 			MultilineLogExtractor extractor = new MultilineLogExtractor(dummyLogger, pipe);
-			if (startRex != null)
-				extractor.setBeginMatcher(Pattern.compile(startRex).matcher(""));
+			if (beginRegex != null)
+				extractor.setBeginMatcher(Pattern.compile(beginRegex).matcher(""));
+			if (endRegex != null)
+				extractor.setEndMatcher(Pattern.compile(endRegex).matcher(""));
 			if (datePattern != null)
 				extractor.setDateMatcher(Pattern.compile(datePattern).matcher(""));
 			if (dateFormat != null)
@@ -205,8 +209,11 @@ public class TextFile extends DriverQueryCommand {
 			limitOpt = " limit=" + limit;
 
 		String brexOpt = "";
-		if (startRex != null)
+		if (beginRegex != null)
 			brexOpt = " brex=" + quote(brexOpt);
+		String erexOpt = "";
+		if (endRegex != null)
+			erexOpt = " erex=" + quote(erexOpt);
 		String dfOpt = "";
 		if (dateFormat != null)
 			dfOpt = " df=" + quote(dateFormat);
@@ -217,7 +224,7 @@ public class TextFile extends DriverQueryCommand {
 		if (charset != null)
 			csOpt = " cs=" + charset;
 
-		return "textfile" + offsetOpt + limitOpt + brexOpt + dfOpt + dpOpt + csOpt + " " + filePath;
+		return "textfile" + offsetOpt + limitOpt + brexOpt + erexOpt + dfOpt + dpOpt + csOpt + " " + filePath;
 	}
 
 	private String quote(String s) {
