@@ -55,6 +55,8 @@ public class LocalDumpDriver implements DumpDriver {
 	public String getName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "로컬 백업 파일";
+		else if(locale != null && locale.equals(Locale.CHINA))
+			return "本地备份文件";
 		return "Local Backup File";
 	}
 
@@ -62,6 +64,8 @@ public class LocalDumpDriver implements DumpDriver {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "로컬 파일시스템에 백업 파일을 익스포트하거나 임포트합니다.";
+		else if(locale != null && locale.equals(Locale.CHINA))
+			return "从本地文件导入或导出文件";
 		return "Export or import data from local file system";
 	}
 
