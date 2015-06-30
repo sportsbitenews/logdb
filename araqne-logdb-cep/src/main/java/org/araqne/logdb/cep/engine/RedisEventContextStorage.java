@@ -88,6 +88,10 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	volatile static boolean subscribeStopRequested = false;
 
+	private ConcurrentHashMap<String, EventClock> logClocks;
+
+	private ConcurrentHashMap<EventKey, EventContext> contexts;
+
 	@Override
 	public String getName() {
 		return "redis";
@@ -98,9 +102,10 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		try {
 			if(!redisMode())
 				return;
-			
+
 			configReg.addListener(this);
 			subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
+			logClocks = new ConcurrentHashMap<String, EventClock>();
 			subscribeStopRequested = false;
 			jedisConnect();
 
@@ -145,12 +150,12 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 		eventContextService.registerStorage(this);
 	}
-	
+
 	@Invalidate
 	public void stop(){
 		if(!redisMode())
 			return;
-		
+
 		subscribeStopRequested =  true;
 		if(eventContextService != null)
 			eventContextService.unregisterStorage(this);
@@ -180,10 +185,10 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		String engine = System.getProperty("araqne.logdb.cepengine");
 		if(engine == null || engine.isEmpty() || !engine.equals("redis"))
 			return false;
-		
+
 		return true;
 	}
-	
+
 	private void jedisConnect(){
 		jedisPool = null;
 		jedis = null;
@@ -346,25 +351,31 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			oldValue = t.get(encodedKey);
 			t.del(encodedKey);
 			t.del(getDummyKey(encodedKey));
-			//TODO :삭제 성공 할때  logtick 관련 작업 추가 
 			t.exec();
 		}
 
 		byte[] response =oldValue.get();
 		if(response !=null){ 
 			EventContext oldCtx = EventContext.parse((Map<String, Object>) decode (response));
+
+			if (key.getHost() != null) {
+				EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+				logClock.remove(ctx);
+			} 
+
 			generateEvent(EventContext.merge(oldCtx, ctx), cause);
 		}
 	}
 
 	@Override
-	public void advanceTime(String host, long now) {
-		// TODO Auto-generated method stub
+	public void advanceTime(String host, long logTime) {
+		EventClock logClock = ensureClock(logClocks, host, logTime);
+		logClock.setTime(logTime,  false);
 	}
 
 	@Override
 	public void clearClocks() {
-		// TODO Auto-generated method stub
+		logClocks = new ConcurrentHashMap<String, EventClock> ();
 	}
 
 	@Override
@@ -437,7 +448,6 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	}
 
 	@Override
-	@Deprecated 
 	public void onUpdateTimeout(EventContext ctx) {
 		//		Jedis jedis = (Jedis)jedisPool.getResource();
 		//		byte[] key = encode(ctx.getKey());
@@ -445,6 +455,11 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		//
 		//		jedis.pexpireAt(getDummyKey(key), timeoutTime);
 		//		returnResource(jedis);
+		EventClock clock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+		if (clock == null)
+			return;
+
+		clock.updateTimeout(ctx);
 	}
 
 	@Override
@@ -488,8 +503,17 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					else if(max > 0)
 						t.pexpireAt(dummyKey, max);
 				}
+
+
 			}
 			t.exec();
+
+			for( EventContext ctx : contexts.values()){
+				if(ctx.getHost() != null){
+					EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+					logClock.add(ctx);
+				}
+			}
 		}
 	}
 
@@ -512,19 +536,35 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			long expireTime = ctx.getExpireTime();
 			connectCheck();
 			Transaction t= jedis.multi();
-			t.set(dummyKey, "");
 			t.set(key, value);
 
-			long min = Math.min(timeoutTime, expireTime);
-			long max = Math.max(timeoutTime, expireTime);
-			if(min > 0L)
-				t.pexpireAt(dummyKey, min);
-			else if(max > 0L)
-				t.pexpireAt(dummyKey, max);
+			if(ctx.getHost() == null) {
+				t.set(dummyKey, "");
+				long min = Math.min(timeoutTime, expireTime);
+				long max = Math.max(timeoutTime, expireTime);
+				if(min > 0L)
+					t.pexpireAt(dummyKey, min);
+				else if(max > 0L)
+					t.pexpireAt(dummyKey, max);
+			}
 
 			t.exec();
 		}
+
+		if(ctx.getHost() != null){
+			EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+			logClock.add(ctx);
+		}
+
 		return ctx;
+	}
+
+	private EventClock ensureClock(ConcurrentHashMap<String, EventClock> clocks, String host, long time){
+		EventClock clock = new EventClock(this, host, time, 11);
+		EventClock old = clocks.putIfAbsent(host,  clock);
+		if(old != null)
+			return old;
+		return clock;
 	}
 
 	@Override
