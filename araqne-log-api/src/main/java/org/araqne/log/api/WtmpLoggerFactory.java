@@ -60,17 +60,18 @@ public class WtmpLoggerFactory extends AbstractLoggerFactory {
 		LoggerConfigOption path = new StringConfigType("path", t("Path", "파일 경로", "ファイル経路", "文件路径"), t("wtmp file path",
 				"wtmp 파일 경로", "wtmpファイル経路", "wtmp文件路径"), true);
 
-		LoggerConfigOption server = new StringConfigType("server", t("OS type", "운영체제 유형"), t(
+		LoggerConfigOption server = new StringConfigType("server", t("OS type", "운영체제 유형", "操作系统类型"), t(
 				"OS type, linux (default), solaris, aix, hpux",
-				"운영체제 유형, linux (기본값), solaris, aix, hpux 중 하나"), false);
+				"운영체제 유형, linux (기본값), solaris, aix, hpux 중 하나", "例) linux, solaris, aix, hpux"), false);
 
 		return Arrays.asList(path, server);
 	}
 
-	private Map<Locale, String> t(String en, String ko) {
+	private Map<Locale, String> t(String en, String ko, String cn) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, en);
 		m.put(Locale.KOREAN, ko);
+		m.put(Locale.CHINESE, cn);
 		return m;
 	}
 
