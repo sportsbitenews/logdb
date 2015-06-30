@@ -120,7 +120,7 @@ public class ParseXml extends QueryCommand implements ThreadSafe {
 			if (text.isEmpty())
 				return null;
 			return text;
-		} else if (childCount == 1 && attrCount == 0 && list.item(0).getNodeType() == Node.TEXT_NODE) {
+		} else if (childCount == 1 && attrCount == 0 && isTextNode(list.item(0))) {
 			String text = list.item(0).getTextContent();
 			if (text.isEmpty())
 				return null;
@@ -169,12 +169,16 @@ public class ParseXml extends QueryCommand implements ThreadSafe {
 
 		return m;
 	}
-	
+
 	private static String getNodeName(Node node) {
-		String t = node.getNodeName();
-		if (t.equals("#text"))
+		if (isTextNode(node))
 			return "_text";
-		return t;
+		return node.getNodeName();
+	}
+
+	private static boolean isTextNode(Node node) {
+		short nodeType = node.getNodeType();
+		return nodeType == Node.TEXT_NODE || nodeType == Node.CDATA_SECTION_NODE;
 	}
 
 	@Override
