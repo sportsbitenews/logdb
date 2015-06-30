@@ -439,10 +439,10 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 			if (src.length() == backupFile.length()) {
 				boolean isDelete = src.delete();
 				if (!isDelete)
-					throw new IOException("delete failed [file:" + src.getAbsolutePath() + "]");
+					storageFile.setException(new IOException("delete failed [file:" + src.getAbsolutePath() + "]"));
 			} else
-				throw new IOException("move failed [original size: " + src.length() + ", backup size: " + backupFile.length()
-						+ "]");
+				storageFile.setException(new IOException("move failed [original size: " + src.length() + ", backup size: "
+						+ backupFile.length() + "]"));
 		}
 	}
 
