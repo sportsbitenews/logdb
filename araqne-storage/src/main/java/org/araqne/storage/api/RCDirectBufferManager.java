@@ -7,6 +7,10 @@ public interface RCDirectBufferManager {
 	public RCDirectBuffer allocateDirect(int capacity);
 
 	public RCDirectBuffer allocateDirect(int capacity, String poolName, String usageName) throws ExceedPoolSizeLimitException;
+	
+	public RCDirectBuffer wrap(ByteBuffer buffer);
+	
+	public RCDirectBuffer wrap(ByteBuffer buffer, String poolName, String usageName) throws ExceedPoolSizeLimitException;
 
 	public long getTotalCapacity();
 
@@ -15,7 +19,7 @@ public interface RCDirectBufferManager {
 	@Deprecated
 	void clean(ByteBuffer buffer);
 
-	void clean(ByteBuffer buffer, String poolName, String usageName);
+	void clean(RCDirectBuffer buffer, String poolName, String usageName);
 
 	public void setMemoryLimitOfPool(String poolName, Long size);
 
@@ -29,6 +33,7 @@ public interface RCDirectBufferManager {
 
 	public Iterable<String> getUsagesNames();
 
+	@SuppressWarnings("serial")
 	public class ExceedPoolSizeLimitException extends IOException {
 		private Long size;
 		private Long limit;

@@ -116,7 +116,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-storage</artifactId>
-			<version>0.0.10</version>
+			<version>0.0.11</version>
 		</dependency>
 		<dependency>
 			<groupId>org.xerial.snappy</groupId>

@@ -2,8 +2,16 @@ package org.araqne.storage.api;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RCDirectBuffer {
+	private static Logger dbLogger = LoggerFactory.getLogger("A");
+	
+	private static AtomicLong iid = new AtomicLong(0);
+	private final long oid;
 	private AtomicInteger refCount = new AtomicInteger(0);
 	private ByteBuffer buffer;
 	private boolean destroyed = false;
@@ -13,12 +21,38 @@ public class RCDirectBuffer {
 	private boolean isDestroyed;
 
 	private RCDirectBufferManager manager;
+	
+	public RCDirectBuffer(RCDirectBufferManager manager, ByteBuffer buffer) {
+		if (dbLogger.isDebugEnabled())
+			this.oid = iid.incrementAndGet();
+		else
+			this.oid = 0;
+		this.manager = manager;
+		this.buffer = buffer;
+	}
 
 	public RCDirectBuffer(RCDirectBufferManager manager, ByteBuffer buffer, String poolName, String usageName) {
+		if (dbLogger.isDebugEnabled())
+			this.oid = iid.incrementAndGet();
+		else
+			this.oid = 0;
 		this.manager = manager;
 		this.buffer = buffer;
 		this.poolName = poolName;
 		this.usageName = usageName;
+	}
+	
+	public RCDirectBuffer(RCDirectBufferManager manager, long oid, ByteBuffer buffer,
+			String poolName, String usageName) {
+		this.oid = oid;
+		this.manager = manager;
+		this.buffer = buffer;
+		this.poolName = poolName;
+		this.usageName = usageName;
+	}
+
+	public long getOID() {
+		return oid;
 	}
 
 	public ByteBuffer get() {
@@ -32,7 +66,7 @@ public class RCDirectBuffer {
 			if (!buffer.isDirect())
 				return;
 			isDestroyed = true;
-			manager.clean(buffer, poolName, usageName);
+			manager.clean(this, poolName, usageName);
 		} catch (Throwable t) {
 
 		}
@@ -60,13 +94,13 @@ public class RCDirectBuffer {
 	}
 
 	public RCDirectBuffer asReadOnlyBuffer() {
-		return new RCDirectBufferReadOnly(manager, buffer.asReadOnlyBuffer(), poolName, usageName);
+		return new RCDirectBufferReadOnly(manager, this, poolName, usageName);
 	}
 
 	public class RCDirectBufferReadOnly extends RCDirectBuffer {
 
-		public RCDirectBufferReadOnly(RCDirectBufferManager manager, ByteBuffer buffer, String poolName, String usageName) {
-			super(manager, buffer, poolName, usageName);
+		public RCDirectBufferReadOnly(RCDirectBufferManager manager, RCDirectBuffer buffer, String poolName, String usageName) {
+			super(manager, buffer.oid, buffer.get().asReadOnlyBuffer(), poolName, usageName);
 		}
 
 		public RCDirectBuffer addRef() {
