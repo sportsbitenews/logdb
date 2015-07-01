@@ -387,10 +387,6 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 
 					// transfer files
 					for (StorageFile storageFile : files) {
-						if (storageFile.getLength() > media.getFreeSpace())
-							throw new IOException("not enough media space: free " + media.getFreeSpace() + ", required: "
-									+ storageFile.getLength());
-
 						String subPath = storageFile.getFile().getParentFile().getName() + File.separator
 								+ storageFile.getFile().getName();
 						StorageMediaFile mediaFile = new StorageMediaFile(tableName, subPath, storageFile.getLength());
@@ -400,6 +396,10 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 						try {
 							if (monitor != null)
 								monitor.onBeginFile(job, tableName, storageFile.getFileName(), storageFile.getLength());
+
+							if (storageFile.getLength() > media.getFreeSpace())
+								throw new IOException("not enough media space: free " + media.getFreeSpace() + ", required: "
+										+ storageFile.getLength());
 
 							media.copyToMedia(tr);
 						} catch (IOException e) {
