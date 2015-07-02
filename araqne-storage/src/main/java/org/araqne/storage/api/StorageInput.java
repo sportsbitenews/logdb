@@ -22,4 +22,10 @@ public interface StorageInput  extends Closeable, DataInput {
 	int readBestEffort(ByteBuffer buf) throws IOException;
 	
 	void sync() throws IOException;
+
+	ByteBuffer map(long length) throws IOException;
+
+	ByteBuffer map(long position, long length) throws IOException;
+	
+	boolean isMapSupported();
 }

@@ -37,6 +37,25 @@ public class RCDirectBufferManagerImpl implements RCDirectBufferManager {
 	}
 
 	public RCDirectBuffer allocateDirect(int capacity, String poolName, String usageName) throws ExceedPoolSizeLimitException {
+		checkPoolCapacity(capacity, poolName, usageName);
+
+		ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
+		
+		// update total stat 
+		int objcnt = objCount.incrementAndGet();
+		long totalCap = totalCapacity.addAndGet(buffer.capacity());
+
+		RCDirectBuffer ret = new RCDirectBuffer(this, buffer, poolName, usageName);
+
+		if (dbLogger.isDebugEnabled())
+			dbLogger.debug("directByteBuffer allocated: {}: {} bytes(total: {} objs, {} bytes)",
+					new Object[] { ret.getOID(), capacity, objcnt, totalCap });
+
+		return ret;
+	}
+
+	private void checkPoolCapacity(int capacity, String poolName, String usageName)
+			throws ExceedPoolSizeLimitException {
 		AtomicLong usageSize = usageSizes.get(usageName);
 		if (usageSize == null) {
 			usageSize = new AtomicLong(0);
@@ -67,12 +86,16 @@ public class RCDirectBufferManagerImpl implements RCDirectBufferManager {
 			poolSize.addAndGet(-capacity);
 			throw new ExceedPoolSizeLimitException(futurePoolSize + capacity, poolSizeLimit);
 		}
-
-		ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
+	}
+	
+	public RCDirectBuffer wrap(ByteBuffer buffer, String poolName, String usageName) throws ExceedPoolSizeLimitException {
+		checkPoolCapacity(buffer.capacity(), poolName, usageName);
+		// update total stat 
 		int objcnt = objCount.incrementAndGet();
 		long totalCap = totalCapacity.addAndGet(buffer.capacity());
 		if (dbLogger.isDebugEnabled())
-			dbLogger.debug("directByteBuffer allocated: RCDirectBuffer objCount: {}, totalCapacity: {}", objcnt, totalCap);
+			dbLogger.debug("directByteBuffer wrapped: {}: {} bytes(total: {} objs, {} bytes)",
+					new Object[] { System.identityHashCode(buffer), buffer.capacity(), objcnt, totalCap });
 
 		return new RCDirectBuffer(this, buffer, poolName, usageName);
 	}
@@ -85,14 +108,33 @@ public class RCDirectBufferManagerImpl implements RCDirectBufferManager {
 
 	public RCDirectBuffer allocateDirect(int capacity) {
 		ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
+		// update total stat 
 		int objcnt = objCount.incrementAndGet();
 		long totalCap = totalCapacity.addAndGet(buffer.capacity());
+
+		RCDirectBuffer ret = new RCDirectBuffer(this, buffer, null, null);
+
 		if (dbLogger.isDebugEnabled())
-			dbLogger.debug("directByteBuffer allocated: RCDirectBuffer objCount: {}, totalCapacity: {}", objcnt, totalCap);
-
-		return new RCDirectBuffer(this, buffer, null, null);
+			dbLogger.debug("directByteBuffer allocated: {}: {} bytes(total: {} objs, {} bytes)",
+					new Object[] { ret.getOID(), capacity, objcnt, totalCap });
+		
+		return ret;
 	}
+	
+	public RCDirectBuffer wrap(ByteBuffer buffer) {
+		// update total stat 
+		int objcnt = objCount.incrementAndGet();
+		long totalCap = totalCapacity.addAndGet(buffer.capacity());
 
+		RCDirectBuffer ret = new RCDirectBuffer(this, buffer, null, null);
+
+		if (dbLogger.isDebugEnabled())
+			dbLogger.debug("directByteBuffer wrapped: {}: {} bytes(total: {} objs, {} bytes)",
+					new Object[] { ret.getOID(), buffer.capacity(), objcnt, totalCap });
+		
+		return ret;
+	}
+	
 	@Validate
 	public void start() {
 		poolSizes = new ConcurrentHashMap<String, AtomicLong>();
@@ -145,7 +187,8 @@ public class RCDirectBufferManagerImpl implements RCDirectBufferManager {
 	}
 
 	@Override
-	public void clean(ByteBuffer buffer, String poolName, String usageName) {
+	public void clean(RCDirectBuffer rcbuffer, String poolName, String usageName) {
+		ByteBuffer buffer = rcbuffer.get();
 		try {
 			int capacity = buffer.capacity();
 			if (cleanerMethod == null) {
@@ -161,8 +204,8 @@ public class RCDirectBufferManagerImpl implements RCDirectBufferManager {
 			long totalCap = totalCapacity.addAndGet(-capacity);
 			int objcnt = objCount.decrementAndGet();
 			if (dbLogger.isDebugEnabled())
-				dbLogger.debug("directByteBuffer destroyed: RCDirectBuffer objCount: {}, totalCapacity: {}",
-						objcnt, totalCap);
+				dbLogger.debug("directByteBuffer destroyed: {}: {} bytes(total: {} objs, {} bytes)",
+						new Object[] { rcbuffer.getOID(), capacity, objcnt, totalCap });
 		} catch (Throwable t) {
 			dbLogger.warn("directByteBuffer destruction failed: ", t);
 		} finally {
@@ -199,8 +242,8 @@ public class RCDirectBufferManagerImpl implements RCDirectBufferManager {
 			long totalCap = totalCapacity.addAndGet(-capacity);
 			int objcnt = objCount.decrementAndGet();
 			if (dbLogger.isDebugEnabled())
-				dbLogger.debug("directByteBuffer destroyed: RCDirectBuffer objCount: {}, totalCapacity: {}",
-						objcnt, totalCap);
+				dbLogger.debug("directByteBuffer destroyed: IHC{}: {} bytes(total: {} objs, {} bytes)",
+						new Object[] { System.identityHashCode(buffer), capacity, objcnt, totalCap });
 		} catch (Throwable t) {
 			dbLogger.warn("directByteBuffer destruction failed: ", t);
 		}
