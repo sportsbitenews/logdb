@@ -126,7 +126,7 @@ public class TableParser extends AbstractQueryCommandParser {
 			to = QueryTokenizer.getDate(options.get("to"));
 
 		if (options.containsKey("offset"))
-			offset = Integer.parseInt(options.get("offset"));
+			offset = Long.parseLong(options.get("offset"));
 
 		if (offset < 0){
 			//throw new QueryParseException("negative-offset", -1);
@@ -137,7 +137,7 @@ public class TableParser extends AbstractQueryCommandParser {
 		}
 
 		if (options.containsKey("limit"))
-			limit = Integer.parseInt(options.get("limit"));
+			limit = Long.parseLong(options.get("limit"));
 
 		if (limit < 0){
 			//throw new QueryParseException("negative-limit", -1);
