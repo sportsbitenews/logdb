@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Date;
 
 import org.araqne.logstorage.LogFileServiceRegistry;
+import org.araqne.logstorage.LogPartitionNotFoundException;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.file.DatapathUtil;
@@ -54,11 +55,11 @@ class LogFileFetcher {
 
 		FilePath indexPath = DatapathUtil.getIndexFile(tableId, day, basePath);
 		if (!indexPath.exists())
-			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
+			throw new LogPartitionNotFoundException("log table not found: " + tableName + ", " + day);
 
 		FilePath dataPath = DatapathUtil.getDataFile(tableId, day, basePath);
 		if (!dataPath.exists())
-			throw new IllegalStateException("log table not found: " + tableName + ", " + day);
+			throw new LogPartitionNotFoundException("log table not found: " + tableName + ", " + day);
 
 		FilePath keyPath = DatapathUtil.getKeyFile(tableId, day, basePath);
 
