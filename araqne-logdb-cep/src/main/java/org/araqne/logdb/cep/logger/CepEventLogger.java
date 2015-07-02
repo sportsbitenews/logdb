@@ -12,6 +12,7 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
+import org.araqne.log.api.Reconfigurable;
 import org.araqne.log.api.SimpleLog;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.cep.Event;
@@ -25,7 +26,7 @@ import org.araqne.logdb.cep.EventSubscriber;
  * @author xeraph
  * 
  */
-public class CepEventLogger extends AbstractLogger implements EventSubscriber {
+public class CepEventLogger extends AbstractLogger implements EventSubscriber, Reconfigurable {
 
 	private EventContextService eventContextService;
 
@@ -33,6 +34,10 @@ public class CepEventLogger extends AbstractLogger implements EventSubscriber {
 		super(spec, factory);
 
 		this.eventContextService = eventContextService;
+	}
+
+	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
 	}
 
 	@Override

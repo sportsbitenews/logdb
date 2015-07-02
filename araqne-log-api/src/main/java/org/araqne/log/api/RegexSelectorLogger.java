@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
+public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe, Reconfigurable {
 	private static final String OPT_SOURCE_LOGGER = "source_logger";
 	private static final String OPT_PATTERN = "pattern";
 	private static final String OPT_INVERT = "invert";
@@ -33,7 +33,7 @@ public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistr
 
 	private String pattern;
 
-	private final boolean invert;
+	private boolean invert;
 
 	/**
 	 * cached pattern matchers per thread
@@ -47,6 +47,15 @@ public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistr
 		loggerName = config.get(OPT_SOURCE_LOGGER);
 		pattern = config.get(OPT_PATTERN);
 		invert = config.get(OPT_INVERT) != null && Boolean.parseBoolean(config.get(OPT_INVERT));
+	}
+
+	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		this.loggerName = newConfigs.get(OPT_SOURCE_LOGGER);
+		this.pattern = newConfigs.get(OPT_PATTERN);
+		if (!oldConfigs.get(OPT_PATTERN).equals(newConfigs.get(OPT_PATTERN)))
+			matchers.remove();
+		this.invert = newConfigs.get(OPT_INVERT) != null && Boolean.parseBoolean(newConfigs.get(OPT_INVERT));
 	}
 
 	@Override

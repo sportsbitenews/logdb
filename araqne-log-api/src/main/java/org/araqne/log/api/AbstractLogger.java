@@ -631,7 +631,13 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		this.config = configs;
 
-		((Reconfigurable) this).onConfigChange(oldConfigs, newConfigs);
+		try {
+			((Reconfigurable) this).onConfigChange(oldConfigs, newConfigs);
+		} catch (Exception e) {
+			this.config = oldConfigs;
+			throw new IllegalStateException(e);
+		}
+
 		notifyConfigChange();
 	}
 

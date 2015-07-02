@@ -7,13 +7,19 @@ import java.util.Map;
 
 public class CsvParser {
 	private final char qoute = '"';
-	private final char delimiter;
-	private final char escape;
-	private final ArrayList<String> cachedColumnHeaders = new ArrayList<String>();
+	private char delimiter;
+	private char escape;
+
+	private ArrayList<String> cachedColumnHeaders = new ArrayList<String>();
 
 	public CsvParser(boolean useTab, boolean useDoubleQuote, String[] columnHeaders) {
-		this.delimiter = useTab ? '\t' : ',';
-		this.escape = useDoubleQuote ? '"' : '\\';
+		this.delimiter = ',';
+		if (useTab)
+			this.delimiter = '\t';
+
+		this.escape = '\\';
+		if (useDoubleQuote)
+			this.escape = '"';
 
 		if (columnHeaders != null)
 			for (String header : columnHeaders)

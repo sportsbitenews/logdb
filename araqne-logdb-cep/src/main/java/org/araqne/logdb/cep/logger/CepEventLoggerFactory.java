@@ -13,7 +13,7 @@ import org.araqne.log.api.AbstractLoggerFactory;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.LoggerSpecification;
-import org.araqne.log.api.StringConfigType;
+import org.araqne.log.api.MutableStringConfigType;
 import org.araqne.logdb.cep.EventContextService;
 
 @Component(name = "cep-event-logger-registry")
@@ -59,7 +59,7 @@ public class CepEventLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption topics = new StringConfigType("topics", t("Event Topics", "이벤트 주제 목록", "事件topic列表"), t(
+		LoggerConfigOption topics = new MutableStringConfigType("topics", t("Event Topics", "이벤트 주제 목록", "事件topic列表"), t(
 				"Comma separated event topics", "쉼표로 구분된 이벤트 주제 목록", "输入事件topic列表(逗号分隔)。"), true);
 		return Arrays.asList(topics);
 	}

@@ -32,23 +32,26 @@ import org.araqne.log.api.AbstractLogger;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.Reconfigurable;
 import org.araqne.log.api.SimpleLog;
 
-public class RemoteJmxLogger extends AbstractLogger {
+public class RemoteJmxLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(RemoteJmxLogger.class);
 
-	private final String host;
-	private final int port;
-	private final String user;
-	private final String password;
-	private final JMXServiceURL url;
-	private final ObjectName objName;
+	private String host;
+	private int port;
+	private String user;
+	private String password;
+	private JMXServiceURL url;
+	private ObjectName objName;
 	private String[] attrNames;
 
 	public RemoteJmxLogger(LoggerSpecification spec, LoggerFactory factory) throws IOException {
 		super(spec, factory);
+		init(spec.getConfig());
+	}
 
-		Map<String, String> c = spec.getConfig();
+	private void init(Map<String, String> c) throws IOException {
 		this.host = c.get("host");
 		this.port = Integer.parseInt(c.get("port"));
 		this.user = c.get("user");
@@ -71,6 +74,15 @@ public class RemoteJmxLogger extends AbstractLogger {
 		}
 
 		this.url = JmxHelper.getURL(host, port);
+	}
+
+	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		try {
+			init(newConfigs);
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	@Override
@@ -102,13 +114,8 @@ public class RemoteJmxLogger extends AbstractLogger {
 		Map<String, Object> data = new HashMap<String, Object>();
 		for (Attribute attr : attrs.asList()) {
 			Object value = attr.getValue();
-			if (value instanceof Boolean ||
-					value instanceof Long ||
-					value instanceof Integer ||
-					value instanceof Short ||
-					value instanceof Float ||
-					value instanceof Double ||
-					value instanceof String) {
+			if (value instanceof Boolean || value instanceof Long || value instanceof Integer || value instanceof Short
+					|| value instanceof Float || value instanceof Double || value instanceof String) {
 				data.put(attr.getName(), value);
 			} else if (value != null) {
 				data.put(attr.getName(), value.toString());

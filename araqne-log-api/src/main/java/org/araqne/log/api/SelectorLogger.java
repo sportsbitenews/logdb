@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SelectorLogger extends AbstractLogger implements LoggerRegistryEventListener {
+public class SelectorLogger extends AbstractLogger implements LoggerRegistryEventListener, Reconfigurable {
 	private static final String OPT_SOURCE_LOGGER = "source_logger";
 	private static final String OPT_PATTERN = "pattern";
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SelectorLogger.class.getName());
@@ -44,6 +44,12 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 		this.loggerName = config.get(OPT_SOURCE_LOGGER);
 		this.pattern = config.get(OPT_PATTERN);
 		this.sourceLogger = loggerRegistry.getLogger(loggerName);
+	}
+
+	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		this.loggerName = newConfigs.get(OPT_SOURCE_LOGGER);
+		this.pattern = newConfigs.get(OPT_PATTERN);
 	}
 
 	@Override
@@ -88,7 +94,7 @@ public class SelectorLogger extends AbstractLogger implements LoggerRegistryEven
 				slog.debug("araqne log api: connect pipe to source logger [{}]", loggerName);
 				logger.addLogPipe(receiver);
 			}
-			
+
 			this.sourceLogger = logger;
 		}
 	}

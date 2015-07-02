@@ -48,10 +48,10 @@ public class ConfigWatchLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption basePath = new StringConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路", "目录"), t(
+		LoggerConfigOption basePath = new MutableStringConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路", "目录"), t(
 				"Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true);
 
-		LoggerConfigOption fileNamePattern = new StringConfigType("filename_pattern", t("Filename pattern", "파일이름 패턴",
+		LoggerConfigOption fileNamePattern = new MutableStringConfigType("filename_pattern", t("Filename pattern", "파일이름 패턴",
 				"ファイルなパータン", "文件名模式"), t("Regular expression to match log file name", "대상 로그 파일을 선택하는데 사용할 정규표현식",
 				"対象ログファイルを選ぶとき使う正規表現", "用于筛选文件的正则表达式"), true);
 
