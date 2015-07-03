@@ -111,10 +111,10 @@ public class SortMergeJoiner {
 			return;
 
 		while (this.canceled == false && rItem != null && sItem != null) {
-			int compareReulst = comparator.compare(rItem, sItem);
-			if (compareReulst < 0) {
+			int compareResult = comparator.compare(rItem, sItem);
+			if (compareResult < 0) {
 				rItem = getNextItem(rIt);
-			} else if (compareReulst > 0) {
+			} else if (compareResult > 0) {
 				sItem = getNextItem(sIt);
 			} else {
 				Item joinItem = rItem;
@@ -147,12 +147,12 @@ public class SortMergeJoiner {
 		Item sItem = getNextItem(sIt);
 
 		while (this.canceled == false && rItem != null && sItem != null) {
-			int compareReulst = comparator.compare(rItem, sItem);
-			if (compareReulst < 0) {
+			int compareResult = comparator.compare(rItem, sItem);
+			if (compareResult < 0) {
 				pushMergedItem(rItem);
 
 				rItem = getNextItem(rIt);
-			} else if (compareReulst > 0) {
+			} else if (compareResult > 0) {
 				pushMergedItem(sItem);
 
 				sItem = getNextItem(sIt);
@@ -192,12 +192,12 @@ public class SortMergeJoiner {
 		Item sItem = getNextItem(sIt);
 
 		while (this.canceled == false && rItem != null && sItem != null) {
-			int compareReulst = comparator.compare(rItem, sItem);
-			if (compareReulst < 0) {
+			int compareResult = comparator.compare(rItem, sItem);
+			if (compareResult < 0) {
 				pushMergedItem(rItem);
 
 				rItem = getNextItem(rIt);
-			} else if (compareReulst > 0) {
+			} else if (compareResult > 0) {
 				sItem = getNextItem(sIt);
 			} else {
 				Item joinItem = rItem;
