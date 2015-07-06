@@ -25,7 +25,7 @@ public class SpamsniperParserTest {
 		assertEquals("", m.get("recover_date"));
 		assertEquals("I1361900959_28116_1", m.get("send_id"));
 	}
-	
+
 	@Test
 	public void testSpamInrejectMaster() {
 		String line = "seq=10829942 sender_ip=10.100.37.101 mail_from=systemcenter@hhi.co.kr rcpt_to=bp00528@bp.hhi.co.kr reject_code=113 hostname=211.193.193.212 country= date=1361898548.000";
