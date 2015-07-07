@@ -48,6 +48,10 @@ public class QueryContext {
 		return this.getQueries().get(0);
 	}
 
+	public void setSession(Session session) {
+		this.session = session;
+	}
+
 	public Session getSession() {
 		return session;
 	}
