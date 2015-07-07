@@ -232,6 +232,26 @@ public class SpectraGuardLogParserTest {
 		assertEquals("High", m.get("severity"));
 	}
 
+	@Test
+	public void testHyundaiHeavyIndustryLogs() {
+		String log = "Feb 26 16:22:46 10.25.1.81 <00:15:17:50:A9:1C>SpectraGuard Enterprise v6.5 : Stop: Rogue Client [Qisda_8D:37:D4] is active. : 10.25.1.81://HHI_WIPS/HQ/생산기술1관/생기1관5층 : 2013-02-26T07:42:11+00:00 : High : 584360 : 5 : 66 : 780: Closest Sensor [전)신관철조망]";
+		SpectraGuardLogParser p = new SpectraGuardLogParser();
+		Map<String, Object> m = p.parse(line(log));
+
+		assertEquals("10.25.1.81", m.get("host"));
+		assertEquals("00:15:17:50:A9:1C", m.get("sensor_mac"));
+		assertEquals("Qisda_8D:37:D4", m.get("client"));
+		assertEquals("10.25.1.81", m.get("sensor_ip"));
+		assertEquals("//HHI_WIPS/HQ/생산기술1관/생기1관5층", m.get("location"));
+		assertEquals("2013-02-26T07:42:11+00:00", m.get("date"));
+		assertEquals("High", m.get("severity"));
+		assertEquals("584360", m.get("event_id"));
+		assertEquals("5", m.get("event_major_num"));
+		assertEquals("66", m.get("event_intermediate_num"));
+		assertEquals("780", m.get("event_minor_num"));
+		assertEquals("Closest Sensor [전)신관철조망]", m.get("closest_sensor_name"));
+	}
+
 	private Map<String, Object> line(String log) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("line", log);
