@@ -389,7 +389,9 @@ public class LogQueryPlugin {
 		if (!query.isAccessible(dbSession))
 			throw new MsgbusException("logdb", "no-permission");
 
-		query.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, new QueryContext(dbSession));
+		QueryContext context = query.getContext();
+		context.setSession(dbSession);
+		query.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, null);
 	}
 
 	/**
