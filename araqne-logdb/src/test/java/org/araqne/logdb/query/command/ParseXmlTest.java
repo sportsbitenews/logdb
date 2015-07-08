@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 
+import org.araqne.logdb.impl.XmlParser;
 import org.junit.Test;
 
 /**
@@ -35,7 +36,7 @@ public class ParseXmlTest {
 				+ "<Execution ProcessID='2816' ThreadID='10780'/><Channel>Microsoft-Windows-WPD-ClassInstaller/Operational</Channel>"
 				+ "<Computer>xeraph-laptop.hq.eediom.net</Computer><Security UserID='S-1-5-18'/></System><EventData></EventData></Event>";
 
-		Map<String, Object> m = new ParseXml("xml", false).parse(xml);
+		Map<String, Object> m = XmlParser.parseXml(xml);
 
 		Map<String, Object> system = (Map<String, Object>) m.get("System");
 		assertEquals("8", system.get("EventRecordID"));
