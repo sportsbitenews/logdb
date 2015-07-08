@@ -1,7 +1,6 @@
 package org.araqne.logparser.krsyslog.citrix;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +10,7 @@ import org.araqne.log.api.V1LogParser;
 
 public class Mpx8400Parser extends V1LogParser {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(Mpx8400Parser.class);
-	private final String delimiter = "-";
+	private final String delimiter = "- ";
 
 	private static final List<FieldDefinition> fields;
 	static {
@@ -73,33 +72,30 @@ public class Mpx8400Parser extends V1LogParser {
 			return params;
 		try {
 			Map<String, Object> m = new HashMap<String, Object>();
+			int pos = line.indexOf(": SSL");
+			if (pos == -1)
+				return params;
+
+			int e = line.indexOf(" :", pos + 1);
+			String prefix = line.substring(pos + 2, e);
+			line = line.substring(e + 3);
+
+			e = prefix.lastIndexOf(" ");
+			m.put("event_type", prefix.substring(0, e));
+			m.put("event_id", prefix.substring(e + 1));
 			String[] keyValues = line.split(delimiter);
 
-			for (String keyValuePair : keyValues) {
-				Map<Integer, String> indexMap = new HashMap<Integer, String>();
+			if (m.get("event_type").equals("SSLVPN HTTPREQUEST")) {
+				parseHttpRequest(m, keyValues);
+			} else if (m.get("event_type").equals("SSLVPN Message")) {
+				m.put("message_info", line.replace("\"", "").trim());
+			} else {
+				for (String keyValue : keyValues) {
+					// remove whitespace
+					if (keyValue.charAt(keyValue.length() - 1) == ' ')
+						keyValue = keyValue.substring(0, keyValue.length() - 1);
 
-				for (int i = 0; i < fields.size(); ++i) {
-					int pos = 0;
-					String keyField = fields.get(i).getName();
-					if ((pos = keyValuePair.indexOf(keyField)) != -1)
-						indexMap.put(pos, keyField);
-				}
-
-				List<Integer> indexes = new ArrayList<Integer>(indexMap.keySet());
-				Collections.sort(indexes);
-
-				int i = 0;
-				while (i < indexes.size()) {
-					int b = indexes.get(i);
-					int keyFieldLength = indexMap.get(b).length();
-					int boundary = b + keyFieldLength;
-					if (i + 1 < indexes.size()) {
-						int e = indexes.get(i + 1);
-						m.put(keyValuePair.substring(b, boundary), keyValuePair.substring(boundary, e));
-					} else {
-						m.put(keyValuePair.substring(b, boundary), keyValuePair.substring(boundary));
-					}
-					i++;
+					putKeyValue(m, keyValue);
 				}
 			}
 			return m;
@@ -108,6 +104,61 @@ public class Mpx8400Parser extends V1LogParser {
 				slog.debug("araqne log api: cannot parse mpx8400 format - line [{}]", line);
 			return params;
 		}
+	}
+
+	private void parseHttpRequest(Map<String, Object> m, String[] keyValues) {
+		for (String keyValue : keyValues) {
+			// remove whitespace
+			if (keyValue.charAt(keyValue.length() - 1) == ' ')
+				keyValue = keyValue.substring(0, keyValue.length() - 1);
+
+			if (keyValue.indexOf("GET") != -1 || keyValue.indexOf("POST") != -1)
+				return;
+
+			int pos = keyValue.indexOf(" User");
+			if (pos > 0) {
+				String[] strs = keyValue.split(" : ");
+				for (int i = 0; i < strs.length; ++i) {
+					String str = strs[i];
+					if (i == 0) {
+						int firstPos = str.indexOf(" ", 1);
+						int secondPos = str.indexOf(" ", firstPos + 1);
+						m.put("url_info", str.substring(0, firstPos));
+						m.put(str.substring(firstPos + 1, secondPos).toLowerCase(), str.substring(secondPos + 1).trim());
+					} else {
+						int firstPos = str.indexOf(" ");
+						m.put(str.substring(0, firstPos).toLowerCase(), str.substring(firstPos + 1));
+					}
+				}
+
+				continue;
+			}
+
+			putKeyValue(m, keyValue);
+		}
+	}
+
+	private void putKeyValue(Map<String, Object> m, String keyValue) {
+		int pos;
+		pos = keyValue.indexOf(" \"");
+		if (pos != -1) {
+			m.put(keyValue.substring(0, pos).toLowerCase().trim(), keyValue.substring(pos + 2, keyValue.length() - 1));
+			return;
+		}
+
+		pos = keyValue.indexOf(": ");
+		if (pos != -1) {
+			m.put(keyValue.substring(0, pos).toLowerCase().trim(), keyValue.substring(pos + 2));
+			return;
+		}
+
+		// remove whitespace
+		if (keyValue.charAt(0) == ' ')
+			keyValue = keyValue.substring(1);
+
+		pos = keyValue.indexOf(" ");
+		if (pos != -1)
+			m.put(keyValue.substring(0, pos).toLowerCase().trim(), keyValue.substring(pos + 1).trim());
 	}
 
 	private static void addField(String name, String type) {
