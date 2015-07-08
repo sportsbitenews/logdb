@@ -148,6 +148,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("whoami", Whoami.class);
 			define("not", Not.class);
 			define("datepart", DatePart.class);
+			define("xpath", Xpath.class);
 		}
 
 		private void define(String name, Class<?> clazz) {
