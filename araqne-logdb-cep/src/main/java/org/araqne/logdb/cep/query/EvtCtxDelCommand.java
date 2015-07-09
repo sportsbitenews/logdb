@@ -77,8 +77,8 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 		pushPipe(rowBatch);
 	}
 
-	private void checkEvent(Row row){
-		checkEvent(row,  new CallbackRemove(){
+	private void checkEvent(Row row) {
+		checkEvent(row,  new CallbackRemove() {
 
 			@Override
 			public void removeJob(EventKey eventKey, Row row) {
@@ -125,6 +125,7 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 		if (matched) {
 			String key = k.toString();
 			EventKey eventKey = new EventKey(topic, key);
+			eventKey.setHost(host);
 
 			callback.removeJob(eventKey, row);
 
@@ -153,7 +154,7 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 	private class BatchCallbackRemove implements CallbackRemove {
 		ConcurrentHashMap<EventKey, EventContext> contexts;
 
-		private BatchCallbackRemove(ConcurrentHashMap<EventKey, EventContext> contexts){
+		private BatchCallbackRemove(ConcurrentHashMap<EventKey, EventContext> contexts) {
 			this.contexts = contexts;
 		}
 

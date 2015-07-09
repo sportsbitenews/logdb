@@ -173,19 +173,19 @@ public class EventContext implements Marshalable{
 		this.listeners = listeners;
 	}
 
-	private List<Map<String, Object>> format(List<Row> rows){
+	private List<Map<String, Object>> format(List<Row> rows) {
 		List<Map<String, Object>> rowMaps = new ArrayList<Map<String, Object>>();
 
-		for(Row row : rows){
+		for(Row row : rows) {
 			rowMaps.add(row.map());
 		}
 		return rowMaps;
 	}
-	
+
 	@SuppressWarnings("unchecked")
-	private static List<Row> parseRows(Object[]  rowMaps){
+	private static List<Row> parseRows(Object[]  rowMaps) {
 		List<Row> rows = Collections.synchronizedList(new ArrayList<Row>());
-		for(Object rowMap : rowMaps){
+		for(Object rowMap : rowMaps) {
 			rows.add(new Row((Map<String, Object>) rowMap));
 		}
 		return rows;
@@ -220,32 +220,32 @@ public class EventContext implements Marshalable{
 		EventContext cxt = new EventContext(key,created, expireTime,  timeoutTime, maxRows, host);
 		for(Row row : rows)
 			cxt.addRow(row);
-		
+
 		if(count != null)
 			cxt.counter.addAndGet(count);
-		
+
 		if(variables != null)
 			cxt.variables = variables;
-		
+
 		return cxt;
 	}
-	
-	public static EventContext merge(EventContext oldCtx, EventContext ctx){
+
+	public static EventContext merge(EventContext oldCtx, EventContext ctx) {
 		if(ctx.getTimeoutTime()!= 0L)
 			oldCtx.setTimeoutTime(ctx.getTimeoutTime());
-		
+
 		if(ctx.getHost() != null)
 			oldCtx.setHost(ctx.getHost());
-		
-		for(Row row :  ctx.getRows()){
+
+		for(Row row :  ctx.getRows()) {
 			oldCtx.addRow(row);
 		}
-		
+
 		for(String vKey : ctx.getVariables().keySet())
 			oldCtx.setVariable(vKey, ctx.getVariable(vKey));
 
 		oldCtx.getCounter().addAndGet(ctx.getCounter().get());
-		
+
 		return oldCtx;
 	}
 }

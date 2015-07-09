@@ -41,7 +41,7 @@ public class RedisConfigRegistryImpl  implements RedisConfigRegistry{
 	private CopyOnWriteArraySet<RedisConfigRegistryListener> listeners;
 
 	@Validate
-	public void start(){
+	public void start() {
 		ConfigDatabase db = conf.ensureDatabase("logpresso-cep");
 		//ConfigIterator it = db.findAll(RedisConfig.class);
 		Config c= db.findOne(RedisConfig.class,  Predicates.field("name", "rediscep"));
@@ -52,7 +52,7 @@ public class RedisConfigRegistryImpl  implements RedisConfigRegistry{
 	}
 	
 	@Invalidate
-	public void stop(){
+	public void stop() {
 		listeners.clear();
 	}
 	
@@ -77,7 +77,7 @@ public class RedisConfigRegistryImpl  implements RedisConfigRegistry{
 	}
 	
 	@Override 
-	public RedisConfig getConfig(){
+	public RedisConfig getConfig() {
 		return config;
 	}
 

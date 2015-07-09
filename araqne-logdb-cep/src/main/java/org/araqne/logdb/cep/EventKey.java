@@ -16,6 +16,7 @@
 package org.araqne.logdb.cep;
 
 
+
 public class EventKey {
 	private final String topic;
 	private final String key;
@@ -74,39 +75,43 @@ public class EventKey {
 			return "topic=" + topic + ", key=" + key;
 		return "topic=" + topic + ", key=" + key + ", host=" + host;
 	}
-	
-	public static byte[] marshal(EventKey key){
+
+	public static byte[] marshal(EventKey key) {
 		StringBuffer sb = new StringBuffer();
 		sb.append(key.getTopic());
 		sb.append(":");
 		sb.append(key.getKey());
 		sb.append(":");
-		sb.append(key.getHost());
+		if(key.getHost() != null)
+			sb.append(key.getHost());
 		sb.append(":");
-		
+
 		return sb.toString().getBytes();
 	}
-	
-	public static EventKey parse(byte[] bs){
+
+	public static EventKey parse(byte[] bs) {
+
 		String keys = new String(bs);
-		
+
 		String[] fields = new String[3];
-		
+
 		int e = -1;
 		int s = 0;
-		
-		for(int i = 0; i < fields.length ; i ++){
+
+		for(int i = 0; i < fields.length ; i ++) {
 			s = e +1;
 			e = keys.indexOf(":", s);
 			fields[i]  = keys.substring(s, e);
 		}
 
 		EventKey evt = new EventKey(fields[0], fields[1]);
-		evt.setHost(fields[2]);
-		
+		if(fields[2] != null && !fields[2].trim().isEmpty())
+			evt.setHost(fields[2]);
+
 		return evt;
+
 	}
-	
-	
-	
+
+
+
 }

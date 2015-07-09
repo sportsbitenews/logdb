@@ -135,6 +135,8 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 		if (matched) {
 			String key = k.toString();
 			EventKey eventKey = new EventKey(topic, key);
+			if(clockHost != null)
+				eventKey.setHost(clockHost);
 
 			long expireTime = 0;
 			if (expire != null)
@@ -144,25 +146,6 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			if (timeout != null)
 				timeoutTime = created + timeout.unit.getMillis() * timeout.amount;
 
-			/* redis 관련 수정전
-			boolean newContext = false;
-			EventContext ctx = storage.getContext(eventKey);
-			if (ctx == null) {
-				ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
-				EventContext oldCtx = storage.addContext(ctx);
-				newContext = ctx == oldCtx;
-				ctx = oldCtx;
-			}
-
-			ctx.getCounter().incrementAndGet();
-
-			// extend timeout
-			if (!newContext)
-				ctx.setTimeoutTime(timeoutTime);
-
-			ctx.addRow(row); */
-			///
-			
 			EventContext	ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
 			ctx.setTimeoutTime(timeoutTime);
 			ctx.getCounter().incrementAndGet();

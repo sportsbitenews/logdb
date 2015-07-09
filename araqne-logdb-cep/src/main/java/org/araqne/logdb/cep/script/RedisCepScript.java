@@ -21,7 +21,6 @@ import org.araqne.api.ScriptUsage;
 import org.araqne.logdb.cep.redis.RedisConfig;
 import org.araqne.logdb.cep.redis.RedisConfigRegistry;
 
-import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 public class RedisCepScript implements Script {
@@ -29,7 +28,7 @@ public class RedisCepScript implements Script {
 
 	private RedisConfigRegistry redisConfigRegisty;
 
-	public RedisCepScript(RedisConfigRegistry configRegistry){
+	public RedisCepScript(RedisConfigRegistry configRegistry) {
 		this.redisConfigRegisty = configRegistry;
 	}
 
@@ -38,7 +37,7 @@ public class RedisCepScript implements Script {
 		this.context = context;
 	}
 
-	public void getConfig(String[] args){
+	public void getConfig(String[] args) {
 		context.println("Redis Configuration");
 		context.println("----------------");
 
@@ -50,15 +49,14 @@ public class RedisCepScript implements Script {
 		context.println("port : " + config.getPort());
 		context.println("sentinel mode : " + config.isSentinel());
 		context.println("sentinel name : " + config.getSentinelName());
-		context.println("password : " + config.getPassword());
-		context.println("node :" + config.getSentinelNode());
+		//context.println("password : " + config.getPassword());
 	}
 
 	@ScriptUsage(description = "restore defaults setting")
 	public void restoreDefaults(String[] args) throws InterruptedException{
 		context.print("Current settings will be Deleted. (y/n)");
 		String s = context.readLine("n");
-		if(s.equalsIgnoreCase("y")){
+		if(s.equalsIgnoreCase("y")) {
 
 			try {
 				redisConfigRegisty.createConfig(new RedisConfig());
@@ -73,36 +71,10 @@ public class RedisCepScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "add sentinel node")
-	public void addSentinelNode(String[] arge) throws InterruptedException {
-		RedisConfig redisConfig = redisConfigRegisty.getConfig();
-
-		context.print("host? ");
-		String host = context.readLine().trim();
-
-		context.print("port? ");
-		String port = context.readLine().trim();
-
-		redisConfig.addSentinelNode(new HostAndPort(host, Integer.parseInt(port)));
-
-		try {
-			redisConfigRegisty.createConfig(redisConfig);
-		} catch (JedisConnectionException e) {
-			throw new IllegalStateException("cannot connect to jedis server [ " + redisConfig.getHost() + ":"  + redisConfig.getPort() +" ]");
-		}finally{
-			context.println("added");
-		}
-
-	}
-
-	//	@ScriptUsage(description = "add sentinel node")
-	//	public void removeSentinelNode(String[] arge) throws InterruptedException {
-	//	}
-
 	@ScriptUsage(description = "setting redis configuration")
 	public void setConfig(String[] args) throws InterruptedException  {
 		RedisConfig redisConfig = redisConfigRegisty.getConfig();
-		if(redisConfig == null){
+		if(redisConfig == null) {
 			redisConfig = new RedisConfig("127.0.0.1", 6379);
 		}
 
