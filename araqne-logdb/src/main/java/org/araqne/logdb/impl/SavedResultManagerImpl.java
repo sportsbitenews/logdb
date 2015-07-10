@@ -1,24 +1,32 @@
 package org.araqne.logdb.impl;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigIterator;
 import org.araqne.confdb.ConfigService;
-import org.araqne.confdb.Predicate;
-import org.araqne.confdb.Predicates;
 import org.araqne.logdb.SavedResult;
 import org.araqne.logdb.SavedResultManager;
+import org.araqne.logdb.query.command.IoHelper;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogCursor;
 import org.araqne.logstorage.LogFileService;
@@ -31,13 +39,17 @@ import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
 import org.araqne.storage.api.StorageOutputStream;
 import org.araqne.storage.localfile.LocalFilePath;
+import org.json.JSONConverter;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component(name = "saved-result-manager")
 @Provides
 public class SavedResultManagerImpl implements SavedResultManager {
-	private final Logger logger = LoggerFactory.getLogger(SavedResultManagerImpl.class);
+	private static final String FILE_NAME = "saved_results.json";
+
+	private final Logger slog = LoggerFactory.getLogger(SavedResultManagerImpl.class);
 
 	@Requires
 	private ConfigService conf;
@@ -47,38 +59,48 @@ public class SavedResultManagerImpl implements SavedResultManager {
 
 	private FilePath baseDir;
 
+	// guid to saved result
+	private ConcurrentHashMap<String, SavedResult> cachedResults = new ConcurrentHashMap<String, SavedResult>();
+
 	@Validate
 	public void start() {
 		baseDir = new LocalFilePath(System.getProperty("araqne.data.dir")).newFilePath("araqne-logdb/saved");
 		baseDir.mkdirs();
+		cachedResults = readSavedResults();
+
+		// migrate
+		if (cachedResults == null) {
+			cachedResults = new ConcurrentHashMap<String, SavedResult>();
+			ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
+			ConfigIterator it = db.findAll(SavedResult.class);
+			Collection<SavedResult> docs = it.getDocuments(SavedResult.class);
+			for (SavedResult doc : docs)
+				cachedResults.put(doc.getGuid(), doc);
+
+			writeSaveResult();
+		}
 	}
 
 	@Override
 	public List<SavedResult> getResultList(String owner) {
-		ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
-		Predicate pred = null;
-		if (owner != null)
-			pred = Predicates.field("owner", owner);
+		List<SavedResult> results = new ArrayList<SavedResult>();
+		for (SavedResult result : cachedResults.values())
+			if (result.getOwner().equals(owner))
+				results.add(result);
 
-		ConfigIterator it = db.find(SavedResult.class, pred);
-		return new ArrayList<SavedResult>(it.getDocuments(SavedResult.class));
+		Collections.sort(results);
+		return results;
 	}
 
 	@Override
 	public SavedResult getResult(String guid) {
-		ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
-		Config c = db.findOne(SavedResult.class, Predicates.field("guid", guid));
-		if (c != null)
-			return c.getDocument(SavedResult.class);
-
-		return null;
+		return cachedResults.get(guid);
 	}
 
 	@Override
 	public void saveResult(SavedResult result) throws IOException {
-		ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
-		Config c = db.findOne(SavedResult.class, Predicates.field("guid", result.getGuid()));
-		if (c != null)
+		SavedResult old = cachedResults.putIfAbsent(result.getGuid(), result);
+		if (old != null)
 			throw new IllegalStateException("duplicated guid of saved result: " + result.getGuid());
 
 		FilePath fromIndexPath = new LocalFilePath(result.getIndexPath());
@@ -90,12 +112,79 @@ public class SavedResultManagerImpl implements SavedResultManager {
 		try {
 			copy(fromIndexPath, toIndexPath);
 			copy(fromDataPath, toDataPath);
-			db.add(result);
+
+			writeSaveResult();
 		} catch (IOException e) {
 			toIndexPath.delete();
 			toDataPath.delete();
 			throw e;
 		}
+	}
+
+	private ConcurrentHashMap<String, SavedResult> readSavedResults() {
+		File resultFile = new File(((LocalFilePath) baseDir).getFile(), FILE_NAME);
+		if (!resultFile.exists()) {
+			slog.debug("araqne logdb: saved result file [{}] does not exist", resultFile.getAbsolutePath());
+			return null;
+		}
+
+		FileInputStream fis = null;
+		BufferedReader br = null;
+		try {
+			ConcurrentHashMap<String, SavedResult> results = new ConcurrentHashMap<String, SavedResult>();
+			fis = new FileInputStream(resultFile);
+			br = new BufferedReader(new InputStreamReader(fis, "utf-8"));
+			String line = null;
+			while ((line = br.readLine()) != null) {
+				Map<String, Object> m = JSONConverter.parse(new JSONObject(line));
+				SavedResult result = SavedResult.parse(m);
+				results.put(result.getGuid(), result);
+			}
+
+			return results;
+		} catch (Throwable t) {
+			slog.error("araqne logdb: cannot read saved result file [" + resultFile.getAbsolutePath() + "]", t);
+			return new ConcurrentHashMap<String, SavedResult>();
+		} finally {
+			IoHelper.close(br);
+			IoHelper.close(fis);
+		}
+
+	}
+
+	private void writeSaveResult() {
+		File resultFile = new File(((LocalFilePath) baseDir).getFile(), FILE_NAME);
+		File tmpFile = new File(((LocalFilePath) baseDir).getFile(), FILE_NAME + ".tmp");
+		FileOutputStream fos = null;
+		BufferedWriter bw = null;
+		try {
+			fos = new FileOutputStream(tmpFile);
+			bw = new BufferedWriter(new OutputStreamWriter(fos, "utf-8"));
+
+			for (SavedResult result : cachedResults.values()) {
+				String json = JSONConverter.jsonize(result.marshal());
+				bw.write(json);
+				bw.newLine();
+			}
+
+			bw.flush();
+			fos.flush();
+			fos.getFD().sync();
+		} catch (Throwable t) {
+			slog.warn("araqne logdb: cannot write saved results. file path [" + tmpFile.getAbsolutePath() + "]", t);
+			return;
+		} finally {
+			IoHelper.close(bw);
+			IoHelper.close(fos);
+		}
+
+		if (resultFile.exists()) {
+			if (!resultFile.delete()) {
+				slog.error("araqne logdb: cannot delete old saved results [{}]", resultFile.getAbsolutePath());
+			}
+		}
+
+		tmpFile.renameTo(resultFile);
 	}
 
 	private void copy(FilePath from, FilePath to) throws IOException {
@@ -116,7 +205,7 @@ public class SavedResultManagerImpl implements SavedResultManager {
 					// eof
 					break;
 			}
-			
+
 			if (copied != length)
 				throw new IOException("copied size is not equal with length of source file");
 		} finally {
@@ -138,20 +227,16 @@ public class SavedResultManagerImpl implements SavedResultManager {
 
 	@Override
 	public void deleteResult(String guid) {
-		ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
-		Config c = db.findOne(SavedResult.class, Predicates.field("guid", guid));
-		if (c == null)
-			throw new IllegalStateException("saved result not found: " + guid);
-
-		c.remove();
+		writeSaveResult();
+		cachedResults.remove(guid);
 
 		FilePath indexPath = baseDir.newFilePath(guid + ".idx");
 		FilePath dataPath = baseDir.newFilePath(guid + ".dat");
 
 		if (!indexPath.delete())
-			logger.error("araqne logdb: cannot delete saved result [{}]", indexPath.getAbsolutePath());
+			slog.error("araqne logdb: cannot delete saved result [{}]", indexPath.getAbsolutePath());
 		if (!dataPath.delete())
-			logger.error("araqne logdb: cannot delete saved result [{}]", dataPath.getAbsolutePath());
+			slog.error("araqne logdb: cannot delete saved result [{}]", dataPath.getAbsolutePath());
 	}
 
 	@Override
