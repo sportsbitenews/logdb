@@ -143,11 +143,17 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	private EventClock ensureClock(ConcurrentHashMap<String, EventClock> clocks, String host, long time) {
-		EventClock clock = new EventClock(this, host, time, 11);
-		EventClock old = clocks.putIfAbsent(host, clock);
-		if (old != null)
-			return old;
-		return clock;
+		EventClock clock = null;
+		clock = clocks.get(host);
+		if (clock == null) {
+			clock = new EventClock(this, host, time, 11);
+			EventClock old = clocks.putIfAbsent(host, clock);
+			if (old != null)
+				return old;
+			return clock;
+		} else {
+			return clock;
+		}
 	}
 
 	@Override
