@@ -475,86 +475,30 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			t = jedis.multi();
 			for (EventKey evtkey : contexts.keySet()) {
 				byte[] oldByteValue = responses.get(evtkey).get();
-				byte[] key = EventKey.marshal(evtkey);
-				String dummyKey = getDummyKey(key);
 				EventContext ctx = contexts.get(evtkey);
-				long timeoutTime = ctx.getTimeoutTime();
-
-				if (oldByteValue != null) {
-					@SuppressWarnings("unchecked")
-					EventContext oldCtx = EventContext.parse((Map<String, Object>) decode(oldByteValue));
-
-					if (timeoutTime != 0L && ctx.getHost() == null)
-						t.pexpireAt(dummyKey, timeoutTime);
-
-					t.set(key, encode(EventContext.merge(oldCtx, ctx)));
-				} else {
-					t.set(dummyKey, "");
-					t.set(key, encode(ctx));
-
-					if (ctx.getHost() == null) {
-						long expireTime = ctx.getExpireTime();
-						long redisExpire = getMinValue(timeoutTime, expireTime);
-						if (redisExpire != 0)
-							t.pexpireAt(dummyKey, redisExpire);
-					}
-				}
-
+				addContextRedis(ctx, oldByteValue, t);
 			}
 			t.exec();
+		}
 
-			for (EventContext ctx : contexts.values()) {
-				if (ctx.getHost() != null) {
-					EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-					logClock.add(ctx);
-				}
+		for (EventContext ctx : contexts.values()) {
+			if (ctx.getHost() != null) {
+				EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+				logClock.add(ctx);
 			}
 		}
-	}
-
-	/**
-	 * @return a smaller number except 0.
-	 */
-	private long getMinValue(long a, long b) {
-		long min = Math.min(a, b);
-
-		if (min > 0) 
-			return min;
-		else
-			return Math.max(a, b);
 	}
 
 	@Override
 	public EventContext addContext(EventContext ctx) {
 		byte[] key = EventKey.marshal(ctx.getKey());
-		String dummyKey = getDummyKey(key);
 
 		synchronized (jedisLock) {
 			connectCheck();
+
 			byte[] oldByteValue = jedis.get(key);
-			if (oldByteValue != null) {
-				@SuppressWarnings("unchecked")
-				EventContext oldCtx = EventContext.parse((Map<String, Object>) decode(oldByteValue));
-				ctx = oldCtx = EventContext.merge(oldCtx, ctx);
-			}
-
-			byte[] value = encode(ctx);
-			long timeoutTime = ctx.getTimeoutTime();
-			long expireTime = ctx.getExpireTime();
-			connectCheck();
 			Transaction t = jedis.multi();
-			t.set(key, value);
-
-			if (ctx.getHost() == null) {
-				t.set(dummyKey, "");
-				long min = Math.min(timeoutTime, expireTime);
-				long max = Math.max(timeoutTime, expireTime);
-				if (min > 0L)
-					t.pexpireAt(dummyKey, min);
-				else if (max > 0L)
-					t.pexpireAt(dummyKey, max);
-			}
-
+			addContextRedis(ctx, oldByteValue, t);
 			t.exec();
 		}
 
@@ -564,6 +508,45 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		}
 
 		return ctx;
+	}
+
+	private void addContextRedis(EventContext ctx, byte[] oldByteValue, Transaction t) {
+		byte[] key = EventKey.marshal(ctx.getKey());
+		String dummyKey = getDummyKey(key);
+		long timeoutTime = ctx.getTimeoutTime();
+
+		if (oldByteValue != null) {
+			@SuppressWarnings("unchecked")
+			EventContext oldCtx = EventContext.parse((Map<String, Object>) decode(oldByteValue));
+
+			if (timeoutTime != 0L && ctx.getHost() == null)
+				t.pexpireAt(dummyKey, timeoutTime);
+
+			t.set(key, encode(EventContext.merge(oldCtx, ctx)));
+		} else {
+			t.set(dummyKey, "");
+			t.set(key, encode(ctx));
+
+			if (ctx.getHost() == null) {
+				long expireTime = ctx.getExpireTime();
+				long redisExpire = getMinValue(timeoutTime, expireTime);
+				if (redisExpire != 0)
+					t.pexpireAt(dummyKey, redisExpire);
+			}
+		}
+	}
+
+
+	/**
+	 * @return a smaller number except 0.
+	 */
+	private long getMinValue(long a, long b) {
+		long min = Math.min(a, b);
+
+		if (min > 0)
+			return min;
+		else
+			return Math.max(a, b);
 	}
 
 	private EventClock ensureClock(ConcurrentHashMap<String, EventClock> clocks, String host, long time) {
