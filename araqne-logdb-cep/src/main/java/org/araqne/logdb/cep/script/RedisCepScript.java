@@ -37,44 +37,44 @@ public class RedisCepScript implements Script {
 		this.context = context;
 	}
 
-	public void getConfig(String[] args) {
+	public void redisConfig(String[] args) {
 		context.println("Redis Configuration");
 		context.println("----------------");
 
 		RedisConfig config = redisConfigRegisty.getConfig();
-		if(config == null)
+		if (config == null)
 			return;
 
 		context.println("host : " + config.getHost());
 		context.println("port : " + config.getPort());
 		context.println("sentinel mode : " + config.isSentinel());
 		context.println("sentinel name : " + config.getSentinelName());
-		//context.println("password : " + config.getPassword());
+		// context.println("password : " + config.getPassword());
 	}
 
 	@ScriptUsage(description = "restore defaults setting")
-	public void restoreDefaults(String[] args) throws InterruptedException{
-		context.print("Current settings will be Deleted. (y/n)");
-		String s = context.readLine("n");
-		if(s.equalsIgnoreCase("y")) {
-
+	public void restoreRedisDefaults(String[] args) throws InterruptedException {
+		context.print("Current settings will be Deleted. (y/N)");
+		String s = context.readLine();
+		if (s.equalsIgnoreCase("y")) {
 			try {
-				redisConfigRegisty.createConfig(new RedisConfig());
+				redisConfigRegisty.setConfig(new RedisConfig());
 			} catch (JedisConnectionException e) {
-				throw new IllegalStateException("cannot connect to jedis server [ " + new RedisConfig().getHost() + ":"  + new RedisConfig().getPort() +" ]");
-			}finally{
+				throw new IllegalStateException("cannot connect to jedis server [ " + new RedisConfig().getHost() + ":"
+						+ new RedisConfig().getPort() + " ]");
+			} finally {
 				context.println("restored");
 			}
 
-		}else{
+		} else {
 			context.println("canceled");
 		}
 	}
 
 	@ScriptUsage(description = "setting redis configuration")
-	public void setConfig(String[] args) throws InterruptedException  {
+	public void setRedisConfig(String[] args) throws InterruptedException {
 		RedisConfig redisConfig = redisConfigRegisty.getConfig();
-		if(redisConfig == null) {
+		if (redisConfig == null) {
 			redisConfig = new RedisConfig("127.0.0.1", 6379);
 		}
 
@@ -90,7 +90,7 @@ public class RedisCepScript implements Script {
 		Boolean sentinelMode = Boolean.parseBoolean(s);
 		redisConfig.setSentinel(sentinelMode);
 
-		if(sentinelMode) {
+		if (sentinelMode) {
 			context.print("sentinel name? ");
 			redisConfig.setSentinelName(context.readLine(redisConfig.getSentinelName()).trim());
 		}
@@ -108,10 +108,11 @@ public class RedisCepScript implements Script {
 			throw new IllegalStateException("password does not match");
 
 		try {
-			redisConfigRegisty.createConfig(redisConfig);
+			redisConfigRegisty.setConfig(redisConfig);
 		} catch (JedisConnectionException e) {
-			throw new IllegalStateException("Redis server disconnected [" + redisConfig.getHost() + ":"  + redisConfig.getPort() +" ]");
-		}finally{
+			throw new IllegalStateException("Redis server disconnected [" + redisConfig.getHost() + ":" + redisConfig.getPort()
+					+ " ]");
+		} finally {
 			context.println("set");
 		}
 	}

@@ -26,7 +26,7 @@ import org.araqne.logdb.cep.redis.RedisConfigRegistry;
 @Component(name = "redis-cep-script-factory")
 @Provides
 public class RedisCepScriptFactory implements ScriptFactory {
-	@ServiceProperty(name = "alias", value = "rediscep")
+	@ServiceProperty(name = "alias", value = "cep")
 	private String alias;
 
 	@Requires
