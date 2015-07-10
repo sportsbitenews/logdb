@@ -87,8 +87,8 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 		pushPipe(rowBatch);
 	}
 	
-	private void checkEvent(Row row){
-		checkEvent(row, new CallbackAdd(){
+	private void checkEvent(Row row) {
+		checkEvent(row, new CallbackAdd() {
 
 			@Override
 			public void addJob(EventContext ctx) {
@@ -191,13 +191,13 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 	private class BatchCallback implements CallbackAdd{
 		ConcurrentHashMap<EventKey, EventContext> contexts;
 
-		private BatchCallback(ConcurrentHashMap<EventKey, EventContext> contexts){
+		private BatchCallback(ConcurrentHashMap<EventKey, EventContext> contexts) {
 			this.contexts = contexts;
 		}
 		
 		@Override
 		public void addJob(EventContext ctx) {
-			if(!contexts.contains(ctx)){
+			if(!contexts.contains(ctx)) {
 				contexts.put(ctx.getKey(), ctx);
 				return;
 			}
@@ -208,7 +208,7 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			if(ctx.getTimeoutTime()!= 0L)
 				oldCtx.setTimeoutTime(ctx.getTimeoutTime());
 			
-			for(Row row :  ctx.getRows()){
+			for(Row row :  ctx.getRows()) {
 					oldCtx.addRow(row);
 				}
 			

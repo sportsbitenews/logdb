@@ -42,7 +42,7 @@ public class RedisConfigRegistryImpl  implements RedisConfigRegistry{
 
 	@Validate
 	public void start() {
-		ConfigDatabase db = conf.ensureDatabase("logpresso-cep");
+		ConfigDatabase db = conf.ensureDatabase("araqne-logdb-cep");
 		//ConfigIterator it = db.findAll(RedisConfig.class);
 		Config c= db.findOne(RedisConfig.class,  Predicates.field("name", "rediscep"));
 		if(c !=null)
@@ -57,13 +57,13 @@ public class RedisConfigRegistryImpl  implements RedisConfigRegistry{
 	}
 	
 	@Override
-	public  void createConfig(RedisConfig config) throws JedisConnectionException{
+	public  void setConfig(RedisConfig config) throws JedisConnectionException{
 		if (config == null)
 			throw new IllegalArgumentException("ssh profile can not be null");
 
 		this.config = config;
 		
-		ConfigDatabase db = conf.ensureDatabase("logpresso-cep");
+		ConfigDatabase db = conf.ensureDatabase("araqne-logdb-cep");
 		Config c= db.findOne(RedisConfig.class,  Predicates.field("name", "rediscep"));
 		
 		if(c == null)

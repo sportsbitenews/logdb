@@ -32,7 +32,7 @@ public class RedisConfig {
 	private String sentinelName = "mymaster";
 	private List<HostAndPort> sentinels = new CopyOnWriteArrayList<HostAndPort>();
 
-	public RedisConfig(){
+	public RedisConfig() {
 	}
 	
 	public RedisConfig(String host, int port) {
@@ -40,7 +40,7 @@ public class RedisConfig {
 		this.port = port;
 	}
 
-	public String getName(){
+	public String getName() {
 		return name;
 	}
 	
@@ -84,16 +84,16 @@ public class RedisConfig {
 		this.sentinelName = sentinelName;
 	}
 
-	public List<HostAndPort> getSentinelNode(){
+	public List<HostAndPort> getSentinelNode() {
 		return sentinels;
 	}
 	
-	public synchronized void addSentinelNode(HostAndPort host){
+	public synchronized void addSentinelNode(HostAndPort host) {
 		sentinels.add(host);
 	}
 
 	@Override
-	public String toString(){
+	public String toString() {
 		return "";
 	}
 

@@ -20,7 +20,7 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 
 public interface RedisConfigRegistry {
 
-	void createConfig(RedisConfig config) throws JedisConnectionException;
+	void setConfig(RedisConfig config) throws JedisConnectionException;
 
 	RedisConfig getConfig();
 
