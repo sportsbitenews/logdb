@@ -90,6 +90,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	private ConcurrentHashMap<String, EventClock> logClocks;
 
+	private final int retryCnt = 5;
+
 	@Override
 	public String getName() {
 		return "redis";
@@ -202,22 +204,22 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		}
 	}
 
-	private void connectCheck() {
-		if (jedis == null) {
-			throw new JedisConnectionException("Redis server disconected [" + configReg.getConfig().getHost() + ":"
-					+ configReg.getConfig().getPort() + "]");
-		}
-
-		// if( jedis.getClient().isBroken()) {
-		returnResource(jedis);
-		closeClient(jedis);
-		jedis = jedisPool.getResource();
-		String password = configReg.getConfig().getPassword();
-		if (password != null && !password.trim().isEmpty()) {
-			jedis.auth(password);
-		}
-		// }
-	}
+	//	private void connectCheck() {
+	//		if (jedis == null) {
+	//			throw new JedisConnectionException("Redis server disconected [" + configReg.getConfig().getHost() + ":"
+	//					+ configReg.getConfig().getPort() + "]");
+	//		}
+	//
+	//		// if( jedis.getClient().isBroken()) {
+	//		returnResource(jedis);
+	//		closeClient(jedis);
+	//		jedis = jedisPool.getResource();
+	//		String password = configReg.getConfig().getPassword();
+	//		if (password != null && !password.trim().isEmpty()) {
+	//			jedis.auth(password);
+	//		}
+	//		// }
+	//	}
 
 	private List<HostAndPort> getRegisterdServers() {
 		List<HostAndPort> servers = new ArrayList<HostAndPort>();
@@ -308,7 +310,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		byte[] cursor = ScanParams.SCAN_POINTER_START_BINARY;
 		synchronized (jedisLock) {
 			while (true) {
-				connectCheck();
+				//connectCheck();
 				ScanResult<byte[]> result = jedis.scan(cursor, params);
 				cursor = result.getCursorAsBytes();
 
@@ -346,16 +348,33 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	@Override
 	public void removeContext(EventKey key, EventContext ctx, EventCause cause) {
 		Response<byte[]> oldValue = null;
-		synchronized (jedisLock) {
-			connectCheck();
-			Transaction t = jedis.multi();
-			byte[] encodedKey = EventKey.marshal(key);
+		RuntimeException lastException = null;
 
-			oldValue = t.get(encodedKey);
-			t.del(encodedKey);
-			t.del(getDummyKey(encodedKey));
-			t.exec();
+		synchronized (jedisLock) {
+			for(int i = 0; i < retryCnt ; ++i) {
+				try {
+					if(jedis == null)
+						jedisConnect();
+
+					Transaction t = jedis.multi();
+					byte[] encodedKey = EventKey.marshal(key);
+
+					oldValue = t.get(encodedKey);
+					t.del(encodedKey);
+					t.del(getDummyKey(encodedKey));
+					t.exec();
+
+					break;
+				} catch (JedisConnectionException e){
+					returnResource(jedis);
+					closeClient(jedis);
+					lastException = e;
+				}
+			}
 		}
+
+		if (lastException != null)
+			throw lastException;
 
 		byte[] response = oldValue.get();
 		if (response != null) {
@@ -389,17 +408,34 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	@Override
 	public void clearContexts(String topic) {
 		Set<EventKey> keys = getContextKeys(topic);
+		RuntimeException lastException = null;
 		synchronized (jedisLock) {
-			connectCheck();
-			Transaction t = jedis.multi();
+			for(int i = 0; i < retryCnt ; ++i) {
+				try {
+					if(jedis == null)
+						jedisConnect();
 
-			for (EventKey key : keys) {
-				t.del(EventKey.marshal(key));
-				t.del(getDummyKey(EventKey.marshal(key)));
+					Transaction t = jedis.multi();
+					for (EventKey key : keys) {
+						t.del(EventKey.marshal(key));
+						t.del(getDummyKey(EventKey.marshal(key)));
+					}
+
+					t.exec();
+
+					return;
+				} catch (JedisConnectionException e){
+					returnResource(jedis);
+					closeClient(jedis);
+					lastException = e;
+				}
 			}
-
-			t.exec();
 		}
+
+		if (lastException != null)
+			throw lastException;
+		else 
+			return;
 	}
 
 	@Override
@@ -462,24 +498,40 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	@Override
 	public void addContexts(Map<EventKey, EventContext> contexts) {
 		ConcurrentHashMap<EventKey, Response<byte[]>> responses = new ConcurrentHashMap<EventKey, Response<byte[]>>();
+		RuntimeException lastException = null;
 		synchronized (jedisLock) {
-			connectCheck();
-			Transaction t = jedis.multi();
-			for (EventKey evtkey : contexts.keySet()) {
-				byte[] key = EventKey.marshal(evtkey);
-				Response<byte[]> pipeString = t.get(key);
-				responses.put(evtkey, pipeString);
-			}
-			t.exec();
+			for(int i = 0; i < retryCnt ; ++i) {
+				try {
+					if(jedis == null)
+						jedisConnect();
 
-			t = jedis.multi();
-			for (EventKey evtkey : contexts.keySet()) {
-				byte[] oldByteValue = responses.get(evtkey).get();
-				EventContext ctx = contexts.get(evtkey);
-				addContextRedis(ctx, oldByteValue, t);
+					Transaction t = jedis.multi();
+					for (EventKey evtkey : contexts.keySet()) {
+						byte[] key = EventKey.marshal(evtkey);
+						Response<byte[]> pipeString = t.get(key);
+						responses.put(evtkey, pipeString);
+					}
+					t.exec();
+
+					t = jedis.multi();
+					for (EventKey evtkey : contexts.keySet()) {
+						byte[] oldByteValue = responses.get(evtkey).get();
+						EventContext ctx = contexts.get(evtkey);
+						addContextRedis(ctx, oldByteValue, t);
+					}
+					t.exec();
+
+					break;
+				}catch (JedisConnectionException e){
+					returnResource(jedis);
+					closeClient(jedis);
+					lastException = e;
+				}
 			}
-			t.exec();
 		}
+
+		if (lastException != null)
+			throw lastException;
 
 		for (EventContext ctx : contexts.values()) {
 			if (ctx.getHost() != null) {
@@ -492,15 +544,29 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	@Override
 	public EventContext addContext(EventContext ctx) {
 		byte[] key = EventKey.marshal(ctx.getKey());
+		RuntimeException lastException = null;
 
 		synchronized (jedisLock) {
-			connectCheck();
+			for(int i = 0; i < retryCnt ; ++i) {
+				try {
+					if(jedis == null)
+						jedisConnect();
 
-			byte[] oldByteValue = jedis.get(key);
-			Transaction t = jedis.multi();
-			addContextRedis(ctx, oldByteValue, t);
-			t.exec();
+					byte[] oldByteValue = jedis.get(key);
+					Transaction t = jedis.multi();
+					addContextRedis(ctx, oldByteValue, t);
+					t.exec();
+					break;
+				}catch (JedisConnectionException e){
+					returnResource(jedis);
+					closeClient(jedis);
+					lastException = e;
+				}
+			}
 		}
+
+		if (lastException != null)
+			throw lastException;
 
 		if (ctx.getHost() != null) {
 			EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
@@ -566,21 +632,35 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	@Override
 	public void removeContexts(Map<EventKey, EventContext> contexts, EventCause cause) {
 		ConcurrentHashMap<EventKey, Response<byte[]>> responses = new ConcurrentHashMap<EventKey, Response<byte[]>>();
+		RuntimeException lastException = null;
 		synchronized (jedisLock) {
-			connectCheck();
-			Transaction t = jedis.multi();
+			for(int i = 0; i < retryCnt ; ++i) {
+				try {
+					if(jedis == null)
+						jedisConnect();
+					Transaction t = jedis.multi();
 
-			for (EventKey evtkey : contexts.keySet()) {
-				byte[] encodedKey = EventKey.marshal(evtkey);
-				Response<byte[]> oldValue = t.get(encodedKey);
-				responses.put(evtkey, oldValue);
-				t.del(encodedKey);
-				t.del(getDummyKey(encodedKey));
+					for (EventKey evtkey : contexts.keySet()) {
+						byte[] encodedKey = EventKey.marshal(evtkey);
+						Response<byte[]> oldValue = t.get(encodedKey);
+						responses.put(evtkey, oldValue);
+						t.del(encodedKey);
+						t.del(getDummyKey(encodedKey));
+					}
+
+					t.exec();
+					break;
+				} catch (JedisConnectionException e){
+					returnResource(jedis);
+					closeClient(jedis);
+					lastException = e;
+				}
 			}
-
-			t.exec();
 		}
 
+		if (lastException != null)
+			throw lastException;
+		
 		for (EventKey evtkey : contexts.keySet()) {
 			byte[] response = responses.get(evtkey).get();
 			if (response != null) {
