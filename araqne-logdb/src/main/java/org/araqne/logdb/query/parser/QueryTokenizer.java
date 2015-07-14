@@ -165,6 +165,20 @@ public class QueryTokenizer {
 		return -1;
 	}
 
+	private static Character[] UniToAsciiMap;
+	static {
+		UniToAsciiMap = new Character[65536];
+		UniToAsciiMap[0x27E6] = '[';
+		UniToAsciiMap[0x301B] = ']';
+		for (int code : new int[] { 0x00AB, 0x00BB, 0x02BA, 0x030B, 0x030E, 0x201C, 0x201D, 0x201E, 0x201F, 0x2033, 0x3036,
+				0x3003, 0x301D, 0x301E })
+			UniToAsciiMap[code] = '\"';
+		for (int code : new int[] { 0x01C0, 0x05C0, 0x2223, 0x2758 })
+			UniToAsciiMap[code] = '|';
+		for (int code : new int[] { 0x20E5, 0x2216 })
+			UniToAsciiMap[code] = '\\';
+	}
+
 	public static List<String> parseCommands(String query) {
 		List<String> l = new ArrayList<String>();
 		StringBuilder sb = new StringBuilder();
@@ -176,6 +190,11 @@ public class QueryTokenizer {
 
 		for (int p = 0; p < query.length(); ++p) {
 			char c = query.charAt(p);
+
+			if (0x128 <= c && c < 0xffff) {
+				if (UniToAsciiMap[c] != null)
+					c = UniToAsciiMap[c].charValue();
+			}
 
 			if (c == '[' && !quoted)
 				sqStack.push(p);
