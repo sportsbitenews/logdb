@@ -397,8 +397,12 @@ public class LogDBScript implements Script {
 			p.getGrants().remove(target);
 			procedureRegistry.updateProcedure(p);
 		} else if (type.equals("group")) {
-			p.getGrantGroups().remove(target);
-			procedureRegistry.updateProcedure(p);
+			Map<String, SecurityGroup> groupMap = getSecurityGroupMap();
+			SecurityGroup old = groupMap.get(target);
+			if (old != null) {
+				p.getGrantGroups().remove(old.getGuid());
+				procedureRegistry.updateProcedure(p);
+			}
 		} else {
 			context.println("invalid type. use 'user' or 'group'");
 			return;

@@ -80,6 +80,9 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 		Procedure p = procedures.get(procedureName);
 		if (p == null)
 			throw new IllegalStateException("procedure not found: " + procedureName);
+		
+		if (accountService.isAdmin(loginName))
+			return true;
 
 		if (p.getOwner().equals(loginName) || p.getGrants().contains(loginName))
 			return true;
@@ -100,9 +103,18 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 
 	@Override
 	public List<Procedure> getProcedures() {
+		return getProcedures(null);
+	}
+
+	@Override
+	public List<Procedure> getProcedures(String loginName) {
 		List<Procedure> l = new ArrayList<Procedure>();
-		for (Procedure p : procedures.values())
+		for (Procedure p : procedures.values()) {
+			if (loginName != null && !isGranted(p.getName(), loginName))
+				continue;
+			
 			l.add(p.clone());
+		}
 
 		return l;
 	}

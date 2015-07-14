@@ -66,13 +66,6 @@ public class Procedure implements Marshalable {
 		return p;
 	}
 
-	public boolean isGranted(String loginName) {
-		if (loginName == null)
-			throw new IllegalArgumentException("login name should not be null");
-
-		return loginName.equals(owner) || grants.contains(loginName);
-	}
-
 	public String getName() {
 		return name;
 	}
