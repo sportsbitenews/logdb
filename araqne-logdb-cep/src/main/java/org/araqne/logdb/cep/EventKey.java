@@ -91,27 +91,29 @@ public class EventKey {
 
 	public static EventKey parse(byte[] bs) {
 
-		String keys = new String(bs);
+		try {
+			String keys = new String(bs);
 
-		String[] fields = new String[3];
+			String[] fields = new String[3];
 
-		int e = -1;
-		int s = 0;
+			int e = -1;
+			int s = 0;
 
-		for(int i = 0; i < fields.length ; i ++) {
-			s = e +1;
-			e = keys.indexOf(":", s);
-			fields[i]  = keys.substring(s, e);
+			for(int i = 0; i < fields.length ; i ++) {
+				s = e +1;
+				e = keys.indexOf(":", s);
+				fields[i]  = keys.substring(s, e);
+			}
+
+			EventKey evt = new EventKey(fields[0], fields[1]);
+			if(fields[2] != null && !fields[2].trim().isEmpty())
+				evt.setHost(fields[2]);
+
+			return evt;
+		} catch (Exception e) {
+			return null;
 		}
 
-		EventKey evt = new EventKey(fields[0], fields[1]);
-		if(fields[2] != null && !fields[2].trim().isEmpty())
-			evt.setHost(fields[2]);
-
-		return evt;
-
 	}
-
-
 
 }

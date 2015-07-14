@@ -15,7 +15,10 @@
  */
 package org.araqne.logdb.cep.engine;
 
+import java.nio.channels.UnsupportedAddressTypeException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -100,12 +103,12 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public Set<EventKey> getContextKeys() {
-		return new HashSet<EventKey>(contexts.keySet());
+	public Iterator<EventKey> getContextKeys() {
+		return new HashSet<EventKey>(contexts.keySet()).iterator();
 	}
 
 	@Override
-	public Set<EventKey> getContextKeys(String topic) {
+	public Iterator<EventKey> getContextKeys(String topic) {
 		HashSet<EventKey> keys = new HashSet<EventKey>();
 
 		for (EventKey key : contexts.keySet()) {
@@ -113,7 +116,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 				keys.add(key);
 		}
 
-		return keys;
+		return keys.iterator();
 	}
 
 	@Override
@@ -123,7 +126,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public EventContext addContext(EventContext ctx) {
-	
+
 		EventContext old = contexts.putIfAbsent(ctx.getKey(), ctx);
 		if (old == null) {
 			ctx.getListeners().add(this);
@@ -191,10 +194,10 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void clearContexts(String topic) {
-		for (EventKey key : getContextKeys()) {
-			if (topic == null || key.getTopic().equals(topic))
-				contexts.remove(key);
-		}
+		//		for (EventKey key : getContextKeys()) {
+		//			if (topic == null || key.getTopic().equals(topic))
+		//				contexts.remove(key);
+		//		}
 	}
 
 	@Override
@@ -291,6 +294,15 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	public void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal) {
 		for( Entry<EventKey, EventContext> entry : contexts.entrySet())
 			removeContext(entry.getKey(), entry.getValue(), removal);
+	}
+
+	@Override
+	public Map<EventKey, EventContext> getContexts(Set<EventKey> keys) {
+		Map<EventKey, EventContext> contexts = new HashMap<EventKey, EventContext> ();
+		for(EventKey key : keys){
+			contexts.put(key, getContext(key));
+		}
+		return contexts;
 	}
 
 }

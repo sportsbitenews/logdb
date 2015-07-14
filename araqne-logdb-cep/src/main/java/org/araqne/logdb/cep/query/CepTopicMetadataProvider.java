@@ -2,6 +2,7 @@ package org.araqne.logdb.cep.query;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -59,7 +60,10 @@ public class CepTopicMetadataProvider implements MetadataProvider, FieldOrdering
 
 		HashMap<String, Integer> topicMap = new HashMap<String, Integer>();
 
-		for (EventKey key : storage.getContextKeys()) {
+		//for (EventKey key : storage.getContextKeys()) {
+		Iterator<EventKey> itr = storage.getContextKeys();
+		while(itr.hasNext()) {
+			EventKey key = itr.next();
 			String topic = key.getTopic();
 			Integer count = topicMap.get(topic);
 			if (count == null)

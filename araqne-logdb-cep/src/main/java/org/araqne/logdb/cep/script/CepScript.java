@@ -19,6 +19,7 @@ import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import org.araqne.api.Script;
@@ -160,18 +161,26 @@ public class CepScript implements Script {
 		context.println("-----------------");
 
 		EventContextStorage storage = eventStorage();
+		Iterator<EventKey> itr = storage.getContextKeys();
+		int size = 0;
+		while (itr.hasNext()) {
+			EventKey key = itr.next();
 
-		List<EventKey> keys = new ArrayList<EventKey>(storage.getContextKeys());
-		List<EventKey> page = keys.subList(Math.min(offset, keys.size()), Math.min(offset + limit, keys.size()));
+			if (size < offset) {
+				size++;
+				continue;
+			}
 
-		for (EventKey key : page) {
-			context.println(key);
+			if (limit + offset > size)
+				context.println(key);
+
+			size++;
 		}
 
-		context.println("total " + keys.size() + " contexts");
+		context.println("total " + size + " contexts");
 	}
-	
-	private EventContextStorage eventStorage(){
+
+	private EventContextStorage eventStorage() {
 		return eventContextService.getStorage(System.getProperty("araqne.logdb.cepengine"));
 	}
 }
