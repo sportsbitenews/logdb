@@ -127,12 +127,12 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 					while (!subscribeStopRequested) {
 						for (HostAndPort server : getRegisterdServers()) {
-
-							if (aliveJedisServers.keySet().contains(server))
-								continue;
-
 							Jedis jedisForSub = null;
 							try {
+
+								if (aliveJedisServers.keySet().contains(server))
+									continue;
+
 								jedisForSub = new Jedis(server.getHost(), server.getPort());
 								Psub subscribeRegister = new Psub(server);
 								aliveJedisServers.put(server, jedisForSub);
@@ -143,6 +143,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 								aliveJedisServers.remove(server);
 							}
 						}
+
+						wait(1000);
 					}
 
 					executor.shutdownNow();
