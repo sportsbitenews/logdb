@@ -20,6 +20,21 @@ public interface AccountEventListener {
 
 	void onRemoveAccount(Session session, Account account);
 
+	/**
+	 * @since 2.6.34
+	 */
+	void onCreateSecurityGroup(Session session, SecurityGroup group);
+
+	/**
+	 * @since 2.6.34
+	 */
+	void onUpdateSecurityGroup(Session session, SecurityGroup group);
+
+	/**
+	 * @since 2.6.34
+	 */
+	void onRemoveSecurityGroup(Session session, SecurityGroup group);
+
 	void onGrantAdmin(Session session, Account account);
 
 	void onRevokeAdmin(Session session, Account account);
@@ -27,5 +42,4 @@ public interface AccountEventListener {
 	void onGrantPrivilege(Session session, String loginName, String tableName, Permission... permissions);
 
 	void onRevokePrivilege(Session session, String loginName, String tableName, Permission... permissions);
-
 }

@@ -42,6 +42,7 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.AuthServiceNotLoadedException;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
+import org.araqne.logdb.SecurityGroup;
 import org.araqne.logstorage.LockKey;
 import org.araqne.logstorage.LockStatus;
 import org.araqne.logstorage.LogCryptoProfile;
@@ -55,6 +56,7 @@ import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableConfig;
 import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.logstorage.TableSchema;
+import org.araqne.msgbus.Marshaler;
 import org.araqne.msgbus.MessageBus;
 import org.araqne.msgbus.MsgbusException;
 import org.araqne.msgbus.Request;
@@ -324,6 +326,97 @@ public class ManagementPlugin {
 		List<String> tableNames = (List<String>) req.get("table_names");
 		for (String tableName : tableNames)
 			accountService.revokePrivilege(session, loginName, tableName, Permission.READ);
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@MsgbusMethod
+	public void listSecurityGroups(Request req, Response resp) {
+		List<SecurityGroup> groups = accountService.getSecurityGroups();
+		// return without details
+		List<Object> l = new ArrayList<Object>();
+		for (SecurityGroup group : groups) {
+			Map<String, Object> m = new HashMap<String, Object>();
+			m.put("guid", group.getGuid());
+			m.put("name", group.getName());
+			m.put("description", group.getDescription());
+			m.put("created", group.getCreated());
+			m.put("updated", group.getUpdated());
+			l.add(m);
+		}
+		
+		resp.put("security_groups", l);
+	}
+	
+	/**
+	 * @since 2.6.34
+	 */
+	@MsgbusMethod
+	public void getSecurityGroup(Request req, Response resp) {
+		String guid = req.getString("guid", true);
+		SecurityGroup group = accountService.getSecurityGroup(guid);
+		resp.put("security_group", group == null ? null : group.marshal());
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@MsgbusMethod
+	public void createSecurityGroup(Request req, Response resp) {
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+		SecurityGroup group = new SecurityGroup();
+		group.setName(req.getString("name", true));
+		group.setDescription(req.getString("description", true));
+
+		try {
+			accountService.createSecurityGroup(session, group);
+		} catch (IllegalStateException e) {
+			throw new MsgbusException("logdb", e.getMessage());
+		}
+		
+		resp.put("guid", group.getGuid());
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void updateSecurityGroup(Request req, Response resp) {
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+
+		SecurityGroup group = accountService.getSecurityGroup(req.getString("guid", true));
+		if (group == null)
+			throw new MsgbusException("logdb", "security group not found");
+
+		group.setName(req.getString("name", true));
+		group.setDescription(req.getString("description"));
+		group.setAccounts((List<String>) req.get("accounts", true));
+		group.setReadableTables((List<String>) req.get("table_names", true));
+
+		accountService.updateSecurityGroup(session, group);
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void removeSecurityGroups(Request req, Response resp) {
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+		List<String> guids = (List<String>) req.get("group_guids", true);
+		List<String> failed = new ArrayList<String>();
+		for (String guid : guids) {
+			try {
+				accountService.removeSecurityGroup(session, guid);
+			} catch (Throwable t) {
+				failed.add(guid);
+				slog.error("araqne logdb: cannot remove security group [" + guid + "]", t);
+			}
+		}
+
+		resp.put("failed_groups", failed);
 	}
 
 	@MsgbusMethod

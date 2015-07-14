@@ -31,6 +31,27 @@ public class AbstractAccountEventListener implements AccountEventListener {
 	public void onRemoveAccount(Session session, Account account) {
 	}
 
+	/**
+	 * @since 2.6.34
+	 */
+	@Override
+	public void onCreateSecurityGroup(Session session, SecurityGroup group) {
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@Override
+	public void onUpdateSecurityGroup(Session session, SecurityGroup group) {
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@Override
+	public void onRemoveSecurityGroup(Session session, SecurityGroup group) {
+	}
+
 	@Override
 	public void onGrantAdmin(Session session, Account account) {
 	}

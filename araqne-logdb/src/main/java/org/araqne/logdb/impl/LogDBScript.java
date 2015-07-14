@@ -18,8 +18,10 @@ package org.araqne.logdb.impl;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.api.PathAutoCompleter;
 import org.araqne.api.Script;
@@ -31,6 +33,7 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.CsvLookupRegistry;
 import org.araqne.logdb.ExternalAuthService;
 import org.araqne.logdb.LookupHandlerRegistry;
+import org.araqne.logdb.Permission;
 import org.araqne.logdb.Procedure;
 import org.araqne.logdb.ProcedureParameter;
 import org.araqne.logdb.ProcedureRegistry;
@@ -40,8 +43,10 @@ import org.araqne.logdb.QueryScriptRegistry;
 import org.araqne.logdb.QueryService;
 import org.araqne.logdb.SavedResult;
 import org.araqne.logdb.SavedResultManager;
+import org.araqne.logdb.SecurityGroup;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.Strings;
+import org.araqne.logstorage.LogTableRegistry;
 
 public class LogDBScript implements Script {
 	private QueryService qs;
@@ -52,10 +57,11 @@ public class LogDBScript implements Script {
 	private AccountService accountService;
 	private SavedResultManager savedResultManager;
 	private ProcedureRegistry procedureRegistry;
+	private LogTableRegistry tableRegistry;
 
 	public LogDBScript(QueryService qs, QueryScriptRegistry scriptRegistry, LookupHandlerRegistry lookup,
 			CsvLookupRegistry csvRegistry, AccountService accountService, SavedResultManager savedResultManager,
-			ProcedureRegistry procedureRegistry) {
+			ProcedureRegistry procedureRegistry, LogTableRegistry tableRegistry) {
 		this.qs = qs;
 		this.scriptRegistry = scriptRegistry;
 		this.lookup = lookup;
@@ -63,6 +69,7 @@ public class LogDBScript implements Script {
 		this.accountService = accountService;
 		this.savedResultManager = savedResultManager;
 		this.procedureRegistry = procedureRegistry;
+		this.tableRegistry = tableRegistry;
 	}
 
 	@Override
@@ -443,4 +450,195 @@ public class LogDBScript implements Script {
 	public void getHashJoinThreshold(String[] args) {
 		context.println("hash join threshold :" + System.getProperty("araqne.hashjointhreshold", "100000"));
 	}
+
+	public void securityGroups(String[] args) {
+		context.println("Security Groups");
+		context.println("-----------------");
+
+		for (SecurityGroup group : accountService.getSecurityGroups()) {
+			context.println(group);
+		}
+	}
+
+	@ScriptUsage(description = "create security group", arguments = {
+			@ScriptArgument(name = "group name", type = "string", description = "name of security group"),
+			@ScriptArgument(name = "description", type = "string", description = "description", optional = true) })
+	public void createSecurityGroup(String[] args) {
+		SecurityGroup group = new SecurityGroup();
+		group.setName(args[0]);
+		if (args.length > 1)
+			group.setDescription(args[1]);
+
+		accountService.createSecurityGroup(null, group);
+		context.println("created");
+	}
+
+	@ScriptUsage(description = "remove security group", arguments = { @ScriptArgument(name = "group name", type = "string", description = "name of security group") })
+	public void removeSecurityGroup(String[] args) {
+		SecurityGroup found = findSecurityGroupByName(args[0]);
+		if (found == null) {
+			context.println("security group not found");
+			return;
+		}
+
+		accountService.removeSecurityGroup(null, found.getGuid());
+		context.println("removed");
+	}
+
+	@ScriptUsage(description = "join security group", arguments = {
+			@ScriptArgument(name = "group name", type = "string", description = "name of security group"),
+			@ScriptArgument(name = "login name", type = "string", description = "account login name") })
+	public void joinSecurityGroup(String[] args) {
+		SecurityGroup group = findSecurityGroupByName(args[0]);
+		if (group == null) {
+			context.println("security group not found");
+			return;
+		}
+
+		for (int i = 1; i < args.length; i++) {
+			String loginName = args[i];
+			Account account = accountService.getAccount(loginName);
+			if (account == null) {
+				context.println("account [" + loginName + "] not found. skipping.");
+				continue;
+			}
+
+			group.getAccounts().add(account.getLoginName());
+		}
+
+		accountService.updateSecurityGroup(null, group);
+		context.println("updated");
+	}
+
+	@ScriptUsage(description = "leave security group", arguments = {
+			@ScriptArgument(name = "group name", type = "string", description = "name of security group"),
+			@ScriptArgument(name = "login name", type = "string", description = "account login name") })
+	public void leaveSecurityGroup(String[] args) {
+		SecurityGroup group = findSecurityGroupByName(args[0]);
+		if (group == null) {
+			context.println("security group not found");
+			return;
+		}
+
+		for (int i = 1; i < args.length; i++)
+			group.getAccounts().remove(args[i]);
+
+		accountService.updateSecurityGroup(null, group);
+		context.println("updated");
+	}
+
+	@ScriptUsage(description = "grant table access", arguments = {
+			@ScriptArgument(name = "table name", type = "string", description = "table name"),
+			@ScriptArgument(name = "type", type = "string", description = "user or group"),
+			@ScriptArgument(name = "login name or group name", type = "string", description = "name of user or security group") })
+	public void grantTable(String[] args) {
+		String tableName = args[0];
+		String type = args[1];
+
+		if (!tableRegistry.exists(tableName)) {
+			context.println("table not found: " + tableName);
+			return;
+		}
+
+		if (!type.equals("user") && !type.equals("group")) {
+			context.println("invalid type, use 'user' or 'group'");
+			return;
+		}
+
+		if (type.equals("user")) {
+			for (int i = 2; i < args.length; i++) {
+				String loginName = args[i];
+				if (accountService.getAccount(loginName) == null) {
+					context.println("account [" + loginName + "] not found, skipping");
+					continue;
+				}
+
+				accountService.grantPrivilege(null, loginName, tableName, Permission.READ);
+
+			}
+		} else if (type.equals("group")) {
+			Map<String, SecurityGroup> groupMap = getSecurityGroupMap();
+			for (int i = 2; i < args.length; i++) {
+				String groupName = args[i];
+				SecurityGroup group = groupMap.get(groupName);
+				if (group == null) {
+					context.println("security group [" + groupName + "] not found, skipping");
+					continue;
+				}
+
+				group.getReadableTables().add(tableName);
+				accountService.updateSecurityGroup(null, group);
+			}
+		}
+
+		context.println("granted");
+	}
+
+	@ScriptUsage(description = "revoke table access from group", arguments = {
+			@ScriptArgument(name = "table name", type = "string", description = "table name"),
+			@ScriptArgument(name = "type", type = "string", description = "user or group"),
+			@ScriptArgument(name = "login name or group name", type = "string", description = "name of user or security group") })
+	public void revokeTable(String[] args) {
+		String tableName = args[0];
+		String type = args[1];
+
+		if (!tableRegistry.exists(tableName)) {
+			context.println("table not found: " + tableName);
+			return;
+		}
+
+		if (!type.equals("user") && !type.equals("group")) {
+			context.println("invalid type, use 'user' or 'group'");
+			return;
+		}
+
+		if (type.equals("user")) {
+			for (int i = 2; i < args.length; i++) {
+				String loginName = args[i];
+				if (accountService.getAccount(loginName) == null) {
+					context.println("account [" + loginName + "] not found, skipping");
+					continue;
+				}
+
+				accountService.revokePrivilege(null, loginName, tableName, Permission.READ);
+
+			}
+		} else if (type.equals("group")) {
+			Map<String, SecurityGroup> groupMap = getSecurityGroupMap();
+			for (int i = 2; i < args.length; i++) {
+				String groupName = args[i];
+				SecurityGroup group = groupMap.get(groupName);
+				if (group == null) {
+					context.println("security group [" + groupName + "] not found, skipping");
+					continue;
+				}
+
+				group.getReadableTables().remove(tableName);
+				accountService.updateSecurityGroup(null, group);
+			}
+		}
+
+		context.println("revoked");
+	}
+
+	// name to security group map
+	private Map<String, SecurityGroup> getSecurityGroupMap() {
+		Map<String, SecurityGroup> m = new HashMap<String, SecurityGroup>();
+		for (SecurityGroup group : accountService.getSecurityGroups()) {
+			m.put(group.getName(), group);
+		}
+		return m;
+	}
+
+	private SecurityGroup findSecurityGroupByName(String name) {
+		SecurityGroup found = null;
+		for (SecurityGroup group : accountService.getSecurityGroups()) {
+			if (group.getName().equals(name)) {
+				found = group;
+				break;
+			}
+		}
+		return found;
+	}
+
 }
