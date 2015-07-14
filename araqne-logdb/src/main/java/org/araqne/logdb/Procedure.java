@@ -28,6 +28,12 @@ public class Procedure implements Marshalable {
 
 	@CollectionTypeHint(String.class)
 	private Set<String> grants = new HashSet<String>();
+	
+	/**
+	 * @since 2.6.34
+	 */
+	@CollectionTypeHint(String.class)
+	private Set<String> grantGroups = new HashSet<String>(); 
 
 	@CollectionTypeHint(ProcedureParameter.class)
 	private List<ProcedureParameter> parameters = new ArrayList<ProcedureParameter>();
@@ -47,6 +53,7 @@ public class Procedure implements Marshalable {
 		p.setDescription(description);
 		p.setOwner(owner);
 		p.setGrants(new HashSet<String>(grants));
+		p.setGrantGroups(new HashSet<String>(grantGroups));
 
 		List<ProcedureParameter> params = new ArrayList<ProcedureParameter>();
 		for (ProcedureParameter pp : parameters)
@@ -100,6 +107,22 @@ public class Procedure implements Marshalable {
 		this.grants = grants;
 	}
 
+	/**
+	 * @since 2.6.34
+	 */
+	public Set<String> getGrantGroups() {
+		return grantGroups;
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	public void setGrantGroups(Set<String> grantGroups) {
+		if (grantGroups == null)
+			this.grantGroups = new HashSet<String>();
+		this.grantGroups = grantGroups;
+	}
+
 	public List<ProcedureParameter> getParameters() {
 		return parameters;
 	}
@@ -138,6 +161,7 @@ public class Procedure implements Marshalable {
 		m.put("name", name);
 		m.put("owner", owner);
 		m.put("grants", grants);
+		m.put("grant_groups", grantGroups);
 		m.put("parameters", Marshaler.marshal(parameters));
 		m.put("query_string", queryString);
 		m.put("created", created);
@@ -150,6 +174,6 @@ public class Procedure implements Marshalable {
 	public String toString() {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		return "name=" + name + ", parameters=" + parameters + ", query=" + queryString + ", created=" + df.format(created)
-				+ ", modified=" + df.format(modified) + ", owner=" + owner + ", grants=" + grants;
+				+ ", modified=" + df.format(modified) + ", owner=" + owner + ", grants=" + grants + ", grant_groups=" + grantGroups;
 	}
 }

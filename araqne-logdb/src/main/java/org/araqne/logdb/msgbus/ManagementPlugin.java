@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,7 +57,6 @@ import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableConfig;
 import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.logstorage.TableSchema;
-import org.araqne.msgbus.Marshaler;
 import org.araqne.msgbus.MessageBus;
 import org.araqne.msgbus.MsgbusException;
 import org.araqne.msgbus.Request;
@@ -345,10 +345,10 @@ public class ManagementPlugin {
 			m.put("updated", group.getUpdated());
 			l.add(m);
 		}
-		
+
 		resp.put("security_groups", l);
 	}
-	
+
 	/**
 	 * @since 2.6.34
 	 */
@@ -374,7 +374,7 @@ public class ManagementPlugin {
 		} catch (IllegalStateException e) {
 			throw new MsgbusException("logdb", e.getMessage());
 		}
-		
+
 		resp.put("guid", group.getGuid());
 	}
 
@@ -392,8 +392,8 @@ public class ManagementPlugin {
 
 		group.setName(req.getString("name", true));
 		group.setDescription(req.getString("description"));
-		group.setAccounts((List<String>) req.get("accounts", true));
-		group.setReadableTables((List<String>) req.get("table_names", true));
+		group.setAccounts(new HashSet<String>((List<String>) req.get("accounts", true)));
+		group.setReadableTables(new HashSet<String>((List<String>) req.get("table_names", true)));
 
 		accountService.updateSecurityGroup(session, group);
 	}

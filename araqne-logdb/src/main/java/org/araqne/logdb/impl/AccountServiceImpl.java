@@ -547,8 +547,8 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 
 			old.setName(group.getName());
 			old.setDescription(group.getDescription());
-			old.setAccounts(new ArrayList<String>(group.getAccounts()));
-			old.setReadableTables(new ArrayList<String>(group.getReadableTables()));
+			old.setAccounts(new HashSet<String>(group.getAccounts()));
+			old.setReadableTables(new HashSet<String>(group.getReadableTables()));
 			old.setUpdated(new Date());
 
 			ConfigDatabase db = conf.ensureDatabase("araqne-logdb");

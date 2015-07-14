@@ -15,11 +15,11 @@
  */
 package org.araqne.logdb;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.araqne.api.CollectionTypeHint;
@@ -43,10 +43,10 @@ public class SecurityGroup implements Marshalable {
 	private String description;
 
 	@CollectionTypeHint(String.class)
-	private List<String> accounts = new ArrayList<String>();
+	private Set<String> accounts = new HashSet<String>();
 
 	@CollectionTypeHint(String.class)
-	private List<String> readableTables = new ArrayList<String>();
+	private Set<String> readableTables = new HashSet<String>();
 
 	@FieldOption(nullable = false)
 	private Date created = new Date();
@@ -59,8 +59,8 @@ public class SecurityGroup implements Marshalable {
 		c.guid = guid;
 		c.name = name;
 		c.description = description;
-		c.accounts = new ArrayList<String>(accounts);
-		c.readableTables = new ArrayList<String>(readableTables);
+		c.accounts = new HashSet<String>(accounts);
+		c.readableTables = new HashSet<String>(readableTables);
 		c.created = created;
 		c.updated = updated;
 		return c;
@@ -90,19 +90,19 @@ public class SecurityGroup implements Marshalable {
 		this.description = description;
 	}
 
-	public List<String> getAccounts() {
+	public Set<String> getAccounts() {
 		return accounts;
 	}
 
-	public void setAccounts(List<String> accounts) {
+	public void setAccounts(Set<String> accounts) {
 		this.accounts = accounts;
 	}
 
-	public List<String> getReadableTables() {
+	public Set<String> getReadableTables() {
 		return readableTables;
 	}
 
-	public void setReadableTables(List<String> readableTables) {
+	public void setReadableTables(Set<String> readableTables) {
 		this.readableTables = readableTables;
 	}
 

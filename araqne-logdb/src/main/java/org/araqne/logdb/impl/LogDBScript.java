@@ -345,10 +345,12 @@ public class LogDBScript implements Script {
 
 	@ScriptUsage(description = "grant procedure", arguments = {
 			@ScriptArgument(name = "procedure name", type = "string", description = "procedure name"),
+			@ScriptArgument(name = "type", type = "string", description = "'user' or 'group'"),
 			@ScriptArgument(name = "login name", type = "string", description = "login name") })
 	public void grantProcedure(String[] args) {
 		String procName = args[0];
-		String loginName = args[1];
+		String type = args[1];
+		String target = args[2];
 
 		Procedure p = procedureRegistry.getProcedure(procName);
 		if (p == null) {
@@ -356,9 +358,21 @@ public class LogDBScript implements Script {
 			return;
 		}
 
-		if (!p.getGrants().contains(loginName)) {
-			p.getGrants().add(loginName);
-			procedureRegistry.updateProcedure(p);
+		if (type.equals("user")) {
+			if (!p.getGrants().contains(target)) {
+				p.getGrants().add(target);
+				procedureRegistry.updateProcedure(p);
+			}
+		} else if (type.equals("group")) {
+			Map<String, SecurityGroup> groupMap = getSecurityGroupMap();
+			SecurityGroup old = groupMap.get(target);
+			if (old != null) {
+				p.getGrantGroups().add(old.getGuid());
+				procedureRegistry.updateProcedure(p);
+			}
+		} else {
+			context.println("invalid type. use 'user' or 'group'");
+			return;
 		}
 
 		context.println("granted");
@@ -366,10 +380,12 @@ public class LogDBScript implements Script {
 
 	@ScriptUsage(description = "revoke procedure", arguments = {
 			@ScriptArgument(name = "procedure name", type = "string", description = "procedure name"),
+			@ScriptArgument(name = "type", type = "string", description = "user or group"),
 			@ScriptArgument(name = "login name", type = "string", description = "login name") })
 	public void revokeProcedure(String[] args) {
 		String procName = args[0];
-		String loginName = args[1];
+		String type = args[1];
+		String target = args[2];
 
 		Procedure p = procedureRegistry.getProcedure(procName);
 		if (p == null) {
@@ -377,8 +393,17 @@ public class LogDBScript implements Script {
 			return;
 		}
 
-		p.getGrants().remove(loginName);
-		procedureRegistry.updateProcedure(p);
+		if (type.equals("user")) {
+			p.getGrants().remove(target);
+			procedureRegistry.updateProcedure(p);
+		} else if (type.equals("group")) {
+			p.getGrantGroups().remove(target);
+			procedureRegistry.updateProcedure(p);
+		} else {
+			context.println("invalid type. use 'user' or 'group'");
+			return;
+		}
+
 		context.println("revoked");
 	}
 
