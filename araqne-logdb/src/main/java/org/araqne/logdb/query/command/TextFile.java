@@ -23,12 +23,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
-import org.araqne.log.api.Log;
 import org.araqne.log.api.DummyLogger;
+import org.araqne.log.api.Log;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.Logger;
@@ -53,7 +52,7 @@ public class TextFile extends DriverQueryCommand {
 	private int currentOffset;
 	private int pushCount;
 	private DummyLogger dummyLogger = new DummyLogger();
-	private Semaphore closeSignal;
+	private Thread runner;
 
 	public TextFile(String filePath, LogParser parser, int offset, int limit, String beginRegex, String endRegex,
 			String dateFormat, String datePattern, String charset) {
@@ -73,9 +72,9 @@ public class TextFile extends DriverQueryCommand {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		dummyLogger.setStatus(LoggerStatus.Stopped);
-		if (closeSignal != null) {
+		if (runner != null && !Thread.currentThread().equals(runner)) {
 			try {
-				closeSignal.acquire();
+				runner.join();
 			} catch (InterruptedException e) {
 			}
 		}
@@ -167,7 +166,6 @@ public class TextFile extends DriverQueryCommand {
 
 	@Override
 	public void run() {
-		closeSignal = new Semaphore(0);
 		status = Status.Running;
 
 		FileInputStream is = null;
@@ -194,7 +192,6 @@ public class TextFile extends DriverQueryCommand {
 		} finally {
 			IoHelper.close(br);
 			IoHelper.close(is);
-			closeSignal.release();
 		}
 	}
 
