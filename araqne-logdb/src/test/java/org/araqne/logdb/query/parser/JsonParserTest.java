@@ -22,15 +22,28 @@ public class JsonParserTest {
 	}
 
 	@Test
-	public void testJsonErr10200(){
+	public void testEscape() {
+		JsonParser parser = new JsonParser();
+		// \\""\"\ <- original string
+		// \\\\\"\"\\\"\\ <- json escape
+		// "\\\\\\\\\\"\\"\\\\\\"\\\\" <- quote escape
+		// json "{"test": "\\\\\\\\\\"\\"\\\\\\"\\\\"}" <- query string
+		// "json \"{\"test\": \"\\\\\\\\\\\\\\\\\\\\\"\\\\\"\\\\\\\\\\\\\"\\\\\\\\\"}\""
+		Json json = (Json) parser.parse(null, "json \"{\"test\": \"\\\\\\\\\\\\\\\\\\\\\"\\\\\"\\\\\\\\\\\\\"\\\\\\\\\"}\"");
+		assertEquals(1, json.getLogs().size());
+		assertEquals("\\\\\"\"\\\"\\", json.getLogs().get(0).get("test"));
+	}
+
+	@Test
+	public void testJsonErr10200() {
 		String query = "json";
 		JsonParser parser = new JsonParser();
-		
+
 		try {
 			parser.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -45,7 +58,7 @@ public class JsonParserTest {
 			parser.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -59,7 +72,7 @@ public class JsonParserTest {
 			parser.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -73,7 +86,7 @@ public class JsonParserTest {
 			parser.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -84,7 +97,7 @@ public class JsonParserTest {
 	}
 
 	@Test
-	public void testJsonErr10201(){
+	public void testJsonErr10201() {
 		String query = "json \"test\"\"\"";
 		JsonParser parser = new JsonParser();
 
@@ -92,7 +105,7 @@ public class JsonParserTest {
 			parser.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -102,9 +115,8 @@ public class JsonParserTest {
 		}
 	}
 
-
 	@Test
-	public void testJsonErr10202(){
+	public void testJsonErr10202() {
 		String query = "json \"{test}\"";
 		JsonParser parser = new JsonParser();
 
@@ -112,7 +124,7 @@ public class JsonParserTest {
 			parser.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}

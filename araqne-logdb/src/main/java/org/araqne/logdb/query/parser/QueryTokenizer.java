@@ -182,7 +182,6 @@ public class QueryTokenizer {
 	public static List<String> parseCommands(String query) {
 		List<String> l = new ArrayList<String>();
 		StringBuilder sb = new StringBuilder();
-		char before = 0;
 		boolean quoted = false;
 		boolean escape = false;
 
@@ -216,8 +215,7 @@ public class QueryTokenizer {
 					sb.append(c);
 			}
 
-			escape = c == '\\' && before != '\\';
-			before = c;
+			escape = (c == '\\' && !escape);
 		}
 
 		if (sb.length() > 0) {
@@ -320,7 +318,7 @@ public class QueryTokenizer {
 				if (c == '"') {
 					quote = !quote;
 					q.append(c);
-					sb.append(q.toString().replace("\\\\", "\\").replace("\\\"", "\""));
+					sb.append(q.toString().replace("\\\"", "\"").replace("\\\\", "\\"));
 				} else if (c == '\\') {
 					q.append(c);
 					q.append(text.charAt(i++));
