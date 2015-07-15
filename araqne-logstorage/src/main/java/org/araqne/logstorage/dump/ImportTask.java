@@ -10,6 +10,7 @@ public class ImportTask {
 	private long createdTime;
 	private long completedTime;
 	private boolean cancelled;
+	private Throwable failureException;
 	private Map<DumpTabletKey, ImportTabletTask> tabletTasks = new ConcurrentHashMap<DumpTabletKey, ImportTabletTask>();
 
 	public ImportTask(ImportRequest req) {
@@ -53,6 +54,16 @@ public class ImportTask {
 		this.cancelled = true;
 	}
 
+	public Throwable getFailureException() {
+		return failureException;
+	}
+
+	public void setFailureException(Throwable failureException) {
+		if (failureException != null)
+			setCancelled();
+		this.failureException = failureException;
+	}
+
 	public void setCompleted() {
 		this.completedTime = System.currentTimeMillis();
 	}
@@ -70,6 +81,7 @@ public class ImportTask {
 		c.createdTime = createdTime;
 		c.completedTime = completedTime;
 		c.cancelled = cancelled;
+		c.failureException = failureException;
 		c.tabletTasks = new ConcurrentHashMap<DumpTabletKey, ImportTabletTask>();
 		for (DumpTabletKey key : tabletTasks.keySet()) {
 			ImportTabletTask task = tabletTasks.get(key);

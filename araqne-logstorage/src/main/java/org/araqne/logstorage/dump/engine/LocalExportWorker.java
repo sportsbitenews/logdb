@@ -124,6 +124,7 @@ public class LocalExportWorker implements ExportWorker {
 			zos.closeEntry();
 
 		} catch (Throwable t) {
+			task.setFailureException(t);
 			slog.error("araqne logstorage: export failed", t);
 		} finally {
 			ensureClose(bos);
@@ -150,7 +151,8 @@ public class LocalExportWorker implements ExportWorker {
 
 	private void ensureClose(Closeable c) {
 		try {
-			c.close();
+			if (c != null)
+				c.close();
 		} catch (IOException e) {
 		}
 	}

@@ -90,8 +90,10 @@ public class LocalImportWorker implements ImportWorker {
 			}
 
 		} catch (IOException e) {
+			task.setFailureException(e);
 			slog.error("araqne logstorage: import failed", e);
 		} catch (InterruptedException e) {
+			task.setCancelled();
 		} finally {
 			if (zipFile != null) {
 				try {
