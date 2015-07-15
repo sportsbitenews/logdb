@@ -222,7 +222,7 @@ public class DefaultQuery implements Query {
 
 			cmd.setStatus(Status.Finalizing);
 			try {
-				cmd.onClose(reason);
+				cmd.tryClose(reason);
 			} catch (Throwable t) {
 				logger.error("araqne logdb: cannot close command " + cmd.getName(), t);
 			}

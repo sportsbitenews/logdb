@@ -126,7 +126,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 		for (QueryCommand cmd : commands) {
 			try {
 				slog.debug("araqne logdb: parse failed, closing command [{}]", cmd.toString());
-				cmd.onClose(QueryStopReason.CommandFailure);
+				cmd.tryClose(QueryStopReason.CommandFailure);
 			} catch (Throwable t2) {
 				slog.error("araqne logdb: cannot close command", t2);
 			}
