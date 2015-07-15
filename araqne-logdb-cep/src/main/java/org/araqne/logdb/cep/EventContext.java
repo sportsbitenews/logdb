@@ -208,7 +208,7 @@ public class EventContext implements Marshalable{
 
 	@SuppressWarnings("unchecked")
 	public static EventContext parse(Map<String, Object> m) {
-		EventKey key = EventKey.parse((byte []) m.get("key"));
+		EventKey key = EventKey.parse((String) m.get("key"));
 		Long created = (Long) m.get("created");
 		Long expireTime = (Long) m.get("expireTime");
 		Long timeoutTime = (Long) m.get("timeoutTime");

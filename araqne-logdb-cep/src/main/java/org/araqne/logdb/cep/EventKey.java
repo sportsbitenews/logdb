@@ -26,6 +26,8 @@ public class EventKey {
 
 	private final int hashCode;
 
+	public static String delimeter = "-^-";
+
 	public EventKey(String topic, String key) {
 		this.topic = topic;
 		this.key = key;
@@ -76,44 +78,24 @@ public class EventKey {
 		return "topic=" + topic + ", key=" + key + ", host=" + host;
 	}
 
-	public static byte[] marshal(EventKey key) {
+	public static String marshal(EventKey key) {
 		StringBuffer sb = new StringBuffer();
 		sb.append(key.getTopic());
-		sb.append(":");
+		sb.append(delimeter);
 		sb.append(key.getKey());
-		sb.append(":");
-		if(key.getHost() != null)
-			sb.append(key.getHost());
-		sb.append(":");
-
-		return sb.toString().getBytes();
+		return sb.toString();
 	}
 
-	public static EventKey parse(byte[] bs) {
+	public static EventKey parse(String key) {
+		int index =  key.indexOf(delimeter);
 
-		try {
-			String keys = new String(bs);
-
-			String[] fields = new String[3];
-
-			int e = -1;
-			int s = 0;
-
-			for(int i = 0; i < fields.length ; i ++) {
-				s = e +1;
-				e = keys.indexOf(":", s);
-				fields[i]  = keys.substring(s, e);
-			}
-
-			EventKey evt = new EventKey(fields[0], fields[1]);
-			if(fields[2] != null && !fields[2].trim().isEmpty())
-				evt.setHost(fields[2]);
-
-			return evt;
-		} catch (Exception e) {
+		if(index < 0 || index + delimeter.length() >  key.length())
 			return null;
-		}
-
+		
+		String topic = key.substring(0, index);
+		String demo = key.substring(index+delimeter.length());
+		
+		return new EventKey(topic, demo);
 	}
 
 }
