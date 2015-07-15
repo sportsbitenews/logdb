@@ -558,11 +558,12 @@ public class LogApiScript implements Script {
 			return;
 		}
 
+		boolean useOldInterval = args.length == 1;
 		Pattern pattern = WildcardMatcher.buildPattern(args[0]);
-		int interval = 5000;
+		int newInterval = 5000;
 		try {
 			if (args.length > 1) {
-				interval = Integer.parseInt(args[1]);
+				newInterval = Integer.parseInt(args[1]);
 			}
 		} catch (NumberFormatException e) {
 			// ignore
@@ -601,6 +602,10 @@ public class LogApiScript implements Script {
 					if (logger.isRunning()) {
 						context.println("logger [" + logger.getFullName() + "] is already started");
 					} else {
+						int interval = logger.getInterval();
+						if (interval == 0 || !useOldInterval)
+							interval = newInterval;
+						
 						logger.start(LoggerStartReason.USER_REQUEST, interval);
 						context.println("logger [" + logger.getFullName() + "] started with interval " + interval + "ms");
 					}
