@@ -71,15 +71,15 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 
-		LoggerConfigOption basePath = new MutableStringConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路","目录"),
+		LoggerConfigOption basePath = new MutableLocalDirectoryConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路","目录"),
 				t("Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路","要采集的日志文件所在目录"), true);
 
-		LoggerConfigOption fileNamePattern = new MutableStringConfigType("filename_pattern", 
+		LoggerConfigOption fileNamePattern = new MutableRegexConfigType("filename_pattern", 
 				t("Filename pattern", "파일이름 패턴","ファイルなパータン", "文件名模式"), 
 				t("Regular expression to match log file name","대상 로그 파일을 선택하는데 사용할 정규표현식", 
 						"対象ログファイルを選ぶとき使う正規表現", "用于筛选文件的正则表达式"), true);
 
-		LoggerConfigOption datePattern = new MutableStringConfigType("date_pattern",
+		LoggerConfigOption datePattern = new MutableRegexConfigType("date_pattern",
 				t("Date pattern", "날짜 정규표현식", "日付正規表現","日期正则表达式"), 
 				t("Regular expression to match date and time strings", "날짜 및 시각을 추출하는데 사용할 정규표현식", 
 						"日付と時刻を解析する正規表現","用于提取日期及时间的正则表达式"), false);
@@ -101,7 +101,7 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				t("Time zone, e.g. America/New_york ", "시간대, 예를 들면 KST 또는 Asia/Seoul",
 						"時間帯。例えばJSTまたはAsia/Tokyo","时区，例如 Asia/Beijing"), false);
 
-		LoggerConfigOption newlogRegex = new MutableStringConfigType("newlog_designator",
+		LoggerConfigOption newlogRegex = new MutableRegexConfigType("newlog_designator",
 				t("Regex for first line", "로그 시작 정규식", "ログ始め正規表現","日志起始正则表达式"), 
 				t("Regular expression to determine whether the line is start of new log. "
 						+ "if a line does not matches, the line will be merged to prev line.).",
@@ -109,7 +109,7 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 						"新しいログの始まりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)",
 						"用于识别日志起始位置的正则表达式(如没有匹配项，则合并到之前日志)"), false);
 
-		LoggerConfigOption newlogEndRegex = new MutableStringConfigType("newlog_end_designator", 
+		LoggerConfigOption newlogEndRegex = new MutableRegexConfigType("newlog_end_designator", 
 				t("Regex for last line", "로그 끝 정규식", "ログ終わり正規表現", "日志结束正则表达式"),
 				t("Regular expression to determine whether the line is end of new log."
 						+ "(if a line does not matches, the line will be merged to prev line.).",
