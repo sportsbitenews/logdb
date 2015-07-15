@@ -82,6 +82,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	private Jedis jedisForScan;
 
 	private Object jedisLock = new Object();
+	private Object jedisScanLock = new Object();
+	private Object theadLock = new Object();
 
 	Map<HostAndPort, Jedis> aliveJedisServers = new ConcurrentHashMap<HostAndPort, Jedis>();
 
@@ -108,11 +110,16 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			configReg.addListener(this);
 			subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
 			logClocks = new ConcurrentHashMap<String, EventClock>();
-			subscribeStopRequested = false;
+
+			synchronized (theadLock) {
+				theadLock.notify();
+				subscribeStopRequested = false;
+			}
+
 			jedisConnect();
 
-			if (jedis != null)
-				jedis.flushDB();
+			//if (jedis != null)
+			//	jedis.flushDB();
 
 		} catch (Exception e) {
 			slog.debug("araqne logdb cep: failed to start redis storage", e);
@@ -125,28 +132,29 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 					ExecutorService executor = Executors.newCachedThreadPool();// FixedThreadPool(10);
 
-					while (!subscribeStopRequested) {
-						for (HostAndPort server : getRegisterdServers()) {
-							Jedis jedisForSub = null;
-							try {
+					synchronized (theadLock) {
+						while (!subscribeStopRequested) {
+							for (HostAndPort server : getRegisterdServers()) {
+								Jedis jedisForSub = null;
+								try {
 
-								if (aliveJedisServers.keySet().contains(server))
-									continue;
+									if (aliveJedisServers.keySet().contains(server))
+										continue;
 
-								jedisForSub = new Jedis(server.getHost(), server.getPort());
-								Psub subscribeRegister = new Psub(server);
-								aliveJedisServers.put(server, jedisForSub);
+									jedisForSub = new Jedis(server.getHost(), server.getPort());
+									Psub subscribeRegister = new Psub(server);
+									aliveJedisServers.put(server, jedisForSub);
 
-								executor.submit(subscribeRegister);
-							} catch (Exception e) {
-								closeClient(jedisForSub);
-								aliveJedisServers.remove(server);
+									executor.submit(subscribeRegister);
+
+								} catch (Exception e) {
+									closeClient(jedisForSub);
+									aliveJedisServers.remove(server);
+								}
 							}
+							theadLock.wait(1000);
 						}
-
-						wait(1000);
 					}
-
 					executor.shutdownNow();
 				} catch (Exception e) {
 					slog.debug("araqne logdb cep: failed to start redis expire monitoring service", e);
@@ -162,7 +170,11 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		if (!redisMode())
 			return;
 
-		subscribeStopRequested = true;
+		synchronized (theadLock) {
+			theadLock.notify();
+			subscribeStopRequested = true;
+		}
+
 		if (eventContextService != null)
 			eventContextService.unregisterStorage(this);
 		configReg.removeListener(this);
@@ -205,7 +217,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		jedisPool = getPool();
 		jedis = jedisPool.getResource();
 		jedisForScan = jedisPool.getResource();
-		
+
 		String password = configReg.getConfig().getPassword();
 		if (password != null && !password.trim().isEmpty()) {
 			jedis.auth(password);
@@ -283,10 +295,9 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		Iterator<byte[]> bufferIterator = keyBuffer.iterator();;
 
 		byte[] cursor = ScanParams.SCAN_POINTER_START_BINARY;
-		
 
 		public RedisScanIterator(String topic) {
-			String filter = keyPrefix + topic + EventKey.delimeter+"*";
+			String filter = keyPrefix + topic + EventKey.delimeter + "*";
 			params.match(filter.getBytes());
 			params.count(bufferSize);
 
@@ -319,12 +330,12 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			RuntimeException lastException = null;
 			ScanResult<byte[]> result = null;
 
-		//	synchronized (jedisLock) {
+			synchronized (jedisScanLock) {
 				for (int i = 0; i < retryCnt; ++i) {
 					try {
 						if (jedisForScan == null)
 							jedisConnect();
-						
+
 						result = jedisForScan.scan(cursor, params);
 						break;
 					} catch (JedisConnectionException e) {
@@ -333,13 +344,13 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 						lastException = e;
 					}
 				}
-			//}
+			}
 
 			if (lastException != null)
 				throw lastException;
 
 			cursor = result.getCursorAsBytes();
-			
+
 			for (byte[] bkey : result.getResult())
 				keyBuffer.add(bkey);
 
@@ -376,7 +387,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		if (byteValue == null)
 			return null;
 		else
-			return parseContext(byteValue); 
+			return parseContext(byteValue);
 	}
 
 	private static String expireKey(EventKey key) {
@@ -386,27 +397,27 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	private static byte[] redisKey(EventKey key) {
 		return (keyPrefix + EventKey.marshal(key)).getBytes();
 	}
-	
+
 	private static EventKey parseKey(byte[] b) {
 		String key = new String(b);
-		return EventKey.parse(key.substring(keyPrefix.length()) );
+		return EventKey.parse(key.substring(keyPrefix.length()));
 	}
-	
+
 	private static EventKey parseExpireKey(String key) {
-		return EventKey.parse(key.substring(expireKeyPrefix.length()) );
+		return EventKey.parse(key.substring(expireKeyPrefix.length()));
 	}
-	
+
 	private static byte[] redisValue(EventContext ctx) {
-			ByteBuffer bb = ByteBuffer.allocate(EncodingRule.lengthOf(ctx.marshal()));
-			EncodingRule.encode(bb, ctx.marshal());
-			return bb.array();
+		ByteBuffer bb = ByteBuffer.allocate(EncodingRule.lengthOf(ctx.marshal()));
+		EncodingRule.encode(bb, ctx.marshal());
+		return bb.array();
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private static EventContext parseContext(byte[] b) {
-		 return EventContext.parse((Map<String, Object>) decode(b));
+		return EventContext.parse((Map<String, Object>) decode(b));
 	}
-	
+
 	@Override
 	public void removeContext(EventKey key, EventContext ctx, EventCause cause) {
 		Response<byte[]> oldValue = null;
@@ -457,7 +468,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	@Override
 	public void clearClocks() {
-		//TODO:관련 data(key-value)도 삭제하도록 변경
+		// TODO:관련 data(key-value)도 삭제하도록 변경
 		logClocks = new ConcurrentHashMap<String, EventClock>();
 	}
 
@@ -755,8 +766,6 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			} catch (Exception e) {
 			}
 	}
-
-
 
 	public static Object decode(byte[] bytes) {
 		return EncodingRule.decode(ByteBuffer.wrap(bytes));

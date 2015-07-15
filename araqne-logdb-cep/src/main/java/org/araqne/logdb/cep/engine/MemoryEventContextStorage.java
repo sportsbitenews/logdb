@@ -15,7 +15,6 @@
  */
 package org.araqne.logdb.cep.engine;
 
-import java.nio.channels.UnsupportedAddressTypeException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
