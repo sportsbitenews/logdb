@@ -96,7 +96,7 @@ public class Procedure implements Marshalable {
 
 	public void setGrants(Set<String> grants) {
 		if (grants == null)
-			this.grants = new HashSet<String>();
+			grants = new HashSet<String>();
 		this.grants = grants;
 	}
 
@@ -112,7 +112,7 @@ public class Procedure implements Marshalable {
 	 */
 	public void setGrantGroups(Set<String> grantGroups) {
 		if (grantGroups == null)
-			this.grantGroups = new HashSet<String>();
+			grantGroups = new HashSet<String>();
 		this.grantGroups = grantGroups;
 	}
 

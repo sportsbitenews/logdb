@@ -137,6 +137,6 @@ public class SecurityGroup implements Marshalable {
 
 	@Override
 	public String toString() {
-		return "name=" + name + ", accounts=" + accounts + ", tables=" + readableTables;
+		return "guid=" + guid + ", name=" + name + ", accounts=" + accounts + ", tables=" + readableTables;
 	}
 }
