@@ -59,13 +59,13 @@ public class TextFileParser extends AbstractQueryCommandParser {
 		String filePath = commandString.substring(r.next).trim();
 
 		try {
-			int offset = 0;
+			long offset = 0;
 			if (options.containsKey("offset"))
-				offset = Integer.valueOf(options.get("offset"));
+				offset = Long.valueOf(options.get("offset"));
 
-			int limit = 0;
+			long limit = 0;
 			if (options.containsKey("limit"))
-				limit = Integer.valueOf(options.get("limit"));
+				limit = Long.valueOf(options.get("limit"));
 			
 			String brex = null;
 			if (options.containsKey("brex"))

@@ -68,6 +68,7 @@ import org.araqne.logdb.query.parser.BoxPlotParser;
 import org.araqne.logdb.query.parser.BypassParser;
 import org.araqne.logdb.query.parser.CheckTableParser;
 import org.araqne.logdb.query.parser.ConfdbParser;
+import org.araqne.logdb.query.parser.CsvFileParser;
 import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;
 import org.araqne.logdb.query.parser.EvalcParser;
@@ -222,7 +223,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 				EvalcParser.class, SearchParser.class, StatsParser.class, FieldsParser.class, SortParser.class,
 				TimechartParser.class, RenameParser.class, RexParser.class, JsonParser.class, SignatureParser.class,
 				LimitParser.class, SetParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class,
-				ExplodeParser.class, ParseJsonParser.class, ExecParser.class, ParseMapParser.class, ParseXmlParser.class);
+				ExplodeParser.class, ParseJsonParser.class, ExecParser.class, ParseMapParser.class, ParseXmlParser.class, CsvFileParser.class);
 
 		List<QueryCommandParser> parsers = new ArrayList<QueryCommandParser>();
 		for (Class<? extends AbstractQueryCommandParser> clazz : parserClazzes) {

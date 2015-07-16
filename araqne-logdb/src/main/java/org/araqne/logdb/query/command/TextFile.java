@@ -42,19 +42,19 @@ public class TextFile extends DriverQueryCommand {
 	private final org.slf4j.Logger logger = LoggerFactory.getLogger(TextFile.class.getName());
 	private String filePath;
 	private LogParser parser;
-	private int offset;
-	private int limit;
+	private long offset;
+	private long limit;
 	private String beginRegex;
 	private String endRegex;
 	private String dateFormat;
 	private String datePattern;
 	private String charset;
-	private int currentOffset;
-	private int pushCount;
+	private long currentOffset;
+	private long pushCount;
 	private DummyLogger dummyLogger = new DummyLogger();
 	private Thread runner;
 
-	public TextFile(String filePath, LogParser parser, int offset, int limit, String beginRegex, String endRegex,
+	public TextFile(String filePath, LogParser parser, long offset, long limit, String beginRegex, String endRegex,
 			String dateFormat, String datePattern, String charset) {
 		this.filePath = filePath;
 		this.parser = parser;
