@@ -20,12 +20,12 @@ public class ConfigWatchLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
 	}
 
 	@Override
@@ -34,6 +34,8 @@ public class ConfigWatchLoggerFactory extends AbstractLoggerFactory {
 			return "설정 파일 변경 탐지";
 		if (locale.equals(Locale.CHINESE))
 			return "配置文件监控";
+		if (locale.equals(Locale.JAPANESE))
+			return "設定ファイル変更探知";
 		return "Config File Watcher";
 	}
 
@@ -43,13 +45,15 @@ public class ConfigWatchLoggerFactory extends AbstractLoggerFactory {
 			return "설정 파일이 변경될 때마다 로그를 발생합니다.";
 		if (locale.equals(Locale.CHINESE))
 			return "检测配置文件变化，并采集日志。";
+		if (locale.equals(Locale.JAPANESE))
+			return "設定ファイルが変更される時に、ログが発生します。";
 		return "Detect config file changes and write logs.";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption basePath = new MutableStringConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路", "目录"), t(
-				"Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true);
+		LoggerConfigOption basePath = new MutableStringConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路", "目录"),
+				t("Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true);
 
 		LoggerConfigOption fileNamePattern = new MutableStringConfigType("filename_pattern", t("Filename pattern", "파일이름 패턴",
 				"ファイルなパータン", "文件名模式"), t("Regular expression to match log file name", "대상 로그 파일을 선택하는데 사용할 정규표현식",

@@ -38,8 +38,6 @@ import org.araqne.log.api.SimpleLog;
 public class RemoteJmxLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(RemoteJmxLogger.class);
 
-	private String host;
-	private int port;
 	private String user;
 	private String password;
 	private JMXServiceURL url;
@@ -52,16 +50,7 @@ public class RemoteJmxLogger extends AbstractLogger implements Reconfigurable {
 	}
 
 	private void init(Map<String, String> c) throws IOException {
-		this.host = c.get("host");
-		this.port = Integer.parseInt(c.get("port"));
-		this.user = c.get("user");
-		this.password = c.get("password");
-		try {
-			this.objName = new ObjectName(c.get("obj_name"));
-		} catch (Exception e) {
-			throw new IOException("invalid jmx object name: " + c.get("obj_name"), e);
-		}
-
+		String[] attrNames = null;
 		String s = c.get("attr_names");
 		if (s != null) {
 			ArrayList<String> l = new ArrayList<String>();
@@ -73,7 +62,18 @@ public class RemoteJmxLogger extends AbstractLogger implements Reconfigurable {
 			attrNames = l.toArray(new String[0]);
 		}
 
-		this.url = JmxHelper.getURL(host, port);
+		ObjectName objName;
+		try {
+			objName = new ObjectName(c.get("obj_name"));
+		} catch (Exception e) {
+			throw new IOException("invalid jmx object name: " + c.get("obj_name"), e);
+		}
+
+		this.url = JmxHelper.getURL(c.get("host"), Integer.parseInt(c.get("port")));
+		this.user = c.get("user");
+		this.password = c.get("password");
+		this.attrNames = attrNames;
+		this.objName = objName;
 	}
 
 	@Override

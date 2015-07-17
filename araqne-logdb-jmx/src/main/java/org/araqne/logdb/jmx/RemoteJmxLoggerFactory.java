@@ -46,12 +46,14 @@ public class RemoteJmxLoggerFactory extends AbstractLoggerFactory {
 			return "원격 JMX";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "远程JMX";
+		if (locale != null && locale.equals(Locale.JAPANESE))
+			return "リモートJMX";
 		return "Remote JMX";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
 	}
 
 	@Override
@@ -60,36 +62,39 @@ public class RemoteJmxLoggerFactory extends AbstractLoggerFactory {
 			return "RMI 통신을 통해 원격지의 JMX 에이전트를 쿼리합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "通过RMI通讯向远程远程JMX代理发送查询。";
+		if (locale != null && locale.equals(Locale.JAPANESE))
+			return "RMI通信でリモートJMXエージェントをクエリします。";
 		return "Query JMX Agent using RMI protocol";
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption host = new MutableStringConfigType("host", t("Host address", "호스트 주소", "主机地址"), t(
-				"Domain name or ip address", "도메인 주소 또는 IP 주소", "域名或IP地址。"), true);
-		LoggerConfigOption port = new MutableIntegerConfigType("port", t("Port", "포트", "端口"), t("RMI port number", "RMI 포트 주소",
-				"RMI端口"), true);
-		LoggerConfigOption user = new MutableStringConfigType("user", t("User", "사용자 계정", "账户"), t("RMI account", "RMI 접속 계정",
-				"连接RMI账户"), true);
-		LoggerConfigOption password = new MutableStringConfigType("password", t("Password", "암호", "密码"), t("RMI password",
-				"RMI 접속 암호", "连接RMI密码"), true);
-		LoggerConfigOption objName = new MutableStringConfigType("obj_name", t("Object Name", "개체 이름", "对象名称"), t(
-				"JMX object name", "JMX 개체 이름", "JMX对象名称"), true);
-		LoggerConfigOption attrNames = new MutableStringConfigType("attr_names", t("Attribute Names", "속성 이름 목록", "属性名称列表"), t(
-				"Comma separated attribute names, all attributes by default", "쉼표로 구분되는 속성 이름 목록, 미설정 시 전체 속성 수집",
-				"以逗号分隔的属性名称列表, 未设置时采集全部属性"), false);
+		LoggerConfigOption host = new MutableStringConfigType("host", t("Host address", "호스트 주소", "ホストアドレス", "主机地址"), t(
+				"Domain name or ip address", "도메인 주소 또는 IP 주소", "ドメインまたはIPアドレス", "域名或IP地址。"), true);
+		LoggerConfigOption port = new MutableIntegerConfigType("port", t("Port", "포트", "ポート", "端口"), t("RMI port number",
+				"RMI 포트 주소", "RMIポート番号", "RMI端口"), true);
+		LoggerConfigOption user = new MutableStringConfigType("user", t("User", "사용자 계정", "アカウント", "账户"), t("RMI account",
+				"RMI 접속 계정", "RMIアカウント", "连接RMI账户"), true);
+		LoggerConfigOption password = new MutableStringConfigType("password", t("Password", "암호", "パスワード", "密码"), t(
+				"RMI password", "RMI 접속 암호", "RMIパスワード", "连接RMI密码"), true);
+		LoggerConfigOption objName = new MutableStringConfigType("obj_name", t("Object Name", "개체 이름", "オブジェクト名", "对象名称"), t(
+				"JMX object name", "JMX 개체 이름", "JMXオブジェクト名", "JMX对象名称"), true);
+		LoggerConfigOption attrNames = new MutableStringConfigType("attr_names", t("Attribute Names", "속성 이름 목록", "属性名リスト",
+				"属性名称列表"), t("Comma separated attribute names, all attributes by default", "쉼표로 구분되는 속성 이름 목록, 미설정 시 전체 속성 수집",
+				"コンマで区別される属性名リスト。未設定の場合、全体を収集。", "以逗号分隔的属性名称列表, 未设置时采集全部属性"), false);
 		return Arrays.asList(host, port, user, password, objName, attrNames);
 	}
 
-	private Map<Locale, String> t(String en, String ko, String cn) {
+	private Map<Locale, String> t(String en, String ko, String jp, String cn) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, en);
 		m.put(Locale.KOREAN, ko);
+		m.put(Locale.JAPANESE, jp);
 		m.put(Locale.CHINESE, cn);
 		return m;
 	}
