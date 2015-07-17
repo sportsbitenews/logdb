@@ -2114,6 +2114,125 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * 프로시저 목록을 조회합니다.
+	 * 
+	 * @since 1.1.3
+	 */
+	@SuppressWarnings("unchecked")
+	public List<ProcedureInfo> listProcedures() throws IOException {
+		Message resp = rpc("com.logpresso.core.msgbus.ProcedurePlugin.getProcedures");
+
+		List<Object> l = (List<Object>) resp.get("procedures");
+		List<ProcedureInfo> procedures = new ArrayList<ProcedureInfo>();
+		for (Object o : l) {
+			procedures.add(parseProcedure((Map<String, Object>) o));
+		}
+
+		return procedures;
+
+	}
+
+	@SuppressWarnings("unchecked")
+	private ProcedureInfo parseProcedure(Map<String, Object> m) {
+		List<ProcedureParameterInfo> parameters = new ArrayList<ProcedureParameterInfo>();
+		for (Map<String, Object> o : (List<Map<String, Object>>) m.get("parameters")) {
+			ProcedureParameterInfo pp = new ProcedureParameterInfo();
+
+			pp.setKey((String) o.get("key"));
+			pp.setType((String) o.get("type"));
+			pp.setName((String) o.get("name"));
+			pp.setDescription((String) o.get("description"));
+
+			parameters.add(pp);
+		}
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+		ProcedureInfo p = new ProcedureInfo();
+		p.setName((String) m.get("name"));
+		p.setDescription((String) m.get("description"));
+		p.setQueryString((String) m.get("query_string"));
+		p.setParameters(parameters);
+		p.setOwner((String) m.get("owner"));
+		p.setGrantLogins(new HashSet<String>((List<String>) m.get("grants")));
+		p.setGrantGroups(new HashSet<String>((List<String>) m.get("grant_groups")));
+		p.setCreated(df.parse((String) m.get("created"), new ParsePosition(0)));
+		p.setModified(df.parse((String) m.get("modified"), new ParsePosition(0)));
+		return p;
+	}
+
+	/**
+	 * 프로시저를 생성합니다. 프로시저 이름이 중복되는 경우 예외가 발생합니다.
+	 * 
+	 * @since 1.1.3
+	 */
+	public void createProcedure(ProcedureInfo procedure) throws IOException {
+		Map<String, Object> params = buildProcedureRequest(procedure);
+		rpc("com.logpresso.core.msgbus.ProcedurePlugin.createProcedure", params);
+	}
+
+	/**
+	 * 프로시저를 수정합니다. 프로시저가 존재하지 않는 경우 예외가 발생합니다. 현재 세션이 관리자나 프로시저 소유자가 아닌 경우 예외가
+	 * 발생합니다.
+	 * 
+	 * @since 1.1.3
+	 */
+	public void updateProcedure(ProcedureInfo procedure) throws IOException {
+		Map<String, Object> params = buildProcedureRequest(procedure);
+		rpc("com.logpresso.core.msgbus.ProcedurePlugin.updateProcedure", params);
+	}
+
+	private Map<String, Object> buildProcedureRequest(ProcedureInfo p) {
+		if (p.getName() == null)
+			throw new IllegalArgumentException("procedure name should not be null");
+
+		if (p.getQueryString() == null)
+			throw new IllegalArgumentException("procedure query string should not be null");
+
+		if (p.getParameters() == null)
+			throw new IllegalArgumentException("procedure parameter list should not be null");
+
+		List<Object> parameters = new ArrayList<Object>();
+		for (ProcedureParameterInfo pp : p.getParameters()) {
+			if (pp.getKey() == null)
+				throw new IllegalArgumentException("procedure parameter key should be not null");
+
+			if (pp.getType() == null)
+				throw new IllegalArgumentException("procedure parameter type should be not null");
+
+			Map<String, Object> o = new HashMap<String, Object>();
+			o.put("key", pp.getKey());
+			o.put("type", pp.getType());
+			o.put("name", pp.getName());
+			o.put("description", pp.getDescription());
+			parameters.add(o);
+		}
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("name", p.getName());
+		m.put("description", p.getDescription());
+		m.put("query_string", p.getQueryString());
+		m.put("parameters", parameters);
+		m.put("grants", p.getGrantLogins());
+		m.put("grant_groups", p.getGrantGroups());
+		return m;
+	}
+
+	/**
+	 * 프로시저를 삭제합니다. 존재하지 않는 프로시저를 삭제하려고 시도하는 경우 예외가 발생합니다. 현재 세션이 관리자나 프로시저 소유자가
+	 * 아닌 경우 예외가 발생합니다.
+	 * 
+	 * @param name
+	 *            프로시저 이름
+	 * @since 1.1.3
+	 */
+	public void removeProcedure(String name) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", name);
+
+		rpc("com.logpresso.core.msgbus.ProcedurePlugin.removeProcedure", params);
+	}
+
+	/**
 	 * 주어진 쿼리 문자열을 사용하여 쿼리를 생성합니다. 권한이 없거나 문법이 틀린 경우 예외가 발생합니다.
 	 * 
 	 * @param queryString
@@ -2381,8 +2500,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	public class Flusher implements Runnable {
 		Thread th;
 
-		ConcurrentHashMap<QueuedRows, QueuedRows> wCalls =
-				new ConcurrentHashMap<QueuedRows, QueuedRows>();
+		ConcurrentHashMap<QueuedRows, QueuedRows> wCalls = new ConcurrentHashMap<QueuedRows, QueuedRows>();
 
 		public void start() {
 			synchronized (this) {
@@ -2421,8 +2539,7 @@ public class LogDbClient implements TrapListener, Closeable {
 				try {
 					long started = System.nanoTime();
 					flush();
-					long nextWaitMillis =
-							indexFlushInterval - (System.nanoTime() - started) / 1000000L;
+					long nextWaitMillis = indexFlushInterval - (System.nanoTime() - started) / 1000000L;
 					if (wCalls.size() == 0 && nextWaitMillis > 0)
 						synchronized (this) {
 							this.wait(nextWaitMillis);
@@ -2695,7 +2812,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		if (o == null)
 			throw new IllegalArgumentException(name + " parameter should be not null");
 	}
-	
+
 	private Message rpc(String method, int timeout) throws IOException, TimeoutException {
 		if (session == null)
 			throw new IOException("not connected yet, use connect()");
@@ -2715,7 +2832,7 @@ public class LogDbClient implements TrapListener, Closeable {
 			throw new IOException("not connected yet, use connect()");
 		return session.rpc(method, params, timeout);
 	}
-	
+
 	private Message rpc(String method, Map<String, Object> params) throws IOException {
 		try {
 			return rpc(method, params, 0);
