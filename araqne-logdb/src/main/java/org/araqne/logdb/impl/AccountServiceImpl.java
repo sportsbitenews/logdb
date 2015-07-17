@@ -463,7 +463,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		Config c = db.findOne(Account.class, Predicates.field("login_name", loginName));
 		if (c != null)
 			c.remove();
-		
+
 		// delete from security groups
 		for (SecurityGroup group : securityGroups.values()) {
 			if (group.getAccounts().contains(loginName)) {
@@ -504,6 +504,8 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			throw new IllegalStateException("no permission");
 		}
 
+		verifySecurityGroup(group);
+
 		synchronized (securityGroups) {
 
 			for (SecurityGroup o : securityGroups.values()) {
@@ -534,6 +536,8 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 
 	@Override
 	public void updateSecurityGroup(Session session, SecurityGroup group) {
+		verifySecurityGroup(group);
+		
 		SecurityGroup old = null;
 		synchronized (securityGroups) {
 			old = securityGroups.get(group.getGuid());
@@ -567,6 +571,26 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			} catch (Throwable t) {
 				logger.warn("araqne logdb: account listener should not throw any exception", t);
 			}
+		}
+	}
+
+	private void verifySecurityGroup(SecurityGroup group) {
+		if (group.getName() == null)
+			throw new IllegalArgumentException("security group name should not be null");
+		
+		if (group.getGuid() == null)
+			throw new IllegalArgumentException("security group guid should not be null");
+		
+		// check if table exists
+		for (String tableName : group.getReadableTables()) {
+			if (!tableRegistry.exists(tableName))
+				throw new IllegalStateException("table not found: " + tableName);
+		}
+
+		// check if account exists
+		for (String loginName : group.getAccounts()) {
+			if (localAccounts.get(loginName) == null)
+				throw new IllegalStateException("account not found: " + loginName);
 		}
 	}
 

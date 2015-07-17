@@ -602,6 +602,113 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * 보안 그룹 목록을 조회합니다. 보안 그룹에 속한 계정 목록과 테이블 권한 정보는 조회되지 않습니다.
+	 * 
+	 * @since 1.1.3
+	 */
+	@SuppressWarnings("unchecked")
+	public List<SecurityGroupInfo> listSecurityGroups() throws IOException {
+		List<SecurityGroupInfo> groups = new ArrayList<SecurityGroupInfo>();
+		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.listSecurityGroups");
+
+		List<Object> l = (List<Object>) resp.get("security_groups");
+		for (Object o : l) {
+			groups.add(parseSecurityGroup((Map<String, Object>) o));
+		}
+
+		return groups;
+	}
+
+	/**
+	 * 보안 그룹을 조회합니다. 계정 목록과 테이블 권한 정보를 포함합니다.
+	 * 
+	 * @param guid
+	 *            보안그룹 식별자
+	 */
+	@SuppressWarnings("unchecked")
+	public SecurityGroupInfo getSecurityGroup(String guid) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("guid", guid);
+		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.getSecurityGroup", params);
+		Map<String, Object> o = (Map<String, Object>) resp.get("group");
+		if (o == null)
+			return null;
+
+		return parseSecurityGroup(o);
+	}
+
+	/**
+	 * 새 보안 그룹을 생성합니다.
+	 * 
+	 * @throws IOException
+	 * 
+	 * @since 1.1.3
+	 */
+	public void createSecurityGroup(SecurityGroupInfo group) throws IOException {
+		Map<String, Object> params = buildSecurityGroupRequest(group);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.createSecurityGroup", params);
+	}
+
+	/**
+	 * 보안 그룹 설정을 수정합니다.
+	 * 
+	 * @since 1.1.3
+	 */
+	public void updateSecurityGroup(SecurityGroupInfo group) throws IOException {
+		Map<String, Object> params = buildSecurityGroupRequest(group);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.updateSecurityGroup", params);
+	}
+
+	private Map<String, Object> buildSecurityGroupRequest(SecurityGroupInfo group) {
+		checkNotNull("name", group.getName());
+		checkNotNull("guid", group.getGuid());
+		
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("guid", group.getGuid());
+		m.put("name", group.getName());
+		m.put("description", group.getDescription());
+		m.put("accounts", group.getAccounts());
+		m.put("table_names", group.getReadableTables());
+		return m;
+	}
+
+	/**
+	 * 보안 그룹을 삭제합니다.
+	 * 
+	 * @param guid
+	 *            보안그룹 식별자
+	 * @since 1.1.3
+	 */
+	public void removeSecurityGroup(String guid) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("group_guids", Arrays.asList(guid));
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.removeSecurityGroups", params);
+	}
+
+	@SuppressWarnings("unchecked")
+	private SecurityGroupInfo parseSecurityGroup(Map<String, Object> o) {
+		List<String> accounts = (List<String>) o.get("accounts");
+		List<String> readableTables = (List<String>) o.get("table_names");
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+		SecurityGroupInfo g = new SecurityGroupInfo();
+		g.setGuid((String) o.get("guid"));
+		g.setName((String) o.get("name"));
+		g.setDescription((String) o.get("description"));
+
+		if (accounts != null)
+			g.setAccounts(new HashSet<String>(accounts));
+
+		if (readableTables != null)
+			g.setReadableTables(new HashSet<String>(readableTables));
+
+		g.setCreated(df.parse((String) o.get("created"), new ParsePosition(0)));
+		g.setUpdated(df.parse((String) o.get("updated"), new ParsePosition(0)));
+
+		return g;
+	}
+
+	/**
 	 * 인덱스 토크나이저 유형 목록을 조회합니다. 일반적으로 createIndex() 할 때 사용자에게 설정 가능한 인덱스 토크나이저
 	 * 목록을 보여주기 위해서 호출합니다. 관리자 권한이 없는 경우 예외가 발생합니다.
 	 * 
@@ -2182,22 +2289,14 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	private Map<String, Object> buildProcedureRequest(ProcedureInfo p) {
-		if (p.getName() == null)
-			throw new IllegalArgumentException("procedure name should not be null");
-
-		if (p.getQueryString() == null)
-			throw new IllegalArgumentException("procedure query string should not be null");
-
-		if (p.getParameters() == null)
-			throw new IllegalArgumentException("procedure parameter list should not be null");
+		checkNotNull("name", p.getName());
+		checkNotNull("query string", p.getQueryString());
+		checkNotNull("procedure paramter list", p.getParameters());
 
 		List<Object> parameters = new ArrayList<Object>();
 		for (ProcedureParameterInfo pp : p.getParameters()) {
-			if (pp.getKey() == null)
-				throw new IllegalArgumentException("procedure parameter key should be not null");
-
-			if (pp.getType() == null)
-				throw new IllegalArgumentException("procedure parameter type should be not null");
+			checkNotNull("procedure paramter key", pp.getKey());
+			checkNotNull("procedure paramter type", pp.getType());
 
 			Map<String, Object> o = new HashMap<String, Object>();
 			o.put("key", pp.getKey());

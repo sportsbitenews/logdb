@@ -362,12 +362,22 @@ public class ManagementPlugin {
 	/**
 	 * @since 2.6.34
 	 */
+	@SuppressWarnings("unchecked")
 	@MsgbusMethod
 	public void createSecurityGroup(Request req, Response resp) {
 		org.araqne.logdb.Session session = ensureAdminSession(req);
 		SecurityGroup group = new SecurityGroup();
+		if (req.get("guid") != null)
+			group.setGuid(req.getString("guid"));
+
 		group.setName(req.getString("name", true));
 		group.setDescription(req.getString("description"));
+
+		if (req.get("table_names") != null)
+			group.setReadableTables(new HashSet<String>((List<String>) req.get("table_names")));
+
+		if (req.get("accounts") != null)
+			group.setAccounts(new HashSet<String>((List<String>) req.get("accounts")));
 
 		try {
 			accountService.createSecurityGroup(session, group);
