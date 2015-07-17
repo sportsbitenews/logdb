@@ -40,6 +40,7 @@ public class SecurityGroup implements Marshalable {
 	@FieldOption(nullable = false)
 	private String name;
 
+	@FieldOption(nullable = true)
 	private String description;
 
 	@CollectionTypeHint(String.class)
