@@ -367,7 +367,7 @@ public class ManagementPlugin {
 		org.araqne.logdb.Session session = ensureAdminSession(req);
 		SecurityGroup group = new SecurityGroup();
 		group.setName(req.getString("name", true));
-		group.setDescription(req.getString("description", true));
+		group.setDescription(req.getString("description"));
 
 		try {
 			accountService.createSecurityGroup(session, group);
