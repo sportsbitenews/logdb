@@ -62,6 +62,8 @@ public class LocalImportWorker implements ImportWorker {
 
 	@Override
 	public void run() {
+		slog.info("araqne logstorage: start import job [{}]", req.getGuid());
+
 		ZipFile zipFile = null;
 		try {
 			DumpManifest manifest = dumpService.readManifest("local", req.getParams());
@@ -91,7 +93,7 @@ public class LocalImportWorker implements ImportWorker {
 
 		} catch (IOException e) {
 			task.setFailureException(e);
-			slog.error("araqne logstorage: import failed", e);
+			slog.error("araqne logstorage: import job [" + req.getGuid() + "] failed", e);
 		} catch (InterruptedException e) {
 			task.setCancelled();
 		} finally {
@@ -102,7 +104,7 @@ public class LocalImportWorker implements ImportWorker {
 				}
 			}
 
-			slog.info("araqne logstorage: import completed");
+			slog.info("araqne logstorage: import job [{}] completed", req.getGuid());
 		}
 	}
 
@@ -117,6 +119,9 @@ public class LocalImportWorker implements ImportWorker {
 			is = zipFile.getInputStream(zipEntry);
 
 			while (true) {
+				if (task.isCancelled())
+					break;
+
 				byte[] blen = new byte[4];
 				int readBytes = Io.ensureRead(is, blen, 4);
 				if (readBytes <= 0)

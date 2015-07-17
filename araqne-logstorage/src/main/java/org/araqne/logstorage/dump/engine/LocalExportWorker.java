@@ -125,12 +125,12 @@ public class LocalExportWorker implements ExportWorker {
 
 		} catch (Throwable t) {
 			task.setFailureException(t);
-			slog.error("araqne logstorage: export failed", t);
+			slog.error("araqne logstorage: export job [" + req.getGuid() + "] failed", t);
 		} finally {
 			ensureClose(bos);
 			ensureClose(zos);
 			ensureClose(fos);
-			slog.info("araqne logstorage: export completed");
+			slog.info("araqne logstorage: export job [{}] completed", req.getGuid());
 
 			if (task.isCancelled()) {
 				path.delete();
