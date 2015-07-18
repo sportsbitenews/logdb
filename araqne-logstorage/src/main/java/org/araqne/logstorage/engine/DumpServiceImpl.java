@@ -1,3 +1,18 @@
+/**
+ * Copyright 2015 Eediom Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.araqne.logstorage.engine;
 
 import java.io.IOException;
@@ -9,6 +24,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -22,6 +38,7 @@ import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogWriterStatus;
 import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.dump.DumpDriver;
+import org.araqne.logstorage.dump.DumpEventListener;
 import org.araqne.logstorage.dump.DumpManifest;
 import org.araqne.logstorage.dump.DumpService;
 import org.araqne.logstorage.dump.ExportRequest;
@@ -52,6 +69,7 @@ public class DumpServiceImpl implements DumpService {
 	private ConcurrentHashMap<String, DumpDriver> drivers = new ConcurrentHashMap<String, DumpDriver>();
 	private ConcurrentHashMap<String, ExportWorker> exportWorkers = new ConcurrentHashMap<String, ExportWorker>();
 	private ConcurrentHashMap<String, ImportWorker> importWorkers = new ConcurrentHashMap<String, ImportWorker>();
+	private CopyOnWriteArraySet<DumpEventListener> listeners = new CopyOnWriteArraySet<DumpEventListener>();
 
 	@Invalidate
 	public void stop() {
@@ -200,6 +218,16 @@ public class DumpServiceImpl implements DumpService {
 		return tasks;
 	}
 
+	@Override
+	public void addListener(DumpEventListener listener) {
+		listeners.add(listener);
+	}
+
+	@Override
+	public void removeListener(DumpEventListener listener) {
+		listeners.remove(listener);
+	}
+
 	private int getMemoryCount(List<LogWriterStatus> memoryBuffers, String tableName, Date day) {
 		for (LogWriterStatus buffer : memoryBuffers)
 			if (buffer.getTableName().equals(tableName) && buffer.getDay().equals(day))
@@ -269,6 +297,15 @@ public class DumpServiceImpl implements DumpService {
 		@Override
 		public void run() {
 			ImportTask task = worker.getTask();
+			
+			for (DumpEventListener listener : listeners) {
+				try {
+					listener.onBeginImport(task);
+				} catch (Throwable t) {
+					slog.warn("araqne logstorage: dump event listener should not throw any exception", t);
+				}
+			}
+			
 			try {
 				worker.run();
 			} catch (Throwable t) {
@@ -277,6 +314,14 @@ public class DumpServiceImpl implements DumpService {
 			} finally {
 				task.setCompleted();
 				importWorkers.remove(task.getGuid());
+
+				for (DumpEventListener listener : listeners) {
+					try {
+						listener.onCompleteImport(task);
+					} catch (Throwable t) {
+						slog.warn("araqne logstorage: dump event listener should not throw any exception", t);
+					}
+				}
 			}
 		}
 	}
@@ -292,6 +337,15 @@ public class DumpServiceImpl implements DumpService {
 		@Override
 		public void run() {
 			ExportTask task = worker.getTask();
+			
+			for (DumpEventListener listener : listeners) {
+				try {
+					listener.onBeginExport(task);
+				} catch (Throwable t) {
+					slog.warn("araqne logstorage: dump event listener should not throw any exception", t);
+				}
+			}
+			
 			try {
 				worker.run();
 			} catch (Throwable t) {
@@ -300,6 +354,14 @@ public class DumpServiceImpl implements DumpService {
 			} finally {
 				task.setCompleted();
 				exportWorkers.remove(task.getGuid());
+				
+				for (DumpEventListener listener : listeners) {
+					try {
+						listener.onCompleteExport(task);
+					} catch (Throwable t) {
+						slog.warn("araqne logstorage: dump event listener should not throw any exception", t);
+					}
+				}
 			}
 		}
 	}
