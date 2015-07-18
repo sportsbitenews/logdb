@@ -80,7 +80,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 		int offsetCnt = 0; //
 		try {
 			for (String q : QueryTokenizer.parseCommands(queryString)) {
-				q = q.trim();
+				q = q.trim().replaceAll("\n", " ");
 				StringTokenizer tok = new StringTokenizer(q, " \n\t");
 				String commandType = tok.nextToken();
 				QueryCommandParser parser = commandParsers.get(commandType);
