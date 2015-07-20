@@ -21,23 +21,15 @@ import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -91,6 +83,7 @@ import org.slf4j.LoggerFactory;
  * 
  */
 public class LogDbClient implements TrapListener, Closeable {
+	private static final int MAX_THROTTLE_PERMIT = 100000;
 	private Logger logger = LoggerFactory.getLogger(LogDbClient.class);
 	private LogDbTransport transport;
 	private LogDbSession session;
@@ -103,9 +96,10 @@ public class LogDbClient implements TrapListener, Closeable {
 	private AtomicReference<Flusher> flusher = new AtomicReference<Flusher>(null);
 
 	private StreamingResultEncoder streamingEncoder;
-	private int counter = 0;
+	private Semaphore inputThrottler = new Semaphore(MAX_THROTTLE_PERMIT);
+//	private int counter = 0;
 
-	private int insertBatchSize = 5000;
+	private int insertBatchSize = 3500;
 
 	// milliseconds
 	private int indexFlushInterval = 1000;
@@ -2543,16 +2537,31 @@ public class LogDbClient implements TrapListener, Closeable {
 				flusher.get().start();
 			}
 		}
+		
+		boolean acResult = inputThrottler.tryAcquire(rows.size());
+		if (!acResult) {
+			flusher.get().signal();
+			while (true) {
+				try {
+					inputThrottler.acquire(rows.size());
+					break;
+				} catch (InterruptedException e) {
+					if (isClosed())
+						break;
+				}
+			}
+		}
+
 		synchronized (flushBuffers) {
 			if (!flushBuffers.containsKey(tableName))
 				flushBuffers.put(tableName, new ArrayList<QueuedRows>());
 			QueuedRows qr = new QueuedRows(rows, flusher.get());
 			flushBuffers.get(tableName).add(qr);
 			ret = qr;
-			counter += rows.size();
+//			counter += rows.size();
 		}
 		// count over -> flush
-		if (counter >= insertBatchSize) {
+		if (inputThrottler.availablePermits() <= MAX_THROTTLE_PERMIT * 0.8) {
 			flusher.get().signal();
 		}
 		return ret;
@@ -2578,6 +2587,21 @@ public class LogDbClient implements TrapListener, Closeable {
 				flusher.get().start();
 			}
 		}
+
+		boolean acResult = inputThrottler.tryAcquire();
+		if (!acResult) {
+			flusher.get().signal();
+			while (true) {
+				try {
+					inputThrottler.acquire();
+					break;
+				} catch (InterruptedException e) {
+					if (isClosed())
+						break;
+				}
+			}
+		}
+
 		synchronized (flushBuffers) {
 			if (!flushBuffers.containsKey(tableName))
 				flushBuffers.put(tableName, new ArrayList<QueuedRows>());
@@ -2585,11 +2609,10 @@ public class LogDbClient implements TrapListener, Closeable {
 			QueuedRows qr = new QueuedRows(Arrays.asList(row), flusher.get());
 			flushBuffers.get(tableName).add(qr);
 			ret = qr;
-			counter++;
 		}
 
 		// count over -> flush
-		if (counter >= insertBatchSize) {
+		if (inputThrottler.availablePermits() != MAX_THROTTLE_PERMIT) {
 			flusher.get().signal();
 		}
 
@@ -2637,19 +2660,30 @@ public class LogDbClient implements TrapListener, Closeable {
 			while (running) {
 				try {
 					long started = System.nanoTime();
-					flush();
+					flushInternal();
 					long nextWaitMillis = indexFlushInterval - (System.nanoTime() - started) / 1000000L;
-					if (wCalls.size() == 0 && nextWaitMillis > 0)
+					if (inputThrottler.availablePermits() == MAX_THROTTLE_PERMIT && wCalls.size() == 0 && nextWaitMillis > 0)
 						synchronized (this) {
 							this.wait(nextWaitMillis);
 						}
 				} catch (InterruptedException e) {
 				}
 			}
+			// give one more chance to flush  
+			flushInternal();
 		}
 
 		void shutdown() {
 			running = false;
+			synchronized(this) {
+				this.notifyAll();
+			}
+			while (!flushBuffers.isEmpty()) {
+				try {
+					th.join();
+				} catch (InterruptedException e) {
+				}
+			}
 		}
 
 		public void signal() {
@@ -2666,33 +2700,52 @@ public class LogDbClient implements TrapListener, Closeable {
 	 * @since 0.9.5
 	 */
 	public void flush() {
-		if (counter == 0)
+	}
+	
+	private void flushInternal() {
+		if (inputThrottler.availablePermits() == MAX_THROTTLE_PERMIT)
 			return;
 
 		Map<String, List<QueuedRows>> binsMap = null;
 		synchronized (flushBuffers) {
 			binsMap = new HashMap<String, List<QueuedRows>>(flushBuffers);
 			flushBuffers.clear();
-			counter = 0;
 		}
+		int counter = 0;
+		for (Map.Entry<String, List<QueuedRows>> entry : binsMap.entrySet()) {
+			for (QueuedRows rows: entry.getValue()) {
+				counter += rows.getRows().size();
+			}
+		}
+		inputThrottler.release(counter);
 
 		for (Map.Entry<String, List<QueuedRows>> entry : binsMap.entrySet()) {
 			String tableName = entry.getKey();
 			List<QueuedRows> items = entry.getValue();
 			try {
-				List<Object> l = new ArrayList<Object>(items.size());
-				for (QueuedRows rows : items) {
-					for (Row row : rows.getRows())
-						l.add(row.map());
-				}
-
-				List<Map<String, Object>> bins = streamingEncoder.encode(l, false);
-				Map<String, Object> params = new HashMap<String, Object>();
-				params.put("table", entry.getKey());
-				params.put("bins", bins);
-				rpc("org.araqne.logdb.msgbus.LogQueryPlugin.insertBatch", params);
-				for (QueuedRows rows : items) {
-					rows.setDone();
+				Iterator<QueuedRows> it = items.iterator();
+				while (it.hasNext()) {
+					List<Object> l = new ArrayList<Object>(items.size());
+					List<QueuedRows> currItems = new ArrayList<QueuedRows>();
+					
+					while (it.hasNext()) {
+						QueuedRows rows = it.next();
+						for (Row row: rows.getRows()) {
+							l.add(row.map());
+						}
+						currItems.add(rows);
+						if (l.size() >= insertBatchSize)
+							break;
+					}
+					
+					List<Map<String, Object>> bins = streamingEncoder.encode(l, false);
+					Map<String, Object> params = new HashMap<String, Object>();
+					params.put("table", entry.getKey());
+					params.put("bins", bins);
+					rpc("org.araqne.logdb.msgbus.LogQueryPlugin.insertBatch", params);
+					for (QueuedRows rows : currItems) {
+						rows.setDone();
+					}
 				}
 			} catch (Throwable t) {
 				logger.debug("araqne logdb client: cannot insert data", t);
@@ -2802,8 +2855,11 @@ public class LogDbClient implements TrapListener, Closeable {
 	 */
 	public void close() throws IOException {
 
-		if (counter > 0)
+		if (inputThrottler.availablePermits() != MAX_THROTTLE_PERMIT)
 			flush();
+
+		if (flusher.get() != null)
+			flusher.get().shutdown();
 
 		if (session != null)
 			session.close();
@@ -2812,9 +2868,6 @@ public class LogDbClient implements TrapListener, Closeable {
 			streamingDecoder.close();
 			streamingDecoder = null;
 		}
-
-		if (flusher.get() != null)
-			flusher.get().shutdown();
 
 		if (streamingEncoder != null) {
 			streamingEncoder.close();
