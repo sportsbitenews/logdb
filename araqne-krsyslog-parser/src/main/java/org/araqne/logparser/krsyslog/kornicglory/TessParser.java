@@ -52,6 +52,7 @@ public class TessParser extends V1LogParser {
 
 			return m;
 		} catch (Throwable t) {
+			t.printStackTrace();
 			return log;
 		}
 	}

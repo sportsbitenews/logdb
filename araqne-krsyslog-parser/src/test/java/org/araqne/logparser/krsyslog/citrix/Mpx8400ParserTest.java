@@ -166,4 +166,20 @@ public class Mpx8400ParserTest {
 		assertEquals("Explicit", m.get("logoutmethod"));
 		assertEquals("4489C72CAFC4c0e9DF1614A226B1E1D,2E2214A9C4948a98ED7466A807D765A", m.get("group(s)"));
 	}
+
+	@Test
+	public void testAnotherFormatLogs() {
+		String line = " 07/18/2015:12:16:12 GMT ns 0-PPE-1 : SSLVPN TCPCONNSTAT 992720 0 : Context a487961_0629450b8636@115.135.109.114 - SessionId: 1983- User a487961_0629450b8636 - Client_ip 115.135.109.114 - Nat_ip 211.193.193.175 - Vserver 211.193.193.174:47873 - Source 115.135.109.114:58633 - Destination 10.100.28.104:443 - Start_time \"07/18/2015:12:16:09 GMT\" - End_time \"07/18/2015:12:16:12 GMT\" - Duration 00:00:03  - Total_bytes_send 2195 - Total_bytes_recv 9928 - Total_compressedbytes_send 0 - Total_compressedbytes_recv 0 - Compression_ratio_send 0.00% - Compression_ratio_recv 0.00% - Access Allowed - Group(s) \"D47CFBB27B94edfA279BFA24E19A809,0F19CA7076048e2B37BB35524B49EFD,B0CE79CA3CE430aA71AA42225CEA4E5\"";
+
+		HashMap<String, Object> log = new HashMap<String, Object>();
+		log.put("line", line);
+
+		Mpx8400Parser p = new Mpx8400Parser();
+		Map<String, Object> m = p.parse(log);
+
+		assertEquals("SSLVPN TCPCONNSTAT", m.get("event_type"));
+		assertEquals("2195", m.get("total_bytes_send"));
+		assertEquals("00:00:03", m.get("duration"));
+		assertEquals("115.135.109.114:58633", m.get("source"));
+	}
 }

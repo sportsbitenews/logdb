@@ -80,7 +80,11 @@ public class Mpx8400Parser extends V1LogParser {
 			String prefix = line.substring(pos + 2, e);
 			line = line.substring(e + 3);
 
-			e = prefix.lastIndexOf(" ");
+			int b = 0;
+			for (int i = 0; i < 2; ++i) {
+				e = prefix.indexOf(" ", b);
+				b = e + 1;
+			}
 			m.put("event_type", prefix.substring(0, e));
 			m.put("event_id", prefix.substring(e + 1));
 			String[] keyValues = line.split(delimiter);
