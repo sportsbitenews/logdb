@@ -32,7 +32,7 @@ public class LocalFileConfigType extends AbstractConfigType {
 
 	@Override
 	public String getType() {
-		return "local-dir";
+		return "local-file";
 	}
 
 	@Override
