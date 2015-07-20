@@ -27,6 +27,12 @@ public class TessParser extends V1LogParser {
 					int vbegin = ++begin;
 					while (true) {
 						end = line.indexOf("\"", vbegin);
+						if (end == -1) {
+							begin--;
+							end = line.length();
+							break;
+						}
+
 						int i;
 						for (i = 1; i < end; i++) {
 							if (line.charAt(end - i) != '\\') {
@@ -52,9 +58,7 @@ public class TessParser extends V1LogParser {
 
 			return m;
 		} catch (Throwable t) {
-			t.printStackTrace();
 			return log;
 		}
 	}
 }
-

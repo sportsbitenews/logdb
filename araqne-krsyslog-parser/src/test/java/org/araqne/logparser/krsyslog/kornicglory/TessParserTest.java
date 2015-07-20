@@ -56,13 +56,13 @@ public class TessParserTest {
 
 	@Test
 	public void test4() {
-		String line = "EventName=\"icmp flooding@\" SigIndex=583 Severity=Middle Time=\"2015/07/13 17:45:33\" Protocol=ICMP AttackerIP=198.20.99.130 AttackerPort=0 VictimIP=118.47.74.44 VictimPort=0 Count=1 PktCount=200 Pattern=\"\" Direct=Inbound SensorIP=10.150.230.210 Sensor=\"현대미포조선\" Network=\"NODATA\" VSensor=\"현대미포조선\" Packet=\"\"";
+		String line = "EventName=\"icmp flooding@\" SigIndex=583 Severity=Middle Time=\"2015/07/13 17:45:33\" Protocol=ICMP AttackerIP=198.20.99.130 AttackerPort=0 VictimIP=118.47.74.44 VictimPort=0 Count=1 PktCount=200 Pattern=\"\" Direct=Inbound SensorIP=10.150.230.210 Sensor=\"현대미포조선\" Network=\"NODATA\" VSensor=\"현대미포조선\" Packet=\"";
 
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
 		TessParser p = new TessParser();
 		Map<String, Object> m = p.parse(log);
-		assertEquals("377.60 K (9.39 %)", m.get("malicioustrafficpps"));
+		assertEquals("\"", m.get("packet"));
 	}
 }
