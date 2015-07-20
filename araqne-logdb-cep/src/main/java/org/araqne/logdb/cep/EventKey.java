@@ -15,8 +15,6 @@
  */
 package org.araqne.logdb.cep;
 
-
-
 public class EventKey {
 	private final String topic;
 	private final String key;
@@ -26,7 +24,7 @@ public class EventKey {
 
 	private final int hashCode;
 
-	public static String delimeter = "-^-";
+	public static String delimiter = "-^-";
 
 	public EventKey(String topic, String key) {
 		this.topic = topic;
@@ -81,21 +79,45 @@ public class EventKey {
 	public static String marshal(EventKey key) {
 		StringBuffer sb = new StringBuffer();
 		sb.append(key.getTopic());
-		sb.append(delimeter);
+		sb.append(delimiter);
 		sb.append(key.getKey());
+		sb.append(delimiter);
+		if (key.getHost() != null)
+			sb.append(key.getHost());
 		return sb.toString();
 	}
 
-	public static EventKey parse(String key) {
-		int index =  key.indexOf(delimeter);
+	public static EventKey parse(String line) {
+		String[] parsed = new String[3];
 
-		if(index < 0 || index + delimeter.length() >  key.length())
-			return null;
-		
-		String topic = key.substring(0, index);
-		String demo = key.substring(index+delimeter.length());
-		
-		return new EventKey(topic, demo);
+		int i = 0;
+		int last = 0;
+		while (true) {
+			int p = line.indexOf(delimiter, last);
+
+			String token = null;
+			if (p >= 0)
+				token = line.substring(last, p);
+			else
+				token = line.substring(last);
+
+			if (token.isEmpty())
+				token = null;
+
+			parsed[i] = token;
+
+			if (p < 0)
+				break;
+
+			last = p + delimiter.length();
+			i++;
+		}
+
+		EventKey evtkey = new EventKey(parsed[0], parsed[1]);
+		if (parsed[2] != null)
+			evtkey.setHost(parsed[2]);
+
+		return evtkey;
 	}
 
 }

@@ -27,7 +27,7 @@ public interface EventContextStorage {
 	 */
 	Set<String> getHosts();
 
-	EventClock getClock(String host);
+	NewEventClock getClock(String host);
 
 	Iterator<EventKey> getContextKeys();
 	

@@ -37,13 +37,15 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.codec.EncodingRule;
 import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventCause;
-import org.araqne.logdb.cep.EventClock;
+import org.araqne.logdb.cep.EventClockCallback;
+import org.araqne.logdb.cep.EventClockItem;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextListener;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.cep.EventSubscriber;
+import org.araqne.logdb.cep.NewEventClock;
 import org.araqne.logdb.cep.redis.RedisConfig;
 import org.araqne.logdb.cep.redis.RedisConfigRegistry;
 import org.araqne.logdb.cep.redis.RedisConfigRegistryListener;
@@ -92,7 +94,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	volatile static boolean subscribeStopRequested = false;
 
-	private ConcurrentHashMap<String, EventClock> logClocks;
+	private ConcurrentHashMap<String, NewEventClock> logClocks;
 
 	private final int retryCnt = 5;
 
@@ -109,17 +111,17 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 			configReg.addListener(this);
 			subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
-			logClocks = new ConcurrentHashMap<String, EventClock>();
+			logClocks = new ConcurrentHashMap<String, NewEventClock>();
 
 			synchronized (theadLock) {
 				theadLock.notify();
 				subscribeStopRequested = false;
 			}
 
-			jedisConnect();
+			connect();
 
-			//if (jedis != null)
-			//	jedis.flushDB();
+			// if (jedis != null)
+			// jedis.flushDB();
 
 		} catch (Exception e) {
 			slog.debug("araqne logdb cep: failed to start redis storage", e);
@@ -134,7 +136,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 					synchronized (theadLock) {
 						while (!subscribeStopRequested) {
-							for (HostAndPort server : getRegisterdServers()) {
+							for (HostAndPort server : registerdServers()) {
 								Jedis jedisForSub = null;
 								try {
 
@@ -209,12 +211,12 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		return true;
 	}
 
-	private void jedisConnect() {
+	private void connect() {
 		jedisPool = null;
 		jedis = null;
 		jedisForScan = null;
 
-		jedisPool = getPool();
+		jedisPool = getJedisPool();
 		jedis = jedisPool.getResource();
 		jedisForScan = jedisPool.getResource();
 
@@ -225,7 +227,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		}
 	}
 
-	private List<HostAndPort> getRegisterdServers() {
+	private List<HostAndPort> registerdServers() {
 		List<HostAndPort> servers = new ArrayList<HostAndPort>();
 		RedisConfig config = configReg.getConfig();
 
@@ -253,7 +255,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		return servers;
 	}
 
-	private Pool<Jedis> getPool() {
+	private Pool<Jedis> getJedisPool() {
 		RedisConfig config = configReg.getConfig();
 		String host = config.getHost();
 		int port = config.getPort();
@@ -273,7 +275,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	}
 
 	@Override
-	public EventClock getClock(String host) {
+	public NewEventClock getClock(String host) {
 		return logClocks.get(host);
 	}
 
@@ -286,78 +288,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	public Iterator<EventKey> getContextKeys(String topic) {
 		return new RedisScanIterator(topic);
 	}
-
-	private class RedisScanIterator implements Iterator<EventKey> {
-		final int bufferSize = 5000;
-
-		Set<byte[]> keyBuffer = new HashSet<byte[]>(bufferSize);
-		ScanParams params = new ScanParams();
-		Iterator<byte[]> bufferIterator = keyBuffer.iterator();;
-
-		byte[] cursor = ScanParams.SCAN_POINTER_START_BINARY;
-
-		public RedisScanIterator(String topic) {
-			String filter = keyPrefix + topic + EventKey.delimeter + "*";
-			params.match(filter.getBytes());
-			params.count(bufferSize);
-
-			scan();
-		}
-
-		@Override
-		public boolean hasNext() {
-			if (Arrays.equals(cursor, ScanParams.SCAN_POINTER_START_BINARY) || keyBuffer.isEmpty()) {
-				return bufferIterator.hasNext();
-			}
-			return true;
-		}
-
-		@Override
-		public EventKey next() {
-			if (bufferIterator == null || bufferIterator.hasNext() == false) {
-				scan();
-			}
-			return parseKey(bufferIterator.next());
-		}
-
-		@Override
-		public void remove() {
-			throw new UnsupportedOperationException();
-		}
-
-		private void scan() {
-			keyBuffer.clear();
-			RuntimeException lastException = null;
-			ScanResult<byte[]> result = null;
-
-			synchronized (jedisScanLock) {
-				for (int i = 0; i < retryCnt; ++i) {
-					try {
-						if (jedisForScan == null)
-							jedisConnect();
-
-						result = jedisForScan.scan(cursor, params);
-						break;
-					} catch (JedisConnectionException e) {
-						returnResource(jedisForScan);
-						closeClient(jedisForScan);
-						lastException = e;
-					}
-				}
-			}
-
-			if (lastException != null)
-				throw lastException;
-
-			cursor = result.getCursorAsBytes();
-
-			for (byte[] bkey : result.getResult())
-				keyBuffer.add(bkey);
-
-			bufferIterator = keyBuffer.iterator();
-		}
-	}
-
+	
 	@Override
 	public EventContext getContext(EventKey ctx) {
 		Response<byte[]> value = null;
@@ -366,7 +297,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			for (int i = 0; i < retryCnt; ++i) {
 				try {
 					if (jedis == null)
-						jedisConnect();
+						connect();
 
 					Transaction t = jedis.multi();
 					value = t.get(redisKey(ctx));
@@ -427,7 +358,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			for (int i = 0; i < retryCnt; ++i) {
 				try {
 					if (jedis == null)
-						jedisConnect();
+						connect();
 
 					Transaction t = jedis.multi();
 					oldValue = t.get(redisKey(key));
@@ -452,8 +383,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			EventContext oldCtx = parseContext(response);
 
 			if (oldCtx.getHost() != null) {
-				EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-				logClock.remove(ctx);
+				NewEventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+				logClock.remove(new EventClockItem(ctx));
 			}
 
 			generateEvent(EventContext.merge(oldCtx, ctx), cause);
@@ -462,14 +393,21 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	@Override
 	public void advanceTime(String host, long logTime) {
-		EventClock logClock = ensureClock(logClocks, host, logTime);
+		NewEventClock logClock = ensureClock(logClocks, host, logTime);
 		logClock.setTime(logTime, false);
 	}
 
 	@Override
 	public void clearClocks() {
-		// TODO:관련 data(key-value)도 삭제하도록 변경
-		logClocks = new ConcurrentHashMap<String, EventClock>();
+		for(NewEventClock logClock : logClocks.values()){
+			for(EventClockItem item : logClock.getExpireContexts())
+				logClock.remove(item);
+			
+			for(EventClockItem item : logClock.getTimeoutContexts())
+				logClock.remove(item);
+		}
+		
+		logClocks = new ConcurrentHashMap<String, NewEventClock>();
 	}
 
 	@Override
@@ -486,7 +424,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			for (int i = 0; i < retryCnt; ++i) {
 				try {
 					if (jedis == null)
-						jedisConnect();
+						connect();
 
 					Transaction t = jedis.multi();
 
@@ -564,11 +502,11 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	@Override
 	public void onUpdateTimeout(EventContext ctx) {
-		EventClock clock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+		NewEventClock clock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
 		if (clock == null)
 			return;
 
-		clock.updateTimeout(ctx);
+		clock.updateTimeout(new EventClockItem(ctx));
 	}
 
 	@Override
@@ -579,7 +517,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			for (int i = 0; i < retryCnt; ++i) {
 				try {
 					if (jedis == null)
-						jedisConnect();
+						connect();
 
 					Transaction t = jedis.multi();
 					for (EventKey evtkey : contexts.keySet()) {
@@ -610,8 +548,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 		for (EventContext ctx : contexts.values()) {
 			if (ctx.getHost() != null) {
-				EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-				logClock.add(ctx);
+				NewEventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+				logClock.add(new EventClockItem(ctx));
 			}
 		}
 	}
@@ -624,7 +562,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			for (int i = 0; i < retryCnt; ++i) {
 				try {
 					if (jedis == null)
-						jedisConnect();
+						connect();
 
 					byte[] oldByteValue = jedis.get(redisKey(ctx.getKey()));
 					Transaction t = jedis.multi();
@@ -643,8 +581,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			throw lastException;
 
 		if (ctx.getHost() != null) {
-			EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-			logClock.add(ctx);
+			NewEventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+			logClock.add(new EventClockItem(ctx));
 		}
 
 		return ctx;
@@ -687,12 +625,12 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			return Math.max(a, b);
 	}
 
-	private EventClock ensureClock(ConcurrentHashMap<String, EventClock> clocks, String host, long time) {
-		EventClock clock = null;
+	private NewEventClock ensureClock(ConcurrentHashMap<String, NewEventClock> clocks, String host, long time) {
+		NewEventClock clock = null;
 		clock = clocks.get(host);
 		if (clock == null) {
-			clock = new EventClock(this, host, time, 11);
-			EventClock old = clocks.putIfAbsent(host, clock);
+			clock = new NewEventClock(new RedisEventClockCallback(), host, time, 11);
+			NewEventClock old = clocks.putIfAbsent(host, clock);
 			if (old != null)
 				return old;
 			return clock;
@@ -709,7 +647,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			for (int i = 0; i < retryCnt; ++i) {
 				try {
 					if (jedis == null)
-						jedisConnect();
+						connect();
 					Transaction t = jedis.multi();
 
 					for (EventKey key : contexts.keySet()) {
@@ -746,7 +684,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	@Override
 	public void onChanged() {
-		jedisConnect();
+		connect();
 	}
 
 	private void returnResource(Jedis jedis) {
@@ -828,7 +766,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			for (int i = 0; i < retryCnt; ++i) {
 				try {
 					if (jedis == null)
-						jedisConnect();
+						connect();
 
 					Transaction t = jedis.multi();
 
@@ -865,4 +803,83 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		return contexts;
 	}
 
+	private class RedisScanIterator implements Iterator<EventKey> {
+		final int bufferSize = 5000;
+
+		Set<byte[]> keyBuffer = new HashSet<byte[]>(bufferSize);
+		ScanParams params = new ScanParams();
+		Iterator<byte[]> bufferIterator = keyBuffer.iterator();;
+
+		byte[] cursor = ScanParams.SCAN_POINTER_START_BINARY;
+
+		public RedisScanIterator(String topic) {
+			String filter = keyPrefix + topic + EventKey.delimiter + "*";
+			params.match(filter.getBytes());
+			params.count(bufferSize);
+
+			scan();
+		}
+
+		@Override
+		public boolean hasNext() {
+			if (Arrays.equals(cursor, ScanParams.SCAN_POINTER_START_BINARY) || keyBuffer.isEmpty()) {
+				return bufferIterator.hasNext();
+			}
+			return true;
+		}
+
+		@Override
+		public EventKey next() {
+			if (bufferIterator == null || bufferIterator.hasNext() == false) {
+				scan();
+			}
+			return parseKey(bufferIterator.next());
+		}
+
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
+
+		private void scan() {
+			keyBuffer.clear();
+			RuntimeException lastException = null;
+			ScanResult<byte[]> result = null;
+
+			synchronized (jedisScanLock) {
+				for (int i = 0; i < retryCnt; ++i) {
+					try {
+						if (jedisForScan == null)
+							connect();
+
+						result = jedisForScan.scan(cursor, params);
+						break;
+					} catch (JedisConnectionException e) {
+						returnResource(jedisForScan);
+						closeClient(jedisForScan);
+						lastException = e;
+					}
+				}
+			}
+
+			if (lastException != null)
+				throw lastException;
+
+			cursor = result.getCursorAsBytes();
+
+			for (byte[] bkey : result.getResult())
+				keyBuffer.add(bkey);
+
+			bufferIterator = keyBuffer.iterator();
+		}
+	}
+
+	private class RedisEventClockCallback implements EventClockCallback {
+
+		@Override
+		public void onRemove(EventKey key, EventClockItem value, EventCause expire) {
+			removeContext(key, new EventContext(key, 0L, value.getExpireTime(), value.getTimeoutTime(), 0, value.getHost()), expire);
+		}
+
+	}
 }
