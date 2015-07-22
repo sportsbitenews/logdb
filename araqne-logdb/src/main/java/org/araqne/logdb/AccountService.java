@@ -48,27 +48,27 @@ public interface AccountService {
 	void changePassword(Session session, String loginName, String password);
 
 	void removeAccount(Session session, String loginName);
-	
+
 	/**
 	 * @since 2.6.34
 	 */
 	List<SecurityGroup> getSecurityGroups();
-	
+
 	/**
 	 * @since 2.6.34
 	 */
 	SecurityGroup getSecurityGroup(String guid);
-	
+
 	/**
 	 * @since 2.6.34
 	 */
 	void createSecurityGroup(Session session, SecurityGroup group);
-	
+
 	/**
 	 * @since 2.6.34
 	 */
 	void updateSecurityGroup(Session session, SecurityGroup group);
-	
+
 	/**
 	 * @since 2.6.34
 	 */
@@ -92,6 +92,8 @@ public interface AccountService {
 	void revokeAdmin(Session session, String loginName);
 
 	List<Privilege> getPrivileges(Session session, String loginName);
+
+	void setPrivileges(Session session, List<Privilege> privileges);
 
 	void setPrivileges(Session session, String loginName, List<Privilege> privileges);
 
