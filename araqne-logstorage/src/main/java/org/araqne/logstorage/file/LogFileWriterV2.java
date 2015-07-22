@@ -79,7 +79,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 	private LogFlushCallbackArgs flushCallbackArgs;
 	private LogStorageEventArgs closeCallbackArgs;
 
-	private CallbackSet callbackSet;
+	private CallbackSet callbackSet = new CallbackSet();
 
 	public LogFileWriterV2(FilePath indexPath, FilePath dataPath, CallbackSet cbSet, String tableName, Date day,
 			AtomicLong lastKey2) throws IOException, InvalidLogFileHeaderException {
@@ -103,11 +103,11 @@ public class LogFileWriterV2 extends LogFileWriter {
 			boolean indexExists = indexPath.isNotEmpty();
 			boolean dataExists = dataPath.isNotEmpty();
 
-			if (cbSet != null) {
+			if (cbSet != null)
 				this.callbackSet = cbSet;
-				this.flushCallbackArgs = new LogFlushCallbackArgs(tableName);
-				this.closeCallbackArgs = new LogStorageEventArgs(tableName, day);
-			}
+			this.flushCallbackArgs = new LogFlushCallbackArgs(tableName);
+			this.closeCallbackArgs = new LogStorageEventArgs(tableName, day);
+
 			this.indexPath = indexPath;
 			this.dataPath = dataPath;
 
@@ -121,7 +121,7 @@ public class LogFileWriterV2 extends LogFileWriter {
 			this.lastKey = lastKey;
 
 			LogFileHeader indexFileHeader = null;
-			
+
 			if (lastKey == null)
 				lastKey = new AtomicLong(-1);
 
@@ -249,14 +249,16 @@ public class LogFileWriterV2 extends LogFileWriter {
 			throw new IllegalArgumentException("invalid key: " + newKey + ", last key was " + lastKey);
 
 		int requiredBufferSize = 20 + data.getData().remaining();
-		if ((blockEndLogTime != null && blockEndLogTime > data.getDate().getTime()) || indexBuffer.remaining() < INDEX_ITEM_SIZE
+		if ((blockEndLogTime != null && blockEndLogTime > data.getDate().getTime())
+				|| indexBuffer.remaining() < INDEX_ITEM_SIZE
 				|| dataBuffer.remaining() < requiredBufferSize)
 			flush(false);
 
 		// buffer capacity check
 		if (dataBuffer.remaining() < requiredBufferSize)
 			throw new IllegalArgumentException("unacceptable v2 data length " + requiredBufferSize + ", idx ["
-					+ indexPath.getAbsolutePath() + "], dat [" + dataPath.getAbsolutePath() + "], id [" + data.getId() + "]");
+					+ indexPath.getAbsolutePath() + "], dat [" + dataPath.getAbsolutePath() + "], id [" + data.getId()
+					+ "]");
 
 		// add to index buffer
 		prepareInt(dataBuffer.position(), intbuf);
@@ -343,16 +345,15 @@ public class LogFileWriterV2 extends LogFileWriter {
 		if (logger.isTraceEnabled())
 			logger.trace("araqne logstorage: flush idx [{}], dat [{}] files", indexPath, dataPath);
 
-		if (callbackSet != null && flushCallbackArgs != null)
-			for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
-				try {
-					LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
-					arg.setLogs(buffer);
-					c.onFlush(arg);
-				} catch (Throwable t) {
-					logger.warn("flush callback should not throw any exception", t);
-				}
+		for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
+			try {
+				LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
+				arg.setLogs(buffer);
+				c.onFlush(arg);
+			} catch (Throwable t) {
+				logger.warn("flush callback should not throw any exception", t);
 			}
+		}
 
 		try {
 			// mark last flush
@@ -412,31 +413,29 @@ public class LogFileWriterV2 extends LogFileWriter {
 			blockEndLogTime = null;
 			blockLogCount = 0;
 
-			if (callbackSet != null && flushCallbackArgs != null)
-				for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
-					try {
-						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
-						arg.setLogs(buffer);
-						c.onFlushCompleted(arg);
-					} catch (Throwable t) {
-						logger.warn("flush callback should not throw any exception", t);
-					}
+			for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
+				try {
+					LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
+					arg.setLogs(buffer);
+					c.onFlushCompleted(arg);
+				} catch (Throwable t) {
+					logger.warn("flush callback should not throw any exception", t);
 				}
+			}
 
 			buffer.clear();
 
 			return true;
 		} catch (Throwable t) {
-			if (callbackSet != null && flushCallbackArgs != null)
-				for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
-					try {
-						LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
-						arg.setLogs(buffer);
-						c.onFlushException(arg, t);
-					} catch (Throwable t2) {
-						logger.warn("flush callback should not throw any exception", t2);
-					}
+			for (LogFlushCallback c : callbackSet.get(LogFlushCallback.class)) {
+				try {
+					LogFlushCallbackArgs arg = flushCallbackArgs.shallowCopy();
+					arg.setLogs(buffer);
+					c.onFlushException(arg, t);
+				} catch (Throwable t2) {
+					logger.warn("flush callback should not throw any exception", t2);
 				}
+			}
 
 			return false;
 		}
@@ -491,12 +490,9 @@ public class LogFileWriterV2 extends LogFileWriter {
 	}
 
 	private void invokeCloseCallback() {
-		if (callbackSet != null && closeCallbackArgs != null) {
-			Set<LogStorageEventListener> callbacks = callbackSet.get(LogStorageEventListener.class);
-
-			for (LogStorageEventListener cb : callbacks) {
-				cb.onClose(closeCallbackArgs.tableName, closeCallbackArgs.day);
-			}
+		Set<LogStorageEventListener> callbacks = callbackSet.get(LogStorageEventListener.class);
+		for (LogStorageEventListener cb : callbacks) {
+			cb.onClose(closeCallbackArgs.tableName, closeCallbackArgs.day);
 		}
 	}
 
@@ -517,4 +513,13 @@ public class LogFileWriterV2 extends LogFileWriter {
 		logger.debug("araqne logstorage: delete [{}] file => {}", dataPath.getAbsolutePath(), result);
 	}
 
+	@Override
+	public void setCallbackSet(CallbackSet callbackSet) {
+		this.callbackSet = callbackSet;
+	}
+
+	@Override
+	public CallbackSet getCallbackSet() {
+		return callbackSet;
+	}
 }

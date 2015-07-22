@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.cron.AbstractTickTimer;
+import org.araqne.cron.TickService;
 import org.araqne.logdb.FileMover;
 import org.araqne.logdb.LocalFileMover;
 import org.araqne.logdb.PartitionOutput;
@@ -33,6 +35,7 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.writer.CsvLineWriterFactory;
 import org.araqne.logdb.writer.LineWriter;
 import org.araqne.logdb.writer.LineWriterFactory;
@@ -52,46 +55,39 @@ public class OutputCsv extends QueryCommand {
 	private boolean usePartition;
 	private boolean useTab;
 	private boolean useBom;
+	private boolean emptyfile;
 	private String encoding;
 
 	private List<PartitionPlaceholder> holders;
+	private boolean append;
+	private TimeSpan flushInterval;
+	private TickService tickService;
+
 	private Map<List<String>, PartitionOutput> outputs;
 	private FileMover mover;
+	private FlushTimer flushTimer = new FlushTimer();
 
 	private LineWriter writer;
 	private LineWriterFactory writerFactory;
 
-	public OutputCsv(String pathToken, File f, String tmpPath, boolean overwrite, List<String> fields, String encoding,
-			boolean useBom, boolean useTab, boolean usePartition, List<PartitionPlaceholder> holders) {
-		try {
-			this.pathToken = pathToken;
-			this.f = f;
-			this.tmpPath = tmpPath;
-			this.overwrite = overwrite;
-			this.fields = fields;
-			this.usePartition = usePartition;
-			this.encoding = encoding;
-			this.holders = holders;
-			this.useTab = useTab;
-			this.useBom = useBom;
-			char separator = useTab ? '\t' : ',';
+	public OutputCsv(String pathToken, String tmpPath, boolean overwrite, List<String> fields, String encoding, boolean useBom,
+			boolean useTab, boolean usePartition, boolean emptyfile, List<PartitionPlaceholder> holders, boolean append,
+			TimeSpan flushInterval, TickService tickService) {
+		this.pathToken = pathToken;
+		this.tmpPath = tmpPath;
+		this.overwrite = overwrite;
+		this.fields = fields;
+		this.usePartition = usePartition;
+		this.encoding = encoding;
+		this.holders = holders;
+		this.useTab = useTab;
+		this.useBom = useBom;
+		this.emptyfile = emptyfile;
+		this.append = append;
+		this.flushInterval = flushInterval;
 
-			this.writerFactory = new CsvLineWriterFactory(fields, encoding, separator, useBom);
-			if (!usePartition) {
-				String path = pathToken;
-				if (tmpPath != null)
-					path = tmpPath;
-
-				this.writer = writerFactory.newWriter(path);
-				mover = new LocalFileMover();
-			} else {
-				this.holders = holders;
-				this.outputs = new HashMap<List<String>, PartitionOutput>();
-			}
-		} catch (Throwable t) {
-			close();
-			throw new QueryParseException("io-error", -1);
-		}
+		if (flushInterval != null)
+			tickService.addTimer(flushTimer);
 	}
 
 	@Override
@@ -109,6 +105,45 @@ public class OutputCsv extends QueryCommand {
 
 	public List<String> getFields() {
 		return fields;
+	}
+
+	@Override
+	public void onStart() {
+		File csvFile = new File(pathToken);
+		if (csvFile.exists() && !overwrite && !append)
+			throw new IllegalStateException("csv file exists: " + csvFile.getAbsolutePath());
+
+		if (!usePartition && csvFile.getParentFile() != null)
+			csvFile.getParentFile().mkdirs();
+
+		this.f = csvFile;
+
+		char separator = useTab ? '\t' : ',';
+		this.writerFactory = new CsvLineWriterFactory(fields, encoding, separator, useBom, append);
+
+		try {
+			if (!usePartition) {
+				String path = pathToken;
+				if (tmpPath != null)
+					path = tmpPath;
+
+				this.writer = writerFactory.newWriter(path);
+				mover = new LocalFileMover(overwrite);
+			} else {
+				// this.holders = holders;
+				this.outputs = new HashMap<List<String>, PartitionOutput>();
+			}
+		} catch (QueryParseException t) {
+			close();
+			throw t;
+		} catch (Throwable t) {
+			close();
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("msg", t.getMessage());
+			throw new QueryParseException("30203", -1, -1, params);
+			// throw new QueryParseException("io-error", -1);
+		}
+
 	}
 
 	@Override
@@ -135,7 +170,8 @@ public class OutputCsv extends QueryCommand {
 					writeLog(m);
 				}
 			} else {
-				for (Row m : rowBatch.rows) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row m = rowBatch.rows[i];
 					writeLog(m);
 				}
 			}
@@ -159,7 +195,7 @@ public class OutputCsv extends QueryCommand {
 
 			PartitionOutput output = outputs.get(key);
 			if (output == null) {
-				output = new PartitionOutput(writerFactory, pathToken, tmpPath, date, encoding);
+				output = new PartitionOutput(writerFactory, pathToken, tmpPath, date, encoding, overwrite);
 				outputs.put(key, output);
 
 				if (logger.isDebugEnabled())
@@ -181,7 +217,7 @@ public class OutputCsv extends QueryCommand {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		close();
-		if (reason == QueryStopReason.CommandFailure) {
+		if (!append && reason == QueryStopReason.CommandFailure) {
 			if (tmpPath != null)
 				new File(tmpPath).delete();
 			else
@@ -190,6 +226,10 @@ public class OutputCsv extends QueryCommand {
 	}
 
 	private void close() {
+		if (flushInterval != null && tickService != null) {
+			tickService.removeTimer(flushTimer);
+		}
+
 		if (!usePartition) {
 			try {
 				writer.close();
@@ -209,7 +249,11 @@ public class OutputCsv extends QueryCommand {
 	public String toString() {
 		String overwriteOption = " ";
 		if (overwrite)
-			overwriteOption = " overwrite=true";
+			overwriteOption = " overwrite=t";
+
+		String appendOption = "";
+		if (append)
+			appendOption = " append=t";
 
 		String partitionOption = "";
 		if (usePartition)
@@ -231,7 +275,27 @@ public class OutputCsv extends QueryCommand {
 		if (useTab)
 			tabOption = " tab=t";
 
-		return "outputcsv" + overwriteOption + partitionOption + tmpPathOption + bomOption + encodingOption + tabOption + " "
-				+ pathToken + " " + Strings.join(fields, ", ");
+		return "outputcsv" + overwriteOption + appendOption + partitionOption + tmpPathOption + bomOption + encodingOption
+				+ tabOption + " " + pathToken + " " + Strings.join(fields, ", ");
+	}
+
+	private class FlushTimer extends AbstractTickTimer {
+
+		@Override
+		public int getInterval() {
+			return (int) flushInterval.getMillis();
+		}
+
+		@Override
+		public void onTick() {
+			try {
+				if (writer != null) {
+					writer.flush();
+				} else {
+
+				}
+			} catch (IOException e) {
+			}
+		}
 	}
 }

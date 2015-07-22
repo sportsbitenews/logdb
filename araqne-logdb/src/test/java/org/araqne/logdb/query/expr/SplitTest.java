@@ -2,10 +2,13 @@ package org.araqne.logdb.query.expr;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
 import org.junit.Test;
@@ -100,9 +103,9 @@ public class SplitTest {
 	@Test
 	public void tabSplitTest() {
 		List<String> result = getResult(Strings.unescape("\\t"), "a\tb\tc");
-		System.out.println(result);
+		assertEquals(Arrays.asList("a","b","c"), result);
 	}
-
+			
 	@Test
 	public void includeSpaceDelimiterTest() {
 		List<String> result = getResult(", ", "a, b, c, d, e");
@@ -114,6 +117,52 @@ public class SplitTest {
 		assertEquals("e", result.get(4));
 	}
 
+	@Test
+	public void testError90770(){
+		try {
+			new Split(null, expr(1));
+			fail();
+		} catch (QueryParseException e) {
+			if (e.isDebugMode()) {
+				System.out.println(e.getMessage());
+			}
+			assertEquals("99000", e.getType());
+		}
+	}
+	
+	@Test
+	public void testError90771(){
+		List<Expression> expr = new ArrayList<Expression> ();
+		expr.add(new StringConstant("1,2,3,4,5"));
+		expr.add(null);
+		try {
+			new Split(null, expr);
+			fail();
+		} catch (QueryParseException e) {
+			if (e.isDebugMode()) {
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90771", e.getType());
+		}
+	}
+	
+	private List<Expression> expr(Object...object ){
+		List<Expression> expr = new ArrayList<Expression>();
+
+		for(Object o: object){
+			if(o instanceof Expression)
+				expr.add((Expression)o);
+			else if(o instanceof String)
+				expr.add(new StringConstant((String)o));
+			else if(o instanceof Number)
+				expr.add(new NumberConstant((Number)o));
+			else if(o instanceof Boolean)
+				expr.add(new BooleanConstant((Boolean)o));
+		}
+
+		return expr;
+	}
+	
 	@SuppressWarnings("unchecked")
 	private List<String> getResult(String delimiter, String line) {
 		Expression arg1 = (Expression) new Field(null, Arrays.asList((Expression) new StringConstant("line")));

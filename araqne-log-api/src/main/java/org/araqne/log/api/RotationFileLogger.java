@@ -24,11 +24,10 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
-public class RotationFileLogger extends AbstractLogger {
+public class RotationFileLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(RotationFileLogger.class);
 	private final File dataDir;
 
@@ -43,7 +42,19 @@ public class RotationFileLogger extends AbstractLogger {
 		this.dataDir = new File(System.getProperty("araqne.data.dir"), "araqne-log-api");
 		this.dataDir.mkdirs();
 
-		extractor = new MultilineLogExtractor(this, receiver);
+		setExtracotr();
+
+		// try migration at boot
+		File oldLastFile = getLastLogFile();
+		if (oldLastFile.exists()) {
+			LastState lastState = getLastStateFromFile();
+			setStates(lastState.serialize());
+			oldLastFile.renameTo(new File(oldLastFile.getAbsolutePath() + ".migrated"));
+		}
+	}
+
+	private void setExtracotr() {
+		MultilineLogExtractor extractor = new MultilineLogExtractor(this, receiver);
 
 		// optional
 		Map<String, String> configs = getConfigs();
@@ -78,13 +89,14 @@ public class RotationFileLogger extends AbstractLogger {
 			charset = "utf-8";
 
 		extractor.setCharset(charset);
+		this.extractor = extractor;
+	}
 
-		// try migration at boot
-		File oldLastFile = getLastLogFile();
-		if (oldLastFile.exists()) {
-			LastState lastState = getLastStateFromFile();
-			setStates(lastState.serialize());
-			oldLastFile.renameTo(new File(oldLastFile.getAbsolutePath() + ".migrated"));
+	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		setExtracotr();
+		if (!oldConfigs.get("file_path").equals(newConfigs.get("file_path"))) {
+			setStates(new HashMap<String, Object>());
 		}
 	}
 
@@ -127,7 +139,7 @@ public class RotationFileLogger extends AbstractLogger {
 			is.skip(offset);
 			extractor.extract(is, lastPosition);
 		} catch (Throwable t) {
-			slog.error("araqne log api: cannot read file", t);
+			slog.error("araqne log api: rotation logger [" + getFullName() + "] cannot read file", t);
 		} finally {
 			if (is != null) {
 				try {

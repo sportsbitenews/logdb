@@ -25,8 +25,9 @@ public class GzipLineWriterFactory implements LineWriterFactory {
 	private List<String> fields;
 	private String delimiter;
 	private String encoding;
+	private boolean append;
 
-	public GzipLineWriterFactory(List<String> fields, String delimiter, String encoding) {
+	public GzipLineWriterFactory(List<String> fields, String delimiter, String encoding, boolean append) {
 		this.fields = fields;
 		this.delimiter = delimiter;
 		this.encoding = encoding;
@@ -34,6 +35,6 @@ public class GzipLineWriterFactory implements LineWriterFactory {
 
 	@Override
 	public LineWriter newWriter(String filePath) throws IOException {
-		return new GzipLineWriter(filePath, fields, delimiter, encoding);
+		return new GzipLineWriter(filePath, fields, delimiter, encoding, append);
 	}
 }

@@ -51,13 +51,15 @@ public class TableParserTest {
 		p.setFunctionRegistry(new FunctionRegistryImpl());
 		queryParserService = p;
 	}
-	
+
 	@Test
 	public void testSimpleCase() {
 		String query = "table iis";
 		Table table = parse(query);
 
-		assertTrue(table.getTableNames().contains("iis"));
+		@SuppressWarnings("deprecation")
+		List<String> tableNames = table.getTableNames();
+		assertTrue(tableNames.contains("iis"));
 		assertEquals(0, table.getOffset());
 		assertEquals(0, table.getLimit());
 	}
@@ -67,9 +69,11 @@ public class TableParserTest {
 		String query = "table iis, xtm";
 		Table table = parse(query);
 
-		System.out.println(table.getTableNames());
-		assertTrue(table.getTableNames().contains("iis"));
-		assertTrue(table.getTableNames().contains("xtm"));
+		//System.out.println(table.getTableNames());
+		@SuppressWarnings("deprecation")
+		List<String> tableNames = table.getTableNames();
+		assertTrue(tableNames.contains("iis"));
+		assertTrue(tableNames.contains("xtm"));
 	}
 
 	@Test
@@ -77,7 +81,9 @@ public class TableParserTest {
 		String query = "table offset=3 limit=10 iis";
 		Table table = parse(query);
 
-		assertTrue(table.getTableNames().contains("iis"));
+		@SuppressWarnings("deprecation")
+		List<String> tableNames = table.getTableNames();
+		assertTrue(tableNames.contains("iis"));
 		assertEquals(3, table.getOffset());
 		assertEquals(10, table.getLimit());
 	}
@@ -90,9 +96,14 @@ public class TableParserTest {
 			parse(query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("negative-offset", e.getType());
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("10601", e.getType());
+			assertEquals(13, e.getStartOffset());
+			assertEquals(14, e.getEndOffset());	
 		}
-
 	}
 
 	@Test
@@ -103,7 +114,71 @@ public class TableParserTest {
 			parse(query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("negative-limit", e.getType());
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("10602", e.getType());
+			assertEquals(12, e.getStartOffset());
+			assertEquals(14, e.getEndOffset());	
+		}
+	}
+
+	@Test
+	public void testNonExistentTable(){
+		String query = "table NonExistent";
+
+		try {
+			parse(query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("10605", e.getType());
+			assertEquals(-1, e.getStartOffset());
+			assertEquals(-1, e.getEndOffset());	
+		}
+	}
+
+
+	@Test
+	public void testPermission(){
+		String query = "table unauthorized";
+
+		try {
+			parse(query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("10606", e.getType());
+			assertEquals(-1, e.getStartOffset());
+			assertEquals(-1, e.getEndOffset());	
+		}
+	}
+
+	@Test
+	public void testTableSpec(){
+		String query = "table duration=1d meta(\"logparser==trusguard and parse==test\"), iis";
+		query = "table meta(\"logparser==trusguard\", \"n1:s*\", \"?1+5\", \"s3\"), iis";
+		
+		//  table meta(“category==sonbo* and parser!=truthguard”, “h_*”)
+		
+		try {
+			parse(query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("10603", e.getType());
+			assertEquals(-1, e.getStartOffset());
+			assertEquals(-1, e.getEndOffset());	
 		}
 	}
 
@@ -134,7 +209,9 @@ public class TableParserTest {
 		query = "table from=20120101031101 to=20121225154459 iis";
 		table = parse(query);
 
-		assertTrue(table.getTableNames().contains("iis"));
+		@SuppressWarnings("deprecation")
+		List<String> tableNames = table.getTableNames();
+		assertTrue(tableNames.contains("iis"));
 		assertEquals(date(2012, 1, 1, 3, 11, 1), table.getFrom());
 		assertEquals(date(2012, 12, 25, 15, 44, 59), table.getTo());
 	}
@@ -168,14 +245,16 @@ public class TableParserTest {
 		String query = "table duration=1d meta(\"logparser==trusguard\"), iis";
 		Table table = parse(query);
 
-		System.out.println(table.getTableNames());
-		assertTrue(table.getTableNames().contains("meta(\"logparser==trusguard\", *)"));
-		assertTrue(table.getTableNames().contains("iis"));
+		//System.out.println(table.getTableNames());
+		@SuppressWarnings("deprecation")
+		List<String> tableNames = table.getTableNames();
+		assertTrue(tableNames.contains("meta(\"logparser==trusguard\", *)"));
+		assertTrue(tableNames.contains("iis"));
 
 		query = "table duration=1d meta(\"logparser==trusguard\", \"n1:s*\", \"*:s2\", \"s3\"), iis";
 		table = parse(query);
 
-		System.out.println(table.getTableNames());
+		//System.out.println(table.getTableNames());
 		assertEquals("meta(\"logparser==trusguard\", n1:s*)", table.getTableSpecs().get(0).toString());
 		assertEquals("meta(\"logparser==trusguard\", *:s2)", table.getTableSpecs().get(1).toString());
 		assertEquals("meta(\"logparser==trusguard\", s3)", table.getTableSpecs().get(2).toString());
@@ -204,9 +283,11 @@ public class TableParserTest {
 		String query = "table duration=1d meta(\"logparser==trusguard\"), iis?";
 		Table table = parse(query);
 
-		System.out.println(table.getTableNames());
-		assertTrue(table.getTableNames().contains("meta(\"logparser==trusguard\", *)"));
-		assertTrue(table.getTableNames().contains("iis?"));
+		//System.out.println(table.getTableNames());
+		@SuppressWarnings("deprecation")
+		List<String> tableNames = table.getTableNames();
+		assertTrue(tableNames.contains("meta(\"logparser==trusguard\", *)"));
+		assertTrue(tableNames.contains("iis?"));
 
 		{
 			List<StorageObjectName> names = new ArrayList<StorageObjectName>();
@@ -250,11 +331,10 @@ public class TableParserTest {
 		LogTableRegistry mockTableRegistry = mock(LogTableRegistry.class);
 		when(mockTableRegistry.exists("iis")).thenReturn(true);
 		when(mockTableRegistry.exists("xtm")).thenReturn(true);
+		when(mockTableRegistry.exists("unauthorized")).thenReturn(true);
 		when(mockTableRegistry.getTableNames()).thenReturn(Arrays.asList("iis", "xtm"));
-
 		when(mockTableRegistry.getTableSchema("iis", true)).thenReturn(mockSchema("iis", null));
 		when(mockTableRegistry.getTableSchema("xtm", true)).thenReturn(mockSchema("xtm", "trusguard"));
-
 		return parse(query, mockTableRegistry);
 	}
 }

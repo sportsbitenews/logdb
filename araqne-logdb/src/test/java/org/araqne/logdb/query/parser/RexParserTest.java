@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.parser;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.regex.Pattern;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandPipe;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
@@ -240,5 +242,58 @@ public class RexParserTest {
 		
 		Rex rex = (Rex) parser.parse(null, s);
 		assertEquals("line", rex.getInputField());
+	}
+	
+	@Test
+	public void testError20900(){
+		RexParser parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		String query = "rex field= \"From: (?<from>.*) To: (?<to>.*)\"";
+		
+		try {
+			parser.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20900", e.getType());
+			assertEquals(10, e.getStartOffset());
+			assertEquals(10, e.getEndOffset());	
+		}
+	}
+	
+	@Test
+	public void testError20901(){
+		RexParser parser = new RexParser();
+		parser.setQueryParserService(queryParserService);
+		String query = "rex field=line \"From: (?<from>.*) To: (?<to>.*)";
+		try {
+			parser.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20901", e.getType());
+			assertEquals(15, e.getStartOffset());
+			assertEquals(46, e.getEndOffset());	
+		}
+		
+		query = "rex field=line From: (?<from>.*) To: (?<to>.*)\"";
+		try {
+			parser.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20901", e.getType());
+			assertEquals(15, e.getStartOffset());
+			assertEquals(46, e.getEndOffset());	
+		}
 	}
 }

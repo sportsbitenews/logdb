@@ -31,7 +31,7 @@
 		<repository>
 			<id>araqne</id>
 			<name>Araqne</name>
-			<url>scp://staging.araqne.org:2222/home/service/araqne/</url>
+			<url>sftp://staging.araqne.org:2222/home/service/araqne/</url>
 		</repository>
 	</distributionManagement>
 	<dependencyManagement>
@@ -241,6 +241,7 @@
 		<module>araqne-logstorage</module>
 		<module>araqne-snmptrap-parser</module>
 		<module>araqne-syslog-parser</module>
+		<module>araqne-krsyslog-parser</module>
 		<module>araqne-logdb-geoip</module>
 		<module>araqne-logdb-client</module>
 		<module>araqne-logdb-jython</module>
@@ -255,5 +256,7 @@
 		<module>araqne-logdb-crawler</module>
 		<module>araqne-logapi-nio</module>
 		<module>araqne-logdb-jms</module>
+		<module>araqne-logdb-hprof</module>
+		<module>araqne-logdb-jxpath</module>
 	</modules>
 </project>

@@ -24,14 +24,16 @@ import java.util.List;
 public class JsonLineWriterFactory implements LineWriterFactory {
 	private List<String> fields;
 	private String encoding;
+	private boolean append;
 
-	public JsonLineWriterFactory(List<String> fields, String encoding) {
+	public JsonLineWriterFactory(List<String> fields, String encoding, boolean append) {
 		this.fields = fields;
 		this.encoding = encoding;
+		this.append = append;
 	}
 
 	@Override
 	public LineWriter newWriter(String filePath) throws IOException {
-		return new JsonLineWriter(filePath, fields, encoding);
+		return new JsonLineWriter(filePath, fields, encoding, append);
 	}
 }

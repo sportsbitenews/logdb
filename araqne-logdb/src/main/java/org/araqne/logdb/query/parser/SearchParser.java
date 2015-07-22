@@ -15,6 +15,9 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.Arrays;
+import java.util.Map;
+
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
@@ -30,22 +33,16 @@ public class SearchParser extends AbstractQueryCommandParser {
 
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		String args = commandString.substring("search".length()).trim();
-		String exprToken = args;
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
+				Arrays.asList("limit"),
+				getFunctionRegistry());
 
-		Long limit = null;
-		int begin = args.indexOf("limit=");
-		if (begin >= 0) {
-			begin += "limit=".length();
-			int end = args.indexOf(" ", begin);
-			if (end > 0) {
-				limit = Long.valueOf(args.substring(begin, end));
-				exprToken = args.substring(end + 1);
-			} else {
-				limit = Long.valueOf(args.substring(begin));
-				exprToken = "";
-			}
-		}
+		@SuppressWarnings("unchecked")
+		Map<String, String> options = (Map<String, String>) r.value;
+		String exprToken = commandString.substring(r.next);
+		Long limit = null; 
+		if (options.containsKey("limit"))
+			limit = Long.parseLong(options.get("limit"));
 
 		Expression expr = null;
 		if (!exprToken.trim().isEmpty())

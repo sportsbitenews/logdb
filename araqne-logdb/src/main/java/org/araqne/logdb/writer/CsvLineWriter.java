@@ -22,6 +22,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,26 +43,33 @@ public class CsvLineWriter implements LineWriter {
 	private SimpleDateFormat sdf;
 
 	public CsvLineWriter(String path, List<String> fields, String encoding, char separator, boolean useBom,
-			Map<String, List<Integer>> boms) throws IOException {
+			Map<String, List<Integer>> boms, boolean append) throws IOException {
 		this.fields = fields;
 		this.csvLine = new String[fields.size()];
-		this.os = new FileOutputStream(new File(path));
+		this.os = new FileOutputStream(new File(path), append);
 		this.writer = new CSVWriter(new OutputStreamWriter(os, Charset.forName(encoding)), separator);
 
 		if (useBom) {
-			if (!boms.containsKey(encoding))
-				throw new QueryParseException("unsuported-encoding: " + encoding, -1);
+			if (!boms.containsKey(encoding)){
+				//throw new QueryParseExceptio("unsuported-encoding: " + encoding, -1);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("encoding",encoding);
+				throw new QueryParseException("30304", -1, -1, params);
+			}
 
 			for (Integer bom : boms.get(encoding))
 				os.write(bom);
 		}
 
-		this.writer.writeNext(fields.toArray(new String[0]));
+		// write header line
+		if (!append)
+			this.writer.writeNext(fields.toArray(new String[0]));
+		
 		this.sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 	}
 
 	@Override
-	public void write(Row m) throws IOException {
+	public synchronized void write(Row m) throws IOException {
 		int i = 0;
 		for (String field : fields) {
 			Object o = m.get(field);
@@ -78,7 +86,12 @@ public class CsvLineWriter implements LineWriter {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public synchronized void flush() throws IOException {
+		writer.flush();
+	}
+
+	@Override
+	public synchronized void close() throws IOException {
 		IoHelper.close(writer);
 		IoHelper.close(os);
 	}

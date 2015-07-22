@@ -47,6 +47,18 @@ public class SearchParserTest {
 		p.setFunctionRegistry(new FunctionRegistryImpl());
 		queryParserService = p;
 	}
+	
+	@Test
+	public void testSimple() {
+		SearchParser p = new SearchParser();
+		p.setQueryParserService(queryParserService);
+
+		Search search = (Search) p.parse(null, "search field == \"\" or field == \"\"");
+		Expression expr = search.getExpression();
+
+		assertEquals("search ((field == \"\") or (field == \"\"))", search.toString());
+		assertEquals("((field == \"\") or (field == \"\"))", expr.toString());
+	}
 
 	@Test
 	public void testWildSearch() {
@@ -230,16 +242,21 @@ public class SearchParserTest {
 
 	@Test
 	public void testMissingEscape() {
+		String query = "search limit=10 category == \"E002\"\n and ((method == \"<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>\"))";
 		try {
-			String query = "search limit=10 category == \"E002\"\n and ((method == \"<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>\"))";
 			SearchParser p = new SearchParser();
 			p.setQueryParserService(queryParserService);
 
 			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("quote-mismatch", e.getType());
-		}
+			if(e.isDebugMode()){
+				System.out.println(query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90203", e.getType());
+			assertEquals("category == \"E002\"\n and ((method == \"<iframe src=\"http://www.w3schools.com\">,,,,,,\"\",,\"<\"<<<\"<,,</iframe>\"))", e.getParams().get("value"));
+		} 
 	}
 
 	@Test

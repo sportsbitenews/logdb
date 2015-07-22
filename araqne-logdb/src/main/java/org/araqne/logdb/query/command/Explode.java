@@ -15,7 +15,6 @@
  */
 package org.araqne.logdb.query.command;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -38,26 +37,33 @@ public class Explode extends QueryCommand {
 	@Override
 	public void onPush(Row row) {
 		Object o = row.get(arrayFieldName);
-		if (o == null)
-			return;
-
 		if (o instanceof Collection) {
 			Collection<?> c = (Collection<?>) o;
-			ArrayList<Row> rows = new ArrayList<Row>(c.size());
+			RowBatch batch = new RowBatch();
+			batch.size = c.size();
+			batch.rows = new Row[batch.size];
+			
+			int i = 0;
 			for (Object e : c) {
 				HashMap<String, Object> copyMap = new HashMap<String, Object>(row.map());
 				Row copy = new Row(copyMap);
 				copy.put(arrayFieldName, e);
-				rows.add(copy);
+				batch.rows[i++] = copy;
 			}
-
+			pushPipe(batch);
+		} else if (o instanceof Object[]){
+			Object[] a = (Object[]) o;
 			RowBatch batch = new RowBatch();
-			batch.size = rows.size();
+			batch.size = a.length; 
 			batch.rows = new Row[batch.size];
 
 			int i = 0;
-			for (Row r : rows)
-				batch.rows[i++] = r;
+			for (Object e : a){
+				HashMap<String, Object> copyMap = new HashMap<String, Object>(row.map());
+				Row copy = new Row(copyMap);
+				copy.put(arrayFieldName, e);
+				batch.rows[i++] = copy;
+			}
 
 			pushPipe(batch);
 		} else {
@@ -82,19 +88,26 @@ public class Explode extends QueryCommand {
 				if (o instanceof Collection) {
 					Collection<?> c = (Collection<?>) o;
 					count += c.size();
+				} else if (o instanceof Object[]){
+					Object[] a = (Object[] ) o;
+					count += a.length;
 				} else
 					count++;
 			}
-
 		} else {
-			for (Row r : rowBatch.rows) {
-				Object o = r.get(arrayFieldName);
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+
+				Object o = row.get(arrayFieldName);
 				if (o == null)
 					continue;
 
 				if (o instanceof Collection) {
 					Collection<?> c = (Collection<?>) o;
 					count += c.size();
+				} else if (o instanceof Object[]){
+					Object[] a = (Object[] ) o;
+					count += a.length;
 				} else
 					count++;
 			}
@@ -124,12 +137,22 @@ public class Explode extends QueryCommand {
 						copy.put(arrayFieldName, e);
 						exploded[index++] = copy;
 					}
+				} else if (o instanceof Object[]) {
+					Object[] a = (Object[]) o;
+					for (Object e : a) {
+						HashMap<String, Object> copyMap = new HashMap<String, Object>(row.map());
+						Row copy = new Row(copyMap);
+						copy.put(arrayFieldName, e);
+						exploded[index++] = copy;
+					}
 				} else {
 					exploded[index++] = row;
 				}
 			}
 		} else {
-			for (Row row : rowBatch.rows) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+
 				Object o = row.get(arrayFieldName);
 				if (o == null)
 					continue;
@@ -137,6 +160,14 @@ public class Explode extends QueryCommand {
 				if (o instanceof Collection) {
 					Collection<?> c = (Collection<?>) o;
 					for (Object e : c) {
+						HashMap<String, Object> copyMap = new HashMap<String, Object>(row.map());
+						Row copy = new Row(copyMap);
+						copy.put(arrayFieldName, e);
+						exploded[index++] = copy;
+					}
+				} else if (o instanceof Object []) {
+					Object[] a = (Object[]) o;
+					for (Object e : a) {
 						HashMap<String, Object> copyMap = new HashMap<String, Object>(row.map());
 						Row copy = new Row(copyMap);
 						copy.put(arrayFieldName, e);

@@ -18,23 +18,27 @@ package org.araqne.logdb.query.expr;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 
-public class ToLong implements Expression {
+public class ToLong extends FunctionExpression {
 	private Expression valueExpr;
 
 	// 10 for decimal (reserved extension)
 	private int radix;
 
 	public ToLong(QueryContext ctx, List<Expression> exprs) {
+		super("long", exprs, 1);
+
 		this.valueExpr = exprs.get(0);
 		this.radix = 10;
 		if (exprs.size() > 1)
 			this.radix = (Integer) exprs.get(1).eval(null);
 
 		if (radix != 10)
-			throw new QueryParseException("invalid-argument", -1, "radix should be 10");
+			// throw new QueryParseException("invalid-argument", -1,
+			// "radix should be 10");
+			throw new QueryParseException("90840", -1, -1, null);
 	}
 
 	@Override
@@ -43,6 +47,22 @@ public class ToLong implements Expression {
 			Object v = valueExpr.eval(map);
 			if (v == null)
 				return null;
+
+			if (v instanceof Long)
+				return (Long) v;
+
+			if (v instanceof Short)
+				return (long) (Short) v;
+
+			if (v instanceof Integer)
+				return (long) (Integer) v;
+
+			if (v instanceof Double)
+				return ((Double) v).longValue();
+
+			if (v instanceof Float)
+				return ((Float) v).longValue();
+
 			String s = v.toString();
 			if (s.isEmpty())
 				return null;
@@ -51,10 +71,4 @@ public class ToLong implements Expression {
 			return null;
 		}
 	}
-
-	@Override
-	public String toString() {
-		return "long(" + valueExpr + ", " + radix + ")";
-	}
-
 }

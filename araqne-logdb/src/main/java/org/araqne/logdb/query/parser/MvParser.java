@@ -17,11 +17,13 @@ package org.araqne.logdb.query.parser;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Mv;
 
@@ -37,24 +39,39 @@ public class MvParser extends AbstractQueryCommandParser {
 		return "mv";
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("30500", new QueryErrorMessage("missing-field","잘못된 쿼리문 입니다."));
+		m.put("30501", new QueryErrorMessage("missing-field", "from 또는 to 옵션값이 없습니다."));
+		m.put("30502", new QueryErrorMessage("file-exists", "[file] 파일이 이미 존재합니다."));
+		return m;
+	}
+	
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
-			throw new QueryParseException("missing-field", commandString.length());
+		//	throw new QueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("30500", commandString.trim().length() -1, commandString.trim().length() -1 , null);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
 				Arrays.asList("from", "to"), getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		if (!options.containsKey("from") || !options.containsKey("to"))
-			throw new QueryParseException("missing-field", commandString.length());
-
+		//	throw new QueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("30501", getCommandName().length() + 1, commandString.length() -1 , null);
+			
 		String from = options.get("from");
 		String to = options.get("to");
 
-		if (new File(to).exists())
-			throw new QueryParseException("file-exists", -1, to);
-
+		if (new File(to).exists()){
+		//	throw new QueryParseException("file-exists", -1, to);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("file", to);
+			int offset = QueryTokenizer.findKeyword(commandString, to, QueryTokenizer.findIndexOffset(commandString, 2)); 
+			throw new QueryParseException("30502", offset, offset + to.length() -1 , params);
+	}
 		return new Mv(from, to);
 	}
 }

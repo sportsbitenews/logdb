@@ -121,7 +121,13 @@ public class NumberUtil {
 	public static Number div(Object o1, Object o2) {
 		Number n1 = getValue(o1, 0L);
 		Number n2 = getValue(o2, 0L);
-		return n1.doubleValue() / n2.doubleValue();
+
+		double n1v = n1.doubleValue();
+		double n2v = n2.doubleValue();
+		if (n2v == 0.0f)
+			return null;
+
+		return n1v / n2v;
 	}
 
 	public static Number mod(Object o1, Object o2) {

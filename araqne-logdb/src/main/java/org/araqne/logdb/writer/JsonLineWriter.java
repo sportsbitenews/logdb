@@ -41,8 +41,8 @@ public class JsonLineWriter implements LineWriter {
 	private List<String> fields;
 	private boolean hasFields;
 
-	public JsonLineWriter(String filePath, List<String> fields, String encoding) throws IOException {
-		this.fos = new FileOutputStream(new File(filePath));
+	public JsonLineWriter(String filePath, List<String> fields, String encoding, boolean append) throws IOException {
+		this.fos = new FileOutputStream(new File(filePath), append);
 		this.bos = new BufferedOutputStream(fos);
 		this.osw = new OutputStreamWriter(bos, Charset.forName(encoding));
 		this.lineSeparator = System.getProperty("line.separator");
@@ -51,7 +51,7 @@ public class JsonLineWriter implements LineWriter {
 	}
 
 	@Override
-	public void write(Row m) throws IOException {
+	public synchronized void write(Row m) throws IOException {
 		String line = null;
 		try {
 			if (!hasFields) {
@@ -75,7 +75,12 @@ public class JsonLineWriter implements LineWriter {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public synchronized void flush() throws IOException {
+		osw.flush();
+	}
+
+	@Override
+	public synchronized void close() throws IOException {
 		IoHelper.close(osw);
 		IoHelper.close(bos);
 		IoHelper.close(fos);

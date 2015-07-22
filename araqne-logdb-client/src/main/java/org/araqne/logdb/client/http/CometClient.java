@@ -41,7 +41,7 @@ import org.araqne.logdb.client.Message;
 import org.araqne.logdb.client.MessageException;
 import org.araqne.logdb.client.ParserFactoryInfo;
 import org.araqne.logdb.client.Privilege;
-import org.araqne.logdb.client.TableInfo;
+import org.araqne.logdb.client.TableSchemaInfo;
 import org.araqne.logdb.client.http.impl.CometSession;
 import org.araqne.logdb.client.http.impl.TrapListener;
 import org.slf4j.Logger;
@@ -305,13 +305,13 @@ public class CometClient implements TrapListener {
 	}
 
 	@SuppressWarnings("unchecked")
-	public List<TableInfo> listTables() throws IOException {
+	public List<TableSchemaInfo> listTables() throws IOException {
 		Message resp = session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.listTables");
-		List<TableInfo> tables = new ArrayList<TableInfo>();
+		List<TableSchemaInfo> tables = new ArrayList<TableSchemaInfo>();
 		Map<String, Object> m = (Map<String, Object>) resp.getParameters().get("tables");
 		for (String tableName : m.keySet()) {
 			Map<String, Object> params = (Map<String, Object>) m.get(tableName);
-			TableInfo tableInfo = getTableInfo(tableName, params);
+			TableSchemaInfo tableInfo = getTableInfo(tableName, params);
 			tables.add(tableInfo);
 		}
 
@@ -319,7 +319,7 @@ public class CometClient implements TrapListener {
 	}
 
 	@SuppressWarnings("unchecked")
-	public TableInfo getTableInfo(String tableName) throws IOException {
+	public TableSchemaInfo getTableInfo(String tableName) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("table", tableName);
 		Message resp = session.rpc("org.araqne.logdb.msgbus.ManagementPlugin.getTableInfo", params);
@@ -327,11 +327,11 @@ public class CometClient implements TrapListener {
 		return getTableInfo(tableName, (Map<String, Object>) resp.get("table"));
 	}
 
-	private TableInfo getTableInfo(String tableName, Map<String, Object> params) {
+	private TableSchemaInfo getTableInfo(String tableName, Map<String, Object> params) {
 		Map<String, String> metadata = new HashMap<String, String>();
 		for (Entry<String, Object> pair : params.entrySet())
 			metadata.put(pair.getKey(), pair.getValue() == null ? null : pair.getValue().toString());
-		return new TableInfo(tableName, metadata);
+		return new TableSchemaInfo(tableName, metadata);
 	}
 
 	public void setTableMetadata(String tableName, Map<String, String> config) throws IOException {

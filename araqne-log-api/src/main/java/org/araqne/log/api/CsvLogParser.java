@@ -5,13 +5,19 @@ import java.util.Map;
 public class CsvLogParser extends V1LogParser {
 	private final String targetField;
 	private final boolean includeTargetField;
+	private final String[] columnHeaders;
 	private CsvParser parser;
 
 	public CsvLogParser(boolean useTab, boolean useDoubleQuote, String[] columnHeaders, String targetField,
 			boolean includeTargetField) {
 		this.targetField = targetField;
+		this.columnHeaders = columnHeaders;
 		this.includeTargetField = includeTargetField;
 		parser = new CsvParser(useTab, useDoubleQuote, columnHeaders);
+	}
+
+	public String[] getColumnHeaders() {
+		return columnHeaders;
 	}
 
 	@Override

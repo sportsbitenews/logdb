@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logstorage</artifactId>
-	<version>2.8.10</version>
+	<version>3.0.9</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log Storage</name>
 	<build>
@@ -24,11 +24,13 @@
 						<Export-Package>
 							org.araqne.logstorage;version=${project.version},
 							org.araqne.logstorage.file;version=${project.version},
+							org.araqne.logstorage.dump;version=${project.version},
 							org.araqne.logstorage.backup;version=${project.version},
 							org.araqne.logstorage.repair;version=${project.version}
 						</Export-Package>
 						<Private-Package>
 							org.araqne.logstorage.engine,
+							org.araqne.logstorage.dump.engine,
 							org.araqne.logstorage.script
 						</Private-Package>
 						<Import-Package>
@@ -73,16 +75,11 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-api</artifactId>
-			<version>2.8.1</version>
+			<version>3.0.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.felix</groupId>
@@ -100,17 +97,17 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-confdb</artifactId>
-			<version>0.11.2</version>
+			<version>0.11.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-cron</artifactId>
-			<version>1.8.3</version>
+			<version>1.8.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.2.9</version>
+			<version>3.4.20</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jcraft</groupId>
@@ -119,7 +116,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-storage</artifactId>
-			<version>0.0.1</version>
+			<version>0.0.11</version>
 		</dependency>
 		<dependency>
 			<groupId>org.xerial.snappy</groupId>
@@ -129,6 +126,11 @@
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-all</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>14.0.1.1</version>
 		</dependency>
 	</dependencies>
 </project>

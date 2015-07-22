@@ -18,6 +18,7 @@ package org.araqne.logdb.metadata;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -29,20 +30,19 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
-import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.Row;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.storage.api.FilePath;
 
 @Component(name = "logdb-logdisk-metadata")
-public class LogDiskMetadataProvider implements MetadataProvider {
+public class LogDiskMetadataProvider implements MetadataProvider, FieldOrdering {
 
 	@Requires
 	private LogTableRegistry tableRegistry;
@@ -68,6 +68,11 @@ public class LogDiskMetadataProvider implements MetadataProvider {
 	public void stop() {
 		if (metadataService != null)
 			metadataService.removeProvider(this);
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return Arrays.asList("_time", "table", "disk_usage");
 	}
 
 	@Override

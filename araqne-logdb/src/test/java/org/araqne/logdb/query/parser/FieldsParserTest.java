@@ -15,13 +15,14 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.junit.Test;
 import static org.junit.Assert.*;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Fields;
+import org.junit.Test;
 
 public class FieldsParserTest {
+	
 	@Test
 	public void testSelectSingleField() {
 		FieldsParser p = new FieldsParser();
@@ -61,12 +62,36 @@ public class FieldsParserTest {
 
 	@Test
 	public void testBrokenFields() {
+		FieldsParser p = new FieldsParser();
+		String query = "fields - ";
+		
 		try {
-			FieldsParser p = new FieldsParser();
-			p.parse(null, "fields - ");
+			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("no-field-args", e.getType());
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20400", e.getType());
+			assertEquals(7, e.getStartOffset());
+			assertEquals(8, e.getEndOffset());	
 		}
+	}
+	
+	
+	// test for araqne/issue#714
+	@Test
+	public void testFieldNameTrimming() {
+		FieldsParser p = new FieldsParser();
+		Fields fields = (Fields) p.parse(null, "fields sip\t,\nsport,\ndip,\n dport ");
+
+		assertEquals(4, fields.getFields().size());
+		assertTrue(fields.isSelector());
+		assertEquals("sip", fields.getFields().get(0));
+		assertEquals("sport", fields.getFields().get(1));
+		assertEquals("dip", fields.getFields().get(2));
+		assertEquals("dport", fields.getFields().get(3));
+		assertEquals("fields sip, sport, dip, dport", fields.toString());
 	}
 }

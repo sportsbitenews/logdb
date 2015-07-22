@@ -27,21 +27,26 @@ import org.araqne.logdb.Strings;
  * @author xeraph
  * 
  */
-public class StrJoin implements Expression {
+public class StrJoin extends FunctionExpression {
 	private List<Expression> exprs;
 
 	private String sep;
 	private Expression array;
 
 	public StrJoin(QueryContext ctx, List<Expression> exprs) {
+		super("strjoin", exprs, 2);
+		
 		this.exprs = exprs;
 
-		if (exprs.size() != 2)
-			throw new QueryParseException("invalid-strjoin-args", -1);
+		if (exprs.size() > 2)
+//			throw new QueryParseException("invalid-strjoin-args", -1);
+			throw new QueryParseException("90780", -1, -1, null);
+
 
 		Object sepValue = exprs.get(0).eval(null);
 		if (sepValue == null)
-			throw new QueryParseException("strjoin-require-constant-separator", -1);
+//			throw new QueryParseException("strjoin-require-constant-separator", -1);
+			throw new QueryParseException("90781", -1, -1, null);
 
 		this.sep = sepValue.toString();
 		this.array = exprs.get(1);

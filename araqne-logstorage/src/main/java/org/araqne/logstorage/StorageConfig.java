@@ -16,12 +16,15 @@
 package org.araqne.logstorage;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.api.CollectionTypeHint;
 import org.araqne.api.FieldOption;
+import org.araqne.msgbus.Marshalable;
 
-public class StorageConfig {
+public class StorageConfig implements Marshalable {
 	/**
 	 * engine type
 	 */
@@ -92,4 +95,20 @@ public class StorageConfig {
 		this.configs = configs;
 	}
 
+	@Override
+	public Map<String, Object> marshal() {
+		Map<String, Object> cm = new HashMap<String, Object>();
+		for (TableConfig c : this.configs) {
+			if (c.getValues().size() < 2)
+				cm.put(c.getKey(), c.getValue());
+			else
+				cm.put(c.getKey(), c.getValues());
+		}
+		
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("type", type);
+		m.put("base_path", basePath);
+		m.put("configs", cm);
+		return m;
+	}
 }

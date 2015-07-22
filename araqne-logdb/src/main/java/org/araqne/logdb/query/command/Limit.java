@@ -76,5 +76,4 @@ public class Limit extends QueryCommand {
 			return "limit " + limit;
 		return "limit " + offset + " " + limit;
 	}
-
 }

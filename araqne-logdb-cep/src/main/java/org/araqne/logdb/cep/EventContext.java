@@ -118,8 +118,11 @@ public class EventContext {
 
 	public void addRow(Row row) {
 		synchronized (rows) {
-			if (rows.size() < maxRows)
+			if (rows.size() < maxRows) {
+				// deep copy is required. passed row can be modified later.
+				row = new Row(Row.clone(row.map()));
 				rows.add(row);
+			}
 		}
 	}
 

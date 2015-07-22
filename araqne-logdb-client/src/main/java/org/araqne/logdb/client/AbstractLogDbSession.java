@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.TimeoutException;
 
 import org.araqne.logdb.client.http.impl.TrapListener;
 
@@ -31,6 +32,7 @@ import org.araqne.logdb.client.http.impl.TrapListener;
  */
 public abstract class AbstractLogDbSession implements LogDbSession {
 	protected boolean isClosed;
+	protected boolean isLogin = false;
 	protected CopyOnWriteArraySet<TrapListener> listeners = new CopyOnWriteArraySet<TrapListener>();
 
 	@Override
@@ -45,11 +47,29 @@ public abstract class AbstractLogDbSession implements LogDbSession {
 
 	@Override
 	public void login(String loginName, String password, boolean force) throws IOException {
-		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("login_name", loginName);
-		params.put("password", password);
-
-		rpc("org.araqne.logdb.msgbus.ManagementPlugin.login", params);
+		try {
+			Map<String, Object> params = new HashMap<String, Object>();
+			params.put("login_name", loginName);
+			params.put("password", password);
+			params.put("use_error_return", true);
+	
+			Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.login", params);
+			if (resp.containsKey("error_code")) {
+				String errorCode = resp.getString("error_code");
+				isLogin = false;
+				throw new LoginFailureException(errorCode);
+			} else
+				isLogin = true;
+		} catch (MessageException e) {
+			isLogin = false;
+			if (e.getMessage() != null && e.getMessage().contains("msgbus-handler-not-found"))
+				throw new LoginFailureException("msgbus-handler-not-found");
+			else 
+				throw e;
+		} catch (IOException t) {
+			isLogin = false;
+			throw t;
+		}
 	}
 
 	@Override
@@ -59,23 +79,31 @@ public abstract class AbstractLogDbSession implements LogDbSession {
 
 	@Override
 	public Message rpc(String method) throws IOException {
-		return rpc(method, 0);
+		try {
+			return rpc(method, 0);
+		} catch (TimeoutException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	@Override
 	public Message rpc(String method, Map<String, Object> params) throws IOException {
-		return rpc(method, params, 0);
+		try {
+			return rpc(method, params, 0);
+		} catch (TimeoutException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	@Override
-	public Message rpc(String method, int timeout) throws IOException {
+	public Message rpc(String method, int timeout) throws IOException, TimeoutException {
 		Message req = new Message();
 		req.setMethod(method);
 		return rpc(req, timeout);
 	}
 
 	@Override
-	public Message rpc(String method, Map<String, Object> params, int timeout) throws IOException {
+	public Message rpc(String method, Map<String, Object> params, int timeout) throws IOException, TimeoutException {
 		Message req = new Message();
 		req.setMethod(method);
 		req.setParameters(params);
@@ -109,8 +137,6 @@ public abstract class AbstractLogDbSession implements LogDbSession {
 
 			isClosed = true;
 
-			// do not wait
-			rpc("org.araqne.logdb.msgbus.ManagementPlugin.logout", 1);
 		} catch (Throwable t) {
 		}
 	}

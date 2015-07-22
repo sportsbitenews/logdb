@@ -41,7 +41,7 @@ public class IndexBlockV3Header extends IndexBlock<IndexBlockV3Header>{
 	// except this block's log count
 	public long ascLogCount;
 	public long dscLogCount;
-	private long dataBlockLen;
+	private Long dataBlockLen;
 
 	// for unserialize
 	public IndexBlockV3Header() {
@@ -133,9 +133,64 @@ public class IndexBlockV3Header extends IndexBlock<IndexBlockV3Header>{
 	public void setDataBlockLen(long dataBlockLen) {
 		this.dataBlockLen = dataBlockLen;
 	}
-	
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (int) (ascLogCount ^ (ascLogCount >>> 32));
+		result = prime * result + ((dataBlockLen == null) ? 0 : dataBlockLen.hashCode());
+		result = prime * result + (int) (dataFp ^ (dataFp >>> 32));
+		result = prime * result + (int) (dscLogCount ^ (dscLogCount >>> 32));
+		result = prime * result + (int) (firstId ^ (firstId >>> 32));
+		result = prime * result + (int) (fp ^ (fp >>> 32));
+		result = prime * result + id;
+		result = prime * result + (isReserved ? 1231 : 1237);
+		result = prime * result + logCount;
+		result = prime * result + (int) (maxTime ^ (maxTime >>> 32));
+		result = prime * result + (int) (minTime ^ (minTime >>> 32));
+		return result;
+	}
+
 	@Override
 	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		IndexBlockV3Header other = (IndexBlockV3Header) obj;
+		if (ascLogCount != other.ascLogCount)
+			return false;
+		if (dataBlockLen == null) {
+			if (other.dataBlockLen != null)
+				return false;
+		} else if (!dataBlockLen.equals(other.dataBlockLen))
+			return false;
+		if (dataFp != other.dataFp)
+			return false;
+		if (dscLogCount != other.dscLogCount)
+			return false;
+		if (firstId != other.firstId)
+			return false;
+		if (fp != other.fp)
+			return false;
+		if (id != other.id)
+			return false;
+		if (isReserved != other.isReserved)
+			return false;
+		if (logCount != other.logCount)
+			return false;
+		if (maxTime != other.maxTime)
+			return false;
+		if (minTime != other.minTime)
+			return false;
+		return true;
+	}
+
+	@Override
+	public boolean isEquivalent(IndexBlockV3Header obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -151,7 +206,9 @@ public class IndexBlockV3Header extends IndexBlock<IndexBlockV3Header>{
 			return false;
 		if (dataFp != other.dataFp)
 			return false;
-		if (dataBlockLen != other.dataBlockLen)
+		if (dataBlockLen == null || other.dataBlockLen == null) {
+			throw new IllegalArgumentException("not nullable item: dataBlockLen");
+		} else if (!dataBlockLen.equals(other.dataBlockLen))
 			return false;
 		return true;
 	}

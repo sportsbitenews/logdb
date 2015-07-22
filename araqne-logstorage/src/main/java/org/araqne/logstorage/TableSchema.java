@@ -24,9 +24,11 @@ import org.araqne.api.CollectionTypeHint;
 import org.araqne.api.FieldOption;
 import org.araqne.confdb.CollectionName;
 import org.araqne.log.api.FieldDefinition;
+import org.araqne.log.api.msgbus.Marshaler;
+import org.araqne.msgbus.Marshalable;
 
 @CollectionName("table")
-public class TableSchema {
+public class TableSchema implements Marshalable {
 	/**
 	 * unique table name in a node
 	 */
@@ -162,5 +164,33 @@ public class TableSchema {
 
 	public void setMetadata(Map<String, String> metadata) {
 		this.metadata = metadata;
+	}
+
+	@Override
+	public Map<String, Object> marshal() {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("name", name);
+		m.put("id", id);
+		m.put("metadata", metadata);
+		m.put("primary_storage", primaryStorage.marshal());
+
+		if (replicaStorage != null)
+			m.put("replica_storage", replicaStorage.marshal());
+
+		if (secondaryStorages != null && !secondaryStorages.isEmpty())
+			m.put("secondary_storages", Marshaler.marshal(secondaryStorages));
+
+		if (fieldDefinitions != null)
+			m.put("fields", serializeFields());
+
+		return m;
+	}
+
+	private List<String> serializeFields() {
+		List<String> l = new ArrayList<String>();
+		for (FieldDefinition d : fieldDefinitions)
+			l.add(d.toString());
+
+		return l;
 	}
 }

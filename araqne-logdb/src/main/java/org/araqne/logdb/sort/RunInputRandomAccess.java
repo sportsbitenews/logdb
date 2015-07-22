@@ -28,7 +28,7 @@ class RunInputRandomAccess {
 	public Run run;
 	private RandomAccessFile indexRaf;
 	private RandomAccessFile dataRaf;
-	private byte[] buf = new byte[64 * 1024];
+	private byte[] reuseBuffer = new byte[64 * 1024];
 
 	public RunInputRandomAccess(Run run) throws IOException {
 		this.run = run;
@@ -53,12 +53,13 @@ class RunInputRandomAccess {
 
 		dataRaf.seek(pos);
 		int len = dataRaf.readInt();
-
-		int readBytes = dataRaf.read(buf, 0, len);
+		
+		byte[] b = IoHelper.ensureBuffer(reuseBuffer, len);
+		int readBytes = dataRaf.read(b, 0, len);
 		if (readBytes != len)
 			throw new IOException("insufficient merge data block, expected=" + len + ", actual=" + readBytes);
 
-		return (Item) EncodingRule.decode(ByteBuffer.wrap(buf, 0, len), SortCodec.instance);
+		return (Item) EncodingRule.decode(ByteBuffer.wrap(b, 0, len), SortCodec.instance);
 	}
 
 	public void close() {

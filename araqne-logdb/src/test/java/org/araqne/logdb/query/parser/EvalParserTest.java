@@ -13,7 +13,7 @@ import org.junit.Test;
 
 public class EvalParserTest {
 	private QueryParserService queryParserService;
-
+	
 	@Before
 	public void setup() {
 		QueryParserServiceImpl p = new QueryParserServiceImpl();
@@ -35,12 +35,19 @@ public class EvalParserTest {
 	public void testBrokenEval1() {
 		EvalParser p = new EvalParser();
 		p.setQueryParserService(queryParserService);
-
+		String query = "eval test";
+		
 		try {
-			p.parse(null, "eval ");
+			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("assign-token-not-found", e.getType());
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20100", e.getType());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(8, e.getEndOffset());	
 		}
 	}
 
@@ -48,12 +55,34 @@ public class EvalParserTest {
 	public void testBrokenEval2() {
 		EvalParser p = new EvalParser();
 		p.setQueryParserService(queryParserService);
-
+		String query = "eval   =";
+		
 		try {
-			p.parse(null, "eval =");
+			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("field-name-not-found", e.getType());
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20101", e.getType());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(6, e.getEndOffset());	
+		}
+		
+		query = "eval =";
+		
+		try {
+			p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20101", e.getType());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(4, e.getEndOffset());	
 		}
 	}
 
@@ -61,15 +90,22 @@ public class EvalParserTest {
 	public void testBrokenEval3() {
 		EvalParser p = new EvalParser();
 		p.setQueryParserService(queryParserService);
-
+		String query = "eval n=    ";
+		
 		try {
-			p.parse(null, "eval n=");
+			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("expression-not-found", e.getType());
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20102", e.getType());
+			assertEquals(7, e.getStartOffset());
+			assertEquals(10, e.getEndOffset());	
 		}
 	}
-
+	
 	@Test
 	public void testEvalQueryGeneration() {
 		EvalParser p = new EvalParser();
@@ -78,4 +114,21 @@ public class EvalParserTest {
 		Eval eval = (Eval) p.parse(null, "eval n=1+2");
 		assertEquals("eval n=(1 + 2)", eval.toString());
 	}
+	
+	@Test
+	public void testError90100() {
+		EvalParser p = new EvalParser();
+		p.setQueryParserService(queryParserService);
+		try {
+			p.parse(null, "eval n=abs(-1+ )");
+			fail();
+		} catch (QueryParseException e) {
+			if (e.isDebugMode()) {
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90100", e.getType());
+			assertEquals("abs(-1+ )", e.getParams().get("value"));
+		}
+	}
+	
 }

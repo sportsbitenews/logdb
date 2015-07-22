@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.impl.InetAddresses;
 
 /**
@@ -29,31 +28,46 @@ import org.araqne.logdb.impl.InetAddresses;
  * @author darkluster
  * 
  */
-public class Network implements Expression {
+public class Network extends FunctionExpression {
+	private static final byte[][] MASK_BITS;
 	private Expression valueExpr;
-	private int maskNumber;
-	private byte[] mask;
+	private Expression maskExpr;
 
-	public Network(QueryContext ctx, List<Expression> exprs) {
-		this.valueExpr = exprs.get(0);
-		this.maskNumber = Integer.parseInt(exprs.get(1).eval(null).toString());
-		if (maskNumber < 0 || maskNumber > 128)
-			throw new QueryParseException("invalid-mask", -1);
-		initializeMask(maskNumber);
+	static {
+		MASK_BITS = new byte[128][16];
+		for (int i = 0; i < 128; i++) {
+			MASK_BITS[i] = initializeMask(i);
+		}
 	}
 
-	private void initializeMask(int maskNumber) {
-		mask = new byte[16];
-		for (int i = 0; i < maskNumber; i++) {
-			int index = i / 8;
-			mask[index] |= 1 << 7 - (i % 8);
-		}
+	public Network(QueryContext ctx, List<Expression> exprs) {
+		super("network", exprs, 2);
+		this.valueExpr = exprs.get(0);
+		this.maskExpr = exprs.get(1);
 	}
 
 	@Override
 	public Object eval(Row map) {
 		Object value = valueExpr.eval(map);
 		if (value == null)
+			return null;
+
+		Object maskValue = maskExpr.eval(map);
+		if (maskValue == null)
+			return null;
+
+		int maskNumber = -1;
+		if (maskValue instanceof Integer) {
+			maskNumber = (Integer) maskValue;
+		} else if (maskValue instanceof Long) {
+			maskNumber = ((Long) maskValue).intValue();
+		} else if (maskValue instanceof Short) {
+			maskNumber = ((Short) maskValue).intValue();
+		} else {
+			return null;
+		}
+
+		if (maskNumber < 0 || maskNumber > 128)
 			return null;
 
 		if (value instanceof InetAddress)
@@ -71,6 +85,7 @@ public class Network implements Expression {
 		else if (length == 16 && (maskNumber < 0 || maskNumber > 128))
 			return null;
 
+		byte[] mask = MASK_BITS[maskNumber];
 		byte[] ipByte = ip.getAddress();
 		byte[] result = new byte[length];
 		for (int i = 0; i < length; i++) {
@@ -82,5 +97,14 @@ public class Network implements Expression {
 		} catch (UnknownHostException e) {
 			return null;
 		}
+	}
+
+	private static byte[] initializeMask(int maskNumber) {
+		byte[] mask = new byte[16];
+		for (int i = 0; i < maskNumber; i++) {
+			int index = i / 8;
+			mask[index] |= 1 << 7 - (i % 8);
+		}
+		return mask;
 	}
 }

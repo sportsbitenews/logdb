@@ -18,18 +18,18 @@ package org.araqne.logdb.query.expr;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.araqne.logdb.Row;
 
-public class Ip2Long implements Expression {
-	private final Logger logger = LoggerFactory.getLogger(Ip2Long.class);
+
+public class Ip2Long extends FunctionExpression {
 	private Expression valueExpr;
-
 	public Ip2Long(QueryContext ctx, List<Expression> exprs) {
-		if (exprs.size() != 1)
-			throw new QueryParseException("invalid-ip2long-args", -1);
+		super("ip2long", exprs, 1);
+		
+		if (exprs.size() > 1)
+//			throw new QueryParseException("invalid-ip2long-args", -1);
+			throw new QueryParseException("90710", -1, -1, null);
 		this.valueExpr = exprs.get(0);
 	}
 
@@ -39,29 +39,80 @@ public class Ip2Long implements Expression {
 		if (value == null)
 			return null;
 
-		return convertToLong(value.toString());
+		return convert(value.toString());
 	}
 
-	private Long convertToLong(String targetIp) {
-		String[] ipParts = targetIp.split("\\.");
-		if (ipParts.length != 4)
-			return null;
+	public static Long convert(String ip) {
+		int numCount = 0;
+		int digitCount = 0;
+		int[] numbers = new int[4];
+		int[] digits = new int[3];
+		int len = ip.length();
 
-		try {
-			long result = 0;
-			for (String ipPart : ipParts) {
-				int part = Integer.parseInt(ipPart);
-				if (part < 0 || part > 255)
+		for (int i = 0; i < len; i++) {
+			char c = ip.charAt(i);
+			if (c == '.') {
+				int num = 0;
+				switch (digitCount) {
+				case 1:
+					num = digits[0];
+					break;
+				case 2:
+					num = digits[0] * 10 + digits[1];
+					break;
+				case 3:
+					num = digits[0] * 100 + digits[1] * 10 + digits[2];
+					break;
+				default:
 					return null;
-				result <<= 8;
-				result |= part;
+				}
+
+				if (num < 0 || num > 255)
+					return null;
+
+				if (numCount >= 4)
+					return null;
+
+				numbers[numCount++] = num;
+
+				digitCount = 0;
+			} else if (c >= '0' && c <= '9') {
+				if (digitCount >= 3)
+					return null;
+				digits[digitCount++] = c - '0';
+			} else {
+				return null;
 			}
-			return result;
-		} catch (Throwable t) {
-			if (logger.isDebugEnabled())
-				logger.debug("araqne logdb: ip2long failed, value " + targetIp, t);
+		}
+
+		int num = 0;
+		switch (digitCount) {
+		case 1:
+			num = digits[0];
+			break;
+		case 2:
+			num = digits[0] * 10 + digits[1];
+			break;
+		case 3:
+			num = digits[0] * 100 + digits[1] * 10 + digits[2];
+			break;
+		default:
 			return null;
 		}
-	}
 
+		if (num < 0 || num > 255)
+			return null;
+
+		if (numCount >= 4)
+			return null;
+
+		numbers[numCount++] = num;
+
+		long result = 0;
+		for (int part : numbers) {
+			result <<= 8;
+			result |= part;
+		}
+		return result;
+	}
 }

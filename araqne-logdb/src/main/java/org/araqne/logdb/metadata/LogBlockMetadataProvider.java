@@ -3,19 +3,23 @@ package org.araqne.logdb.metadata;
 import java.io.IOException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logstorage.DateUtil;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
@@ -29,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component(name = "logdb-logblock-metadata")
-public class LogBlockMetadataProvider implements MetadataProvider {
+public class LogBlockMetadataProvider implements MetadataProvider, FieldOrdering {
 	private final Logger logger = LoggerFactory.getLogger(LogBlockMetadataProvider.class);
 
 	@Requires
@@ -44,6 +48,12 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 	@Requires
 	private LogFileServiceRegistry logFileServiceRegistry;
 
+	private List<String> fields;
+	
+	public LogBlockMetadataProvider() {
+		this.fields = Arrays.asList("table", "block_id", "min_time", "max_time", "ver", "reserved");
+	}
+	
 	@Validate
 	public void start() {
 		metadataService.addProvider(this);
@@ -57,7 +67,7 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 
 	@Override
 	public String getType() {
-		return "block";
+		return "logblock";
 	}
 
 	@Override
@@ -77,8 +87,7 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 
 		FilePath dir = storage.getTableDirectory(tableName);
 
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-		String dateText = dateFormat.format(day);
+		String dateText = DateUtil.getDayText(day);
 
 		FilePath indexPath = dir.newFilePath(dateText + ".idx");
 		FilePath dataPath = dir.newFilePath(dateText + ".dat");
@@ -105,6 +114,8 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 				m.put("compressed_size", data.get("compressed_size"));
 				m.put("iv", data.get("iv"));
 				m.put("signature", data.get("signature"));
+				Object reserved = data.get("reserved");
+				m.put("reserved", reserved == null? false: reserved);
 				callback.onPush(new Row(m));
 			}
 		} catch (IOException e) {
@@ -121,5 +132,10 @@ public class LogBlockMetadataProvider implements MetadataProvider {
 				reader.close();
 			}
 		}
+	}
+	
+	@Override
+	public List<String> getFieldOrder() {
+		return fields;
 	}
 }

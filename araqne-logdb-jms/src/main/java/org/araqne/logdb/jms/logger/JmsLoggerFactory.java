@@ -28,7 +28,7 @@ import org.araqne.log.api.AbstractLoggerFactory;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.LoggerSpecification;
-import org.araqne.log.api.StringConfigType;
+import org.araqne.log.api.MutableStringConfigType;
 import org.araqne.logdb.jms.JmsProfileRegistry;
 
 @Component(name = "jms-logger-factory")
@@ -55,15 +55,16 @@ public class JmsLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption profile = new StringConfigType("jms_profile", t("JMS Profile", "JMS 프로파일"), t("JMS profile name",
-				"JMS 프로파일 이름"), true);
+		LoggerConfigOption profile = new MutableStringConfigType("jms_profile", t("JMS Profile", "JMS 프로파일", "JMSプロファイル"), t(
+				"JMS profile name", "JMS 프로파일 이름", "JMSプロファイル名"), true);
 		return Arrays.asList(profile);
 	}
 
-	private Map<Locale, String> t(String en, String ko) {
+	private Map<Locale, String> t(String en, String ko, String jp) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, en);
 		m.put(Locale.KOREAN, ko);
+		m.put(Locale.JAPANESE, jp);
 		return m;
 	}
 

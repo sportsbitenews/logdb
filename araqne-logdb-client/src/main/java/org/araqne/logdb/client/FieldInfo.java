@@ -15,6 +15,9 @@
  */
 package org.araqne.logdb.client;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * 테이블 스키마를 구성하는 개별 필드의 정보를 표현합니다.
  * 
@@ -28,6 +31,24 @@ public class FieldInfo {
 
 	// 0 for unknown
 	private int length;
+	
+	public static FieldInfo parse(String s) {
+		if (s == null)
+			throw new IllegalArgumentException("field definition should not be null");
+
+		Pattern p = Pattern.compile("(\\S+)\\s+([^() ]+)(?:\\s*\\(\\s*(\\d+)\\s*\\))*");
+		Matcher m = p.matcher(s);
+		if (!m.find())
+			throw new IllegalStateException("invalid field definition format: " + s);
+
+		String fieldName = m.group(1);
+		String type = m.group(2);
+		int len = 0;
+		if (m.group(3) != null)
+			len = Integer.valueOf(m.group(3));
+
+		return new FieldInfo(fieldName, type, len);
+	}
 
 	public FieldInfo() {
 	}

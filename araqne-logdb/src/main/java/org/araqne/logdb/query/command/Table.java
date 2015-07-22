@@ -21,9 +21,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
@@ -34,6 +36,7 @@ import org.araqne.log.api.LogParserRegistry;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.DefaultLogParserBuilder;
 import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
@@ -47,11 +50,12 @@ import org.araqne.logstorage.LogCallback;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogTraverseCallback;
+import org.araqne.logstorage.TableScanRequest;
 import org.araqne.logstorage.WrongTimeTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Table extends DriverQueryCommand {
+public class Table extends DriverQueryCommand implements FieldOrdering {
 	private final Logger logger = LoggerFactory.getLogger(Table.class);
 	private AccountService accountService;
 	private LogStorage storage;
@@ -74,11 +78,20 @@ public class Table extends DriverQueryCommand {
 	}
 
 	@Override
+	public List<String> getFieldOrder() {
+		return getParserFieldOrder();
+	}
+
+	@Override
 	public void run() {
-		if (params.window != null)
-			receiveTableInputs();
-		else
-			scanTables();
+		try {
+			if (params.window != null)
+				receiveTableInputs();
+			else
+				scanTables();
+		} catch (Exception e) {
+			throw new RuntimeException(String.format("Exception while running Table command: [%s] ", this.toString()), e);
+		}
 	}
 
 	private void receiveTableInputs() {
@@ -105,20 +118,81 @@ public class Table extends DriverQueryCommand {
 		}
 	}
 
+	private List<String> getParserFieldOrder() {
+		// support unit test
+		if (tableRegistry == null)
+			return null;
+
+		LogParserBuilder builder = null;
+		for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
+			// table may not exist in federation query mode
+			if (!params.raw && tableRegistry.exists(tableName.getTable())) {
+				builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry, tableName.getTable());
+			}
+		}
+
+		if (builder == null)
+			return null;
+
+		LogParser parser = builder.build();
+		if (parser instanceof FieldOrdering) {
+			LinkedList<String> l = new LinkedList<String>();
+			List<String> fo = ((FieldOrdering) parser).getFieldOrder();
+			if (fo != null) {
+				l.addAll(fo);
+			}
+			reorderSystemFields(l);
+			return l;
+		} else if (parser != null) {
+			List<FieldDefinition> fieldDefinitions = parser.getFieldDefinitions();
+			if (fieldDefinitions != null) {
+				LinkedList<String> l = new LinkedList<String>();
+				for (FieldDefinition def : fieldDefinitions)
+					l.add(def.getName());
+
+				reorderSystemFields(l);
+				return l;
+			}
+		}
+		return null;
+	}
+
+	private void reorderSystemFields(LinkedList<String> l) {
+		// remove potentially duplicated field name first
+		l.remove("_time");
+		l.remove("_table");
+		l.remove("_id");
+
+		l.addFirst("_id");
+		l.addFirst("_time");
+		l.addFirst("_table");
+	}
+
 	private void scanTables() {
 		try {
 			ResultSink sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
 			boolean isSuppressedBugAlert = false;
 
 			for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
-				LogParserBuilder builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
-						tableName.getTable());
-				if (isSuppressedBugAlert)
-					builder.suppressBugAlert();
+				// table may not exist in federation query mode
+				if (!tableRegistry.exists(tableName.getTable()))
+					continue;
 
-				storage.search(tableName.getTable(), params.from, params.to, builder, new LogTraverseCallbackImpl(sink));
+				LogParserBuilder builder = null;
 
-				isSuppressedBugAlert = isSuppressedBugAlert || builder.isBugAlertSuppressed();
+				if (!params.raw) {
+					builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry,
+							tableName.getTable());
+					if (isSuppressedBugAlert)
+						builder.suppressBugAlert();
+				}
+
+				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder,
+						new LogTraverseCallbackImpl(sink));
+				req.setAsc(params.isAsc());
+				storage.search(req);
+
+				isSuppressedBugAlert = isSuppressedBugAlert || (builder != null && builder.isBugAlertSuppressed());
 				if (sink.isEof())
 					break;
 			}
@@ -236,6 +310,10 @@ public class Table extends DriverQueryCommand {
 	}
 
 	private boolean isAccessible(StorageObjectName name) {
+		// support unit test
+		if (query == null)
+			return true;
+
 		return accountService.checkPermission(query.getContext().getSession(), name.getTable(), Permission.READ);
 	}
 
@@ -250,6 +328,7 @@ public class Table extends DriverQueryCommand {
 	}
 
 	private static class ResultSink extends LogTraverseCallback.Sink {
+		private final Logger sinkLog = LoggerFactory.getLogger(ResultSink.class);
 		private final Table self;
 
 		public ResultSink(Table self, long offset, long limit, boolean ordered) {
@@ -259,6 +338,10 @@ public class Table extends DriverQueryCommand {
 
 		@Override
 		protected void processLogs(List<Log> logs) {
+			if (sinkLog.isDebugEnabled()) {
+				sinkLog.debug("araqne logdb: table {} push [{}] rows", self.getTableSpecs(), logs.size());
+			}
+
 			RowBatch batch = new RowBatch();
 			batch.size = logs.size();
 			batch.rows = new Row[batch.size];
@@ -286,7 +369,8 @@ public class Table extends DriverQueryCommand {
 		@Override
 		public boolean isInterrupted() {
 			if (task.getStatus() == QueryTask.TaskStatus.CANCELED) {
-				logger.debug("araqne logdb: table scan task canceled, [{}]", Table.this.toString());
+				if (logger.isDebugEnabled())
+					logger.debug("araqne logdb: table scan task canceled, [{}]", Table.this.toString());
 				return true;
 			}
 
@@ -312,10 +396,12 @@ public class Table extends DriverQueryCommand {
 		private long offset;
 		private long limit;
 		private boolean ordered = true;
+		private boolean asc;
 		private Date from;
 		private Date to;
 		private TimeSpan window;
 		private String parserName;
+		private boolean raw;
 
 		public List<TableSpec> getTableSpecs() {
 			return tableNames;
@@ -381,6 +467,21 @@ public class Table extends DriverQueryCommand {
 			this.ordered = ordered;
 		}
 
+		public boolean isAsc() {
+			return asc;
+		}
+
+		public void setAsc(boolean asc) {
+			this.asc = asc;
+		}
+
+		public boolean isRaw() {
+			return raw;
+		}
+
+		public void setRaw(boolean raw) {
+			this.raw = raw;
+		}
 	}
 
 	@Override
@@ -402,6 +503,12 @@ public class Table extends DriverQueryCommand {
 
 		if (params.getWindow() != null)
 			s += " window=" + params.getWindow();
+
+		if (params.isRaw())
+			s += " raw=t";
+
+		if (params.isAsc())
+			s += " order=asc";
 
 		return s + " " + Strings.join(getTableNames(), ", ");
 	}
@@ -459,7 +566,11 @@ public class Table extends DriverQueryCommand {
 				}
 			} else {
 				for (Log log : logBatch) {
-					Row row = new Row(new HashMap<String, Object>(log.getData()));
+					HashMap<String, Object> m = new HashMap<String, Object>(log.getData());
+					m.put("_table", tableName);
+					m.put("_id", log.getId());
+					m.put("_time", log.getDate());
+					Row row = new Row(m);
 					rows.add(row);
 				}
 			}

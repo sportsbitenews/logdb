@@ -29,13 +29,12 @@ import org.araqne.log.api.LogParserBuilder;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
 import org.araqne.logstorage.Log;
-import org.araqne.logstorage.LogTraverseCallback;
+import org.araqne.logstorage.TableScanRequest;
 import org.araqne.logstorage.WrongTimeTypeException;
 import org.araqne.storage.api.FilePath;
 
 public abstract class LogFileReader {
-	public abstract void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder,
-			LogTraverseCallback callback, boolean doParallel) throws IOException, InterruptedException;
+	public abstract void traverse(TableScanRequest req) throws IOException, InterruptedException;
 
 	public abstract LogRecordCursor getCursor() throws IOException;
 

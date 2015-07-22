@@ -30,18 +30,20 @@ public class CsvLineWriterFactory implements LineWriterFactory {
 	private char separator;
 	private boolean useBom;
 	private Map<String, List<Integer>> boms;
+	private boolean append;
 
-	public CsvLineWriterFactory(List<String> fields, String encoding, char separator, boolean useBom) {
+	public CsvLineWriterFactory(List<String> fields, String encoding, char separator, boolean useBom, boolean append) {
 		this.fields = fields;
 		this.encoding = encoding;
 		this.separator = separator;
 		this.useBom = useBom;
 		this.boms = getBoms();
+		this.append = append;
 	}
 
 	@Override
 	public LineWriter newWriter(String filePath) throws IOException {
-		return new CsvLineWriter(filePath, fields, encoding, separator, useBom, boms);
+		return new CsvLineWriter(filePath, fields, encoding, separator, useBom, boms, append);
 	}
 
 	// TODO Integer -> byte[]

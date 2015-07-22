@@ -16,12 +16,14 @@
 package org.araqne.logdb.query.parser;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Sort;
 import org.araqne.logdb.query.command.Sort.SortField;
@@ -31,6 +33,13 @@ public class SortParser extends AbstractQueryCommandParser {
 	@Override
 	public String getCommandName() {
 		return "sort";
+	}
+
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("21600", new QueryErrorMessage("need-column", "정렬할 필드명을 입력하십시오."));
+		return m;
 	}
 
 	@Override
@@ -48,8 +57,10 @@ public class SortParser extends AbstractQueryCommandParser {
 			List<SortField> fields = SortField.parseSortFields(commandString, r);
 			return new Sort(count, fields.toArray(new SortField[0]));
 		} catch (QueryParseException e) {
-			if (e.getType().equals("need-string-token"))
-				throw new QueryParseException("need-column", r.next);
+			//if (e.getType().equals("need-string-token"))
+			//	throw new QueryParseException("need-column", r.next);
+			if (e.getType().equals("90004"))
+				throw new QueryParseException("21600", r.next, commandString.length() - 1, null);
 			throw e;
 		}
 	}

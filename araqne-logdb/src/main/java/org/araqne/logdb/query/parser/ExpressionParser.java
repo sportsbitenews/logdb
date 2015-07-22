@@ -19,10 +19,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.text.Normalizer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
+import java.util.StringTokenizer;
 
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
@@ -48,6 +52,12 @@ public class ExpressionParser {
 			Object o = contextReference.eval(null);
 			if (o == null)
 				return "";
+			
+			if (o instanceof Date) {
+				SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
+				return df.format(o);
+			}
+
 			return o.toString();
 		}
 
@@ -188,41 +198,53 @@ public class ExpressionParser {
 	
 
 	public static Expression parse(QueryContext context, String s, ParsingRule r) {
-		if (s == null)
-			throw new IllegalArgumentException("expression string should not be null");
+		try {
+			if (s == null)
+				throw new IllegalArgumentException("expression string should not be null");
 
-		s = Normalizer.normalize(s, Normalizer.Form.NFC);
-		s = normalizeQueryStr(s);
-		s = s.replaceAll("\t", "    ");
-		s = s.replaceAll("\n", " ");
-		s = s.replaceAll("\r", " ");
-		List<Term> terms = tokenize(s, r);
-		List<Term> output = convertToPostfix(terms, r);
-		Stack<Expression> exprStack = new Stack<Expression>();
-		OpEmitterFactory of = r.getOpEmmiterFactory();
-		TermEmitterFactory tf = r.getTermEmitterFactory();
-		FuncEmitterFactory ff = r.getFuncEmitterFactory();
+			s = Normalizer.normalize(s, Normalizer.Form.NFC);
+			s = normalizeQueryStr(s);
+			s = s.replaceAll("\t", "    ");
+			s = s.replaceAll("\n", " ");
+			s = s.replaceAll("\r", " ");
+			List<Term> terms = tokenize(s, r);
+			List<Term> output = convertToPostfix(terms, r);
+			Stack<Expression> exprStack = new Stack<Expression>();
+			OpEmitterFactory of = r.getOpEmmiterFactory();
+			TermEmitterFactory tf = r.getTermEmitterFactory();
+			FuncEmitterFactory ff = r.getFuncEmitterFactory();
 
-		for (Term term : output) {
-			if (r.getOpTerm().isInstance(term)) {
-				of.emit(exprStack, term);
-			} else if (term instanceof TokenTerm) {
-				// parse token expression (variable or numeric constant)
-				TokenTerm t = (TokenTerm) term;
-				tf.emit(exprStack, t);
-			} else if (term instanceof FuncTerm) {
-				// parse function expression
-				FuncTerm f = (FuncTerm) term;
-				ff.emit(context, exprStack, f);
-			} else {
-				throw new QueryParseException("unexpected-term", -1, term.toString());
+			for (Term term : output) {
+				if (r.getOpTerm().isInstance(term)) {
+					of.emit(exprStack, term);
+				} else if (term instanceof TokenTerm) {
+					// parse token expression (variable or numeric constant)
+					TokenTerm t = (TokenTerm) term;
+					tf.emit(exprStack, t);
+				} else if (term instanceof FuncTerm) {
+					// parse function expression
+					FuncTerm f = (FuncTerm) term;
+					ff.emit(context, exprStack, f);
+				} else {
+					Map<String, String> params = new HashMap<String, String>();
+					params.put("term", term.toString());
+					params.put("value", s);
+					throw new QueryParseException("90200", -1, -1, params);
+					//throw new QueryParseException("unexpected-term", -1, term.toString());
+				}
 			}
-		}
 
-		if (exprStack.size() > 1) {
-			throw new QueryParseException("remain-terms", -1, exprStack.toString());
+			if (exprStack.size() > 1) {
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("value",s);
+				throw new QueryParseException("90201", -1, -1, params);
+				//throw new QueryParseException("remain-terms", -1, exprStack.toString());
+			}
+			return exprStack.pop();
+		} catch (QueryParseException e) {
+			e.getParams().put("value", s);
+			throw e;
 		}
-		return exprStack.pop();
 	}
 
 	/**
@@ -231,7 +253,14 @@ public class ExpressionParser {
 	public static Expression parse(QueryContext context, String s, FunctionRegistry functionRegistry) {
 		ParsingRule evalRule = new ParsingRule(EvalOpTerm.NOP, new EvalOpEmitterFactory(), new EvalFuncEmitterFactory(
 				functionRegistry), new EvalTermEmitterFactory());
-		return parse(context, s, evalRule);
+		
+		try {
+			return parse(context, s, evalRule);
+		} catch (QueryParseException e) {
+			//e.printStackTrace();
+			e.getParams().put("value", s);
+			throw e;
+		}
 	}
 
 	private static List<Term> convertToPostfix(List<Term> tokens, ParsingRule rule) {
@@ -269,9 +298,10 @@ public class ExpressionParser {
 						}
 					}
 
-					if (!foundMatchParens)
-						throw new QueryParseException("parens-mismatch", -1);
-
+					if (!foundMatchParens){
+						//throw new QueryParseException("parens-mismatch", -1);
+						throw new QueryParseException("90202", -1, -1, null);
+					}
 					// postprocess for closed parenthesis
 
 					// postprocess function term
@@ -383,7 +413,8 @@ public class ExpressionParser {
 			OpTerm op = rule.getOpTerm().parse(token);
 
 			// check if unary operator
-			// TODO: move deciding unary code into OpTerm
+			// handling operator which can be both unary and binary
+			// TODO: move deciding unary code into OpEmitterFactory
 			if (op != null && op.getSymbol().equals("-")) {
 				Term lastTerm = null;
 				if (!tokens.isEmpty()) {
@@ -391,7 +422,8 @@ public class ExpressionParser {
 				}
 
 				if (lastToken == null || lastToken.equals("(") || rule.getOpTerm().isInstance(lastTerm)) {
-					op = EvalOpTerm.Neg;
+					if (rule.getOpTerm().isInstance(EvalOpTerm.Neg))
+						op = EvalOpTerm.Neg;
 				}
 			}
 
@@ -417,6 +449,70 @@ public class ExpressionParser {
 
 		return tokens;
 	}
+	
+	// from org.apache.tools.ant.types.Commandline
+	// (apache license)
+	public static String[] translateCommandline(String cmdline) {
+		if (cmdline == null || cmdline.length() == 0) {
+			// no command? no string
+			return new String[0];
+		}
+		// parse with a simple finite state machine
+
+		final int normal = 0;
+		final int inQuote = 1;
+		final int inDoubleQuote = 2;
+		int state = normal;
+		StringTokenizer tok = new StringTokenizer(cmdline, "\"\' ", true);
+		ArrayList<String> v = new ArrayList<String>();
+		StringBuffer current = new StringBuffer();
+		boolean lastTokenHasBeenQuoted = false;
+
+		while (tok.hasMoreTokens()) {
+			String nextTok = tok.nextToken();
+			switch (state) {
+			case inQuote:
+				if ("\'".equals(nextTok)) {
+					lastTokenHasBeenQuoted = true;
+					state = normal;
+				} else {
+					current.append(nextTok);
+				}
+				break;
+			case inDoubleQuote:
+				if ("\"".equals(nextTok)) {
+					lastTokenHasBeenQuoted = true;
+					state = normal;
+				} else {
+					current.append(nextTok);
+				}
+				break;
+			default:
+				if ("\'".equals(nextTok)) {
+					state = inQuote;
+				} else if ("\"".equals(nextTok)) {
+					state = inDoubleQuote;
+				} else if (" ".equals(nextTok)) {
+					if (lastTokenHasBeenQuoted || current.length() != 0) {
+						v.add(current.toString());
+						current = new StringBuffer();
+					}
+				} else {
+					current.append(nextTok);
+				}
+				lastTokenHasBeenQuoted = false;
+				break;
+			}
+		}
+		if (lastTokenHasBeenQuoted || current.length() != 0) {
+			v.add(current.toString());
+		}
+		if (state == inQuote || state == inDoubleQuote) {
+			throw new IllegalArgumentException("unbalanced quotes in [" + cmdline + "]");
+		}
+		return v.toArray(new String[0]);
+	}
+
 
 	private static ParseResult nextToken(String s, int begin, int end, ParsingRule rule) {
 		if (begin > end)
@@ -436,7 +532,9 @@ public class ExpressionParser {
 				int p = findClosingQuote(s, r.next + 1);
 				// int p = s.indexOf('"', r.next + 1);
 				if (p < 0) {
-					throw new QueryParseException("quote-mismatch", r.next + 1);
+					//throw new QueryParseException("quote-mismatch", r.next + 1);
+					throw new QueryParseException("90203", -1, -1, null);
+					
 					// String quoted = unveilEscape(s.substring(r.next));
 					// return new ParseResult(quoted, s.length());
 				} else {
@@ -447,7 +545,8 @@ public class ExpressionParser {
 			if (r.value.equals("[")) {
 				int p = findClosingSquareBracket(s, r.next + 1);
 				if (p == r.next + 1 - 1)
-					throw new QueryParseException("sqbracket-mismatch", r.next + 1);
+				//	throw new QueryParseException("sqbracket-mismatch", r.next + 1);
+					throw new QueryParseException("90204", -1, -1, null);
 				else {
 					String subquery = s.substring(r.next, p + 1);
 					return new ParseResult(subquery, p + 1);
@@ -488,15 +587,19 @@ public class ExpressionParser {
 		return start - 1;
 	}
 
-	private static int findClosingQuote(String s, int offset) {
+	static int findClosingQuote(String s, int offset) {
 		boolean escape = false;
 		for (int i = offset; i < s.length(); i++) {
 			char c = s.charAt(i);
 			if (escape) {
-				if (c == '\\' || c == '"' || c == 'n' || c == 't')
+				if (c == '\\' || c == '"' || c == 'n' || c == 't' || c == 'r')
 					escape = false;
-				else
-					throw new QueryParseException("invalid-escape-sequence", offset);
+				else{
+					//throw new QueryParseException("invalid-escape-sequence", offset);
+					Map<String, String> params = new HashMap<String, String>();
+					params.put("escape", "\\" + c);
+					throw new QueryParseException("90205", -1, -1, params);
+				}
 			} else {
 				if (c == '\\')
 					escape = true;
@@ -543,7 +646,7 @@ public class ExpressionParser {
 		if (p < 0)
 			return;
 
-		boolean change = p >= 0 && p <= end && (r.next == -1 || p < r.next);
+		boolean change = p >= 0 && p <= end && (r.next == -1 || p < r.next || (p == r.next && r.value instanceof String && symbol.length() > String.class.cast(r.value).length()));
 		if (change) {
 			r.value = symbol;
 			r.next = p;

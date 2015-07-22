@@ -82,6 +82,7 @@ public class LogFlushCallbackTest {
 			int logcnt = 0;
 			while (cursor.hasNext()) {
 				LogRecord next = cursor.next();
+				@SuppressWarnings("unused")
 				Log converted = LogMarshaler.convert("test", next);
 				logcnt++;
 			}

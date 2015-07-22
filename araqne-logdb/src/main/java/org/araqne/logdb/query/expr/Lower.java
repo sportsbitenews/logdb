@@ -20,11 +20,13 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Lower implements Expression {
+public class Lower extends FunctionExpression {
 
 	private Expression valueExpr;
 
 	public Lower(QueryContext ctx, List<Expression> exprs) {
+		super("lower", exprs, 1);
+		
 		this.valueExpr = exprs.get(0);
 	}
 
@@ -36,10 +38,4 @@ public class Lower implements Expression {
 
 		return value.toString().toLowerCase();
 	}
-
-	@Override
-	public String toString() {
-		return "lower(" + valueExpr + ")";
-	}
-
 }

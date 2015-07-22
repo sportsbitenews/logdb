@@ -26,12 +26,14 @@ import org.araqne.logdb.Row;
  * @author xeraph
  * 
  */
-public class Decode implements Expression {
+public class Decode extends FunctionExpression {
 
 	private Expression dataExpr;
 	private Charset charset;
 
 	public Decode(QueryContext ctx, List<Expression> exprs) {
+		super("decode", exprs, 1);
+		
 		this.dataExpr = exprs.get(0);
 
 		this.charset = Charset.forName("utf-8");

@@ -21,12 +21,14 @@ import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeoutException;
 
 import org.araqne.logdb.client.AbstractLogDbSession;
 import org.araqne.logdb.client.Message;
 import org.araqne.logdb.client.MessageException;
 import org.araqne.logdb.client.Message.Type;
 import org.araqne.websocket.WebSocket;
+import org.araqne.websocket.WebSocketConfig;
 import org.araqne.websocket.WebSocketListener;
 import org.araqne.websocket.WebSocketMessage;
 import org.slf4j.Logger;
@@ -40,28 +42,47 @@ import org.slf4j.LoggerFactory;
  * 
  */
 public class WebSocketSession extends AbstractLogDbSession implements WebSocketListener {
+	private static final int DEFAULT_READ_TIMEOUT = 10000;
 	private final Logger logger = LoggerFactory.getLogger(WebSocketSession.class);
+	private final Logger sendLog = LoggerFactory.getLogger("websocket-send");
 	private Object sendLock = new Object();
 	private WebSocket websocket;
-	private WebSocketBlockingTable table = new WebSocketBlockingTable();
+	private WebSocketBlockingTable table = new WebSocketBlockingTable(this);
+	@Override
+	public String toString() {
+		return "WebSocketSession [" + websocket + "]";
+	}
+
 	private final Timer timer;
 
 	public WebSocketSession(String host, int port) throws IOException {
-		this(host, port, false);
+		this(host, port, false, false, 0);
 	}
 
-	public WebSocketSession(String host, int port, boolean secure) throws IOException {
+	public WebSocketSession(String host, int port, boolean secure, boolean skipCertCheck) throws IOException {
+		this(host, port, secure, skipCertCheck, 0);
+	}
+
+	public WebSocketSession(String host, int port, boolean secure, boolean skipCertCheck, int connectTimeout) throws IOException {
+		this(host, port, secure, skipCertCheck, connectTimeout, DEFAULT_READ_TIMEOUT);
+	}
+
+	public WebSocketSession(String host, int port, boolean secure, boolean skipCertCheck, int connectTimeout, int readTimeout)
+			throws IOException {
 		URI uri = null;
 		try {
 			String scheme = secure ? "wss://" : "ws://";
 			uri = new URI(scheme + host + ":" + port + "/websocket");
-			this.websocket = new WebSocket(uri);
+			this.websocket = new WebSocket(new WebSocketConfig().setUri(uri).setSkipCertCheck(skipCertCheck)
+					.setConnectTimeout(connectTimeout).setReadTimeout(readTimeout));
 			websocket.addListener(this);
 		} catch (URISyntaxException e) {
 			throw new IllegalArgumentException("invalid host: " + host);
 		}
 
-		this.timer = new Timer("WebSocket [" + uri + "] Ping Timer", true);
+		int localPort = websocket.getLocalPort();
+		this.timer = new Timer(
+				String.format("WebSocket Ping Timer [:%d<->%s]", localPort, uri), true);
 		timer.scheduleAtFixedRate(new PingTask(), new Date(), 2000);
 	}
 
@@ -71,12 +92,13 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 	}
 
 	@Override
-	public Message rpc(Message req, int timeout) throws IOException {
+	public Message rpc(Message req, int timeout) throws IOException, TimeoutException {
 		WaitingCall call = table.set(req.getGuid());
 
 		String json = MessageCodec.encode(req);
 
 		synchronized (sendLock) {
+			sendLog.debug("araqne logdb client: send rpc [{}]", json);
 			websocket.send(json);
 		}
 
@@ -88,7 +110,7 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 			else
 				m = table.await(call, timeout);
 		} catch (InterruptedException e) {
-			throw new RuntimeException("interrupted");
+			throw new RuntimeException("interrupted: " + e.getMessage());
 		}
 
 		if (m.getErrorCode() != null)

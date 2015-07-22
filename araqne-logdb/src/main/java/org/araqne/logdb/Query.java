@@ -105,4 +105,11 @@ public interface Query extends Runnable {
 	 * return stamp number to client for message ordering
 	 */
 	long getNextStamp();
+
+	/**
+	 * @return the field order only if 'fields' or 'proc' command is used,
+	 *         otherwise null
+	 * @since 2.4.60
+	 */
+	List<String> getFieldOrder();
 }

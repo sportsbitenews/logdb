@@ -43,6 +43,7 @@ import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.WildcardMatcher;
 import org.araqne.logstorage.*;
+import org.araqne.logstorage.LogTraverseCallback.BlockSkipReason;
 import org.araqne.logstorage.engine.ConfigUtil;
 import org.araqne.logstorage.engine.Constants;
 import org.araqne.storage.api.FilePath;
@@ -248,8 +249,8 @@ public class LogStorageScript implements Script {
 
 			LockStatus status = storage.lockStatus(new LockKey("script", args[0], null));
 			if (status.isLocked())
-				context.printf("Lock status: locked (owner: %s, reentrant_cnt: %d)\n", status.getOwner(),
-						status.getReentrantCount());
+				context.printf("Lock status: locked (owner: %s, purpose: %s, reentrant_cnt: %d)\n", status.getOwner(),
+						status.getPurposes(), status.getReentrantCount());
 			else
 				context.printf("Lock status: unlocked\n");
 
@@ -301,7 +302,7 @@ public class LogStorageScript implements Script {
 			else if (options.has("replica"))
 				desc = replicaConfigStr(schema);
 			else
-				desc = lastDay != null ? dateFormat.format(lastDay) : "none";
+				desc = lastDay != null ? dateFormat.format(DateUtil.getDay(lastDay)) : "none";
 
 			tables.add(new TableInfo(tableId, "[" + tableId + "] " + tableName + ": " + desc));
 		}
@@ -344,9 +345,10 @@ public class LogStorageScript implements Script {
 	}
 
 	private String lockStatusStr(String tableName) {
-		LockStatus status = storage.lockStatus(new LockKey("script", tableName, null));
-		if (status.isLocked())
-			return String.format("locked(owner: %s, reentrant_cnt: %d)", status.getOwner(), status.getReentrantCount());
+		LockStatus s = storage.lockStatus(new LockKey("script", tableName, null));
+		if (s.isLocked())
+			return String.format("locked(owner: %s, reentrant_cnt: %d, purpose(s): %s)", s.getOwner(), s.getReentrantCount(),
+					Arrays.toString(s.getPurposes().toArray()));
 		else
 			return "unlocked";
 	}
@@ -632,7 +634,8 @@ public class LogStorageScript implements Script {
 				}
 
 			};
-			storage.search(tableName, from, to, null, new SimpleLogTraverseCallback(contextSink));
+
+			storage.search(new TableScanRequest(tableName, from, to, null, new SimpleLogTraverseCallback(contextSink)));
 		} catch (InterruptedException e) {
 			context.println("interrupted");
 		}
@@ -668,7 +671,8 @@ public class LogStorageScript implements Script {
 				}
 			};
 
-			storage.search(tableName, from, to, null, new SimpleLogTraverseCallback(printSink));
+			TableScanRequest req = new TableScanRequest(tableName, from, to, null, new SimpleLogTraverseCallback(printSink));
+			storage.search(req);
 
 			long end = new Date().getTime();
 
@@ -683,6 +687,19 @@ public class LogStorageScript implements Script {
 		for (Constants c : Constants.values()) {
 			context.println(c.getName() + ": " + ConfigUtil.get(conf, c));
 		}
+	}
+	
+	@ScriptUsage(description = "set parameters", arguments = {
+			@ScriptArgument(name = "key", type = "string", description = "parameter key") })
+	public void unsetParameter(String[] args) {
+		Constants configKey = Constants.parse(args[0]);
+		if (configKey == null) {
+			context.println("invalid key name");
+			return;
+		}
+
+		ConfigUtil.set(conf, configKey, null);
+		context.println("unset");
 	}
 
 	@ScriptUsage(description = "set parameters", arguments = {
@@ -851,23 +868,28 @@ public class LogStorageScript implements Script {
 		if (args.length > 4)
 			limit = Integer.valueOf(args[4]);
 
-		ZipFile zipFile = new ZipFile(file);
-		ZipEntry entry = zipFile.getEntry(entryPath);
-		if (entry == null) {
-			context.println("entry [" + entryPath + "] not found in zip file [" + filePath + "]");
-			return;
-		}
-
-		InputStream is = null;
+		ZipFile zipFile = null;
 		try {
-			is = zipFile.getInputStream(entry);
-			importFromStream(tableName, is, offset, limit);
-		} catch (Exception e) {
-			context.println("import failed, " + e.getMessage());
-			logger.error("araqne logstorage: cannot import zipped text file " + file.getAbsolutePath(), e);
+			zipFile = new ZipFile(file);
+			ZipEntry entry = zipFile.getEntry(entryPath);
+			if (entry == null) {
+				context.println("entry [" + entryPath + "] not found in zip file [" + filePath + "]");
+				return;
+			}
+
+			InputStream is = null;
+			try {
+				is = zipFile.getInputStream(entry);
+				importFromStream(tableName, is, offset, limit);
+			} catch (Exception e) {
+				context.println("import failed, " + e.getMessage());
+				logger.error("araqne logstorage: cannot import zipped text file " + file.getAbsolutePath(), e);
+			} finally {
+				if (is != null)
+					is.close();
+			}
 		} finally {
-			if (is != null)
-				is.close();
+			zipFile.close();
 		}
 	}
 
@@ -944,10 +966,11 @@ public class LogStorageScript implements Script {
 
 			CounterSink counter = new CounterSink(Integer.MAX_VALUE);
 			Date timestamp = new Date();
-			storage.search(tableName, from, to, null, new SimpleLogTraverseCallback(counter));
+
+			storage.search(new TableScanRequest(tableName, from, to, null, new SimpleLogTraverseCallback(counter)));
 			long elapsed = new Date().getTime() - timestamp.getTime();
 
-			context.println("total count: " + counter.getCount() + ", elapsed: " + elapsed + "ms");
+			context.println("total count: " + counter.count + ", elapsed: " + elapsed + "ms");
 		} catch (ParseException e) {
 			context.println("invalid date format");
 		} catch (InterruptedException e) {
@@ -956,22 +979,38 @@ public class LogStorageScript implements Script {
 	}
 
 	private class CounterSink extends LogTraverseCallback.Sink {
-		private int count;
+		int count;
+		long minId = Long.MAX_VALUE;
+		long maxId = Long.MIN_VALUE;
+		@SuppressWarnings("unused")
+		long rsvCnt = 0;
+		@SuppressWarnings("unused")
+		long fixCnt = 0;
 
 		public CounterSink(long limit) {
 			super(0, limit);
 			count = 0;
 		}
 
-		public int getCount() {
-			return count;
+		@Override
+		protected void onBlockSkipped(BlockSkipReason reason, long firstId, int logCount) {
+			if (reason.equals(BlockSkipReason.Reserved))
+				rsvCnt += logCount;
+			else if (reason.equals(BlockSkipReason.Fixed))
+				fixCnt += logCount;
 		}
 
 		@Override
 		protected void processLogs(List<Log> logs) {
 			count += logs.size();
+			for (Log l : logs) {
+				long id = l.getId();
+				if (minId > id)
+					minId = id;
+				if (maxId < id)
+					maxId = id;
+			}
 		}
-
 	}
 
 	public void flush(String[] args) {
@@ -1106,7 +1145,8 @@ public class LogStorageScript implements Script {
 				}
 			};
 
-			storage.search(tableName, new Date(0), new Date(), null, new SimpleLogTraverseCallback(benchSink));
+			storage.search(new TableScanRequest(tableName, new Date(0), new Date(), null,
+					new SimpleLogTraverseCallback(benchSink)));
 		} catch (InterruptedException e) {
 		}
 		end = System.currentTimeMillis();
@@ -1168,7 +1208,7 @@ public class LogStorageScript implements Script {
 		@Override
 		public void onPurge(String tableName, Date day) {
 			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-			context.println("purging table " + tableName + " day " + df.format(day));
+			context.println("purging table " + tableName + " day " + df.format(DateUtil.getDay(day)));
 		}
 
 		@Override
@@ -1177,7 +1217,7 @@ public class LogStorageScript implements Script {
 	}
 
 	public void _lock(String[] args) throws InterruptedException {
-		boolean lock = storage.lock(new LockKey("script", args[0], null), 5, TimeUnit.SECONDS);
+		boolean lock = storage.lock(new LockKey("script", args[0], null), args[1], 5, TimeUnit.SECONDS);
 		if (lock)
 			context.println("locked");
 		else {
@@ -1186,6 +1226,13 @@ public class LogStorageScript implements Script {
 	}
 
 	public void _unlock(String[] args) {
-		storage.unlock(new LockKey("script", args[0], null));
+		storage.unlock(new LockKey("script", args[0], null), args[1]);
+		context.printf("unlocked: %s\n", lockStatusStr(args[0]));
 	}
+
+	public void _unlockForce(String[] args) {
+		storage.unlock(new LockKey(args[0], args[1], null), args[2]);
+		context.printf("unlocked: %s\n", lockStatusStr(args[1]));
+	}
+
 }

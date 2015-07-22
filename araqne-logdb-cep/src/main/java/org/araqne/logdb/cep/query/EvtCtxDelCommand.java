@@ -19,13 +19,15 @@ import java.util.Date;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 import org.araqne.logdb.cep.EventCause;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.query.expr.Expression;
 
-public class EvtCtxDelCommand extends QueryCommand {
+public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 	private EventContextStorage storage;
 	private String topic;
 	private String keyField;
@@ -49,6 +51,29 @@ public class EvtCtxDelCommand extends QueryCommand {
 
 	@Override
 	public void onPush(Row row) {
+		checkEvent(row);
+		pushPipe(row);
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+				checkEvent(row);
+			}
+		} else {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+				checkEvent(row);
+			}
+		}
+
+		pushPipe(rowBatch);
+	}
+
+	private void checkEvent(Row row) {
 		boolean matched = true;
 
 		Object o = matcher.eval(row);
@@ -86,13 +111,11 @@ public class EvtCtxDelCommand extends QueryCommand {
 			if (ctx != null)
 				ctx.addRow(row);
 
-			storage.removeContext(eventKey, EventCause.REMOVAL);
+			storage.removeContext(eventKey, ctx, EventCause.REMOVAL);
 		}
 
 		if (host != null && logTime != null)
 			storage.advanceTime(host, logTime.getTime());
-
-		pushPipe(row);
 	}
 
 	@Override

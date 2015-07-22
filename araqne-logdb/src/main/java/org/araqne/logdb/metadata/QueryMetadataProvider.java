@@ -15,10 +15,14 @@
  */
 package org.araqne.logdb.metadata;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
@@ -29,7 +33,7 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.QueryHelper;
 
 @Component(name = "logdb-query-metadata")
-public class QueryMetadataProvider implements MetadataProvider {
+public class QueryMetadataProvider implements MetadataProvider, FieldOrdering {
 
 	@Requires
 	private MetadataService metadataService;
@@ -51,6 +55,12 @@ public class QueryMetadataProvider implements MetadataProvider {
 	public void stop() {
 		if (metadataService != null)
 			metadataService.removeProvider(this);
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return Arrays.asList("id", "query_string", "is_end", "is_eof", "is_cancelled", "start_time", "finish_time",
+				"last_started", "elapsed", "background", "commands", "sub_queries", "stamp", "error_code", "error_detail");
 	}
 
 	@Override

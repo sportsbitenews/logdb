@@ -7,14 +7,18 @@
 	<instance component="logstorage-table-registry" />
 	<instance component="logstorage-log-file-repairer-v1" />
 	<instance component="logstorage-log-file-repairer-v2" />
+	<instance component="logstorage-log-file-repairer-v3o" />
 	<instance component="logstorage-log-file-repairer-registry" />
 	<instance component="logstorage-log-file-service-v1" />
 	<instance component="logstorage-log-file-service-v2" />
 	<instance component="logstorage-log-file-service-txt" />
+	<!-- instance component="logstorage-log-file-service-v3" / -->
 	<instance component="logstorage-log-file-service-registry" />
 	<instance component="logstorage-crypto-profile-registry" />
 	<instance component="logstorage-backup-manager" />
 	<instance component="logstorage-backup-media-registry" />
 	<instance component="logstorage-file-backup-media-factory" />
 	<instance component="logstorage-backup-script-factory" />
+	<instance component="logstorage-dump-service" />
+	<instance component="logstorage-local-dump-driver" />
 </ipojo>

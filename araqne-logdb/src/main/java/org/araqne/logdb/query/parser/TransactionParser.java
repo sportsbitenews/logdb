@@ -27,6 +27,7 @@ public class TransactionParser extends AbstractQueryCommandParser {
 
 		// parse options
 		Transaction.TransactionOptions txOptions = new Transaction.TransactionOptions();
+		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 		System.out.println(options);
 

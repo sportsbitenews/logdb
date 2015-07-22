@@ -1,17 +1,19 @@
 package org.araqne.logdb.cep.query;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
 import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 
-public class EvtCtxListCommand extends DriverQueryCommand {
+public class EvtCtxListCommand extends DriverQueryCommand implements FieldOrdering {
 
 	private EventContextService eventContextService;
 	private String topicFilter;
@@ -24,6 +26,11 @@ public class EvtCtxListCommand extends DriverQueryCommand {
 	@Override
 	public String getName() {
 		return "evtctxlst";
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return Arrays.asList("topic", "key", "host", "counter", "created", "expire_at", "timeout_at", "maxrows", "vars");
 	}
 
 	@Override

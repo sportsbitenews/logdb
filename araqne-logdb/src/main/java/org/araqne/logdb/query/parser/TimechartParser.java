@@ -17,12 +17,14 @@ package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.TimeUnit;
@@ -31,7 +33,7 @@ import org.araqne.logdb.query.command.Timechart;
 
 public class TimechartParser extends AbstractQueryCommandParser {
 	private static final String COMMAND = "timechart";
-	private static final String BY = " by ";
+	private static final String BY = "by";
 
 	@Override
 	public String getCommandName() {
@@ -39,9 +41,16 @@ public class TimechartParser extends AbstractQueryCommandParser {
 	}
 
 	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("21800", new QueryErrorMessage("need-aggregation-field", "필드를 입력하십시오."));
+		return m;
+	}
+	
+	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		// timechart <options> <aggregation functions> by <clause>
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, COMMAND.length(), Arrays.asList("span"),
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, COMMAND.length(), Arrays.asList("span", "pivot"),
 				getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
@@ -53,7 +62,7 @@ public class TimechartParser extends AbstractQueryCommandParser {
 		List<String> clauses = new ArrayList<String>();
 
 		// parse clauses
-		int byPos = QueryTokenizer.findKeyword(argsPart, BY, 0);
+		int byPos = QueryTokenizer.findKeyword(argsPart, BY, 0, true);
 		if (byPos > 0) {
 			aggsPart = argsPart.substring(0, byPos);
 			String clausePart = argsPart.substring(byPos + BY.length());
@@ -70,8 +79,9 @@ public class TimechartParser extends AbstractQueryCommandParser {
 		}
 
 		if (fields.size() == 0)
-			throw new QueryParseException("need-aggregation-field", COMMAND.length());
-
+		//	throw new QueryParseException("need-aggregation-field", COMMAND.length());
+			throw new QueryParseException("21800", COMMAND.length() + 1, commandString.length() - 1, null);
+		
 		// parse timespan option
 		TimeSpan timeSpan = null;
 		if (options.containsKey("span"))
@@ -79,11 +89,15 @@ public class TimechartParser extends AbstractQueryCommandParser {
 
 		if (timeSpan == null)
 			timeSpan = new TimeSpan(1, TimeUnit.Day);
+		
+		boolean pivot = false;
+		if (options.containsKey("pivot") && QueryTokenizer.isTrue(options.get("pivot")))
+			pivot = true;
 
 		String clause = null;
 		if (!clauses.isEmpty())
-			clause = clauses.get(0);
+			clause = clauses.get(0).trim();
 
-		return new Timechart(fields, clause, timeSpan);
+		return new Timechart(fields, clause, timeSpan, pivot);
 	}
 }

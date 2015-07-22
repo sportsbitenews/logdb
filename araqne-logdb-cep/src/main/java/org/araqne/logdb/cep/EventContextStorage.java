@@ -35,13 +35,15 @@ public interface EventContextStorage {
 
 	EventContext addContext(EventContext ctx);
 
-	void removeContext(EventKey key, EventCause cause);
+	void removeContext(EventKey key, EventContext ctx, EventCause cause);
 
 	void advanceTime(String host, long now);
 
 	void clearClocks();
 
 	void clearContexts();
+	
+	void clearContexts(String topic);
 
 	void addSubscriber(String topic, EventSubscriber subscriber);
 

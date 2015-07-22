@@ -29,8 +29,22 @@ public class StringsTest {
 		assertEquals("a\tb", Strings.unescape(s));
 	}
 
-	@Test(expected = QueryParseException.class)
+	@Test//(expected = QueryParseException.class)
 	public void invalidEscapeTest() {
-		Strings.unescape("a\\bb");
+		String value = "a\\bc";
+		
+		try {
+			Strings.unescape(value);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println(value);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90400", e.getType());
+			assertEquals(value, e.getParams().get("value"));
+			assertEquals(1,  e.getStartOffset());
+			assertEquals(2, e.getEndOffset());
+		}
 	}
 }

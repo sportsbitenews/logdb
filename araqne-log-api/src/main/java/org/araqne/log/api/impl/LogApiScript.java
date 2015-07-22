@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,9 +51,14 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerFactoryRegistry;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.Mutable;
+import org.araqne.log.api.PredicatesConfigType;
+import org.araqne.log.api.TimeRange;
 import org.araqne.log.api.WildcardMatcher;
+import org.json.JSONConverter;
+import org.json.JSONException;
 
 import com.bethecoder.ascii_table.ASCIITable;
 import com.bethecoder.ascii_table.impl.CollectionASCIITableAware;
@@ -399,7 +405,7 @@ public class LogApiScript implements Script {
 		return m.find();
 	}
 
-	@ScriptUsage(description = "print logger configuration", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "logger fullname") })
+	@ScriptUsage(description = "print logger configuration", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "logger fullname", autocompletion = LoggerAutoCompleter.class) })
 	public void logger(String[] args) {
 		String fullName = args[0];
 		context.println("Logger [" + fullName + "]");
@@ -418,10 +424,12 @@ public class LogApiScript implements Script {
 		context.println(" * Logger Factory: " + logger.getFactoryFullName());
 		context.println(" * Status: " + logger.getStatus());
 		context.println(" * Interval: " + logger.getInterval() + "ms");
+		context.println(" * Time Range: " + (logger.getTimeRange() != null ? logger.getTimeRange() : "N/A"));
 		context.println(" * Last Log: " + lastLogDate);
 		context.println(" * Last Run: " + lastRunDate);
 		context.println(" * Log Count: " + logger.getLogCount());
 		context.println(" * Drop Count: " + logger.getDropCount());
+
 		context.println("");
 
 		context.println("Configuration");
@@ -477,7 +485,7 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "trace logger output", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "logger fullname") })
+	@ScriptUsage(description = "trace logger output", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "logger fullname", autocompletion = LoggerAutoCompleter.class) })
 	public void trace(String[] args) {
 		Logger logger = loggerRegistry.getLogger(args[0]);
 		if (logger == null) {
@@ -525,9 +533,9 @@ public class LogApiScript implements Script {
 			}
 
 			if (logger.isPassive())
-				logger.start();
+				logger.start(LoggerStartReason.USER_REQUEST);
 			else if (interval > 0)
-				logger.start(interval);
+				logger.start(LoggerStartReason.USER_REQUEST, interval);
 			else
 				throw new IllegalStateException("cannot start logger, interval is required");
 			context.println("logger started");
@@ -550,11 +558,12 @@ public class LogApiScript implements Script {
 			return;
 		}
 
+		boolean useOldInterval = args.length == 1;
 		Pattern pattern = WildcardMatcher.buildPattern(args[0]);
-		int interval = 5000;
+		int newInterval = 5000;
 		try {
 			if (args.length > 1) {
-				interval = Integer.parseInt(args[1]);
+				newInterval = Integer.parseInt(args[1]);
 			}
 		} catch (NumberFormatException e) {
 			// ignore
@@ -572,7 +581,7 @@ public class LogApiScript implements Script {
 					if (logger.isRunning()) {
 						context.println("logger [" + logger.getFullName() + "] is already started");
 					} else {
-						logger.start();
+						logger.start(LoggerStartReason.USER_REQUEST);
 						context.println("logger [" + logger.getFullName() + "] started");
 					}
 				}
@@ -593,7 +602,11 @@ public class LogApiScript implements Script {
 					if (logger.isRunning()) {
 						context.println("logger [" + logger.getFullName() + "] is already started");
 					} else {
-						logger.start(interval);
+						int interval = logger.getInterval();
+						if (interval == 0 || !useOldInterval)
+							interval = newInterval;
+						
+						logger.start(LoggerStartReason.USER_REQUEST, interval);
 						context.println("logger [" + logger.getFullName() + "] started with interval " + interval + "ms");
 					}
 				}
@@ -805,26 +818,83 @@ public class LogApiScript implements Script {
 		}
 	}
 
+	@ScriptUsage(description = "set time range. logger only works for specified time range.", arguments = {
+			@ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname", autocompletion = LoggerAutoCompleter.class),
+			@ScriptArgument(name = "start time", type = "string", description = "HH:mm format", optional = true),
+			@ScriptArgument(name = "end time", type = "string", description = "HH:mm format", optional = true) })
+	public void setTimeRange(String[] args) {
+		try {
+			String fullName = args[0];
+			Logger logger = loggerRegistry.getLogger(fullName);
+
+			if (logger == null) {
+				context.println("logger not found");
+				return;
+			}
+
+			if (args.length >= 3) {
+				logger.setTimeRange(new TimeRange(args[1], args[2]));
+				context.println("set");
+			} else {
+				logger.setTimeRange(null);
+				context.println("unset");
+			}
+		} catch (Exception e) {
+			context.println("error: " + e.getMessage());
+			slog.error("araqne log api: cannot set time range", e);
+		}
+	}
+
 	private void setOption(Map<String, String> config, LoggerConfigOption type) throws InterruptedException {
 		setOption(config, type, null);
 	}
 
 	private void setOption(Map<String, String> config, LoggerConfigOption type, String initialValue) throws InterruptedException {
 		String directive = type.isRequired() ? "(required)" : "(optional)";
-		context.print(type.getDisplayName(Locale.ENGLISH) + " " + directive + "? ");
-		String value = context.readLine(initialValue);
-		if (!value.isEmpty())
-			config.put(type.getName(), value);
 
-		if (value.isEmpty()) {
-			if (type.isRequired())
+		if (type instanceof PredicatesConfigType) {
+			context.println(type.getDisplayName(Locale.ENGLISH) + " " + directive + "");
+
+			List<Object> predicates = new ArrayList<Object>();
+			while (true) {
+				context.print(" * Condition (enter to end)? ");
+				String cond = context.readLine();
+				if (cond.trim().isEmpty())
+					break;
+
+				context.print(" * Value (enter to end)? ");
+				String value = context.readLine();
+				if (value.trim().isEmpty())
+					break;
+
+				predicates.add(Arrays.asList(cond, value));
+			}
+
+			if (predicates.isEmpty() && type.isRequired())
 				setOption(config, type, initialValue);
-			else
-				config.put(type.getName(), null);
+
+			try {
+				config.put(type.getName(), JSONConverter.jsonize(predicates));
+			} catch (JSONException e) {
+				throw new IllegalStateException("jsonize failure", e);
+			}
+
+		} else {
+			context.print(type.getDisplayName(Locale.ENGLISH) + " " + directive + "? ");
+			String value = context.readLine(initialValue);
+			if (!value.isEmpty())
+				config.put(type.getName(), value);
+
+			if (value.isEmpty()) {
+				if (type.isRequired())
+					setOption(config, type, initialValue);
+				else
+					config.put(type.getName(), null);
+			}
 		}
 	}
 
-	@ScriptUsage(description = "reset logger state", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format") })
+	@ScriptUsage(description = "reset logger state", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format", autocompletion = LoggerAutoCompleter.class) })
 	public void resetState(String[] args) {
 		Logger logger = loggerRegistry.getLogger(args[0]);
 		if (logger == null) {
@@ -834,5 +904,30 @@ public class LogApiScript implements Script {
 
 		logger.resetStates();
 		context.println("reset completed");
+	}
+
+	@ScriptUsage(description = "print logger dependencies", arguments = { @org.araqne.api.ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format", autocompletion = LoggerAutoCompleter.class) })
+	public void dependencies(String[] args) {
+		String fullName = args[0];
+
+		Set<String> dependencies = loggerRegistry.getDependencies(fullName);
+		if (dependencies == null) {
+			context.println("no dependencies");
+			return;
+		}
+
+		Set<String> set = Collections.emptySet();
+		Logger logger = loggerRegistry.getLogger(fullName);
+		if (logger != null) {
+			set = logger.getUnresolvedLoggers();
+		}
+
+		context.println("Loger Dependencies");
+		context.println("--------------------");
+
+		for (String loggerName : dependencies) {
+			String status = set.contains(loggerName) ? "unresolved" : "resolved";
+			context.println(loggerName + " -> " + status);
+		}
 	}
 }

@@ -15,21 +15,29 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 
-public class Left implements Expression {
+public class Left extends FunctionExpression {
 	private Expression valueExpr;
 	private int length;
 
 	public Left(QueryContext ctx, List<Expression> exprs) {
+		super("left", exprs, 2);
+		
 		this.valueExpr = exprs.get(0);
 		this.length = Integer.parseInt(exprs.get(1).eval(null).toString());
-		if (length < 0)
-			throw new QueryParseException("left-func-negative-length", -1);
+		if (length < 0){
+	//		throw new QueryParseException("left-func-negative-length", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("length", length+"");
+			throw new QueryParseException("90720", -1, -1, params);
+		}
 	}
 
 	@Override
@@ -44,10 +52,4 @@ public class Left implements Expression {
 
 		return s.substring(0, length);
 	}
-
-	@Override
-	public String toString() {
-		return "left(" + valueExpr + ", " + length + ")";
-	}
-
 }

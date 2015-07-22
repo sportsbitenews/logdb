@@ -17,6 +17,7 @@ package org.araqne.logdb.query.parser;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
@@ -25,6 +26,7 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.JsonFile;
 
@@ -40,7 +42,14 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 	public String getCommandName() {
 		return "jsonfile";
 	}
-
+	
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("10900", new QueryErrorMessage("invalid-jsonfile-path","[file]이 존재하지 않거나 읽을수 없습니다"));
+		return m;
+	}
+	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>(),
@@ -51,11 +60,11 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 
 		try {
 			boolean overlay = false;
-			int offset = 0;
+			long offset = 0;
 			if (options.containsKey("offset"))
 				offset = Integer.valueOf(options.get("offset"));
 
-			int limit = 0;
+			long limit = 0;
 			if (options.containsKey("limit"))
 				limit = Integer.valueOf(options.get("limit"));
 
@@ -65,9 +74,14 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 			}
 
 			File f = new File(filePath);
-			if (!f.exists() || !f.canRead())
-				throw new QueryParseException("invalid-jsonfile-path", -1);
-
+			if (!f.exists() || !f.canRead()){
+			//	throw new QueryParseException("invalid-jsonfile-path", -1);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("file",filePath);
+				int offsetS = QueryTokenizer.findKeyword(commandString, filePath, r.next);
+				throw new QueryParseException("10900",  offsetS, offsetS + filePath.length() -1, params );
+			}
+			
 			String parserName = options.get("parser");
 			LogParser parser = null;
 			if (parserName != null) {
@@ -81,7 +95,9 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 			String parseTarget = options.get("parsetarget");
 
 			return new JsonFile(filePath, parser, parseTarget, overlay, offset, limit);
-		} catch (Throwable t) {
+		} catch(QueryParseException t){
+			throw t;
+		}catch (Throwable t) {
 			throw new RuntimeException("cannot create jsonfile source", t);
 		}
 	}

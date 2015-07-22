@@ -15,19 +15,22 @@
  */
 package org.araqne.logdb.query.parser;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.*;
-
+import org.araqne.cron.TickService;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.OutputCsv;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.mockito.Mockito.*;
 
 public class OutputCsvParserTest {
 	private QueryParserService queryParserService;
@@ -44,11 +47,12 @@ public class OutputCsvParserTest {
 		new File("logexport.csv").delete();
 		OutputCsv csv = null;
 		try {
-			OutputCsvParser p = new OutputCsvParser();
+			OutputCsvParser p = new OutputCsvParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 			
 			csv = (OutputCsv) p.parse(null, "outputcsv logexport.csv sip, dip ");
-
+			csv.onStart();
+			
 			File f = csv.getCsvFile();
 			assertEquals("logexport.csv", f.getName());
 			assertEquals("sip", csv.getFields().get(0));
@@ -67,11 +71,12 @@ public class OutputCsvParserTest {
 		new File("logexport.csv").delete();
 		OutputCsv csv = null;
 		try {
-			OutputCsvParser p = new OutputCsvParser();
+			OutputCsvParser p = new OutputCsvParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 			
 			csv = (OutputCsv) p.parse(null, "outputcsv overwrite=true logexport.csv sip, dip ");
-
+			csv.onStart();
+			
 			File f = csv.getCsvFile();
 			assertEquals("logexport.csv", f.getName());
 			assertEquals("sip", csv.getFields().get(0));
@@ -84,40 +89,69 @@ public class OutputCsvParserTest {
 			new File("logexport.csv").delete();
 		}
 
-		assertEquals("outputcsv overwrite=true encoding=utf-8 logexport.csv sip, dip", csv.toString());
+		assertEquals("outputcsv overwrite=t encoding=utf-8 logexport.csv sip, dip", csv.toString());
+	}
+	
+	@Test
+	public void testError30100() {
+		String query= "outputcsv logexport.csv,";
+		
+		try {
+			OutputCsvParser p = new OutputCsvParser(mock(TickService.class));
+			p.setQueryParserService(queryParserService);
+			
+			p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("30200", e.getType());
+			assertEquals(23, e.getStartOffset());
+			assertEquals(23, e.getEndOffset());	
+		} 
 	}
 
 	@Test
 	public void testMissingField1() {
-		new File("logexport.csv").delete();
+		String query= "outputcsv logexport.csv";
+		
 		try {
-			OutputCsvParser p = new OutputCsvParser();
+			OutputCsvParser p = new OutputCsvParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 			
-			p.parse(null, "outputcsv logexport.csv ");
+			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("missing-field", e.getType());
-			assertEquals(24, (int) e.getOffset());
-		} finally {
-			new File("logexport.csv").delete();
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("30202", e.getType());
+			assertEquals(10, e.getStartOffset());
+			assertEquals(22, e.getEndOffset());	
 		}
 	}
 
 	@Test
 	public void testMissingField2() {
-		new File("logexport.csv").delete();
+		String query = "outputcsv {logtime:/yyyy/MM/dd/}{now:HHmm.csv} src_ip, dst_ip";
+		
 		try {
-			OutputCsvParser p = new OutputCsvParser();
+			OutputCsvParser p = new OutputCsvParser(mock(TickService.class));
 			p.setQueryParserService(queryParserService);
 			
-			p.parse(null, "outputcsv logexport.csv sip,");
+			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("missing-field", e.getType());
-			assertEquals(28, (int) e.getOffset());
-		} finally {
-			new File("logexport.csv").delete();
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("30201", e.getType());
+			assertEquals(10, e.getStartOffset());
+			assertEquals(60, e.getEndOffset());	
 		}
 	}
 }

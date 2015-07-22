@@ -25,9 +25,10 @@ public class Abs implements Expression {
 	private Expression expr;
 
 	public Abs(QueryContext ctx, List<Expression> exprs) {
-		if (exprs.size() != 1)
-			throw new QueryParseException("invalid-abs-args", -1);
-
+		if (exprs.size() != 1){
+		//	throw new QueryParseException("invalid-abs-args", -1);
+			throw new QueryParseException("90600", -1, -1, null);
+		}
 		this.expr = exprs.get(0);
 	}
 

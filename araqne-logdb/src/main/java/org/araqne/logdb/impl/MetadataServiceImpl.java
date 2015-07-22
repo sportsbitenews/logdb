@@ -15,17 +15,21 @@
  */
 package org.araqne.logdb.impl;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Validate;
-import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 
 @Component(name = "logdb-metadata-service")
 @Provides
@@ -41,8 +45,13 @@ public class MetadataServiceImpl implements MetadataService {
 	@Override
 	public void verify(QueryContext context, String type, String queryString) {
 		MetadataProvider provider = providers.get(type);
-		if (provider == null)
-			throw new QueryParseException("invalid-system-object-type", -1, "type=" + type);
+		if (provider == null){
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("type", type);
+			params.put("value", queryString);
+			throw new QueryParseException("95000", -1, -1, params);
+			//throw new QueryParseException("invalid-system-object-type", -1, "type=" + type);
+		}
 		provider.verify(context, queryString);
 	}
 
@@ -66,6 +75,18 @@ public class MetadataServiceImpl implements MetadataService {
 		if (provider == null)
 			throw new IllegalArgumentException("metadata provider should not be null");
 		providers.remove(provider.getType(), provider);
+	}
+	
+	@Override
+	public List<String> getFieldOrder(String type) {
+		MetadataProvider provider = providers.get(type);
+		if (provider == null)
+			throw new IllegalStateException("metadata provider not found: " + type);
+		
+		if (provider instanceof FieldOrdering)
+			return FieldOrdering.class.cast(provider).getFieldOrder();
+		
+		return null;
 	}
 
 }

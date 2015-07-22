@@ -34,7 +34,7 @@ public class QueryTaskRunner extends Thread {
 	public QueryTaskRunner(QueryTaskScheduler scheduler, QueryTask task) {
 		this.scheduler = scheduler;
 		this.task = task;
-		setName("Query Task #" + idCounter.incrementAndGet());
+		setName("Query Task #"+ idCounter.incrementAndGet() + " for query " + scheduler.getQuery().getId());
 	}
 
 	@Override

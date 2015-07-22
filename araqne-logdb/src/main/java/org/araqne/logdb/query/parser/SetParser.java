@@ -15,9 +15,13 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Set;
 import org.araqne.logdb.query.expr.Expression;
@@ -33,22 +37,35 @@ public class SetParser extends AbstractQueryCommandParser {
 	public String getCommandName() {
 		return "set";
 	}
-
+	
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("10400", new QueryErrorMessage("assign-token-not-found", "할당자(=) 가 없습니다."));
+		m.put("10401", new QueryErrorMessage("field-name-not-found", "올바르지 않는 필드 이름입니다."));
+		m.put("10402", new QueryErrorMessage("expression-not-found", "올바르지 않는 표현식입니다."));
+		return m;
+	}
+	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		// find assignment symbol
 		int p = QueryTokenizer.findKeyword(commandString, "=");
 		if (p < 0)
-			throw new QueryParseException("assign-token-not-found", commandString.length());
+		//	throw new QueryParseException("assign-token-not-found", commandString.length());
+			throw new QueryParseException("10400", getCommandName().length()  + 1 ,commandString.length() -1 , null);
 
 		String field = commandString.substring(getCommandName().length(), p).trim();
 		String exprToken = commandString.substring(p + 1).trim();
 
 		if (field.isEmpty())
-			throw new QueryParseException("field-name-not-found", commandString.length());
+		//	throw new QueryParseException("field-name-not-found", commandString.length());
+			throw new QueryParseException("10401", getCommandName().length()  + 1,  p - 1, null);
+
 
 		if (exprToken.isEmpty())
-			throw new QueryParseException("expression-not-found", commandString.length());
+		//	throw new QueryParseException("expression-not-found", commandString.length());
+			throw new QueryParseException("10402", p + 1, commandString.length() -1, null);
 
 		Expression expr = ExpressionParser.parse(context, exprToken, getFunctionRegistry());
 		context.getConstants().put(field, expr.eval(null));

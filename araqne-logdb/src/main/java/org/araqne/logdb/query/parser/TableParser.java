@@ -18,6 +18,7 @@ package org.araqne.logdb.query.parser;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -29,6 +30,7 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.TimeSpan;
@@ -64,14 +66,31 @@ public class TableParser extends AbstractQueryCommandParser {
 		return "table";
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("10600", new QueryErrorMessage("archive-not-opened", "저장소가 닫혀 있습니다."));
+		m.put("10601", new QueryErrorMessage("negative-offset", "offset 값은 0보다 크거나 같아야 합니다: 입력값=[offset]."));
+		m.put("10602", new QueryErrorMessage("negative-limit", "입력값이 허용 범위를 벗어났습니다: limit=[offset]."));
+		m.put("10603", new QueryErrorMessage("invalid-table-spec", "[options]에서 [exp] 잘못된 옵션입니다."));
+		m.put("10604", new QueryErrorMessage("no-table-data-source", "테이블이 없습니다."));
+		m.put("10605", new QueryErrorMessage("table-not-found", "테이블 [table]이(가) 존재하지 않습니다."));
+		m.put("10606", new QueryErrorMessage("no-read-permission", "테이블 [table] 읽기 권한이 없습니다."));
+		m.put("10607", new QueryErrorMessage("table-not-found", "테이블 [table]이(가) 존재하지 않습니다."));
+		m.put("10608", new QueryErrorMessage("no-read-permission", "테이블 [table] 읽기 권한이 없습니다."));
+		return m;
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (logStorage.getStatus() != LogStorageStatus.Open)
-			throw new QueryParseException("archive-not-opened", -1);
+			//	throw new QueryParseException("archive-not-opened", -1);
+			throw new QueryParseException("10600",  -1, -1, null);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order", "window"), getFunctionRegistry());
+				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order", "window", "raw"),
+				getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		String tableTokens = commandString.substring(r.next);
 		List<TableSpec> tableNames = parseTableNames(context, tableTokens);
@@ -82,6 +101,7 @@ public class TableParser extends AbstractQueryCommandParser {
 		long limit = 0;
 		String parser = null;
 		boolean ordered = true;
+		boolean asc = false;
 		TimeSpan window = null;
 
 		if (options.containsKey("window"))
@@ -106,22 +126,36 @@ public class TableParser extends AbstractQueryCommandParser {
 			to = QueryTokenizer.getDate(options.get("to"));
 
 		if (options.containsKey("offset"))
-			offset = Integer.parseInt(options.get("offset"));
+			offset = Long.parseLong(options.get("offset"));
 
-		if (offset < 0)
-			throw new QueryParseException("negative-offset", -1);
+		if (offset < 0){
+			//throw new QueryParseException("negative-offset", -1);
+			Map<String, String> param = new HashMap<String, String>();
+			param.put("offset", options.get("offset"));
+			int offsetS = QueryTokenizer.findKeyword(commandString, options.get("offset"));
+			throw new QueryParseException("10601", offsetS, offsetS + options.get("offset").length()  -1, param);
+		}
 
 		if (options.containsKey("limit"))
-			limit = Integer.parseInt(options.get("limit"));
+			limit = Long.parseLong(options.get("limit"));
 
-		if (limit < 0)
-			throw new QueryParseException("negative-limit", -1);
+		if (limit < 0){
+			//throw new QueryParseException("negative-limit", -1);
+			Map<String, String> param = new HashMap<String, String>();
+			param.put("limit", options.get("limit"));
+			int offsetS = QueryTokenizer.findKeyword(commandString, options.get("limit"));
+			throw new QueryParseException("10602", offsetS, offsetS + options.get("limit").length()  -1 , param);
+		}
 
-		if (options.containsKey("parser"))
+
+		if (options.get("parser") != null)
 			parser = options.get("parser");
 
-		if (options.containsKey("order"))
-			ordered = !options.get("order").equals("f");
+		String orderOpt = options.get("order");
+		if (orderOpt != null) {
+			ordered = !orderOpt.equals("f");
+			asc = orderOpt.equals("asc");
+		}
 
 		TableParams params = new TableParams();
 		params.setTableSpecs(tableNames);
@@ -131,7 +165,14 @@ public class TableParser extends AbstractQueryCommandParser {
 		params.setTo(to);
 		params.setParserName(parser);
 		params.setOrdered(ordered);
+		params.setAsc(asc);
 		params.setWindow(window);
+		params.setRaw(CommandOptions.parseBoolean(options.get("raw")));
+
+		if (params.isRaw()) {
+			if (context.getSession() == null || !context.getSession().isAdmin())
+				throw new QueryParseException("no-raw-permission", -1);
+		}
 
 		Table table = new Table(params);
 		table.setAccountService(accountService);
@@ -148,6 +189,7 @@ public class TableParser extends AbstractQueryCommandParser {
 		private String symbol;
 		private int precedence;
 		private boolean leftAssoc;
+		@SuppressWarnings("unused")
 		private boolean unary;
 		private boolean isAlpha;
 
@@ -297,7 +339,8 @@ public class TableParser extends AbstractQueryCommandParser {
 		public MetaS(Expression pred, TableSpec pat) {
 			this.predicate = pred;
 			this.pattern = pat;
-			this.mm = new MetadataMatcher<TableSpec>(predicate.eval(new Row()).toString(), Arrays.asList(pattern));
+			this.mm = new MetadataMatcher<TableSpec>(
+					predicate.eval(new Row()).toString(), Arrays.asList(pattern));
 		}
 
 		public Object clone() {
@@ -337,7 +380,19 @@ public class TableParser extends AbstractQueryCommandParser {
 			sb.append(")");
 			return sb.toString();
 		}
+
+		@Override
+		public boolean isOptional() {
+			return true;
+		}
+
+		@Override
+		public void setOptional(boolean optional) {
+			throw new UnsupportedOperationException(
+					"set table-metadata matcher as not-optional is not supported");
+		}
 	}
+	
 
 	private static class Meta implements Expression {
 		private List<TableSpec> patterns;
@@ -354,7 +409,16 @@ public class TableParser extends AbstractQueryCommandParser {
 				try {
 					this.patterns.add(new WildcardTableSpec(e.eval(new Row()).toString()));
 				} catch (IllegalArgumentException exc) {
-					throw new QueryParseException("invalid-table-spec", -1, e.toString());
+					// throw new QueryParseException("invalid-table-spec", -1,
+					// e.toString());
+
+					Map<String, String> param = new HashMap<String, String>();
+					try {
+						param.put("options", args.toString());
+						param.put("exp", e.toString());
+					} catch (Throwable t) {
+					}
+					throw new QueryParseException("10603", -1, -1, param);
 				}
 			}
 			if (args.size() < 2) {
@@ -377,6 +441,7 @@ public class TableParser extends AbstractQueryCommandParser {
 			return result;
 		}
 
+		@Override
 		public String toString() {
 			StringBuilder sb = new StringBuilder();
 			sb.append("meta(");
@@ -438,9 +503,12 @@ public class TableParser extends AbstractQueryCommandParser {
 			addTableSpec(tableNames, context, evalResult);
 		}
 
-		if (tableNames.isEmpty())
-			throw new QueryParseException("no-table-data-source", -1);
-
+		if (tableNames.isEmpty()) {
+			// throw new QueryParseException("no-table-data-source", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("value", tableTokens);
+			throw new QueryParseException("10604", -1, -1, params);
+		}
 		return tableNames;
 	}
 
@@ -448,23 +516,35 @@ public class TableParser extends AbstractQueryCommandParser {
 		if (spec instanceof TableSpec) {
 			target.add((TableSpec) spec);
 		} else if (spec instanceof List) {
-			for (Object o : (List<Object>) spec) {
+			@SuppressWarnings("unchecked")
+			List<Object> specs = (List<Object>) spec;
+			for (Object o : specs) {
 				addTableSpec(target, context, o);
 			}
 		} else {
 			WildcardTableSpec wspec = new WildcardTableSpec(spec.toString());
 			if (!wspec.hasWildcard()) {
 				List<StorageObjectName> sonList = wspec.match(tableRegistry);
-
 				StorageObjectName son = sonList.get(0);
 
 				if (son.getNamespace() == null) {
 					// check only local tables
-					if (!son.isOptional() && !tableRegistry.exists(son.getTable()))
-						throw new QueryParseException("table-not-found", -1, "table=" + son.toString());
-
-					if (!accountService.checkPermission(context.getSession(), son.getTable(), Permission.READ))
-						throw new QueryParseException("no-read-permission", -1, "table=" + son.toString());
+					if (!son.isOptional() && !tableRegistry.exists(son.getTable())) {
+						// throw new QueryParseException("table-not-found", -1,
+						// "table=" + son.toString());
+						String table = son.toString();
+						Map<String, String> param = new HashMap<String, String>();
+						param.put("table", table);
+						throw new QueryParseException("10605", -1, -1, param);
+					}
+					if (!accountService.checkPermission(context.getSession(), son.getTable(), Permission.READ)) {
+						// throw new QueryParseException("no-read-permission",
+						// -1, "table=" + son.toString());
+						String table = son.toString();
+						Map<String, String> param = new HashMap<String, String>();
+						param.put("table", table);
+						throw new QueryParseException("10606", -1, -1, param);
+					}
 				}
 			}
 			target.add(wspec);
@@ -494,11 +574,21 @@ public class TableParser extends AbstractQueryCommandParser {
 
 		if (namespace == null && !name.contains("*")) {
 			// check only local tables
-			if (!tableRegistry.exists(name))
-				throw new QueryParseException("table-not-found", -1, "table=" + fqdn);
+			if (!tableRegistry.exists(name)) {
+				// throw new QueryParseException("table-not-found", -1, "table="
+				// + fqdn);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("table", fqdn);
+				throw new QueryParseException("10607", -1, -1, params);
+			}
 
-			if (!accountService.checkPermission(context.getSession(), name, Permission.READ))
-				throw new QueryParseException("no-read-permission", -1, "table=" + fqdn);
+			if (!accountService.checkPermission(context.getSession(), name, Permission.READ)) {
+				// throw new QueryParseException("no-read-permission", -1,
+				// "table=" + fqdn);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("table", fqdn);
+				throw new QueryParseException("10608", -1, -1, params);
+			}
 		}
 
 		target.add(fqdn);

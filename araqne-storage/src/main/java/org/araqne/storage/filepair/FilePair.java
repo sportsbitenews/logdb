@@ -16,6 +16,7 @@
 package org.araqne.storage.filepair;
 
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -34,13 +35,25 @@ import org.araqne.storage.api.StorageUtil;
 import org.araqne.storage.localfile.LocalFileOutputStream;
 import org.araqne.storage.localfile.LocalFilePath;
 
-public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlock<RDB>> {
-	protected FilePath ifile;
-	protected FilePath dfile;
+public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlock<RDB>> implements Closeable {
+	protected final FilePath ifile;
+	protected final FilePath dfile;
+	protected final Class<IB> ibClass;
+	protected final Class<RDB> rdbClass;
 
-	public FilePair(FilePath indexFile, FilePath dataFile) {
+	public FilePair(FilePath indexFile, FilePath dataFile, Class<IB> ibClass, Class<RDB> rdbClass) {
 		this.ifile = indexFile;
 		this.dfile = dataFile;
+		this.ibClass = ibClass;
+		this.rdbClass = rdbClass;
+	}
+
+	public Class<? extends IndexBlock<?>> getIBClass() {
+		return ibClass;
+	}
+
+	public Class<? extends RawDataBlock<?>> getRDBClass() {
+		return rdbClass;
 	}
 
 	public FilePath getIndexFile() {
@@ -50,6 +63,8 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 	public FilePath getDataFile() {
 		return dfile;
 	}
+
+	public abstract void close() throws IOException;
 
 	public static void main(String[] args) {
 		FilePath a =
@@ -143,8 +158,8 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 
 	public abstract IB getIndexBlock(int id) throws IOException;
 
-	public CloseableEnumeration<IB> getIndexBlocks(Class<IB> ibClass) throws IOException {
-		return new IndexBlockEnumeration(ibClass);
+	public CloseableEnumeration<IB> getIndexBlocks() throws IOException {
+		return new IndexBlockEnumeration();
 	}
 
 	public abstract RDB getRawDataBlock(IB indexBlock) throws IOException;
@@ -224,12 +239,14 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 			ensureDataFileHeader();
 
 			if (indexBlock.getPosOnData() != dfile.length())
-				throw new CannotAppendBlockException(this + ": unexpected data block position " + indexBlock.getPosOnData()
+				throw new CannotAppendBlockException(this + ": unexpected data block position "
+						+ indexBlock.getPosOnData()
 						+ " (expected: " + dfile.length() + ")");
 
 			long indexPos = getIndexFileHeaderLength() + indexBlock.getBlockSize() * indexBlock.getId();
 			if (indexPos != ifile.length())
-				throw new CannotAppendBlockException(this + ": unexpected index block position" + indexPos + " (expected: "
+				throw new CannotAppendBlockException(this + ": unexpected index block position" + indexPos
+						+ " (expected: "
 						+ ifile.length() + ")");
 
 			dataStream = dfile.newOutputStream(true);
@@ -310,15 +327,13 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 		private int currentSegId;
 		private IB next;
 		private IB prefetched;
-		private Class<IB> ibClass;
 		private IB ib;
 
-		public IndexBlockEnumeration(Class<IB> ibClass) throws IOException {
+		public IndexBlockEnumeration() throws IOException {
 			this.currentSegId = 0;
 
 			try {
 				this.ib = ibClass.newInstance();
-				this.ibClass = ibClass;
 
 				if (!ifile.exists() || ifile.length() == 0)
 					return;
@@ -355,6 +370,9 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 
 					IB newInstance = (IB) ibClass.newInstance();
 					next = newInstance.unserialize(currentSegId, new ByteArrayInputStream(b.array()));
+					if (next.hasEndPosOnData()) {
+						next.setDataBlockLen(next.getEndPosOnData() + 1 - getDataFileHeaderLength());
+					}
 				} else {
 					next = prefetched;
 				}
@@ -364,9 +382,14 @@ public abstract class FilePair<IB extends IndexBlock<IB>, RDB extends RawDataBlo
 					readIndexBlock(b);
 					prefetched =
 							ibClass.newInstance().unserialize(currentSegId + 1, new ByteArrayInputStream(b.array()));
-					next.setDataBlockLen(prefetched.getPosOnData() - next.getPosOnData());
+					if (prefetched.hasEndPosOnData()) {
+						prefetched.setDataBlockLen(prefetched.getEndPosOnData() - next.getEndPosOnData());
+					} else {
+						next.setDataBlockLen(prefetched.getPosOnData() - next.getPosOnData());
+					}
 				} else {
-					next.setDataBlockLen(dataStreamLength - next.getPosOnData());
+					if (!next.hasEndPosOnData())
+						next.setDataBlockLen(dataStreamLength - next.getPosOnData());
 				}
 
 				boolean hasNext = currentSegId < segCount;

@@ -8,7 +8,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-syslog-parser</artifactId>
-	<version>2.2.0</version>
+	<version>2.2.1</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Syslog Parser</name>
 	<build>
@@ -22,17 +22,17 @@
 						<Bundle-SymbolicName>org.araqne.syslog.parser
 						</Bundle-SymbolicName>
 						<Export-Package>
-							org.araqne.logparser.syslog.fortinet;version=${project.version},
-							org.araqne.logparser.syslog.juniper;version=${project.version},
-							org.araqne.logparser.syslog.sourcefire;version=${project.version},
-							org.araqne.logparser.syslog.futuresystems;version=${project.version},
-							org.araqne.logparser.syslog.xnsystems;version=${project.version},
-							org.araqne.logparser.syslog.radware;version=${project.version},
-							org.araqne.logparser.syslog.paloaltonetworks;version=${project.version},
-							org.araqne.logparser.syslog.hp;version=${project.version},
 							org.araqne.logparser.syslog.airtight;version=${project.version},
-							org.araqne.logparser.syslog.oullim;version=${project.version},
 							org.araqne.logparser.syslog.fireeye;version=${project.version}
+							org.araqne.logparser.syslog.fortinet;version=${project.version},
+							org.araqne.logparser.syslog.hp;version=${project.version},
+							org.araqne.logparser.syslog.ibm;version=${project.version},
+							org.araqne.logparser.syslog.juniper;version=${project.version},
+							org.araqne.logparser.syslog.paloaltonetworks;version=${project.version},
+							org.araqne.logparser.syslog.radware;version=${project.version},
+							org.araqne.logparser.syslog.riorey;version=${project.version},
+							org.araqne.logparser.syslog.sourcefire;version=${project.version},
+							org.araqne.logparser.syslog.symantec;version=${project.version},
 						</Export-Package>
 						<Import-Package>
 							!org.junit,
@@ -76,17 +76,17 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-api</artifactId>
-			<version>2.7.0</version>
+			<version>3.0.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.2.9</version>
+			<version>3.4.20</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-util</artifactId>
-			<version>1.0.0</version>
+			<version>1.0.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>

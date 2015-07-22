@@ -12,6 +12,15 @@ import org.slf4j.LoggerFactory;
 
 public class LocalFileMover implements FileMover {
 	private final Logger logger = LoggerFactory.getLogger(LocalFileMover.class);
+	private boolean overwrite;
+	
+	public LocalFileMover() {
+		this(false);
+	}
+
+	public LocalFileMover(boolean overwrite) {
+		this.overwrite = overwrite;
+	}
 
 	@Override
 	public void move(String from, String to) throws IOException {
@@ -21,8 +30,14 @@ public class LocalFileMover implements FileMover {
 		if (!fromFile.exists())
 			throw new IOException("file not found: " + from);
 
-		if (toFile.exists())
-			throw new IOException("file already exist: " + to);
+		if (toFile.exists()) {
+			if (overwrite) {
+				if (!toFile.delete())
+					throw new IOException("cannot overwrite file: " + toFile.getAbsolutePath());
+			} else {
+				throw new IOException("file already exist: " + to);
+			}
+		}
 
 		boolean moved = fromFile.renameTo(toFile);
 		boolean copied = false;
@@ -42,7 +57,7 @@ public class LocalFileMover implements FileMover {
 				fromChannel = fis.getChannel();
 				toChannel = fos.getChannel();
 
-				fromChannel.transferTo(0, fromChannel.size(), toChannel);
+				ensureTransferTo(fromChannel, toChannel, fromChannel.size());
 				copied = true;
 			} finally {
 				IoHelper.close(fromChannel);
@@ -59,4 +74,12 @@ public class LocalFileMover implements FileMover {
 			}
 		}
 	}
+
+	private void ensureTransferTo(FileChannel srcChannel, FileChannel dstChannel, long length) throws IOException {
+		long copied = 0;
+		while (copied < length) {
+			copied += srcChannel.transferTo(copied, length - copied, dstChannel);
+		}
+	}
+
 }

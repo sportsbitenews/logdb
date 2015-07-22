@@ -16,11 +16,13 @@
 package org.araqne.logdb.query.parser;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Import;
 import org.araqne.logstorage.LogStorage;
@@ -45,12 +47,21 @@ public class ImportParser extends AbstractQueryCommandParser {
 	public String getCommandName() {
 		return "import";
 	}
-
+	
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("30100", new QueryErrorMessage("no-permission","권한이 없습니다. 관리자 권한이 필요합니다."));
+		m.put("30101", new QueryErrorMessage("import-table-not-found", "[table]은 존재하지 않는 테이블입니다."));
+		return m;
+	}
+	
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (context == null || !context.getSession().isAdmin())
-			throw new QueryParseException("no-permission", -1);
+			//throw new QueryParseException("no-permission", -1);
+			throw new QueryParseException("30100", -1, -1, null);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("create"),
 				getFunctionRegistry());
@@ -58,9 +69,13 @@ public class ImportParser extends AbstractQueryCommandParser {
 		boolean create = CommandOptions.parseBoolean(m.get("create"));
 
 		String tableName = commandString.substring(r.next).trim();
-		if (!tableRegistry.exists(tableName) && !create)
-			throw new QueryParseException("import-table-not-found", -1, tableName);
-
+		if (!tableRegistry.exists(tableName) && !create){
+			//throw new QueryParseException("import-table-not-found", -1, tableName);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("table", tableName);
+			throw new QueryParseException("30101", r.next, commandString.length() - 1, params);
+		}
+			
 		return new Import(storage, tableName, create);
 	}
 }

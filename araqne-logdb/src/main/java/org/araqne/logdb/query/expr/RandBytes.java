@@ -15,7 +15,9 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.araqne.logdb.QueryContext;
@@ -26,19 +28,28 @@ import org.araqne.logdb.Row;
  * @since 2.4.11
  * @author xeraph
  */
-public class RandBytes implements Expression {
+public class RandBytes extends FunctionExpression {
 	private Random rand;
 	private int len;
 
 	public RandBytes(QueryContext ctx, List<Expression> exprs) {
+		super("randbytes", exprs, 1);
+		
 		Object n = exprs.get(0).eval(null);
-		if (!(n instanceof Integer))
-			throw new QueryParseException("invalid-rand-argument", -1);
-
+		if (!(n instanceof Integer)){
+		//	throw new QueryParseException("invalid-rand-argument", -1);
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("length", n + "");
+			throw new QueryParseException("90760", -1, -1, params);
+		}
+	
 		this.len = (Integer) n;
-		if (len <= 0 || len > 1000000)
-			throw new QueryParseException("invalid-randbytes-len", -1);
-
+		if (len <= 0 || len > 1000000){
+		//	throw new QueryParseException("invalid-randbytes-len", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("length", n + "");
+			throw new QueryParseException("90761", -1, -1, params);
+		}
 		this.rand = new Random();
 	}
 

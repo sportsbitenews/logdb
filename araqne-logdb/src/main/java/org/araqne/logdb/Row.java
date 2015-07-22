@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 public class Row {
-	// _time cache
-	private Date d;
 	private final Map<String, Object> map;
 
 	public Row() {
@@ -33,28 +31,26 @@ public class Row {
 	}
 
 	public Row(Map<String, Object> map) {
-		Object time = map.get("_time");
-		if (time != null && time instanceof Date)
-			d = (Date) time;
-
 		this.map = map;
 	}
 
 	public Row clone() {
-		return new Row(clone(map));
+		return new Row(new CopyOnWriteMap(map));
 	}
 
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> clone(Map<String, Object> m) {
 		HashMap<String, Object> cloned = new HashMap<String, Object>();
 		for (Entry<String, Object> e : m.entrySet()) {
+			String key = e.getKey();
 			Object val = e.getValue();
+
 			if (val instanceof Map)
-				cloned.put(e.getKey(), clone((Map<String, Object>) val));
+				cloned.put(key, clone((Map<String, Object>) val));
 			else if (val instanceof Collection)
-				cloned.put(e.getKey(), clone((Collection<Object>) val));
+				cloned.put(key, clone((Collection<Object>) val));
 			else
-				cloned.put(e.getKey(), val);
+				cloned.put(key, val);
 		}
 		return cloned;
 	}
@@ -74,7 +70,10 @@ public class Row {
 	}
 
 	public Date getDate() {
-		return d;
+		Object o = map.get("_time");
+		if (o instanceof Date)
+			return (Date) o;
+		return null;
 	}
 
 	public Object get(String key) {
@@ -92,8 +91,6 @@ public class Row {
 	}
 
 	public void put(String key, Object value) {
-		if (key.equals("_time") && value instanceof Date)
-			d = (Date) value;
 		map.put(key, value);
 	}
 

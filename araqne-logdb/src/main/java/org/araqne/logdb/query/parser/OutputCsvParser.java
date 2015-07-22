@@ -15,45 +15,90 @@
  */
 package org.araqne.logdb.query.parser;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.araqne.cron.TickService;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.command.OutputCsv;
 
 public class OutputCsvParser extends AbstractQueryCommandParser {
+	private TickService tickService;
+	private boolean defaultUseBom;
+
+	public OutputCsvParser(TickService tickService) {
+		this(tickService, false);
+	}
+
+	public OutputCsvParser(TickService tickService, boolean useBom) {
+		this.tickService = tickService;
+		this.defaultUseBom = useBom;
+	}
 
 	@Override
 	public String getCommandName() {
 		return "outputcsv";
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("30200", new QueryErrorMessage("missing-field","잘못된 쿼리문 입니다."));
+		m.put("30201", new QueryErrorMessage("use-partition-option", "파티션(partition) 옵션이 필요합니다."));
+		m.put("30202", new QueryErrorMessage("missing-field", "필드명을 입력하십시오.")); 
+		m.put("30203", new QueryErrorMessage("io-error", "IO 에러가 발생했습니다: [msg].")); 
+		m.put("30204", new QueryErrorMessage("unsuported-encoding", "[encoding]은 지원하지 않는 인코딩입니다.")); 
+		m.put("30205", new QueryErrorMessage("choose-overwrite-or-append", "overwrite 와 append 옵션은 동시에 사용할 수 없습니다.")); 
+		return m;
+	}
+	
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
-			throw new QueryParseException("missing-field", commandString.length());
+		//	throw new QueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("30200", commandString.trim().length() -1, commandString.trim().length() -1 , null);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("overwrite", "encoding", "bom", "tab", "tmp", "partition"), getFunctionRegistry());
+				Arrays.asList("overwrite", "encoding", "bom", "tab", "tmp", "partition", "emptyfile", "append", "flush"),
+				getFunctionRegistry());
 
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overwrite = CommandOptions.parseBoolean(options.get("overwrite"));
-		boolean useBom = CommandOptions.parseBoolean(options.get("bom"));
+
+		boolean useBom = false;
+		if (options.get("bom") == null)
+			useBom = this.defaultUseBom;
+		else
+			useBom = CommandOptions.parseBoolean(options.get("bom"));
+
 		boolean useTab = CommandOptions.parseBoolean(options.get("tab"));
 		boolean usePartition = CommandOptions.parseBoolean(options.get("partition"));
+		boolean emptyfile = CommandOptions.parseBoolean(options.get("emptyfile"));
+		boolean append = CommandOptions.parseBoolean(options.get("append"));
+		
+		if (append && overwrite)
+		//	throw new QueryParseException("choose-overwrite-or-append", -1);
+			throw new QueryParseException("30305", -1, -1, null);
+		
 
 		String encoding = options.get("encoding");
 		if (encoding == null)
 			encoding = "utf-8";
+
+		TimeSpan flushInterval = null;
+		if (options.containsKey("flush"))
+			flushInterval = TimeSpan.parse(options.get("flush"));
 
 		String tmpPath = options.get("tmp");
 
@@ -64,8 +109,9 @@ public class OutputCsvParser extends AbstractQueryCommandParser {
 
 		List<PartitionPlaceholder> holders = PartitionPlaceholder.parse(csvPath);
 		if (!usePartition && holders.size() > 0)
-			throw new QueryParseException("use-partition-option", -1, holders.size() + " partition holders");
-
+		//	throw new QueryParseException("use-partition-option", -1, holders.size() + " partition holders");
+			throw new QueryParseException("30201", getCommandName().length() + 1, commandString.length() - 1, null);
+			
 		List<QueryToken> fieldTokens = tokens.subtokens(1, tokens.size());
 		for (QueryToken t : fieldTokens) {
 			StringTokenizer tok = new StringTokenizer(t.token, ",");
@@ -74,15 +120,10 @@ public class OutputCsvParser extends AbstractQueryCommandParser {
 		}
 
 		if (fields.size() == 0)
-			throw new QueryParseException("missing-field", commandString.length());
+	//		throw new QueryParseException("missing-field", commandString.length());
+			throw new QueryParseException("30202", getCommandName().length() + 1 , commandString.length() - 1, null) ;
 
-		File csvFile = new File(csvPath);
-		if (csvFile.exists() && !overwrite)
-			throw new IllegalStateException("csv file exists: " + csvFile.getAbsolutePath());
-
-		if (!usePartition && csvFile.getParentFile() != null)
-			csvFile.getParentFile().mkdirs();
-		return new OutputCsv(csvPath, csvFile, tmpPath, overwrite, fields, encoding, useBom, useTab, usePartition,
-				holders);
+		return new OutputCsv(csvPath,  tmpPath, overwrite, fields, encoding, useBom, useTab, usePartition,
+				emptyfile, holders, append, flushInterval, tickService);
 	}
 }

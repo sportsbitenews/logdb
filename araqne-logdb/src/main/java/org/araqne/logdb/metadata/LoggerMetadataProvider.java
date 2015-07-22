@@ -1,6 +1,8 @@
 package org.araqne.logdb.metadata;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -9,6 +11,7 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
@@ -18,7 +21,7 @@ import org.araqne.logdb.Row;
 import org.slf4j.LoggerFactory;
 
 @Component(name = "logdb-logger-metadata")
-public class LoggerMetadataProvider implements MetadataProvider {
+public class LoggerMetadataProvider implements MetadataProvider, FieldOrdering {
 	private final org.slf4j.Logger slog = LoggerFactory.getLogger(LoggerMetadataProvider.class);
 
 	@Requires
@@ -42,15 +45,22 @@ public class LoggerMetadataProvider implements MetadataProvider {
 	}
 
 	@Override
+	public List<String> getFieldOrder() {
+		return Arrays.asList("namespace", "name", "factory_namespace", "factory_name", "status", "interval", "log_count",
+				"drop_count", "last_start_at", "last_run_at", "last_log_at", "last_write_at");
+	}
+
+	@Override
 	public String getType() {
 		return "loggers";
 	}
 
 	@Override
 	public void verify(QueryContext context, String queryString) {
-		if (!context.getSession().isAdmin())
-			throw new QueryParseException("no-read-permission", -1);
-
+		if (!context.getSession().isAdmin()) {
+			// throw new QueryParseException("no-read-permission", -1);
+			throw new QueryParseException("90510", -1, -1, null);
+		}
 	}
 
 	@Override
@@ -62,7 +72,7 @@ public class LoggerMetadataProvider implements MetadataProvider {
 				m.put("name", logger.getName());
 				m.put("factory_namespace", logger.getFactoryNamespace());
 				m.put("factory_name", logger.getFactoryName());
-				m.put("status", logger.getStatus().toString());
+				m.put("status", logger.isRunning() ? "running" : "stopped");
 				m.put("interval", logger.getInterval());
 				m.put("log_count", logger.getLogCount());
 				m.put("drop_count", logger.getDropCount());
@@ -74,8 +84,10 @@ public class LoggerMetadataProvider implements MetadataProvider {
 			}
 		} catch (Throwable t) {
 			slog.error("araqne logdb: failed to load logger status");
-			throw new QueryParseException("logger-load-fail", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("msg", t.getMessage());
+			throw new QueryParseException("95011", -1, -1, params);
+			// throw new QueryParseException("logger-load-fail", -1);
 		}
 	}
-
 }

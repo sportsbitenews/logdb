@@ -134,7 +134,7 @@ public class LocalFilePath implements FilePath {
 		if (!(o instanceof LocalFilePath))
 			return false;
 		LocalFilePath rhs = (LocalFilePath) o;
-		return path.equals(rhs);
+		return path.equals(rhs.path);
 	}
 
 	@Override
@@ -219,6 +219,11 @@ public class LocalFilePath implements FilePath {
 	public boolean deleteOnExit() throws SecurityException {
 		path.deleteOnExit();
 		return true;
+	}
+	
+	@Override
+	public long lastModified() throws SecurityException {
+		return path.lastModified();
 	}
 
 }

@@ -61,7 +61,7 @@ public class OpenSshLogParserFactory implements LogParserFactory {
 			return "OpenSSH 로그 파일을 파싱합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "解析OpenSSH日志文件。";
-		return "Create redhat openssh log parser";
+		return "Parse OpenSSH logs.";
 	}
 
 	@Override

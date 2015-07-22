@@ -63,7 +63,7 @@ public class SslVpnLogParserFactory extends AbstractLogParserFactory {
 			return "주니퍼 SSL VPN 시스로그를 파싱합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "解析Juniper SSL VPN Syslog。";
-		return "Parse Juniper SSL VPN Syslogs.";
+		return "Parse Juniper SSL VPN syslogs.";
 	}
 
 	@Override

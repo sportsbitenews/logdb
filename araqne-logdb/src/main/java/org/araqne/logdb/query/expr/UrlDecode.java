@@ -17,11 +17,13 @@ package org.araqne.logdb.query.expr;
 
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,12 +32,14 @@ import org.slf4j.LoggerFactory;
  * @author darkluster
  * 
  */
-public class UrlDecode implements Expression {
+public class UrlDecode extends FunctionExpression {
 	private final Logger logger = LoggerFactory.getLogger(UrlDecode.class);
 	private Expression valueExpr;
 	private String charset;
 
 	public UrlDecode(QueryContext ctx, List<Expression> exprs) {
+		super("urldecode", exprs, 1);
+		
 		this.valueExpr = exprs.get(0);
 		charset = "utf-8";
 		if (exprs.size() > 1)
@@ -43,7 +47,10 @@ public class UrlDecode implements Expression {
 		try {
 			Charset.forName(charset);
 		} catch (Exception e) {
-			throw new QueryParseException("invalid-charset", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("charset", charset);
+			throw new QueryParseException("90850", -1, -1, params);
+		//	throw new QueryParseException("invalid-charset", -1);
 		}
 	}
 

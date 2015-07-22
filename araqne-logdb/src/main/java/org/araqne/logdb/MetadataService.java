@@ -15,6 +15,8 @@
  */
 package org.araqne.logdb;
 
+import java.util.List;
+
 public interface MetadataService {
 	void verify(QueryContext context, String type, String queryString);
 
@@ -23,4 +25,6 @@ public interface MetadataService {
 	void addProvider(MetadataProvider provider);
 
 	void removeProvider(MetadataProvider provider);
+	
+	List<String> getFieldOrder(String type);
 }

@@ -17,11 +17,13 @@ package org.araqne.logdb.query.expr;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 
 /**
  * @since 1.7.2
@@ -40,7 +42,8 @@ public class DateAdd implements Expression {
 		this.exprs = exprs;
 		c = Calendar.getInstance();
 		if (exprs.size() != 3)
-			throw new QueryParseException("invalid-dateadd-args", -1);
+	//		throw new QueryParseException("invalid-dateadd-args", -1);
+			throw new QueryParseException("90620" ,  -1, -1, null);
 
 		field = exprs.get(0);
 
@@ -57,14 +60,21 @@ public class DateAdd implements Expression {
 			calField = Calendar.MINUTE;
 		else if (s.equals("sec"))
 			calField = Calendar.SECOND;
-		else
-			throw new QueryParseException("invalid-dateadd-calendar-field", -1);
-
+		else{
+		//	throw new QueryParseException("invalid-dateadd-calendar-field", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("field", s);
+			throw new QueryParseException("90621" ,  -1, -1, params);
+		}
 		Object d = exprs.get(2).eval(null);
 		if (d instanceof Integer)
 			delta = (Integer) d;
-		else
-			throw new QueryParseException("invalid-dateadd-delta-type", -1);
+		else{
+		//	throw new QueryParseException("invalid-dateadd-delta-type", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("time", d.toString());
+			throw new QueryParseException("90622" ,  -1, -1, params);
+		}
 	}
 
 	@Override

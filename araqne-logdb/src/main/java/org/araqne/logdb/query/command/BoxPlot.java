@@ -16,8 +16,10 @@
 package org.araqne.logdb.query.command;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,12 @@ public class BoxPlot extends QueryCommand {
 		this.clauseCount = clauses.size();
 		this.groupCounts = new HashMap<GroupKey, AtomicLong>();
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
+		int queryId = 0;
+		if (getQuery() != null)
+			queryId = getQuery().getId();
+		
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
+		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
 	}
 
 	@Override
@@ -168,8 +176,8 @@ public class BoxPlot extends QueryCommand {
 			if (lastGroupKey != null)
 				writeSummary(lastGroupKey, min, iqr1, iqr2, iqr3, max, count);
 
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (Throwable t) {
+			getQuery().stop(t);
 		}
 	}
 

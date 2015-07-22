@@ -15,20 +15,24 @@
  */
 package org.araqne.logdb.query.parser;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
-import org.junit.Test;
 import org.araqne.logdb.FunctionRegistry;
-import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.StringConstant;
+import org.junit.Test;
 
 public class ExpressionParserTest {
 	@Test
@@ -116,18 +120,30 @@ public class ExpressionParserTest {
 
 	@Test
 	public void testBrokenExpr() {
+		String invalid = "3+4*2/";
 		try {
-			parseExpr("3+4*2/");
+			parseExpr(invalid);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("broken-expression", e.getType());
-		}
+			if(e.isDebugMode()){
+				System.out.println("query " + invalid);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90100", e.getType());
+			assertEquals(invalid, e.getParams().get("value"));
+		} 
 
+		invalid = "3 4*2";
 		try {
-			parseExpr("3 4*2");
+			parseExpr(invalid);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("remain-terms", e.getType());
+			if(e.isDebugMode()){
+				System.out.println("query " + invalid);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90201", e.getType());
+			assertEquals(invalid, e.getParams().get("value"));
 		}
 	}
 
@@ -386,12 +402,19 @@ public class ExpressionParserTest {
 		StringConstant expr2 = (StringConstant) parseExpr(tab);
 		assertEquals("hello\tworld\\", expr2.getConstant());
 
+		String invalid = "\"hello\\tworld\\i\"";
 		try {
-			String invalid = "\"hello\\tworld\\i\"";
 			parseExpr(invalid);
 			fail();
+		
 		} catch (QueryParseException e) {
-			assertEquals("invalid-escape-sequence", e.getType());
+			if(e.isDebugMode()){
+				System.out.println(invalid);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("90205", e.getType());
+			assertEquals("\\i", e.getParams().get("escape"));
+			assertEquals(invalid, e.getParams().get("value"));
 		}
 	}
 

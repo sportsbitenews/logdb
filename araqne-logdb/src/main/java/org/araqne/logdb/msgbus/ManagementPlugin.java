@@ -15,7 +15,10 @@
  */
 package org.araqne.logdb.msgbus;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.KeyStore;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -23,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -30,10 +34,18 @@ import java.util.Map;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.api.PrimitiveConverter;
+import org.araqne.confdb.Config;
+import org.araqne.confdb.ConfigCollection;
+import org.araqne.confdb.ConfigDatabase;
+import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.AuthServiceNotLoadedException;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
+import org.araqne.logdb.SecurityGroup;
+import org.araqne.logstorage.LockKey;
+import org.araqne.logstorage.LockStatus;
 import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.logstorage.LogCryptoProfileRegistry;
 import org.araqne.logstorage.LogFileService;
@@ -50,6 +62,8 @@ import org.araqne.msgbus.MsgbusException;
 import org.araqne.msgbus.Request;
 import org.araqne.msgbus.Response;
 import org.araqne.msgbus.Session;
+import org.araqne.msgbus.Token;
+import org.araqne.msgbus.TokenApi;
 import org.araqne.msgbus.handler.AllowGuestAccess;
 import org.araqne.msgbus.handler.CallbackType;
 import org.araqne.msgbus.handler.MsgbusMethod;
@@ -78,7 +92,12 @@ public class ManagementPlugin {
 	@Requires
 	private LogCryptoProfileRegistry logCryptoProfileRegistry;
 
-	private UploadDataHandler uploadDataHandler = new UploadDataHandler();
+	// TODO: move system variables control to storage service
+	@Requires
+	private ConfigService conf;
+
+	@Requires
+	private TokenApi tokenApi;
 
 	@AllowGuestAccess
 	@MsgbusMethod
@@ -88,10 +107,44 @@ public class ManagementPlugin {
 		if (session.get("araqne_logdb_session") != null)
 			throw new MsgbusException("logdb", "already-logon");
 
-		String loginName = req.getString("login_name", true);
-		String password = req.getString("password", true);
+		org.araqne.logdb.Session dbSession = null;
+		String loginName = null;
 
-		org.araqne.logdb.Session dbSession = accountService.login(loginName, password);
+		// authenticate using msgbus token api
+		String t = req.getString("token");
+		if (t != null) {
+			Token token = tokenApi.getToken(t);
+			if (token == null || (token.getData() == null || !token.getData().toString().equals("logdb-auth-token")))
+				throw new MsgbusException("logdb", "invalid-token");
+
+			tokenApi.removeToken(t);
+
+			loginName = token.getSession().getAdminLoginName();
+			dbSession = accountService.newSession(loginName);
+		} else {
+			loginName = req.getString("login_name", true);
+			String password = req.getString("password", true);
+
+			if (slog.isDebugEnabled())
+				slog.debug("araqne logdb: trying to login [{}] from [{}]", loginName, session.getRemoteAddress().getHostAddress());
+
+			try {
+				dbSession = accountService.login(loginName, password);
+				if (slog.isDebugEnabled())
+					slog.debug("araqne logdb: [{}] is logged in successfully from [{}]", loginName, session.getRemoteAddress()
+							.getHostAddress());
+
+			} catch (AuthServiceNotLoadedException e) {
+				Boolean useErrorReturn = req.getBoolean("use_error_return");
+				if (useErrorReturn != null && useErrorReturn) {
+					slog.info("logdb external auth service is not loaded: " + e.getAuthService());
+					resp.put("error_code", "99000"); // XXX
+					return;
+				} else {
+					throw e;
+				}
+			}
+		}
 
 		if (session.getOrgDomain() == null && session.getAdminLoginName() == null) {
 			session.setProperty("org_domain", "localhost");
@@ -216,6 +269,28 @@ public class ManagementPlugin {
 		accountService.setPrivileges(session, loginName, privileges);
 	}
 
+	/**
+	 * @since 2.4.28
+	 */
+	@MsgbusMethod
+	public void grantAdmin(Request req, Response resp) {
+		String loginName = req.getString("login_name", true);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+
+		accountService.grantAdmin(session, loginName);
+	}
+
+	/**
+	 * @since 2.4.28
+	 */
+	@MsgbusMethod
+	public void revokeAdmin(Request req, Response resp) {
+		String loginName = req.getString("login_name", true);
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+
+		accountService.revokeAdmin(session, loginName);
+	}
+
 	@MsgbusMethod
 	public void grantPrivilege(Request req, Response resp) {
 		org.araqne.logdb.Session session = ensureAdminSession(req);
@@ -253,16 +328,127 @@ public class ManagementPlugin {
 			accountService.revokePrivilege(session, loginName, tableName, Permission.READ);
 	}
 
+	/**
+	 * @since 2.6.34
+	 */
+	@MsgbusMethod
+	public void listSecurityGroups(Request req, Response resp) {
+		List<SecurityGroup> groups = accountService.getSecurityGroups();
+		// return without details
+		List<Object> l = new ArrayList<Object>();
+		for (SecurityGroup group : groups) {
+			Map<String, Object> m = new HashMap<String, Object>();
+			m.put("guid", group.getGuid());
+			m.put("name", group.getName());
+			m.put("description", group.getDescription());
+			m.put("created", group.getCreated());
+			m.put("updated", group.getUpdated());
+			l.add(m);
+		}
+
+		resp.put("security_groups", l);
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@MsgbusMethod
+	public void getSecurityGroup(Request req, Response resp) {
+		String guid = req.getString("guid", true);
+		SecurityGroup group = accountService.getSecurityGroup(guid);
+		resp.put("security_group", group == null ? null : group.marshal());
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void createSecurityGroup(Request req, Response resp) {
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+		SecurityGroup group = new SecurityGroup();
+		if (req.get("guid") != null)
+			group.setGuid(req.getString("guid"));
+
+		group.setName(req.getString("name", true));
+		group.setDescription(req.getString("description"));
+
+		if (req.get("table_names") != null)
+			group.setReadableTables(new HashSet<String>((List<String>) req.get("table_names")));
+
+		if (req.get("accounts") != null)
+			group.setAccounts(new HashSet<String>((List<String>) req.get("accounts")));
+
+		try {
+			accountService.createSecurityGroup(session, group);
+		} catch (IllegalStateException e) {
+			throw new MsgbusException("logdb", e.getMessage());
+		}
+
+		resp.put("guid", group.getGuid());
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void updateSecurityGroup(Request req, Response resp) {
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+
+		SecurityGroup group = accountService.getSecurityGroup(req.getString("guid", true));
+		if (group == null)
+			throw new MsgbusException("logdb", "security group not found");
+
+		group.setName(req.getString("name", true));
+		group.setDescription(req.getString("description"));
+		group.setAccounts(new HashSet<String>((List<String>) req.get("accounts", true)));
+		group.setReadableTables(new HashSet<String>((List<String>) req.get("table_names", true)));
+
+		accountService.updateSecurityGroup(session, group);
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void removeSecurityGroups(Request req, Response resp) {
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+		List<String> guids = (List<String>) req.get("group_guids", true);
+		List<String> failed = new ArrayList<String>();
+		for (String guid : guids) {
+			try {
+				accountService.removeSecurityGroup(session, guid);
+			} catch (Throwable t) {
+				failed.add(guid);
+				slog.error("araqne logdb: cannot remove security group [" + guid + "]", t);
+			}
+		}
+
+		resp.put("failed_groups", failed);
+	}
+
 	@MsgbusMethod
 	public void listTables(Request req, Response resp) {
 		org.araqne.logdb.Session session = ensureDbSession(req);
-
+		Map<String, Object> schemas = new HashMap<String, Object>();
 		Map<String, Object> tables = new HashMap<String, Object>();
 		Map<String, Object> fields = new HashMap<String, Object>();
+		Map<String, Object> locks = new HashMap<String, Object>();
+		Map<String, Object> owners = new HashMap<String, Object>();
+		Map<String, Object> purposes = new HashMap<String, Object>();
 
 		if (session.isAdmin()) {
 			for (TableSchema schema : tableRegistry.getTableSchemas()) {
+				schemas.put(schema.getName(), schema.marshal());
 				tables.put(schema.getName(), getTableMetadata(schema));
+
+				LockStatus s = storage.lockStatus(new LockKey("script", schema.getName(), null));
+				locks.put(schema.getName(), s.isLocked());
+				owners.put(schema.getName(), s.getOwner());
+				purposes.put(schema.getName(), s.getPurposes());
+
 				List<FieldDefinition> defs = schema.getFieldDefinitions();
 				if (defs != null)
 					fields.put(schema.getName(), PrimitiveConverter.serialize(defs));
@@ -272,18 +458,29 @@ public class ManagementPlugin {
 			for (Privilege p : privileges) {
 				if (p.getPermissions().size() > 0 && tableRegistry.exists(p.getTableName())) {
 					TableSchema schema = tableRegistry.getTableSchema(p.getTableName(), true);
-					tables.put(p.getTableName(), getTableMetadata(schema));
+					schemas.put(p.getTableName(), schema.marshal());
+					tables.put(schema.getName(), getTableMetadata(schema));
+
+					LockStatus s = storage.lockStatus(new LockKey("script", schema.getName(), null));
+					locks.put(schema.getName(), s.isLocked());
+					owners.put(schema.getName(), s.getOwner());
+					purposes.put(schema.getName(), s.getPurposes());
+
 					List<FieldDefinition> defs = schema.getFieldDefinitions();
 					if (defs != null)
-						fields.put(p.getTableName(), PrimitiveConverter.serialize(defs));
+						fields.put(schema.getName(), PrimitiveConverter.serialize(defs));
 				}
 			}
 		}
 
-		resp.put("tables", tables);
+		resp.put("schemas", schemas);
 
-		// @since 2.0.2
+		// for backward compatibility
+		resp.put("tables", tables);
 		resp.put("fields", fields);
+		resp.put("locks", locks);
+		resp.put("owners", owners);
+		resp.put("purposes", purposes);
 	}
 
 	@MsgbusMethod
@@ -292,6 +489,12 @@ public class ManagementPlugin {
 		checkTableAccess(req, tableName, Permission.READ);
 
 		TableSchema schema = tableRegistry.getTableSchema(tableName);
+		if (schema == null)
+			throw new MsgbusException("logdb", "table-not-found");
+
+		resp.put("schema", schema.marshal());
+
+		// for backward compatibility
 		List<FieldDefinition> defs = schema.getFieldDefinitions();
 		if (defs != null)
 			resp.put("fields", PrimitiveConverter.serialize(defs));
@@ -390,13 +593,17 @@ public class ManagementPlugin {
 		String tableName = req.getString("table", true);
 		String engineType = req.getString("type", true);
 		String basePath = req.getString("base_path");
+
+		if (basePath != null) {
+			// normalize local path (prevent C://)
+			basePath = new File(basePath).getAbsolutePath();
+		}
+
 		Map<String, String> primaryConfigs = (Map<String, String>) req.get("primary_configs");
 		if (primaryConfigs == null)
 			primaryConfigs = new HashMap<String, String>();
 
 		Map<String, String> replicaConfigs = (Map<String, String>) req.get("replica_configs");
-		if (replicaConfigs == null)
-			replicaConfigs = new HashMap<String, String>();
 
 		Map<String, String> metadata = (Map<String, String>) req.get("metadata");
 
@@ -415,18 +622,20 @@ public class ManagementPlugin {
 				throw new MsgbusException("logdb", "table-config-missing");
 		}
 
-		// TODO check replica storage initiation
-		StorageConfig replicaStorage = primaryStorage.clone();
-		for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
-			String value = replicaConfigs.get(spec.getKey());
+		StorageConfig replicaStorage = null;
+		if (replicaConfigs != null) {
+			replicaStorage = primaryStorage.clone();
+			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
+				String value = replicaConfigs.get(spec.getKey());
 
-			if (value != null) {
-				if (spec.getValidator() != null)
-					spec.getValidator().validate(spec.getKey(), Arrays.asList(value));
+				if (value != null) {
+					if (spec.getValidator() != null)
+						spec.getValidator().validate(spec.getKey(), Arrays.asList(value));
 
-				replicaStorage.getConfigs().add(new TableConfig(spec.getKey(), value));
-			} else if (!spec.isOptional())
-				throw new MsgbusException("logdb", "table-config-missing");
+					replicaStorage.getConfigs().add(new TableConfig(spec.getKey(), value));
+				} else if (!spec.isOptional())
+					throw new MsgbusException("logdb", "table-config-missing");
+			}
 		}
 
 		TableSchema schema = new TableSchema();
@@ -521,11 +730,34 @@ public class ManagementPlugin {
 
 	@MsgbusMethod
 	public void addCryptoProfile(Request req, Response resp) {
-		String name = req.getString("name");
+		String name = req.getString("name", true);
 		String cipher = req.getString("cipher");
 		String digest = req.getString("digest");
-		String filePath = req.getString("file_path");
+		String filePath = req.getString("file_path", true);
 		String password = req.getString("password");
+
+		FileInputStream is = null;
+		try {
+			File f = new File(filePath);
+			if (!f.exists())
+				throw new MsgbusException("logdb", "file-not-found");
+
+			is = new FileInputStream(f);
+			KeyStore ks = KeyStore.getInstance("PKCS12");
+			ks.load(is, password == null ? null : password.toCharArray());
+		} catch (MsgbusException e) {
+			throw e;
+		} catch (Throwable t) {
+			slog.error("araqne logdb: cannot add crypto profile [" + name + "]", t);
+			throw new MsgbusException("logdb", "check-password");
+		} finally {
+			if (is != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+				}
+			}
+		}
 
 		LogCryptoProfile p = new LogCryptoProfile();
 		p.setName(name);
@@ -534,7 +766,11 @@ public class ManagementPlugin {
 		p.setFilePath(filePath);
 		p.setPassword(password);
 
-		logCryptoProfileRegistry.addProfile(p);
+		try {
+			logCryptoProfileRegistry.addProfile(p);
+		} catch (IllegalStateException e) {
+			throw new MsgbusException("logpresso", "duplicated-crypto-profile");
+		}
 
 	}
 
@@ -567,11 +803,6 @@ public class ManagementPlugin {
 	}
 
 	@MsgbusMethod
-	public void loadTextFile(Request req, Response resp) throws IOException {
-		uploadDataHandler.loadTextFile(storage, req, resp);
-	}
-
-	@MsgbusMethod
 	public void getStorageEngines(Request req, Response resp) {
 		Locale locale = req.getSession().getLocale();
 		String s = req.getString("locale");
@@ -580,15 +811,15 @@ public class ManagementPlugin {
 
 		List<Object> engines = new ArrayList<Object>();
 
-		for (String type : lfsRegistry.getInstalledTypes()) {
+		for (String name : lfsRegistry.getInstalledTypes()) {
 			// prevent hang
-			if (type.equals("v1"))
+			if (name.equals("v1"))
 				continue;
 
-			LogFileService lfs = lfsRegistry.getLogFileService(type);
+			LogFileService lfs = lfsRegistry.getLogFileService(name);
 
 			Map<String, Object> engine = new HashMap<String, Object>();
-			engine.put("type", type);
+			engine.put("type", name);
 
 			List<Object> primarySpecs = new ArrayList<Object>();
 			for (TableConfigSpec spec : lfs.getConfigSpecs())
@@ -647,4 +878,78 @@ public class ManagementPlugin {
 		storage.setRetentionPolicy(p);
 	}
 
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void getSystemVariables(Request req, Response resp) {
+		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
+		ConfigCollection col = db.ensureCollection("global_settings");
+		Config c = col.findOne(null);
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		if (c != null && c.getDocument() != null)
+			m = (Map<String, Object>) c.getDocument();
+
+		Map<String, Object> vars = new HashMap<String, Object>();
+
+		for (String key : Arrays.asList("min_free_disk_space_type", "min_free_disk_space_value", "disk_lack_action")) {
+			Object var = m.get(key);
+			if (key.equals("min_free_disk_space_type") && var == null)
+				var = "Percentage";
+
+			if (key.equals("min_free_disk_space_value") && var == null)
+				var = "10";
+
+			if (key.equals("disk_lack_action") && var == null)
+				var = "StopLogging";
+
+			vars.put(key, var);
+		}
+
+		resp.put("vars", vars);
+	}
+
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void setSystemVariables(Request req, Response resp) {
+		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
+		ConfigCollection col = db.ensureCollection("global_settings");
+		Config c = col.findOne(null);
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		if (c != null)
+			m = (Map<String, Object>) c.getDocument();
+
+		String minFreeDiskSpaceType = (String) req.get("min_free_disk_space_type");
+		if (minFreeDiskSpaceType != null) {
+			if (!minFreeDiskSpaceType.equals("Percentage") && !minFreeDiskSpaceType.equals("Megabyte"))
+				throw new MsgbusException("logdb", "invalid-unit");
+			else
+				m.put("min_free_disk_space_type", minFreeDiskSpaceType);
+		}
+
+		String minFreeDiskSpaceValue = (String) req.get("min_free_disk_space_value");
+		if (minFreeDiskSpaceValue != null) {
+			try {
+				Long.valueOf(minFreeDiskSpaceValue);
+				m.put("min_free_disk_space_value", minFreeDiskSpaceValue);
+			} catch (NumberFormatException e) {
+				throw new MsgbusException("logdb", "invalid-number-format");
+			}
+		}
+
+		String diskLackAction = (String) req.get("disk_lack_action");
+		if (diskLackAction != null) {
+			if ((!diskLackAction.equals("StopLogging") && !diskLackAction.equals("RemoveOldLog")))
+				throw new MsgbusException("logdb", "invalid-disk-lack-action");
+			else
+				m.put("disk_lack_action", diskLackAction);
+		}
+
+		if (c != null) {
+			c.setDocument(m);
+			c.update();
+		} else {
+			col.add(m);
+		}
+	}
 }

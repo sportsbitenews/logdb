@@ -17,7 +17,9 @@ package org.araqne.logdb.query.expr;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
@@ -27,7 +29,7 @@ import org.araqne.logdb.Row;
  * @since 2.4.8
  * @author xeraph
  */
-public class Hash implements Expression {
+public class Hash extends FunctionExpression {
 	private ThreadLocal<MessageDigest> digests = new ThreadLocal<MessageDigest>() {
 		@Override
 		protected MessageDigest initialValue() {
@@ -43,11 +45,15 @@ public class Hash implements Expression {
 	private final Expression data;
 
 	public Hash(QueryContext ctx, List<Expression> exprs) {
+		super("hash", exprs);
+		
 		if (exprs.size() < 1)
-			throw new QueryParseException("missing-hash-algorithm", -1);
+		//	throw new QueryParseException("missing-hash-algorithm", -1);
+			throw new QueryParseException("90690", -1, -1, null);
 
 		if (exprs.size() < 2)
-			throw new QueryParseException("missing-hash-data", -1);
+		//	throw new QueryParseException("missing-hash-data", -1);
+			throw new QueryParseException("90691", -1, -1, null);
 
 		String algo = exprs.get(0).eval(null).toString();
 
@@ -62,7 +68,10 @@ public class Hash implements Expression {
 		} else if (algo.equalsIgnoreCase("sha512")) {
 			algorithm = "SHA-512";
 		} else {
-			throw new QueryParseException("unsupported-hash", -1, algo);
+			//throw new QueryParseException("unsupported-hash", -1, algo);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("algorithms", algo);
+			throw new QueryParseException("90692", -1, -1, params);
 		}
 
 		data = exprs.get(1);

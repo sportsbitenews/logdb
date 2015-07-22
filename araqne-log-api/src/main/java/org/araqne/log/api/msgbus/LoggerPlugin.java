@@ -33,6 +33,7 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerFactoryRegistry;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.msgbus.Request;
 import org.araqne.msgbus.Response;
@@ -235,7 +236,7 @@ public class LoggerPlugin {
 		if (logger == null)
 			return;
 
-		logger.start(interval);
+		logger.start(LoggerStartReason.USER_REQUEST, interval);
 	}
 
 	@MsgbusMethod

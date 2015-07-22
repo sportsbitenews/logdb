@@ -15,13 +15,16 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Term;
 import org.araqne.logdb.query.command.Term.Operator;
 
 public class TermParser {
 	static final String[] OP_TOKENS = new String[] { "==", "!=", ">=", "<=", ">", "<", "contain", "regexp", "in", "is null",
-			"not null" };
+	"not null" };
 
 	public static ParseResult parseTerm(String s) {
 		return parseTerm(s, 0);
@@ -40,7 +43,7 @@ public class TermParser {
 		}
 
 		// set operator
-		int checkpoint = r.next;
+		//int checkpoint = r.next;
 		r = QueryTokenizer.nextString(s, r.next);
 		String op = (String) r.value;
 
@@ -54,10 +57,24 @@ public class TermParser {
 				op = "not null";
 		}
 
-		Operator operator = Operator.find(op);
-		if (operator == null)
-			throw new QueryParseException("invalid-operator", checkpoint);
-
+		Operator operator = null;
+		try{
+			operator = Operator.find(op);
+		}catch(QueryParseException t){
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("op", op);
+			params.put("value", s);
+			throw new QueryParseException(t.getType(), -1, -1, params);
+		}
+		
+		if (operator == null){
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("op", op);
+			params.put("value", s);
+			throw new QueryParseException("21901", -1, -1, null);
+			//throw new QueryParseException("invalid-operator", checkpoint);
+		}
+		
 		term.setOperator(operator);
 
 		if (operator == Operator.IsNull || operator == Operator.NotNull)
@@ -67,7 +84,12 @@ public class TermParser {
 		if (operator == Operator.In) {
 			term.setRh(s.substring(r.next).trim());
 		} else {
-			r = QueryTokenizer.nextString(s, r.next);
+			try {
+				r = QueryTokenizer.nextString(s, r.next);
+			} catch (QueryParseException e) {
+				e.getParams().put("value", s);
+				throw e;
+			}
 			term.setRh(r.value);
 			if (QueryTokenizer.isQuoted((String) term.getRh())) {
 				term.setRhString(true);

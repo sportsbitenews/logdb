@@ -23,18 +23,50 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.QueryService;
-import org.araqne.logdb.QueryResultSet;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryResultSet;
+import org.araqne.logdb.QueryService;
 import org.araqne.logdb.RunMode;
 import org.araqne.logdb.Session;
-import org.araqne.logdb.query.command.Fields;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryHelper {
 	private static final int GENERAL_QUERY_FAILURE_CODE = 1;
+	private static Logger logger = LoggerFactory.getLogger(QueryHelper.class);
 
 	private QueryHelper() {
+	}
+
+	public static void setJoinAndUnionDependencies(List<QueryCommand> commands) {
+		List<QueryCommand> joinCmds = new ArrayList<QueryCommand>();
+		List<QueryCommand> unionCmds = new ArrayList<QueryCommand>();
+
+		for (QueryCommand cmd : commands) {
+			if (cmd.getName().equals("join"))
+				joinCmds.add(cmd);
+
+			if (cmd.getName().equals("union"))
+				unionCmds.add(cmd);
+		}
+		
+		for (QueryCommand cmd : commands) {
+			if (cmd.isDriver() && cmd.getMainTask() != null) {
+				for (QueryCommand join : joinCmds) {
+					cmd.getDependency().addDependency(join.getMainTask());
+					logger.debug("cmd [{}] now depends on task [{}]", cmd.getMainTask().getID(), join.getMainTask().getID());
+				}
+			}
+
+			if (cmd.isDriver() && cmd.getMainTask() != null) {
+				for (QueryCommand union : unionCmds) {
+					union.getDependency().addDependency(cmd.getMainTask());
+					logger.debug("cmd [{}] now depends on task [{}]", union.getMainTask().getID(), cmd.getMainTask().getID());
+				}
+			}
+		}
 	}
 
 	public static List<Object> getQueries(Session session, QueryService service) {
@@ -89,7 +121,8 @@ public class QueryHelper {
 		// @since 2.2.17
 		if (q.getCause() != null) {
 			m.put("error_code", GENERAL_QUERY_FAILURE_CODE);
-			m.put("error_detail", q.getCause().getMessage() != null ? q.getCause().getMessage() : q.getCause().getClass().getName());
+			m.put("error_detail", q.getCause().getMessage() != null ? q.getCause().getMessage() : q.getCause().getClass()
+					.getName());
 		}
 
 		return m;
@@ -117,7 +150,7 @@ public class QueryHelper {
 		m.put("name", cmd.getName());
 		m.put("command", cmd.toString());
 		m.put("push_count", cmd.getOutputCount());
-		m.put("status", cmd.getStatus());
+		m.put("status", cmd.getStatus().toString());
 
 		if (l.size() > 0)
 			m.put("commands", l);
@@ -132,15 +165,17 @@ public class QueryHelper {
 			m.put("result", getPage(query, offset, limit));
 			m.put("count", query.getResultCount());
 
-			Fields fields = null;
+			List<String> fields = null;
 			for (QueryCommand command : query.getCommands()) {
-				if (command instanceof Fields) {
-					if (!((Fields) command).isSelector())
-						fields = (Fields) command;
+				if (command instanceof FieldOrdering) {
+					FieldOrdering f = (FieldOrdering) command;
+					if (f.getFieldOrder() != null)
+						fields = f.getFieldOrder();
 				}
 			}
+			
 			if (fields != null)
-				m.put("fields", fields.getFields());
+				m.put("field_order", fields);
 
 			return m;
 		}

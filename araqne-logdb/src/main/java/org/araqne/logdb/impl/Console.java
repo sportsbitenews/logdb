@@ -29,6 +29,7 @@ import java.util.Map;
 import org.araqne.api.ScriptContext;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryService;
 import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.Permission;
@@ -114,10 +115,10 @@ public class Console {
 				else
 					removeAccount(args[1]);
 			} else if (command.equals("passwd")) {
-				if (args.length < 2)
+				if (args.length < 1)
 					context.println("Usage: passwd [login name]");
 				else
-					changePassword(args[1]);
+					changePassword(args.length >= 2 ? args[1] : null);
 			} else if (command.equals("exec")) {
 				if (args.length < 2)
 					context.println("Usage: exec [file path]");
@@ -193,6 +194,10 @@ public class Console {
 			} else {
 				context.println("invalid syntax");
 			}
+		} catch (QueryParseException t) {
+			context.println(line);
+			context.println(t.getMessage());
+			logger.error("araqne logdb: console fail", t);
 		} catch (Throwable t) {
 			context.println(t.getMessage());
 			logger.error("araqne logdb: console fail", t);
@@ -253,6 +258,19 @@ public class Console {
 	}
 
 	private void changePassword(String loginName) throws InterruptedException {
+		if (loginName == null)
+			loginName = session.getLoginName();
+
+		if (!loginName.equals(session.getLoginName()) && !session.isAdmin()) {
+			context.println("no permission");
+			return;
+		}
+
+		if (accountService.getAccount(loginName) == null) {
+			context.println("local account not found");
+			return;
+		}
+
 		context.println("Changing password for user " + loginName);
 		if (!session.isAdmin()) {
 			context.print("(current) password: ");
@@ -354,7 +372,8 @@ public class Console {
 
 		queryString = sb.toString();
 
-		long begin = System.currentTimeMillis();
+		long begin = System.nanoTime();
+		session.setProperty("araqne_logdb_query_source", "java-client");
 		Query lq = queryService.createQuery(session, queryString);
 		queryService.startQuery(session, lq.getId());
 
@@ -365,6 +384,8 @@ public class Console {
 			}
 		} while (!lq.isFinished());
 
+		long duration = (System.nanoTime() - begin) / 1000000L;
+
 		if (lq.getCause() != null) {
 			context.println("query failure: " + lq.getCause().getMessage());
 		} else {
@@ -373,6 +394,19 @@ public class Console {
 			try {
 				rs = lq.getResultSet();
 				while (rs.hasNext()) {
+					if (count == 1000) {
+						context.printf("** result set size is over 1000. do you want to continue (y/N)? ");
+						try {
+							char read = context.read();
+							if (read != 'y' && read != 'Y') {
+								throw new InterruptedException();
+							}
+						} catch (InterruptedException e) {
+							context.printf("\r\n");
+							break;
+						}
+						context.printf("\r");
+					}
 					printMap(rs.next());
 					count++;
 				}
@@ -381,14 +415,14 @@ public class Console {
 					rs.close();
 			}
 
-			context.println(String.format("total %d rows, elapsed %.1fs", count, (System.currentTimeMillis() - begin)
-					/ (double) 1000));
+			context.println(String.format("total %d rows, elapsed %.2fs", lq.getResultCount(), duration / (double) 1000));
 		}
 
 		queryService.removeQuery(lq.getId());
 	}
 
 	private void createQuery(String queryString) {
+		session.setProperty("araqne_logdb_query_source", "java-client");
 		Query q = queryService.createQuery(session, queryString);
 		context.println("created query " + q.getId());
 	}

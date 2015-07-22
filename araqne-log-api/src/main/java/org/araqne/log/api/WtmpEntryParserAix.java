@@ -41,7 +41,8 @@ public class WtmpEntryParserAix extends WtmpEntryParser {
 		// int[] reservedA = new int[2];
 		// int[] reservedV = new int[6];
 
-		return new WtmpEntry(getEntryType(type), new Date(time * 1000L), pid, readString(ut_user), readString(hostBlob), 0); 
+		return new WtmpEntry(getEntryType(type), new Date(time * 1000L), pid, readString(ut_user), readString(hostBlob), 0
+				, readString(ut_line), readString(ut_id)); 
 	}
 
 	private Type getEntryType(int d) {

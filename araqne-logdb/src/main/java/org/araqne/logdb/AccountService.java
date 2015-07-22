@@ -48,6 +48,31 @@ public interface AccountService {
 	void changePassword(Session session, String loginName, String password);
 
 	void removeAccount(Session session, String loginName);
+	
+	/**
+	 * @since 2.6.34
+	 */
+	List<SecurityGroup> getSecurityGroups();
+	
+	/**
+	 * @since 2.6.34
+	 */
+	SecurityGroup getSecurityGroup(String guid);
+	
+	/**
+	 * @since 2.6.34
+	 */
+	void createSecurityGroup(Session session, SecurityGroup group);
+	
+	/**
+	 * @since 2.6.34
+	 */
+	void updateSecurityGroup(Session session, SecurityGroup group);
+	
+	/**
+	 * @since 2.6.34
+	 */
+	void removeSecurityGroup(Session session, String guid);
 
 	boolean checkPermission(Session session, String tableName, Permission permission);
 
@@ -87,6 +112,16 @@ public interface AccountService {
 	void unregisterAuthService(ExternalAuthService auth);
 
 	/**
+	 * @since 2.6.0
+	 */
+	void addListener(AccountEventListener listener);
+
+	/**
+	 * @since 2.6.0
+	 */
+	void removeListener(AccountEventListener listener);
+
+	/**
 	 * @since 0.17.0
 	 */
 	void addListener(SessionEventListener listener);
@@ -95,7 +130,7 @@ public interface AccountService {
 	 * @since 0.17.0
 	 */
 	void removeListener(SessionEventListener listener);
-	
+
 	/**
 	 * @since add-storage-layer
 	 */

@@ -79,4 +79,33 @@ public class ImportParserTest {
 		p.parse(context, "import create=true sample");
 	}
 
+	
+	@Test
+	public void testError30101(){
+		LogTableRegistry tableRegistry = mock(LogTableRegistry.class);
+		LogStorage storage = mock(LogStorage.class);
+		Session session = mock(Session.class);
+		when(session.isAdmin()).thenReturn(true);
+		when(tableRegistry.exists("sample")).thenReturn(true);
+
+		QueryContext context = new QueryContext(session);
+		ImportParser p = new ImportParser(tableRegistry, storage);
+		p.setQueryParserService(queryParserService);
+
+		String query = "import create=false create";
+		
+		try {
+			p.parse(context, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			
+			assertEquals("30101", e.getType());
+			assertEquals(20, e.getStartOffset());
+			assertEquals(25, e.getEndOffset());	
+		}
+	}
 }

@@ -19,21 +19,23 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * @author darkluster
+ * @author mindori
  */
 public class PlainLineWriterFactory implements LineWriterFactory {
 	private List<String> fields;
-	private String delimiter;
 	private String encoding;
+	private String delimiter;
+	private boolean append;
 
-	public PlainLineWriterFactory(List<String> fields, String delimiter, String encoding) {
+	public PlainLineWriterFactory(List<String> fields, String encoding, boolean append, String delimiter) {
 		this.fields = fields;
-		this.delimiter = delimiter;
 		this.encoding = encoding;
+		this.append = append;
+		this.delimiter = delimiter;
 	}
 
 	@Override
 	public LineWriter newWriter(String filePath) throws IOException {
-		return new PlainLineWriter(filePath, fields, delimiter, encoding);
+		return new PlainLineWriter(filePath, fields, encoding, append, delimiter);
 	}
 }

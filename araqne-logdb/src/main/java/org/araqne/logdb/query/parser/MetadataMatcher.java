@@ -1,7 +1,9 @@
 package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 import java.util.regex.Pattern;
 
@@ -14,7 +16,7 @@ import org.araqne.logdb.query.expr.Comma;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.parser.ExpressionParser.FuncTerm;
 import org.araqne.logdb.query.parser.ExpressionParser.TokenTerm;
-import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.LogTableRegistry; 
 import org.araqne.logstorage.TableSchema;
 
 public class MetadataMatcher<T extends StorageObjectSpec> {
@@ -306,9 +308,12 @@ public class MetadataMatcher<T extends StorageObjectSpec> {
 			}
 
 			// reversed order by stack
-			if (exprStack.size() < 2)
-				throw new QueryParseException("broken-expression", -1, "operator is [" + op + "]");
-
+			if (exprStack.size() < 2){
+			//	throw new QueryParseException("broken-expression", -1, "operator is [" + op + "]");
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("option", op.toString());
+				throw new QueryParseException("90300", -1 , -1, params);
+			}
 			Expression rhs = exprStack.pop();
 			Expression lhs = exprStack.pop();
 
@@ -333,6 +338,7 @@ public class MetadataMatcher<T extends StorageObjectSpec> {
 				break;
 			default:
 				throw new IllegalStateException("unsupported operator " + op.toString());
+				
 			}
 
 		}

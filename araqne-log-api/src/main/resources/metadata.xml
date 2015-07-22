@@ -13,6 +13,7 @@
 	<instance component="log-transformer-factory-registry" />
 	<instance component="selector-logger-factory" />
 	<instance component="directory-watch-logger-factory" />
+	<instance component="daily-directory-watch-logger-factory" />
 	<instance component="key-value-tagger-factory" />
 	<instance component="log-normalizer-registry" />
 	<instance component="log-transformer-registry" />
@@ -20,12 +21,10 @@
 	<instance component="field-mapping-parser-factory" />
 	<instance component="tag-parser-factory" />
 	<instance component="regex-filter-transformer-factory" />
-	
-	<!-- deprecated 
-	<instance component="rolling-log-writer-factory" />
-	<instance component="time-rolling-log-writer-factory" />
-	 -->
-	 
+
+	<!-- deprecated <instance component="rolling-log-writer-factory" /> <instance 
+		component="time-rolling-log-writer-factory" /> -->
+
 	<instance component="rotation-file-logger-factory" />
 	<instance component="exec-logger-factory" />
 	<instance component="wtmp-logger-factory" />
@@ -34,4 +33,7 @@
 	<instance component="regex-selector-logger-factory" />
 	<instance component="gzip-directory-watch-logger-factory" />
 	<instance component="csv-log-parser-factory" />
+	<instance component="multi-rotation-file-logger-factory" />
+	<instance component="fixed-length-log-parser-factory" />
+	<instance component="config-watch-logger-factory" />
 </ipojo>

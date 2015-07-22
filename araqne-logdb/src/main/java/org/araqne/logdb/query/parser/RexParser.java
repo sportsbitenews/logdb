@@ -17,6 +17,7 @@ package org.araqne.logdb.query.parser;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -25,6 +26,7 @@ import java.util.regex.Pattern;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Rex;
 
@@ -33,6 +35,14 @@ public class RexParser extends AbstractQueryCommandParser {
 	@Override
 	public String getCommandName() {
 		return "rex";
+	}
+	
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("20900", new QueryErrorMessage("field-not-found", "filed 옵션의 값이 없습니다."));
+		m.put("20901", new QueryErrorMessage("invalid-regex", "올바르지 않는 정규표현식입니다."));
+		return m;
 	}
 
 	@Override
@@ -47,14 +57,16 @@ public class RexParser extends AbstractQueryCommandParser {
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		String field = options.get("field");
-		if (field == null)
-			throw new QueryParseException("field-not-found", commandString.length());
-
+		if (field == null || field.isEmpty()){
+			//throw new QueryParseException("field-not-found", commandString.length());
+			int offset = QueryTokenizer.findKeyword(commandString, "=") + 1;
+			throw new  QueryParseException("20900", offset, offset, null);
+		}
 		Pattern placeholder = Pattern.compile("\\(\\?<(.*?)>");
 		String regexToken = commandString.substring(r.next);
 		if (!QueryTokenizer.isQuoted(regexToken.trim()))
-			throw new QueryParseException("invalid-regex", commandString.length(), regexToken);
-
+			throw new QueryParseException("20901", r.next , commandString.length() -1  , null);
+			
 		// for later toString convenience
 		String originalRegexToken = regexToken;
 

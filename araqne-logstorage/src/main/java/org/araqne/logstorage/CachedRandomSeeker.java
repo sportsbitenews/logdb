@@ -29,10 +29,12 @@ import org.araqne.log.api.LogParserBuilder;
  */
 public interface CachedRandomSeeker {
 	Log getLog(String tableName, Date day, long id) throws IOException;
-	
+
 	Log getLog(String tableName, Date day, long id, LogParserBuilder builder) throws IOException;
 
 	List<Log> getLogs(String tableName, Date day, Date from, Date to, List<Long> ids, LogParserBuilder builder);
+
+	List<Log> getLogs(String tableName, Date day, Date from, Date to, long[] ids, LogParserBuilder builder);
 
 	void close();
 }

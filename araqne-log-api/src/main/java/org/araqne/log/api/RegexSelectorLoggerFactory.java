@@ -46,7 +46,7 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 			return "정규표현식 로그 선택자";
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "正規表現ログセレクター";
-		if(locale != null && locale.equals(Locale.CHINESE))
+		if (locale != null && locale.equals(Locale.CHINESE))
 			return "正则表达式筛选器";
 		return "Regex Selector";
 	}
@@ -62,9 +62,9 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 			return "다른 로거로부터 정규표현식 패턴이 매칭되는 특정 로그들만 수집합니다.";
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "他のロガーから正規表現がマッチングされるログだけ収集します。";
-		if(locale != null && locale.equals(Locale.CHINESE))
+		if (locale != null && locale.equals(Locale.CHINESE))
 			return "从源数据采集器采集的数据中提取符合正则表达式特征的数据。";
-		return "select logs from logger using regular expression pattern matching";
+		return "Select logs from logger using regular expression pattern matching";
 	}
 
 	@Override
@@ -74,11 +74,13 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름", "元ロガー名","源数据采集器"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名","包含命名空间的源数据采集器名称"), true);
-		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Regex pattern", "정규표현식 패턴", "正規表現パターン","正则表达式"), t(
-				"Regex pattern to match", "매칭할 정규표현식", "マッチングする正規表現", "输入用于匹配数据的正则表达式"), true);
-		LoggerConfigOption invert = new StringConfigType(OPT_INVERT, t("Invert match", "매칭 결과 반전", "結果反転","返回匹配结果"), t(
+		LoggerConfigOption loggerName = new MutableSourceLoggerConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름",
+				"元ロガー名", "源数据采集器"), t("Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名",
+				"包含命名空间的源数据采集器名称"), true);
+		LoggerConfigOption pattern = new MutableStringConfigType(OPT_PATTERN,
+				t("Regex pattern", "정규표현식 패턴", "正規表現パターン", "正则表达式"), t("Regex pattern to match", "매칭할 정규표현식", "マッチングする正規表現",
+						"输入用于匹配数据的正则表达式"), true);
+		LoggerConfigOption invert = new MutableStringConfigType(OPT_INVERT, t("Invert match", "매칭 결과 반전", "結果反転", "返回匹配结果"), t(
 				"Invert pattern match result", "정규표현식 매칭 결과 반전", "正規表現マッチング結果を反転します。", "返回正则表达式匹配结果"), false);
 		return Arrays.asList(loggerName, pattern, invert);
 	}
@@ -94,6 +96,20 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	protected Logger createLogger(LoggerSpecification spec) {
-		return new RegexSelectorLogger(spec, this, loggerRegistry);
+		String fullName = spec.getNamespace() + "\\" + spec.getName();
+		String sourceFullName = (String) spec.getConfig().get("source_logger");
+
+		RegexSelectorLogger logger = new RegexSelectorLogger(spec, this, loggerRegistry);
+		loggerRegistry.addDependency(fullName, sourceFullName);
+		return logger;
+	}
+
+	@Override
+	public void deleteLogger(String namespace, String name) {
+		Logger logger = loggerRegistry.getLogger(namespace, name);
+		super.deleteLogger(namespace, name);
+
+		String sourceFullname = (String) logger.getConfigs().get("source_logger");
+		loggerRegistry.removeDependency(logger.getFullName(), sourceFullname);
 	}
 }

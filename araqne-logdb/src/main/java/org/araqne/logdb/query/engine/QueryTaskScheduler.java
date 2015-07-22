@@ -99,6 +99,9 @@ public class QueryTaskScheduler implements Runnable {
 		}
 
 		stopRecursively(tracer);
+		
+//		finished = true;
+//		finishTime = System.currentTimeMillis();
 	}
 
 	private synchronized void startReadyTasks() {
@@ -122,7 +125,8 @@ public class QueryTaskScheduler implements Runnable {
 		if (task.isRunnable()) {
 			// prevent duplicated run caused by late thread start
 			if (logger.isDebugEnabled())
-				logger.debug("araqne logdb: query [{}] task [{}] start thread", query.getId(), task);
+				logger.debug("araqne logdb: query [{}] task [{}:{}] start thread", 
+						new Object[] { query.getId(), task.getID(), task });
 
 			task.setStatus(TaskStatus.RUNNING);
 			new QueryTaskRunner(this, task).start();
@@ -130,11 +134,11 @@ public class QueryTaskScheduler implements Runnable {
 			if (logger.isDebugEnabled()) {
 				StringBuilder sb = new StringBuilder();
 				for (QueryTask d : task.getDependencies())
-					sb.append(d + " " + d.getStatus() + "\n");
+					sb.append("\n\t" + d.getID() + ":" + d + " " + d.getStatus());
 
 				if (logger.isDebugEnabled())
-					logger.debug("araqne logdb: query [{}] task [{}:{}] is not runnable. dependencies => [{}]", new Object[] {
-							query.getId(), task, task.getStatus(), sb.toString() });
+					logger.debug("araqne logdb: query [{}] task [{}:{} {}] is not runnable. dependencies => [{}]", new Object[] {
+							query.getId(), task.getID(), task, task.getStatus(), sb.toString() });
 			}
 		}
 
@@ -189,7 +193,8 @@ public class QueryTaskScheduler implements Runnable {
 			event.setHandled(true);
 
 			if (logger.isDebugEnabled())
-				logger.debug("araqne logdb: query [{}] task [{}] completed", query.getId(), event.getTask());
+				logger.debug("araqne logdb: query [{}] task [{}:{}] completed", 
+						new Object[] { query.getId(), event.getTask().getID(), event.getTask() });
 		}
 
 		@Override

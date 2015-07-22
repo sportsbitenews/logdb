@@ -1,5 +1,6 @@
 package org.araqne.logdb.query.parser;
 
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Json;
 import org.junit.Test;
 
@@ -18,5 +19,118 @@ public class JsonParserTest {
 
 		// test query string re-generation
 		assertEquals(JSON_QUERY, json.toString());
+	}
+
+	@Test
+	public void testEscape() {
+		JsonParser parser = new JsonParser();
+		// \\""\"\ <- original string
+		// \\\\\"\"\\\"\\ <- json escape
+		// "\\\\\\\\\\"\\"\\\\\\"\\\\" <- quote escape
+		// json "{"test": "\\\\\\\\\\"\\"\\\\\\"\\\\"}" <- query string
+		// "json \"{\"test\": \"\\\\\\\\\\\\\\\\\\\\\"\\\\\"\\\\\\\\\\\\\"\\\\\\\\\"}\""
+		Json json = (Json) parser.parse(null, "json \"{\"test\": \"\\\\\\\\\\\\\\\\\\\\\"\\\\\"\\\\\\\\\\\\\"\\\\\\\\\"}\"");
+		assertEquals(1, json.getLogs().size());
+		assertEquals("\\\\\"\"\\\"\\", json.getLogs().get(0).get("test"));
+	}
+
+	@Test
+	public void testJsonErr10200() {
+		String query = "json";
+		JsonParser parser = new JsonParser();
+
+		try {
+			parser.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if (e.isDebugMode()) {
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("10200", e.getType());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(3, e.getEndOffset());
+		}
+
+		query = "json \"{}";
+
+		try {
+			parser.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if (e.isDebugMode()) {
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("10200", e.getType());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(7, e.getEndOffset());
+		}
+
+		query = "json    {}";
+		try {
+			parser.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if (e.isDebugMode()) {
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("10200", e.getType());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(9, e.getEndOffset());
+		}
+
+		query = "json    \"{}";
+		try {
+			parser.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if (e.isDebugMode()) {
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("10200", e.getType());
+			assertEquals(5, e.getStartOffset());
+			assertEquals(10, e.getEndOffset());
+		}
+	}
+
+	@Test
+	public void testJsonErr10201() {
+		String query = "json \"test\"\"\"";
+		JsonParser parser = new JsonParser();
+
+		try {
+			parser.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if (e.isDebugMode()) {
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("10201", e.getType());
+			assertEquals(6, e.getStartOffset());
+			assertEquals(12, e.getEndOffset());
+		}
+	}
+
+	@Test
+	public void testJsonErr10202() {
+		String query = "json \"{test}\"";
+		JsonParser parser = new JsonParser();
+
+		try {
+			parser.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if (e.isDebugMode()) {
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("10202", e.getType());
+			assertEquals(6, e.getStartOffset());
+			assertEquals(12, e.getEndOffset());
+		}
 	}
 }

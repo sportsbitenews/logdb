@@ -16,8 +16,10 @@
 package org.araqne.logdb.query.command;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,8 +58,15 @@ public class Sort extends QueryCommand {
 		super.onStart();
 		if (limit != null && limit <= TOP_OPTIMIZE_THRESHOLD)
 			this.top = new TopSelector<Item>(limit, new DefaultComparator());
-		else
+		else {
 			this.sorter = new ParallelMergeSorter(new DefaultComparator());
+			int queryId = 0;
+			if (getQuery() != null)
+				queryId = getQuery().getId();
+			
+			SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
+			sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
+		}
 	}
 
 	public Integer getLimit() {
@@ -73,8 +82,12 @@ public class Sort extends QueryCommand {
 		try {
 			if (top != null)
 				top.add(new Item(m.map(), null));
-			else
-				sorter.add(new Item(m.map(), null));
+			else if (sorter != null) {
+				// onClose() thread can interfere
+				synchronized (sorter) {
+					sorter.add(new Item(m.map(), null));
+				}
+			}
 		} catch (IOException e) {
 			throw new IllegalStateException("sort failed, query " + query, e);
 		}
@@ -90,15 +103,20 @@ public class Sort extends QueryCommand {
 
 					if (top != null)
 						top.add(new Item(row.map(), null));
-					else
+					else if (sorter != null)
 						sorter.add(new Item(row.map(), null));
 				}
 			} else {
-				for (Row row : rowBatch.rows) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row row = rowBatch.rows[i];
+					
 					if (top != null)
 						top.add(new Item(row.map(), null));
-					else
-						sorter.add(new Item(row.map(), null));
+					else if (sorter != null) {
+						synchronized (sorter) {
+							sorter.add(new Item(row.map(), null));
+						}
+					}
 				}
 			}
 		} catch (IOException e) {
@@ -126,13 +144,22 @@ public class Sort extends QueryCommand {
 			// support sorter cache GC when query processing is ended
 			top = null;
 
-		} else {
+		} else if (sorter != null) {
 			// TODO: use LONG instead!
 			int count = limit != null ? limit : Integer.MAX_VALUE;
 
 			CloseableIterator it = null;
 			try {
-				it = sorter.sort();
+				if (reason != QueryStopReason.End && reason != QueryStopReason.PartialFetch) {
+					synchronized (sorter) {
+						sorter.cancel();
+					}
+					return;
+				}
+
+				synchronized (sorter) {
+					it = sorter.sort();
+				}
 
 				while (it.hasNext()) {
 					Object o = it.next();
@@ -143,7 +170,8 @@ public class Sort extends QueryCommand {
 					pushPipe(new Row(value));
 				}
 
-			} catch (IOException e) {
+			} catch (Throwable t) {
+				getQuery().stop(t);
 			} finally {
 				// close and delete sorted run file
 				if (it != null) {
@@ -152,10 +180,10 @@ public class Sort extends QueryCommand {
 					} catch (IOException e) {
 					}
 				}
+				
+				// support sorter cache GC when query processing is ended
+				sorter = null;
 			}
-
-			// support sorter cache GC when query processing is ended
-			sorter = null;
 		}
 	}
 

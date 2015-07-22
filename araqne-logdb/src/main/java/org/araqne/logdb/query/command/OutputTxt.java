@@ -18,12 +18,15 @@ package org.araqne.logdb.query.command;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.araqne.cron.AbstractTickTimer;
+import org.araqne.cron.TickService;
 import org.araqne.logdb.FileMover;
+import org.araqne.logdb.LocalFileMover;
 import org.araqne.logdb.PartitionOutput;
 import org.araqne.logdb.PartitionPlaceholder;
 import org.araqne.logdb.QueryCommand;
@@ -32,10 +35,12 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.writer.GzipLineWriterFactory;
 import org.araqne.logdb.writer.LineWriter;
 import org.araqne.logdb.writer.LineWriterFactory;
 import org.araqne.logdb.writer.PlainLineWriterFactory;
+import org.araqne.logdb.writer.RowOutputStreamWriterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +51,7 @@ import org.slf4j.LoggerFactory;
  */
 public class OutputTxt extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(OutputTxt.class.getName());
-	private String[] fields;
+	private List<String> fields;
 	private String delimiter;
 	private String encoding;
 	private File f;
@@ -56,44 +61,37 @@ public class OutputTxt extends QueryCommand {
 	private boolean usePartition;
 	private boolean useGzip;
 	private List<PartitionPlaceholder> holders;
+	private boolean append;
+	private TimeSpan flushInterval;
+	private TickService tickService;
+	private boolean useRowFlush;
+
 	private Map<List<String>, PartitionOutput> outputs;
 	private FileMover mover;
+	private FlushTimer flushTimer = new FlushTimer();
 
 	private LineWriter writer;
 	private LineWriterFactory writerFactory;
 
-	public OutputTxt(File f, String filePath, String tmpPath, boolean overwrite, String delimiter,
-			List<String> fields, boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders) {
-		try {
-			this.usePartition = usePartition;
-			this.useGzip = useGzip;
-			this.delimiter = delimiter;
-			this.encoding = encoding;
-			this.f = f;
-			this.filePath = filePath;
-			this.tmpPath = tmpPath;
-			this.overwrite = overwrite;
-			this.fields = fields.toArray(new String[0]);
-			if (useGzip)
-				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding);
-			else
-				writerFactory = new PlainLineWriterFactory(fields, delimiter, encoding);
+	public OutputTxt(String filePath, String tmpPath, boolean overwrite, String delimiter, List<String> fields,
+			boolean useRowFlush, boolean useGzip, String encoding, boolean usePartition, List<PartitionPlaceholder> holders,
+			boolean append, TimeSpan flushInterval, TickService tickService) {
 
-			if (!usePartition) {
-				String path = filePath;
-				if (tmpPath != null)
-					path = tmpPath;
+		this.usePartition = usePartition;
+		this.useGzip = useGzip;
+		this.delimiter = delimiter;
+		this.encoding = encoding;
+		this.filePath = filePath;
+		this.tmpPath = tmpPath;
+		this.overwrite = overwrite;
+		this.fields = fields;
+		this.append = append;
+		this.flushInterval = flushInterval;
+		this.useRowFlush = useRowFlush;
+		this.holders = holders;
 
-				this.writer = writerFactory.newWriter(path);
-			} else {
-				this.holders = holders;
-				this.outputs = new HashMap<List<String>, PartitionOutput>();
-			}
-
-		} catch (Throwable t) {
-			close();
-			throw new QueryParseException("io-error", -1);
-		}
+		if (flushInterval != null)
+			tickService.addTimer(flushTimer);
 	}
 
 	@Override
@@ -106,11 +104,54 @@ public class OutputTxt extends QueryCommand {
 	}
 
 	public List<String> getFields() {
-		return Arrays.asList(fields);
+		return fields;
 	}
 
 	public String getDelimiter() {
 		return delimiter;
+	}
+
+	@Override
+	public void onStart() {
+		File jsonFile = new File(filePath);
+		if (jsonFile.exists() && !overwrite && !append)
+			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
+
+		if (!usePartition && jsonFile.getParentFile() != null)
+			jsonFile.getParentFile().mkdirs();
+
+		this.f = jsonFile;
+
+		try {
+			if (useRowFlush)
+				writerFactory = new RowOutputStreamWriterFactory(fields, encoding, append, delimiter);
+
+			if (useGzip)
+				writerFactory = new GzipLineWriterFactory(fields, delimiter, encoding, append);
+			else
+				writerFactory = new PlainLineWriterFactory(fields, encoding, append, delimiter);
+
+			if (!usePartition) {
+				String path = filePath;
+				if (tmpPath != null)
+					path = tmpPath;
+
+				this.writer = writerFactory.newWriter(path);
+				mover = new LocalFileMover(overwrite);
+			} else {
+				// this.holders = holders;
+				this.outputs = new HashMap<List<String>, PartitionOutput>();
+			}
+		} catch (QueryParseException t) {
+			close();
+			throw t;
+		} catch (Throwable t) {
+			close();
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("msg", t.getMessage());
+			throw new QueryParseException("30406", -1, -1, params);
+			// throw new QueryParseException("io-error", -1);
+		}
 	}
 
 	@Override
@@ -124,7 +165,8 @@ public class OutputTxt extends QueryCommand {
 					writeLog(m);
 				}
 			} else {
-				for (Row m : rowBatch.rows) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row m = rowBatch.rows[i];
 					writeLog(m);
 				}
 			}
@@ -183,7 +225,7 @@ public class OutputTxt extends QueryCommand {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		close();
-		if (reason == QueryStopReason.CommandFailure)
+		if (!append && reason == QueryStopReason.CommandFailure)
 			if (tmpPath != null)
 				new File(tmpPath).delete();
 			else
@@ -191,6 +233,10 @@ public class OutputTxt extends QueryCommand {
 	}
 
 	private void close() {
+		if (flushInterval != null && tickService != null) {
+			tickService.removeTimer(flushTimer);
+		}
+
 		if (!usePartition) {
 			try {
 				this.writer.close();
@@ -211,6 +257,10 @@ public class OutputTxt extends QueryCommand {
 		String overwriteOption = "";
 		if (overwrite)
 			overwriteOption = " overwrite=t";
+
+		String appendOption = "";
+		if (append)
+			appendOption = " append=t";
 
 		String compressionOption = "";
 		if (useGzip)
@@ -235,10 +285,31 @@ public class OutputTxt extends QueryCommand {
 		String path = " " + filePath;
 
 		String fieldsOption = "";
-		if (fields.length > 0)
+		// if (fields.length > 0)
+		if (fields.size() > 0)
 			fieldsOption = " " + Strings.join(getFields(), ", ");
 
-		return "outputtxt" + overwriteOption + encodingOption + compressionOption + delimiterOption + partitionOption
-				+ tmpPathOption + path + fieldsOption;
+		return "outputtxt" + overwriteOption + appendOption + encodingOption + compressionOption + delimiterOption
+				+ partitionOption + tmpPathOption + path + fieldsOption;
+	}
+
+	private class FlushTimer extends AbstractTickTimer {
+
+		@Override
+		public int getInterval() {
+			return (int) flushInterval.getMillis();
+		}
+
+		@Override
+		public void onTick() {
+			try {
+				if (writer != null) {
+					writer.flush();
+				} else {
+
+				}
+			} catch (IOException e) {
+			}
+		}
 	}
 }

@@ -19,19 +19,25 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.Map;
 
 /**
  * @since 2.4.6
  * @author xeraph
  * 
  */
-public class ExecLogger extends AbstractLogger {
+public class ExecLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExecLogger.class);
 	private String command;
 
 	public ExecLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
 		command = spec.getConfig().get("command");
+	}
+
+	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		this.command = newConfigs.get("command");
 	}
 
 	@Override

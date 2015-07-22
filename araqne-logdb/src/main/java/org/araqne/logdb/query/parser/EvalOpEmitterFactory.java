@@ -1,9 +1,25 @@
 package org.araqne.logdb.query.parser;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Stack;
 
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.query.expr.*;
+import org.araqne.logdb.query.expr.Add;
+import org.araqne.logdb.query.expr.And;
+import org.araqne.logdb.query.expr.Comma;
+import org.araqne.logdb.query.expr.Div;
+import org.araqne.logdb.query.expr.Eq;
+import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.Gt;
+import org.araqne.logdb.query.expr.Gte;
+import org.araqne.logdb.query.expr.Lt;
+import org.araqne.logdb.query.expr.Lte;
+import org.araqne.logdb.query.expr.Mul;
+import org.araqne.logdb.query.expr.Neg;
+import org.araqne.logdb.query.expr.Neq;
+import org.araqne.logdb.query.expr.Or;
+import org.araqne.logdb.query.expr.Sub;
 
 public class EvalOpEmitterFactory implements OpEmitterFactory {
 
@@ -18,8 +34,12 @@ public class EvalOpEmitterFactory implements OpEmitterFactory {
 		}
 
 		// reversed order by stack
-		if (exprStack.size() < 2)
-			throw new QueryParseException("broken-expression", -1, "operator is [" + op + "]");
+		if (exprStack.size() < 2){
+//			throw new QueryParseException("broken-expression", -1, "operator is [" + op + "]");
+			Map<String, String> params = new HashMap<String, String > ();
+			params.put("option", op.toString());
+			throw new QueryParseException("90100", -1, -1, params);
+}
 
 		Expression rhs = exprStack.pop();
 		Expression lhs = exprStack.pop();
@@ -68,7 +88,10 @@ public class EvalOpEmitterFactory implements OpEmitterFactory {
 			exprStack.add(new Comma(lhs, rhs, true));
 			break;
 		default:
-			throw new QueryParseException("unsupported operator", -1, op + " is not supported");
+		//	throw new QueryParseException("unsupported operator", -1, op + " is not supported");
+			Map<String, String> params = new HashMap<String, String > ();
+			params.put("op", op.toString());
+			throw new QueryParseException("90101", -1, -1, params);
 		}
 	}
 	

@@ -17,11 +17,15 @@ package org.araqne.logdb.query.command;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
@@ -34,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * @author xeraph
  * 
  */
-public class Parse extends QueryCommand implements ThreadSafe {
+public class Parse extends QueryCommand implements ThreadSafe, FieldOrdering {
 	private final Logger logger = LoggerFactory.getLogger(Parse.class);
 	private final int parserVersion;
 	private final String parserName;
@@ -54,6 +58,35 @@ public class Parse extends QueryCommand implements ThreadSafe {
 	}
 
 	@Override
+	public List<String> getFieldOrder() {
+		if (parser instanceof FieldOrdering)
+			return ((FieldOrdering) parser).getFieldOrder();
+
+		List<FieldDefinition> fieldDefinitions = parser.getFieldDefinitions();
+		if (fieldDefinitions != null) {
+			LinkedList<String> l = new LinkedList<String>();
+			for (FieldDefinition def : fieldDefinitions)
+				l.add(def.getName());
+
+			reorderSystemFields(l);
+			return l;
+		}
+		
+		return null;
+	}
+
+	private void reorderSystemFields(LinkedList<String> l) {
+		// remove potentially duplicated field name first
+		l.remove("_time");
+		l.remove("_table");
+		l.remove("_id");
+
+		l.addFirst("_id");
+		l.addFirst("_time");
+		l.addFirst("_table");
+	}
+
+	@Override
 	public void onPush(RowBatch rowBatch) {
 		// TODO: boost v2 performance
 		if (parserVersion == 2) {
@@ -63,8 +96,10 @@ public class Parse extends QueryCommand implements ThreadSafe {
 					onPush(row);
 				}
 			} else {
-				for (Row row : rowBatch.rows)
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row row = rowBatch.rows[i];
 					onPush(row);
+				}
 			}
 
 			return;
@@ -75,10 +110,19 @@ public class Parse extends QueryCommand implements ThreadSafe {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				Row parsed = parseV1(row);
-				if (parsed != null) {
+				try {
+					Row parsed = parseV1(row);
+					if (parsed != null) {
+						rowBatch.selected[n] = p;
+						rowBatch.rows[p] = parsed;
+						n++;
+					}
+				} catch (Throwable t) {
+					if (logger.isDebugEnabled())
+						logger.debug("araqne logdb: cannot parse " + row.map() + ", query - " + toString(), t);
+					// set as original
 					rowBatch.selected[n] = p;
-					rowBatch.rows[p] = parsed;
+					rowBatch.rows[p] = row;
 					n++;
 				}
 			}
@@ -86,10 +130,19 @@ public class Parse extends QueryCommand implements ThreadSafe {
 			rowBatch.selected = new int[rowBatch.size];
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-				Row parsed = parseV1(row);
-				if (parsed != null) {
+				try {
+					Row parsed = parseV1(row);
+					if (parsed != null) {
+						rowBatch.selected[n] = i;
+						rowBatch.rows[i] = parsed;
+						n++;
+					}
+				} catch (Throwable t) {
+					if (logger.isDebugEnabled())
+						logger.debug("araqne logdb: cannot parse " + row.map() + ", query - " + toString(), t);
+					// set as original
 					rowBatch.selected[n] = i;
-					rowBatch.rows[i] = parsed;
+					rowBatch.rows[i] = row;
 					n++;
 				}
 			}
@@ -104,13 +157,14 @@ public class Parse extends QueryCommand implements ThreadSafe {
 	}
 
 	@Override
-	public void onPush(Row m) {
+	public void onPush(Row row) {
 		try {
 			LogParserInput input = new LogParserInput();
 
 			if (parserVersion == 2) {
-				Object table = m.get("_table");
-				Object time = m.get("_time");
+				Object table = row.get("_table");
+				Object time = row.get("_time");
+				Object id = row.get("_id");
 
 				if (time != null && time instanceof Date)
 					input.setDate((Date) time);
@@ -122,60 +176,70 @@ public class Parse extends QueryCommand implements ThreadSafe {
 				else
 					input.setSource(null);
 
-				input.setData(m.map());
+				input.setData(row.map());
 
 				LogParserOutput output = parser.parse(input);
 				if (output != null) {
-					for (Map<String, Object> row : output.getRows()) {
-						if (m.get("_id") != null && !row.containsKey("_id"))
-							row.put("_id", m.get("_id"));
-						if (time != null && !row.containsKey("_time"))
-							row.put("_time", m.get("_time"));
-						if (table != null && !row.containsKey("_table"))
-							row.put("_table", m.get("_table"));
+					for (Map<String, Object> out : output.getRows()) {
+						if (id != null && !out.containsKey("_id"))
+							out.put("_id", id);
+						if (time != null && !out.containsKey("_time"))
+							out.put("_time", row.get("_time"));
+						if (table != null && !out.containsKey("_table"))
+							out.put("_table", row.get("_table"));
 
 						if (overlay) {
-							Map<String, Object> source = new HashMap<String, Object>(m.map());
-							source.putAll(row);
+							Map<String, Object> source = new HashMap<String, Object>(row.map());
+							source.putAll(out);
 							pushPipe(new Row(source));
 						} else {
-							pushPipe(new Row(row));
+							pushPipe(new Row(out));
 						}
 					}
 				}
 			} else {
-				Row parsed = parseV1(m);
+				Row parsed = parseV1(row);
 				if (parsed != null)
 					pushPipe(parsed);
 			}
 		} catch (Throwable t) {
 			if (logger.isDebugEnabled())
-				logger.debug("araqne logdb: cannot parse " + m.map() + ", query - " + toString(), t);
+				logger.debug("araqne logdb: cannot parse " + row.map() + ", query - " + toString(), t);
 		}
 	}
 
-	private Row parseV1(Row m) {
-		Map<String, Object> row = parser.parse(m.map());
-		if (row == null)
+	private Row parseV1(Row row) {
+		Map<String, Object> parsed = parser.parse(row.map());
+		if (parsed == null)
 			return null;
 
-		if (!row.containsKey("_id"))
-			row.put("_id", m.get("_id"));
-		if (!row.containsKey("_time"))
-			row.put("_time", m.get("_time"));
-		if (!row.containsKey("_table"))
-			row.put("_table", m.get("_table"));
+		Object id = row.get("_id");
+		Object time = row.get("_time");
+		Object table = row.get("_table");
+
+		if (id != null && !parsed.containsKey("_id"))
+			parsed.put("_id", id);
+
+		if (time != null && !parsed.containsKey("_time"))
+			parsed.put("_time", time);
+
+		if (table != null && !parsed.containsKey("_table"))
+			parsed.put("_table", table);
 
 		if (overlay) {
-			Map<String, Object> source = new HashMap<String, Object>(m.map());
-			source.putAll(row);
+			Map<String, Object> source = new HashMap<String, Object>(row.map());
+			source.putAll(parsed);
 			return new Row(source);
 		} else
-			return new Row(row);
+			return new Row(parsed);
 	}
 
 	@Override
 	public String toString() {
-		return "parse " + parserName;
+		if (parser instanceof ParseWithAnchor) {
+			return ((ParseWithAnchor) parser).toQueryCommandString();
+		} else {
+			return "parse " + parserName;
+		}
 	}
 }

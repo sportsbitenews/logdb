@@ -29,13 +29,17 @@ import org.araqne.logdb.TimeUnit;
  * @author darkluster
  * 
  */
-public class DateTrunc implements Expression {
+public class DateTrunc extends FunctionExpression {
 	private Expression valueExpr;
 	private TimeSpan span;
 
 	public DateTrunc(QueryContext ctx, List<Expression> exprs) {
+		super("datetrunc", exprs);
+		
 		if (exprs.size() < 2)
-			throw new QueryParseException("invalid-datetrunc-args", -1);
+	//		throw new QueryParseException("invalid-datetrunc-args", -1);
+			throw new QueryParseException("90640", -1, -1  , null);
+
 
 		this.valueExpr = exprs.get(0);
 		this.span = TimeSpan.parse(exprs.get(1).eval(null).toString());

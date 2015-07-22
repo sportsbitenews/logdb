@@ -30,65 +30,7 @@ import org.araqne.logdb.FunctionFactory;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
-import org.araqne.logdb.query.expr.Abs;
-import org.araqne.logdb.query.expr.Array;
-import org.araqne.logdb.query.expr.Case;
-import org.araqne.logdb.query.expr.Ceil;
-import org.araqne.logdb.query.expr.Concat;
-import org.araqne.logdb.query.expr.Contains;
-import org.araqne.logdb.query.expr.ContextReference;
-import org.araqne.logdb.query.expr.DateAdd;
-import org.araqne.logdb.query.expr.DateDiff;
-import org.araqne.logdb.query.expr.DateTrunc;
-import org.araqne.logdb.query.expr.Decode;
-import org.araqne.logdb.query.expr.Decrypt;
-import org.araqne.logdb.query.expr.Encrypt;
-import org.araqne.logdb.query.expr.Epoch;
-import org.araqne.logdb.query.expr.Expression;
-import org.araqne.logdb.query.expr.Field;
-import org.araqne.logdb.query.expr.Floor;
-import org.araqne.logdb.query.expr.FromBase64;
-import org.araqne.logdb.query.expr.Guid;
-import org.araqne.logdb.query.expr.Hash;
-import org.araqne.logdb.query.expr.If;
-import org.araqne.logdb.query.expr.In;
-import org.araqne.logdb.query.expr.IndexOf;
-import org.araqne.logdb.query.expr.Ip2Long;
-import org.araqne.logdb.query.expr.IsNotNull;
-import org.araqne.logdb.query.expr.IsNull;
-import org.araqne.logdb.query.expr.IsNum;
-import org.araqne.logdb.query.expr.IsStr;
-import org.araqne.logdb.query.expr.KvJoin;
-import org.araqne.logdb.query.expr.Left;
-import org.araqne.logdb.query.expr.Len;
-import org.araqne.logdb.query.expr.Long2Ip;
-import org.araqne.logdb.query.expr.Lower;
-import org.araqne.logdb.query.expr.Match;
-import org.araqne.logdb.query.expr.Max;
-import org.araqne.logdb.query.expr.Min;
-import org.araqne.logdb.query.expr.Network;
-import org.araqne.logdb.query.expr.Now;
-import org.araqne.logdb.query.expr.Rand;
-import org.araqne.logdb.query.expr.RandBytes;
-import org.araqne.logdb.query.expr.Right;
-import org.araqne.logdb.query.expr.Round;
-import org.araqne.logdb.query.expr.Seq;
-import org.araqne.logdb.query.expr.Split;
-import org.araqne.logdb.query.expr.StrJoin;
-import org.araqne.logdb.query.expr.Substr;
-import org.araqne.logdb.query.expr.ToBase64;
-import org.araqne.logdb.query.expr.ToBinary;
-import org.araqne.logdb.query.expr.ToDate;
-import org.araqne.logdb.query.expr.ToDouble;
-import org.araqne.logdb.query.expr.ToInt;
-import org.araqne.logdb.query.expr.ToIp;
-import org.araqne.logdb.query.expr.ToLong;
-import org.araqne.logdb.query.expr.ToString;
-import org.araqne.logdb.query.expr.Trim;
-import org.araqne.logdb.query.expr.Typeof;
-import org.araqne.logdb.query.expr.Upper;
-import org.araqne.logdb.query.expr.UrlDecode;
-import org.araqne.logdb.query.expr.ValueOf;
+import org.araqne.logdb.query.expr.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,6 +94,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("trim", Trim.class);
 			define("len", Len.class);
 			define("substr", Substr.class);
+			define("replace", StringReplace.class);
 			define("isnull", IsNull.class);
 			define("isnotnull", IsNotNull.class);
 			define("isnum", IsNum.class);
@@ -194,6 +137,18 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("tobase64", ToBase64.class);
 			define("encrypt", Encrypt.class);
 			define("decrypt", Decrypt.class);
+			define("zip", Zip.class);
+			define("unique", Unique.class);
+			define("flatten", Flatten.class);
+			define("format", Format.class);
+			define("groups", Groups.class);
+			define("signature", Signature.class);
+			define("mod", Mod.class);
+			define("nvl", Nvl.class);
+			define("whoami", Whoami.class);
+			define("not", Not.class);
+			define("datepart", DatePart.class);
+			define("xpath", Xpath.class);
 		}
 
 		private void define(String name, Class<?> clazz) {
@@ -212,17 +167,39 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 		@Override
 		public Expression newFunction(QueryContext ctx, String name, List<Expression> exprs) {
 			Constructor<?> c = constructors.get(name);
-			if (c == null)
-				throw new QueryParseException("unsupported-function", -1, name);
+			if (c == null) {
+				// throw new QueryParseException("unsupported-function", -1,
+				// name);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("function", name);
+				throw new QueryParseException("90900", -1, -1, params);
+			}
 			try {
 				return (Expression) c.newInstance(ctx, exprs);
 			} catch (InvocationTargetException e) {
 				if (e.getTargetException() instanceof QueryParseException)
 					throw (QueryParseException) e.getTargetException();
-				else
-					throw new QueryParseException("cannot create function instance", -1, e.getTargetException().toString());
+				else if (e.getTargetException() instanceof QueryParseException)
+					throw (QueryParseException) e.getTargetException();
+				else {
+					// throw new
+					// QueryParseException("cannot create function instance",
+					// -1, e.getTargetException().toString());
+					Map<String, String> params = new HashMap<String, String>();
+					params.put("function", name);
+					params.put("msg", e.getTargetException().toString());
+					throw new QueryParseException("90901", -1, -1, params);
+				}
+			} catch (QueryParseException e) {
+				throw e;
 			} catch (Throwable t) {
-				throw new QueryParseException("cannot create function instance", -1, t.toString());
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("function", name);
+				params.put("msg", t.toString());
+				// throw new
+				// QueryParseException("cannot create function instance", -1,
+				// t.toString());
+				throw new QueryParseException("90902", -1, -1, params);
 			}
 		}
 	}
@@ -230,8 +207,13 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 	@Override
 	public Expression newFunction(QueryContext ctx, String functionName, List<Expression> exprs) {
 		FunctionFactory ff = factories.get(functionName);
-		if (ff == null)
-			throw new QueryParseException("unsupported-function", -1, functionName);
+		if (ff == null) {
+			// throw new QueryParseException("unsupported-function", -1,
+			// functionName);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("function", functionName);
+			throw new QueryParseException("90900", -1, -1, params);
+		}
 		return ff.newFunction(ctx, functionName, exprs);
 	}
 }

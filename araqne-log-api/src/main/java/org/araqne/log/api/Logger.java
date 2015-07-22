@@ -17,6 +17,7 @@ package org.araqne.log.api;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
 
 public interface Logger {
 	String getFullName();
@@ -62,6 +63,12 @@ public interface Logger {
 	 */
 	long getUpdateCount();
 
+	/**
+	 * @since 3.2.13
+	 * @return logger is started/stopped by user request
+	 */
+	boolean isEnabled();
+
 	boolean isRunning();
 
 	boolean isPending();
@@ -82,9 +89,19 @@ public interface Logger {
 
 	int getInterval();
 
-	void start();
+	/**
+	 * @since 3.4.0
+	 */
+	TimeRange getTimeRange();
 
-	void start(int interval);
+	/**
+	 * @since 3.4.0
+	 */
+	void setTimeRange(TimeRange timeRange);
+
+	void start(LoggerStartReason reason);
+
+	void start(LoggerStartReason reason, int interval);
 
 	void stop(LoggerStopReason reason);
 
@@ -138,4 +155,12 @@ public interface Logger {
 	void setTransformer(LogTransformer transformer);
 
 	LoggerFactory getFactory();
+
+	Set<String> getUnresolvedLoggers();
+
+	boolean hasUnresolvedLoggers();
+
+	void addUnresolvedLogger(String fullName);
+
+	void removeUnresolvedLogger(String fullName);
 }

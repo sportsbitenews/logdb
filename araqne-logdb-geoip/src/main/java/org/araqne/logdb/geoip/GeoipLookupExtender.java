@@ -16,6 +16,7 @@
 package org.araqne.logdb.geoip;
 
 import java.net.InetAddress;
+import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -24,11 +25,14 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.api.InetAddresses;
 import org.araqne.geoip.GeoIpLocation;
 import org.araqne.geoip.GeoIpService;
-import org.araqne.logdb.LookupHandler;
+import org.araqne.logdb.LookupHandler2;
 import org.araqne.logdb.LookupHandlerRegistry;
+import org.araqne.logdb.LookupTable;
+import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 
 @Component(name = "logdb-geoip")
-public class GeoipLookupExtender implements LookupHandler {
+public class GeoipLookupExtender implements LookupHandler2 {
 	@Requires
 	private GeoIpService geoip;
 
@@ -44,6 +48,11 @@ public class GeoipLookupExtender implements LookupHandler {
 	public void stop() {
 		if (lookup != null)
 			lookup.removeLookupHandler("geoip");
+	}
+
+	@Override
+	public LookupTable newTable(String keyField, Map<String, String> outputFields) {
+		return new GeoIpLookupTable(keyField, outputFields);
 	}
 
 	@Override
@@ -80,5 +89,83 @@ public class GeoipLookupExtender implements LookupHandler {
 			return location.getLongitude();
 
 		return null;
+	}
+
+	private class GeoIpLookupTable implements LookupTable {
+
+		private String keyField;
+		private Map<String, String> outputFields;
+		private boolean countryOnly;
+		private String countryOutputField;
+
+		public GeoIpLookupTable(String keyField, Map<String, String> outputFields) {
+			this.keyField = keyField;
+			this.outputFields = outputFields;
+			this.countryOnly = outputFields.containsKey("country") && outputFields.size() == 1;
+			this.countryOutputField = outputFields.get("country");
+		}
+
+		@Override
+		public void lookup(Row row) {
+			locate(row);
+		}
+
+		@Override
+		public void lookup(RowBatch rowBatch) {
+			if (rowBatch.selectedInUse) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					int p = rowBatch.selected[i];
+					Row row = rowBatch.rows[p];
+					locate(row);
+				}
+			} else {
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row row = rowBatch.rows[i];
+					locate(row);
+				}
+			}
+		}
+
+		private void locate(Row row) {
+			Object key = row.get(keyField);
+			InetAddress ip = null;
+			if (key instanceof InetAddress)
+				ip = (InetAddress) key;
+
+			if (key instanceof String) {
+				try {
+					ip = InetAddresses.forString((String) key);
+				} catch (Throwable t) {
+				}
+			}
+
+			if (ip == null)
+				return;
+
+			if (countryOnly) {
+				String country = geoip.locateCountry(ip);
+				row.put(countryOutputField, country);
+				return;
+			}
+
+			GeoIpLocation location = geoip.locate(ip);
+			if (location == null)
+				return;
+
+			for (String outputField : outputFields.keySet()) {
+				String renameField = outputFields.get(outputField);
+
+				if (outputField.equals("country"))
+					row.put(renameField, location.getCountry());
+				else if (outputField.equals("region"))
+					row.put(renameField, location.getRegion());
+				else if (outputField.equals("city"))
+					row.put(renameField, location.getCity());
+				else if (outputField.equals("latitude"))
+					row.put(renameField, location.getLatitude());
+				else if (outputField.equals("longitude"))
+					row.put(renameField, location.getLongitude());
+			}
+		}
 	}
 }

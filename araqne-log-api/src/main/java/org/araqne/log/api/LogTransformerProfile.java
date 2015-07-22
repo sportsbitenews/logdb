@@ -18,6 +18,7 @@ package org.araqne.log.api;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.araqne.api.FieldOption;
 import org.araqne.confdb.CollectionName;
 
 @CollectionName("transformer_profiles")
@@ -25,6 +26,12 @@ public class LogTransformerProfile implements Comparable<LogTransformerProfile> 
 	private String name;
 	private String factoryName;
 	private Map<String, String> configs = new HashMap<String, String>();
+
+	@FieldOption(skip = true)
+	private boolean ready;
+
+	@FieldOption(skip = true)
+	private Throwable cause;
 
 	public String getName() {
 		return name;
@@ -50,9 +57,26 @@ public class LogTransformerProfile implements Comparable<LogTransformerProfile> 
 		this.configs = configs;
 	}
 
+	public boolean isReady() {
+		return ready;
+	}
+
+	public void setReady(boolean ready) {
+		this.ready = ready;
+	}
+
+	public Throwable getCause() {
+		return cause;
+	}
+
+	public void setCause(Throwable cause) {
+		this.cause = cause;
+	}
+
 	@Override
 	public String toString() {
-		return "name=" + name + ", factory=" + factoryName + ", configs=" + configs;
+		return "name=" + name + ", factory=" + factoryName + ", configs=" + configs + ", ready=" + ready + ", error="
+				+ (cause == null ? "N/A" : cause.getMessage());
 	}
 
 	@Override
@@ -62,4 +86,16 @@ public class LogTransformerProfile implements Comparable<LogTransformerProfile> 
 		return name.compareTo(o.name);
 	}
 
+	/**
+	 * @since 3.4.6
+	 */
+	public Map<String, Object> marshal() {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("name", name);
+		m.put("factory_name", factoryName);
+		m.put("configs", configs);
+		m.put("ready", ready);
+		m.put("cause", cause != null ? cause.toString() : null);
+		return m;
+	}
 }

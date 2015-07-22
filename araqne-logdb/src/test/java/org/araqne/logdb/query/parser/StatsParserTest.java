@@ -55,6 +55,44 @@ public class StatsParserTest {
 	}
 
 	@Test
+	public void testCountArgs(){
+		StatsParser p = new StatsParser();
+		p.setQueryParserService(queryParserService);
+		String query = "stats count(1,2) by line";
+		try {
+			p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if (e.isDebugMode()) {
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("91010", e.getType());
+			assertEquals(6, e.getStartOffset());
+			assertEquals(15, e.getEndOffset());	
+		}
+	}	
+	
+	@Test
+	public void testFirstArgs(){
+		StatsParser p = new StatsParser();
+		p.setQueryParserService(queryParserService);
+		String query = "stats first(1,2) ";
+		try {
+			p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if (e.isDebugMode()) {
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("91020", e.getType());
+			assertEquals(6, e.getStartOffset());
+			assertEquals(15, e.getEndOffset());	
+		}
+	}
+	
+	@Test
 	public void testSumMin() {
 		StatsParser p = new StatsParser();
 		p.setQueryParserService(queryParserService);
@@ -92,16 +130,78 @@ public class StatsParserTest {
 	}
 
 	@Test
+	public void testNeedFunction() {
+		StatsParser p = new StatsParser();
+		p.setQueryParserService(queryParserService);
+		String query = "stats";
+		try {
+			p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("21700", e.getType());
+			assertEquals(6, e.getStartOffset());
+			assertEquals(4, e.getEndOffset());	
+		}
+	}
+	
+	@Test
 	public void testMissingClause() {
 		StatsParser p = new StatsParser();
 		p.setQueryParserService(queryParserService);
-
+		String query = "stats sum(rcvd) as rcvd, sum(sent) as sent by sip,";
 		try {
-			p.parse(null, "stats sum(rcvd) as rcvd, sum(sent) as sent by sip,");
+			p.parse(null, query);
 			fail();
 		} catch (QueryParseException e) {
-			assertEquals("missing-clause", e.getType());
-			assertEquals(50, (int) e.getOffset());
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("21701", e.getType());
+			assertEquals(6, e.getStartOffset());
+			assertEquals(49, e.getEndOffset());	
+		}
+	}
+	
+	@Test
+	public void testAggreGationFunction() {
+		StatsParser p = new StatsParser();
+		p.setQueryParserService(queryParserService);
+		String query = "stats sample";
+		try {
+			p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("21702", e.getType());
+			assertEquals(6, e.getStartOffset());
+			assertEquals(11,  e.getEndOffset());	
+		}
+	}
+	
+	@Test
+	public void testCreateAggreGationFunction() {
+		StatsParser p = new StatsParser();
+		p.setQueryParserService(queryParserService);
+		String query = "stats sum";
+		try {
+			p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("21703", e.getType());
+			assertEquals(6, e.getStartOffset());
+			assertEquals(8,  e.getEndOffset());	
 		}
 	}
 
@@ -113,5 +213,15 @@ public class StatsParserTest {
 		assertEquals("a", stats.getAggregationFields().get(0).getName());
 		assertEquals("b", stats.getAggregationFields().get(1).getName());
 		assertEquals("c", stats.getClauses().get(0));
+	}
+
+	// araqne/issue#684. check also boxplot and timechart.
+	@Test
+	public void testMultilineBugFix() {
+		StatsParser p = new StatsParser();
+		p.setQueryParserService(queryParserService);
+		Stats stats = (Stats) p.parse(null, "stats count\nby\nname");
+		assertEquals("count", stats.getAggregationFields().get(0).getName());
+		assertEquals("name", stats.getClauses().get(0));
 	}
 }

@@ -20,13 +20,15 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class IndexOf implements Expression {
+public class IndexOf extends FunctionExpression {
 
 	private Expression targetExpr;
 	private Expression needleExpr;
 	private Expression fromIndexExpr;
 
 	public IndexOf(QueryContext ctx, List<Expression> exprs) {
+		super("indexof", exprs, 2);
+		
 		this.targetExpr = exprs.get(0);
 		this.needleExpr = exprs.get(1);
 		if (exprs.size() > 2)

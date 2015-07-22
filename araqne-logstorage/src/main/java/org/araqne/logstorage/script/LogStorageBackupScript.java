@@ -17,6 +17,7 @@ package org.araqne.logstorage.script;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -27,7 +28,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.araqne.api.Script;
+import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
+import org.araqne.api.ScriptUsage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.TableWildcardMatcher;
 import org.araqne.logstorage.backup.StorageBackupConfigSpec;
@@ -37,6 +40,15 @@ import org.araqne.logstorage.backup.StorageBackupMediaFactory;
 import org.araqne.logstorage.backup.StorageBackupMediaRegistry;
 import org.araqne.logstorage.backup.StorageBackupRequest;
 import org.araqne.logstorage.backup.StorageBackupType;
+import org.araqne.logstorage.dump.DumpConfigSpec;
+import org.araqne.logstorage.dump.DumpDriver;
+import org.araqne.logstorage.dump.DumpManifest;
+import org.araqne.logstorage.dump.DumpService;
+import org.araqne.logstorage.dump.DumpTabletEntry;
+import org.araqne.logstorage.dump.ExportRequest;
+import org.araqne.logstorage.dump.ExportTask;
+import org.araqne.logstorage.dump.ImportRequest;
+import org.araqne.logstorage.dump.ImportTask;
 
 /**
  * @since 2.3.0
@@ -46,18 +58,144 @@ public class LogStorageBackupScript implements Script {
 	private LogTableRegistry tableRegistry;
 	private StorageBackupManager backupManager;
 	private StorageBackupMediaRegistry mediaRegistry;
+	private DumpService dumpService;
 	private ScriptContext context;
 
 	public LogStorageBackupScript(LogTableRegistry tableRegistry, StorageBackupManager backupManager,
-			StorageBackupMediaRegistry mediaRegistry) {
+			StorageBackupMediaRegistry mediaRegistry, DumpService dumpService) {
 		this.tableRegistry = tableRegistry;
 		this.backupManager = backupManager;
 		this.mediaRegistry = mediaRegistry;
+		this.dumpService = dumpService;
 	}
 
 	@Override
 	public void setScriptContext(ScriptContext context) {
 		this.context = context;
+	}
+
+	public void exportTasks(String[] args) {
+		context.println("Export Tasks");
+		context.println("--------------");
+
+		for (ExportTask task : dumpService.getExportTasks()) {
+			context.println(task);
+		}
+	}
+
+	public void importTasks(String[] args) {
+		context.println("Import Tasks");
+		context.println("--------------");
+
+		for (ImportTask task : dumpService.getImportTasks()) {
+			context.println(task);
+		}
+	}
+
+	@ScriptUsage(description = "export data", arguments = { @ScriptArgument(name = "type", type = "string", description = "driver type") })
+	public void beginExport(String[] args) {
+		String type = args[0];
+		try {
+			DumpDriver driver = dumpService.getDumpDriver(type);
+			if (driver == null) {
+				context.println("unknown driver type: " + type);
+				return;
+			}
+
+			context.print("Tables? ");
+			Set<String> tableNames = split(context.readLine());
+
+			SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+			context.print("From (yyyyMMdd)? ");
+			Date from = df.parse(context.readLine().trim());
+			context.print("To (yyyyMMdd)? ");
+			Date to = df.parse(context.readLine().trim());
+
+			Map<String, String> params = new HashMap<String, String>();
+			for (DumpConfigSpec spec : driver.getExportSpecs()) {
+				String value = input(spec);
+				params.put(spec.getKey(), value);
+			}
+
+			dumpService.beginExport(new ExportRequest("local", tableNames, from, to, params));
+			context.println("export started");
+		} catch (InterruptedException e) {
+			context.println("");
+			context.println("interrupted");
+		} catch (ParseException e) {
+			context.println("invalid date format");
+		}
+	}
+
+	@ScriptUsage(description = "import data", arguments = { @ScriptArgument(name = "driver", type = "string", description = "driver type") })
+	public void beginImport(String[] args) {
+		String type = args[0];
+		try {
+			DumpDriver driver = dumpService.getDumpDriver(type);
+			if (driver == null) {
+				context.println("unknown driver type: " + type);
+				return;
+			}
+
+			ImportRequest req = new ImportRequest();
+			req.setDriverType(type);
+
+			for (DumpConfigSpec spec : driver.getImportSpecs()) {
+				String value = input(spec);
+				req.getParams().put(spec.getKey(), value);
+			}
+
+			DumpManifest manifest = dumpService.readManifest(type, req.getParams());
+
+			long total = 0;
+			for (DumpTabletEntry e : manifest.getEntries()) {
+				context.println(e.toString());
+				total += e.getCount();
+			}
+
+			context.print("Total " + total + " rows. proceed (y/N)? ");
+			String proceed = context.readLine().trim();
+			if (!proceed.equalsIgnoreCase("y")) {
+				context.println("cancelled");
+				return;
+			}
+
+			req.setEntries(manifest.getEntries());
+
+			dumpService.beginImport(req);
+			context.println("import started");
+		} catch (InterruptedException e) {
+			context.println("");
+			context.println("interrupted");
+		} catch (IOException e) {
+			context.println(e.getMessage());
+		}
+	}
+
+	public void dumpDrivers(String[] args) {
+		context.println("Dump Drivers");
+		context.println("--------------");
+
+		for (DumpDriver driver : dumpService.getDumpDrivers()) {
+			context.println(driver.getName(Locale.ENGLISH) + ": " + driver.getDescription(Locale.ENGLISH));
+		}
+	}
+
+	@ScriptUsage(description = "cancel export", arguments = { @ScriptArgument(name = "guid", type = "string", description = "the guid of export job") })
+	public void cancelExport(String[] args) {
+		String guid = args[0];
+		dumpService.cancelExport(guid);
+		context.println("cancelled");
+	}
+
+	private Set<String> split(String line) {
+		Set<String> s = new HashSet<String>();
+		for (String table : line.split(",")) {
+			table = table.trim();
+			if (!table.isEmpty())
+				s.add(table);
+		}
+		return s;
 	}
 
 	public void backup(String[] args) throws InterruptedException, IOException {
@@ -207,4 +345,20 @@ public class LogStorageBackupScript implements Script {
 		return formatter.format(bytes);
 	}
 
+	private String input(DumpConfigSpec spec) throws InterruptedException {
+		String s = spec.isRequired() ? " (required)? " : " (optional)? ";
+		String value = null;
+		while (true) {
+			context.print(spec.getDisplayName(Locale.ENGLISH) + s);
+			value = context.readLine();
+			if (value.trim().isEmpty()) {
+				if (spec.isRequired())
+					continue;
+				return null;
+			}
+			break;
+		}
+
+		return value;
+	}
 }

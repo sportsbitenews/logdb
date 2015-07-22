@@ -17,13 +17,14 @@ package org.araqne.logdb.query.command;
 
 import java.util.List;
 
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
 import org.araqne.logdb.ThreadSafe;
 
-public class Fields extends QueryCommand implements ThreadSafe {
+public class Fields extends QueryCommand implements ThreadSafe, FieldOrdering {
 	private final List<String> fields;
 	private final boolean selector;
 
@@ -99,6 +100,11 @@ public class Fields extends QueryCommand implements ThreadSafe {
 
 	public List<String> getFields() {
 		return fields;
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return isSelector() ? fields : null;
 	}
 
 	public boolean isSelector() {

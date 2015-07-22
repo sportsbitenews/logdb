@@ -30,13 +30,15 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import org.araqne.log.api.AbstractLogger;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
+import org.araqne.log.api.Reconfigurable;
 import org.araqne.log.api.SimpleLog;
 import org.araqne.logdb.jms.JmsProfile;
 import org.araqne.logdb.jms.JmsProfileRegistry;
 import org.araqne.logdb.jms.impl.JmsHelper;
 
-public class JmsLogger extends AbstractLogger implements MessageListener {
+public class JmsLogger extends AbstractLogger implements MessageListener, Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(JmsLogger.class);
 	private Connection connection;
 	private Session session;
@@ -52,7 +54,12 @@ public class JmsLogger extends AbstractLogger implements MessageListener {
 	}
 
 	@Override
-	protected void onStart() {
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		this.profileName = newConfigs.get("jms_profile");
+	}
+
+	@Override
+	protected void onStart(LoggerStartReason reason) {
 		JmsProfile profile = profileRegistry.getProfile(profileName);
 		if (profile == null)
 			throw new IllegalStateException("jms profile not found: " + profileName);

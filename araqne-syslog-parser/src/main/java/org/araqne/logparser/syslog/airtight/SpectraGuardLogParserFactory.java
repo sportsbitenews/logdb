@@ -58,7 +58,7 @@ public class SpectraGuardLogParserFactory extends AbstractLogParserFactory {
 			return "에어타이트 스펙트라가드 엔터프라이즈 WIPS 로그를 파싱합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "解析AirTight WIPS日志。";
-		return "AirTight SpectraGuard Enterprise";
+		return "Parse AirTight SpectraGuard Enterprise logs.";
 	}
 
 	@Override

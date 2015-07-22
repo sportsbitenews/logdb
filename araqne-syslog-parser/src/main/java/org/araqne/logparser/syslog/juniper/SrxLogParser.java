@@ -58,11 +58,16 @@ public class SrxLogParser extends V1LogParser {
 				}
 			} else {
 				// day
-				s.next();
+				String day = s.next();
 				// time
-				s.next();
-				// type
-				s.next();
+				String time = s.next();
+				m.put("start_time", first + " " + day + " " + time);
+				// type or device_id
+				String unknownField = s.next();
+				if (!unknownField.equals("RT_FLOW:")) {
+					m.put("device_id", unknownField);
+					s.next();
+				}
 				String logtype = s.next();
 				s.next();
 				s.next();
@@ -79,10 +84,9 @@ public class SrxLogParser extends V1LogParser {
 
 					m.put("reason", reason.substring(0, reason.length() - 1));
 					parseCommon(m, s);
-					parseStat(m, "sent", s.next());
-					parseStat(m, "rcvd", s.next());
-
-					m.put("elapsed_time", Long.valueOf(s.next()));
+					// parseStat(m, "sent", s.next());
+					// parseStat(m, "rcvd", s.next());
+					// m.put("elapsed_time", Long.valueOf(s.next()));
 				} else if (logtype.equals("RT_FLOW_SESSION_DENY:")) {
 					m.put("action", "deny");
 					parseFlow(m, s);
@@ -140,6 +144,27 @@ public class SrxLogParser extends V1LogParser {
 		m.put("src_zone", s.next());
 		m.put("dst_zone", s.next());
 		m.put("session_id", s.next());
+
+		if (!s.hasNext())
+			return;
+
+		String packetsFromClient = s.next();
+		String packetsFromServer = s.next();
+		int ce = packetsFromClient.indexOf("(");
+		int se = packetsFromServer.indexOf("(");
+		m.put("packets_from_client", packetsFromClient.substring(0, ce));
+		m.put("bytes_from_client", packetsFromClient.substring(ce));
+		m.put("packets_from_server", packetsFromServer.substring(0, se));
+		m.put("bytes_from_server", packetsFromServer.substring(se));
+		m.put("elapsed_time", s.next());
+		m.put("application", s.next());
+		m.put("nested_application", s.next());
+		String userAndRole = s.next();
+		int ue = userAndRole.indexOf("(");
+		m.put("username", userAndRole.substring(0, ue));
+		m.put("roles", userAndRole.substring(ue));
+		m.put("packet_incoming_interface", s.next());
+		m.put("encrypted", s.next());
 	}
 
 	private void parseFlow(Map<String, Object> m, Scanner s) {

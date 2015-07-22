@@ -42,17 +42,22 @@ public class ParallelMergeSorter {
 	private static final int DEFAULT_CACHE_SIZE = 10000;
 	private static final int DEFAULT_RUN_LENGTH = 50000;
 	private final Logger logger = LoggerFactory.getLogger(ParallelMergeSorter.class);
+	private final int runLength;
 	private Queue<Run> runs = new LinkedBlockingDeque<Run>();
 	private Queue<PartitionMergeTask> merges = new LinkedBlockingQueue<PartitionMergeTask>();
 	private LinkedList<Item> buffer;
 	private Comparator<Item> comparator;
-	private int runLength;
 	private AtomicInteger runIndexer;
 	private volatile int flushTaskCount;
 	private AtomicInteger cacheCount;
 	private Object flushDoneSignal = new Object();
 	private ExecutorService executor;
 	private CountDownLatch mergeLatch;
+	private volatile boolean canceled;
+	private String tag = "";
+
+	// end of input stream, do not allow add()
+	private volatile boolean eos;
 
 	public ParallelMergeSorter(Comparator<Item> comparator) {
 		this(comparator, DEFAULT_RUN_LENGTH, DEFAULT_CACHE_SIZE);
@@ -69,6 +74,13 @@ public class ParallelMergeSorter {
 		this.runIndexer = new AtomicInteger();
 		this.executor = new ThreadPoolExecutor(8, 8, 10, TimeUnit.SECONDS, new LimitedQueue<Runnable>(8), new CallerRunsPolicy());
 		this.cacheCount = new AtomicInteger(memoryRunCount);
+	}
+
+	public void setTag(String tag) {
+		if (tag == null)
+			throw new IllegalArgumentException("sort tag should not be null");
+
+		this.tag = tag;
 	}
 
 	public class LimitedQueue<E> extends ArrayBlockingQueue<E> {
@@ -92,12 +104,18 @@ public class ParallelMergeSorter {
 	}
 
 	public void add(Item item) throws IOException {
+		if (eos)
+			throw new IllegalStateException("sort ended");
+
 		buffer.add(item);
 		if (buffer.size() >= runLength)
 			flushRun();
 	}
 
 	public void addAll(List<? extends Item> items) throws IOException {
+		if (eos)
+			throw new IllegalStateException("sort ended");
+
 		buffer.addAll(items);
 		if (buffer.size() >= runLength)
 			flushRun();
@@ -116,50 +134,97 @@ public class ParallelMergeSorter {
 	}
 
 	public CloseableIterator sort() throws IOException {
+		eos = true;
+
 		try {
-			// flush rest objects
-			flushRun();
-			buffer = null;
-			logger.trace("flush finished.");
-
-			// wait flush done
-			while (true) {
-				synchronized (flushDoneSignal) {
-					if (flushTaskCount == 0)
-						break;
-
-					try {
-						flushDoneSignal.wait();
-					} catch (InterruptedException e) {
-					}
-					logger.debug("araqne logdb: remaining runs {}, task count: {}", runs.size(), flushTaskCount);
-				}
-			}
-
-			// partition
-			logger.trace("araqne logdb: start partitioning");
-			long begin = new Date().getTime();
-			Partitioner partitioner = new Partitioner(comparator);
-			List<SortedRun> sortedRuns = new LinkedList<SortedRun>();
-			for (Run run : runs)
-				sortedRuns.add(new SortedRunImpl(run));
-
-			runs.clear();
-
-			int partitionCount = getProperPartitionCount();
-			List<Partition> partitions = partitioner.partition(partitionCount, sortedRuns);
-			for (SortedRun r : sortedRuns)
-				((SortedRunImpl) r).close();
-
-			long elapsed = new Date().getTime() - begin;
-			logger.trace("araqne logdb: [{}] partitioning completed in {}ms", partitionCount, elapsed);
+			List<Partition> partitions = buildPartitions();
 
 			// n-way merge
 			CloseableIterator it = mergeAll(partitions);
 			logger.trace("merge ended");
 			return it;
+		} catch (IOException e) {
+			purgeAll();
+			throw e;
+		} catch (Throwable t) {
+			purgeAll();
+			String msg = "sort failed - " + t.toString();
+			throw new IOException(msg, t);
 		} finally {
 			executor.shutdown();
+		}
+	}
+
+	/**
+	 * purge all runs if undesired exception occurs
+	 */
+	private void purgeAll() {
+		for (Run run : runs) {
+			if (run.indexFile != null)
+				run.indexFile.delete();
+
+			if (run.dataFile != null)
+				run.dataFile.delete();
+		}
+	}
+
+	public void cancel() throws IOException {
+		eos = true;
+		canceled = true;
+		sort().close();
+	}
+
+	private List<Partition> buildPartitions() throws IOException {
+		// flush rest objects
+		if (!canceled)
+			flushRun();
+
+		buffer = null;
+		logger.trace("flush finished.");
+
+		// wait flush done
+		while (true) {
+			synchronized (flushDoneSignal) {
+				if (flushTaskCount == 0)
+					break;
+
+				try {
+					flushDoneSignal.wait();
+				} catch (InterruptedException e) {
+				}
+				logger.debug("araqne logdb: remaining runs {}, task count: {}", runs.size(), flushTaskCount);
+			}
+		}
+
+		// partition
+		logger.trace("araqne logdb: start partitioning");
+		long begin = new Date().getTime();
+		Partitioner partitioner = new Partitioner(comparator);
+		List<SortedRun> sortedRuns = new LinkedList<SortedRun>();
+		for (Run run : runs)
+			sortedRuns.add(new SortedRunImpl(run));
+
+		try {
+			int partitionCount = getProperPartitionCount();
+			List<Partition> partitions = partitioner.partition(partitionCount, sortedRuns);
+			
+			// run should be purged at caller if partitioning is failed
+			runs.clear();
+
+			long elapsed = new Date().getTime() - begin;
+			logger.trace("araqne logdb: [{}] partitioning completed in {}ms", partitionCount, elapsed);
+			return partitions;
+
+		} catch (RuntimeException e) {
+			throw e;
+		} finally {
+			for (SortedRun r : sortedRuns) {
+				try {
+					((SortedRunImpl) r).close();
+				} catch (Throwable t) {
+					logger.debug("araqne logdb: cannot close sort run", t);
+				}
+			}
 		}
 	}
 
@@ -290,10 +355,13 @@ public class ParallelMergeSorter {
 		}
 
 		private void doFlush() throws IOException {
+			if (canceled)
+				return;
+
 			Collections.sort(buffered, comparator);
 
 			int id = runIndexer.incrementAndGet();
-			RunOutput out = new RunOutput(id, buffered.size(), cacheCount);
+			RunOutput out = new RunOutput(id, buffered.size(), cacheCount, tag);
 			try {
 				for (Item o : buffered)
 					out.write(o);
@@ -373,9 +441,9 @@ public class ParallelMergeSorter {
 			}
 
 			int id = runIndexer.incrementAndGet();
-			r3 = new RunOutput(id, total, cacheCount, true);
+			r3 = new RunOutput(id, total, cacheCount, true, tag);
 
-			while (true) {
+			while (!canceled) {
 				// load next inputs
 				for (RunInput input : inputs) {
 					if (input.loaded == null && input.hasNext()) {

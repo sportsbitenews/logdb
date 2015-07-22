@@ -16,15 +16,18 @@
 package org.araqne.logdb.query.command;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
@@ -38,7 +41,7 @@ import org.araqne.logdb.sort.ParallelMergeSorter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Stats extends QueryCommand {
+public class Stats extends QueryCommand implements FieldOrdering {
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
 	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
 	private int inputCount;
@@ -55,24 +58,50 @@ public class Stats extends QueryCommand {
 
 	private ConcurrentMap<List<Object>, AggregationFunction[]> buffer;
 
+	private ArrayList<String> fieldOrder;
+
+	private static final boolean discardNullGroup;
+
+	static {
+		String s = System.getProperty("araqne.logdb.discard_null_group");
+		discardNullGroup = s != null && s.equalsIgnoreCase("enabled");
+	}
+
 	public Stats(List<AggregationField> fields, List<String> clause) {
 		this.EMPTY_KEY = new ArrayList<Object>(0);
 		this.clauses = clause;
 		this.clauseCount = clauses.size();
 		this.useClause = clauseCount > 0;
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
+
+		int queryId = 0;
+		if (getQuery() != null)
+			queryId = getQuery().getId();
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
+		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
+
 		this.buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
 		this.fields = fields;
 		this.funcs = new AggregationFunction[fields.size()];
+		this.fieldOrder = new ArrayList<String>(clauses);
 
 		// prepare template functions
-		for (int i = 0; i < fields.size(); i++)
-			this.funcs[i] = fields.get(i).getFunction();
+		for (int i = 0; i < fields.size(); i++) {
+			AggregationField f = fields.get(i);
+			this.funcs[i] = f.getFunction();
+			this.fieldOrder.add(f.getName());
+		}
 	}
 
 	@Override
 	public String getName() {
 		return "stats";
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return new ArrayList<String>(fieldOrder);
 	}
 
 	public List<AggregationField> getAggregationFields() {
@@ -106,7 +135,7 @@ public class Stats extends QueryCommand {
 					boolean isNullGroup = false;
 					for (String clause : clauses) {
 						Object keyValue = row.get(clause);
-						if (keyValue == null) {
+						if (discardNullGroup && keyValue == null) {
 							isNullGroup = true;
 							break;
 						}
@@ -133,13 +162,14 @@ public class Stats extends QueryCommand {
 					f.apply(row);
 			}
 		} else {
-			for (Row m : rowBatch.rows) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row m = rowBatch.rows[i];
 				if (useClause) {
 					keys.clear();
 					boolean isNullGroup = false;
 					for (String clause : clauses) {
 						Object keyValue = m.get(clause);
-						if (keyValue == null) {
+						if (discardNullGroup && keyValue == null) {
 							isNullGroup = true;
 							break;
 						}
@@ -156,8 +186,8 @@ public class Stats extends QueryCommand {
 				AggregationFunction[] fs = buffer.get(keys);
 				if (fs == null) {
 					fs = new AggregationFunction[funcs.length];
-					for (int i = 0; i < fs.length; i++)
-						fs[i] = funcs[i].clone();
+					for (int j = 0; j < fs.length; j++)
+						fs[j] = funcs[j].clone();
 
 					buffer.put(new ArrayList<Object>(keys), fs);
 				}
@@ -184,7 +214,7 @@ public class Stats extends QueryCommand {
 
 			for (String clause : clauses) {
 				Object keyValue = m.get(clause);
-				if (keyValue == null)
+				if (discardNullGroup && keyValue == null)
 					return;
 
 				keys.add(keyValue);
@@ -308,8 +338,9 @@ public class Stats extends QueryCommand {
 			}
 
 			logger.debug("araqne logdb: sorted stats input [{}]", count);
-		} catch (IOException e) {
-			throw new IllegalStateException("sort failed, query " + query, e);
+		} catch (Throwable t) {
+			getQuery().stop(t);
+			throw new IllegalStateException("sort failed, query " + query, t);
 		} finally {
 			if (it != null) {
 				try {

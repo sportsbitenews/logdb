@@ -10,3 +10,4 @@ araqne-logstorage/braf_test.dat
 araqne-logdb/araqne-logdb
 bin
 git.properties
+araqne-logstorage/.v3_test/*

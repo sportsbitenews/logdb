@@ -161,4 +161,24 @@ public class HDFSFileInputStream extends StorageInputStream {
 		return stream.available();
 	}
 
+	@Override
+	public void sync() throws IOException {
+		stream.getFileDescriptor().sync();
+	}
+
+	@Override
+	public ByteBuffer map(long length) throws IOException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public ByteBuffer map(long position, long length) throws IOException {
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public boolean isMapSupported() {
+		return false;
+	}
+
 }

@@ -18,6 +18,7 @@ package org.araqne.logdb.client.http.impl;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeoutException;
 
 import org.araqne.logdb.client.Message;
 import org.slf4j.Logger;
@@ -34,6 +35,11 @@ public class WebSocketBlockingTable {
 	private final Logger logger = LoggerFactory.getLogger(WebSocketBlockingTable.class);
 	private Message interruptSignal = new Message();
 	private ConcurrentMap<String, WaitingCall> lockMap = new ConcurrentHashMap<String, WaitingCall>();
+	private WebSocketSession session;
+
+	public WebSocketBlockingTable(WebSocketSession webSocketSession) {
+		this.session = webSocketSession;
+	}
 
 	public WaitingCall set(String guid) {
 		WaitingCall item = new WaitingCall(guid);
@@ -68,7 +74,7 @@ public class WebSocketBlockingTable {
 			}
 
 			if (item.getResult() == interruptSignal)
-				throw new InterruptedException("call cancelled");
+				throw new InterruptedException("call cancelled: " + item.getGuid());
 
 		} finally {
 			if (logger.isDebugEnabled())
@@ -80,7 +86,7 @@ public class WebSocketBlockingTable {
 		return item.getResult();
 	}
 
-	public Message await(WaitingCall item, long timeout) throws InterruptedException {
+	public Message await(WaitingCall item, long timeout) throws InterruptedException, TimeoutException {
 		long before = new Date().getTime();
 
 		try {
@@ -97,18 +103,21 @@ public class WebSocketBlockingTable {
 			}
 
 			if (item.getResult() == interruptSignal)
-				throw new InterruptedException("call cancelled");
+				throw new InterruptedException("call cancelled: " + item.getGuid());
+			else if (item.getResult() != null)
+				return item.getResult();
+			else
+				throw new TimeoutException("websocket message read timeout");
 		} finally {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb client: blocking finished for id {}", item.getGuid());
 
 			lockMap.remove(item.getGuid());
 		}
-
-		return item.getResult();
 	}
 
 	public void close() {
+		logger.debug("interrupting all blocking calls: " + session.toString());
 		// cancel all blocking calls
 		for (String guid : lockMap.keySet()) {
 			WaitingCall item = lockMap.get(guid);

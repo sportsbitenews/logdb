@@ -15,9 +15,13 @@
  */
 package org.araqne.logdb.query.parser;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.impl.LookupHandlerRegistryImpl;
 import org.araqne.logdb.query.command.Lookup;
+import org.junit.Test;
 
 public class LookupParserTest {
 	@Test
@@ -28,8 +32,7 @@ public class LookupParserTest {
 		assertEquals("sample", lookup.getHandlerName());
 		assertEquals("code", lookup.getSourceField());
 		assertEquals("code", lookup.getLookupInputField());
-		assertEquals("auth_code_desc", lookup.getLookupOutputField());
-		assertEquals("auth_code_desc", lookup.getTargetField());
+		assertEquals("auth_code_desc", lookup.getOutputFields().get("auth_code_desc"));
 	}
 
 	@Test
@@ -41,7 +44,83 @@ public class LookupParserTest {
 		assertEquals("sample", lookup.getHandlerName());
 		assertEquals("code", lookup.getSourceField());
 		assertEquals("in", lookup.getLookupInputField());
-		assertEquals("auth_code_desc", lookup.getLookupOutputField());
-		assertEquals("out", lookup.getTargetField());
+		assertEquals("out", lookup.getOutputFields().get("auth_code_desc"));
 	}
+	
+	@Test
+	public void testError20700(){
+		LookupParser p = new LookupParser(null);
+		String query = "lookup sample code AS in auth_code_desc as out";
+	
+		try {
+			 p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20700", e.getType());
+			assertEquals(7, e.getStartOffset());
+			assertEquals(45, e.getEndOffset());	
+		}
+	}
+	
+	@Test
+	public void testError20701(){
+		LookupParser p = new LookupParser(new LookupHandlerRegistryImpl());
+		String query = "lookup lookup code AS in OUTPUT auth_code_desc as out";
+		
+		try {
+			p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20701", e.getType());
+			assertEquals(7, e.getStartOffset());
+			assertEquals(12, e.getEndOffset());	
+		}
+	}
+	
+	@Test
+	public void testError20702(){
+		LookupParser p = new LookupParser(null);
+		String query = "lookup sample code AS in OUTPUT auth_code_desc as out sample";
+		
+		try {
+			p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20702", e.getType());
+			assertEquals(32, e.getStartOffset());
+			assertEquals(59, e.getEndOffset());	
+		}
+	}
+	
+	@Test
+	public void testError20703(){
+		LookupParser p = new LookupParser(null);
+		String query = "lookup sample code AS in OUTPUT auth_code_desc ASa out ";
+		
+		try {
+			p.parse(null, query);
+			fail();
+		} catch (QueryParseException e) {
+			if(e.isDebugMode()){
+				System.out.println("query " + query);
+				System.out.println(e.getMessage());
+			}
+			assertEquals("20703", e.getType());
+			assertEquals(32, e.getStartOffset());
+			assertEquals(54, e.getEndOffset());	
+		}
+	}
+	
 }

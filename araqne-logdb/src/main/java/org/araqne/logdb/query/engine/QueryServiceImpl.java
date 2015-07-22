@@ -34,6 +34,7 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.confdb.ConfigService;
+import org.araqne.cron.TickService;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.log.api.LogParserRegistry;
 import org.araqne.log.api.LoggerRegistry;
@@ -49,6 +50,7 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryEventListener;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryPlanner;
 import org.araqne.logdb.QueryResultFactory;
@@ -61,11 +63,16 @@ import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
+import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.parser.BoxPlotParser;
+import org.araqne.logdb.query.parser.BypassParser;
+import org.araqne.logdb.query.parser.CheckTableParser;
 import org.araqne.logdb.query.parser.ConfdbParser;
+import org.araqne.logdb.query.parser.CsvFileParser;
 import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;
 import org.araqne.logdb.query.parser.EvalcParser;
+import org.araqne.logdb.query.parser.ExecParser;
 import org.araqne.logdb.query.parser.ExplodeParser;
 import org.araqne.logdb.query.parser.FieldsParser;
 import org.araqne.logdb.query.parser.ImportParser;
@@ -75,10 +82,9 @@ import org.araqne.logdb.query.parser.JsonFileParser;
 import org.araqne.logdb.query.parser.JsonParser;
 import org.araqne.logdb.query.parser.LimitParser;
 import org.araqne.logdb.query.parser.LoadParser;
-import org.araqne.logdb.query.parser.LogCheckParser;
-import org.araqne.logdb.query.parser.LogdbParser;
 import org.araqne.logdb.query.parser.LoggerParser;
 import org.araqne.logdb.query.parser.LookupParser;
+import org.araqne.logdb.query.parser.MemLookupParser;
 import org.araqne.logdb.query.parser.MvParser;
 import org.araqne.logdb.query.parser.OutputCsvParser;
 import org.araqne.logdb.query.parser.OutputJsonParser;
@@ -86,10 +92,14 @@ import org.araqne.logdb.query.parser.OutputTxtParser;
 import org.araqne.logdb.query.parser.ParseCsvParser;
 import org.araqne.logdb.query.parser.ParseJsonParser;
 import org.araqne.logdb.query.parser.ParseKvParser;
+import org.araqne.logdb.query.parser.ParseMapParser;
 import org.araqne.logdb.query.parser.ParseParser;
+import org.araqne.logdb.query.parser.ParseXmlParser;
 import org.araqne.logdb.query.parser.ProcParser;
 import org.araqne.logdb.query.parser.PurgeParser;
+import org.araqne.logdb.query.parser.RateLimitParser;
 import org.araqne.logdb.query.parser.RenameParser;
+import org.araqne.logdb.query.parser.RepeatParser;
 import org.araqne.logdb.query.parser.RexParser;
 import org.araqne.logdb.query.parser.ScriptParser;
 import org.araqne.logdb.query.parser.SearchParser;
@@ -97,9 +107,11 @@ import org.araqne.logdb.query.parser.SetParser;
 import org.araqne.logdb.query.parser.SignatureParser;
 import org.araqne.logdb.query.parser.SortParser;
 import org.araqne.logdb.query.parser.StatsParser;
+import org.araqne.logdb.query.parser.SystemCommandParser;
 import org.araqne.logdb.query.parser.TableParser;
 import org.araqne.logdb.query.parser.TextFileParser;
 import org.araqne.logdb.query.parser.TimechartParser;
+import org.araqne.logdb.query.parser.ToJsonParser;
 import org.araqne.logdb.query.parser.TransactionParser;
 import org.araqne.logdb.query.parser.UnionParser;
 import org.araqne.logdb.query.parser.ZipFileParser;
@@ -123,6 +135,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	@Requires
 	private ConfigService conf;
+
+	@Requires
+	private TickService tickService;
 
 	@Requires
 	private AccountService accountService;
@@ -179,6 +194,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	private List<QueryPlanner> planners;
 
 	private boolean allowQueryPurge = false;
+	private boolean useBom = false;
 
 	public QueryServiceImpl(BundleContext bc) {
 		this.bc = bc;
@@ -191,6 +207,12 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		dir.mkdirs();
 
 		allowQueryPurge = Boolean.parseBoolean(System.getProperty("araqne.logdb.allowpurge"));
+		if (System.getProperty("araqne.logdb.purge") != null) {
+			String s = System.getProperty("araqne.logdb.purge");
+			allowQueryPurge = s.equalsIgnoreCase("enabled") || s.equalsIgnoreCase("true");
+		}
+
+		useBom = Boolean.parseBoolean(System.getProperty("araqne.logdb.utf8bom"));
 
 		prepareQueryParsers();
 	}
@@ -201,7 +223,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 				EvalcParser.class, SearchParser.class, StatsParser.class, FieldsParser.class, SortParser.class,
 				TimechartParser.class, RenameParser.class, RexParser.class, JsonParser.class, SignatureParser.class,
 				LimitParser.class, SetParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class,
-				ExplodeParser.class, ParseJsonParser.class);
+				ExplodeParser.class, ParseJsonParser.class, ExecParser.class, ParseMapParser.class, ParseXmlParser.class, CsvFileParser.class);
 
 		List<QueryCommandParser> parsers = new ArrayList<QueryCommandParser>();
 		for (Class<? extends AbstractQueryCommandParser> clazz : parserClazzes) {
@@ -219,11 +241,14 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new TextFileParser(parserFactoryRegistry));
 		parsers.add(new ZipFileParser(parserFactoryRegistry));
 		parsers.add(new JsonFileParser(parserFactoryRegistry));
-		parsers.add(new OutputCsvParser());
-		parsers.add(new OutputJsonParser());
-		parsers.add(new OutputTxtParser());
-		parsers.add(new LogdbParser(metadataService));
-		parsers.add(new LogCheckParser(tableRegistry, storage, fileServiceRegistry));
+		parsers.add(new ToJsonParser());
+		parsers.add(new OutputCsvParser(tickService, useBom));
+		parsers.add(new OutputJsonParser(tickService));
+		parsers.add(new OutputTxtParser(tickService));
+		parsers.add(new SystemCommandParser("logdb", metadataService)); // deprecated
+		parsers.add(new SystemCommandParser("system", metadataService));
+		parsers.add(new CheckTableParser("logcheck", tableRegistry, storage, fileServiceRegistry)); // deprecated
+		parsers.add(new CheckTableParser("checktable", tableRegistry, storage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService, resultFactory));
 		parsers.add(new UnionParser(queryParserService));
 		parsers.add(new ImportParser(tableRegistry, storage));
@@ -232,9 +257,15 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new LoggerParser(loggerRegistry));
 		parsers.add(new MvParser());
 		parsers.add(new ConfdbParser(conf));
-		parsers.add(new InsertParser(storage));
+		parsers.add(new InsertParser(tableRegistry, storage));
 		parsers.add(new ParseCsvParser());
 		parsers.add(new ProcParser(accountService, queryParserService, procedureRegistry));
+		parsers.add(new RateLimitParser(tickService));
+		parsers.add(new MemLookupParser(lookupRegistry));
+		parsers.add(new BypassParser());
+
+		parsers.add(new RepeatParser());
+
 		if (allowQueryPurge)
 			parsers.add(new PurgeParser(storage, tableRegistry));
 
@@ -305,12 +336,39 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	@Override
 	public Query createQuery(Session session, String queryString) {
-		if (logger.isDebugEnabled())
-			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]",
-					new Object[] { queryString, session.getGuid(), session.getLoginName() });
+		return createQuery(new QueryContext(session), queryString);
+	}
 
-		QueryContext context = new QueryContext(session);
-		List<QueryCommand> commands = queryParserService.parseCommands(context, queryString);
+	@Override
+	public Query createQuery(QueryContext context, String queryString) {
+		Session session = context.getSession();
+		if (logger.isDebugEnabled())
+			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]", new Object[] { queryString,
+					session == null ? null : session.getGuid(), session == null ? null : session.getLoginName() });
+
+		List<QueryCommand> commands = null;
+		try {
+			commands = queryParserService.parseCommands(context, queryString);
+		} catch (QueryParseException e) {
+			// write log(query execution failed)
+			HashMap<String, Object> m = new HashMap<String, Object>();
+			m.put("state", "parse_failure");
+			if (session != null) {
+				String source = (String) session.getProperty("araqne_logdb_query_source");
+				if (source != null)
+					m.put("source", source);
+				m.put("login_name", session.getLoginName());
+			}
+			m.put("query_string", queryString);
+			m.put("error_code", e.getType());
+			m.put("error_msg", e.getMessage());
+
+			Date now = new Date();
+			writeLog(now, m);
+
+			throw e;
+		}
+
 		for (QueryPlanner planner : planners)
 			commands = planner.plan(context, commands);
 
@@ -339,43 +397,26 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
-		setJoinAndUnionDependencies(query.getCommands());
+		QueryHelper.setJoinAndUnionDependencies(query.getCommands());
 
 		new Thread(query, "Query " + id).start();
+
+		HashMap<String, Object> m = new HashMap<String, Object>();
+		m.put("state", "started");
+		if (session != null) {
+			String source = (String) session.getProperty("araqne_logdb_query_source");
+			if (source != null)
+				m.put("source", source);
+			m.put("login_name", session.getLoginName());
+		} else {
+			m.put("source", null);
+			m.put("login_name", null);
+		}
+		m.put("query_string", query.getQueryString());
+		m.put("query_id", query.getId());
+
+		writeLog(new Date(), m);
 		invokeCallbacks(query, QueryStatus.STARTED);
-	}
-
-	private void setJoinAndUnionDependencies(List<QueryCommand> commands) {
-		List<QueryCommand> joinCmds = new ArrayList<QueryCommand>();
-		List<QueryCommand> unionCmds = new ArrayList<QueryCommand>();
-
-		for (QueryCommand cmd : commands) {
-			if (cmd.getName().equals("join"))
-				joinCmds.add(cmd);
-
-			if (cmd.getName().equals("union"))
-				unionCmds.add(cmd);
-		}
-
-		for (QueryCommand cmd : commands) {
-			if (cmd.isDriver() && !cmd.getName().equals("join") && cmd.getMainTask() != null) {
-				for (QueryCommand join : joinCmds)
-					cmd.getMainTask().addDependency(join.getMainTask());
-			}
-
-			if (cmd.isDriver() && !cmd.getName().equals("join") && !cmd.getName().equals("union") && cmd.getMainTask() != null) {
-				for (QueryCommand union : unionCmds)
-					union.getMainTask().addDependency(cmd.getMainTask());
-			}
-		}
-
-		QueryCommand prevUnion = null;
-		for (QueryCommand union : unionCmds) {
-			if (prevUnion != null)
-				union.getMainTask().addDependency(prevUnion.getMainTask());
-
-			prevUnion = union;
-		}
 	}
 
 	@Override
@@ -515,10 +556,70 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	@Override
 	public void onLogout(Session session) {
 		for (Query q : queries.values()) {
-			if (q.getRunMode() == RunMode.FOREGROUND && q.getContext().getSession().equals(session)) {
+			if (q.getContext() == null || q.getContext().getSession() == null)
+				continue;
+
+			Session s = q.getContext().getSession();
+			if (q.getRunMode() == RunMode.FOREGROUND && s.equals(session)) {
 				logger.trace("araqne logdb: removing foreground query [{}:{}] by session [{}] logout", new Object[] { q.getId(),
 						q.getQueryString(), session.getLoginName() });
 				removeQuery(q.getId());
+			}
+		}
+	}
+
+	private void serializeQuery(Query query, Date now, HashMap<String, Object> m) {
+		Session session = query.getContext().getSession();
+
+		m.put("query_id", query.getId());
+		m.put("query_string", query.getQueryString());
+		try {
+			m.put("rows", query.getResultCount());
+		} catch (IOException e) {
+			m.put("rows", 0);
+		}
+		m.put("start_at", new Date(query.getStartTime()));
+		m.put("eof_at", now);
+		if (session != null)
+			m.put("login_name", session.getLoginName());
+		else
+			m.put("login_name", null);
+		m.put("cancelled", query.isCancelled());
+		try {
+			m.put("constants", query.getContext().getConstants());
+		} catch (Throwable t) {
+			m.put("constants", "N/A");
+		}
+		if (query.isFinished()) {
+			m.put("state", "stopped");
+		} else {
+			m.put("state", "running");
+		}
+		if (query.getStopReason() != null)
+			m.put("stop_reason", query.getStopReason().toString());
+
+		if (query.isStarted())
+			m.put("duration", (query.getFinishTime() - query.getStartTime()) / 1000.0);
+		else
+			m.put("duration", 0);
+
+		if (session != null) {
+			String source = (String) session.getProperty("araqne_logdb_query_source");
+			if (source != null)
+				m.put("source", source);
+		}
+	}
+
+	private void writeLog(Date now, HashMap<String, Object> m) {
+		try {
+			storage.write(new Log(QUERY_LOG_TABLE, now, m));
+		} catch (InterruptedException e) {
+			logger.warn("writing query log is interrupted: {}", m);
+		} catch (TableNotFoundException e) {
+			storage.ensureTable(new TableSchema(QUERY_LOG_TABLE, new StorageConfig("v2")));
+			try {
+				storage.write(new Log(QUERY_LOG_TABLE, now, m));
+			} catch (InterruptedException e1) {
 			}
 		}
 	}
@@ -533,38 +634,12 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			query.getCallbacks().getStatusCallbacks().remove(this);
 
 			Date now = new Date();
-
 			HashMap<String, Object> m = new HashMap<String, Object>();
-			m.put("query_id", query.getId());
-			m.put("query_string", query.getQueryString());
-			try {
-				m.put("rows", query.getResultCount());
-			} catch (IOException e) {
-				m.put("rows", 0);
-			}
-			m.put("start_at", new Date(query.getStartTime()));
-			m.put("eof_at", now);
-			m.put("login_name", query.getContext().getSession().getLoginName());
-			m.put("cancelled", query.isCancelled());
-
-			if (query.isStarted())
-				m.put("duration", (query.getFinishTime() - query.getStartTime()) / 1000.0);
-			else
-				m.put("duration", 0);
-
-			try {
-				storage.write(new Log(QUERY_LOG_TABLE, now, m));
-			} catch (InterruptedException e) {
-				logger.warn("writing query log is interrupted: {}", m);
-			} catch (TableNotFoundException e) {
-				storage.ensureTable(new TableSchema(QUERY_LOG_TABLE, new StorageConfig("v2")));
-				try {
-					storage.write(new Log(QUERY_LOG_TABLE, now, m));
-				} catch (InterruptedException e1) {
-				}
-			}
+			serializeQuery(query, now, m);
+			writeLog(now, m);
 
 			invokeCallbacks(query, QueryStatus.EOF);
 		}
+
 	}
 }

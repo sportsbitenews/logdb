@@ -21,7 +21,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
@@ -119,17 +118,14 @@ public interface LogStorage {
 	void removeEventListener(LogStorageEventListener listener);
 
 	/**
-	 * 
-	 * @since 2.3.1
+	 * @since 2.8.17
 	 */
-	boolean search(String tableName, Date from, Date to, LogParserBuilder builder, LogTraverseCallback c)
-			throws InterruptedException;
+	boolean search(TableScanRequest req) throws InterruptedException;
 
-	boolean searchTablet(String tableName, Date day, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback c,
-			boolean doParallel) throws InterruptedException;
-
-	boolean searchTablet(String tableName, Date day, Date from, Date to, long minId, LogParserBuilder builder,
-			LogTraverseCallback c, boolean doParallel) throws InterruptedException;
+	/**
+	 * @since 2.8.17
+	 */
+	boolean searchTablet(TableScanRequest req, Date day) throws InterruptedException;
 
 	/*
 	 * @since 2.5.3
@@ -141,9 +137,9 @@ public interface LogStorage {
 	/*
 	 * @since 2.5.5
 	 */
-	boolean lock(LockKey storageLockKey, long timeout, TimeUnit unit) throws InterruptedException;
+	boolean lock(LockKey storageLockKey, String purpose, long timeout, TimeUnit unit) throws InterruptedException;
 
-	void unlock(LockKey storageLockKey);
+	void unlock(LockKey storageLockKey, String purpose);
 
 	void flush(String tableName);
 
@@ -164,4 +160,8 @@ public interface LogStorage {
 	LockStatus lockStatus(LockKey storageLockKey);
 
 	void purge(String tableName, Date day, boolean skipArgCheck);
+
+	<T> void addFallback(Class<T> clazz, T fallback);
+
+	<T> void removeFallback(Class<T> clazz, T fallback);
 }

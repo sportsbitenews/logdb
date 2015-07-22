@@ -19,11 +19,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe {
+public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistryEventListener, LogPipe, Reconfigurable {
 	private static final String OPT_SOURCE_LOGGER = "source_logger";
 	private static final String OPT_PATTERN = "pattern";
 	private static final String OPT_INVERT = "invert";
-	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SelectorLogger.class.getName());
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(RegexSelectorLogger.class.getName());
 	private LoggerRegistry loggerRegistry;
 
 	/**
@@ -33,7 +33,7 @@ public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistr
 
 	private String pattern;
 
-	private final boolean invert;
+	private boolean invert;
 
 	/**
 	 * cached pattern matchers per thread
@@ -50,7 +50,16 @@ public class RegexSelectorLogger extends AbstractLogger implements LoggerRegistr
 	}
 
 	@Override
-	protected void onStart() {
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		this.loggerName = newConfigs.get(OPT_SOURCE_LOGGER);
+		this.pattern = newConfigs.get(OPT_PATTERN);
+		if (!oldConfigs.get(OPT_PATTERN).equals(newConfigs.get(OPT_PATTERN)))
+			matchers.remove();
+		this.invert = newConfigs.get(OPT_INVERT) != null && Boolean.parseBoolean(newConfigs.get(OPT_INVERT));
+	}
+
+	@Override
+	protected void onStart(LoggerStartReason reason) {
 		loggerRegistry.addListener(this);
 		Logger logger = loggerRegistry.getLogger(loggerName);
 

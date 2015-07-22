@@ -10,7 +10,9 @@ import org.araqne.log.api.AbstractLogger;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
+import org.araqne.log.api.Reconfigurable;
 import org.araqne.log.api.SimpleLog;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.cep.Event;
@@ -24,7 +26,7 @@ import org.araqne.logdb.cep.EventSubscriber;
  * @author xeraph
  * 
  */
-public class CepEventLogger extends AbstractLogger implements EventSubscriber {
+public class CepEventLogger extends AbstractLogger implements EventSubscriber, Reconfigurable {
 
 	private EventContextService eventContextService;
 
@@ -35,12 +37,16 @@ public class CepEventLogger extends AbstractLogger implements EventSubscriber {
 	}
 
 	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+	}
+
+	@Override
 	public boolean isPassive() {
 		return true;
 	}
 
 	@Override
-	protected void onStart() {
+	protected void onStart(LoggerStartReason reason) {
 		String topics = getConfigs().get("topics");
 		for (String topic : topics.split(",")) {
 			topic = topic.trim();
@@ -65,15 +71,17 @@ public class CepEventLogger extends AbstractLogger implements EventSubscriber {
 	public void onEvent(Event event) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		List<Object> rows = new ArrayList<Object>(event.getRows().size());
-		
+
 		for (Row row : event.getRows()) {
 			rows.add(row.map());
 		}
-		
+
 		EventKey key = event.getKey();
 		m.put("topic", key.getTopic());
 		m.put("key", key.getKey());
 		m.put("host", key.getHost());
+		m.put("counter", event.getCounter());
+		m.put("vars", event.getVariables());
 		m.put("created", event.getCreated());
 		m.put("cause", event.getCause().toString().toLowerCase());
 		m.put("rows", rows);

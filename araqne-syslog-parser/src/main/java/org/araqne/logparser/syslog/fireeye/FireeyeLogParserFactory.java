@@ -59,7 +59,7 @@ public class FireeyeLogParserFactory extends AbstractLogParserFactory {
 			return "파이어아이 로그를 파싱합니다.";
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "解析FireEye产品日志。";
-		return "Parse fireeye logs";
+		return "Parse FireEye logs.";
 	}
 
 	@Override

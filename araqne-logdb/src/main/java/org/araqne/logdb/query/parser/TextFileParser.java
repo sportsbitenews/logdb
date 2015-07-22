@@ -17,6 +17,7 @@ package org.araqne.logdb.query.parser;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
@@ -25,6 +26,7 @@ import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.TextFile;
 
@@ -40,6 +42,13 @@ public class TextFileParser extends AbstractQueryCommandParser {
 	public String getCommandName() {
 		return "textfile";
 	}
+	
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("10700", new QueryErrorMessage("invalid-textfile-path", "[file]이 존재하지 않거나 읽을수 없습니다."));
+		return m;
+	}
 
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
@@ -50,17 +59,42 @@ public class TextFileParser extends AbstractQueryCommandParser {
 		String filePath = commandString.substring(r.next).trim();
 
 		try {
-			int offset = 0;
+			long offset = 0;
 			if (options.containsKey("offset"))
-				offset = Integer.valueOf(options.get("offset"));
+				offset = Long.valueOf(options.get("offset"));
 
-			int limit = 0;
+			long limit = 0;
 			if (options.containsKey("limit"))
-				limit = Integer.valueOf(options.get("limit"));
+				limit = Long.valueOf(options.get("limit"));
+			
+			String brex = null;
+			if (options.containsKey("brex"))
+				brex = options.get("brex");
+			
+			String erex = null;
+			if (options.containsKey("erex"))
+				erex = options.get("erex");
+			
+			String df = null;
+			if (options.containsKey("df"))
+				df = options.get("df");
+			
+			String dp = null;
+			if (options.containsKey("dp"))
+				dp = options.get("dp");
+			
+			String cs = "utf-8";
+			if (options.containsKey("cs"))
+				cs = options.get("cs");
 
 			File f = new File(filePath);
-			if (!f.exists() || !f.canRead())
-				throw new QueryParseException("invalid-textfile-path", -1);
+			if (!f.exists() || !f.canRead()){
+			//	throw new QueryParseException("invalid-textfile-path", -1);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("file",filePath);
+				int offsetS = QueryTokenizer.findKeyword(commandString, filePath, getCommandName().length());
+				throw new QueryParseException("10700",  offsetS, offsetS + filePath.length() -1, params );
+			}
 
 			String parserName = options.get("parser");
 			LogParser parser = null;
@@ -72,8 +106,10 @@ public class TextFileParser extends AbstractQueryCommandParser {
 				parser = factory.createParser(options);
 			}
 
-			return new TextFile(filePath, parser, offset, limit);
-		} catch (Throwable t) {
+			return new TextFile(filePath, parser, offset, limit, brex, erex, df, dp, cs);
+		}catch(QueryParseException t){
+			throw t;
+		}catch (Throwable t) {
 			throw new RuntimeException("cannot create textfile source", t);
 		}
 	}

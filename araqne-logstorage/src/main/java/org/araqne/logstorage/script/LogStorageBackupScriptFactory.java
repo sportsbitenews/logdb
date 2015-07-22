@@ -24,6 +24,7 @@ import org.araqne.api.ScriptFactory;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.backup.StorageBackupManager;
 import org.araqne.logstorage.backup.StorageBackupMediaRegistry;
+import org.araqne.logstorage.dump.DumpService;
 
 /**
  * @since 2.3.0
@@ -44,10 +45,13 @@ public class LogStorageBackupScriptFactory implements ScriptFactory {
 
 	@Requires
 	private StorageBackupMediaRegistry mediaRegistry;
+	
+	@Requires
+	private DumpService dumpService;
 
 	@Override
 	public Script createScript() {
-		return new LogStorageBackupScript(tableRegistry, backupManager, mediaRegistry);
+		return new LogStorageBackupScript(tableRegistry, backupManager, mediaRegistry, dumpService);
 	}
 
 }

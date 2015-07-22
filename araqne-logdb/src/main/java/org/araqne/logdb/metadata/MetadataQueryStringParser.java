@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,8 @@ import org.araqne.logdb.query.parser.CommandOptions;
 import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.araqne.logstorage.LogTableRegistry;
+
+
 
 public class MetadataQueryStringParser {
 
@@ -65,19 +68,27 @@ public class MetadataQueryStringParser {
 		String fromToken = optionTokens.get("from");
 		if (fromToken != null) {
 			from = df.parse(fromToken, new ParsePosition(0));
-			if (from == null)
-				throw new QueryParseException("invalid-from", -1);
+			if (from == null){
+				throw new QueryParseException("95030", -1, -1, null);
+			//	throw new QueryParseException("invalid-from", -1);
+			}
 		}
 
 		String toToken = optionTokens.get("to");
 		if (toToken != null) {
 			to = df.parse(toToken, new ParsePosition(0));
-			if (to == null)
-				throw new QueryParseException("invalid-to", -1);
+			if (to == null){
+				throw new QueryParseException("95031", -1, -1, null);
+			//	throw new QueryParseException("invalid-to", -1);
+			}
 		}
 
-		if (to != null && from != null && to.before(from))
-			throw new QueryParseException("invalid-date-range", -1);
+		if (to != null && from != null && to.before(from)){
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("date",  fromToken);
+			throw new QueryParseException("95032", -1, -1, params);
+		//	throw new QueryParseException("invalid-date-range", -1);
+		}
 
 		int next = r.next;
 		token = token.substring(next).trim();

@@ -5,6 +5,7 @@ import java.util.Stack;
 import org.araqne.logdb.query.expr.BooleanConstant;
 import org.araqne.logdb.query.expr.EvalField;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.NullConstant;
 import org.araqne.logdb.query.expr.NumberConstant;
 import org.araqne.logdb.query.expr.StringConstant;
 import org.araqne.logdb.query.parser.ExpressionParser.TokenTerm;
@@ -18,11 +19,17 @@ public class EvalTermEmitterFactory implements TermEmitterFactory {
 			exprStack.add(expr);
 		}
 	}
-	
+
 	private Expression parseTokenExpr(Stack<Expression> exprStack, String token) {
 		// is quoted?
 		if (token.startsWith("\"") && token.endsWith("\""))
 			return new StringConstant(token.substring(1, token.length() - 1));
+
+		if (token.equals("true") || token.equals("false"))
+			return new BooleanConstant(Boolean.parseBoolean(token));
+		
+		if (token.equals("null"))
+			return new NullConstant();
 
 		try {
 			long v = Long.parseLong(token);
@@ -34,8 +41,6 @@ public class EvalTermEmitterFactory implements TermEmitterFactory {
 				double v = Double.parseDouble(token);
 				return new NumberConstant(v);
 			} catch (NumberFormatException e2) {
-				if (token.equals("true") || token.equals("false"))
-					return new BooleanConstant(Boolean.parseBoolean(token));
 
 				return new EvalField(token);
 			}

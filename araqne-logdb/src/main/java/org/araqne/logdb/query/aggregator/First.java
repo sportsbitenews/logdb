@@ -17,8 +17,8 @@ package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
 
-import org.araqne.logdb.Row;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.expr.Expression;
 
 public class First implements AggregationFunction {
@@ -27,8 +27,9 @@ public class First implements AggregationFunction {
 
 	public First(List<Expression> exprs) {
 		if (exprs.size() != 1) {
-			String note = exprs.size() + " parameters to first function";
-			throw new QueryParseException("invalid-parameter-count", -1, note);
+			//String note = exprs.size() + " parameters to first function";
+			//throw new QueryParseException("invalid-parameter-count", -1, note);
+			throw new QueryParseException("91020",-1, -1, null);
 		}
 
 		this.exprs = exprs;

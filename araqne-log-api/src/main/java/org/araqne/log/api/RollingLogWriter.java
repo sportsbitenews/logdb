@@ -68,7 +68,7 @@ public class RollingLogWriter extends AbstractLogger implements LoggerRegistryEv
 	}
 
 	@Override
-	protected void onStart() {
+	protected void onStart(LoggerStartReason reason) {
 		ensureOpen();
 
 		loggerRegistry.addListener(this);

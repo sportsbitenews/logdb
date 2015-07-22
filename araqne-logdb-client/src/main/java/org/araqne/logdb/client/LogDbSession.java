@@ -17,6 +17,7 @@ package org.araqne.logdb.client;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import org.araqne.logdb.client.http.impl.TrapListener;
 
@@ -90,8 +91,9 @@ public interface LogDbSession {
 	 * @param timeout
 	 *            밀리세컨드 단위 타임아웃
 	 * @return RPC 수행 결과를 반환합니다.
+	 * @throws TimeoutException 
 	 */
-	Message rpc(String method, int timeout) throws IOException;
+	Message rpc(String method, int timeout) throws IOException, TimeoutException;
 
 	/**
 	 * 로그프레소 RPC 메소드를 호출합니다.
@@ -104,7 +106,7 @@ public interface LogDbSession {
 	 *            밀리세컨드 단위 타임아웃
 	 * @return RPC 수행 결과를 반환합니다.
 	 */
-	Message rpc(String method, Map<String, Object> params, int timeout) throws IOException;
+	Message rpc(String method, Map<String, Object> params, int timeout) throws IOException, TimeoutException;
 
 	/**
 	 * 로그프레소 RPC 메소드를 호출합니다.
@@ -114,8 +116,9 @@ public interface LogDbSession {
 	 * @param timeout
 	 *            밀리세컨드 단위 타임아웃
 	 * @return RPC 수행 결과를 반환합니다.
+	 * @throws TimeoutException 
 	 */
-	Message rpc(Message req, int timeout) throws IOException;
+	Message rpc(Message req, int timeout) throws IOException, TimeoutException;
 
 	/**
 	 * 로그프레소 서버에서 트랩 수신을 시작합니다.

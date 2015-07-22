@@ -22,11 +22,11 @@ public class EvtCtxGetFunction implements Expression {
 	// 1: counter, 2: created, 3: expire_at, 4: host, 5: timeout_at, 6: rows
 	private int fieldType;
 
-	private EventContextService eventContextService;
+	private EventContextStorage memStorage;
 
 	// evtctxget("topic", "key", "counter")
 	public EvtCtxGetFunction(QueryContext ctx, List<Expression> exprs, EventContextService eventContextService) {
-		this.eventContextService = eventContextService;
+		this.memStorage = eventContextService.getStorage("mem");
 
 		if (exprs.size() != 3)
 			throw new QueryParseException("invalid-evtctxget-arguments", -1, "argument-count-mismatch");
@@ -58,7 +58,7 @@ public class EvtCtxGetFunction implements Expression {
 
 	@Override
 	public Object eval(Row row) {
-		EventContext ctx = EvtCtxGetFunction.findContext(eventContextService, topicExpr, keyExpr, row);
+		EventContext ctx = EvtCtxGetFunction.findContext(memStorage, topicExpr, keyExpr, row);
 		if (ctx == null)
 			return null;
 
@@ -92,7 +92,7 @@ public class EvtCtxGetFunction implements Expression {
 		return "evtctxget(" + topicExpr + ", " + keyExpr + ", " + fieldExpr + ")";
 	}
 
-	public static EventContext findContext(EventContextService service, Expression topicExpr, Expression keyExpr, Row row) {
+	public static EventContext findContext(EventContextStorage storage, Expression topicExpr, Expression keyExpr, Row row) {
 		Object arg1 = topicExpr.eval(row);
 		Object arg2 = keyExpr.eval(row);
 
@@ -102,7 +102,6 @@ public class EvtCtxGetFunction implements Expression {
 		String topic = arg1.toString();
 		String key = arg2.toString();
 
-		EventContextStorage storage = service.getStorage("mem");
 		return storage.getContext(new EventKey(topic, key));
 	}
 }

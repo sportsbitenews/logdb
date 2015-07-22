@@ -17,22 +17,40 @@ package org.araqne.logstorage.backup;
 
 import java.util.Date;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * @since 2.2.7
  * @author xeraph
  * 
  */
-public class StorageBackupRequest {
+public class StorageBackupRequest implements Cloneable {
+	private String guid;
 	private StorageBackupType type;
 	private Set<String> tableNames;
 	private Date from;
 	private Date to;
+	private boolean overwrite = false;
+	private boolean incremental = false;
+	private boolean move = false;
+
 	private StorageBackupMedia media;
 	private StorageBackupProgressMonitor progressMonitor;
 
 	public StorageBackupRequest(StorageBackupType type) {
+		this.guid = UUID.randomUUID().toString();
 		this.type = type;
+	}
+
+	@Override
+	protected Object clone() throws CloneNotSupportedException {
+		StorageBackupRequest obj = (StorageBackupRequest) super.clone();
+		obj.media = (StorageBackupMedia) (((FileStorageBackupMedia) media).clone());
+		return obj;
+	}
+
+	public String getGuid() {
+		return guid;
 	}
 
 	public StorageBackupType getType() {
@@ -65,6 +83,30 @@ public class StorageBackupRequest {
 
 	public void setTo(Date to) {
 		this.to = to;
+	}
+
+	public boolean isOverwrite() {
+		return overwrite;
+	}
+
+	public void setOverwrite(boolean overwrite) {
+		this.overwrite = overwrite;
+	}
+
+	public boolean isIncremental() {
+		return incremental;
+	}
+
+	public void setIncremental(boolean incremental) {
+		this.incremental = incremental;
+	}
+
+	public boolean isMove() {
+		return move;
+	}
+
+	public void setMove(boolean move) {
+		this.move = move;
 	}
 
 	public StorageBackupMedia getMedia() {

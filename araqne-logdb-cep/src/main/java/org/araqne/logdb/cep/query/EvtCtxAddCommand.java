@@ -19,13 +19,15 @@ import java.util.Date;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.query.expr.Expression;
 
-public class EvtCtxAddCommand extends QueryCommand {
+public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 
 	private EventContextStorage storage;
 	private String topic;
@@ -57,6 +59,29 @@ public class EvtCtxAddCommand extends QueryCommand {
 
 	@Override
 	public void onPush(Row row) {
+		checkEvent(row);
+		pushPipe(row);
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+				checkEvent(row);
+			}
+		} else {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+				checkEvent(row);
+			}
+		}
+
+		pushPipe(rowBatch);
+	}
+
+	private void checkEvent(Row row) {
 		boolean matched = true;
 
 		Object o = matcher.eval(row);
@@ -103,12 +128,21 @@ public class EvtCtxAddCommand extends QueryCommand {
 			if (timeout != null)
 				timeoutTime = created + timeout.unit.getMillis() * timeout.amount;
 
-			EventContext ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
-			ctx = storage.addContext(ctx);
+			boolean newContext = false;
+			EventContext ctx = storage.getContext(eventKey);
+			if (ctx == null) {
+				ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
+				EventContext oldCtx = storage.addContext(ctx);
+				newContext = ctx == oldCtx;
+				ctx = oldCtx;
+			}
+
 			ctx.getCounter().incrementAndGet();
 
 			// extend timeout
-			ctx.setTimeoutTime(timeoutTime);
+			if (!newContext)
+				ctx.setTimeoutTime(timeoutTime);
+
 			ctx.addRow(row);
 		}
 
@@ -117,8 +151,6 @@ public class EvtCtxAddCommand extends QueryCommand {
 			if (date instanceof Date)
 				storage.advanceTime(clockHost, logTime.getTime());
 		}
-
-		pushPipe(row);
 	}
 
 	@Override

@@ -15,59 +15,85 @@
  */
 package org.araqne.logdb.writer;
 
-import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
+
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.IoHelper;
 
 /**
- * @author darkluster
+ * @author mindori
  */
 public class PlainLineWriter implements LineWriter {
-	private FileOutputStream fos;
-	private BufferedOutputStream bos;
-	private OutputStreamWriter osw;
+	private static final int MAX_ROW_COUNT = 100;
+	private OutputStream fos;
+	private List<Row> rowBuffer;
+	private Charset charset;
 	private List<String> fields;
-	private String lineSeparator;
-	private String delimiter;
+	private byte[] delimiterBlob;
+	private byte[] lineSeparator;
+	private ByteArrayOutputStream bos = new ByteArrayOutputStream(10 * 1024);
 
-	public PlainLineWriter(String filePath, List<String> fields, String delimiter, String encoding) throws IOException {
-		this.fos = new FileOutputStream(new File(filePath));
-		this.bos = new BufferedOutputStream(fos);
-		this.osw = new OutputStreamWriter(bos, Charset.forName(encoding));
+	public PlainLineWriter(String filePath, List<String> fields, String encoding, boolean append, String delimiter)
+			throws IOException {
+		fos = new FileOutputStream(new File(filePath), append);
+		rowBuffer = new ArrayList<Row>(MAX_ROW_COUNT);
 		this.fields = fields;
-		this.lineSeparator = System.getProperty("line.separator");
-		this.delimiter = delimiter;
+		setEncoding(encoding);
+		lineSeparator = System.getProperty("line.separator").getBytes();
+		delimiter = (delimiter == null) ? " " : delimiter;
+		delimiterBlob = delimiter.getBytes();
 	}
 
-	@Override
-	public void write(Row m) throws IOException {
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
-		int n = 0;
-		int last = fields.size() - 1;
-		for (String field : fields) {
-			Object o = m.get(field);
-			String s = o == null ? "" : o.toString();
-			if (o instanceof Date)
-				s = sdf.format(o);
-			osw.write(s);
-			if (n++ != last)
-				osw.write(delimiter);
+	private void setEncoding(String encoding) {
+		try {
+			charset = Charset.forName(encoding);
+		} catch (Exception e) {
+			charset = Charset.forName("utf-8");
 		}
-		osw.write(lineSeparator);
 	}
 
 	@Override
-	public void close() throws IOException {
-		IoHelper.close(osw);
-		IoHelper.close(bos);
+	public synchronized void write(Row m) throws IOException {
+		rowBuffer.add(m);
+
+		if (rowBuffer.size() >= MAX_ROW_COUNT)
+			flush();
+	}
+
+	@Override
+	public synchronized void flush() throws IOException {
+		int last = fields.size() - 1;
+		int n = 0;
+
+		bos.reset();
+		for (Row m : rowBuffer) {
+			for (String field : fields) {
+				Object o = m.get(field);
+				String rowStr = (o == null) ? "" : o.toString();
+				byte[] b = rowStr.toString().getBytes(charset);
+				bos.write(b);
+
+				if (n++ != last) {
+					bos.write(delimiterBlob);
+				}
+			}
+			bos.write(lineSeparator);
+		}
+
+		fos.write(bos.toByteArray());
+		rowBuffer.clear();
+	}
+
+	@Override
+	public synchronized void close() throws IOException {
+		flush();
 		IoHelper.close(fos);
 	}
 }

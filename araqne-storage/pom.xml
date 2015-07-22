@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-storage</artifactId>
-	<version>0.0.1</version>
+	<version>0.0.11</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Storage</name>
 	<build>
@@ -63,5 +63,15 @@
 			<artifactId>org.apache.felix.ipojo.annotations
 			</artifactId>
 		</dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.5.6</version>
+            <scope>test</scope>
+        </dependency>
 	</dependencies>
 </project>

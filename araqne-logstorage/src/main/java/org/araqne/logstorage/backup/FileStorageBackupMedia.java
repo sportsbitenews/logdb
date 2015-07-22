@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,10 +42,10 @@ import org.slf4j.LoggerFactory;
  * @author xeraph
  * 
  */
-public class FileStorageBackupMedia implements StorageBackupMedia {
+public class FileStorageBackupMedia implements StorageBackupMedia, Cloneable {
 	private final Logger logger = LoggerFactory.getLogger(FileStorageBackupMedia.class);
 	private File path;
-
+	private boolean isWorm;
 	private Map<String, TableSchema> cachedSchemas;
 
 	public FileStorageBackupMedia(File path) {
@@ -71,6 +72,23 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 				logger.error("araqne logstorage: cannot load table metadata", e);
 			}
 		}
+	}
+
+	public FileStorageBackupMedia(File path, boolean isWorm) {
+		this(path);
+		this.isWorm = isWorm;
+	}
+
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		FileStorageBackupMedia obj = (FileStorageBackupMedia) super.clone();
+		obj.cachedSchemas = new HashMap<String, TableSchema>();
+		Set<String> keys = cachedSchemas.keySet();
+		for (String key : keys) {
+			if (cachedSchemas.get(key) != null)
+				obj.cachedSchemas.put(key, (TableSchema) cachedSchemas.get(key).clone());
+		}
+		return obj;
 	}
 
 	@Override
@@ -117,6 +135,23 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 				} catch (IOException e) {
 				}
 			}
+		}
+	}
+
+	@Override
+	public boolean exists(String tableName, String fileName) throws IOException {
+		try {
+			List<StorageMediaFile> mediaFiles = getFiles(tableName);
+			if (mediaFiles.size() <= 0)
+				return false;
+
+			for (StorageMediaFile mediaFile : mediaFiles) {
+				if (fileName.equals(mediaFile.getFileName()))
+					return true;
+			}
+			return false;
+		} catch (IOException e) {
+			return false;
 		}
 	}
 
@@ -207,7 +242,7 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 			os = new FileOutputStream(dstTmp);
 			FileChannel srcChannel = is.getChannel();
 			FileChannel dstChannel = os.getChannel();
-			srcChannel.transferTo(0, req.getMediaFile().getLength(), dstChannel);
+			ensureTransferTo(req, srcChannel, dstChannel, req.getMediaFile().getLength());
 
 		} finally {
 			close(is);
@@ -220,45 +255,36 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 		}
 	}
 
+	private void ensureTransferTo(StorageTransferRequest req, FileChannel srcChannel, FileChannel dstChannel, long length)
+			throws IOException {
+		ensureTransferTo(req, srcChannel, dstChannel, length, 0);
+	}
+
+	private void ensureTransferTo(StorageTransferRequest req, FileChannel srcChannel, FileChannel dstChannel, long length,
+			long copied) throws IOException {
+		while (copied < length) {
+			if (req.isCancel())
+				break;
+
+			copied += srcChannel.transferTo(copied, length - copied, dstChannel);
+		}
+	}
+
 	@Override
 	public void copyToMedia(StorageTransferRequest req) throws IOException {
 		StorageFile src = req.getStorageFile();
 
 		if (src != null) {
 			File dst = new File(path, "table/" + src.getTableId() + "/" + src.getFileName());
-			if (dst.exists())
-				throw new IOException("file already exists: " + dst.getAbsolutePath());
-
-			File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
-			dstTmp.getParentFile().mkdirs();
-
-			if (logger.isDebugEnabled())
-				logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(), dstTmp.getAbsolutePath());
-
-			FileInputStream is = null;
-			FileOutputStream os = null;
-
-			try {
-				is = new FileInputStream(src.getFile());
-				os = new FileOutputStream(dstTmp);
-				FileChannel srcChannel = is.getChannel();
-				FileChannel dstChannel = os.getChannel();
-				srcChannel.transferTo(0, req.getStorageFile().getLength(), dstChannel);
-			} finally {
-				close(is);
-				close(os);
-			}
-
-			if (!dstTmp.renameTo(dst)) {
-				dstTmp.delete();
-				throw new IOException("rename failed, " + dstTmp.getAbsolutePath());
-			}
-
+			if (!isWorm)
+				copyToDisk(req, src, dst);
+			else
+				copyToWorm(req, src, dst);
 		} else {
 			StorageTransferStream stream = req.getToMediaStream();
 			File dst = new File(path, "table/" + stream.getTableId() + "/" + stream.getMediaFileName());
-			if (dst.exists())
-				throw new IOException("file already exists: " + dst.getAbsolutePath());
+			if (req.isOverwrite())
+				dst.delete();
 
 			dst.getParentFile().mkdirs();
 
@@ -292,6 +318,83 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 		}
 	}
 
+	@Override
+	public boolean isWormMedia() {
+		return isWorm;
+	}
+
+	private void copyToDisk(StorageTransferRequest req, StorageFile src, File dst) throws IOException {
+		if (req.isIncremental()) {
+			if (dst.exists() && dst.length() == src.getLength())
+				return;
+			dst.getParentFile().mkdirs();
+
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(), dst.getAbsolutePath());
+
+			copy(req, src, dst, dst.length());
+
+		} else {
+			if (!req.isOverwrite() && dst.exists())
+				throw new IOException("file [" + dst.getAbsolutePath() + "] already exists");
+
+			File dstTmp = new File(dst.getAbsolutePath() + ".transfer");
+			dstTmp.getParentFile().mkdirs();
+
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(),
+						dstTmp.getAbsolutePath());
+
+			copy(req, src, dstTmp, 0);
+
+			if (dst.exists())
+				dst.delete();
+
+			if (!dstTmp.renameTo(dst)) {
+				dstTmp.delete();
+				throw new IOException("rename failed, " + dstTmp.getAbsolutePath());
+			}
+		}
+	}
+
+	private void copyToWorm(StorageTransferRequest req, StorageFile src, File dst) throws IOException {
+		if (dst.exists())
+			throw new IOException("file [" + dst.getAbsolutePath() + "] already exists");
+
+		dst.getParentFile().mkdirs();
+
+		if (logger.isDebugEnabled())
+			logger.debug("araqne logstorage: copy from [{}] to [{}]", src.getFile().getAbsolutePath(), dst.getAbsolutePath());
+
+		copy(req, src, dst, 0);
+	}
+
+	private void copy(StorageTransferRequest req, StorageFile src, File dst, long copied) throws FileNotFoundException,
+			IOException {
+		FileInputStream is = null;
+		FileOutputStream os = null;
+
+		try {
+			is = new FileInputStream(src.getFile());
+			if (req.isIncremental())
+				os = new FileOutputStream(dst, true);
+			else
+				os = new FileOutputStream(dst);
+			FileChannel srcChannel = is.getChannel();
+			FileChannel dstChannel = os.getChannel();
+
+			if (req.isIncremental())
+				ensureTransferTo(req, srcChannel, dstChannel, src.getLength(), copied);
+			else
+				ensureTransferTo(req, srcChannel, dstChannel, src.getLength());
+		} catch (Throwable t) {
+			logger.error("araqne-logstorage: append error" + t);
+		} finally {
+			close(is);
+			close(os);
+		}
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Map<String, String> getTableMetadata(String tableName) throws IOException {
@@ -302,13 +405,27 @@ public class FileStorageBackupMedia implements StorageBackupMedia {
 		return (Map<String, String>) schema.schema.get("metadata");
 	}
 
-	private static class TableSchema {
+	private static class TableSchema implements Cloneable {
 		private Map<String, Object> schema;
 		private File dir;
 
 		public TableSchema(Map<String, Object> schema, File dir) {
 			this.schema = schema;
 			this.dir = dir;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public Object clone() throws CloneNotSupportedException {
+			TableSchema obj = (TableSchema) super.clone();
+			String tableName = (String) schema.get("table_name");
+			Map<String, String> metadata = (Map<String, String>) schema.get("metadata");
+
+			obj.schema = new HashMap<String, Object>();
+			obj.schema.put("table_name", tableName);
+			obj.schema.put("metadata", new HashMap<String, String>(metadata));
+
+			return obj;
 		}
 	}
 }

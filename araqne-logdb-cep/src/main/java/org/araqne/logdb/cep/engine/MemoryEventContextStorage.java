@@ -17,24 +17,25 @@ package org.araqne.logdb.cep.engine;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.cron.AbstractTickTimer;
+import org.araqne.cron.TickService;
 import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventCause;
+import org.araqne.logdb.cep.EventClock;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextListener;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.cep.EventSubscriber;
-import org.araqne.logdb.cep.EventClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +45,9 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Requires
 	private EventContextService eventContextService;
+
+	@Requires
+	private TickService tickService;
 
 	private ConcurrentHashMap<EventKey, EventContext> contexts;
 
@@ -55,7 +59,6 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	private EventClock realClock;
 
 	private RealClockTask realClockTask = new RealClockTask();
-	private Timer timer;
 
 	@Override
 	public String getName() {
@@ -69,9 +72,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		logClocks = new ConcurrentHashMap<String, EventClock>();
 		realClock = new EventClock(this, "real", System.currentTimeMillis(), 10000);
 
-		timer = new Timer("Event Real Clock", true);
-		timer.scheduleAtFixedRate(realClockTask, 0, 100);
-
+		tickService.addTimer(realClockTask);
 		eventContextService.registerStorage(this);
 	}
 
@@ -81,7 +82,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 			eventContextService.unregisterStorage(this);
 		}
 
-		realClockTask.cancel();
+		tickService.removeTimer(realClockTask);
 		contexts.clear();
 		subscribers.clear();
 	}
@@ -145,9 +146,8 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public void removeContext(EventKey key, EventCause cause) {
-		EventContext ctx = contexts.remove(key);
-		if (ctx != null) {
+	public void removeContext(EventKey key, EventContext ctx, EventCause cause) {
+		if (contexts.remove(key, ctx)) {
 			ctx.getListeners().remove(this);
 
 			if (key.getHost() != null) {
@@ -175,8 +175,15 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void clearContexts() {
-		if (contexts != null)
-			contexts.clear();
+		clearContexts(null);
+	}
+
+	@Override
+	public void clearContexts(String topic) {
+		for (EventKey key : getContextKeys()) {
+			if (topic == null || key.getTopic().equals(topic))
+				contexts.remove(key);
+		}
 	}
 
 	@Override
@@ -196,10 +203,23 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 			s.remove(subscriber);
 	}
 
-	private class RealClockTask extends TimerTask {
+	private class RealClockTask extends AbstractTickTimer {
+		private AtomicBoolean running = new AtomicBoolean();
+
 		@Override
-		public void run() {
-			realClock.setTime(System.currentTimeMillis(), false);
+		public int getInterval() {
+			return 100;
+		}
+
+		@Override
+		public void onTick() {
+			if (running.compareAndSet(false, true)) {
+				try {
+					realClock.setTime(System.currentTimeMillis(), false);
+				} finally {
+					running.set(false);
+				}
+			}
 		}
 	}
 
@@ -207,7 +227,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		if (slog.isDebugEnabled())
 			slog.debug("araqne logdb cep: generate event ctx [{}] cause [{}]", ctx.getKey(), cause);
 
-		Event ev = new Event(ctx.getKey(), cause);
+		Event ev = new Event(ctx, cause);
 		ev.getRows().addAll(ctx.getRows());
 
 		CopyOnWriteArraySet<EventSubscriber> s = subscribers.get(ctx.getKey().getTopic());
@@ -236,10 +256,13 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void onUpdateTimeout(EventContext ctx) {
-		// update per-host case only
-		if (ctx.getHost() == null)
+		// update real clock queue
+		if (ctx.getHost() == null) {
+			realClock.updateTimeout(ctx);
 			return;
+		}
 
+		// update per-host case only
 		EventClock clock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
 		if (clock == null)
 			return;

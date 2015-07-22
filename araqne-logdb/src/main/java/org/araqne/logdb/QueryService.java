@@ -27,7 +27,12 @@ public interface QueryService {
 
 	Query getQuery(Session session, int id);
 
-	Query createQuery(Session session, String query);
+	Query createQuery(Session session, String queryString);
+
+	/**
+	 * @since 2.6.7
+	 */
+	Query createQuery(QueryContext context, String queryString);
 
 	void startQuery(int id);
 

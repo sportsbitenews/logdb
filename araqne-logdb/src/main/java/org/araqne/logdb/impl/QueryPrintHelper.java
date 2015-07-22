@@ -61,7 +61,10 @@ public class QueryPrintHelper {
 			String when = "";
 			if (q.isStarted())
 				when = " at " + df.format(new Date(q.getStartTime()));
-			String loginName = q.getContext().getSession().getLoginName();
+			String loginName = "no session";
+			if (q.getContext() != null && q.getContext().getSession() != null)
+				loginName = q.getContext().getSession().getLoginName();
+
 			Long count = null;
 			try {
 				count = q.getResultCount();
@@ -110,8 +113,10 @@ public class QueryPrintHelper {
 				status += tab(indent) + "Command [" + cmd.getName() + "]\n";
 				status += getCommandStatuses(cmd.getNestedCommands(), indent + 2);
 			} else {
-				status += String.format(tab(indent) + "[%s] %s \t/ passed %d data to next query\n", cmd.getStatus(),
-						cmd.toString(), cmd.getOutputCount());
+				String taskId = cmd.getMainTask() != null ? 
+						String.format("%d: ", cmd.getMainTask().getID()) : "";
+				status += String.format(tab(indent) + "[%s] %s%s \t/ passed %d data to next query\n", cmd.getStatus(),
+						taskId, cmd.toString(), cmd.getOutputCount());
 			}
 		}
 		return status;

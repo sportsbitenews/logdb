@@ -52,14 +52,14 @@ public class ProventiaIdsLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "프로벤티아 아이디에스";
+			return "프로벤티아 IDS";
 		return "Proventia IDS";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "IBM 프로벤티아 아이디에스의 로그를 파싱합니다.";
+			return "IBM 프로벤티아 IDS의 로그를 파싱합니다.";
 		return "Parse IBM Proventia IDS logs.";
 	}
 

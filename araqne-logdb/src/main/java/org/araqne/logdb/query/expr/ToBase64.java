@@ -19,7 +19,6 @@ import java.util.List;
 
 import org.araqne.codec.Base64;
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 /**
@@ -28,13 +27,11 @@ import org.araqne.logdb.Row;
  * @since 2.4.11
  * @author xeraph
  */
-public class ToBase64 implements Expression {
+public class ToBase64 extends FunctionExpression {
 	private Expression dataExpr;
 
 	public ToBase64(QueryContext ctx, List<Expression> exprs) {
-		if (exprs.size() < 1)
-			throw new QueryParseException("tobase64-arg-missing", -1);
-
+		super("tobase64", exprs, 1);
 		this.dataExpr = exprs.get(0);
 	}
 

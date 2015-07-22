@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.command;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -61,15 +62,22 @@ public class Timechart extends QueryCommand {
 	// key field name ('by' clause of command)
 	private String keyField;
 
-	public Timechart(List<AggregationField> fields, String keyField, TimeSpan timeSpan) {
+	private boolean pivot;
+
+	public Timechart(List<AggregationField> fields, String keyField, TimeSpan timeSpan, boolean pivot) {
 		this.fields = fields;
 		this.keyField = keyField;
 		this.timeSpan = timeSpan;
+		this.pivot = pivot;
 
 		// set up clone templates
 		this.funcs = new AggregationFunction[fields.size()];
 		for (int i = 0; i < fields.size(); i++)
 			this.funcs[i] = fields.get(i).getFunction();
+	}
+
+	public Timechart(List<AggregationField> fields, String keyField, TimeSpan timeSpan) {
+		this(fields, keyField, timeSpan, false);
 	}
 
 	@Override
@@ -93,6 +101,13 @@ public class Timechart extends QueryCommand {
 	public void onStart() {
 		super.onStart();
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
+		int queryId = 0;
+		if (getQuery() != null)
+			queryId = getQuery().getId();
+		
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
+		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
+		
 		this.buffer = new HashMap<TimechartKey, AggregationFunction[]>();
 		this.spanMillis = timeSpan.getMillis();
 
@@ -188,8 +203,10 @@ public class Timechart extends QueryCommand {
 					f.apply(row);
 			}
 		} else {
-			for (Row row : rowBatch.rows) {
-				Date time = (Date) row.get("_time");
+		    for (int i = 0; i < rowBatch.size; i++) {
+		        Row row = rowBatch.rows[i];
+
+		        Date time = (Date) row.get("_time");
 				if (time == null)
 					return;
 
@@ -209,12 +226,12 @@ public class Timechart extends QueryCommand {
 				AggregationFunction[] fs = buffer.get(key);
 				if (fs == null) {
 					fs = new AggregationFunction[funcs.length];
-					for (int i = 0; i < fs.length; i++) {
-						fs[i] = funcs[i].clone();
+					for (int j = 0; j < fs.length; j++) {
+						fs[j] = funcs[j].clone();
 
 						// set span milliseconds for average evaluation per span
-						if (fs[i] instanceof PerTime)
-							((PerTime) fs[i]).setAmount(spanMillis);
+						if (fs[j] instanceof PerTime)
+							((PerTime) fs[j]).setAmount(spanMillis);
 					}
 
 					buffer.put(key, fs);
@@ -260,17 +277,20 @@ public class Timechart extends QueryCommand {
 		CloseableIterator it = null;
 		try {
 			// last flush
-			flush();
+			if (buffer != null) {
+				flush();
 
-			// reclaim buffer (GC support)
-			buffer.clear();
+				// reclaim buffer (GC support)
+				buffer.clear();
 
-			// sort
-			it = sorter.sort();
+				// sort
+				it = sorter.sort();
 
-			mergeAndWrite(it);
-		} catch (IOException e) {
-			throw new IllegalStateException("timechart sort failed, query " + query, e);
+				mergeAndWrite(it);
+			}
+		} catch (Throwable t) {
+			getQuery().stop(t);
+			throw new IllegalStateException("timechart sort failed, query " + query, t);
 		} finally {
 			// close and delete final sorted run file
 			IoHelper.close(it);
@@ -321,7 +341,7 @@ public class Timechart extends QueryCommand {
 
 				// write to next pipeline
 				output.put("_time", lastTime);
-				pushPipe(new Row(output));
+				pushPipe(new Row(output), pivot);
 				output = new HashMap<String, Object>();
 
 				// change merge set
@@ -350,10 +370,27 @@ public class Timechart extends QueryCommand {
 		if (lastTime != null) {
 			output.put("_time", lastTime);
 			setOutputAndReset(output, fs, lastKeyFieldValue);
-			pushPipe(new Row(output));
+			pushPipe(new Row(output), pivot);
 		}
 	}
-
+	
+	private void pushPipe(Row r, boolean pivot) {
+		if (pivot) {
+			Object _time = r.get("_time");
+			for (Map.Entry<String, Object> e: r.map().entrySet()) {
+				HashMap<String, Object> m = new HashMap<String, Object>();
+				if (e.getKey().equals("_time"))
+					continue;
+				m.put("_time", _time);
+				m.put("key", e.getKey());
+				m.put("value", e.getValue());
+				pushPipe(new Row(m));
+			}
+		} else {
+			pushPipe(r);
+		}
+	}
+	
 	private void setOutputAndReset(Map<String, Object> output, AggregationFunction[] fs, String keyFieldValue) {
 		if (keyField != null) {
 			if (fs.length > 1) {

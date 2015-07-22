@@ -16,8 +16,16 @@
 package org.araqne.logdb;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public interface QueryParserService {
+	/**
+	 * 
+	 * @since 2.6.24
+	 */
+	List<QueryCommandParser> getCommandParsers();
+
 	/**
 	 * @since 2.0.3
 	 */
@@ -25,9 +33,13 @@ public interface QueryParserService {
 
 	List<QueryCommand> parseCommands(QueryContext context, String queryString);
 
+	String formatErrorMessage(String errorCode, Locale locale, Map<String, String> params);
+
 	void addCommandParser(QueryCommandParser parser);
 
 	void removeCommandParser(QueryCommandParser parser);
-	
+
 	FunctionRegistry getFunctionRegistry();
+
+	Map<String, QueryErrorMessage> getErrorMessages();
 }

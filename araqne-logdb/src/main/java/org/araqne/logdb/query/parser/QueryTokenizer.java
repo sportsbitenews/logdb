@@ -21,7 +21,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 import java.util.StringTokenizer;
 
@@ -38,7 +40,7 @@ public class QueryTokenizer {
 	 */
 	public static ParseResult parseOptions(QueryContext context, String s, int offset, List<String> validKeys,
 			FunctionRegistry functionRegistry) {
-		HashMap<String, Object> options = new HashMap<String, Object>();
+		HashMap<String, Object> options = new LinkedHashMap<String, Object>();
 		int next = offset;
 		while (true) {
 			next = skipSpaces(s, next);
@@ -51,9 +53,14 @@ public class QueryTokenizer {
 
 			if (validKeys.size() > 0 && !validKeys.contains(key)) {
 				if (validKeys.contains(key.trim()))
-					throw new QueryParseException("option-space-not-allowed", next);
-
-				throw new QueryParseException("invalid-option", -1, key);
+				//	throw new QueryParseException("option-space-not-allowed", next);
+					throw new QueryParseException("90000", offset + next, offset + next, null);
+				
+				//throw new QueryParseException("invalid-option", -1, key);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("option", key);
+				int offsetS= s.indexOf(key, offset);
+				throw new QueryParseException("90001", offsetS, offsetS + key.length() -1 , params);
 			}
 
 			if (s.charAt(p + 1) == '"') {
@@ -61,18 +68,26 @@ public class QueryTokenizer {
 				int closingQuote = -1;
 				for (int i = p + 2; i < s.length(); i++) {
 					char c = s.charAt(i);
-					if (c == '\\')
+					if (c == '\\') {
 						escape = true;
+						continue;
+					}
 
-					if (c == '"' && !escape) {
-						closingQuote = i;
-						break;
+					if (c == '"') {
+						if (!escape) {
+							closingQuote = i;
+							break;
+						}
+					}
+					if (escape) {
+						escape = false;
 					}
 				}
 
 				if (closingQuote == -1)
-					throw new QueryParseException("string-quote-mismatch", s.length());
-
+					//throw new QueryParseException("string-quote-mismatch", s.length());
+					throw new QueryParseException("90002", p + 1, s.length() - 1, null);
+				
 				String quotedValue = s.substring(p + 2, closingQuote);
 				quotedValue = ExpressionParser.evalContextReference(context, quotedValue, functionRegistry);
 				options.put(key, quotedValue);
@@ -99,7 +114,7 @@ public class QueryTokenizer {
 		return new ParseResult(options, next);
 	}
 
-	// find next unescaped delimiter, except ==, !=
+	// find next unescaped delimiter, except ==, !=, <=, >=
 	private static int findNextSeparator(String s, int offset) {
 		boolean quote = false;
 		boolean escape = false;
@@ -133,10 +148,13 @@ public class QueryTokenizer {
 					i++;
 					continue;
 				}
-				
-				// skip != token
-				if (i > 0 && s.charAt(i - 1) == '!') 
-					continue;
+
+				// skip !=, <=, >= token
+				if (i > 0) {
+					char before = s.charAt(i - 1);
+					if (before == '!' || before == '<' || before == '>')
+						continue;
+				}
 
 				return i;
 			}
@@ -147,10 +165,23 @@ public class QueryTokenizer {
 		return -1;
 	}
 
+	private static Character[] UniToAsciiMap;
+	static {
+		UniToAsciiMap = new Character[65536];
+		UniToAsciiMap[0x27E6] = '[';
+		UniToAsciiMap[0x301B] = ']';
+		for (int code : new int[] { 0x00AB, 0x00BB, 0x02BA, 0x030B, 0x030E, 0x201C, 0x201D, 0x201E, 0x201F, 0x2033, 0x3036,
+				0x3003, 0x301D, 0x301E })
+			UniToAsciiMap[code] = '\"';
+		for (int code : new int[] { 0x01C0, 0x05C0, 0x2223, 0x2758 })
+			UniToAsciiMap[code] = '|';
+		for (int code : new int[] { 0x20E5, 0x2216 })
+			UniToAsciiMap[code] = '\\';
+	}
+
 	public static List<String> parseCommands(String query) {
 		List<String> l = new ArrayList<String>();
 		StringBuilder sb = new StringBuilder();
-		char before = 0;
 		boolean quoted = false;
 		boolean escape = false;
 
@@ -158,6 +189,11 @@ public class QueryTokenizer {
 
 		for (int p = 0; p < query.length(); ++p) {
 			char c = query.charAt(p);
+
+			if (0x128 <= c && c < 0xffff) {
+				if (UniToAsciiMap[c] != null)
+					c = UniToAsciiMap[c].charValue();
+			}
 
 			if (c == '[' && !quoted)
 				sqStack.push(p);
@@ -171,21 +207,23 @@ public class QueryTokenizer {
 				if (c == '|' && !quoted && sqStack.isEmpty()) {
 					String cmd = sb.toString();
 					if (cmd.trim().isEmpty())
-						throw new QueryParseException("empty-command", -1);
+				//		throw new QueryParseException("empty-command", -1);
+						throw new QueryParseException("90003", p, p, null);
 					l.add(cmd);
 					sb = new StringBuilder();
 				} else
 					sb.append(c);
 			}
 
-			escape = c == '\\' && before != '\\';
-			before = c;
+			escape = (c == '\\' && !escape);
 		}
 
 		if (sb.length() > 0) {
 			String cmd = sb.toString();
-			if (cmd.trim().isEmpty())
-				throw new QueryParseException("empty-command", -1);
+			if (cmd.trim().isEmpty()){
+				//throw new QueryParseException("empty-command", -1);
+				throw new QueryParseException("90003", query.length() -1 , query.length() -1, null);
+			}
 			l.add(cmd);
 		}
 
@@ -196,7 +234,7 @@ public class QueryTokenizer {
 		List<QueryToken> l = new ArrayList<QueryToken>();
 
 		// TODO: consider quote-string and backslash escape
-		StringTokenizer tok = new StringTokenizer(s, " ");
+		StringTokenizer tok = new StringTokenizer(s, " \n\t");
 		while (tok.hasMoreTokens())
 			l.add(new QueryToken(tok.nextToken(), -1));
 
@@ -245,8 +283,9 @@ public class QueryTokenizer {
 
 		int begin = i;
 
-		if (text.length() <= begin)
-			throw new QueryParseException("need-string-token", begin);
+		if (text.length() <= begin){
+			throw new QueryParseException("90004", 0, 0, null);
+		}
 
 		i = nextString(sb, text, i, delim);
 
@@ -279,7 +318,7 @@ public class QueryTokenizer {
 				if (c == '"') {
 					quote = !quote;
 					q.append(c);
-					sb.append(q.toString().replace("\\\\", "\\").replace("\\\"", "\""));
+					sb.append(q.toString().replace("\\\"", "\"").replace("\\\\", "\\"));
 				} else if (c == '\\') {
 					q.append(c);
 					q.append(text.charAt(i++));
@@ -297,8 +336,12 @@ public class QueryTokenizer {
 			}
 		}
 
-		if (quote)
-			throw new QueryParseException("string-quote-mismatch", i);
+		if (quote){
+			//throw new QueryParseException("string-quote-mismatch", i);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("value", text);
+			throw new QueryParseException("90005", -1, -1, params);
+		}
 
 		return i;
 	}
@@ -306,12 +349,19 @@ public class QueryTokenizer {
 	public static int findKeyword(String haystack, String needle) {
 		return findKeyword(haystack, needle, 0);
 	}
-
+	
 	/**
-	 * find outermost keyword from query (ignore keyword in string or function
-	 * call)
+	 * find outermost keyword from query (ignore keyword in string or function call)
 	 */
 	public static int findKeyword(String haystack, String needle, int offset) {
+		return findKeyword(haystack, needle, offset, false);
+	}
+
+	/**
+	 * @param checkWhitespace
+	 *            the needle should be enclosed by whitespace
+	 */
+	public static int findKeyword(String haystack, String needle, int offset, boolean checkWhitespace) {
 		if (offset >= haystack.length())
 			return -1;
 
@@ -319,23 +369,36 @@ public class QueryTokenizer {
 		if (p < 0)
 			return p;
 
+		boolean whitespace = true;
+		if (checkWhitespace) {
+			if (p - 1 < 0 || p + needle.length() >= haystack.length()) {
+				whitespace = false;
+			} else {
+				char c1 = haystack.charAt(p - 1);
+				char c2 = haystack.charAt(p + needle.length());
+				whitespace = Character.isWhitespace(c1) && Character.isWhitespace(c2);
+			}
+		}
+
 		// check outermost condition (not in function call or quoted string)
 		int parens = 0;
 		boolean quoted = false;
+		char b = '\0';
 		for (int i = 0; i <= p; i++) {
 			char c = haystack.charAt(i);
-			if (c == '(')
+			if (c == '(' && b != '\\')
 				parens++;
-			else if (c == ')')
+			else if (c == ')' && b != '\\')
 				parens--;
-			else if (c == '"')
+			else if (c == '"' && b != '\\')
 				quoted = !quoted;
+			b = c;
 		}
 
-		if (parens == 0 && !quoted)
+		if (parens == 0 && !quoted && whitespace)
 			return p;
 
-		return findKeyword(haystack, needle, p + 1);
+		return findKeyword(haystack, needle, p + 1, checkWhitespace);
 	}
 
 	public static List<String> parseByComma(String haystack) {
@@ -406,5 +469,52 @@ public class QueryTokenizer {
 			return null;
 		}
 	}
+	
+	public static boolean isTrue(String value) {
+		String v = toLower(value);
+		return "t".equals(v) || "true".equals(v) || "1".equals(v);
+	}
 
+	private static String toLower(String value) {
+		if (value == null)
+			return null;
+		else
+			return value.toLowerCase();
+	}
+
+	/*
+	 * get position of n-th index of tokens
+	 */
+	public static int findIndexOffset(QueryTokens tokens, int index){
+		return index<=0? skipSpaces(tokens.query(), 0) : 
+			skipSpaces(tokens.query(), findIndexOffset(tokens, index - 1) + tokens.string(index - 1).length());
+	}
+	
+	public static int findIndexOffset(String query, int index){
+		return index<=0? skipSpaces(query, 0): 
+			skipSpaces(query, skipNonSpaces(query,  findIndexOffset(query, index -1)));	
+	}
+	
+	public static int skipNonSpaces(String text, int position) {
+		int i = position;
+
+		while (i < text.length() && text.charAt(i) != ' ')
+			i++;
+		
+		return i;
+	}
+	
+	public static int indexOfValue(String subQuery, String keyword){
+		return indexOfValue(subQuery, keyword, '=');
+	}
+
+	public static int indexOfValue(String subQuery, String keyword, char delim){
+		int index = subQuery.indexOf(keyword);
+		return index<0? index: subQuery.indexOf(delim, index);
+	}
 }
+
+
+
+
+

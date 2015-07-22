@@ -69,6 +69,7 @@ public class WgetQueryCommand extends DriverQueryCommand {
 			pushPipe(row);
 		} catch (Throwable t) {
 			slog.error("araqne logdb crawler: wget failed - " + url, t);
+			throw new IllegalStateException("wget: " + t.getMessage());
 		}
 	}
 
@@ -93,6 +94,7 @@ public class WgetQueryCommand extends DriverQueryCommand {
 
 	private void fetchUrl(Row row, String url) throws IOException {
 		Connection conn = Jsoup.connect(url);
+		conn.ignoreContentType(true);
 		conn.timeout(timeout * 1000);
 		Document doc = null;
 

@@ -19,6 +19,7 @@ import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.impl.QueryHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,8 +46,15 @@ public class Union extends QueryCommand {
 		return subQueryTask;
 	}
 
+	@Override
+	public QueryTask getDependency() {
+		return triggerTask;
+	}
+
 	public void setSubQuery(Query subQuery) {
 		this.subQuery = subQuery;
+
+		QueryHelper.setJoinAndUnionDependencies(subQuery.getCommands());
 
 		// subquery post runner -> sub commands -> trigger -> outer commands
 		for (QueryCommand cmd : subQuery.getCommands()) {
@@ -85,6 +93,8 @@ public class Union extends QueryCommand {
 	private class Trigger extends QueryTask {
 		@Override
 		public void run() {
+			slog.debug("araqne logdb: union subquery started (dependency resolved), main query [{}] sub query [{}]",
+					query.getId(), subQuery.getId());
 		}
 	}
 

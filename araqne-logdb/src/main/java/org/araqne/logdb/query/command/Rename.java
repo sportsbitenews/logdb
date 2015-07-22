@@ -21,12 +21,28 @@ import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
 
 public class Rename extends QueryCommand implements ThreadSafe {
-	private String from;
-	private String to;
-
-	public Rename(String from, String to) {
-		this.from = from;
-		this.to = to;
+	public static class Pair {
+		private final String from;
+		private final String to;
+		
+		public Pair(String from, String to) {
+			this.from = from;
+			this.to = to;
+		}
+		
+		public String getFrom() {
+			return from;
+		}
+		
+		public String getTo() {
+			return to;
+		}
+	}
+	
+	private final Iterable<Pair> pairs;
+	
+	public Rename(Iterable<Pair> pairs) {
+		this.pairs = pairs;
 	}
 
 	@Override
@@ -34,19 +50,16 @@ public class Rename extends QueryCommand implements ThreadSafe {
 		return "rename";
 	}
 
-	public String getFrom() {
-		return from;
+	public Iterable<Pair> getPairs() {
+		return pairs;
 	}
-
-	public String getTo() {
-		return to;
-	}
-
+	
 	@Override
 	public void onPush(Row row) {
-		if (row.containsKey(from))
-			row.put(to, row.remove(from));
-
+		for (Pair pair : pairs) {
+			if (row.containsKey(pair.from))
+				row.put(pair.to, row.remove(pair.from));
+		}
 		pushPipe(row);
 	}
 
@@ -56,13 +69,19 @@ public class Rename extends QueryCommand implements ThreadSafe {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				if (row.containsKey(from))
-					row.put(to, row.remove(from));
+				for (Pair pair : pairs) {
+					if (row.containsKey(pair.from))
+						row.put(pair.to, row.remove(pair.from));
+				}
 			}
 		} else {
-			for (Row row : rowBatch.rows) {
-				if (row.containsKey(from))
-					row.put(to, row.remove(from));
+		    for (int i = 0; i < rowBatch.size; i++) {
+		        Row row = rowBatch.rows[i];
+
+				for (Pair pair : pairs) {
+					if (row.containsKey(pair.from))
+						row.put(pair.to, row.remove(pair.from));
+				}
 			}
 		}
 
@@ -71,6 +90,21 @@ public class Rename extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public String toString() {
-		return "rename " + from + " as " + to;
+		StringBuilder sb = new StringBuilder("rename ");
+		boolean first = true;
+		
+		for (Pair pair : pairs) {
+			if (first) {
+				first = false;
+			} else {
+				sb.append(", ");
+			}
+			
+			sb.append(pair.from);
+			sb.append(" as ");
+			sb.append(pair.to);
+		}
+		
+		return sb.toString();
 	}
 }

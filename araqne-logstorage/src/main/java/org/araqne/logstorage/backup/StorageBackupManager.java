@@ -16,6 +16,7 @@
 package org.araqne.logstorage.backup;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * @since 2.2.7
@@ -23,7 +24,17 @@ import java.io.IOException;
  * 
  */
 public interface StorageBackupManager {
+	List<StorageBackupJob> getBackupJobs() throws CloneNotSupportedException;
+
+	List<StorageBackupJob> getRestoreJobs() throws CloneNotSupportedException;
+
+	StorageBackupJob getBackupJob(String guid) throws CloneNotSupportedException;
+
+	StorageBackupJob getRestoreJob(String guid) throws CloneNotSupportedException;
+
 	StorageBackupJob prepare(StorageBackupRequest req) throws IOException;
 
 	void execute(StorageBackupJob job);
+
+	void cancel(String guid);
 }

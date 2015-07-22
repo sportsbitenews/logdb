@@ -16,22 +16,28 @@
 package org.araqne.logdb.query.command;
 
 import java.util.List;
+import java.util.Map;
 
+import org.araqne.logdb.AccountService;
 import org.araqne.logdb.DefaultQuery;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.Procedure;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.RowPipe;
+import org.araqne.logdb.Session;
 import org.araqne.logdb.StreamResultFactory;
+import org.araqne.logdb.impl.QueryHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Proc extends QueryCommand {
+public class Proc extends QueryCommand implements FieldOrdering {
 	private final Logger slog = LoggerFactory.getLogger(Proc.class);
 
 	private ProcPipe procPipe = new ProcPipe();
@@ -39,15 +45,35 @@ public class Proc extends QueryCommand {
 	private Query subQuery;
 	private String commandString;
 
-	public Proc(QueryContext procCtx, Procedure procedure, QueryParserService parserService, String commandString) {
+	private AccountService accountService;
+	private Session session;
+
+	// depend and wait outer commands
+	private Trigger triggerTask = new Trigger();
+
+	public Proc(Procedure procedure, Map<String, Object> procParams, String commandString, QueryParserService parserService,
+			AccountService accountService) {
+		this.accountService = accountService;
 		this.commandString = commandString;
-		
+
+		procTask.addSubTask(triggerTask);
+
+		session = accountService.newSession(procedure.getOwner());
+		QueryContext procCtx = new QueryContext(session);
+		for (String key : procParams.keySet()) {
+			Object value = procParams.get(key);
+			Map<String, Object> constants = procCtx.getConstants();
+			constants.put(key, value);
+		}
+
 		List<QueryCommand> procCommands = parserService.parseCommands(procCtx, procedure.getQueryString());
 		this.subQuery = new DefaultQuery(procCtx, procedure.getQueryString(), procCommands, new StreamResultFactory(procPipe));
+		QueryHelper.setJoinAndUnionDependencies(subQuery.getCommands());
 
 		for (QueryCommand cmd : subQuery.getCommands()) {
 			if (cmd.getMainTask() != null) {
 				procTask.addDependency(cmd.getMainTask());
+				cmd.getMainTask().addDependency(triggerTask);
 				procTask.addSubTask(cmd.getMainTask());
 			}
 		}
@@ -59,13 +85,40 @@ public class Proc extends QueryCommand {
 	}
 
 	@Override
+	public List<String> getFieldOrder() {
+		return subQuery.getFieldOrder();
+	}
+
+	@Override
+	public boolean isDriver() {
+		return true;
+	}
+
+	@Override
 	public void onStart() {
 		subQuery.preRun();
 	}
 
 	@Override
+	public void onClose(QueryStopReason reason) {
+		try {
+			subQuery.stop(reason);
+		} catch (Throwable t) {
+			slog.error("araqne logdb: cannot stop proc subquery [" + subQuery.getQueryString() + "]", t);
+		}
+
+		if (session != null)
+			accountService.logout(session);
+	}
+
+	@Override
 	public QueryTask getMainTask() {
 		return procTask;
+	}
+
+	@Override
+	public QueryTask getDependency() {
+		return triggerTask;
 	}
 
 	private class ProcPipe implements RowPipe {
@@ -90,6 +143,14 @@ public class Proc extends QueryCommand {
 	@Override
 	public String toString() {
 		return commandString;
+	}
+
+	private class Trigger extends QueryTask {
+		@Override
+		public void run() {
+			slog.debug("araqne logdb: proc subquery started (dependency resolved), main query [{}] sub query [{}]",
+					query.getId(), subQuery.getId());
+		}
 	}
 
 	private class ProcTask extends QueryTask {

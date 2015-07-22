@@ -15,9 +15,13 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.Limit;
 
@@ -34,11 +38,22 @@ public class LimitParser extends AbstractQueryCommandParser {
 	}
 
 	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("20600", new QueryErrorMessage("invalid-limit-args","오프셋은 1개 또는 2개 입니다."));
+		m.put("20601", new QueryErrorMessage("invalid-limit-arg-type:[msg]", "잘못된 오프셋 타입입니다: [msg]."));
+		return m;
+	}
+		
+	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		commandString = commandString.substring(getCommandName().length()).trim();
-		String[] tokens = commandString.split(" ");
-		if (tokens.length <= 0 || tokens.length > 2 || tokens[0].isEmpty())
-			throw new QueryParseException("invalid-limit-args", -1);
+		//commandString = commandString.substring(getCommandName().length()).trim();
+		String field = commandString.substring(getCommandName().length()).trim();
+		String[] tokens = field.split(" ");
+		if (tokens.length <= 0 || tokens.length > 2 || tokens[0].isEmpty()){
+		//	throw new QueryParseException("invalid-limit-args", -1);
+			throw new QueryParseException("20600", getCommandName().length()  + 1,  commandString.length() - 1, null);
+		}
 
 		try {
 			if (tokens.length == 1) {
@@ -49,8 +64,12 @@ public class LimitParser extends AbstractQueryCommandParser {
 				long limit = Long.parseLong(tokens[1]);
 				return new Limit(offset, limit);
 			}
-		} catch (NumberFormatException e) {
-			throw new QueryParseException("invalid-limit-arg-type", -1);
+		} catch (NumberFormatException e) { 
+			
+			//throw new QueryParseException("invalid-limit-arg-type", -1);
+			Map<String, String> param = new HashMap<String, String>();
+			param.put("msg", e.getMessage());
+			throw new QueryParseException("20601", getCommandName().length()  + 1,  commandString.length() - 1, param);
 		}
 	}
 }

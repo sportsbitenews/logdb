@@ -3,77 +3,40 @@ package org.araqne.log.api;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
-public class GzipDirectoryWatchLogger extends AbstractLogger {
+public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(GzipDirectoryWatchLogger.class);
 
-	private String basePath;
-	private Pattern fileNamePattern;
-	private boolean isDeleteFile = false;
-
 	public GzipDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
-		super(spec, factory);
-
-		basePath = getConfigs().get("base_path");
-
-		String fileNameRegex = getConfigs().get("filename_pattern");
-		fileNamePattern = Pattern.compile(fileNameRegex);
-
-		// optional
-		if (getConfigs().containsKey("is_delete"))
-			isDeleteFile = Boolean.parseBoolean(getConfigs().get("is_delete"));
-	}
-
-	private MultilineLogExtractor newExtractor(Receiver receiver, long offset) {
-		MultilineLogExtractor extractor = new MultilineLogExtractor(this, receiver);
-
-		// optional
-		String dateExtractRegex = getConfigs().get("date_pattern");
-		if (dateExtractRegex != null)
-			extractor.setDateMatcher(Pattern.compile(dateExtractRegex).matcher(""));
-
-		// optional
-		String dateLocale = getConfigs().get("date_locale");
-		if (dateLocale == null)
-			dateLocale = "en";
-
-		// optional
-		String dateFormatString = getConfigs().get("date_format");
-		String timeZone = getConfigs().get("timezone");
-		if (dateFormatString != null)
-			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
-		
-		// optional
-		String newlogRegex = getConfigs().get("newlog_designator");
-		if (newlogRegex != null)
-			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
-
-		String newlogEndRegex = getConfigs().get("newlog_end_designator");
-		if (newlogEndRegex != null)
-			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
-
-		// optional
-		String charset = getConfigs().get("charset");
-		if (charset == null)
-			charset = "utf-8";
-
-		extractor.setCharset(charset);
-
-		return extractor;
+		super(spec, factory);		
 	}
 
 	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))) {
+			setStates(new HashMap<String, Object>());
+		}
+	}
+	
+	@Override
 	protected void runOnce() {
+		Map<String, String> configs = getConfigs();
+		
+		String basePath = configs.get("base_path");
+		Pattern fileNamePattern = Pattern.compile(configs.get("filename_pattern"));
+		
+		boolean isDeleteFile = false;
+		if (configs.containsKey("is_delete"))
+			isDeleteFile = Boolean.parseBoolean(getConfigs().get("is_delete"));
+		
 		List<String> logFiles = FileUtils.matchFiles(basePath, fileNamePattern);
 		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
 
@@ -83,14 +46,14 @@ public class GzipDirectoryWatchLogger extends AbstractLogger {
 				if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped)
 					break;
 
-				processFile(lastPositions, path);
+				processFile(lastPositions, path, isDeleteFile, fileNamePattern);
 			}
 		} finally {
 			setStates(LastPositionHelper.serialize(lastPositions));
 		}
 	}
 
-	protected void processFile(Map<String, LastPosition> lastPositions, String path) {
+	protected void processFile(Map<String, LastPosition> lastPositions, String path, boolean isDeleteFile, Pattern fileNamePattern) {
 		LastPosition position = new LastPosition(path);
 		FileInputStream fis = null;
 		GZIPInputStream gis = null;
@@ -110,13 +73,13 @@ public class GzipDirectoryWatchLogger extends AbstractLogger {
 				return;
 
 			Receiver receiver = new Receiver(position);
-			MultilineLogExtractor extractor = newExtractor(receiver, offset);
-
+			MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
+			
 			File file = new File(path);
 			fis = new FileInputStream(file);
 			gis = new GZIPInputStream(fis);
 
-			String dateFromFileName = getDateFromFileName(path);
+			String dateFromFileName = getDateFromFileName(path, fileNamePattern);
 			extractor.extract(gis, new AtomicLong(), dateFromFileName);
 			position.setPosition(-1);
 		} catch (FileNotFoundException e) {
@@ -136,7 +99,7 @@ public class GzipDirectoryWatchLogger extends AbstractLogger {
 		}
 	}
 
-	private String getDateFromFileName(String path) {
+	private String getDateFromFileName(String path, Pattern fileNamePattern) {
 		String dateFromFileName = null;
 		Matcher fileNameDateMatcher = fileNamePattern.matcher(path);
 		if (fileNameDateMatcher.find()) {

@@ -20,10 +20,11 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Len implements Expression {
+public class Len extends FunctionExpression {
 	private Expression valueExpr;
 
 	public Len(QueryContext ctx, List<Expression> exprs) {
+		super("len", exprs, 1);
 		this.valueExpr = exprs.get(0);
 	}
 
@@ -34,10 +35,5 @@ public class Len implements Expression {
 			return 0;
 
 		return (value.toString()).length();
-	}
-
-	@Override
-	public String toString() {
-		return "len(" + valueExpr + ")";
 	}
 }

@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.command;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -137,8 +138,10 @@ public class Confdb extends DriverQueryCommand {
 				if (p.name().toLowerCase().equals(s))
 					return p;
 			}
-
-			throw new QueryParseException("invalid-confdb-op", -1, s);
+			//throw new QueryParseException("invalid-confdb-op", -1, s);
+			Map<String, String> params = new HashMap<String, String> ();
+			params.put("op", s);
+			throw new QueryParseException("10004" , -1 , -1 , params);
 		}
 	};
 

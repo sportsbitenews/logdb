@@ -3,7 +3,9 @@ package org.araqne.storage.localfile;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
@@ -158,6 +160,7 @@ public class LocalFileInputStream extends StorageInputStream {
 	@Override
 	public int readBestEffort(ByteBuffer buf) throws IOException {
 		FileChannel channel = source.getChannel();
+				
 		int total = 0;
 		while (buf.remaining() > 0) {
 			int readBytes = channel.read(buf);
@@ -166,6 +169,30 @@ public class LocalFileInputStream extends StorageInputStream {
 			total += readBytes;
 		}
 		return total;
+	}
+
+	@Override
+	public ByteBuffer map(long length) throws IOException {
+		FileChannel channel = source.getChannel();
+		MappedByteBuffer m = channel.map(MapMode.READ_ONLY, channel.position(), length);
+		
+		return m;
+	}
+	
+	@Override
+	public ByteBuffer map(long position, long length) throws IOException {
+		FileChannel channel = source.getChannel();
+		return channel.map(MapMode.READ_ONLY, position, length);
+	}
+	
+	@Override
+	public boolean isMapSupported() {
+		return true;
+	}
+
+	@Override
+	public void sync() throws IOException {
+		source.getFD().sync();
 	}
 
 }

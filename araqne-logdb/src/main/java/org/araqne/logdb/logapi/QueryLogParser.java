@@ -22,17 +22,28 @@ import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
+import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommandPipe;
 import org.araqne.logdb.Row;
 
-public class QueryLogParser extends QueryCommand implements LogParser {
+public class QueryLogParser extends QueryCommand implements LogParser, FieldOrdering {
 	private String queryString;
 	private QueryCommand first;
 	private Map<String, Object> last;
+	private List<String> fieldOrder;
 
 	public QueryLogParser(String queryString, List<QueryCommand> commands) {
 		this.queryString = queryString;
+
+		for (QueryCommand cmd : commands) {
+			if (cmd instanceof FieldOrdering) {
+				FieldOrdering f = (FieldOrdering) cmd;
+				if (f.getFieldOrder() != null)
+					fieldOrder = f.getFieldOrder();
+			}
+		}
+
 		first = commands.get(0);
 		commands.add(this);
 
@@ -43,6 +54,11 @@ public class QueryLogParser extends QueryCommand implements LogParser {
 	@Override
 	public String getName() {
 		return "querylogparser";
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return fieldOrder;
 	}
 
 	@Override

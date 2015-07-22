@@ -17,6 +17,7 @@ package org.araqne.logdb.impl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,10 +41,13 @@ import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
 import org.araqne.logdb.Account;
+import org.araqne.logdb.AccountEventListener;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.AuthServiceNotLoadedException;
 import org.araqne.logdb.ExternalAuthService;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
+import org.araqne.logdb.SecurityGroup;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
 import org.araqne.logstorage.TableEventListener;
@@ -68,17 +72,21 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 
 	private ConcurrentMap<String, Session> sessions;
 	private ConcurrentMap<String, Account> localAccounts;
+	private ConcurrentMap<String, SecurityGroup> securityGroups;
 	private ConcurrentMap<String, ExternalAuthService> authServices;
 
 	private String selectedExternalAuth;
 	private CopyOnWriteArraySet<SessionEventListener> sessionListeners;
+	private CopyOnWriteArraySet<AccountEventListener> accountListeners;
 	private String instanceGuid;
 
 	public AccountServiceImpl() {
 		sessions = new ConcurrentHashMap<String, Session>();
 		localAccounts = new ConcurrentHashMap<String, Account>();
+		securityGroups = new ConcurrentHashMap<String, SecurityGroup>();
 		authServices = new ConcurrentHashMap<String, ExternalAuthService>();
 		sessionListeners = new CopyOnWriteArraySet<SessionEventListener>();
+		accountListeners = new CopyOnWriteArraySet<AccountEventListener>();
 	}
 
 	@Validate
@@ -87,7 +95,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		sessions.clear();
 		localAccounts.clear();
 		authServices.clear();
-		
+
 		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
 
 		// load accounts
@@ -95,10 +103,15 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			localAccounts.put(account.getLoginName(), account);
 		}
 
+		// load security groups
+		for (SecurityGroup group : db.findAll(SecurityGroup.class).getDocuments(SecurityGroup.class)) {
+			securityGroups.put(group.getGuid(), group);
+		}
+
 		// generate default 'araqne' account if not exists
 		if (!localAccounts.containsKey(DEFAULT_MASTER_ACCOUNT)) {
 			String salt = randomSalt(10);
-			Account account = new Account(DEFAULT_MASTER_ACCOUNT, salt, Sha1.hash(salt));
+			Account account = new Account(DEFAULT_MASTER_ACCOUNT, salt, HashUtils.hash(salt, Account.DEFAULT_HASH_ALGORITHM));
 			db.add(account);
 			localAccounts.put(DEFAULT_MASTER_ACCOUNT, account);
 		}
@@ -110,19 +123,9 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> m = (Map<String, Object>) c.getDocument();
 			selectedExternalAuth = (String) m.get("external_auth");
-			instanceGuid = (String) m.get("instance_guid");
-			if (instanceGuid == null) {
-				instanceGuid = UUID.randomUUID().toString();
-				m.put("instance_guid", instanceGuid);
-				c.setDocument(m);
-			}
-		} else {
-			// when global_config does not exists
-			Map<String, Object> doc = new HashMap<String, Object>();
-			instanceGuid = UUID.randomUUID().toString();
-			doc.put("instance_guid", instanceGuid);
-			col.add(doc);
 		}
+
+		instanceGuid = UUID.randomUUID().toString();
 	}
 
 	@Invalidate
@@ -155,6 +158,14 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		Account account = ensureAccount(loginName);
 		account.setAdmin(true);
 		updateAccount(account);
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onGrantAdmin(session, account);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -168,6 +179,14 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		Account account = ensureAccount(loginName);
 		account.setAdmin(false);
 		updateAccount(account);
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onRevokeAdmin(session, account);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -256,12 +275,12 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			String hash = account.getPassword();
 			String salt = account.getSalt();
 
-			return hash.equals(Sha1.hash(password + salt));
+			return hash.equals(HashUtils.hash(password + salt, account.getHashAlgorithm()));
 		} else if (selectedExternalAuth != null) {
 			// try external login
 			ExternalAuthService auth = authServices.get(selectedExternalAuth);
 			if (auth == null)
-				throw new IllegalStateException("logdb external auth service is not loaded: " + selectedExternalAuth);
+				throw new AuthServiceNotLoadedException(selectedExternalAuth);
 
 			return auth.verifyPassword(loginName, password);
 		} else
@@ -272,10 +291,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	public Session newSession(String loginName) {
 		verifyNotNull(loginName, "login name");
 
-		Account account = localAccounts.get(loginName);
-		if (account == null)
-			throw new IllegalStateException("account-not-found");
-
+		Account account = ensureAccount(loginName);
 		return registerSession(account);
 	}
 
@@ -290,7 +306,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			throw new IllegalStateException("account-not-found");
 
 		String password = account.getPassword();
-		if (!hash.equals(Sha1.hash(password + nonce))) {
+		if (!hash.equals(HashUtils.hash(password + nonce, account.getHashAlgorithm()))) {
 			throw new IllegalStateException("invalid-password");
 		}
 
@@ -360,7 +376,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			throw new IllegalStateException("duplicated login name");
 
 		String salt = randomSalt(10);
-		String hash = Sha1.hash(password + salt);
+		String hash = HashUtils.hash(password + salt, Account.DEFAULT_HASH_ALGORITHM);
 		Account account = new Account(loginName, salt, hash);
 
 		Account old = localAccounts.putIfAbsent(account.getLoginName(), account);
@@ -368,6 +384,14 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			throw new IllegalStateException("duplicated login name");
 
 		db.add(account);
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onCreateAccount(session, account);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -387,7 +411,8 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			throw new IllegalStateException("no permission");
 
 		Account account = localAccounts.get(loginName);
-		String hash = Sha1.hash(password + account.getSalt());
+
+		String hash = HashUtils.hash(password + account.getSalt(), account.getHashAlgorithm());
 		account.setPassword(hash);
 
 		updateAccount(account);
@@ -402,6 +427,8 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		} else {
 			db.add(account);
 		}
+
+		localAccounts.putIfAbsent(account.getLoginName(), account);
 	}
 
 	@Override
@@ -423,7 +450,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 				throw new IllegalStateException("no permission");
 		}
 
-		localAccounts.remove(loginName);
+		Account account = localAccounts.remove(loginName);
 
 		// drop all sessions
 		for (Session s : new ArrayList<Session>(sessions.values())) {
@@ -436,6 +463,160 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		Config c = db.findOne(Account.class, Predicates.field("login_name", loginName));
 		if (c != null)
 			c.remove();
+
+		// delete from security groups
+		for (SecurityGroup group : securityGroups.values()) {
+			if (group.getAccounts().contains(loginName)) {
+				group.getAccounts().remove(loginName);
+				updateSecurityGroup(null, group);
+			}
+		}
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onRemoveAccount(session, account);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
+	}
+
+	@Override
+	public List<SecurityGroup> getSecurityGroups() {
+		List<SecurityGroup> l = new ArrayList<SecurityGroup>();
+		for (SecurityGroup g : securityGroups.values())
+			l.add(g.clone());
+		return l;
+	}
+
+	@Override
+	public SecurityGroup getSecurityGroup(String guid) {
+		SecurityGroup old = securityGroups.get(guid);
+		if (old == null)
+			return null;
+
+		return old.clone();
+	}
+
+	@Override
+	public void createSecurityGroup(Session session, SecurityGroup group) {
+		if (session != null && !session.isAdmin()) {
+			throw new IllegalStateException("no permission");
+		}
+
+		verifySecurityGroup(group);
+
+		synchronized (securityGroups) {
+
+			for (SecurityGroup o : securityGroups.values()) {
+				// check duplicated name
+				if (o.getName().equals(group.getName()))
+					throw new IllegalStateException("duplicated security group name: " + group.getName());
+
+				// check duplicated guid
+				if (o.getGuid().equals(group.getGuid()))
+					throw new IllegalStateException("duplicated security group guid: " + group.getGuid());
+			}
+
+			ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
+			db.add(group, "araqne-logdb", "added security group [guid: " + group.getGuid() + ", name: " + group.getName() + "]");
+
+			securityGroups.put(group.getGuid(), group);
+		}
+
+		// invoke callbacks
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onCreateSecurityGroup(session, group.clone());
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account listener should not throw any exception", t);
+			}
+		}
+	}
+
+	@Override
+	public void updateSecurityGroup(Session session, SecurityGroup group) {
+		verifySecurityGroup(group);
+		
+		SecurityGroup old = null;
+		synchronized (securityGroups) {
+			old = securityGroups.get(group.getGuid());
+			if (old == null)
+				throw new IllegalStateException("security group not found: " + group.getGuid());
+
+			for (SecurityGroup o : securityGroups.values()) {
+				if (!o.getGuid().equals(group.getGuid()) && o.getName().equals(group.getName()))
+					throw new IllegalStateException("duplicated security group name: " + group.getName());
+			}
+
+			old.setName(group.getName());
+			old.setDescription(group.getDescription());
+			old.setAccounts(new HashSet<String>(group.getAccounts()));
+			old.setReadableTables(new HashSet<String>(group.getReadableTables()));
+			old.setUpdated(new Date());
+
+			ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
+			Config c = db.findOne(SecurityGroup.class, Predicates.field("guid", group.getGuid()));
+			if (c == null)
+				throw new IllegalStateException("security group not found at confdb: " + group.getGuid());
+
+			db.update(c, group, false, "araqne-logdb",
+					"updated security group [guid: " + group.getGuid() + ", name: " + group.getName() + "]");
+		}
+
+		// invoke callbacks
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onUpdateSecurityGroup(session, old.clone());
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account listener should not throw any exception", t);
+			}
+		}
+	}
+
+	private void verifySecurityGroup(SecurityGroup group) {
+		if (group.getName() == null)
+			throw new IllegalArgumentException("security group name should not be null");
+		
+		if (group.getGuid() == null)
+			throw new IllegalArgumentException("security group guid should not be null");
+		
+		// check if table exists
+		for (String tableName : group.getReadableTables()) {
+			if (!tableRegistry.exists(tableName))
+				throw new IllegalStateException("table not found: " + tableName);
+		}
+
+		// check if account exists
+		for (String loginName : group.getAccounts()) {
+			if (localAccounts.get(loginName) == null)
+				throw new IllegalStateException("account not found: " + loginName);
+		}
+	}
+
+	@Override
+	public void removeSecurityGroup(Session session, String guid) {
+		SecurityGroup old = null;
+		synchronized (securityGroups) {
+			old = securityGroups.remove(guid);
+			if (old == null)
+				throw new IllegalStateException("security group not found: " + guid);
+
+			ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
+			Config c = db.findOne(SecurityGroup.class, Predicates.field("guid", guid));
+			if (c != null)
+				db.remove(c, false, "araqne-logdb", "removed security group [guid: " + old.getGuid() + ", name: " + old.getName()
+						+ "]");
+		}
+
+		// invoke callbacks
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onRemoveSecurityGroup(session, old.clone());
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -451,8 +632,22 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		if (session.isAdmin())
 			return true;
 
-		Account account = ensureAccount(session.getLoginName());
-		return account.getReadableTables().contains(tableName);
+		String loginName = session.getLoginName();
+		Account account = ensureAccount(loginName);
+		boolean b = account.getReadableTables().contains(tableName);
+		if (b)
+			return true;
+
+		// check security groups
+		for (SecurityGroup g : securityGroups.values()) {
+			if (!g.getAccounts().contains(loginName))
+				continue;
+
+			if (g.getReadableTables().contains(tableName))
+				return true;
+		}
+
+		return false;
 	}
 
 	@Override
@@ -482,6 +677,14 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 
 		account.getReadableTables().add(tableName);
 		updateAccount(account);
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onGrantPrivilege(session, loginName, tableName, permissions);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	@Override
@@ -511,6 +714,14 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 
 		account.getReadableTables().remove(tableName);
 		updateAccount(account);
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onRevokePrivilege(session, loginName, tableName, permissions);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
 	}
 
 	private Account ensureAccount(String loginName) {
@@ -613,6 +824,16 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	}
 
 	@Override
+	public void addListener(AccountEventListener listener) {
+		accountListeners.add(listener);
+	}
+
+	@Override
+	public void removeListener(AccountEventListener listener) {
+		accountListeners.remove(listener);
+	}
+
+	@Override
 	public void addListener(SessionEventListener listener) {
 		sessionListeners.add(listener);
 	}
@@ -643,13 +864,20 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 				updateAccount(account);
 			}
 		}
+
+		for (SecurityGroup group : securityGroups.values()) {
+			if (group.getReadableTables().contains(tableName)) {
+				group.getReadableTables().remove(tableName);
+				updateSecurityGroup(null, group);
+			}
+		}
 	}
 
 	@Override
 	public String getInstanceGuid() {
 		return instanceGuid;
 	}
-	
+
 	@Override
 	public void setInstanceGuid(String guid) {
 		ConfigDatabase db = conf.ensureDatabase(DB_NAME);

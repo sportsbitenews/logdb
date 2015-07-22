@@ -21,13 +21,15 @@ import java.util.regex.Pattern;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Match implements Expression {
+public class Match extends FunctionExpression {
 
 	private Expression valueExpr;
 	private String pattern;
 	private Pattern p;
 
 	public Match(QueryContext ctx, List<Expression> exprs) {
+		super("match", exprs, 2);
+		
 		this.valueExpr = exprs.get(0);
 		this.pattern = (String) exprs.get(1).eval(null);
 		p = Pattern.compile(pattern);
@@ -41,10 +43,5 @@ public class Match implements Expression {
 
 		String s = v.toString();
 		return p.matcher(s).find();
-	}
-
-	@Override
-	public String toString() {
-		return "match(" + valueExpr + ", " + pattern + ")";
 	}
 }

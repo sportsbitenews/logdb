@@ -58,8 +58,10 @@ public class Eval extends QueryCommand implements ThreadSafe {
 				row.put(field, expr.eval(row));
 			}
 		} else {
-			for (Row row : rowBatch.rows)
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
 				row.put(field, expr.eval(row));
+			}
 		}
 
 		pushPipe(rowBatch);

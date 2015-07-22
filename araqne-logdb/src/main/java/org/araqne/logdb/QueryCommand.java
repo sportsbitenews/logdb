@@ -17,6 +17,7 @@ package org.araqne.logdb;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class QueryCommand {
 	public static enum Status {
@@ -29,9 +30,14 @@ public abstract class QueryCommand {
 	protected RowPipe output;
 	private long outputCount;
 	protected volatile Status status = Status.Waiting;
+	private AtomicBoolean closeCalled = new AtomicBoolean();
 
 	public QueryTask getMainTask() {
 		return null;
+	}
+
+	public QueryTask getDependency() {
+		return getMainTask();
 	}
 
 	public long getOutputCount() {
@@ -77,8 +83,13 @@ public abstract class QueryCommand {
 		// override this for initialization
 	}
 
-	public void onClose(QueryStopReason reason) {
+	protected void onClose(QueryStopReason reason) {
 		// override this for resource clean up
+	}
+
+	public void tryClose(QueryStopReason reason) {
+		if (closeCalled.compareAndSet(false, true))
+			onClose(reason);
 	}
 
 	public void onPush(Row row) {
@@ -93,8 +104,10 @@ public abstract class QueryCommand {
 				onPush(row);
 			}
 		} else {
-			for (Row row : rowBatch.rows)
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
 				onPush(row);
+			}
 		}
 	}
 

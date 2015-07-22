@@ -15,6 +15,8 @@
  */
 package org.araqne.logdb;
 
+import java.util.Map;
+
 public interface QueryCommandParser {
 	String getCommandName();
 
@@ -23,4 +25,8 @@ public interface QueryCommandParser {
 	void setQueryParserService(QueryParserService queryParserService);
 
 	QueryCommand parse(QueryContext context, String commandString);
+
+	Map<String, QueryErrorMessage> getErrorMessages();
+
+	QueryCommandHelp getCommandHelp();
 }

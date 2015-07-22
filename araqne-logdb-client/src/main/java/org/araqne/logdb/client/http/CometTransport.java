@@ -15,6 +15,8 @@
  */
 package org.araqne.logdb.client.http;
 
+import java.io.IOException;
+
 import org.araqne.logdb.client.LogDbSession;
 import org.araqne.logdb.client.LogDbTransport;
 import org.araqne.logdb.client.http.impl.CometSession;
@@ -30,6 +32,18 @@ public class CometTransport implements LogDbTransport {
 
 	@Override
 	public LogDbSession newSession(String host, int port) {
+		return new CometSession(host, port);
+	}
+
+	@Override
+	public LogDbSession newSession(String host, int port, int timeout) {
+		// XXX: respect timeout
+		return new CometSession(host, port);
+	}
+
+	@Override
+	public LogDbSession newSession(String host, int port, int connectTimeout, int readTimeout) throws IOException {
+		// XXX: respect timeout
 		return new CometSession(host, port);
 	}
 

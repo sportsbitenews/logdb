@@ -7,19 +7,13 @@ import java.util.Map;
 
 public class CsvParser {
 	private final char qoute = '"';
-	private char delimiter;
-	private char escape;
-
-	private ArrayList<String> cachedColumnHeaders = new ArrayList<String>();
+	private final char delimiter;
+	private final char escape;
+	private final ArrayList<String> cachedColumnHeaders = new ArrayList<String>();
 
 	public CsvParser(boolean useTab, boolean useDoubleQuote, String[] columnHeaders) {
-		this.delimiter = ',';
-		if (useTab)
-			this.delimiter = '\t';
-
-		this.escape = '\\';
-		if (useDoubleQuote)
-			this.escape = '"';
+		this.delimiter = useTab ? '\t' : ',';
+		this.escape = useDoubleQuote ? '"' : '\\';
 
 		if (columnHeaders != null)
 			for (String header : columnHeaders)
@@ -30,6 +24,7 @@ public class CsvParser {
 		boolean containEscape = false;
 		boolean openQuote = false;
 		boolean openChar = false;
+		boolean checkEnd = false;
 		int startIndex = 0;
 		int endIndex = 0;
 		int length = line.length();
@@ -54,8 +49,10 @@ public class CsvParser {
 			} else if (c == qoute) {
 				if (!openQuote)
 					startIndex = i + 1;
-				else
+				else {
 					endIndex = i;
+					checkEnd = true;
+				}
 
 				openQuote = !openQuote;
 			} else if (c == delimiter) {
@@ -65,14 +62,17 @@ public class CsvParser {
 					containEscape = false;
 				}
 				values.add(value);
+				startIndex = i + 1;
+				endIndex = i + 1;
 				openChar = false;
+				checkEnd = false;
 			} else {
 				if (!openQuote && !openChar) {
 					startIndex = i;
 					openChar = true;
 				}
 
-				if (openChar)
+				if (!checkEnd && openChar)
 					endIndex = i + 1;
 			}
 		}

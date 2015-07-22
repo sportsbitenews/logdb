@@ -20,10 +20,12 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
-public class Upper implements Expression {
+public class Upper extends FunctionExpression {
 	private Expression valueExpr;
 
 	public Upper(QueryContext ctx, List<Expression> exprs) {
+		super("upper", exprs, 1);
+		
 		this.valueExpr = exprs.get(0);
 	}
 
@@ -34,10 +36,5 @@ public class Upper implements Expression {
 			return null;
 
 		return value.toString().toUpperCase();
-	}
-
-	@Override
-	public String toString() {
-		return "upper(" + valueExpr + ")";
 	}
 }

@@ -50,14 +50,23 @@ public class DefaultQuery implements Query {
 
 	private AtomicLong stamp = new AtomicLong(1);
 
+	private List<String> fieldOrder;
+
 	public DefaultQuery(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory) {
 		this.context = context;
 		this.queryString = queryString;
 		this.commands = commands;
 		this.scheduler = new QueryTaskScheduler(this, commands);
 
-		for (QueryCommand cmd : commands)
+		for (QueryCommand cmd : commands) {
+			if (cmd instanceof FieldOrdering) {
+				FieldOrdering f = (FieldOrdering) cmd;
+				if (f.getFieldOrder() != null)
+					fieldOrder = f.getFieldOrder();
+			}
+
 			cmd.setQuery(this);
+		}
 
 		if (resultFactory != null)
 			openResult(resultFactory);
@@ -213,7 +222,7 @@ public class DefaultQuery implements Query {
 
 			cmd.setStatus(Status.Finalizing);
 			try {
-				cmd.onClose(reason);
+				cmd.tryClose(reason);
 			} catch (Throwable t) {
 				logger.error("araqne logdb: cannot close command " + cmd.getName(), t);
 			}
@@ -230,10 +239,15 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public void stop(Throwable cause) {
+		// onClose callback can fail (e.g. sort) even if driver is ended
+		if (this.cause == null && cause != null) {
+			this.cause = cause;
+			this.stopReason = QueryStopReason.CommandFailure;
+		}
+
 		if (stopReason != null)
 			return;
 
-		this.cause = cause;
 		stop(QueryStopReason.CommandFailure);
 	}
 
@@ -264,12 +278,7 @@ public class DefaultQuery implements Query {
 		if (result == null)
 			return null;
 
-		try {
-			result.syncWriter();
-		} catch (Throwable t) {
-			logger.debug("araqne logdb: result disk sync failed", t);
-		}
-
+		result.syncWriter();
 		return result.getResultSet();
 	}
 
@@ -325,6 +334,11 @@ public class DefaultQuery implements Query {
 	@Override
 	public long getNextStamp() {
 		return stamp.incrementAndGet();
+	}
+
+	@Override
+	public List<String> getFieldOrder() {
+		return fieldOrder;
 	}
 
 	@Override
