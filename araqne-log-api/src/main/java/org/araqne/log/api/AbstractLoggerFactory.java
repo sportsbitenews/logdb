@@ -382,7 +382,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		slog.info("araqne log api: deleted logger config for [{}]", logger.getFullName());
 	}
 
-	private class DbSync implements LoggerEventListener {
+	private class DbSync extends AbstractLoggerEventListener {
 		@Override
 		public void onStart(Logger logger) {
 			LastState s = buildState(logger);

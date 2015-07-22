@@ -28,6 +28,7 @@ import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.LoggerFactory;
+import org.araqne.log.api.LoggerStopReason;
 
 public class Marshaler {
 
@@ -80,6 +81,16 @@ public class Marshaler {
 		m.put("log_count", logger.getLogCount());
 		m.put("drop_count", logger.getDropCount());
 		m.put("update_count", logger.getUpdateCount());
+
+		Throwable t = logger.getTemporaryFailure();
+		String failure = null;
+		if (t != null)
+			failure = t.getMessage() != null ? t.getMessage() : t.getClass().getName();
+
+		m.put("failure", failure);
+
+		LoggerStopReason stopReason = logger.getStopReason();
+		m.put("stop_reason", stopReason != null ? stopReason.toString() : null);
 
 		if (includeConfigs)
 			m.put("configs", logger.getConfigs());

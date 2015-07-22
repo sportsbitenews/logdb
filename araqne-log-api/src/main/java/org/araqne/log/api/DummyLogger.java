@@ -118,6 +118,11 @@ public class DummyLogger implements Logger {
 	}
 
 	@Override
+	public Throwable getTemporaryFailure() {
+		return null;
+	}
+
+	@Override
 	public long getDropCount() {
 		return 0;
 	}
