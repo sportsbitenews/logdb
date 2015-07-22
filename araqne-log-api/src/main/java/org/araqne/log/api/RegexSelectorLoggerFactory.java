@@ -18,6 +18,7 @@ package org.araqne.log.api;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -41,6 +42,18 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "선택자";
+		return "Selector";
+	}
+
+	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "정규표현식 로그 선택자";
@@ -52,11 +65,6 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
-	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
-	}
-
-	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "다른 로거로부터 정규표현식 패턴이 매칭되는 특정 로그들만 수집합니다.";
@@ -65,11 +73,6 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "从源数据采集器采集的数据中提取符合正则表达式特征的数据。";
 		return "Select logs from logger using regular expression pattern matching";
-	}
-
-	@Override
-	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override

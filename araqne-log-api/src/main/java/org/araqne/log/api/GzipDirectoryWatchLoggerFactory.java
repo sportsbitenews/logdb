@@ -1,9 +1,9 @@
 package org.araqne.log.api;
 
 import java.util.Arrays;
-
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -20,6 +20,18 @@ public class GzipDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "로컬";
+		return "Local";
+	}
+
+	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "GZIP 디렉터리 와처";
@@ -30,10 +42,6 @@ public class GzipDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 		return "GZIP Directory Watcher";
 	}
 
-	@Override
-	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
-	}
 
 	@Override
 	public String getDescription(Locale locale) {
@@ -44,11 +52,6 @@ public class GzipDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 		if(locale != null && locale.equals(Locale.CHINESE))
 			return "从指定目录中，采集与文件名模式匹配的所有gzip文件。";
 		return "Collect all gzip files in specified directory";
-	}
-
-	@Override
-	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override

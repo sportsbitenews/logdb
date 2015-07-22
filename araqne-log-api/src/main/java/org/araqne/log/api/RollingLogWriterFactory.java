@@ -44,7 +44,14 @@ public class RollingLogWriterFactory extends AbstractLoggerFactory implements Ru
 	}
 
 	@Override
-	public List<Locale> getDisplayNameLocales() {
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "로컬";
+		return "Local";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
@@ -57,11 +64,6 @@ public class RollingLogWriterFactory extends AbstractLoggerFactory implements Ru
 		if(locale != null && locale.equals(Locale.CHINESE))
 			return "写入滚动文件(大小)";
 		return "Rolling Log File";
-	}
-
-	@Override
-	public List<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override

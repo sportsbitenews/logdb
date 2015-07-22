@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -339,13 +340,23 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 	}
 
 	@Override
-	public Collection<Locale> getDisplayNameLocales() {
+	public List<Locale> getLocales() {
 		return Arrays.asList(Locale.ENGLISH);
 	}
 
 	@Override
+	public String getDisplayGroup(Locale locale) {
+		return null;
+	}
+
+	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return getLocales();
+	}
+
+	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return getLocales();
 	}
 
 	protected abstract Logger createLogger(LoggerSpecification spec);
