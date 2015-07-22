@@ -88,7 +88,6 @@ public class EvtCtxListCommand extends DriverQueryCommand implements FieldOrderi
 
 			row.put("rows", rows);
 			pushPipe(row);
-
 		}
 	}
 

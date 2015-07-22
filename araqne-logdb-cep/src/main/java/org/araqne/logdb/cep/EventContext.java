@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.araqne.logdb.Row;
 import org.araqne.msgbus.Marshalable;
 
-public class EventContext implements Marshalable{
+public class EventContext implements EventClockItem, Marshalable{
 	private EventKey key;
 	private List<Row> rows;
 
@@ -247,6 +247,10 @@ public class EventContext implements Marshalable{
 		oldCtx.getCounter().addAndGet(ctx.getCounter().get());
 
 		return oldCtx;
+	}
+	
+	public static EventClockSimpleItem simplify(EventContext ctx){
+		return new EventClockSimpleItem(ctx.getKey(), ctx.getExpireTime(), ctx.getTimeoutTime());
 	}
 }
 

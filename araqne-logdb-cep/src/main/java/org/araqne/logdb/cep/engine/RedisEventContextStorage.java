@@ -37,15 +37,16 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.codec.EncodingRule;
 import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventCause;
+import org.araqne.logdb.cep.EventClock;
 import org.araqne.logdb.cep.EventClockCallback;
 import org.araqne.logdb.cep.EventClockItem;
+import org.araqne.logdb.cep.EventClockSimpleItem;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextListener;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.cep.EventSubscriber;
-import org.araqne.logdb.cep.NewEventClock;
 import org.araqne.logdb.cep.redis.RedisConfig;
 import org.araqne.logdb.cep.redis.RedisConfigRegistry;
 import org.araqne.logdb.cep.redis.RedisConfigRegistryListener;
@@ -94,7 +95,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	volatile static boolean subscribeStopRequested = false;
 
-	private ConcurrentHashMap<String, NewEventClock> logClocks;
+	private ConcurrentHashMap<String, EventClock<EventClockSimpleItem>> logClocks;
 
 	private final int retryCnt = 5;
 
@@ -111,7 +112,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 			configReg.addListener(this);
 			subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
-			logClocks = new ConcurrentHashMap<String, NewEventClock>();
+			logClocks = new ConcurrentHashMap<String, EventClock<EventClockSimpleItem>>();
 
 			synchronized (theadLock) {
 				theadLock.notify();
@@ -275,7 +276,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	}
 
 	@Override
-	public NewEventClock getClock(String host) {
+	public EventClock<? extends EventClockItem> getClock(String host) {
 		return logClocks.get(host);
 	}
 
@@ -288,7 +289,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	public Iterator<EventKey> getContextKeys(String topic) {
 		return new RedisScanIterator(topic);
 	}
-	
+
 	@Override
 	public EventContext getContext(EventKey ctx) {
 		Response<byte[]> value = null;
@@ -383,8 +384,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			EventContext oldCtx = parseContext(response);
 
 			if (oldCtx.getHost() != null) {
-				NewEventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-				logClock.remove(new EventClockItem(ctx));
+				EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+				logClock.remove(EventContext.simplify(ctx));
 			}
 
 			generateEvent(EventContext.merge(oldCtx, ctx), cause);
@@ -393,21 +394,21 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	@Override
 	public void advanceTime(String host, long logTime) {
-		NewEventClock logClock = ensureClock(logClocks, host, logTime);
+		EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, host, logTime);
 		logClock.setTime(logTime, false);
 	}
 
 	@Override
 	public void clearClocks() {
-		for(NewEventClock logClock : logClocks.values()){
-			for(EventClockItem item : logClock.getExpireContexts())
+		for (EventClock<EventClockSimpleItem> logClock : logClocks.values()) {
+			for (EventClockSimpleItem item : logClock.getExpireContexts())
 				logClock.remove(item);
-			
-			for(EventClockItem item : logClock.getTimeoutContexts())
+
+			for (EventClockSimpleItem item : logClock.getTimeoutContexts())
 				logClock.remove(item);
 		}
-		
-		logClocks = new ConcurrentHashMap<String, NewEventClock>();
+
+		logClocks = new ConcurrentHashMap<String, EventClock<EventClockSimpleItem>>();
 	}
 
 	@Override
@@ -432,7 +433,6 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 						EventKey key = itr.next();
 						t.del(redisKey(key));
 						t.del(expireKey(key));
-
 					}
 
 					t.exec();
@@ -502,11 +502,11 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	@Override
 	public void onUpdateTimeout(EventContext ctx) {
-		NewEventClock clock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+		EventClock<EventClockSimpleItem> clock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
 		if (clock == null)
 			return;
 
-		clock.updateTimeout(new EventClockItem(ctx));
+		clock.updateTimeout(EventContext.simplify(ctx));
 	}
 
 	@Override
@@ -548,8 +548,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 		for (EventContext ctx : contexts.values()) {
 			if (ctx.getHost() != null) {
-				NewEventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-				logClock.add(new EventClockItem(ctx));
+				EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+				logClock.add(EventContext.simplify(ctx));
 			}
 		}
 	}
@@ -581,8 +581,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			throw lastException;
 
 		if (ctx.getHost() != null) {
-			NewEventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-			logClock.add(new EventClockItem(ctx));
+			EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+			logClock.add(EventContext.simplify(ctx));
 		}
 
 		return ctx;
@@ -625,12 +625,20 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			return Math.max(a, b);
 	}
 
-	private NewEventClock ensureClock(ConcurrentHashMap<String, NewEventClock> clocks, String host, long time) {
-		NewEventClock clock = null;
+	private EventClock<EventClockSimpleItem> ensureClock(ConcurrentHashMap<String, EventClock<EventClockSimpleItem>> clocks,
+			String host, long time) {
+		EventClock<EventClockSimpleItem> clock = null;
 		clock = clocks.get(host);
 		if (clock == null) {
-			clock = new NewEventClock(new RedisEventClockCallback(), host, time, 11);
-			NewEventClock old = clocks.putIfAbsent(host, clock);
+			clock = new EventClock<EventClockSimpleItem>(new EventClockCallback() {
+
+				@Override
+				public void onRemove(EventKey key, EventClockItem value, String host, EventCause expire) {
+					removeContext(key, new EventContext(key, 0L, value.getExpireTime(), value.getTimeoutTime(), 0, host), expire);
+				}
+			}, host, time, 11);
+
+			EventClock<EventClockSimpleItem> old = clocks.putIfAbsent(host, clock);
 			if (old != null)
 				return old;
 			return clock;
@@ -874,12 +882,4 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		}
 	}
 
-	private class RedisEventClockCallback implements EventClockCallback {
-
-		@Override
-		public void onRemove(EventKey key, EventClockItem value, EventCause expire) {
-			removeContext(key, new EventContext(key, 0L, value.getExpireTime(), value.getTimeoutTime(), 0, value.getHost()), expire);
-		}
-
-	}
 }

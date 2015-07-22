@@ -27,7 +27,7 @@ import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
 import org.araqne.api.ScriptUsage;
 import org.araqne.logdb.cep.EventClock;
-import org.araqne.logdb.cep.EventContext;
+import org.araqne.logdb.cep.EventClockItem;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
@@ -59,7 +59,7 @@ public class CepScript implements Script {
 		}
 
 		EventContextStorage storage = eventStorage();
-		EventClock clock = storage.getClock(host);
+		EventClock<? extends EventClockItem> clock = storage.getClock(host);
 		if (clock == null) {
 			context.println("clock not found");
 			return;
@@ -89,12 +89,12 @@ public class CepScript implements Script {
 		String queueType = args[1];
 
 		EventContextStorage storage = eventStorage();
-		EventClock clock = storage.getClock(host);
+		EventClock<? extends EventClockItem> clock = storage.getClock(host);
 		if (clock == null) {
 			context.println("clock not found");
 			return;
 		}
-
+ 
 		if (!queueType.equals("timeout") && !queueType.equals("expire")) {
 			context.println("invalid queue type");
 			return;
@@ -105,13 +105,13 @@ public class CepScript implements Script {
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 		if (queueType.equals("timeout")) {
-			for (EventContext ctx : clock.getTimeoutContexts()) {
-				context.println("timeout [" + df.format(ctx.getTimeoutTime()) + "] " + ctx.getKey());
+			for (EventClockItem item :  clock.getTimeoutContexts()) {
+				context.println("timeout [" + df.format(item.getTimeoutTime()) + "] " + item.getKey());
 			}
 
 		} else if (queueType.equals("expire")) {
-			for (EventContext ctx : clock.getExpireContexts()) {
-				context.println("expire [" + df.format(ctx.getExpireTime()) + "] " + ctx.getKey());
+			for (EventClockItem item : clock.getExpireContexts()) {
+				context.println("expire [" + df.format(item.getExpireTime()) + "] " + item.getKey());
 			}
 		}
 	}
@@ -137,7 +137,7 @@ public class CepScript implements Script {
 		List<String> page = hosts.subList(Math.min(offset, hosts.size()), Math.min(offset + limit, hosts.size()));
 
 		for (String host : page) {
-			EventClock clock = storage.getClock(host);
+			EventClock<? extends EventClockItem> clock = storage.getClock(host);
 			context.println(clock);
 		}
 

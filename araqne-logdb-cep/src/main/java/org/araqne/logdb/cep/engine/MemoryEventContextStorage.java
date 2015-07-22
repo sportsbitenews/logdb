@@ -34,6 +34,9 @@ import org.araqne.cron.TickService;
 import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventCause;
 import org.araqne.logdb.cep.EventClock;
+import org.araqne.logdb.cep.EventClockCallback;
+import org.araqne.logdb.cep.EventClockItem;
+import org.araqne.logdb.cep.EventClockSimpleItem;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextListener;
 import org.araqne.logdb.cep.EventContextService;
@@ -59,8 +62,8 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	private ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>> subscribers;
 
 	// log tick host to aging context mappings
-	private ConcurrentHashMap<String, EventClock> logClocks;
-	private EventClock realClock;
+	private ConcurrentHashMap<String, EventClock<EventContext>> logClocks;
+	private EventClock<EventContext> realClock;
 
 	private RealClockTask realClockTask = new RealClockTask();
 
@@ -71,15 +74,15 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Validate
 	public void start() {
-		
+
 		String engine = System.getProperty("araqne.logdb.cepengine");
 		if (engine.equals("redis"))
 			return;
-		
+
 		contexts = new ConcurrentHashMap<EventKey, EventContext>();
 		subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
-		logClocks = new ConcurrentHashMap<String, EventClock>();
-		realClock = new EventClock(this, "real", System.currentTimeMillis(), 10000);
+		logClocks = new ConcurrentHashMap<String, EventClock<EventContext>>();
+		realClock = new EventClock<EventContext>(new MemEventClockCallback(), "real", System.currentTimeMillis(), 10000);
 
 		tickService.addTimer(realClockTask);
 		eventContextService.registerStorage(this);
@@ -102,7 +105,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public EventClock getClock(String host) {
+	public EventClock<EventContext> getClock(String host) {
 		return logClocks.get(host);
 	}
 
@@ -136,7 +139,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 			ctx.getListeners().add(this);
 
 			if (ctx.getHost() != null) {
-				EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+				EventClock<EventContext> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
 				logClock.add(ctx);
 			} else {
 				realClock.add(ctx);
@@ -149,12 +152,13 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		return old;
 	}
 
-	private EventClock ensureClock(ConcurrentHashMap<String, EventClock> clocks, String host, long time) {
-		EventClock clock = null;
+	private EventClock<EventContext> ensureClock(ConcurrentHashMap<String, EventClock<EventContext>> clocks, String host,
+			long time) {
+		EventClock<EventContext> clock = null;
 		clock = clocks.get(host);
 		if (clock == null) {
-			clock = new EventClock(this, host, time, 11);
-			EventClock old = clocks.putIfAbsent(host, clock);
+			clock = new EventClock<EventContext>(new MemEventClockCallback(), host, time, 11);
+			EventClock<EventContext> old = clocks.putIfAbsent(host, clock);
 			if (old != null)
 				return old;
 			return clock;
@@ -169,7 +173,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 			ctx.getListeners().remove(this);
 
 			if (key.getHost() != null) {
-				EventClock logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+				EventClock<EventContext> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
 				logClock.remove(ctx);
 			} else {
 				realClock.remove(ctx);
@@ -181,14 +185,14 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void advanceTime(String host, long logTime) {
-		EventClock logClock = ensureClock(logClocks, host, logTime);
+		EventClock<EventContext> logClock = ensureClock(logClocks, host, logTime);
 		logClock.setTime(logTime, false);
 	}
 
 	@Override
 	public void clearClocks() {
-		realClock = new EventClock(this, "real", System.currentTimeMillis(), 10000);
-		logClocks = new ConcurrentHashMap<String, EventClock>();
+		realClock = new EventClock<EventContext>(new MemEventClockCallback(), "real", System.currentTimeMillis(), 10000);
+		logClocks = new ConcurrentHashMap<String, EventClock<EventContext>>();
 	}
 
 	@Override
@@ -198,10 +202,13 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void clearContexts(String topic) {
-		//		for (EventKey key : getContextKeys()) {
-		//			if (topic == null || key.getTopic().equals(topic))
-		//				contexts.remove(key);
-		//		}
+		Iterator<EventKey> itr = getContextKeys();
+
+		while (itr.hasNext()) {
+			EventKey key = itr.next();
+			if (topic == null || key.getTopic().equals(topic))
+				contexts.remove(key);
+		}
 	}
 
 	@Override
@@ -281,7 +288,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		}
 
 		// update per-host case only
-		EventClock clock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+		EventClock<EventContext> clock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
 		if (clock == null)
 			return;
 
@@ -290,23 +297,32 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void addContexts(Map<EventKey, EventContext> contexts) {
-		for(EventContext ctx : contexts.values())
+		for (EventContext ctx : contexts.values())
 			addContext(ctx);
 	}
 
 	@Override
 	public void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal) {
-		for( Entry<EventKey, EventContext> entry : contexts.entrySet())
+		for (Entry<EventKey, EventContext> entry : contexts.entrySet())
 			removeContext(entry.getKey(), entry.getValue(), removal);
 	}
 
 	@Override
 	public Map<EventKey, EventContext> getContexts(Set<EventKey> keys) {
-		Map<EventKey, EventContext> contexts = new HashMap<EventKey, EventContext> ();
-		for(EventKey key : keys){
+		Map<EventKey, EventContext> contexts = new HashMap<EventKey, EventContext>();
+		for (EventKey key : keys) {
 			contexts.put(key, getContext(key));
 		}
 		return contexts;
 	}
 
+	private class MemEventClockCallback implements EventClockCallback {
+
+		@Override
+		public void onRemove(EventKey key, EventClockItem value, String host, EventCause expire) {
+			// removeContext(key, new EventContext(key, 0L,
+			// value.getExpireTime(), value.getTimeoutTime(), 0, host), expire);
+			removeContext(key, (EventContext) value, expire);
+		}
+	}
 }
