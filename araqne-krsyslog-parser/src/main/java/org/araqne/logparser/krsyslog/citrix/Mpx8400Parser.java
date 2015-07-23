@@ -72,7 +72,7 @@ public class Mpx8400Parser extends V1LogParser {
 			return params;
 		try {
 			Map<String, Object> m = new HashMap<String, Object>();
-			int pos = line.indexOf(": SSL");
+			int pos = line.indexOf(" : ");
 			if (pos == -1)
 				return params;
 
@@ -81,11 +81,11 @@ public class Mpx8400Parser extends V1LogParser {
 			line = line.substring(e + 3);
 
 			int b = 0;
-			for (int i = 0; i < 2; ++i) {
+			for (int i = 0; i < 3; ++i) {
 				e = prefix.indexOf(" ", b);
 				b = e + 1;
 			}
-			m.put("event_type", prefix.substring(0, e));
+			m.put("event_type", prefix.substring(0, e).trim());
 			m.put("event_id", prefix.substring(e + 1));
 			String[] keyValues = line.split(delimiter);
 
