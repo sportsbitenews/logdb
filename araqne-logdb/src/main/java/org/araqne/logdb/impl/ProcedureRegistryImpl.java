@@ -80,7 +80,7 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 		Procedure p = procedures.get(procedureName);
 		if (p == null)
 			throw new IllegalStateException("procedure not found: " + procedureName);
-		
+
 		if (accountService.isAdmin(loginName))
 			return true;
 
@@ -112,7 +112,7 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 		for (Procedure p : procedures.values()) {
 			if (loginName != null && !isGranted(p.getName(), loginName))
 				continue;
-			
+
 			l.add(p.clone());
 		}
 
@@ -213,6 +213,7 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 					removeProcedure(p.getName());
 					slog.info("araqne logdb: dropped procedure [{}] by remove cascade of user [{}]", p.getName(),
 							account.getLoginName());
+					continue;
 				}
 
 				if (p.getGrants().contains(account.getLoginName())) {
@@ -220,6 +221,34 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 					updateProcedure(p);
 					slog.info("araqne logdb: revoked procedure [{}] by remove cascade of user [{}]", p.getName(),
 							account.getLoginName());
+				}
+			}
+		}
+
+		@Override
+		public void onRemoveAccounts(Session session, List<Account> accounts) {
+			Set<String> loginNames = new HashSet<String>();
+			for (Account account : accounts)
+				loginNames.add(account.getLoginName());
+
+			for (Procedure p : procedures.values()) {
+				if (loginNames.contains(p.getOwner())) {
+					removeProcedure(p.getName());
+					slog.info("araqne logdb: dropped procedure [{}] by remove cascade of user [{}]", p.getName(), p.getOwner());
+					continue;
+				}
+
+				boolean contains = false;
+				for (String loginName : loginNames) {
+					if (p.getGrants().contains(loginName)) {
+						p.getGrants().remove(loginName);
+						contains = true;
+					}
+				}
+
+				if (contains) {
+					updateProcedure(p);
+					slog.info("araqne logdb: revoked procedure [{}] by remove cascade of users", p.getName());
 				}
 			}
 		}

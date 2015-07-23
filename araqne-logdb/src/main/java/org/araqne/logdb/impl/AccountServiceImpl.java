@@ -541,6 +541,60 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	}
 
 	@Override
+	public void removeAccounts(Session session, Set<String> loginNames) {
+		verifyNotNull(loginNames, "login names");
+		if (session != null)
+			verifyAdminSession(session);
+
+		List<Account> accounts = new ArrayList<Account>();
+		for (String loginName : loginNames) {
+			Account account = localAccounts.remove(loginName);
+			if (account != null)
+				accounts.add(account);
+		}
+
+		for (Session s : new ArrayList<Session>(sessions.values())) {
+			if (loginNames.contains(s.getLoginName()))
+				sessions.remove(s.getGuid());
+		}
+
+		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
+		ConfigIterator it = null;
+		List<Config> configs = null;
+		try {
+			it = db.find(Account.class, Predicates.in("login_name", loginNames));
+			configs = it.getConfigs(0, Integer.MAX_VALUE);
+		} finally {
+			if (it != null)
+				it.close();
+		}
+
+		if (configs == null || configs.isEmpty())
+			return;
+
+		ConfigTransaction xact = null;
+		try {
+			xact = db.beginTransaction();
+			for (Config c : configs)
+				db.remove(xact, c, false);
+
+			xact.commit("araqne-logdb", "remove accounts");
+		} catch (Throwable t) {
+			if (xact != null)
+				xact.rollback();
+			throw new IllegalStateException(t);
+		}
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onRemoveAccounts(session, accounts);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
+	}
+
+	@Override
 	public List<SecurityGroup> getSecurityGroups() {
 		List<SecurityGroup> l = new ArrayList<SecurityGroup>();
 		for (SecurityGroup g : securityGroups.values())

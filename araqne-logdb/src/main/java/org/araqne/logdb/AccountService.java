@@ -49,6 +49,8 @@ public interface AccountService {
 
 	void removeAccount(Session session, String loginName);
 
+	void removeAccounts(Session session, Set<String> loginNames);
+
 	/**
 	 * @since 2.6.34
 	 */
