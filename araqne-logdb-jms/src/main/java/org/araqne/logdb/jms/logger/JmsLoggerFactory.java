@@ -18,6 +18,7 @@ package org.araqne.logdb.jms.logger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -44,12 +45,28 @@ public class JmsLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "메시지 큐";
+		return "Message Queue";
+	}
+
+	@Override
 	public String getDisplayName(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "JMS 수신기";
 		return "JMS Consumer";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "JMS 메시지를 수신합니다.";
 		return "Receives the JMS messages sent to the destination";
 	}
 

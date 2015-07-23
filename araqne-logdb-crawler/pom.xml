@@ -28,7 +28,7 @@
 							org.araqne.logdb.cralwer.script
 						</Private-Package>
 						<Import-Package>
-							org.araqne.log.api;version="3.4.0",
+							org.araqne.log.api;version="3.6.0",
 							org.araqne.logdb;version="2.2.10",
 							*
 						</Import-Package>
@@ -74,7 +74,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.4.20</version>
+			<version>3.6.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jsoup</groupId>
