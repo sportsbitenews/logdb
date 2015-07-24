@@ -31,52 +31,52 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 
 @Component(name = "redis-config-reg")
 @Provides
-public class RedisConfigRegistryImpl  implements RedisConfigRegistry{
+public class RedisConfigRegistryImpl implements RedisConfigRegistry {
 
 	@Requires
 	private ConfigService conf;
 
 	private RedisConfig config;
-	
+
 	private CopyOnWriteArraySet<RedisConfigRegistryListener> listeners;
 
 	@Validate
 	public void start() {
 		ConfigDatabase db = conf.ensureDatabase("araqne-logdb-cep");
-		//ConfigIterator it = db.findAll(RedisConfig.class);
-		Config c= db.findOne(RedisConfig.class,  Predicates.field("name", "rediscep"));
-		if(c !=null)
+		// ConfigIterator it = db.findAll(RedisConfig.class);
+		Config c = db.findOne(RedisConfig.class, Predicates.field("name", "rediscep"));
+		if (c != null)
 			config = c.getDocument(RedisConfig.class);
-		
+
 		listeners = new CopyOnWriteArraySet<RedisConfigRegistryListener>();
 	}
-	
+
 	@Invalidate
 	public void stop() {
 		listeners.clear();
 	}
-	
+
 	@Override
-	public  void setConfig(RedisConfig config) throws JedisConnectionException{
+	public void setConfig(RedisConfig config) throws JedisConnectionException {
 		if (config == null)
 			throw new IllegalArgumentException("ssh profile can not be null");
 
 		this.config = config;
-		
+
 		ConfigDatabase db = conf.ensureDatabase("araqne-logdb-cep");
-		Config c= db.findOne(RedisConfig.class,  Predicates.field("name", "rediscep"));
-		
-		if(c == null)
+		Config c = db.findOne(RedisConfig.class, Predicates.field("name", "rediscep"));
+
+		if (c == null)
 			db.add(config);
-		else 
+		else
 			db.update(c, config);
 
 		for (RedisConfigRegistryListener listener : listeners) {
-				listener.onChanged();
+			listener.onChanged();
 		}
 	}
-	
-	@Override 
+
+	@Override
 	public RedisConfig getConfig() {
 		return config;
 	}
@@ -90,5 +90,5 @@ public class RedisConfigRegistryImpl  implements RedisConfigRegistry{
 	public void removeListener(RedisConfigRegistryListener listener) {
 		listeners.remove(listener);
 	}
-	
+
 }

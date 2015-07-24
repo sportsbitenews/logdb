@@ -29,9 +29,9 @@ public class EventKey {
 	public EventKey(String topic, String key) {
 		this.topic = topic;
 		this.key = key;
-		if(host != null)
+		if (host != null)
 			this.hashCode = topic.hashCode() ^ key.hashCode() ^ host.hashCode();
-		else 
+		else
 			this.hashCode = topic.hashCode() ^ key.hashCode();
 	}
 

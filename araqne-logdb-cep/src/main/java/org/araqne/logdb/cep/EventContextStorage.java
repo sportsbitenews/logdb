@@ -30,7 +30,7 @@ public interface EventContextStorage {
 	EventClock<? extends EventClockItem> getClock(String host);
 
 	Iterator<EventKey> getContextKeys();
-	
+
 	Iterator<EventKey> getContextKeys(String topic);
 
 	EventContext getContext(EventKey key);
@@ -44,7 +44,7 @@ public interface EventContextStorage {
 	void clearClocks();
 
 	void clearContexts();
-	
+
 	void clearContexts(String topic);
 
 	void addSubscriber(String topic, EventSubscriber subscriber);
@@ -56,6 +56,5 @@ public interface EventContextStorage {
 	void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal);
 
 	Map<EventKey, EventContext> getContexts(Set<EventKey> key);
-	
-	//EventContext mergeContext(EventContext ctx);
+
 }

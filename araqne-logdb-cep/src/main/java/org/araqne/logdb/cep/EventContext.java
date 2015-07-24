@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.araqne.logdb.Row;
 import org.araqne.msgbus.Marshalable;
 
-public class EventContext implements EventClockItem, Marshalable{
+public class EventContext implements EventClockItem, Marshalable {
 	private EventKey key;
 	private List<Row> rows;
 
@@ -176,16 +176,16 @@ public class EventContext implements EventClockItem, Marshalable{
 	private List<Map<String, Object>> format(List<Row> rows) {
 		List<Map<String, Object>> rowMaps = new ArrayList<Map<String, Object>>();
 
-		for(Row row : rows) {
+		for (Row row : rows) {
 			rowMaps.add(row.map());
 		}
 		return rowMaps;
 	}
 
 	@SuppressWarnings("unchecked")
-	private static List<Row> parseRows(Object[]  rowMaps) {
+	private static List<Row> parseRows(Object[] rowMaps) {
 		List<Row> rows = Collections.synchronizedList(new ArrayList<Row>());
-		for(Object rowMap : rowMaps) {
+		for (Object rowMap : rowMaps) {
 			rows.add(new Row((Map<String, Object>) rowMap));
 		}
 		return rows;
@@ -193,7 +193,7 @@ public class EventContext implements EventClockItem, Marshalable{
 
 	@Override
 	public Map<String, Object> marshal() {
-		HashMap<String, Object> m = new HashMap<String, Object> ();
+		HashMap<String, Object> m = new HashMap<String, Object>();
 		m.put("key", EventKey.marshal(key));
 		m.put("created", created);
 		m.put("expireTime", expireTime);
@@ -215,43 +215,38 @@ public class EventContext implements EventClockItem, Marshalable{
 		Integer maxRows = (Integer) m.get("maxRows");
 		String host = (String) m.get("host");
 		List<Row> rows = parseRows((Object[]) m.get("rows"));
-		HashMap<String, Object> variables = (HashMap<String, Object>) m.get("variables"); 
+		HashMap<String, Object> variables = (HashMap<String, Object>) m.get("variables");
 		Integer count = (Integer) m.get("count");
-		EventContext cxt = new EventContext(key,created, expireTime,  timeoutTime, maxRows, host);
-		for(Row row : rows)
+		EventContext cxt = new EventContext(key, created, expireTime, timeoutTime, maxRows, host);
+		for (Row row : rows)
 			cxt.addRow(row);
 
-		if(count != null)
+		if (count != null)
 			cxt.counter.addAndGet(count);
 
-		if(variables != null)
+		if (variables != null)
 			cxt.variables = variables;
 
 		return cxt;
 	}
 
 	public static EventContext merge(EventContext oldCtx, EventContext ctx) {
-		if(ctx.getTimeoutTime()!= 0L)
+		if (ctx.getTimeoutTime() != 0L)
 			oldCtx.setTimeoutTime(ctx.getTimeoutTime());
 
-		if(ctx.getHost() != null)
+		if (ctx.getHost() != null)
 			oldCtx.setHost(ctx.getHost());
 
-		for(Row row :  ctx.getRows()) {
+		for (Row row : ctx.getRows()) {
 			oldCtx.addRow(row);
 		}
 
-		for(String vKey : ctx.getVariables().keySet())
+		for (String vKey : ctx.getVariables().keySet())
 			oldCtx.setVariable(vKey, ctx.getVariable(vKey));
 
 		oldCtx.getCounter().addAndGet(ctx.getCounter().get());
 
 		return oldCtx;
 	}
-	
-	public static EventClockSimpleItem simplify(EventContext ctx){
-		return new EventClockSimpleItem(ctx.getKey(), ctx.getExpireTime(), ctx.getTimeoutTime());
-	}
+
 }
-
-

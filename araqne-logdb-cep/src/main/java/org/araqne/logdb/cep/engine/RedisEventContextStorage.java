@@ -96,6 +96,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	volatile static boolean subscribeStopRequested = false;
 
 	private ConcurrentHashMap<String, EventClock<EventClockSimpleItem>> logClocks;
+	private ConcurrentHashMap<EventKey, EventClockSimpleItem> logClockItems;
 
 	private final int retryCnt = 5;
 
@@ -113,6 +114,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			configReg.addListener(this);
 			subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
 			logClocks = new ConcurrentHashMap<String, EventClock<EventClockSimpleItem>>();
+			logClockItems = new ConcurrentHashMap<EventKey, EventClockSimpleItem>();
 
 			synchronized (theadLock) {
 				theadLock.notify();
@@ -121,8 +123,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 			connect();
 
-			// if (jedis != null)
-			// jedis.flushDB();
+			if (jedis != null)
+				jedis.flushDB();
 
 		} catch (Exception e) {
 			slog.debug("araqne logdb cep: failed to start redis storage", e);
@@ -351,10 +353,24 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	}
 
 	@Override
-	public void removeContext(EventKey key, EventContext ctx, EventCause cause) {
-		Response<byte[]> oldValue = null;
-		RuntimeException lastException = null;
+	public void advanceTime(String host, long logTime) {
+		EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, host, logTime);
+		logClock.setTime(logTime, false);
+	}
 
+	@Override
+	public void clearClocks() {
+		Set<EventClockSimpleItem> items = new HashSet<EventClockSimpleItem>();
+
+		for (EventClock<EventClockSimpleItem> logClock : logClocks.values()) {
+			for (EventClockSimpleItem item : logClock.getExpireContexts())
+				items.add(item);
+
+			for (EventClockSimpleItem item : logClock.getTimeoutContexts())
+				items.add(item);
+		}
+
+		RuntimeException lastException = null;
 		synchronized (jedisLock) {
 			for (int i = 0; i < retryCnt; ++i) {
 				try {
@@ -362,9 +378,12 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 						connect();
 
 					Transaction t = jedis.multi();
-					oldValue = t.get(redisKey(key));
-					t.del(redisKey(key));
-					t.del(expireKey(key));
+					for (EventClockSimpleItem item : items) {
+						EventKey key = item.getKey();
+						t.del(redisKey(key));
+						t.del(expireKey(key));
+					}
+
 					t.exec();
 
 					break;
@@ -379,36 +398,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		if (lastException != null)
 			throw lastException;
 
-		byte[] response = oldValue.get();
-		if (response != null) {
-			EventContext oldCtx = parseContext(response);
-
-			if (oldCtx.getHost() != null) {
-				EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-				logClock.remove(EventContext.simplify(ctx));
-			}
-
-			generateEvent(EventContext.merge(oldCtx, ctx), cause);
-		}
-	}
-
-	@Override
-	public void advanceTime(String host, long logTime) {
-		EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, host, logTime);
-		logClock.setTime(logTime, false);
-	}
-
-	@Override
-	public void clearClocks() {
-		for (EventClock<EventClockSimpleItem> logClock : logClocks.values()) {
-			for (EventClockSimpleItem item : logClock.getExpireContexts())
-				logClock.remove(item);
-
-			for (EventClockSimpleItem item : logClock.getTimeoutContexts())
-				logClock.remove(item);
-		}
-
 		logClocks = new ConcurrentHashMap<String, EventClock<EventClockSimpleItem>>();
+		logClockItems = new ConcurrentHashMap<EventKey, EventClockSimpleItem>();
 	}
 
 	@Override
@@ -473,6 +464,13 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		if (slog.isDebugEnabled())
 			slog.debug("araqne logdb cep: generate event ctx [{}] cause [{}]", ctx.getKey(), cause);
 
+		if (cause == EventCause.EXPIRE) {
+			if (ctx.getTimeoutTime() != 0) {
+				if (ctx.getExpireTime() == 0 || ctx.getTimeoutTime() < ctx.getExpireTime())
+					cause = EventCause.TIMEOUT;
+			}
+		}
+
 		Event ev = new Event(ctx, cause);
 		ev.getRows().addAll(ctx.getRows());
 
@@ -502,11 +500,6 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	@Override
 	public void onUpdateTimeout(EventContext ctx) {
-		EventClock<EventClockSimpleItem> clock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-		if (clock == null)
-			return;
-
-		clock.updateTimeout(EventContext.simplify(ctx));
 	}
 
 	@Override
@@ -548,44 +541,71 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 		for (EventContext ctx : contexts.values()) {
 			if (ctx.getHost() != null) {
-				EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-				logClock.add(EventContext.simplify(ctx));
+				Response<byte[]> oldValue = responses.get(ctx.getKey());
+				addHostItem(ctx, oldValue.get());
 			}
 		}
 	}
 
 	@Override
 	public EventContext addContext(EventContext ctx) {
-		RuntimeException lastException = null;
+		Map<EventKey, EventContext> contexts = new HashMap<EventKey, EventContext>();
+		contexts.put(ctx.getKey(), ctx);
+		addContexts(contexts);
+		return contexts.get(ctx.getKey());
 
-		synchronized (jedisLock) {
-			for (int i = 0; i < retryCnt; ++i) {
-				try {
-					if (jedis == null)
-						connect();
+		// RuntimeException lastException = null;
+		// byte[] oldByteValue = null;
+		//
+		// synchronized (jedisLock) {
+		// for (int i = 0; i < retryCnt; ++i) {
+		// try {
+		// if (jedis == null)
+		// connect();
+		//
+		// oldByteValue = jedis.get(redisKey(ctx.getKey()));
+		// Transaction t = jedis.multi();
+		// addContextToRedis(ctx, oldByteValue, t);
+		// t.exec();
+		// break;
+		// } catch (JedisConnectionException e) {
+		// returnResource(jedis);
+		// closeClient(jedis);
+		// lastException = e;
+		// }
+		// }
+		// }
+		//
+		// if (lastException != null)
+		// throw lastException;
+		//
+		// if (ctx.getHost() != null) {
+		// addHostItem(ctx, oldByteValue);
+		// }
+		//
+		// return ctx;
+	}
 
-					byte[] oldByteValue = jedis.get(redisKey(ctx.getKey()));
-					Transaction t = jedis.multi();
-					addContextToRedis(ctx, oldByteValue, t);
-					t.exec();
-					break;
-				} catch (JedisConnectionException e) {
-					returnResource(jedis);
-					closeClient(jedis);
-					lastException = e;
-				}
-			}
-		}
-
-		if (lastException != null)
-			throw lastException;
-
-		if (ctx.getHost() != null) {
+	private void addHostItem(EventContext ctx, byte[] oldByteValue) {
+		if (oldByteValue == null) {
 			EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-			logClock.add(EventContext.simplify(ctx));
-		}
+			EventClockSimpleItem item = EventClockSimpleItem.newInstance(ctx);
+			logClockItems.put(ctx.getKey(), item);
+			logClock.add(item);
 
-		return ctx;
+		} else if (ctx.getTimeoutTime() != 0) {
+			EventClockSimpleItem item = null;
+			item = logClockItems.get(ctx.getKey());
+
+			if (item == null) {
+				item = EventClockSimpleItem.newInstance(ctx);
+				item = logClockItems.putIfAbsent(ctx.getKey(), item);
+			}
+
+			EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+			item.setTimeoutTime(ctx.getTimeoutTime());
+			logClock.updateTimeout(item);
+		}
 	}
 
 	private void addContextToRedis(EventContext ctx, byte[] oldByteValue, Transaction t) {
@@ -599,7 +619,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			if (timeoutTime != 0L && ctx.getHost() == null)
 				t.pexpireAt(expireKey(key), timeoutTime);
 
-			t.set(redisKey(key), redisValue(EventContext.merge(oldCtx, ctx)));
+			ctx = EventContext.merge(oldCtx, ctx);
+			t.set(redisKey(key), redisValue(ctx));
 		} else {
 			t.set(expireKey(key), "");
 			t.set(redisKey(key), redisValue(ctx));
@@ -634,6 +655,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 				@Override
 				public void onRemove(EventKey key, EventClockItem value, String host, EventCause expire) {
+					logClockItems.remove(key);
 					removeContext(key, new EventContext(key, 0L, value.getExpireTime(), value.getTimeoutTime(), 0, host), expire);
 				}
 			}, host, time, 11);
@@ -645,6 +667,53 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		} else {
 			return clock;
 		}
+	}
+
+	@Override
+	public void removeContext(EventKey key, EventContext ctx, EventCause cause) {
+		Map<EventKey, EventContext> contexts = new HashMap<EventKey, EventContext>();
+		contexts.put(key, ctx);
+		removeContexts(contexts, cause);
+
+		// Response<byte[]> oldValue = null;
+		// RuntimeException lastException = null;
+		//
+		// synchronized (jedisLock) {
+		// for (int i = 0; i < retryCnt; ++i) {
+		// try {
+		// if (jedis == null)
+		// connect();
+		//
+		// Transaction t = jedis.multi();
+		// oldValue = t.get(redisKey(key));
+		// t.del(redisKey(key));
+		// t.del(expireKey(key));
+		// t.exec();
+		//
+		// break;
+		// } catch (JedisConnectionException e) {
+		// returnResource(jedis);
+		// closeClient(jedis);
+		// lastException = e;
+		// }
+		// }
+		// }
+		//
+		// if (lastException != null)
+		// throw lastException;
+		//
+		// byte[] response = oldValue.get();
+		// if (response != null) {
+		// EventContext oldCtx = parseContext(response);
+		//
+		// if (oldCtx.getHost() != null) {
+		// EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks,
+		// oldCtx.getHost(), oldCtx.getCreated());
+		// logClock.remove(logClockItems.remove(oldCtx.getKey()));
+		// }
+		//
+		// generateEvent(EventContext.merge(oldCtx, ctx), cause);
+		// }
 	}
 
 	@Override
@@ -680,14 +749,65 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 		for (EventKey evtkey : contexts.keySet()) {
 			byte[] response = responses.get(evtkey).get();
-			if (response != null) {
 
-				@SuppressWarnings("unchecked")
-				EventContext oldCtx = EventContext.parse((Map<String, Object>) decode(response));
+			if (response != null) {
+				EventContext oldCtx = parseContext(response);
+
+				if (oldCtx.getHost() != null) {
+					EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, oldCtx.getHost(), oldCtx.getCreated());
+					logClock.remove(logClockItems.remove(oldCtx.getKey()));
+				}
 
 				generateEvent(EventContext.merge(oldCtx, contexts.get(evtkey)), cause);
 			}
 		}
+	}
+
+	@Override
+	public Map<EventKey, EventContext> getContexts(Set<EventKey> keys) {
+		Map<EventKey, EventContext> contexts = new HashMap<EventKey, EventContext>();
+		ConcurrentHashMap<EventKey, Response<byte[]>> responses = new ConcurrentHashMap<EventKey, Response<byte[]>>();
+		RuntimeException lastException = null;
+
+		synchronized (jedisLock) {
+			for (int i = 0; i < retryCnt; ++i) {
+				try {
+					if (jedis == null)
+						connect();
+
+					Transaction t = jedis.multi();
+
+					for (EventKey evtkey : keys) {
+						Response<byte[]> value = t.get(redisKey(evtkey));
+						responses.put(evtkey, value);
+					}
+					t.exec();
+
+					break;
+				} catch (JedisConnectionException e) {
+					returnResource(jedis);
+					closeClient(jedis);
+					lastException = e;
+				}
+			}
+		}
+
+		if (lastException != null)
+			throw lastException;
+
+		for (EventKey evtkey : keys) {
+			byte[] response = responses.get(evtkey).get();
+			if (response != null) {
+
+				@SuppressWarnings("unchecked")
+				EventContext ctx = EventContext.parse((Map<String, Object>) decode(response));
+				contexts.put(evtkey, ctx);
+			} else {
+				contexts.put(evtkey, null);
+			}
+		}
+
+		return contexts;
 	}
 
 	@Override
@@ -704,7 +824,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		}
 	}
 
-	public void closeClient(Jedis jedis) {
+	private void closeClient(Jedis jedis) {
 		if (jedis != null)
 			try {
 				jedis.disconnect();
@@ -762,53 +882,6 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 				slog.debug("araqne logdb cep : event key parse error (" + key + ")", e);
 			}
 		}
-	}
-
-	@Override
-	public Map<EventKey, EventContext> getContexts(Set<EventKey> keys) {
-		Map<EventKey, EventContext> contexts = new HashMap<EventKey, EventContext>();
-		ConcurrentHashMap<EventKey, Response<byte[]>> responses = new ConcurrentHashMap<EventKey, Response<byte[]>>();
-		RuntimeException lastException = null;
-
-		synchronized (jedisLock) {
-			for (int i = 0; i < retryCnt; ++i) {
-				try {
-					if (jedis == null)
-						connect();
-
-					Transaction t = jedis.multi();
-
-					for (EventKey evtkey : keys) {
-						Response<byte[]> value = t.get(redisKey(evtkey));
-						responses.put(evtkey, value);
-					}
-					t.exec();
-
-					break;
-				} catch (JedisConnectionException e) {
-					returnResource(jedis);
-					closeClient(jedis);
-					lastException = e;
-				}
-			}
-		}
-
-		if (lastException != null)
-			throw lastException;
-
-		for (EventKey evtkey : keys) {
-			byte[] response = responses.get(evtkey).get();
-			if (response != null) {
-
-				@SuppressWarnings("unchecked")
-				EventContext ctx = EventContext.parse((Map<String, Object>) decode(response));
-				contexts.put(evtkey, ctx);
-			} else {
-				contexts.put(evtkey, null);
-			}
-		}
-
-		return contexts;
 	}
 
 	private class RedisScanIterator implements Iterator<EventKey> {

@@ -31,12 +31,12 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.cron.AbstractTickTimer;
 import org.araqne.cron.TickService;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventCause;
 import org.araqne.logdb.cep.EventClock;
 import org.araqne.logdb.cep.EventClockCallback;
 import org.araqne.logdb.cep.EventClockItem;
-import org.araqne.logdb.cep.EventClockSimpleItem;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextListener;
 import org.araqne.logdb.cep.EventContextService;
@@ -133,7 +133,6 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public EventContext addContext(EventContext ctx) {
-
 		EventContext old = contexts.putIfAbsent(ctx.getKey(), ctx);
 		if (old == null) {
 			ctx.getListeners().add(this);
@@ -303,8 +302,14 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal) {
-		for (Entry<EventKey, EventContext> entry : contexts.entrySet())
-			removeContext(entry.getKey(), entry.getValue(), removal);
+		for (Entry<EventKey, EventContext> entry : contexts.entrySet()) {
+			EventContext ctx = getContext(entry.getKey());
+			if (ctx != null)
+				for (Row row : entry.getValue().getRows())
+					ctx.addRow(row);
+
+			removeContext(entry.getKey(), ctx, removal);
+		}
 	}
 
 	@Override

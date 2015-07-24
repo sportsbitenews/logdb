@@ -58,7 +58,7 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
-		ConcurrentHashMap <EventKey, EventContext> contexts = new ConcurrentHashMap<EventKey, EventContext> ();
+		ConcurrentHashMap<EventKey, EventContext> contexts = new ConcurrentHashMap<EventKey, EventContext>();
 
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
@@ -78,7 +78,7 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 	}
 
 	private void checkEvent(Row row) {
-		checkEvent(row,  new CallbackRemove() {
+		checkEvent(row, new CallbackRemove() {
 
 			@Override
 			public void removeJob(EventKey eventKey, Row row) {
@@ -122,24 +122,16 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 		if (t instanceof Date)
 			logTime = (Date) t;
 
+		if (host != null && logTime != null)
+			storage.advanceTime(host, logTime.getTime());
+
 		if (matched) {
 			String key = k.toString();
 			EventKey eventKey = new EventKey(topic, key);
 			eventKey.setHost(host);
 
 			callback.removeJob(eventKey, row);
-
-			/*
-			EventContext ctx = storage.getContext(eventKey);
-			if (ctx != null)
-				ctx.addRow(row);
-
-			storage.removeContext(eventKey, ctx, EventCause.REMOVAL);
-			 */
 		}
-
-		if (host != null && logTime != null)
-			storage.advanceTime(host, logTime.getTime());
 	}
 
 	@Override
@@ -147,7 +139,7 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 		return "evtctxdel topic=" + topic + " key=" + keyField + " " + matcher;
 	}
 
-	private interface CallbackRemove{
+	private interface CallbackRemove {
 		void removeJob(EventKey key, Row row);
 	}
 
@@ -170,3 +162,13 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 		}
 	}
 }
+
+// @Override
+// public void removeJob(EventKey eventKey, Row row) {
+// EventContext ctx = storage.getContext(eventKey);
+// if (ctx != null)
+// ctx.addRow(row);
+//
+// storage.removeContext(eventKey, ctx, EventCause.REMOVAL);
+// }
+

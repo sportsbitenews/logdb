@@ -63,7 +63,7 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 		checkEvent(row);
 		pushPipe(row);
 	}
-	
+
 	@Override
 	public void onPush(RowBatch rowBatch) {
 		ConcurrentHashMap<EventKey, EventContext> contexts = new ConcurrentHashMap<EventKey, EventContext>();
@@ -74,25 +74,25 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 				Row row = rowBatch.rows[p];
 				checkEvent(row, new BatchCallback(contexts));
 			}
-		}else {
+		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-			
+
 				checkEvent(row, new BatchCallback(contexts));
 			}
 
 		}
 		storage.addContexts(contexts);
-		
+
 		pushPipe(rowBatch);
 	}
-	
+
 	private void checkEvent(Row row) {
 		checkEvent(row, new CallbackAdd() {
 
 			@Override
 			public void addJob(EventContext ctx) {
-				storage.addContext(ctx); //mem cep 수정 여부에 따라 update->add 방식으로 할지 결정
+				storage.addContext(ctx);
 			}
 		});
 	}
@@ -132,10 +132,16 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			created = System.currentTimeMillis();
 		}
 
+		if (clockHost != null && logTime != null) {
+			Object date = row.get("_time");
+			if (date instanceof Date)
+				storage.advanceTime(clockHost, logTime.getTime());
+		}
+
 		if (matched) {
 			String key = k.toString();
 			EventKey eventKey = new EventKey(topic, key);
-			if(clockHost != null)
+			if (clockHost != null)
 				eventKey.setHost(clockHost);
 
 			long expireTime = 0;
@@ -146,18 +152,12 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			if (timeout != null)
 				timeoutTime = created + timeout.unit.getMillis() * timeout.amount;
 
-			EventContext	ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
+			EventContext ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
 			ctx.setTimeoutTime(timeoutTime);
 			ctx.getCounter().incrementAndGet();
-			ctx.addRow(row); 
+			ctx.addRow(row);
 
 			callback.addJob(ctx);
-		}
-
-		if (clockHost != null && logTime != null) {
-			Object date = row.get("_time");
-			if (date instanceof Date)
-				storage.advanceTime(clockHost, logTime.getTime());
 		}
 	}
 
@@ -181,23 +181,23 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 
 		return s;
 	}
-	
-	private interface CallbackAdd{
-		
+
+	private interface CallbackAdd {
+
 		void addJob(EventContext ctx);
-		
+
 	}
-	
-	private class BatchCallback implements CallbackAdd{
+
+	private class BatchCallback implements CallbackAdd {
 		ConcurrentHashMap<EventKey, EventContext> contexts;
 
 		private BatchCallback(ConcurrentHashMap<EventKey, EventContext> contexts) {
 			this.contexts = contexts;
 		}
-		
+
 		@Override
 		public void addJob(EventContext ctx) {
-			if(!contexts.contains(ctx)) {
+			if (!contexts.contains(ctx)) {
 				contexts.put(ctx.getKey(), ctx);
 				return;
 			}
@@ -205,15 +205,15 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			EventContext oldCtx = contexts.get(ctx);
 			oldCtx.getCounter().incrementAndGet();
 
-			if(ctx.getTimeoutTime()!= 0L)
+			if (ctx.getTimeoutTime() != 0L)
 				oldCtx.setTimeoutTime(ctx.getTimeoutTime());
-			
-			for(Row row :  ctx.getRows()) {
-					oldCtx.addRow(row);
-				}
-			
+
+			for (Row row : ctx.getRows()) {
+				oldCtx.addRow(row);
+			}
+
 			contexts.put(oldCtx.getKey(), oldCtx);
 		}
 	}
-	
+
 }

@@ -94,7 +94,7 @@ public class CepScript implements Script {
 			context.println("clock not found");
 			return;
 		}
- 
+
 		if (!queueType.equals("timeout") && !queueType.equals("expire")) {
 			context.println("invalid queue type");
 			return;
@@ -105,7 +105,7 @@ public class CepScript implements Script {
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 		if (queueType.equals("timeout")) {
-			for (EventClockItem item :  clock.getTimeoutContexts()) {
+			for (EventClockItem item : clock.getTimeoutContexts()) {
 				context.println("timeout [" + df.format(item.getTimeoutTime()) + "] " + item.getKey());
 			}
 
