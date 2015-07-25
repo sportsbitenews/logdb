@@ -598,7 +598,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		if (query.getStopReason() != null)
 			m.put("stop_reason", query.getStopReason().toString());
 
-		if (query.isStarted())
+		if (query.isStarted() && query.getFinishTime() > 0)
 			m.put("duration", (query.getFinishTime() - query.getStartTime()) / 1000.0);
 		else
 			m.put("duration", 0);
