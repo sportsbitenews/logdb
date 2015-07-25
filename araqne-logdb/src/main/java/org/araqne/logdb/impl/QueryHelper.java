@@ -81,7 +81,7 @@ public class QueryHelper {
 		Long msec = null;
 		if (q.isStarted()) {
 			if (q.isFinished())
-				msec = q.getFinishTime() - q.getStartTime();
+				msec = q.getFinishTime() != 0 ? q.getFinishTime() - q.getStartTime() : 0;
 			else
 				msec = System.currentTimeMillis() - q.getStartTime();
 		}
