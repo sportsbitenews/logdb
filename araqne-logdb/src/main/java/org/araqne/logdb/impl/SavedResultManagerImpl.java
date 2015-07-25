@@ -77,7 +77,7 @@ public class SavedResultManagerImpl implements SavedResultManager {
 			for (SavedResult doc : docs)
 				cachedResults.put(doc.getGuid(), doc);
 
-			writeSaveResult();
+			writeSavedResults();
 		}
 	}
 
@@ -113,7 +113,7 @@ public class SavedResultManagerImpl implements SavedResultManager {
 			copy(fromIndexPath, toIndexPath);
 			copy(fromDataPath, toDataPath);
 
-			writeSaveResult();
+			writeSavedResults();
 		} catch (IOException e) {
 			toIndexPath.delete();
 			toDataPath.delete();
@@ -152,7 +152,7 @@ public class SavedResultManagerImpl implements SavedResultManager {
 
 	}
 
-	private void writeSaveResult() {
+	private synchronized void writeSavedResults() {
 		File resultFile = new File(((LocalFilePath) baseDir).getFile(), FILE_NAME);
 		File tmpFile = new File(((LocalFilePath) baseDir).getFile(), FILE_NAME + ".tmp");
 		FileOutputStream fos = null;
@@ -227,14 +227,18 @@ public class SavedResultManagerImpl implements SavedResultManager {
 
 	@Override
 	public void deleteResult(String guid) {
-		writeSaveResult();
-		cachedResults.remove(guid);
+		SavedResult old = cachedResults.remove(guid);
+		if (old == null)
+			throw new IllegalStateException("saved result not found: " + guid);
+		
+		writeSavedResults();
 
 		FilePath indexPath = baseDir.newFilePath(guid + ".idx");
 		FilePath dataPath = baseDir.newFilePath(guid + ".dat");
 
 		if (!indexPath.delete())
 			slog.error("araqne logdb: cannot delete saved result [{}]", indexPath.getAbsolutePath());
+		
 		if (!dataPath.delete())
 			slog.error("araqne logdb: cannot delete saved result [{}]", dataPath.getAbsolutePath());
 	}
