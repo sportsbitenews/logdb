@@ -98,7 +98,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	private ConcurrentHashMap<String, EventClock<EventClockSimpleItem>> logClocks;
 	private ConcurrentHashMap<EventKey, EventClockSimpleItem> logClockItems;
 
-	private final int retryCnt = 5;
+	private final int retryCnt = 3;
 
 	@Override
 	public String getName() {
@@ -228,6 +228,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			jedis.auth(password);
 			jedisForScan.auth(password);
 		}
+
 	}
 
 	private List<HostAndPort> registerdServers() {
@@ -298,6 +299,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		RuntimeException lastException = null;
 		synchronized (jedisLock) {
 			for (int i = 0; i < retryCnt; ++i) {
+				lastException = null;
 				try {
 					if (jedis == null)
 						connect();
@@ -309,6 +311,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 				} catch (JedisConnectionException e) {
 					returnResource(jedis);
 					closeClient(jedis);
+					jedis = null;
 					lastException = e;
 				}
 			}
@@ -373,6 +376,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		RuntimeException lastException = null;
 		synchronized (jedisLock) {
 			for (int i = 0; i < retryCnt; ++i) {
+				lastException = null;
 				try {
 					if (jedis == null)
 						connect();
@@ -390,6 +394,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 				} catch (JedisConnectionException e) {
 					returnResource(jedis);
 					closeClient(jedis);
+					jedis = null;
 					lastException = e;
 				}
 			}
@@ -414,6 +419,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		RuntimeException lastException = null;
 		synchronized (jedisLock) {
 			for (int i = 0; i < retryCnt; ++i) {
+				lastException = null;
 				try {
 					if (jedis == null)
 						connect();
@@ -432,6 +438,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 				} catch (JedisConnectionException e) {
 					returnResource(jedis);
 					closeClient(jedis);
+					jedis = null;
 					lastException = e;
 				}
 			}
@@ -508,6 +515,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		RuntimeException lastException = null;
 		synchronized (jedisLock) {
 			for (int i = 0; i < retryCnt; ++i) {
+				lastException = null;
 				try {
 					if (jedis == null)
 						connect();
@@ -531,6 +539,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 				} catch (JedisConnectionException e) {
 					returnResource(jedis);
 					closeClient(jedis);
+					jedis = null;
 					lastException = e;
 				}
 			}
@@ -541,7 +550,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 		for (EventContext ctx : contexts.values()) {
 			generateEvent(ctx, EventCause.CREATE);
-			
+
 			if (ctx.getHost() != null) {
 				Response<byte[]> oldValue = responses.get(ctx.getKey());
 				addHostItem(ctx, oldValue.get());
@@ -555,37 +564,6 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		contexts.put(ctx.getKey(), ctx);
 		addContexts(contexts);
 		return contexts.get(ctx.getKey());
-
-		// RuntimeException lastException = null;
-		// byte[] oldByteValue = null;
-		//
-		// synchronized (jedisLock) {
-		// for (int i = 0; i < retryCnt; ++i) {
-		// try {
-		// if (jedis == null)
-		// connect();
-		//
-		// oldByteValue = jedis.get(redisKey(ctx.getKey()));
-		// Transaction t = jedis.multi();
-		// addContextToRedis(ctx, oldByteValue, t);
-		// t.exec();
-		// break;
-		// } catch (JedisConnectionException e) {
-		// returnResource(jedis);
-		// closeClient(jedis);
-		// lastException = e;
-		// }
-		// }
-		// }
-		//
-		// if (lastException != null)
-		// throw lastException;
-		//
-		// if (ctx.getHost() != null) {
-		// addHostItem(ctx, oldByteValue);
-		// }
-		//
-		// return ctx;
 	}
 
 	private void addHostItem(EventContext ctx, byte[] oldByteValue) {
@@ -656,9 +634,9 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			clock = new EventClock<EventClockSimpleItem>(new EventClockCallback() {
 
 				@Override
-				public void onRemove(EventKey key, EventClockItem value, String host, EventCause expire) {
+				public void onRemove(EventKey key, EventClockItem value, String host, EventCause cause) {
+					removeContext(key, new EventContext(key, 0L, value.getExpireTime(), value.getTimeoutTime(), 0, host), cause);
 					logClockItems.remove(key);
-					removeContext(key, new EventContext(key, 0L, value.getExpireTime(), value.getTimeoutTime(), 0, host), expire);
 				}
 			}, host, time, 11);
 
@@ -676,46 +654,6 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		Map<EventKey, EventContext> contexts = new HashMap<EventKey, EventContext>();
 		contexts.put(key, ctx);
 		removeContexts(contexts, cause);
-
-		// Response<byte[]> oldValue = null;
-		// RuntimeException lastException = null;
-		//
-		// synchronized (jedisLock) {
-		// for (int i = 0; i < retryCnt; ++i) {
-		// try {
-		// if (jedis == null)
-		// connect();
-		//
-		// Transaction t = jedis.multi();
-		// oldValue = t.get(redisKey(key));
-		// t.del(redisKey(key));
-		// t.del(expireKey(key));
-		// t.exec();
-		//
-		// break;
-		// } catch (JedisConnectionException e) {
-		// returnResource(jedis);
-		// closeClient(jedis);
-		// lastException = e;
-		// }
-		// }
-		// }
-		//
-		// if (lastException != null)
-		// throw lastException;
-		//
-		// byte[] response = oldValue.get();
-		// if (response != null) {
-		// EventContext oldCtx = parseContext(response);
-		//
-		// if (oldCtx.getHost() != null) {
-		// EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks,
-		// oldCtx.getHost(), oldCtx.getCreated());
-		// logClock.remove(logClockItems.remove(oldCtx.getKey()));
-		// }
-		//
-		// generateEvent(EventContext.merge(oldCtx, ctx), cause);
-		// }
 	}
 
 	@Override
@@ -724,6 +662,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		RuntimeException lastException = null;
 		synchronized (jedisLock) {
 			for (int i = 0; i < retryCnt; ++i) {
+				lastException = null;
 				try {
 					if (jedis == null)
 						connect();
@@ -741,6 +680,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 				} catch (JedisConnectionException e) {
 					returnResource(jedis);
 					closeClient(jedis);
+					jedis = null;
 					lastException = e;
 				}
 			}
@@ -757,7 +697,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 				if (oldCtx.getHost() != null) {
 					EventClock<EventClockSimpleItem> logClock = ensureClock(logClocks, oldCtx.getHost(), oldCtx.getCreated());
-					logClock.remove(logClockItems.remove(oldCtx.getKey()));
+					logClock.remove(logClockItems.get(oldCtx.getKey()));
+					logClockItems.remove(oldCtx.getKey());
 				}
 
 				generateEvent(EventContext.merge(oldCtx, contexts.get(evtkey)), cause);
@@ -773,6 +714,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 		synchronized (jedisLock) {
 			for (int i = 0; i < retryCnt; ++i) {
+				lastException = null;
 				try {
 					if (jedis == null)
 						connect();
@@ -789,6 +731,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 				} catch (JedisConnectionException e) {
 					returnResource(jedis);
 					closeClient(jedis);
+					jedis = null;
 					lastException = e;
 				}
 			}
@@ -931,6 +874,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 			synchronized (jedisScanLock) {
 				for (int i = 0; i < retryCnt; ++i) {
+					lastException = null;
 					try {
 						if (jedisForScan == null)
 							connect();
@@ -940,6 +884,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					} catch (JedisConnectionException e) {
 						returnResource(jedisForScan);
 						closeClient(jedisForScan);
+						jedisForScan = null;
+						jedis = null;
 						lastException = e;
 					}
 				}

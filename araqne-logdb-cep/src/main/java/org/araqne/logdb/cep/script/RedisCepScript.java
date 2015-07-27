@@ -48,7 +48,8 @@ public class RedisCepScript implements Script {
 		context.println("host : " + config.getHost());
 		context.println("port : " + config.getPort());
 		context.println("sentinel mode : " + config.isSentinel());
-		context.println("sentinel name : " + config.getSentinelName());
+		if (config.isSentinel())
+			context.println("sentinel name : " + config.getSentinelName());
 		// context.println("password : " + config.getPassword());
 	}
 
@@ -104,6 +105,8 @@ public class RedisCepScript implements Script {
 		if (enteredPassword1.equals(enteredPassword2)) {
 			if (!enteredPassword1.isEmpty())
 				redisConfig.setPassword(enteredPassword1);
+			else
+				redisConfig.setPassword(null);
 		} else
 			throw new IllegalStateException("password does not match");
 
