@@ -38,7 +38,9 @@ import org.araqne.api.PrimitiveConverter;
 import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigCollection;
 import org.araqne.confdb.ConfigDatabase;
+import org.araqne.confdb.ConfigIterator;
 import org.araqne.confdb.ConfigService;
+import org.araqne.confdb.ConfigTransaction;
 import org.araqne.confdb.Predicates;
 import org.araqne.logdb.Account;
 import org.araqne.logdb.AccountEventListener;
@@ -219,17 +221,63 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	}
 
 	@Override
+	public void setPrivileges(Session session, List<Privilege> privileges) {
+		verifyNotNull(privileges, "privileges");
+		verifyAdminSession(session);
+
+		Map<String, Account> accounts = new HashMap<String, Account>();
+		for (Privilege privilege : privileges) {
+			String loginName = privilege.getLoginName();
+			Account account = accounts.get(loginName);
+			if (account == null) {
+				account = ensureAccount(loginName);
+				account.getReadableTables().clear();
+			}
+
+			account.getReadableTables().add(privilege.getTableName());
+			accounts.put(loginName, account);
+		}
+
+		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
+		ConfigIterator it = null;
+		Map<String, Config> configs = new HashMap<String, Config>();
+		try {
+			it = db.find(Account.class, Predicates.in("login_name", accounts.keySet()));
+			while (it.hasNext()) {
+				Config c = it.next();
+				String loginName = c.getDocument(Account.class).getLoginName();
+				configs.put(loginName, c);
+			}
+		} finally {
+			if (it != null)
+				it.close();
+		}
+
+		ConfigTransaction xact = null;
+		try {
+			xact = db.beginTransaction();
+			for (String loginName : accounts.keySet()) {
+				Config c = configs.get(loginName);
+				Account account = accounts.get(loginName);
+				if (c == null)
+					db.add(xact, account);
+				else
+					db.update(xact, c, account, false);
+			}
+			xact.commit("araqne-logdb", "set accounts");
+		} catch (Throwable t) {
+			if (xact != null)
+				xact.rollback();
+			throw new IllegalStateException(t);
+		}
+	}
+
+	@Override
 	public void setPrivileges(Session session, String loginName, List<Privilege> privileges) {
-		verifyNotNull(session, "session");
 		verifyNotNull(loginName, "loginName");
 		verifyNotNull(privileges, "privileges");
 
-		if (!sessions.containsKey(session.getGuid()))
-			throw new IllegalStateException("invalid session");
-
-		// master admin only
-		if (!session.isAdmin())
-			throw new IllegalStateException("no permission");
+		verifyAdminSession(session);
 
 		Account account = ensureAccount(loginName);
 		List<String> tables = account.getReadableTables();
@@ -240,6 +288,17 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 				tables.add(privilege.getTableName());
 
 		updateAccount(account);
+	}
+
+	private void verifyAdminSession(Session session) {
+		verifyNotNull(session, "session");
+
+		if (!sessions.containsKey(session.getGuid()))
+			throw new IllegalStateException("invalid session");
+
+		// master admin only
+		if (!session.isAdmin())
+			throw new IllegalStateException("no permission");
 	}
 
 	private boolean checkOwner(Session session, String loginName) {
@@ -482,6 +541,60 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	}
 
 	@Override
+	public void removeAccounts(Session session, Set<String> loginNames) {
+		verifyNotNull(loginNames, "login names");
+		if (session != null)
+			verifyAdminSession(session);
+
+		List<Account> accounts = new ArrayList<Account>();
+		for (String loginName : loginNames) {
+			Account account = localAccounts.remove(loginName);
+			if (account != null)
+				accounts.add(account);
+		}
+
+		for (Session s : new ArrayList<Session>(sessions.values())) {
+			if (loginNames.contains(s.getLoginName()))
+				sessions.remove(s.getGuid());
+		}
+
+		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
+		ConfigIterator it = null;
+		List<Config> configs = null;
+		try {
+			it = db.find(Account.class, Predicates.in("login_name", loginNames));
+			configs = it.getConfigs(0, Integer.MAX_VALUE);
+		} finally {
+			if (it != null)
+				it.close();
+		}
+
+		if (configs == null || configs.isEmpty())
+			return;
+
+		ConfigTransaction xact = null;
+		try {
+			xact = db.beginTransaction();
+			for (Config c : configs)
+				db.remove(xact, c, false);
+
+			xact.commit("araqne-logdb", "remove accounts");
+		} catch (Throwable t) {
+			if (xact != null)
+				xact.rollback();
+			throw new IllegalStateException(t);
+		}
+
+		for (AccountEventListener listener : accountListeners) {
+			try {
+				listener.onRemoveAccounts(session, accounts);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: account event listener should not throw any exception", t);
+			}
+		}
+	}
+
+	@Override
 	public List<SecurityGroup> getSecurityGroups() {
 		List<SecurityGroup> l = new ArrayList<SecurityGroup>();
 		for (SecurityGroup g : securityGroups.values())
@@ -537,7 +650,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	@Override
 	public void updateSecurityGroup(Session session, SecurityGroup group) {
 		verifySecurityGroup(group);
-		
+
 		SecurityGroup old = null;
 		synchronized (securityGroups) {
 			old = securityGroups.get(group.getGuid());
@@ -577,20 +690,51 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	private void verifySecurityGroup(SecurityGroup group) {
 		if (group.getName() == null)
 			throw new IllegalArgumentException("security group name should not be null");
-		
+
 		if (group.getGuid() == null)
 			throw new IllegalArgumentException("security group guid should not be null");
-		
+
 		// check if table exists
 		for (String tableName : group.getReadableTables()) {
 			if (!tableRegistry.exists(tableName))
 				throw new IllegalStateException("table not found: " + tableName);
 		}
 
-		// check if account exists
-		for (String loginName : group.getAccounts()) {
-			if (localAccounts.get(loginName) == null)
-				throw new IllegalStateException("account not found: " + loginName);
+		syncAccounts(group.getAccounts());
+	}
+
+	private void syncAccounts(Set<String> loginNames) {
+		Set<String> targetLoginNames = new HashSet<String>();
+		for (String loginName : loginNames) {
+			if (localAccounts.containsKey(loginName))
+				continue;
+
+			targetLoginNames.add(loginName);
+		}
+
+		List<Account> accounts = new ArrayList<Account>();
+		if (selectedExternalAuth != null) {
+			ExternalAuthService auth = authServices.get(selectedExternalAuth);
+			if (auth != null)
+				accounts = auth.findAccounts(targetLoginNames);
+		}
+
+		if (accounts.isEmpty())
+			return;
+
+		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
+		ConfigTransaction xact = null;
+		try {
+			xact = db.beginTransaction();
+			for (Account account : accounts) {
+				db.add(xact, account);
+			}
+
+			xact.commit("araqne-logdb", "sync accounts with external auth [" + selectedExternalAuth + "]");
+		} catch (Throwable t) {
+			if (xact != null)
+				xact.rollback();
+			throw new IllegalStateException(t);
 		}
 	}
 

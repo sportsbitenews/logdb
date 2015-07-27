@@ -3,6 +3,7 @@ package org.araqne.log.api;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -16,6 +17,18 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 	@Override
 	public String getName() {
 		return "daily-dirwatch";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "로컬";
+		return "Local";
 	}
 
 	@Override
@@ -33,11 +46,6 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 	}
 
 	@Override
-	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
-	}
-
-	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "일자별로 생성되는 디렉터리를 순회하면서 파일 이름 패턴과 일치하는 모든 텍스트 로그 파일을 수집합니다.";
@@ -46,11 +54,6 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "日付別に作られるディレクトリを周りながら、ファイル名パターンと一致するすべてのテキストログファイルを収集します。";
 		return "Traverse daily rolling directories and collect matching text log files";
-	}
-
-	@Override
-	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
 	}
 
 	@Override

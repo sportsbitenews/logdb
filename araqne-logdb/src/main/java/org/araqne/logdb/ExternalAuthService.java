@@ -15,10 +15,15 @@
  */
 package org.araqne.logdb;
 
+import java.util.List;
+import java.util.Set;
+
 public interface ExternalAuthService {
 	String getName();
 
 	boolean verifyUser(String loginName);
+
+	List<Account> findAccounts(Set<String> loginNames);
 
 	boolean verifyPassword(String loginName, String password);
 }

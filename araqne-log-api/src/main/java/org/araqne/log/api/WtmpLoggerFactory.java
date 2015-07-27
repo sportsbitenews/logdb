@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -35,13 +36,20 @@ public class WtmpLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
-	public String getDisplayName(Locale locale) {
-		return "WTMP";
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
-	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "로컬";
+		return "Local";
+	}
+
+	@Override
+	public String getDisplayName(Locale locale) {
+		return "WTMP";
 	}
 
 	@Override

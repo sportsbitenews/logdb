@@ -29,7 +29,14 @@ public class TimeRollingLogWriterFactory extends AbstractLoggerFactory implement
 	}
 
 	@Override
-	public List<Locale> getDisplayNameLocales() {
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "로컬";
+		return "Local";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
@@ -42,11 +49,6 @@ public class TimeRollingLogWriterFactory extends AbstractLoggerFactory implement
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "写入滚动文件(时间)";
 		return "Time Rolling Log File";
-	}
-
-	@Override
-	public List<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override

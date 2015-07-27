@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -41,6 +42,16 @@ public class RemoteJmxLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		return "JMX";
+	}
+
+	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "원격 JMX";
@@ -52,11 +63,6 @@ public class RemoteJmxLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
-	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
-	}
-
-	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "RMI 통신을 통해 원격지의 JMX 에이전트를 쿼리합니다.";
@@ -65,11 +71,6 @@ public class RemoteJmxLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "RMI通信でリモートJMXエージェントをクエリします。";
 		return "Query JMX Agent using RMI protocol";
-	}
-
-	@Override
-	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
 	}
 
 	@Override

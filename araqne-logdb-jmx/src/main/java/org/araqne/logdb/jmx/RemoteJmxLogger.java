@@ -98,7 +98,9 @@ public class RemoteJmxLogger extends AbstractLogger implements Reconfigurable {
 			AttributeList attrs = mbeanConn.getAttributes(objName, names);
 			Log log = buildLog(attrs);
 			write(log);
+			setTemporaryFailure(null);
 		} catch (Throwable t) {
+			setTemporaryFailure(t);
 			slog.error("araqne log api: remote jmx failed, logger " + getFullName(), t);
 		} finally {
 			if (jmxConnector != null) {

@@ -1,5 +1,5 @@
-/*
- * Copyright 2010 NCHOVY
+/**
+ * Copyright 2015 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,31 @@ package org.araqne.log.api;
 
 import java.util.Map;
 
-public interface LoggerEventListener {
-	void onStart(Logger logger);
+/**
+ * @since 3.6.0
+ * @author xeraph
+ *
+ */
+public class AbstractLoggerEventListener implements LoggerEventListener {
 
-	void onStop(Logger logger, LoggerStopReason reason);
+	@Override
+	public void onStart(Logger logger) {
+	}
 
-	/**
-	 * @Since 3.4.0
-	 */
-	void onSetTimeRange(Logger logger);
+	@Override
+	public void onStop(Logger logger, LoggerStopReason reason) {
+	}
 
-	void onFailureChange(Logger logger);
-	
-	void onUpdated(Logger logger, Map<String, String> config);
-	
+	@Override
+	public void onSetTimeRange(Logger logger) {
+	}
+
+	@Override
+	public void onFailureChange(Logger logger) {
+	}
+
+	@Override
+	public void onUpdated(Logger logger, Map<String, String> config) {
+	}
+
 }

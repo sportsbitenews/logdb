@@ -30,17 +30,19 @@ public class QueryTaskRunner extends Thread {
 	private final Logger logger = LoggerFactory.getLogger(QueryTaskRunner.class);
 	private QueryTaskScheduler scheduler;
 	private QueryTask task;
+	private int queryId;
 
 	public QueryTaskRunner(QueryTaskScheduler scheduler, QueryTask task) {
 		this.scheduler = scheduler;
 		this.task = task;
-		setName("Query Task #"+ idCounter.incrementAndGet() + " for query " + scheduler.getQuery().getId());
+		this.queryId = scheduler.getQuery().getId();
+		setName("Query Task #"+ idCounter.incrementAndGet() + " for query " + queryId);
 	}
 
 	@Override
 	public void run() {
 		try {
-			logger.debug("araqne logdb: running task [{}]", task);
+			logger.debug("araqne logdb: query [{}] running task [{}]", queryId, task);
 			QueryTaskEvent startEvent = new QueryTaskEvent(task);
 			triggerStartEvent(task, startEvent);
 
@@ -51,11 +53,11 @@ public class QueryTaskRunner extends Thread {
 
 			triggerCompleteEvent(task, new QueryTaskEvent(task));
 		} catch (QueryCancelException e) {
-			logger.error("araqne logdb: query task [" + task + "] canceled");
+			logger.error("araqne logdb: query [" + queryId + "] task [" + task + "] canceled");
 			task.setStatus(TaskStatus.CANCELED);
 			task.setFailure(e);
 		} catch (Throwable t) {
-			logger.error("araqne logdb: query task [" + task + "] failed", t);
+			logger.error("araqne logdb: query [" + queryId + "] task [" + task + "] failed", t);
 			task.setStatus(TaskStatus.CANCELED);
 			task.setFailure(t);
 			scheduler.getQuery().stop(t);
@@ -64,7 +66,7 @@ public class QueryTaskRunner extends Thread {
 				triggerCleanUpEvent(task, new QueryTaskEvent(task));
 				task.onCleanUp();
 			} catch (Throwable t) {
-				logger.error("araqne logdb: query task [" + task + "] cleanup failure", t);
+				logger.error("araqne logdb: query [" + queryId + "] task [" + task + "] cleanup failure", t);
 			}
 		}
 	}

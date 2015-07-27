@@ -18,6 +18,7 @@ package org.araqne.log.api;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -40,6 +41,18 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "선택자";
+		return "Selector";
+	}
+
+	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "로그 선택자";
@@ -50,11 +63,7 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 		return "Log Selector";
 	}
 
-	@Override
-	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
-	}
-
+	
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
@@ -64,11 +73,6 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "从其他数据采集器提取符合指定特征的数据。";
 		return "Select logs from logger using text matching";
-	}
-
-	@Override
-	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override

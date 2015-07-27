@@ -3,6 +3,7 @@ package org.araqne.log.api;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -19,12 +20,7 @@ public class ConfigWatchLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
-	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
-	}
-
-	@Override
-	public Collection<Locale> getDescriptionLocales() {
+	public List<Locale> getLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
 	}
 

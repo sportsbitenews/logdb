@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -33,6 +34,18 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 	public String getName() {
 		return "dirwatch";
 	}
+	
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "로컬";
+		return "Local";
+	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
@@ -44,11 +57,6 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 			return "目录监控";
 
 		return "Directory Watcher";
-	}
-
-	@Override
-	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override

@@ -15,10 +15,17 @@
  */
 package org.araqne.logdb;
 
+import java.util.List;
+
 public interface AccountEventListener {
 	void onCreateAccount(Session session, Account account);
 
 	void onRemoveAccount(Session session, Account account);
+
+	/**
+	 * @since 2.8.0
+	 */
+	void onRemoveAccounts(Session session, List<Account> accounts);
 
 	/**
 	 * @since 2.6.34

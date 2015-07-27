@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -51,6 +52,7 @@ public class DefaultQuery implements Query {
 	private AtomicLong stamp = new AtomicLong(1);
 
 	private List<String> fieldOrder;
+	private AtomicBoolean closed = new AtomicBoolean();
 
 	public DefaultQuery(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory) {
 		this.context = context;
@@ -207,10 +209,10 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public void stop(QueryStopReason reason) {
-		if (stopReason != null)
+		if (!closed.compareAndSet(false, true))
 			return;
-
-		stopReason = reason;
+		
+		this.stopReason = reason;
 
 		// stop tasks
 		scheduler.stop(reason);
@@ -244,9 +246,6 @@ public class DefaultQuery implements Query {
 			this.cause = cause;
 			this.stopReason = QueryStopReason.CommandFailure;
 		}
-
-		if (stopReason != null)
-			return;
 
 		stop(QueryStopReason.CommandFailure);
 	}

@@ -40,6 +40,13 @@ public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory 
 		return "recursive-dirwatch";
 	}
 
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "로컬";
+		return "Local";
+	}
+
 	@Validate
 	public void start() {
 		// null -> nio

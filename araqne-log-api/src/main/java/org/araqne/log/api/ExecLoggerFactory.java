@@ -18,6 +18,7 @@ package org.araqne.log.api;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -39,19 +40,26 @@ public class ExecLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "로컬";
+		return "Local";
+	}
+
+	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "외부프로그램";
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "外部プログラム";
-		if(locale != null && locale.equals(Locale.CHINESE))
+		if (locale != null && locale.equals(Locale.CHINESE))
 			return "外部程序";
 		return "External Program";
-	}
-
-	@Override
-	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
@@ -60,7 +68,7 @@ public class ExecLoggerFactory extends AbstractLoggerFactory {
 			return "외부 프로그램의 표준 출력을 로그로 수집합니다.";
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "外部プログラムの標準出力をログとして収集します。";
-		if(locale != null && locale.equals(Locale.CHINESE))
+		if (locale != null && locale.equals(Locale.CHINESE))
 			return "采集外部程序的标准输出内容。";
 		return "Collect standard output of external program";
 	}
@@ -72,11 +80,9 @@ public class ExecLoggerFactory extends AbstractLoggerFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption command = new MutableStringConfigType("command", 
-				t("Command", "명령어", "コマンド","命令"), 
-				t("Command to execute in shell", "쉘에서 실행할 명령어", 
-						"シェルで実行するコマンド","命令行命令"), true);
-	
+		LoggerConfigOption command = new MutableStringConfigType("command", t("Command", "명령어", "コマンド", "命令"), t(
+				"Command to execute in shell", "쉘에서 실행할 명령어", "シェルで実行するコマンド", "命令行命令"), true);
+
 		return Arrays.asList(command);
 	}
 

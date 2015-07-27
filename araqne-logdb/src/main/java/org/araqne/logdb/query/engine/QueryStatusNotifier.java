@@ -77,7 +77,11 @@ public class QueryStatusNotifier {
 
 		private void checkQuery(Query q) {
 			for (QueryStatusCallback c : q.getCallbacks().getStatusCallbacks()) {
-				c.onChange(q);
+				try {
+					c.onChange(q);
+				} catch (Throwable t) {
+					logger.warn("araqne logdb: query [" + q.getId() + "] status callback should not throw any exception", t);
+				}
 			}
 		}
 	}

@@ -50,6 +50,11 @@ public interface Logger {
 	Log getLastLog();
 
 	LoggerStopReason getStopReason();
+	
+	/**
+	 * @since 3.6.0
+	 */
+	Throwable getTemporaryFailure();
 
 	/**
 	 * @since 2.3.1
