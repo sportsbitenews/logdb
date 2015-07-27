@@ -148,6 +148,9 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		} else {
 			old = EventContext.merge(old, ctx);
 		}
+		
+		generateEvent(ctx, EventCause.CREATE);
+		
 		return old;
 	}
 

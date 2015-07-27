@@ -540,6 +540,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			throw lastException;
 
 		for (EventContext ctx : contexts.values()) {
+			generateEvent(ctx, EventCause.CREATE);
+			
 			if (ctx.getHost() != null) {
 				Response<byte[]> oldValue = responses.get(ctx.getKey());
 				addHostItem(ctx, oldValue.get());
