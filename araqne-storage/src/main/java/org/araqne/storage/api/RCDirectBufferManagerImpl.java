@@ -29,7 +29,6 @@ public class RCDirectBufferManagerImpl implements RCDirectBufferManager {
 	public static RCDirectBufferManagerImpl getTestManager() {
 		RCDirectBufferManagerImpl manager = new RCDirectBufferManagerImpl();
 		manager.start();
-		manager.dbLogger.info("TEST RCDirectBufferManager HAS STARTED!!");
 		return manager;
 	}
 
