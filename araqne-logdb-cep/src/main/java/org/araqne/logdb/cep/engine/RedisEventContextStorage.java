@@ -215,9 +215,14 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	}
 
 	private void connect() {
-		jedisPool = null;
 		jedis = null;
 		jedisForScan = null;
+
+		try {
+			if (jedisPool != null)
+				jedisPool.destroy();
+		} catch (Exception e) {
+		}
 
 		jedisPool = getJedisPool();
 		jedis = jedisPool.getResource();
@@ -228,7 +233,6 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			jedis.auth(password);
 			jedisForScan.auth(password);
 		}
-
 	}
 
 	private List<HostAndPort> registerdServers() {
