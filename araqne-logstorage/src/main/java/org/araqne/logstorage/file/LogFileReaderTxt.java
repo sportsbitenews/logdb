@@ -17,8 +17,10 @@ import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogTraverseCallback;
+import org.araqne.logstorage.TableScanRequest;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
+import org.araqne.storage.api.StorageUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,56 +99,59 @@ public class LogFileReaderTxt extends LogFileReader {
 	}
 
 	@Override
-	public void traverse(Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback callback,
-			boolean doParallel) throws IOException, InterruptedException {
+	public void traverse(TableScanRequest req) throws IOException, InterruptedException {
 		boolean suppressBugAlert = false;
 		LogParser parser = null;
-		if (builder != null)
-			parser = builder.build();
+		if (req.getParserBuilder() != null)
+			parser = req.getParserBuilder().build();
 
-		int _id = 1;
-		List<Log> logs = new ArrayList<Log>();
+		int id = 1;
 
 		ListIterator<FilePath> dataPathIterator = dataPathList.listIterator();
-		while(dataPathIterator.hasNext()){
+		while (dataPathIterator.hasNext()){
 			FilePath dataPath = dataPathIterator.next();
 			StorageInputStream dataStream = dataStreamMap.get(dataPath);
 
 			String fileName = dataPath.getAbsolutePath();
-			InputStreamReader dataStreamReader = new InputStreamReader(dataStream, charset);
-			BufferedReader dataStreamBufferedReader = new BufferedReader(dataStreamReader);
+			InputStreamReader dataStreamReader = null;
+			BufferedReader dataStreamBufferedReader = null;
+			try {
+				dataStreamReader = new InputStreamReader(dataStream, charset);
+				dataStreamBufferedReader = new BufferedReader(dataStreamReader);
 
-			String line = null;
-			while ((line = dataStreamBufferedReader.readLine()) != null) {
-				List<Log> result = null;
+				String line = null;
+				LogTraverseCallback callback = req.getTraverseCallback();
+				while (!callback.isEof() && (line = dataStreamBufferedReader.readLine()) != null) {
+					List<Log> result = null;
 
-				Map<String, Object> data = new HashMap<String, Object>();
-				data.put("_fileName", fileName);
-				data.put("line", line);
+					Map<String, Object> data = new HashMap<String, Object>();
+					data.put("_file", fileName);
+					data.put("line", line);
 
-				Log log = new Log(tableName, date, _id++, data);
+					Log log = new Log(tableName, date, id++, data);
 
-				try {
-					result = parse(tableName, parser, log);
-				} catch (LogParserBugException e) {
-					result = new ArrayList<Log>(1);
-					result.add(new Log(e.tableName, e.date, e.id, e.logMap));
-					if (!suppressBugAlert) {
-						logger.error("araqne logstorage: PARSER BUG! original log => table " + e.tableName + ", id " + e.id
-								+ ", data " + e.logMap, e.cause);
-						suppressBugAlert = true;
+					try {
+						result = parse(tableName, parser, log);
+					} catch (LogParserBugException e) {
+						result = new ArrayList<Log>(1);
+						result.add(new Log(e.tableName, e.date, e.id, e.logMap));
+						if (!suppressBugAlert) {
+							logger.error("araqne logstorage: PARSER BUG! original log => table " + e.tableName + ", id " + e.id
+									+ ", data " + e.logMap, e.cause);
+							suppressBugAlert = true;
+						}
+					} finally {
+						if (result == null)
+							continue;
+
+						callback.writeLogs(result);
 					}
-				} finally {
-					if (result == null)
-						continue;
-
-					logs.addAll(result);
 				}
+			} finally {
+				StorageUtil.ensureClose(dataStreamBufferedReader);
+				StorageUtil.ensureClose(dataStreamReader);
 			}
-			dataStreamBufferedReader.close();
-			dataStreamReader.close();
 		}
-		callback.writeLogs(logs);
 	}
 
 }

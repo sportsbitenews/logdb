@@ -213,6 +213,8 @@ public class LogFileServiceTxt implements LogFileService {
 			int reflectedPathCharCnt, boolean isDateFormatEndWithSlash) {
 
 		List<FilePath> filteredFiles = new ArrayList<FilePath>();
+		if (files == null)
+			return filteredFiles;
 
 		for (FilePath file : files) {
 
@@ -395,12 +397,12 @@ public class LogFileServiceTxt implements LogFileService {
 		List<FilePath> dataPathList = new ArrayList<FilePath>();
 
 		if (fileNameSuffix == null || fileNameSuffix.isEmpty()) {
-			FilePath dataPath = new LocalFilePath(baseDir.getAbsolutePath() + "\\" + parentFileName);
+			FilePath dataPath = new LocalFilePath(baseDir.getAbsolutePath() + "/" + parentFileName);
 			if (dataPath.isFile())
 				dataPathList.add(dataPath);
 		} else {
-			String parentPathStr = baseDir.getAbsolutePath() + "\\" + parentFileName.replace("/", "\\");
-			int lastBackslashIdx = parentPathStr.lastIndexOf("\\");
+			String parentPathStr = baseDir.getAbsolutePath() + "/" + parentFileName.replace("\\", "/");
+			int lastBackslashIdx = parentPathStr.lastIndexOf("/");
 			final String remain = parentPathStr.substring(lastBackslashIdx + 1);
 
 			FilePath parentPath = new LocalFilePath(parentPathStr.substring(0, lastBackslashIdx));
@@ -427,6 +429,9 @@ public class LogFileServiceTxt implements LogFileService {
 	private List<FilePath> retrieveFilesFromDate(FilePath[] files, String[] suffixList, int suffixListIdx, int recognizedCharCnt) {
 		List<FilePath> matchedWithSuffix = new ArrayList<FilePath>();
 
+		if (files == null)
+			return matchedWithSuffix;
+		
 		for (FilePath file : files) {
 			String targetString = file.getAbsolutePath().substring(recognizedCharCnt);
 
@@ -445,7 +450,7 @@ public class LogFileServiceTxt implements LogFileService {
 	@Override
 	public List<TableConfigSpec> getConfigSpecs() {
 		TableConfigSpec fileNamePrefix = newTableConfigSpec("filename_prefix", true, TableConfigSpec.locales("File name prefix", "파일명 접두사"));
-		TableConfigSpec dateFormat = newTableConfigSpec("date_format", false, TableConfigSpec.locales("Date format", "날짜 포멧"));
+		TableConfigSpec dateFormat = newTableConfigSpec("date_format", false, TableConfigSpec.locales("Date format", "날짜 형식"));
 		TableConfigSpec fileNameSuffix = newTableConfigSpec("filename_suffix", true, TableConfigSpec.locales("File name suffix", "파일명 접미사"));
 		TableConfigSpec dateLocale = newTableConfigSpec("date_locale", true, TableConfigSpec.locales("Date locale", "날짜 로케일"));
 		TableConfigSpec timeZone = newTableConfigSpec("timezone", true, TableConfigSpec.locales("Time zone", "시간대"));

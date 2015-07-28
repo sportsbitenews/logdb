@@ -94,4 +94,13 @@ public class LogFileWriterTxt extends LogFileWriter {
 	@Override
 	public void purge() {
 	}
+
+	@Override
+	public void setCallbackSet(CallbackSet callbackSet) {
+	}
+
+	@Override
+	public CallbackSet getCallbackSet() {
+		return null;
+	}
 }
