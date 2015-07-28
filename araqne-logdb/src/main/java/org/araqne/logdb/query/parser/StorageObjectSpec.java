@@ -14,6 +14,8 @@ public interface StorageObjectSpec extends Cloneable {
 	
 	public void setNamespace(String ns);
 	
+	public void setTable(String tableName);
+	
 	public String getTable();
 	
 	public Object clone();
