@@ -16,6 +16,21 @@ public class TableWildcardMatcher {
 	private TableWildcardMatcher() {
 	}
 
+	public static boolean match(String name, String expr) {
+		List<NameMatcher> matchers = new ArrayList<NameMatcher>();
+		String[] tokens = expr.split(",");
+		for (String t : tokens) {
+			matchers.add(new NameMatcher(t.trim()));
+		}
+
+		for (NameMatcher matcher : matchers) {
+			if (matcher.matches(name))
+				return true;
+		}
+
+		return false;
+	}
+
 	public static Set<String> apply(Set<String> names, String expr) {
 		Set<String> filtered = new HashSet<String>();
 

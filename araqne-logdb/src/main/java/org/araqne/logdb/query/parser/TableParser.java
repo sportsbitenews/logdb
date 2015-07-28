@@ -397,6 +397,11 @@ public class TableParser extends AbstractQueryCommandParser {
 		public String getTable() {
 			return pattern.getTable();
 		}
+		
+		@Override
+		public void setTable(String tableName) {
+			pattern.setTable(tableName);
+		}
 
 		public String toString() {
 			StringBuilder sb = new StringBuilder();
