@@ -50,6 +50,8 @@ public interface AccountService {
 	void removeAccount(Session session, String loginName);
 
 	void removeAccounts(Session session, Set<String> loginNames);
+	
+	Set<String> getSecurityGroupGuids();
 
 	/**
 	 * @since 2.6.34
