@@ -114,19 +114,4 @@ public abstract class AbstractConfigType implements LoggerConfigOption {
 		return subtype.toString();
 	}
 	
-	protected enum Subtype{
-		Defult(""), Regex("regex"), LocalDirectory("local-dir"), LocalFile("local-file");
-		
-		private String typeName;
-
-		private Subtype(String  name){
-			this.typeName = name;
-		}
-		
-		@Override
-		public String toString(){
-			return typeName;
-		}
-	}
-	
 }

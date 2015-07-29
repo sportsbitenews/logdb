@@ -25,7 +25,6 @@ import java.util.Map;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
-import org.araqne.log.api.AbstractConfigType.Subtype;
 
 @Component(name = "selector-logger-factory")
 @Provides

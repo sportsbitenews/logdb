@@ -9,7 +9,6 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
-import org.araqne.log.api.AbstractConfigType.Subtype;
 
 @Component(name = "gzip-directory-watch-logger-factory")
 @Provides
