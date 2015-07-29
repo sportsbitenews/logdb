@@ -7,7 +7,7 @@ import java.util.Map;
 public class QueryCommandHelp {
 	private String commandName;
 	private Map<Locale, String> descriptions = new HashMap<Locale, String>();
-	private Map<String, Map<Locale, String>> options = new HashMap<String, Map<Locale, String>>();
+	private Map<String, QueryCommandOption> options = new HashMap<String, QueryCommandOption>();
 	private Map<Locale, String> usages = new HashMap<Locale, String>();
 
 	public String getCommandName() {
@@ -26,11 +26,11 @@ public class QueryCommandHelp {
 		this.descriptions = descriptions;
 	}
 
-	public Map<String, Map<Locale, String>> getOptions() {
+	public Map<String, QueryCommandOption> getOptions() {
 		return options;
 	}
 
-	public void setOptions(Map<String, Map<Locale, String>> options) {
+	public void setOptions(Map<String, QueryCommandOption> options) {
 		this.options = options;
 	}
 

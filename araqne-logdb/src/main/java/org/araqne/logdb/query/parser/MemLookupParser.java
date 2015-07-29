@@ -28,9 +28,9 @@ public class MemLookupParser extends AbstractQueryCommandParser {
 			for (Op op : values())
 				if (op.name().toLowerCase().equals(s))
 					return op;
-			
-		//	throw new QueryParseException("unsupported-memlookup-op", -1);
-			Map<String, String > params = new HashMap<String, String>();
+
+			// throw new QueryParseException("unsupported-memlookup-op", -1);
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("op", s);
 			throw new QueryParseException("22000", -1, -1, params);
 		}
@@ -38,13 +38,21 @@ public class MemLookupParser extends AbstractQueryCommandParser {
 
 	public MemLookupParser(LookupHandlerRegistry memLookupRegistry) {
 		this.memLookupRegistry = memLookupRegistry;
+
+		setDescriptions(
+				"Build instant memory lookup table using query. If no option is specified, memlookup will list instances with name, key, size.",
+				"간편하게 lookup 명령어로 호출할 수 있는 인메모리 매핑테이블을 생성하려는 경우 memlookup 명령어를 활용합니다. memlookup 명령어에 아무런 옵션을 주지 않는 경우, memlookup 명령어로 생성된 모든 룩업의 메타데이터를 조회합니다. 아래와 같은 정보를 출력합니다:");
+
+		setOptions("op", OPTIONAL, "list, drop, or build.", "list, drop, build 중 하나.");
+		setOptions("name", OPTIONAL, "lookup name", "룩업 이름");
+		setOptions("key", OPTIONAL, "lookup key field", "룩업 키 필드");
 	}
 
 	@Override
 	public String getCommandName() {
 		return "memlookup";
 	}
-	
+
 	@Override
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
@@ -75,24 +83,24 @@ public class MemLookupParser extends AbstractQueryCommandParser {
 
 		if (op == Op.BUILD) {
 			if (name == null)
-				//throw new QueryParseException("missing-memlookup-name", -1);
+				// throw new QueryParseException("missing-memlookup-name", -1);
 				throw new QueryParseException("22001", -1, -1, null);
 
 			if (key == null)
-			//	throw new QueryParseException("missing-memlookup-key", -1);
+				// throw new QueryParseException("missing-memlookup-key", -1);
 				throw new QueryParseException("22002", -1, -1, null);
-			
+
 		} else if (op == Op.DROP && name == null) {
-			//throw new QueryParseException("missing-memlookup-name", -1);
+			// throw new QueryParseException("missing-memlookup-name", -1);
 			throw new QueryParseException("22003", -1, -1, null);
-			
+
 		} else if (op == Op.LIST && name != null) {
 			LookupHandler handler = memLookupRegistry.getLookupHandler(name);
-			if (handler == null || !(handler instanceof MemLookupHandler)){
-				//throw new QueryParseException("invalid-memlookup-name", -1);
-				Map<String, String> params = new HashMap<String, String> ();
-				params.put("name" , name);
-				throw new QueryParseException("22004", -1, -1 , params);
+			if (handler == null || !(handler instanceof MemLookupHandler)) {
+				// throw new QueryParseException("invalid-memlookup-name", -1);
+				Map<String, String> params = new HashMap<String, String>();
+				params.put("name", name);
+				throw new QueryParseException("22004", -1, -1, params);
 			}
 		}
 

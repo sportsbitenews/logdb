@@ -100,6 +100,7 @@ import org.araqne.logdb.query.parser.PurgeParser;
 import org.araqne.logdb.query.parser.RateLimitParser;
 import org.araqne.logdb.query.parser.RenameParser;
 import org.araqne.logdb.query.parser.RepeatParser;
+import org.araqne.logdb.query.parser.ResultParser;
 import org.araqne.logdb.query.parser.RexParser;
 import org.araqne.logdb.query.parser.ScriptParser;
 import org.araqne.logdb.query.parser.SearchParser;
@@ -223,7 +224,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 				EvalcParser.class, SearchParser.class, StatsParser.class, FieldsParser.class, SortParser.class,
 				TimechartParser.class, RenameParser.class, RexParser.class, JsonParser.class, SignatureParser.class,
 				LimitParser.class, SetParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class,
-				ExplodeParser.class, ParseJsonParser.class, ExecParser.class, ParseMapParser.class, ParseXmlParser.class, CsvFileParser.class);
+				ExplodeParser.class, ParseJsonParser.class, ExecParser.class, ParseMapParser.class, ParseXmlParser.class,
+				CsvFileParser.class);
 
 		List<QueryCommandParser> parsers = new ArrayList<QueryCommandParser>();
 		for (Class<? extends AbstractQueryCommandParser> clazz : parserClazzes) {
@@ -237,7 +239,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		// add table and lookup (need some constructor injection)
 		parsers.add(new TableParser(accountService, storage, tableRegistry, parserFactoryRegistry, parserRegistry));
 		parsers.add(new LookupParser(lookupRegistry));
-		parsers.add(new ScriptParser(bc, scriptRegistry));
+		// parsers.add(new ScriptParser(bc, scriptRegistry));
 		parsers.add(new TextFileParser(parserFactoryRegistry));
 		parsers.add(new ZipFileParser(parserFactoryRegistry));
 		parsers.add(new JsonFileParser(parserFactoryRegistry));
@@ -265,6 +267,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new BypassParser());
 
 		parsers.add(new RepeatParser());
+		parsers.add(new ResultParser(this));
 
 		if (allowQueryPurge)
 			parsers.add(new PurgeParser(storage, tableRegistry));
