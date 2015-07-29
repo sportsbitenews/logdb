@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.araqne.log.api.AbstractConfigType.Subtype;
 
 @Component(name = "daily-directory-watch-logger-factory")
 @Provides
@@ -65,15 +66,16 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 						"指定实时监控周期。如果为0，将不进行实时监控。"), true);
 
 		LoggerConfigOption basePath = new MutableStringConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路", "目录"),
-				t("Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true);
+				t("Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true,
+				Subtype.LocalDirectory);
 
 		LoggerConfigOption fileNamePattern = new MutableStringConfigType("filename_pattern", t("Filename pattern", "파일이름 패턴",
 				"ファイル名パータン", "文件名模式"), t("Regular expression to match log file name", "대상 로그 파일을 선택하는데 사용할 정규표현식",
-				"対象ログファイルを選ぶとき使う正規表現", "用于筛选文件的正则表达式"), true);
+				"対象ログファイルを選ぶとき使う正規表現", "用于筛选文件的正则表达式"), true, Subtype.Regex);
 
 		LoggerConfigOption dirDatePattern = new MutableStringConfigType("dir_date_pattern", t("Directory date pattern",
 				"디렉터리 날짜 정규표현식", "ディレクトリ日付パターン", "目录日期正则表达式"), t("Regular expression for extracting date from directory name",
-				"디렉터리 이름에서 날짜를 추출하는데 사용할 정규표현식", "ディレクトリ名から日付を読み込む正規表現", "设置用于从目录名称提取日期的正则表达式。"), false);
+				"디렉터리 이름에서 날짜를 추출하는데 사용할 정규표현식", "ディレクトリ名から日付を読み込む正規表現", "设置用于从目录名称提取日期的正则表达式。"), false, Subtype.Regex);
 
 		LoggerConfigOption dirDateFormat = new MutableStringConfigType("dir_date_format", t("Directory date format",
 				"디렉터리 날짜 포맷", "ディレクトリ日付フォーマット", "目录日期格式"), t(
@@ -95,7 +97,7 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 
 		LoggerConfigOption datePattern = new MutableStringConfigType("date_pattern", t("Date pattern", "날짜 정규표현식", "日付正規表現",
 				"日期正则表达式"), t("Regular expression to match date and time strings", "날짜 및 시각을 추출하는데 사용할 정규표현식", "日付と時刻を解析する正規表現",
-				"用于提取日期及时间的正则表达式"), false);
+				"用于提取日期及时间的正则表达式"), false, Subtype.Regex);
 
 		LoggerConfigOption dateFormat = new MutableStringConfigType("date_format", t("Date format", "날짜 포맷", "日付フォーマット", "日期格式"),
 				t("Date format to parse date and time strings. e.g. yyyy-MM-dd HH:mm:ss",
@@ -109,17 +111,18 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 				"Time zone, e.g. America/New_york ", "시간대, 예를 들면 KST 또는 Asia/Seoul", "時間帯。例えばJSTまたはAsia/Tokyo",
 				"时区，例如 Asia/Beijing"), false);
 
-		LoggerConfigOption newlogRegex = new MutableStringConfigType("newlog_designator", t("Regex for first line", "로그 시작 정규식",
-				"ログ始め正規表現", "日志起始正则表达式"), t("Regular expression to determine whether the line is start of new log. "
-				+ "if a line does not matches, the line will be merged to prev line.).",
+		LoggerConfigOption newlogRegex = new MutableStringConfigType("newlog_designator", t("Regex for first line",
+				"로그 시작 정규표현식", "ログ始め正規表現", "日志起始正则表达式"), t(
+				"Regular expression to determine whether the line is start of new log. "
+						+ "if a line does not matches, the line will be merged to prev line.).",
 				"새 로그의 시작을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "新しいログの始まりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)",
-				"用于识别日志起始位置的正则表达式(如没有匹配项，则合并到之前日志)"), false);
+				"用于识别日志起始位置的正则表达式(如没有匹配项，则合并到之前日志)"), false, Subtype.Regex);
 
 		LoggerConfigOption newlogEndRegex = new MutableStringConfigType("newlog_end_designator", t("Regex for last line",
-				"로그 끝 정규식", "ログ終わり正規表現", "日志结束正则表达式"), t("Regular expression to determine whether the line is end of new log."
+				"로그 끝 정규표현식", "ログ終わり正規表現", "日志结束正则表达式"), t("Regular expression to determine whether the line is end of new log."
 				+ "(if a line does not matches, the line will be merged to prev line.).",
 				"로그의 끝을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "ログの終わりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)",
-				"用于识别日志结束位置地正则表达式(如没有匹配项，则合并到之前日志)"), false);
+				"用于识别日志结束位置地正则表达式(如没有匹配项，则合并到之前日志)"), false, Subtype.Regex);
 
 		LoggerConfigOption charset = new MutableStringConfigType("charset", t("Charset", "문자 집합", "文字セット", "字符集"), t(
 				"Charset encoding", "텍스트 파일의 문자 인코딩 방식", "テキストファイルの文字エンコーディング方式", "文本文件的字符编码方式"), false);

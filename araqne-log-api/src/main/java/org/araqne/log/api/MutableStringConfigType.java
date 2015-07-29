@@ -13,4 +13,15 @@ public class MutableStringConfigType extends StringConfigType implements Mutable
 			boolean required, Map<Locale, String> defaultValues) {
 		super(name, displayNames, descriptions, required, defaultValues);
 	}
+
+	public MutableStringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
+			boolean required, Subtype subtype) {
+		super(name, displayNames, descriptions, required, subtype);
+	}
+
+	public MutableStringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
+			boolean required, Map<Locale, String> defaultValues, Subtype subtype) {
+		super(name, displayNames, descriptions, required, defaultValues, subtype);
+	}
+
 }

@@ -26,7 +26,8 @@ public abstract class AbstractConfigType implements LoggerConfigOption {
 	protected Map<Locale, String> descriptions;
 	protected boolean isRequired;
 	protected Map<Locale, String> defaultValues;
-
+	protected Subtype subtype;
+	
 	public AbstractConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
 			boolean isRequired) {
 		this(name, displayNames, descriptions, isRequired, new HashMap<Locale, String>());
@@ -39,6 +40,21 @@ public abstract class AbstractConfigType implements LoggerConfigOption {
 		this.descriptions = descriptions;
 		this.isRequired = isRequired;
 		this.defaultValues = defaultValues;
+	}
+	
+	public AbstractConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
+			boolean isRequired, Subtype subtype) {
+		this(name, displayNames, descriptions, isRequired, new HashMap<Locale, String>(), subtype);
+	}
+
+	public AbstractConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
+			boolean isRequired, Map<Locale, String> defaultValues, Subtype subtype) {
+		this.name = name;
+		this.displayNames = displayNames;
+		this.descriptions = descriptions;
+		this.isRequired = isRequired;
+		this.defaultValues = defaultValues;
+		this.subtype = subtype;
 	}
 
 	@Override
@@ -92,4 +108,25 @@ public abstract class AbstractConfigType implements LoggerConfigOption {
 	public void validate(Object value) {
 		// override this for validation
 	}
+	
+	@Override
+	public String getSubtype(){
+		return subtype.toString();
+	}
+	
+	protected enum Subtype{
+		Defult(""), Regex("regex"), LocalDirectory("local-dir"), LocalFile("local-file");
+		
+		private String typeName;
+
+		private Subtype(String  name){
+			this.typeName = name;
+		}
+		
+		@Override
+		public String toString(){
+			return typeName;
+		}
+	}
+	
 }

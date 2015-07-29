@@ -64,15 +64,16 @@ public class TimeRollingLogWriterFactory extends AbstractLoggerFactory implement
 
 	@Override
 	public List<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "元ロガー名", "源数据采集器"), t(
-				"Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的源数据采集器名称"), true);
+		LoggerConfigOption loggerName = new StringConfigType("source_logger", t("Source logger name", "원본 로거 이름", "元ロガー名",
+				"源数据采集器"), t("Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的源数据采集器名称"),
+				true);
 
-		LoggerConfigOption filePath = new StringConfigType("file_path", t("file path", "파일 경로", "ファイル経路", "文件路径"), t("rolling file path",
-				"롤링되는 파일 경로", "ローリングされるファイル経路", "滚动文件路径"), true);
-		LoggerConfigOption rotateInterval = new StringConfigType("rotate_interval", t("rotate interval", "파일 교체 주기", "ファイル交代周期", "滚动周期"),
-				t("hour or day", "시간 (hour) 혹은 일자 (day)", "時間(hour)か日(day)", "1小时(输入hour)或者1天(输入day)"), true);
-		LoggerConfigOption charsetName = new StringConfigType("charset", t("charset", "문자집합", "文字セット", "字符集"), t("utf-8 by default",
-				"기본값은 utf-8", "基本値はutf-8", "默认值为utf-8"), false);
+		LoggerConfigOption filePath = new StringConfigType("file_path", t("file path", "파일 경로", "ファイル経路", "文件路径"), t(
+				"rolling file path", "롤링되는 파일 경로", "ローリングされるファイル経路", "滚动文件路径"), true, Subtype.LocalFile);
+		LoggerConfigOption rotateInterval = new StringConfigType("rotate_interval", t("rotate interval", "파일 교체 주기", "ファイル交代周期",
+				"滚动周期"), t("hour or day", "시간 (hour) 혹은 일자 (day)", "時間(hour)か日(day)", "1小时(输入hour)或者1天(输入day)"), true);
+		LoggerConfigOption charsetName = new StringConfigType("charset", t("charset", "문자집합", "文字セット", "字符集"), t(
+				"utf-8 by default", "기본값은 utf-8", "基本値はutf-8", "默认值为utf-8"), false);
 
 		return Arrays.asList(loggerName, filePath, rotateInterval, charsetName);
 	}

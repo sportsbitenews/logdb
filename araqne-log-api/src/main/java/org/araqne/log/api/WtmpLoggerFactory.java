@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.araqne.log.api.AbstractConfigType.Subtype;
 
 @Component(name = "wtmp-logger-factory")
 @Provides
@@ -66,7 +67,7 @@ public class WtmpLoggerFactory extends AbstractLoggerFactory {
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		LoggerConfigOption path = new MutableStringConfigType("path", t("Path", "파일 경로", "ファイル経路", "文件路径"), t("wtmp file path",
-				"wtmp 파일 경로", "wtmpファイル経路", "wtmp文件路径"), true);
+				"wtmp 파일 경로", "wtmpファイル経路", "wtmp文件路径"), true, Subtype.LocalFile);
 
 		LoggerConfigOption server = new MutableStringConfigType("server", t("OS type", "운영체제 유형", "操作系统类型"), t(
 				"OS type, linux (default), solaris, aix, hpux", "운영체제 유형, linux (기본값), solaris, aix, hpux 중 하나",

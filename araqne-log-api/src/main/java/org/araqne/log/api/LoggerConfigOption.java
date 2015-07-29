@@ -16,7 +16,9 @@
 package org.araqne.log.api;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public interface LoggerConfigOption {
 	String getName();
@@ -40,4 +42,24 @@ public interface LoggerConfigOption {
 	void validate(Object value);
 
 	Object parse(String value);
+	
+	String getSubtype();
+	
+	//TODO: logpresso 브랜치에서 작업할 때 추가할것
+	/*
+	 * public class LoggerConfigSerializer {
+	public static Map<String, Object> getConfigOption(LoggerConfigOption o) {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("name", o.getName());
+		m.put("type", o.getType());
+		m.put("is_required", o.isRequired());
+		m.put("display_names", getDisplayNames(o));
+		m.put("descriptions", getDescriptions(o));
+		m.put("default_values", getDefaultValues(o));
+		
+		m.put("subtype", o.getSubtype());
+		
+		return m;
+	}
+	 */
 }

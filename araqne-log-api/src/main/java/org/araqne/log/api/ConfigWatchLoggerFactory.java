@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
+import org.araqne.log.api.AbstractConfigType.Subtype;
 
 @Component(name = "config-watch-logger-factory")
 @Provides
@@ -49,11 +50,11 @@ public class ConfigWatchLoggerFactory extends AbstractLoggerFactory {
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		LoggerConfigOption basePath = new MutableStringConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路", "目录"),
-				t("Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true);
+				t("Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true, Subtype.LocalDirectory);
 
 		LoggerConfigOption fileNamePattern = new MutableStringConfigType("filename_pattern", t("Filename pattern", "파일이름 패턴",
 				"ファイルなパータン", "文件名模式"), t("Regular expression to match log file name", "대상 로그 파일을 선택하는데 사용할 정규표현식",
-				"対象ログファイルを選ぶとき使う正規表現", "用于筛选文件的正则表达式"), true);
+				"対象ログファイルを選ぶとき使う正規表現", "用于筛选文件的正则表达式"), true, Subtype.Regex);
 
 		return Arrays.asList(basePath, fileNamePattern);
 	}
