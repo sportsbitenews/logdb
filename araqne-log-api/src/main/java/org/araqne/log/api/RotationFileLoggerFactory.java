@@ -72,11 +72,11 @@ public class RotationFileLoggerFactory extends AbstractLoggerFactory {
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		LoggerConfigOption filePath = new MutableStringConfigType("file_path", t("File Path", "파일 경로", "ファイル経路", "文件路径"), t(
-				"Log file path", "텍스트 로그 파일의 절대 경로", "テキストログファイルの絶対経路", "文本日志文件的绝对路径"), true, t("/var/log/"), Subtype.LocalFile);
+				"Log file path", "텍스트 로그 파일의 절대 경로", "テキストログファイルの絶対経路", "文本日志文件的绝对路径"), true, t("/var/log/"), "local-file");
 
 		LoggerConfigOption datePattern = new MutableStringConfigType("date_pattern", t("Date Pattern", "날짜 정규표현식", "日付正規表現",
 				"日期正则表达式"), t("Regex for date extraction", "날짜 문자열 추출에 사용되는 정규표현식", "日付文字列の抽出に使う正規表現", "用于提取日期字符串的正则表达式"), false,
-				t(null), Subtype.Regex);
+				t(null), "regex");
 
 		LoggerConfigOption dateFormat = new MutableStringConfigType("date_format", t("Date Format", "날짜 패턴", "日付パターン", "日期模式"),
 				t("Date pattern of log file", "날짜 파싱에 필요한 패턴 (예시: yyyy-MM-dd HH:mm:ss)", "日付の解析に使うパターン (例: yyyy-MM-dd HH:mm:ss)",
@@ -97,13 +97,13 @@ public class RotationFileLoggerFactory extends AbstractLoggerFactory {
 				"ログ始め正規表現", "日志起始正则表达式"), t("Regular expression to determine whether the line is start of new log."
 				+ "(if a line does not matches, the line will be merged to prev line.).",
 				"새 로그의 시작을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "新しいログの始まりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)",
-				"用于识别日志起始位置的正则表达式(如没有匹配项，则合并到之前日志)"), false, Subtype.Regex);
+				"用于识别日志起始位置的正则表达式(如没有匹配项，则合并到之前日志)"), false, "regex");
 
 		LoggerConfigOption logEndRegex = new MutableStringConfigType("end_regex", t("Log end regex", "로그 끝 정규표현식", "ログ終わり正規表現",
 				"日志结束正则表达式"), t("Regular expression to determine whether the line is end of new log."
 				+ "(if a line does not matches, the line will be merged to prev line.).",
 				"로그의 끝을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "ログの終わりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)",
-				"用于识别日志结束位置地正则表达式(如没有匹配项，则合并到之前日志)"), false, Subtype.Regex);
+				"用于识别日志结束位置地正则表达式(如没有匹配项，则合并到之前日志)"), false, "regex");
 
 		return Arrays.asList(filePath, charset, datePattern, dateFormat, dateLocale, timezone, logBeginRegex, logEndRegex);
 	}

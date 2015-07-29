@@ -83,7 +83,7 @@ public class RollingLogWriterFactory extends AbstractLoggerFactory implements Ru
 				"源数据采集器"), t("Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名", "包含名字空间的源数据采集器名称"),
 				true);
 		LoggerConfigOption filePath = new StringConfigType("file_path", t("file path", "파일 경로", "ファイル経路", "文件路径"), t(
-				"rolling file path", "롤링되는 파일 경로", "ローリングされるファイル経路", "轮询的文件路径"), true, Subtype.LocalFile);
+				"rolling file path", "롤링되는 파일 경로", "ローリングされるファイル経路", "轮询的文件路径"), true, "local-file");
 		LoggerConfigOption maxFileSize = new StringConfigType("max_file_size", t("max file size", "최대 파일 크기", "最大ファイルサイズ",
 				"最大文件大小"), t("max file size in bytes", "바이트 단위 최대 파일 크기", "byte単位最大ファイルサイズ", "最大文件大小"), true);
 		LoggerConfigOption maxBackupIndex = new IntegerConfigType("max_backup_index", t("max backup index", "최대 백업 인덱스",

@@ -69,7 +69,7 @@ public class TimeRollingLogWriterFactory extends AbstractLoggerFactory implement
 				true);
 
 		LoggerConfigOption filePath = new StringConfigType("file_path", t("file path", "파일 경로", "ファイル経路", "文件路径"), t(
-				"rolling file path", "롤링되는 파일 경로", "ローリングされるファイル経路", "滚动文件路径"), true, Subtype.LocalFile);
+				"rolling file path", "롤링되는 파일 경로", "ローリングされるファイル経路", "滚动文件路径"), true, "local-file");
 		LoggerConfigOption rotateInterval = new StringConfigType("rotate_interval", t("rotate interval", "파일 교체 주기", "ファイル交代周期",
 				"滚动周期"), t("hour or day", "시간 (hour) 혹은 일자 (day)", "時間(hour)か日(day)", "1小时(输入hour)或者1天(输入day)"), true);
 		LoggerConfigOption charsetName = new StringConfigType("charset", t("charset", "문자집합", "文字セット", "字符集"), t(

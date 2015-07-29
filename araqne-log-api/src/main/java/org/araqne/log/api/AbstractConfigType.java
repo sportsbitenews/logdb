@@ -26,7 +26,7 @@ public abstract class AbstractConfigType implements LoggerConfigOption {
 	protected Map<Locale, String> descriptions;
 	protected boolean isRequired;
 	protected Map<Locale, String> defaultValues;
-	protected Subtype subtype;
+	protected String subtype;
 	
 	public AbstractConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
 			boolean isRequired) {
@@ -43,12 +43,12 @@ public abstract class AbstractConfigType implements LoggerConfigOption {
 	}
 	
 	public AbstractConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
-			boolean isRequired, Subtype subtype) {
+			boolean isRequired, String subtype) {
 		this(name, displayNames, descriptions, isRequired, new HashMap<Locale, String>(), subtype);
 	}
 
 	public AbstractConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
-			boolean isRequired, Map<Locale, String> defaultValues, Subtype subtype) {
+			boolean isRequired, Map<Locale, String> defaultValues, String subtype) {
 		this.name = name;
 		this.displayNames = displayNames;
 		this.descriptions = descriptions;
@@ -111,7 +111,7 @@ public abstract class AbstractConfigType implements LoggerConfigOption {
 	
 	@Override
 	public String getSubtype(){
-		return subtype.toString();
+		return subtype;
 	}
 	
 }

@@ -30,12 +30,12 @@ public class StringConfigType extends AbstractConfigType {
 	}
 
 	public StringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions, boolean required,
-			Subtype subtype) {
+			String subtype) {
 		super(name, displayNames, descriptions, required, subtype);
 	}
 
 	public StringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions, boolean required,
-			Map<Locale, String> defaultValues, Subtype subtype) {
+			Map<Locale, String> defaultValues, String subtype) {
 		super(name, displayNames, descriptions, required, defaultValues, subtype);
 	}
 
