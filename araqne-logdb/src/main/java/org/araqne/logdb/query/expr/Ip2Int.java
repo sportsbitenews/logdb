@@ -28,8 +28,8 @@ public class Ip2Int extends FunctionExpression {
 			addr = (InetAddress) v;
 		else
 			try {
-				addr = InetAddresses.forString((String) v);
-				if(addr  == null)
+				addr = InetAddresses.forString(v.toString());
+				if (addr == null)
 					return null;
 			} catch (IllegalArgumentException t) {
 				return null;

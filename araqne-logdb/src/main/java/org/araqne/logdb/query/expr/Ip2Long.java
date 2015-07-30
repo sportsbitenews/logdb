@@ -19,7 +19,6 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.util.List;
 
-import org.araqne.api.InetAddresses;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 
@@ -42,19 +41,13 @@ public class Ip2Long extends FunctionExpression {
 
 		if (v instanceof Inet4Address)
 			addr = (InetAddress) v;
-		else
-			try {
-				addr = InetAddresses.forString((String) v);
-				if (addr == null)
-					return null;
-			} catch (IllegalArgumentException t) {
-				return null;
-			}
+		else {
+			return convert(v.toString());
+		}
 
 		return ToLong.convert(addr.getAddress());
 	}
 
-	// external code use this. check performance impact and use google code
 	public static Long convert(String ip) {
 		int numCount = 0;
 		int digitCount = 0;
