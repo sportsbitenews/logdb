@@ -15,14 +15,14 @@
  */
 package org.araqne.logdb.query.expr;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.junit.Test;
 
