@@ -144,13 +144,12 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 				realClock.add(ctx);
 			}
 
+			generateEvent(ctx, EventCause.CREATE);
 			return ctx;
-		} else {
-			old = EventContext.merge(old, ctx);
 		}
-		
+
+		old = EventContext.merge(old, ctx);
 		generateEvent(ctx, EventCause.CREATE);
-		
 		return old;
 	}
 
