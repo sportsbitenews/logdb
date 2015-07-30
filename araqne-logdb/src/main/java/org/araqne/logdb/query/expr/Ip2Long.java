@@ -45,12 +45,87 @@ public class Ip2Long extends FunctionExpression {
 		else
 			try {
 				addr = InetAddresses.forString((String) v);
-				if(addr  == null)
+				if (addr == null)
 					return null;
 			} catch (IllegalArgumentException t) {
 				return null;
 			}
-		
+
 		return ToLong.convert(addr.getAddress());
+	}
+
+	// external code use this. check performance impact and use google code
+	public static Long convert(String ip) {
+		int numCount = 0;
+		int digitCount = 0;
+		int[] numbers = new int[4];
+		int[] digits = new int[3];
+		int len = ip.length();
+
+		for (int i = 0; i < len; i++) {
+			char c = ip.charAt(i);
+			if (c == '.') {
+				int num = 0;
+				switch (digitCount) {
+				case 1:
+					num = digits[0];
+					break;
+				case 2:
+					num = digits[0] * 10 + digits[1];
+					break;
+				case 3:
+					num = digits[0] * 100 + digits[1] * 10 + digits[2];
+					break;
+				default:
+					return null;
+				}
+
+				if (num < 0 || num > 255)
+					return null;
+
+				if (numCount >= 4)
+					return null;
+
+				numbers[numCount++] = num;
+
+				digitCount = 0;
+			} else if (c >= '0' && c <= '9') {
+				if (digitCount >= 3)
+					return null;
+				digits[digitCount++] = c - '0';
+			} else {
+				return null;
+			}
+		}
+
+		int num = 0;
+		switch (digitCount) {
+		case 1:
+			num = digits[0];
+			break;
+		case 2:
+			num = digits[0] * 10 + digits[1];
+			break;
+		case 3:
+			num = digits[0] * 100 + digits[1] * 10 + digits[2];
+			break;
+		default:
+			return null;
+		}
+
+		if (num < 0 || num > 255)
+			return null;
+
+		if (numCount >= 4)
+			return null;
+
+		numbers[numCount++] = num;
+
+		long result = 0;
+		for (int part : numbers) {
+			result <<= 8;
+			result |= part;
+		}
+		return result;
 	}
 }
