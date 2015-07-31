@@ -45,20 +45,23 @@ public class EventContext implements EventClockItem, Marshalable {
 	private int maxRows;
 
 	// host for external log tick
-	private String host;
+	// private String host;
 
 	private HashMap<String, Object> variables = new HashMap<String, Object>(1);
 
 	private CopyOnWriteArraySet<EventContextListener> listeners = new CopyOnWriteArraySet<EventContextListener>();
 
-	public EventContext(EventKey key, long created, long expireTime, long timeoutTime, int maxRows, String host) {
+	public EventContext(EventKey key, long created, long expireTime, long timeoutTime, int maxRows) {// ,
+																										// String
+																										// host)
+																										// {
 		this.key = key;
 		this.created = created;
 		this.rows = Collections.synchronizedList(new ArrayList<Row>());
 		this.expireTime = expireTime;
 		this.timeoutTime = timeoutTime;
 		this.maxRows = maxRows;
-		this.host = host;
+		// this.host = host;
 	}
 
 	public EventKey getKey() {
@@ -101,12 +104,9 @@ public class EventContext implements EventClockItem, Marshalable {
 		return maxRows;
 	}
 
+	@Override
 	public String getHost() {
-		return host;
-	}
-
-	public void setHost(String host) {
-		this.host = host;
+		return key.getHost();
 	}
 
 	public long getCreated() {
@@ -199,7 +199,6 @@ public class EventContext implements EventClockItem, Marshalable {
 		m.put("expireTime", expireTime);
 		m.put("timeoutTime", timeoutTime);
 		m.put("maxRows", maxRows);
-		m.put("host", host);
 		m.put("rows", format(rows));
 		m.put("variables", variables);
 		m.put("count", counter.get());
@@ -213,11 +212,12 @@ public class EventContext implements EventClockItem, Marshalable {
 		Long expireTime = (Long) m.get("expireTime");
 		Long timeoutTime = (Long) m.get("timeoutTime");
 		Integer maxRows = (Integer) m.get("maxRows");
-		String host = (String) m.get("host");
+
 		List<Row> rows = parseRows((Object[]) m.get("rows"));
 		HashMap<String, Object> variables = (HashMap<String, Object>) m.get("variables");
 		Integer count = (Integer) m.get("count");
-		EventContext cxt = new EventContext(key, created, expireTime, timeoutTime, maxRows, host);
+		EventContext cxt = new EventContext(key, created, expireTime, timeoutTime, maxRows);// ,
+																							// host);
 		for (Row row : rows)
 			cxt.addRow(row);
 
@@ -228,25 +228,6 @@ public class EventContext implements EventClockItem, Marshalable {
 			cxt.variables = variables;
 
 		return cxt;
-	}
-
-	public static EventContext merge(EventContext oldCtx, EventContext ctx) {
-		if (ctx.getTimeoutTime() != 0L)
-			oldCtx.setTimeoutTime(ctx.getTimeoutTime());
-
-		if (ctx.getHost() != null)
-			oldCtx.setHost(ctx.getHost());
-
-		for (Row row : ctx.getRows()) {
-			oldCtx.addRow(row);
-		}
-
-		for (String vKey : ctx.getVariables().keySet())
-			oldCtx.setVariable(vKey, ctx.getVariable(vKey));
-
-		oldCtx.getCounter().addAndGet(ctx.getCounter().get());
-
-		return oldCtx;
 	}
 
 }

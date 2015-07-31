@@ -18,6 +18,8 @@ package org.araqne.logdb.cep;
 public interface EventClockItem {
 
 	EventKey getKey();
+	
+	String getHost();
 
 	long getExpireTime();
 

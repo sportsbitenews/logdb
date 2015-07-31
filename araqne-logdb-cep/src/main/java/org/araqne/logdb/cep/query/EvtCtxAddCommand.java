@@ -15,8 +15,9 @@
  */
 package org.araqne.logdb.cep.query;
 
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
@@ -37,6 +38,7 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 	private TimeSpan timeout;
 	private int maxRows;
 	private Expression matcher;
+	private List<EventContext> contexts;
 
 	// host field for external clock
 	private String hostField;
@@ -60,44 +62,32 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(Row row) {
-		checkEvent(row);
+		checkEvent(row, false);
 		pushPipe(row);
 	}
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
-		ConcurrentHashMap<EventKey, EventContext> contexts = new ConcurrentHashMap<EventKey, EventContext>();
+		contexts = new ArrayList<EventContext>();
 
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				checkEvent(row, new BatchCallback(contexts));
+				checkEvent(row, true);
 			}
 		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-
-				checkEvent(row, new BatchCallback(contexts));
+				checkEvent(row, true);
 			}
-
 		}
-		storage.addContexts(contexts);
 
+		storage.registerContexts(contexts);
 		pushPipe(rowBatch);
 	}
 
-	private void checkEvent(Row row) {
-		checkEvent(row, new CallbackAdd() {
-
-			@Override
-			public void addJob(EventContext ctx) {
-				storage.addContext(ctx);
-			}
-		});
-	}
-
-	private void checkEvent(Row row, CallbackAdd callback) {
+	private void checkEvent(Row row, boolean batch) {
 		boolean matched = true;
 
 		Object o = matcher.eval(row);
@@ -141,8 +131,7 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 		if (matched) {
 			String key = k.toString();
 			EventKey eventKey = new EventKey(topic, key);
-			if (clockHost != null)
-				eventKey.setHost(clockHost);
+			eventKey.setHost(clockHost);
 
 			long expireTime = 0;
 			if (expire != null)
@@ -152,12 +141,15 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			if (timeout != null)
 				timeoutTime = created + timeout.unit.getMillis() * timeout.amount;
 
-			EventContext ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
-			ctx.setTimeoutTime(timeoutTime);
-			ctx.getCounter().incrementAndGet();
-			ctx.addRow(row);
+			EventContext context = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows);
+			context.getCounter().incrementAndGet();
+			context.addRow(row);
 
-			callback.addJob(ctx);
+			if (batch) {
+				contexts.add(context);
+			} else {
+				storage.registerContext(context);
+			}
 		}
 	}
 
@@ -181,39 +173,4 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 
 		return s;
 	}
-
-	private interface CallbackAdd {
-
-		void addJob(EventContext ctx);
-
-	}
-
-	private class BatchCallback implements CallbackAdd {
-		ConcurrentHashMap<EventKey, EventContext> contexts;
-
-		private BatchCallback(ConcurrentHashMap<EventKey, EventContext> contexts) {
-			this.contexts = contexts;
-		}
-
-		@Override
-		public void addJob(EventContext ctx) {
-			if (!contexts.contains(ctx)) {
-				contexts.put(ctx.getKey(), ctx);
-				return;
-			}
-
-			EventContext oldCtx = contexts.get(ctx);
-			oldCtx.getCounter().incrementAndGet();
-
-			if (ctx.getTimeoutTime() != 0L)
-				oldCtx.setTimeoutTime(ctx.getTimeoutTime());
-
-			for (Row row : ctx.getRows()) {
-				oldCtx.addRow(row);
-			}
-
-			contexts.put(oldCtx.getKey(), oldCtx);
-		}
-	}
-
 }

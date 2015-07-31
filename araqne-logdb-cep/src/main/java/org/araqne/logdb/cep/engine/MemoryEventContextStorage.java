@@ -18,6 +18,7 @@ package org.araqne.logdb.cep.engine;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -144,12 +145,8 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 				realClock.add(ctx);
 			}
 
-			generateEvent(ctx, EventCause.CREATE);
 			return ctx;
 		}
-
-		old = EventContext.merge(old, ctx);
-		generateEvent(ctx, EventCause.CREATE);
 		return old;
 	}
 
@@ -166,6 +163,33 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		} else {
 			return clock;
 		}
+	}
+
+	@Override
+	public void registerContext(EventContext context) {
+		boolean newContext = false;
+		EventContext ctx = getContext(context.getKey());
+		if (ctx == null) {
+			ctx = context;
+			EventContext oldCtx = addContext(ctx);
+			newContext = ctx == oldCtx;
+			ctx = oldCtx;
+		} else {
+			ctx.addRow(context.getRows().get(0));
+			ctx.getCounter().incrementAndGet();
+		}
+
+		// extend timeout
+		if (!newContext)
+			ctx.setTimeoutTime(context.getTimeoutTime());
+
+		generateEvent(ctx, EventCause.CREATE);
+	}
+
+	@Override
+	public void registerContexts(List<EventContext> contexts) {
+		for (EventContext context : contexts)
+			registerContext(context);
 	}
 
 	@Override
@@ -297,12 +321,6 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public void addContexts(Map<EventKey, EventContext> contexts) {
-		for (EventContext ctx : contexts.values())
-			addContext(ctx);
-	}
-
-	@Override
 	public void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal) {
 		for (Entry<EventKey, EventContext> entry : contexts.entrySet()) {
 			EventContext ctx = getContext(entry.getKey());
@@ -327,8 +345,6 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 		@Override
 		public void onRemove(EventKey key, EventClockItem value, String host, EventCause expire) {
-			// removeContext(key, new EventContext(key, 0L,
-			// value.getExpireTime(), value.getTimeoutTime(), 0, host), expire);
 			removeContext(key, (EventContext) value, expire);
 		}
 	}

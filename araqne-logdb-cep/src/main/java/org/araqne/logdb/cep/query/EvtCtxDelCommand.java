@@ -154,7 +154,7 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 		public void removeJob(EventKey eventKey, Row row) {
 			EventContext ctx = contexts.get(eventKey);
 			if (ctx == null)
-				ctx = new EventContext(eventKey, 0L, 0L, 0L, 1, null);
+				ctx = new EventContext(eventKey, 0L, 0L, 0L, 1);
 
 			ctx.getCounter().incrementAndGet();
 			ctx.addRow(row);
@@ -162,13 +162,3 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 		}
 	}
 }
-
-// @Override
-// public void removeJob(EventKey eventKey, Row row) {
-// EventContext ctx = storage.getContext(eventKey);
-// if (ctx != null)
-// ctx.addRow(row);
-//
-// storage.removeContext(eventKey, ctx, EventCause.REMOVAL);
-// }
-

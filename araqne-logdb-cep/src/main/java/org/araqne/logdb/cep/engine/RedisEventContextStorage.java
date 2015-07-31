@@ -35,6 +35,7 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.codec.EncodingRule;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventCause;
 import org.araqne.logdb.cep.EventClock;
@@ -215,13 +216,17 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	}
 
 	private void connect() {
-		jedis = null;
-		jedisForScan = null;
 
 		try {
+			returnResource(jedis);
+			returnResource(jedisForScan);
 			if (jedisPool != null)
 				jedisPool.destroy();
 		} catch (Exception e) {
+		} finally {
+			jedis = null;
+			jedisForScan = null;
+			jedisPool = null;
 		}
 
 		jedisPool = getJedisPool();
@@ -514,7 +519,73 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	}
 
 	@Override
-	public void addContexts(Map<EventKey, EventContext> contexts) {
+	public EventContext addContext(EventContext ctx) {
+		byte[] oldByteValue = null;
+		RuntimeException lastException = null;
+		synchronized (jedisLock) {
+			for (int i = 0; i < retryCnt; ++i) {
+				lastException = null;
+				try {
+					if (jedis == null)
+						connect();
+
+					Transaction t = jedis.multi();
+					Response<byte[]> pipeString = t.get(redisKey(ctx.getKey()));
+					t.exec();
+
+					t = jedis.multi();
+					oldByteValue = pipeString.get();
+					
+					if(oldByteValue == null)
+						return null;
+					
+					@SuppressWarnings("unchecked")
+					EventContext oldCtx = EventContext.parse((Map<String, Object>) decode(oldByteValue));
+					ctx = contextMerge(oldCtx, ctx);
+					t.set(redisKey(ctx.getKey()), redisValue(ctx));
+					t.exec();
+					break;
+				} catch (JedisConnectionException e) {
+					returnResource(jedis);
+					closeClient(jedis);
+					jedis = null;
+					lastException = e;
+				}
+			}
+		}
+
+		if (lastException != null)
+			throw lastException;
+
+		return ctx;
+	}
+
+	@Override
+	public void registerContext(EventContext ctx) {
+		List<EventContext> contexts = new ArrayList<EventContext>();
+		contexts.add(ctx);
+		registerContexts(contexts);
+	}
+
+	private List<EventContext> preMergeContexts(List<EventContext> contexts) {
+		Map<EventKey, EventContext> map = new HashMap<EventKey, EventContext>();
+
+		for (EventContext ctx : contexts) {
+			if (!map.containsKey(ctx.getKey())) {
+				map.put(ctx.getKey(), ctx);
+			} else {
+				contextMerge(map.get(ctx.getKey()), ctx);
+			}
+		}
+
+		return new ArrayList<EventContext>(map.values());
+	}
+
+	@Override
+	public void registerContexts(List<EventContext> contexts) {
+		// 한 rowBatch에 중복되는 key가 많이 있을 때 메모리에서 미리 합쳐서 레디스 접속 횟수를 줄여 성능 향상 기대
+		// contexts = preMergeContexts(contexts);
+
 		ConcurrentHashMap<EventKey, Response<byte[]>> responses = new ConcurrentHashMap<EventKey, Response<byte[]>>();
 		RuntimeException lastException = null;
 		synchronized (jedisLock) {
@@ -525,16 +596,15 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 						connect();
 
 					Transaction t = jedis.multi();
-					for (EventKey evtkey : contexts.keySet()) {
-						Response<byte[]> pipeString = t.get(redisKey(evtkey));
-						responses.put(evtkey, pipeString);
+					for (EventContext ctx : contexts) {
+						Response<byte[]> pipeString = t.get(redisKey(ctx.getKey()));
+						responses.put(ctx.getKey(), pipeString);
 					}
 					t.exec();
 
 					t = jedis.multi();
-					for (EventKey evtkey : contexts.keySet()) {
-						byte[] oldByteValue = responses.get(evtkey).get();
-						EventContext ctx = contexts.get(evtkey);
+					for (EventContext ctx : contexts) {
+						byte[] oldByteValue = responses.get(ctx.getKey()).get();
 						addContextToRedis(ctx, oldByteValue, t);
 					}
 					t.exec();
@@ -552,7 +622,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		if (lastException != null)
 			throw lastException;
 
-		for (EventContext ctx : contexts.values()) {
+		for (EventContext ctx : contexts) {
 			generateEvent(ctx, EventCause.CREATE);
 
 			if (ctx.getHost() != null) {
@@ -560,14 +630,6 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 				addHostItem(ctx, oldValue.get());
 			}
 		}
-	}
-
-	@Override
-	public EventContext addContext(EventContext ctx) {
-		Map<EventKey, EventContext> contexts = new HashMap<EventKey, EventContext>();
-		contexts.put(ctx.getKey(), ctx);
-		addContexts(contexts);
-		return contexts.get(ctx.getKey());
 	}
 
 	private void addHostItem(EventContext ctx, byte[] oldByteValue) {
@@ -603,19 +665,37 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			if (timeoutTime != 0L && ctx.getHost() == null)
 				t.pexpireAt(expireKey(key), timeoutTime);
 
-			ctx = EventContext.merge(oldCtx, ctx);
+			ctx = contextMerge(oldCtx, ctx);
 			t.set(redisKey(key), redisValue(ctx));
 		} else {
 			t.set(expireKey(key), "");
 			t.set(redisKey(key), redisValue(ctx));
 
 			if (ctx.getHost() == null) {
-				long expireTime = ctx.getExpireTime();
-				long redisExpire = getMinValue(timeoutTime, expireTime);
+				long redisExpire = getMinValue(timeoutTime, ctx.getExpireTime());
 				if (redisExpire != 0)
 					t.pexpireAt(expireKey(key), redisExpire);
 			}
 		}
+	}
+
+	private EventContext contextMerge(EventContext oldCtx, EventContext ctx) {
+		if (!oldCtx.getKey().equals(ctx.getKey()))
+			throw new IllegalArgumentException("event key is not matched [" + oldCtx.toString() + ", " + ctx.toString() + "]");
+
+		if (ctx.getTimeoutTime() != 0L)
+			oldCtx.setTimeoutTime(ctx.getTimeoutTime());
+
+		for (Row row : ctx.getRows()) {
+			oldCtx.addRow(row);
+		}
+
+		for (String vKey : ctx.getVariables().keySet())
+			oldCtx.setVariable(vKey, ctx.getVariable(vKey));
+
+		oldCtx.getCounter().addAndGet(ctx.getCounter().get());
+
+		return oldCtx;
 	}
 
 	/**
@@ -639,7 +719,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 				@Override
 				public void onRemove(EventKey key, EventClockItem value, String host, EventCause cause) {
-					removeContext(key, new EventContext(key, 0L, value.getExpireTime(), value.getTimeoutTime(), 0, host), cause);
+					removeContext(key, new EventContext(key, 0L, value.getExpireTime(), value.getTimeoutTime(), 0), cause);
 					logClockItems.remove(key);
 				}
 			}, host, time, 11);
@@ -705,7 +785,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					logClockItems.remove(oldCtx.getKey());
 				}
 
-				generateEvent(EventContext.merge(oldCtx, contexts.get(evtkey)), cause);
+				generateEvent(contextMerge(oldCtx, contexts.get(evtkey)), cause);
 			}
 		}
 	}
@@ -826,7 +906,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 			try {
 				key = parseExpireKey(message);
-				removeContext(key, new EventContext(key, 0L, 0L, 0L, 0, null), EventCause.EXPIRE);
+				removeContext(key, new EventContext(key, 0L, 0L, 0L, 0), EventCause.EXPIRE);
 			} catch (Exception e) {
 				slog.debug("araqne logdb cep : event key parse error (" + key + ")", e);
 			}

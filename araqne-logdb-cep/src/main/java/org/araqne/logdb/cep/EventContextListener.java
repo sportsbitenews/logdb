@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.cep;
 
+
 public interface EventContextListener {
 	void onUpdateTimeout(EventContext ctx);
 }
