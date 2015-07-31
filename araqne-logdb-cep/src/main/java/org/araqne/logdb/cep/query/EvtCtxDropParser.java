@@ -59,8 +59,8 @@ public class EvtCtxDropParser extends AbstractQueryCommandParser {
 
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("topic", "all"),
-				getFunctionRegistry());
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
+				Arrays.asList("topic", "all"), getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -68,7 +68,7 @@ public class EvtCtxDropParser extends AbstractQueryCommandParser {
 		String topic = options.get("topic");
 		if (!dropAll && topic == null)
 			throw new QueryParseException("missing-evtctxdrop-topic", -1);
-		
+
 		String engine = System.getProperty("araqne.logdb.cepengine");
 		EventContextStorage storage = eventContextService.getStorage(engine);
 		return new EvtCtxDropCommand(storage, topic, dropAll);

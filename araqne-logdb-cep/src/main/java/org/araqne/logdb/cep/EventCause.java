@@ -16,5 +16,5 @@
 package org.araqne.logdb.cep;
 
 public enum EventCause {
-	EXPIRE, TIMEOUT, REMOVAL, CREATE 
+	EXPIRE, TIMEOUT, REMOVAL, CREATE
 }

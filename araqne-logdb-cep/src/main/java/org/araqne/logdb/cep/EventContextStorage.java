@@ -55,7 +55,7 @@ public interface EventContextStorage {
 	void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal);
 
 	Map<EventKey, EventContext> getContexts(Set<EventKey> key);
-	
+
 	void registerContext(EventContext ctx);
 
 	void registerContexts(List<EventContext> contexts);

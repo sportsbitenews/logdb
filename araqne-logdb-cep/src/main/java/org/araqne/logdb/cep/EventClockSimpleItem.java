@@ -41,7 +41,7 @@ public class EventClockSimpleItem implements EventClockItem {
 	public String getHost() {
 		return key.getHost();
 	}
-	
+
 	public static EventClockSimpleItem newInstance(EventClockItem ctx) {
 		return new EventClockSimpleItem(ctx.getKey(), ctx.getExpireTime(), ctx.getTimeoutTime());
 	}

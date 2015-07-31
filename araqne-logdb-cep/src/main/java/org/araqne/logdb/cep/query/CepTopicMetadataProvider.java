@@ -60,9 +60,9 @@ public class CepTopicMetadataProvider implements MetadataProvider, FieldOrdering
 
 		HashMap<String, Integer> topicMap = new HashMap<String, Integer>();
 
-		//for (EventKey key : storage.getContextKeys()) {
+		// for (EventKey key : storage.getContextKeys()) {
 		Iterator<EventKey> itr = storage.getContextKeys();
-		while(itr.hasNext()) {
+		while (itr.hasNext()) {
 			EventKey key = itr.next();
 			String topic = key.getTopic();
 			Integer count = topicMap.get(topic);

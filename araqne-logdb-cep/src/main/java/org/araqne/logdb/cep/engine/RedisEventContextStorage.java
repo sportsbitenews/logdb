@@ -535,10 +535,10 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 					t = jedis.multi();
 					oldByteValue = pipeString.get();
-					
-					if(oldByteValue == null)
+
+					if (oldByteValue == null)
 						return null;
-					
+
 					@SuppressWarnings("unchecked")
 					EventContext oldCtx = EventContext.parse((Map<String, Object>) decode(oldByteValue));
 					ctx = contextMerge(oldCtx, ctx);

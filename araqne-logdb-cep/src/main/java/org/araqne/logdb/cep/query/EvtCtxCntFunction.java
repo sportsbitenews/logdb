@@ -30,17 +30,17 @@ public class EvtCtxCntFunction implements Expression {
 		Object o = topicExpr.eval(row);
 
 		String topic = null;
-		if(o != null)
+		if (o != null)
 			topic = o.toString();
 
 		Iterator<EventKey> itr = storage.getContextKeys(topic);
-	
+
 		int cnt = 0;
-		while(itr.hasNext()){
+		while (itr.hasNext()) {
 			cnt++;
 			itr.next();
 		}
-		
+
 		return cnt;
 	}
 
