@@ -216,6 +216,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void clearClocks() {
+		contexts.clear();
 		realClock = new EventClock<EventContext>(new MemEventClockCallback(), "real", System.currentTimeMillis(), 10000);
 		logClocks = new ConcurrentHashMap<String, EventClock<EventContext>>();
 	}
