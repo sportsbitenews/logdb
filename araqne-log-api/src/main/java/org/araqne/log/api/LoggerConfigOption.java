@@ -16,9 +16,7 @@
 package org.araqne.log.api;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 public interface LoggerConfigOption {
 	String getName();
