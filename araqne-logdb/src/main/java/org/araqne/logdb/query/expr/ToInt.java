@@ -15,6 +15,9 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,14 +34,15 @@ public class ToInt extends FunctionExpression {
 
 	public ToInt(QueryContext ctx, List<Expression> exprs) {
 		super("int", exprs, 1);
-		
+
 		this.valueExpr = exprs.get(0);
 		this.radix = 10;
 		if (exprs.size() > 1)
 			this.radix = (Integer) exprs.get(1).eval(null);
 
 		if (radix != 10)
-		//	throw new QueryParseException("invalid-argument", -1, "radix should be 10");
+			// throw new QueryParseException("invalid-argument", -1,
+			// "radix should be 10");
 			throw new QueryParseException("90830", -1, -1, null);
 	}
 
@@ -48,6 +52,22 @@ public class ToInt extends FunctionExpression {
 			Object v = valueExpr.eval(map);
 			if (v == null)
 				return null;
+
+			if (v instanceof Double) {
+				Double d = (Double) v;
+				if (d > Integer.MAX_VALUE)
+					return null;
+				return d.intValue();
+			}
+
+			if (v instanceof Float) {
+				Float f = (Float) v;
+				if (f > Integer.MAX_VALUE)
+					return null;
+
+				return f.intValue();
+
+			}
 
 			if (v instanceof List) {
 				@SuppressWarnings("unchecked")
@@ -68,14 +88,22 @@ public class ToInt extends FunctionExpression {
 				}
 
 				return casted;
+			} else if (v instanceof Inet4Address) {
+				return convert(((InetAddress) v).getAddress());
 			} else {
 				String s = v.toString();
 				if (s.isEmpty())
 					return null;
+
 				return Integer.parseInt(s, radix);
+
 			}
 		} catch (Throwable t) {
 			return null;
 		}
+	}
+
+	public static int convert(byte[] bytes) {
+		return ByteBuffer.wrap(bytes).getInt();
 	}
 }

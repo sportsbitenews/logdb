@@ -32,11 +32,20 @@ import org.araqne.logdb.query.command.Rex;
 
 public class RexParser extends AbstractQueryCommandParser {
 
+	public RexParser() {
+		setDescriptions(
+				"Extract fields from target field using regular expression. You use (?<name>.*) syntax to extract 'name' field.",
+				"지정된 필드에서 정규표현식을 이용하여 필드를 추출합니다. 이 때 사용되는 정규표현식은 필드 이름을 부여할 수 있도록 확장된 정규표현식입니다. "
+						+ "정규표현식 그룹을 만들 때 (?<field>.*) 형식으로 지정하면 그룹에 매칭된 문자열이 field 이름으로 추출됩니다.");
+
+		setOptions("field", REQUIRED, "Target field name", "추출 대상 필드 이름");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "rex";
 	}
-	
+
 	@Override
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
@@ -57,16 +66,17 @@ public class RexParser extends AbstractQueryCommandParser {
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		String field = options.get("field");
-		if (field == null || field.isEmpty()){
-			//throw new QueryParseException("field-not-found", commandString.length());
+		if (field == null || field.isEmpty()) {
+			// throw new QueryParseException("field-not-found",
+			// commandString.length());
 			int offset = QueryTokenizer.findKeyword(commandString, "=") + 1;
-			throw new  QueryParseException("20900", offset, offset, null);
+			throw new QueryParseException("20900", offset, offset, null);
 		}
 		Pattern placeholder = Pattern.compile("\\(\\?<(.*?)>");
 		String regexToken = commandString.substring(r.next);
 		if (!QueryTokenizer.isQuoted(regexToken.trim()))
-			throw new QueryParseException("20901", r.next , commandString.length() -1  , null);
-			
+			throw new QueryParseException("20901", r.next, commandString.length() - 1, null);
+
 		// for later toString convenience
 		String originalRegexToken = regexToken;
 

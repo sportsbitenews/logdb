@@ -7,6 +7,8 @@ import java.util.Map;
 public abstract class AbstractQueryCommandParser implements QueryCommandParser {
 	private QueryParserService queryParserService;
 	protected QueryCommandHelp help;
+	protected final boolean REQUIRED = true;
+	protected final boolean OPTIONAL = false;
 
 	public AbstractQueryCommandParser() {
 		help = new QueryCommandHelp();
@@ -45,21 +47,24 @@ public abstract class AbstractQueryCommandParser implements QueryCommandParser {
 		help.getDescriptions().put(locale, desc);
 	}
 
-	protected void setOptions(String name, String en, String ko) {
-		Map<Locale, String> m = help.getOptions().get(name);
-		if (m == null)
-			m = new HashMap<Locale, String>();
-		m.put(Locale.KOREAN, ko);
-		m.put(Locale.ENGLISH, en);
-		help.getOptions().put(name, m);
+	protected void setOptions(String key, boolean required, String en, String ko) {
+		QueryCommandOption opt = help.getOptions().get(key);
+		if (opt == null) {
+			opt = new QueryCommandOption(key, !required);
+		}
+
+		opt.setDescription(Locale.KOREAN, ko);
+		opt.setDescription(Locale.ENGLISH, en);
+		help.getOptions().put(key, opt);
 	}
 
-	protected void setOption(String name, Locale locale, String optionDesc) {
-		Map<Locale, String> m = help.getOptions().get(name);
-		if (m == null)
-			m = new HashMap<Locale, String>();
-		m.put(locale, optionDesc);
-		help.getOptions().put(name, m);
+	protected void setOption(String key, boolean required, Locale locale, String optionDesc) {
+		QueryCommandOption opt = help.getOptions().get(key);
+		if (opt == null)
+			opt = new QueryCommandOption(key, !required);
+
+		opt.setDescription(locale, optionDesc);
+		help.getOptions().put(key, opt);
 	}
 
 	protected void setUsages(String en, String ko) {

@@ -595,6 +595,11 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	}
 
 	@Override
+	public Set<String> getSecurityGroupGuids() {
+		return new HashSet<String>(securityGroups.keySet());
+	}
+
+	@Override
 	public List<SecurityGroup> getSecurityGroups() {
 		List<SecurityGroup> l = new ArrayList<SecurityGroup>();
 		for (SecurityGroup g : securityGroups.values())
@@ -1041,4 +1046,5 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		}
 		this.instanceGuid = guid;
 	}
+
 }

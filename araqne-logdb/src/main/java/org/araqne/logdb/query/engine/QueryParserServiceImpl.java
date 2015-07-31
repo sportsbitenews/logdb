@@ -223,11 +223,11 @@ public class QueryParserServiceImpl implements QueryParserService {
 		// add("90700", "insufficient-arguments", "올바르지 않은 입력 형식입니다."); - 99000
 		// 으로 대체
 		/* Ip2Long */
-		add("90710", "invalid-ip2long-args", "올바르지 않은 ip2long 매개변수입니다.");
+		//add("90710", "invalid-ip2long-args", "올바르지 않은 ip2long 매개변수입니다."); - 99000으로 대체
 		/* Left */
 		add("90720", "left-func-negative-length", "길이는 0보다 커야 합니다.(입력값 : [length])");
 		/* Long2Ip */
-		add("90730", "invalid-long2ip-args", "올바르지 않은 long2ip 매개변수입니다.");
+		//add("90730", "invalid-long2ip-args", "올바르지 않은 long2ip 매개변수입니다."); - 99000으로 대체
 		/* Network */
 		add("90740", "invalid-mask", "CIDR 값이 올바르지 않습니다.(입력값: [mask])");
 		/* Rand */

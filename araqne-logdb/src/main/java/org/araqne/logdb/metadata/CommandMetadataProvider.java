@@ -16,6 +16,7 @@ import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.QueryCommandHelp;
+import org.araqne.logdb.QueryCommandOption;
 import org.araqne.logdb.QueryCommandParser;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
@@ -73,8 +74,9 @@ public class CommandMetadataProvider implements MetadataProvider, FieldOrdering 
 			Map<String, Map<String, String>> options = new HashMap<String, Map<String, String>>();
 			for (String optionName : help.getOptions().keySet()) {
 				Map<String, String> option = new HashMap<String, String>();
-				for (Locale locale : help.getOptions().get(optionName).keySet()) {
-					option.put(locale.toString(), help.getOptions().get(optionName).get(locale));
+				QueryCommandOption opt = help.getOptions().get(optionName);
+				for (Locale locale : opt.getDescriptions().keySet()) {
+					option.put(locale.toString(), opt.getDescriptions().get(locale));
 				}
 				options.put(optionName, option);
 			}

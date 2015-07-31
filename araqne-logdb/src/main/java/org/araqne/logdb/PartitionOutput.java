@@ -63,7 +63,10 @@ public class PartitionOutput {
 				this.f = new File(this.path);
 			}
 
-			f.getParentFile().mkdirs();
+			File parentFile = f.getParentFile();
+			boolean created = parentFile.mkdirs();
+			if (!(parentFile.exists() && parentFile.isDirectory()) && !created)
+				throw new IOException("cannot create partition output directory: " + parentFile.getAbsolutePath());
 
 			if (encoding == null)
 				encoding = "utf-8";

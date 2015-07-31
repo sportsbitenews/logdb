@@ -14,6 +14,8 @@ public class SystemCommandParser extends AbstractQueryCommandParser {
 		this.commandName = commandName;
 		this.metadataService = metadataService;
 		help.setCommandName(commandName);
+
+		setDescriptions("Query system dictionary", "시스템 메타데이터를 쿼리합니다.");
 	}
 
 	@Override

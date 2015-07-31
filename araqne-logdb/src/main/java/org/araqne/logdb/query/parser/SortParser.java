@@ -30,6 +30,13 @@ import org.araqne.logdb.query.command.Sort.SortField;
 
 public class SortParser extends AbstractQueryCommandParser {
 
+	public SortParser() {
+		setDescriptions(
+				"Sort by specified comma-separated fields. If a hyphen is followed by field name, this command will sort by that field in descending order.",
+				"주어진 필드를 기준으로 정렬합니다. 필드 이름 앞에 - 부호가 붙은 경우 내림차순, 그렇지 않으면 오름차순으로 정렬합니다. limit 옵션이 지정된 경우 정렬된 결과에서 순서대로 N개를 추출합니다.");
+		setOptions("limit", OPTIONAL, "Max output count", "최대 출력 갯수");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "sort";
@@ -57,8 +64,8 @@ public class SortParser extends AbstractQueryCommandParser {
 			List<SortField> fields = SortField.parseSortFields(commandString, r);
 			return new Sort(count, fields.toArray(new SortField[0]));
 		} catch (QueryParseException e) {
-			//if (e.getType().equals("need-string-token"))
-			//	throw new QueryParseException("need-column", r.next);
+			// if (e.getType().equals("need-string-token"))
+			// throw new QueryParseException("need-column", r.next);
 			if (e.getType().equals("90004"))
 				throw new QueryParseException("21600", r.next, commandString.length() - 1, null);
 			throw e;

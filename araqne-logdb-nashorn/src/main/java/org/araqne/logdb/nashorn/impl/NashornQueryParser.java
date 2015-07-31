@@ -35,6 +35,10 @@ public class NashornQueryParser extends AbstractQueryCommandParser {
 	@Requires
 	private QueryParserService queryParserService;
 
+	public NashornQueryParser() {
+		setDescriptions("Run user defind javascript query.", "사용자 정의 자바스크립트 쿼리를 실행합니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "javascript";

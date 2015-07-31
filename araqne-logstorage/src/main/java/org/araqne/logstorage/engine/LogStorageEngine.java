@@ -682,7 +682,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		if (!skipArgCheck) {
 			ReplicaStorageConfig config = ReplicaStorageConfig.parseTableSchema(schema);
 			if (config != null && config.mode() != ReplicationMode.ACTIVE)
-				throw new IllegalArgumentException("specified table has replica storage config and cannot purge non-active table");
+				throw new IllegalArgumentException("table [" + tableName
+						+ "] has replica storage config and cannot purge non-active table, day " + DateUtil.getDayText(day));
 		}
 
 		// evict online buffer and close
@@ -690,19 +691,20 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		if (writer != null)
 			writer.close();
 
-		String fileName = DateUtil.getDayText(day);
-		FilePath idxFile = dir.newFilePath(fileName + ".idx");
-		FilePath datFile = dir.newFilePath(fileName + ".dat");
+		String dayText = DateUtil.getDayText(day);
+		FilePath idxFile = dir.newFilePath(dayText + ".idx");
+		FilePath datFile = dir.newFilePath(dayText + ".dat");
 
 		for (LogStorageEventListener listener : callbackSet.get(LogStorageEventListener.class)) {
 			try {
 				listener.onPurge(tableName, day);
 			} catch (Throwable t) {
-				logger.error("araqne logstorage: storage event listener should not throw any exception", t);
+				logger.error("araqne logstorage: onPurge(" + tableName + "," + dayText
+						+ "), storage event listener should not throw any exception", t);
 			}
 		}
 
-		logger.debug("araqne logstorage: try to purge log data of table [{}], day [{}]", tableName, fileName);
+		logger.debug("araqne logstorage: try to purge log data of table [{}], day [{}]", tableName, dayText);
 		ensureDelete(idxFile);
 		ensureDelete(datFile);
 	}
