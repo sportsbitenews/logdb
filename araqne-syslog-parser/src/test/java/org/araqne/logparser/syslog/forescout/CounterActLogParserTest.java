@@ -38,4 +38,18 @@ public class CounterActLogParserTest {
 		assertEquals("HHI-EM", m.get("nac_name"));
 		assertEquals("CROND[24534]: (root) CMD (/usr/lib/sa/sa1 1 1)", m.get("description"));
 	}
+
+	@Test
+	public void testSample3() {
+		String line = "NAC-JOSUN[10870]: Block Event: Host: 10.25.11.171, Target: 10.100.37.56, Time 1437628591, Service: 2186/TCP, Is Virtual Firewall blocking rule: true, Reason: Virtual Firewall - Limit Inbound";
+
+		HashMap<String, Object> log = new HashMap<String, Object>();
+		log.put("line", line);
+
+		CounterActLogParser p = new CounterActLogParser();
+		Map<String, Object> m = p.parse(log);
+		System.out.println(m);
+
+		assertEquals("2186/TCP", m.get("nac_service"));
+	}
 }

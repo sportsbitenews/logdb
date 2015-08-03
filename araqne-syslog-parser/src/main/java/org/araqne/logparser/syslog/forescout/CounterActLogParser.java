@@ -8,7 +8,7 @@ import org.araqne.log.api.V1LogParser;
 public class CounterActLogParser extends V1LogParser {
 	private static final String[] LOG_TYPES = { "Port bite", "Scan event", "Uptime", "System statistics", "NAC Policy Log",
 			"Application status", "Log", "User admin changed Configuration", "User admin changed network_policy",
-			"User admin changed Action" };
+			"User admin changed Action", "Block Event" };
 	private static final Map<String, String> COLUMNS = new HashMap<String, String>();
 
 	static {
@@ -32,6 +32,11 @@ public class CounterActLogParser extends V1LogParser {
 		COLUMNS.put("Severity:", "severity");
 		COLUMNS.put("Uptime", "nac_uptime_sec");
 		COLUMNS.put("Log:", "nac_log");
+		COLUMNS.put("Host:", "nac_host");
+		COLUMNS.put("Target:", "nac_target");
+		COLUMNS.put("Time ", "nac_time");
+		COLUMNS.put("Service:", "nac_service");
+		COLUMNS.put("Is Virtual Firewall blocking rule:", "is_virtual_firewall_blocking_rule");
 	}
 
 	@Override
