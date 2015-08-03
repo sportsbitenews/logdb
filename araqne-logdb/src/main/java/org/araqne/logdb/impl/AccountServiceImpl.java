@@ -265,6 +265,9 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 					db.update(xact, c, account, false);
 			}
 			xact.commit("araqne-logdb", "set accounts");
+
+			for (String loginName : accounts.keySet())
+				localAccounts.putIfAbsent(loginName, accounts.get(loginName));
 		} catch (Throwable t) {
 			if (xact != null)
 				xact.rollback();
@@ -736,6 +739,9 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			}
 
 			xact.commit("araqne-logdb", "sync accounts with external auth [" + selectedExternalAuth + "]");
+
+			for (Account account : accounts)
+				localAccounts.putIfAbsent(account.getLoginName(), account);
 		} catch (Throwable t) {
 			if (xact != null)
 				xact.rollback();
