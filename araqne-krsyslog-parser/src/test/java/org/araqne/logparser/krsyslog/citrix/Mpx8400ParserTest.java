@@ -26,7 +26,7 @@ public class Mpx8400ParserTest {
 		assertEquals("220.92.188.31", m.get("client_ip"));
 		assertEquals("03/07/2013:01:59:45 GMT", m.get("end_time"));
 		assertEquals("Allowed", m.get("access"));
-		assertEquals("69B01E79DC24115918EF16E9E36A1B2", m.get("group(s)"));
+		assertEquals("69B01E79DC24115918EF16E9E36A1B2", m.get("group_info"));
 	}
 
 	@Test
@@ -46,7 +46,9 @@ public class Mpx8400ParserTest {
 		assertEquals("cess.hhi.co.kr", m.get("url_info"));
 		assertEquals("d12210101_c55ff8404a", m.get("user"));
 		assertEquals("211.193.193.103:443", m.get("vserver"));
-		assertEquals("0F19CA7076048e2B37BB35524B49EFD,6B220752C39412e808A175FD0C1953B,90756D9463D4f79B3D0131475687BAF,B0CE79CA3CE430aA71AA42225CEA4E5", m.get("group(s)"));
+		assertEquals("0F19CA7076048e2B37BB35524B49EFD,6B220752C39412e808A175FD0C1953B,90756D9463D4f79B3D0131475687BAF,B0CE79CA3CE430aA71AA42225CEA4E5", m.get("group_info"));
+		assertEquals("03/07/2013:02:00:06 GMT", m.get("request_time"));
+		assertEquals("GET /HCETSS/Resources/Scripts/SD/SDUtilHelper.js", m.get("get_info"));
 	}
 
 	@Test
@@ -85,7 +87,7 @@ public class Mpx8400ParserTest {
 		assertEquals("211.62.251.125", m.get("client_ip"));
 		assertEquals("03/07/2013:01:57:34 GMT", m.get("end_time"));
 		assertEquals("Allowed", m.get("access"));
-		assertEquals("CE5E05127B342e8AA001B721E36D1C0,69B01E79DC24115918EF16E9E36A1B2", m.get("group(s)"));
+		assertEquals("CE5E05127B342e8AA001B721E36D1C0,69B01E79DC24115918EF16E9E36A1B2", m.get("group_info"));
 	}
 
 	@Test
@@ -120,7 +122,7 @@ public class Mpx8400ParserTest {
 		assertEquals("a387568_525301f65890", m.get("user"));
 		assertEquals("1.223.22.132", m.get("client_ip"));
 		assertEquals("03/07/2013:02:01:53 GMT", m.get("last_contact"));
-		assertEquals("0F19CA7076048e2B37BB35524B49EFD,AB256833CBD41a19DD6FBAA58E44EB5,AB73C9E13E3498d96C6390DAAA64BF2,B0CE79CA3CE430aA71AA42225CEA4E5", m.get("group(s)"));
+		assertEquals("0F19CA7076048e2B37BB35524B49EFD,AB256833CBD41a19DD6FBAA58E44EB5,AB73C9E13E3498d96C6390DAAA64BF2,B0CE79CA3CE430aA71AA42225CEA4E5", m.get("group_info"));
 	}
 
 	@Test
@@ -141,7 +143,7 @@ public class Mpx8400ParserTest {
 		assertEquals("220.92.188.31", m.get("client_ip"));
 		assertEquals("Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; AGEE 8.0;)", m.get("browser_type"));
 		assertEquals("Agent", m.get("sslvpn_client_type"));
-		assertEquals("F0B0188537B491dA58D3E3987E6165A,69B01E79DC24115918EF16E9E36A1B2", m.get("group(s)"));
+		assertEquals("F0B0188537B491dA58D3E3987E6165A,69B01E79DC24115918EF16E9E36A1B2", m.get("group_info"));
 	}
 
 	@Test
@@ -164,7 +166,7 @@ public class Mpx8400ParserTest {
 		assertEquals("05:48:09", m.get("duration"));
 		assertEquals("0.00%", m.get("compression_ratio_send"));
 		assertEquals("Explicit", m.get("logoutmethod"));
-		assertEquals("4489C72CAFC4c0e9DF1614A226B1E1D,2E2214A9C4948a98ED7466A807D765A", m.get("group(s)"));
+		assertEquals("4489C72CAFC4c0e9DF1614A226B1E1D,2E2214A9C4948a98ED7466A807D765A", m.get("group_info"));
 	}
 
 	@Test
@@ -180,7 +182,8 @@ public class Mpx8400ParserTest {
 		assertEquals("SSLVPN TCPCONNSTAT", m.get("event_type"));
 		assertEquals("2195", m.get("total_bytes_send"));
 		assertEquals("00:00:03", m.get("duration"));
-		assertEquals("115.135.109.114:58633", m.get("source"));
+		assertEquals("115.135.109.114", m.get("source_ip"));
+		assertEquals("58633", m.get("source_port"));
 	}
 
 	@Test
