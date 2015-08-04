@@ -20,6 +20,9 @@
 				<configuration>
 					<source>1.7</source>
 					<target>1.7</target>
+					<compilerArguments>
+						<bootclasspath>${JDK_7_BOOTCLASSPATH}</bootclasspath>
+					</compilerArguments>
 				</configuration>
 			</plugin>
 			<plugin>
