@@ -588,6 +588,25 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			throw new IllegalStateException(t);
 		}
 
+		Set<SecurityGroup> groups = new HashSet<SecurityGroup>(securityGroups.values());
+		List<SecurityGroup> updateGroups = new ArrayList<SecurityGroup>();
+		for (SecurityGroup group : groups) {
+			boolean isUpdate = false;
+			for (String loginName : loginNames) {
+				if (group.getAccounts().contains(loginName)) {
+					group.getAccounts().remove(loginName);
+					isUpdate = true;
+				}
+			}
+
+			if (isUpdate)
+				updateGroups.add(group);
+		}
+
+		if (!updateGroups.isEmpty()) {
+			updateSecurityGroups(session, updateGroups);
+		}
+
 		for (AccountEventListener listener : accountListeners) {
 			try {
 				listener.onRemoveAccounts(session, accounts);
@@ -652,6 +671,45 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			} catch (Throwable t) {
 				logger.warn("araqne logdb: account listener should not throw any exception", t);
 			}
+		}
+	}
+
+	public void updateSecurityGroups(Session session, List<SecurityGroup> groups) {
+		Map<String, SecurityGroup> securityGroups = new HashMap<String, SecurityGroup>();
+		for (SecurityGroup group : groups) {
+			verifySecurityGroup(group);
+			securityGroups.put(group.getGuid(), group);
+		}
+
+		ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
+		ConfigIterator it = null;
+		ConfigTransaction xact = null;
+		try {
+			it = db.find(SecurityGroup.class, Predicates.in("guid", securityGroups.keySet()));
+			List<SecurityGroup> updatedGroups = new ArrayList<SecurityGroup>();
+			xact = db.beginTransaction();
+			while (it.hasNext()) {
+				Config c = it.next();
+				SecurityGroup old = c.getDocument(SecurityGroup.class);
+				SecurityGroup newGroup = securityGroups.get(old.getGuid());
+				if (newGroup == null)
+					continue;
+
+				db.update(xact, c, newGroup, false);
+				updatedGroups.add(newGroup);
+			}
+
+			xact.commit("araqne-logdb", "update security groups");
+
+			for (SecurityGroup group : updatedGroups)
+				this.securityGroups.put(group.getGuid(), group);
+		} catch (Throwable t) {
+			if (xact != null)
+				xact.rollback();
+			throw new RuntimeException(t);
+		} finally {
+			if (it != null)
+				it.close();
 		}
 	}
 
