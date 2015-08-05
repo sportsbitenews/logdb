@@ -34,18 +34,24 @@ import org.araqne.log.api.impl.FileUtils;
 public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(DirectoryWatchLogger.class.getName());
 
+	private String fileTag;
+	private Receiver receiver = new Receiver();
+
 	public DirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
 		File dataDir = new File(System.getProperty("araqne.data.dir"), "araqne-log-api");
 		dataDir.mkdirs();
-		
+
 		// try migration at boot
-		File oldLastFile = getLastLogFile(dataDir); 
+		File oldLastFile = getLastLogFile(dataDir);
 		if (oldLastFile.exists()) {
 			Map<String, LastPosition> lastPositions = LastPositionHelper.readLastPositions(oldLastFile);
 			setStates(LastPositionHelper.serialize(lastPositions));
 			oldLastFile.renameTo(new File(oldLastFile.getAbsolutePath() + ".migrated"));
 		}
+
+		// optional
+		this.fileTag = getConfigs().get("file_tag");
 	}
 
 	@Override
@@ -54,17 +60,16 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 			setStates(new HashMap<String, Object>());
 		}
 	}
-	
+
 	@Override
 	protected void runOnce() {
 		Map<String, String> configs = getConfigs();
 
 		String basePath = configs.get("base_path");
 		Pattern fileNamePattern = Pattern.compile(configs.get("filename_pattern"));
-		
-		Receiver receiver = new Receiver();
-		MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
-		
+
+		MultilineLogExtractor extractor = MultilineLogExtractor.build(this, this.receiver);
+
 		List<File> logFiles = FileUtils.matches(basePath, fileNamePattern);
 		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
 
@@ -103,7 +108,8 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 		return updatedLastPositions;
 	}
 
-	protected void processFile(Map<String, LastPosition> lastPositions, File f, MultilineLogExtractor extractor, Pattern fileNamePattern) {
+	protected void processFile(Map<String, LastPosition> lastPositions, File f, MultilineLogExtractor extractor,
+			Pattern fileNamePattern) {
 		if (!f.canRead()) {
 			slog.debug("araqne log api: cannot read file [{}], logger [{}]", f.getAbsolutePath(), getFullName());
 			return;
@@ -139,6 +145,7 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 			if (file.length() <= offset)
 				return;
 
+			this.receiver.fileName = file.getName();
 			is = new FileInputStream(file);
 			is.skip(offset);
 
@@ -172,14 +179,22 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 	}
 
 	private class Receiver extends AbstractLogPipe {
+		private String fileName;
 
 		@Override
 		public void onLog(Logger logger, Log log) {
+			if (fileTag != null)
+				log.getParams().put(fileTag, fileName);
 			write(log);
 		}
 
 		@Override
 		public void onLogBatch(Logger logger, Log[] logs) {
+			if (fileTag != null) {
+				for (Log log : logs) {
+					log.getParams().put(fileTag, fileName);
+				}
+			}
 			writeBatch(logs);
 		}
 

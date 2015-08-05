@@ -88,7 +88,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.6.0</version>
+			<version>3.6.1</version>
 		</dependency>
 	</dependencies>
 </project>
