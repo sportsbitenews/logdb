@@ -1,6 +1,11 @@
 package org.araqne.logparser.syslog.forescout;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.V1LogParser;
@@ -15,12 +20,11 @@ public class CounterActLogParser extends V1LogParser {
 		COLUMNS.put("Source:", "source_client");
 		COLUMNS.put("Rule:", "nac_rule");
 		COLUMNS.put("Details:", "nac_log_detail");
-		COLUMNS.put("Reason:", "nac_reason");
 		COLUMNS.put("Destination:", "destination_client");
 		COLUMNS.put("CPU usage:", "cpu_use_percent");
 		COLUMNS.put("Available memory :", "available_memory_kb");
 		COLUMNS.put("Used memory:", "used_memory_kb");
-		COLUMNS.put("Available swap", "available_swap_kb");
+		COLUMNS.put("Available swap:", "available_swap_kb");
 		COLUMNS.put("Used swap:", "used_swap_kb");
 		COLUMNS.put("Application status:", "application_status");
 		COLUMNS.put("Connected clients:", "connected_client");
@@ -32,11 +36,14 @@ public class CounterActLogParser extends V1LogParser {
 		COLUMNS.put("Severity:", "severity");
 		COLUMNS.put("Uptime", "nac_uptime_sec");
 		COLUMNS.put("Log:", "nac_log");
-		COLUMNS.put("Host:", "nac_host");
-		COLUMNS.put("Target:", "nac_target");
-		COLUMNS.put("Time ", "nac_time");
-		COLUMNS.put("Service:", "nac_service");
-		COLUMNS.put("Is Virtual Firewall blocking rule:", "is_virtual_firewall_blocking_rule");
+		COLUMNS.put("Host:", "block_host");
+		COLUMNS.put("Target:", "block_target");
+		COLUMNS.put("Time ", "block_time");
+		COLUMNS.put("Service:", "block_service");
+		COLUMNS.put("Is Virtual Firewall blocking rule:", "block_rule");
+		COLUMNS.put("Reason:", "_reason");
+		COLUMNS.put("Match:", "nac_match");
+		COLUMNS.put("Category:", "nac_category");
 	}
 
 	@Override
@@ -84,49 +91,80 @@ public class CounterActLogParser extends V1LogParser {
 			if (!logType.equalsIgnoreCase("Uptime") && !logType.equals("Log") && !logType.equals("Application status"))
 				begin = line.indexOf(" ", begin + logType.length()) + 1;
 
-			String fieldName = null;
-			end = line.length();
+			List<ColumnPosition> position = new ArrayList<ColumnPosition>();
 			for (String c : COLUMNS.keySet()) {
-				if (m.containsKey(c))
-					continue;
 				int pos = line.indexOf(c, begin);
-				if (pos != -1 && pos + c.length() < end) {
-					fieldName = COLUMNS.get(c);
-					end = pos + c.length();
+				if (pos != -1) {
+					position.add(new ColumnPosition(COLUMNS.get(c), pos, pos + c.length()));
 				}
 			}
-			begin = end + 1;
-
-			while (begin < line.length()) {
-				String nextField = null;
-				end = line.length();
-				for (String c : COLUMNS.keySet()) {
-					if (fieldName.equals(COLUMNS.get(c)))
-						continue;
-					int pos = line.indexOf(c, begin);
-					if (pos != -1 && pos < end) {
-						nextField = c;
-						end = pos;
-					}
+			Collections.sort(position, new Comparator<ColumnPosition>() {
+				@Override
+				public int compare(ColumnPosition o1, ColumnPosition o2) {
+					return o1.position - o2.position;
 				}
+			});
 
-				if (nextField == null) {
-					m.put(fieldName, getValue(logType, line.substring(begin)));
-					break;
-				}
+			if (position.size() == 0) {
+				String value = line.substring(begin);
+				if (!value.trim().isEmpty())
+					m.put("line", value.trim());
+				return m;
+			}
 
+			Iterator<ColumnPosition> iter = position.iterator();
+			ColumnPosition current = iter.next();
+
+			while (iter.hasNext()) {
+				ColumnPosition next = iter.next();
+				end = next.position;
 				int i;
-				for (i = 1; i < end - begin && line.charAt(end - i) == ' '; i++)
+				for (i = 1; i < next.position - current.value && line.charAt(next.position - i) == ' '; i++)
 					;
 
-				m.put(fieldName, getValue(logType, line.substring(begin, end - i)));
-				fieldName = COLUMNS.get(nextField);
-				begin = end + nextField.length() + 1;
+				name = current.name;
+				if (name.equals("_reason"))
+					name = logType.equals("Block Event") ? "block_reason" : "nac_reason";
+
+				m.put(name, getValue(logType, line.substring(current.value, next.position - i)));
+				if (name.equals("block_service")) {
+					String value = (String) m.get("block_service");
+					int pos = value.indexOf("/");
+					if (pos != -1) {
+						m.put("block_service", value.substring(0, pos));
+						m.put("block_protocol", value.substring(pos + 1));
+					}
+				}
+				current = next;
+			}
+			m.put(name, getValue(logType, line.substring(current.value)));
+
+			if (m.containsKey("nac_rule")) {
+				String value = (String) m.get("nac_rule");
+				begin = value.indexOf("\"") + 1;
+				if (begin != 0)
+					end = value.lastIndexOf("\"");
+				if (begin != 0 && end != -1)
+					value = value.substring(begin, end);
+				m.put("nac_rule", value);
 			}
 
 			return m;
 		} catch (Throwable t) {
+			t.printStackTrace();
 			return log;
+		}
+	}
+
+	private class ColumnPosition {
+		private String name;
+		private int position;
+		private int value;
+
+		public ColumnPosition(String name, int position, int value) {
+			this.name = name;
+			this.position = position;
+			this.value = value;
 		}
 	}
 
@@ -138,6 +176,6 @@ public class CounterActLogParser extends V1LogParser {
 				;
 			return Integer.parseInt(value.substring(0, endIndex));
 		} else
-			return value;
+			return value.trim();
 	}
 }

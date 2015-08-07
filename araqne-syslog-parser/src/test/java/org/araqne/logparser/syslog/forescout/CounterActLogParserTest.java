@@ -20,8 +20,7 @@ public class CounterActLogParserTest {
 
 		assertEquals("INTERNET", m.get("nac_name"));
 		assertEquals("NAC Policy Log", m.get("nac_log_type"));
-		assertEquals("Host cleared from policy. Status was \"PC On/Off 확인(엔진기계_04:30):Unmatched\"", m.get("nac_log_detail"));
-		assertEquals("Policy \"PC On/Off 확인(엔진기계_04:30)\" ", m.get("nac_rule"));
+		assertEquals("PC On/Off 확인(엔진기계_04:30)", m.get("nac_rule"));
 	}
 
 	@Test
@@ -48,8 +47,5 @@ public class CounterActLogParserTest {
 
 		CounterActLogParser p = new CounterActLogParser();
 		Map<String, Object> m = p.parse(log);
-		System.out.println(m);
-
-		assertEquals("2186/TCP", m.get("nac_service"));
 	}
 }
