@@ -153,6 +153,16 @@ public class MetadataMatcher<T extends StorageObjectSpec> {
 			return ListEndComma;
 		}
 
+		@Override
+		public boolean hasAltOp() {
+			return false;
+		}
+
+		@Override
+		public OpTerm getAltOp() {
+			return null;
+		}
+
 	}
 
 	private static interface TableMatcher {
