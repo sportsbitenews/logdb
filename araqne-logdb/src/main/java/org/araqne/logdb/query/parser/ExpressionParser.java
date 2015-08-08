@@ -414,16 +414,20 @@ public class ExpressionParser {
 
 			// check if unary operator
 			// handling operator which can be both unary and binary
-			// TODO: move deciding unary code into OpEmitterFactory
-			if (op != null && op.getSymbol().equals("-")) {
+			if (op != null && op.hasAltOp()) {
 				Term lastTerm = null;
 				if (!tokens.isEmpty()) {
 					lastTerm = tokens.get(tokens.size() - 1);
 				}
 
-				if (lastToken == null || lastToken.equals("(") || rule.getOpTerm().isInstance(lastTerm)) {
-					if (rule.getOpTerm().isInstance(EvalOpTerm.Neg))
-						op = EvalOpTerm.Neg;
+				if (!op.isUnary()) {
+					if (lastToken == null || lastToken.equals("(") || rule.getOpTerm().isInstance(lastTerm)) {
+						op = op.getAltOp();
+					}
+				} else {
+					if (lastToken != null && !lastToken.equals("(") && !rule.getOpTerm().isInstance(lastTerm)) {
+						op = op.getAltOp();
+					}
 				}
 			}
 
