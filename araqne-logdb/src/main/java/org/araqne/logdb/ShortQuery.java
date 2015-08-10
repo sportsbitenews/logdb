@@ -35,7 +35,7 @@ public class ShortQuery {
 		try {
 			session.setProperty("araqne_logdb_query_source", "java-client");
 			q = queryService.createQuery(session, query);
-			queryService.startQuery(q.getId());
+			queryService.startQuery(session, q.getId());
 
 			do {
 				try {
