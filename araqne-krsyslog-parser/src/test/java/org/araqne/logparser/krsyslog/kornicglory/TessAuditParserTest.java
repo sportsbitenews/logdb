@@ -10,7 +10,7 @@ import org.junit.Test;
 public class TessAuditParserTest {
 	@Test
 	public void test() {
-		String line = "LAUDITLOGINDEX=42056\nLTYPE2=7\nLAUDITSETINDEX=178\nSTRCONTENT=패킷 분석에 대한 처리누수가 발생 하였습니다.(traffic gathering)";
+		String line = "LAUDITLOGINDEX=42056\nLTYPE2=7\nLAUDITSETINDEX=178\nSTRCONTENT=분석";
 
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
@@ -18,15 +18,15 @@ public class TessAuditParserTest {
 		TessAuditParser p = new TessAuditParser();
 		Map<String, Object> m = p.parse(log);
 
-		assertEquals("42056", m.get("lauditlogindex"));
-		assertEquals("7", m.get("ltype2"));
-		assertEquals("178", m.get("lauditsetindex"));
-		assertEquals("패킷 분석에 대한 처리누수가 발생 하였습니다.(traffic gathering)", m.get("strcontent"));
+		assertEquals("42056", m.get("audit_log_index"));
+		assertEquals("7", m.get("type2"));
+		assertEquals("178", m.get("audit_set_index"));
+		assertEquals("분석", m.get("str_content"));
 	}
 
 	@Test
 	public void test2() {
-		String line = "TMOCCUR=2013-03-27 16:05:21\nLTYPE1=3\nSTROPERATOR=센서(192.168.70.81)\n************";
+		String line = "TMOCCUR=2013-03-27 16:05:21\nLTYPE1=3\nSTROPERATOR=호호\n************";
 
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
@@ -34,8 +34,8 @@ public class TessAuditParserTest {
 		TessAuditParser p = new TessAuditParser();
 		Map<String, Object> m = p.parse(log);
 
-		assertEquals("2013-03-27 16:05:21", m.get("tmoccur"));
-		assertEquals("3", m.get("ltype1"));
-		assertEquals("센서(192.168.70.81)", m.get("stroperator"));
+		assertEquals("2013-03-27 16:05:21", m.get("occur_time"));
+		assertEquals("3", m.get("type1"));
+		assertEquals("호호", m.get("str_operator"));
 	}
 }

@@ -1,4 +1,4 @@
-package org.araqne.logparser.krsyslog.monitorlab;
+package org.araqne.logparser.krsyslog.citrix;
 
 import java.util.Locale;
 import java.util.Map;
@@ -8,32 +8,30 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
-@Component(name = "wisg-parser-factory")
+@Component(name = "netscaler-mpx-parser-factory")
 @Provides
-public class WisgParserFactory extends AbstractLogParserFactory {
+public class NetScalerMpxParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
-		return "wisg";
+		return "netscaler-mpx";
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
-			return "모니터랩 WISG";
-		return "Monitorlab WISG";
+		return "Citrix NetScaler MPX";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "모니터랩 WISG의 로그를 파싱합니다.";
-		return "Parse Monitorlab WISG logs.";
+			return "Citrix NetScaler MPX 로그를 파싱합니다.";
+		return "Parse Citrix NetScaler MPX logs.";
 	}
 
 	@Override
 	public LogParser createParser(Map<String, String> configs) {
-		return new WisgParser();
+		return new NetScalerMpxParser();
 	}
 
 }

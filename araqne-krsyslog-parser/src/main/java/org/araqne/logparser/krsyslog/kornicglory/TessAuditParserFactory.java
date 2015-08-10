@@ -19,7 +19,7 @@ public class TessAuditParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "코닉글로리 TESS AUDIT";
 		return "TESS AUDIT";
 	}

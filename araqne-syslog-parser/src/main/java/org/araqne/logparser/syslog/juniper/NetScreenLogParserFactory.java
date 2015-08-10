@@ -40,7 +40,7 @@ public class NetScreenLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "넷스크린";
 		return "NetScreen";
 	}

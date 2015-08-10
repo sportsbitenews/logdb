@@ -5,8 +5,8 @@ import java.util.Map;
 
 import org.araqne.log.api.V1LogParser;
 
-public class SpamsniperParser extends V1LogParser {
-	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SpamsniperParser.class);
+public class SpamSniperParser extends V1LogParser {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SpamSniperParser.class);
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {

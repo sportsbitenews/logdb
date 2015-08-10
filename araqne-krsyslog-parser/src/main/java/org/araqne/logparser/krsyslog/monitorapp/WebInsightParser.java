@@ -34,6 +34,12 @@ public class WebInsightParser extends V1LogParser {
 	private final static String[] systemFields = { "mgmt_ip", "version", "time", "cpu_avg", "mem_avg", "disk_avg", "link_status",
 			"open_connection", "cps", "tps", "bps", "httpgw_status" };
 
+	private final static String[] systemFields2 = { "time", "gateway", "cpu", "memory", "cps", "tps", "inbound_kbyte_persec",
+			"outbound_kbyte_persec", "inbound_pps", "outbound_pps" };
+
+	private final static String[] commonFields = { "time", "client_ip", "client_port", "server_ip", "server_port", "gateway", "detect_classification",
+		"rule_id", "detect_base", "detect_result", "risk_level", "protocol", "host", "request_length", "request_data" };
+
 	private static final List<FieldDefinition> fields;
 
 	static {
@@ -44,6 +50,10 @@ public class WebInsightParser extends V1LogParser {
 		}
 
 		for (String fields : systemFields) {
+			addField(fields, "string");
+		}
+
+		for (String fields : systemFields2) {
 			addField(fields, "string");
 		}
 	}
@@ -67,17 +77,24 @@ public class WebInsightParser extends V1LogParser {
 
 			String type;
 			char delim;
+			int pos = -1;
 			if (line.startsWith("DETECT")) {
 				type = "DETECT";
-				delim = line.charAt(6);
+				pos = 6;
 			} else if (line.startsWith("SYSTEM")) {
 				type = "SYSTEM";
-				delim = line.charAt(6);
-			} else
-				throw new UnsupportedTypeException(line);
+				pos = 6;
+			} else if (line.startsWith("SYS")) {
+				type = "SYS";
+				pos = 3;
+			} else {
+				type = "COMMON";
+				pos = 14;
+			}
 
+			delim = line.charAt(pos);
 			m.put("log_type", type);
-			int beginIndex = 7;
+			int beginIndex = pos + 1;
 			int endIndex = 0;
 			if (type.equals("DETECT")) {
 				for (String fields : detectFields) {
@@ -89,6 +106,24 @@ public class WebInsightParser extends V1LogParser {
 				}
 			} else if (type.equals("SYSTEM")) {
 				for (String fields : systemFields) {
+					endIndex = line.indexOf(delim, beginIndex);
+					if (endIndex < 0)
+						endIndex = line.length();
+					m.put(fields, line.substring(beginIndex, endIndex).trim());
+					beginIndex = endIndex + 1;
+				}
+			} else if (type.equals("SYS")) {
+				for (String fields : systemFields2) {
+					endIndex = line.indexOf(delim, beginIndex);
+					if (endIndex < 0)
+						endIndex = line.length();
+					m.put(fields, line.substring(beginIndex, endIndex).trim());
+					beginIndex = endIndex + 1;
+				}
+			} else if (type.equals("COMMON")) {
+				beginIndex = 0;
+
+				for (String fields : commonFields) {
 					endIndex = line.indexOf(delim, beginIndex);
 					if (endIndex < 0)
 						endIndex = line.length();

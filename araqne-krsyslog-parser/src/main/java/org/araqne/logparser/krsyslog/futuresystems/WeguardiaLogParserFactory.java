@@ -41,7 +41,7 @@ public class WeguardiaLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "위가디아 XTM";
 		return "Weguardia XTM";
 	}
