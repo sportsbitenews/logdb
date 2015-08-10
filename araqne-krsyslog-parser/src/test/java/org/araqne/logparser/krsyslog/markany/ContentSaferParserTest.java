@@ -7,7 +7,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
-public class DrmParserTest {
+public class ContentSaferParserTest {
 	@Test
 	public void testLogFileHistory() {
 		String line = "File_ID=09010f0e8018973f Downloader_ID= User_ID=A300195 File_Name=\"GasTurbine Generator.doc\" User_IP=10.11.2.159 User_ComName=65044X박영호 Oper_Type=2 File_StoragePath= Scope_Name=미적용 Scope_ID=0 User_UID=1019528 User_Name=박영호 User_DeptCode=J9P0 User_DeptName=\"쿠웨이트 SABIYA현장\" User_PosCode=BA0 User_PosName=부장 File_Desc=\"표준 RFQ for Gas Turbine Generator\" File_RegDate=1142551010.140 ACL_DocLevelName=대외비 File_DocLevel=1 sFlag=EDMS User_BzCode=\"AJ00    \" User_BsCode=J9P0 Server_origin=EDMS01";
@@ -15,7 +15,7 @@ public class DrmParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		DrmParser p = new DrmParser();
+		ContentSaferParser p = new ContentSaferParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("09010f0e8018973f", m.get("file_id"));
@@ -34,7 +34,7 @@ public class DrmParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		DrmParser p = new DrmParser();
+		ContentSaferParser p = new ContentSaferParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("A390089", m.get("user_id"));

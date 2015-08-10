@@ -40,7 +40,7 @@ public class SecureWorksLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "시큐어웍스";
 		return "SecureWorks";
 	}

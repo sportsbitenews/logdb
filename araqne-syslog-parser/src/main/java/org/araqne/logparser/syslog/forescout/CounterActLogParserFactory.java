@@ -25,8 +25,8 @@ public class CounterActLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "CounterACT NAC 로그를 파싱합니다.";
-		return "Parse CounterACT NAC logs.";
+			return "ForeScout CounterACT NAC 로그를 파싱합니다.";
+		return "Parse ForeScout CounterACT NAC logs.";
 	}
 
 	@Override

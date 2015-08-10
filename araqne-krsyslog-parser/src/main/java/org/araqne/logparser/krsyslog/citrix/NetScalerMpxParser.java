@@ -8,8 +8,8 @@ import java.util.Map;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.V1LogParser;
 
-public class Mpx8400Parser extends V1LogParser {
-	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(Mpx8400Parser.class);
+public class NetScalerMpxParser extends V1LogParser {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(NetScalerMpxParser.class);
 	private final String delimiter = "- ";
 
 	private static final List<FieldDefinition> fields;

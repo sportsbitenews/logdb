@@ -7,7 +7,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
-public class Mpx8400ParserTest {
+public class NetScalerMpxParserTest {
 	@Test
 	public void testSslVpnTcpConnStat() {
 		String line = "Mar  7 10:59:24 211.193.193.80  03/07/2013:01:59:45 GMT ns PPE-0 : SSLVPN TCPCONNSTAT 927685225 : Context uf48101_622e15d31819@220.92.188.31 - SessionId: 651173- User uf48101_622e15d31819 - Client_ip 220.92.188.31 - Nat_ip 211.193.193.102 - Vserver 211.193.193.103:443 - Source 220.92.188.31:32841 - Destination 10.100.17.36:20 - Start_time \"03/07/2013:01:59:45 GMT\" - End_time \"03/07/2013:01:59:45 GMT\" - Duration 00:00:00  - Total_bytes_send 1 - Total_bytes_recv 122881 - Total_compressedbytes_send 0 - Total_compressedbytes_recv 0 - Compression_ratio_send 0.00% - Compression_ratio_recv 0.00% - Access Allowed - Group(s) \"69B01E79DC24115918EF16E9E36A1B2\"";
@@ -15,7 +15,7 @@ public class Mpx8400ParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		Mpx8400Parser p = new Mpx8400Parser();
+		NetScalerMpxParser p = new NetScalerMpxParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("SSLVPN TCPCONNSTAT", m.get("event_type"));
@@ -36,7 +36,7 @@ public class Mpx8400ParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		Mpx8400Parser p = new Mpx8400Parser();
+		NetScalerMpxParser p = new NetScalerMpxParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("SSLVPN HTTPREQUEST", m.get("event_type"));
@@ -58,7 +58,7 @@ public class Mpx8400ParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		Mpx8400Parser p = new Mpx8400Parser();
+		NetScalerMpxParser p = new NetScalerMpxParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("SSLLOG SSL_HANDSHAKE_SUCCESS", m.get("event_type"));
@@ -76,7 +76,7 @@ public class Mpx8400ParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		Mpx8400Parser p = new Mpx8400Parser();
+		NetScalerMpxParser p = new NetScalerMpxParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("SSLVPN UDPFLOWSTAT", m.get("event_type"));
@@ -97,7 +97,7 @@ public class Mpx8400ParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		Mpx8400Parser p = new Mpx8400Parser();
+		NetScalerMpxParser p = new NetScalerMpxParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("SSLVPN Message", m.get("event_type"));
@@ -112,7 +112,7 @@ public class Mpx8400ParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		Mpx8400Parser p = new Mpx8400Parser();
+		NetScalerMpxParser p = new NetScalerMpxParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("SSLVPN TCPCONN_TIMEDOUT", m.get("event_type"));
@@ -132,7 +132,7 @@ public class Mpx8400ParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		Mpx8400Parser p = new Mpx8400Parser();
+		NetScalerMpxParser p = new NetScalerMpxParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("SSLVPN LOGIN", m.get("event_type"));
@@ -153,7 +153,7 @@ public class Mpx8400ParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		Mpx8400Parser p = new Mpx8400Parser();
+		NetScalerMpxParser p = new NetScalerMpxParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("SSLVPN LOGOUT", m.get("event_type"));
@@ -176,7 +176,7 @@ public class Mpx8400ParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		Mpx8400Parser p = new Mpx8400Parser();
+		NetScalerMpxParser p = new NetScalerMpxParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("SSLVPN TCPCONNSTAT", m.get("event_type"));
@@ -193,7 +193,7 @@ public class Mpx8400ParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		Mpx8400Parser p = new Mpx8400Parser();
+		NetScalerMpxParser p = new NetScalerMpxParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("AAA EXTRACTED_GROUPS", m.get("event_type"));
@@ -206,7 +206,7 @@ public class Mpx8400ParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		Mpx8400Parser p = new Mpx8400Parser();
+		NetScalerMpxParser p = new NetScalerMpxParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("SNMP TRAP_SENT", m.get("event_type"));
