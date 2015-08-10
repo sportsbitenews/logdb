@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultQuery implements Query {
 	private Logger logger = LoggerFactory.getLogger(DefaultQuery.class);
+	private Logger resultTracer = LoggerFactory.getLogger("query-result-trace");
 	private static AtomicInteger nextId = new AtomicInteger(1);
 
 	private final int id = nextId.getAndIncrement();
@@ -80,10 +81,24 @@ public class DefaultQuery implements Query {
 
 	private void openResult(QueryResultFactory resultFactory) {
 		try {
+			if (resultTracer.isDebugEnabled()) {
+				String currentLogin = null;
+				if (context != null && context.getSession() != null)
+					currentLogin = context.getSession().getLoginName();
+
+				resultTracer.debug("araqne logdb: open query result for query [{}:{}], session [{}]", new Object[] { id,
+						queryString, currentLogin });
+			}
+
 			QueryResultConfig config = new QueryResultConfig();
 			config.setQuery(this);
 			result = resultFactory.createResult(config);
 		} catch (IOException e) {
+			if (resultTracer.isDebugEnabled()) {
+				resultTracer.debug("araqne logdb: delete query result for query [" + id + ":" + queryString + "], run mode ["
+						+ runMode + "] by exception", e);
+			}
+
 			result.closeWriter();
 			result.purge();
 			throw new IllegalStateException("cannot create result, maybe disk full", e);
@@ -193,8 +208,15 @@ public class DefaultQuery implements Query {
 		// callback or timeline callbacks
 		callbacks.getStatusCallbacks().clear();
 
-		if (result != null)
+		if (result != null) {
+			if (resultTracer.isDebugEnabled()) {
+				resultTracer.debug(
+						"araqne logdb: delete query result for query [{}:{}], run mode [{}], stop reason [{}], cause [{}]",
+						new Object[] { id, queryString, runMode, stopReason, cause });
+			}
+
 			result.purge();
+		}
 	}
 
 	@Override
@@ -211,7 +233,7 @@ public class DefaultQuery implements Query {
 	public void stop(QueryStopReason reason) {
 		if (!closed.compareAndSet(false, true))
 			return;
-		
+
 		this.stopReason = reason;
 
 		// stop tasks

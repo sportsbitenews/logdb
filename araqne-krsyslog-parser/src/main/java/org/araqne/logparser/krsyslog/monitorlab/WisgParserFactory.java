@@ -21,14 +21,14 @@ public class WisgParserFactory extends AbstractLogParserFactory {
 	public String getDisplayName(Locale locale) {
 		if (locale.equals(Locale.KOREAN))
 			return "모니터랩 WISG";
-		return "Monitorlab WISG";
+		return "Monitorapp WISG";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "모니터랩 WISG의 로그를 파싱합니다.";
-		return "Parse Monitorlab WISG logs.";
+		return "Parse Monitorapp WISG logs.";
 	}
 
 	@Override

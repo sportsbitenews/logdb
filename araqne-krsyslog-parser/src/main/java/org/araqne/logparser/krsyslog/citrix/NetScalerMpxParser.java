@@ -8,8 +8,8 @@ import java.util.Map;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.V1LogParser;
 
-public class Mpx8400Parser extends V1LogParser {
-	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(Mpx8400Parser.class);
+public class NetScalerMpxParser extends V1LogParser {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(NetScalerMpxParser.class);
 	private final String delimiter = "- ";
 
 	private static final List<FieldDefinition> fields;
@@ -116,8 +116,23 @@ public class Mpx8400Parser extends V1LogParser {
 			if (keyValue.charAt(keyValue.length() - 1) == ' ')
 				keyValue = keyValue.substring(0, keyValue.length() - 1);
 
-			if (keyValue.indexOf("GET") != -1 || keyValue.indexOf("POST") != -1)
-				return;
+			int loopCount = 0;
+			while (loopCount < 2) {
+				String method;
+				if(loopCount == 0)
+					method = "GET";
+				else
+					method = "POST";
+
+				int methodPos = keyValue.indexOf(method);
+				if (methodPos != -1) {
+					m.put("request_time", keyValue.substring(0, methodPos - 1));
+					m.put(method.toLowerCase() + "_info", keyValue.substring(methodPos));
+					return;
+				}
+
+				loopCount++;
+			}
 
 			int pos = keyValue.indexOf(" User");
 			if (pos > 0) {
@@ -131,7 +146,11 @@ public class Mpx8400Parser extends V1LogParser {
 						m.put(str.substring(firstPos + 1, secondPos).toLowerCase(), str.substring(secondPos + 1).trim());
 					} else {
 						int firstPos = str.indexOf(" ");
-						m.put(str.substring(0, firstPos).toLowerCase(), str.substring(firstPos + 1));
+						String key = str.substring(0, firstPos).toLowerCase();
+						if (key.equals("group(s)"))
+							key = "group_info";
+
+						m.put(key, str.substring(firstPos + 1));
 					}
 				}
 
@@ -146,13 +165,21 @@ public class Mpx8400Parser extends V1LogParser {
 		int pos;
 		pos = keyValue.indexOf(" \"");
 		if (pos != -1) {
-			m.put(keyValue.substring(0, pos).toLowerCase().trim(), keyValue.substring(pos + 2, keyValue.length() - 1));
+			String key = keyValue.substring(0, pos).toLowerCase().trim();
+			if (key.equals("group(s)"))
+				key = "group_info";
+
+			m.put(key, keyValue.substring(pos + 2, keyValue.length() - 1));
 			return;
 		}
 
 		pos = keyValue.indexOf(": ");
 		if (pos != -1) {
-			m.put(keyValue.substring(0, pos).toLowerCase().trim(), keyValue.substring(pos + 2));
+			String key = keyValue.substring(0, pos).toLowerCase().trim();
+			if (key.equals("group(s)"))
+				key = "group_info";
+
+			m.put(key, keyValue.substring(pos + 2));
 			return;
 		}
 
@@ -161,8 +188,19 @@ public class Mpx8400Parser extends V1LogParser {
 			keyValue = keyValue.substring(1);
 
 		pos = keyValue.indexOf(" ");
-		if (pos != -1)
-			m.put(keyValue.substring(0, pos).toLowerCase().trim(), keyValue.substring(pos + 1).trim());
+		if (pos != -1) {
+			String key = keyValue.substring(0, pos).toLowerCase().trim();
+			if (key.equals("source") || key.equals("destination")) {
+				String value = keyValue.substring(pos + 1).trim();
+				int p = value.indexOf(":");
+				m.put(key + "_ip", value.substring(0, p));
+				m.put(key + "_port", value.substring(p + 1));
+				return;
+			} else if (key.equals("group(s)"))
+				key = "group_info";
+			else
+				m.put(key, keyValue.substring(pos + 1).trim());
+		}
 	}
 
 	private static void addField(String name, String type) {

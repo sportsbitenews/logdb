@@ -7,7 +7,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
-public class SpamsniperParserTest {
+public class SpamSniperParserTest {
 	@Test
 	public void testSpamInboundMaster() {
 		String line = "seq=26016737 mail_id=1361900959_28116 sender_ip=78.189.215.108 sender_email=mttawil@sh163.net receiver_email=jhkim2@hhi.co.kr mail_type=2 db_name=all_deny filter_type=\"RPD Engine\" filter_action=2 filter_content=\"X-CTCH-RefID: str=0001.0A150209.512CF5A0.0078,ss=4,pt=R_313665,fgs=12\" header_subject=\"Time for perfect nights with your partner\" virus_name= iscontent=1 user_group= user_domain=hhi.co.kr date=1361900960.000 recover_date= attach= hostname=211.193.193.212 mail_size=899 country= run_mode=1 send_id=I1361900959_28116_1";
@@ -15,7 +15,7 @@ public class SpamsniperParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		SpamsniperParser p = new SpamsniperParser();
+		SpamSniperParser p = new SpamSniperParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("26016737", m.get("seq"));
@@ -33,7 +33,7 @@ public class SpamsniperParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		SpamsniperParser p = new SpamsniperParser();
+		SpamSniperParser p = new SpamSniperParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("10829942", m.get("seq"));

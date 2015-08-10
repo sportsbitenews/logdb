@@ -5,6 +5,7 @@ import static org.junit.Assert.fail;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.Eval;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
@@ -20,15 +21,47 @@ public class EvalParserTest {
 		p.setFunctionRegistry(new FunctionRegistryImpl());
 		queryParserService = p;
 	}
-
+	
 	@Test
 	public void testConstantExpr() {
 		EvalParser p = new EvalParser();
 		p.setQueryParserService(queryParserService);
 
-		Eval eval = (Eval) p.parse(null, "eval n=1+2+min(10, 4, 34, -9)");
-		Object o = eval.getExpression().eval(null);
-		assertEquals(-6L, o);
+		{
+			Eval eval = (Eval) p.parse(null, "eval n=1+2+min(10, 4, 34, -9)");
+			Row r = new Row();
+			eval.onPush(r);
+			assertEquals(1, r.map().size());
+			assertEquals(-6L, r.get("n"));
+		}
+
+		{
+			Eval eval = (Eval) p.parse(null, "eval n=1+2+min(10, 4, 34, -9), t=\"asdf\"");
+			Row r = new Row();
+			eval.onPush(r);
+			assertEquals(2, r.map().size());
+			assertEquals(-6L, r.get("n"));
+			assertEquals("asdf", r.get("t"));
+		}
+
+		{
+			Eval eval = (Eval) p.parse(null, "eval b=1==2");
+			Row r = new Row();
+			eval.onPush(r);
+			assertEquals(1, r.map().size());
+			assertEquals(false, r.get("b"));
+		}
+
+		{
+			Eval eval = (Eval) p.parse(null, "eval a=b=1+2-5, c=2, d=3");
+			Row r = new Row();
+			eval.onPush(r);
+			assertEquals(4, r.map().size());
+			assertEquals(-2L, r.get("a"));
+			assertEquals(-2L, r.get("b"));
+			assertEquals(2, r.get("c"));
+			assertEquals(3, r.get("d"));
+		}
 	}
 
 	@Test
@@ -65,9 +98,9 @@ public class EvalParserTest {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
-			assertEquals("20101", e.getType());
+			assertEquals("90100", e.getType());
 			assertEquals(5, e.getStartOffset());
-			assertEquals(6, e.getEndOffset());	
+			assertEquals(7, e.getEndOffset());	
 		}
 		
 		query = "eval =";
@@ -80,9 +113,9 @@ public class EvalParserTest {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
-			assertEquals("20101", e.getType());
+			assertEquals("90100", e.getType());
 			assertEquals(5, e.getStartOffset());
-			assertEquals(4, e.getEndOffset());	
+			assertEquals(5, e.getEndOffset());	
 		}
 	}
 
@@ -100,8 +133,8 @@ public class EvalParserTest {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
-			assertEquals("20102", e.getType());
-			assertEquals(7, e.getStartOffset());
+			assertEquals("90100", e.getType());
+			assertEquals(5, e.getStartOffset());
 			assertEquals(10, e.getEndOffset());	
 		}
 	}
@@ -112,7 +145,7 @@ public class EvalParserTest {
 		p.setQueryParserService(queryParserService);
 
 		Eval eval = (Eval) p.parse(null, "eval n=1+2");
-		assertEquals("eval n=(1 + 2)", eval.toString());
+		assertEquals("eval (n = (1 + 2))", eval.toString());
 	}
 	
 	@Test
@@ -127,7 +160,7 @@ public class EvalParserTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("90100", e.getType());
-			assertEquals("abs(-1+ )", e.getParams().get("value"));
+			assertEquals("n=abs(-1+ )", e.getParams().get("value"));
 		}
 	}
 	

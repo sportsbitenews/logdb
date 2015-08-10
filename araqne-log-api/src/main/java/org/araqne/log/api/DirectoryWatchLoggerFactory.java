@@ -119,8 +119,12 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 		LoggerConfigOption charset = new MutableStringConfigType("charset", t("Charset", "문자 집합", "文字セット", "字符集"), t(
 				"charset encoding", "텍스트 파일의 문자 인코딩 방식", "テキストファイルの文字エンコーディング方式", "文本文件的字符编码方式"), false);
 
+		LoggerConfigOption fileTag = new MutableStringConfigType("file_tag", t("Filename Tag", "파일이름 태그", "ファイル名タグ", "文件名标记"), t(
+				"Field name for filename tagging", "파일명을 태깅할 필드 이름", "ファイル名をタギングするフィールド名", "要进行文件名标记的字段"), false);
+
 		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, timezone, newlogRegex,
-				newlogEndRegex, charset);
+				newlogEndRegex, charset, fileTag);
+
 	}
 
 	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {

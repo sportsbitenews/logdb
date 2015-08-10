@@ -1,12 +1,12 @@
-package org.araqne.logparser.krsyslog.markany;
+package org.araqne.logparser.krsyslog.jiran;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.V1LogParser;
 
-public class DrmParser extends V1LogParser {
-	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(DrmParser.class);
+public class SpamSniperParser extends V1LogParser {
+	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(SpamSniperParser.class);
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
@@ -21,7 +21,7 @@ public class DrmParser extends V1LogParser {
 			int b = 0;
 			int e;
 			while ((e = builder.indexOf("=", b)) > 0) {
-				String key = builder.substring(b, e).toLowerCase();
+				String key = builder.substring(b, e);
 				if (builder.charAt(e + 1) == '"') {
 					String value = "";
 					int i = e + 2;
@@ -66,4 +66,3 @@ public class DrmParser extends V1LogParser {
 	}
 
 }
-

@@ -41,7 +41,7 @@ public class NeoboxLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "네오박스";
 		return "Neobox";
 	}
@@ -53,7 +53,7 @@ public class NeoboxLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "XN시스템즈 네오박스 로그를 파싱합니다.";
 		return "Parse XNsystems Neobox logs.";
 	}

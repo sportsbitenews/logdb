@@ -263,12 +263,8 @@ public class SortMergeJoiner {
 				boolean lhsNull = v1 == null;
 				boolean rhsNull = v2 == null;
 
-				if (lhsNull && rhsNull)
-					continue;
-				else if (lhsNull)
+				if (lhsNull || rhsNull)
 					return field.isAsc() ? -1 : 1;
-				else if (rhsNull)
-					return field.isAsc() ? 1 : -1;
 
 				int diff = cmp.compare(v1, v2);
 				if (diff != 0) {

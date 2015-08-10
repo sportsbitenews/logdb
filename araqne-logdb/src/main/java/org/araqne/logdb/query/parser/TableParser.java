@@ -280,6 +280,16 @@ public class TableParser extends AbstractQueryCommandParser {
 
 			return ListEndComma;
 		}
+
+		@Override
+		public boolean hasAltOp() {
+			return false;
+		}
+
+		@Override
+		public OpTerm getAltOp() {
+			return null;
+		}
 	}
 
 	private static class OpEmitterFactoryI implements OpEmitterFactory {

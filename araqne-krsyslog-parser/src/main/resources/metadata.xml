@@ -24,10 +24,10 @@
 	<instance component="shellmonitor-parser-factory" />
 	<instance component="secuwiz-sslvpn-log-parser-factory" />
 	<instance component="exshield-csv-parser-factory" />
-	<instance component="mpx8400-parser-factory" />
+	<instance component="netscaler-mpx-parser-factory" />
 	<instance component="tess-audit-parser-factory" />
 	<instance component="tess-parser-factory" />
 	<instance component="spamsniper-parser-factory" />
 	<instance component="wisg-parser-factory" />
-	<instance component="drm-parser-factory" />
+	<instance component="markany-content-safer-parser-factory" />
 </ipojo>

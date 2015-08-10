@@ -18,10 +18,10 @@ public class TessAuditParserTest {
 		TessAuditParser p = new TessAuditParser();
 		Map<String, Object> m = p.parse(log);
 
-		assertEquals("42056", m.get("lauditlogindex"));
-		assertEquals("7", m.get("ltype2"));
-		assertEquals("178", m.get("lauditsetindex"));
-		assertEquals("패킷 분석에 대한 처리누수가 발생 하였습니다.(traffic gathering)", m.get("strcontent"));
+		assertEquals("42056", m.get("audit_log_index"));
+		assertEquals("7", m.get("type2"));
+		assertEquals("178", m.get("audit_set_index"));
+		assertEquals("패킷 분석에 대한 처리누수가 발생 하였습니다.(traffic gathering)", m.get("str_content"));
 	}
 
 	@Test
@@ -34,8 +34,8 @@ public class TessAuditParserTest {
 		TessAuditParser p = new TessAuditParser();
 		Map<String, Object> m = p.parse(log);
 
-		assertEquals("2013-03-27 16:05:21", m.get("tmoccur"));
-		assertEquals("3", m.get("ltype1"));
-		assertEquals("센서(192.168.70.81)", m.get("stroperator"));
+		assertEquals("2013-03-27 16:05:21", m.get("occur_time"));
+		assertEquals("3", m.get("type1"));
+		assertEquals("센서(192.168.70.81)", m.get("str_operator"));
 	}
 }
