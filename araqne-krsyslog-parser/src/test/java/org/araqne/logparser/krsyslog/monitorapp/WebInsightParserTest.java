@@ -80,4 +80,52 @@ public class WebInsightParserTest {
 
 	}
 
+	@Test
+	public void testSysLog() {
+		String line = "SYS|20100818160800|1.2.3.4|1|16|8|10|14735|40333|62|72";
+
+		WebInsightParser parser = new WebInsightParser();
+		Map<String, Object> args = new HashMap<String, Object>();
+		args.put("line", line);
+		Map<String, Object> m = parser.parse(args);
+
+		assertEquals("SYS", m.get("log_type"));
+		assertEquals("20100818160800", m.get("time"));
+		assertEquals("1.2.3.4", m.get("gateway"));
+		assertEquals("1", m.get("cpu"));
+		assertEquals("16", m.get("memory"));
+		assertEquals("8", m.get("cps"));
+		assertEquals("10", m.get("tps"));
+		assertEquals("14735", m.get("inbound_kbyte_persec"));
+		assertEquals("40333", m.get("outbound_kbyte_persec"));
+		assertEquals("62", m.get("inbound_pps"));
+		assertEquals("72", m.get("outbound_pps"));
+	}
+
+	@Test
+	public void testCommonLog() {
+		String line = "20130220174924|1.2.3.4|20936|5.6.7.8|80|9.10.11.12|Unpermitted HTTP Method|0|Unpermitted HTTP Method: OPTIONS|DETECT|LOW|HTTP|hoho.co.kr|154|OPTIONS";
+
+		WebInsightParser parser = new WebInsightParser();
+		Map<String, Object> args = new HashMap<String, Object>();
+		args.put("line", line);
+		Map<String, Object> m = parser.parse(args);
+
+		assertEquals("20130220174924", m.get("time"));
+		assertEquals("1.2.3.4", m.get("client_ip"));
+		assertEquals("20936", m.get("client_port"));
+		assertEquals("5.6.7.8", m.get("server_ip"));
+		assertEquals("80", m.get("server_port"));
+		assertEquals("9.10.11.12", m.get("gateway"));
+		assertEquals("Unpermitted HTTP Method", m.get("detect_classification"));
+		assertEquals("0", m.get("rule_id"));
+		assertEquals("Unpermitted HTTP Method: OPTIONS", m.get("detect_base"));
+		assertEquals("DETECT", m.get("detect_result"));
+		assertEquals("LOW", m.get("risk_level"));
+		assertEquals("HTTP", m.get("protocol"));
+		assertEquals("hoho.co.kr", m.get("host"));
+		assertEquals("154", m.get("request_length"));
+		assertEquals("OPTIONS", m.get("request_data"));
+	}
+
 }

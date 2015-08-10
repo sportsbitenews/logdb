@@ -7,7 +7,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
-public class ContentSaferParserTest {
+public class ClientSaferParserTest {
 	@Test
 	public void testLogFileHistory() {
 		String line = "File_ID=09010f0e8018973f Downloader_ID= User_ID=A300195 File_Name=\"noname.doc\" User_IP=1.2.3.4 User_ComName=아무개 Oper_Type=2 File_StoragePath= Scope_Name=미적용 Scope_ID=0 User_UID=1019528 User_Name=아무개 User_DeptCode=J9P0 User_DeptName=\"부서1\" User_PosCode=BA0 User_PosName=부장 File_Desc=\"요약\" File_RegDate=1142551010.140 ACL_DocLevelName=대외비 File_DocLevel=1 sFlag=EDMS User_BzCode=\"AJ00    \" User_BsCode=J9P0 Server_origin=EDMS01";
@@ -15,7 +15,7 @@ public class ContentSaferParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		ContentSaferParser p = new ContentSaferParser();
+		ClientSaferParser p = new ClientSaferParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("09010f0e8018973f", m.get("file_id"));
@@ -34,7 +34,7 @@ public class ContentSaferParserTest {
 		HashMap<String, Object> log = new HashMap<String, Object>();
 		log.put("line", line);
 
-		ContentSaferParser p = new ContentSaferParser();
+		ClientSaferParser p = new ClientSaferParser();
 		Map<String, Object> m = p.parse(log);
 
 		assertEquals("A390089", m.get("user_id"));
