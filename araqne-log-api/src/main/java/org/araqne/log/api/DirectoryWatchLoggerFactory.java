@@ -124,7 +124,6 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 
 		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, timezone, newlogRegex,
 				newlogEndRegex, charset, fileTag);
-
 	}
 
 	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {
