@@ -334,9 +334,14 @@ public class ManagementPlugin {
 	@MsgbusMethod
 	public void listSecurityGroups(Request req, Response resp) {
 		List<SecurityGroup> groups = accountService.getSecurityGroups();
+		Boolean isUserFilter = req.has("user_filter") ? req.getBoolean("user_filter") : false;
+		String reqLoginName = req.getSession().getAdminLoginName();
 		// return without details
 		List<Object> l = new ArrayList<Object>();
 		for (SecurityGroup group : groups) {
+			if (isUserFilter && !group.getAccounts().contains(reqLoginName))
+				continue;
+
 			Map<String, Object> m = new HashMap<String, Object>();
 			m.put("guid", group.getGuid());
 			m.put("name", group.getName());
@@ -357,6 +362,16 @@ public class ManagementPlugin {
 		String guid = req.getString("guid", true);
 		SecurityGroup group = accountService.getSecurityGroup(guid);
 		resp.put("security_group", group == null ? null : group.marshal());
+	}
+
+	@MsgbusMethod
+	public void isMemberOfSecurityGroup(Request req, Response resp) {
+		String guid = req.getString("guid", true);
+		SecurityGroup group = accountService.getSecurityGroup(guid);
+		if (group == null)
+			throw new MsgbusException("logdb", "security group not found:" + guid);
+
+		resp.put("result", group.getAccounts().contains(req.getSession().getAdminLoginName()));
 	}
 
 	/**

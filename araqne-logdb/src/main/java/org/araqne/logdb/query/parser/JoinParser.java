@@ -211,6 +211,16 @@ public class JoinParser extends AbstractQueryCommandParser {
 			return ListEndComma;
 		}
 
+		@Override
+		public boolean hasAltOp() {
+			return false;
+		}
+
+		@Override
+		public OpTerm getAltOp() {
+			return null;
+		}
+
 	}
 
 	private static class JoinOpEmitterFactory implements OpEmitterFactory {

@@ -5,9 +5,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
@@ -30,11 +32,11 @@ public class SortMergeJoinerTest {
 		return rowBatch;
 	}
 
-	private static List<Map<String, Object>> jsonToMaps(String json) {
+	private static Set<Map<String, Object>> jsonToMaps(String json) {
 		JsonParser parser = new JsonParser();
 		Json sJson = (Json) parser.parse(null, json);
 
-		List<Map<String, Object>> maps = new ArrayList<Map<String, Object>>();
+		Set<Map<String, Object>> maps = new HashSet<Map<String, Object>>();
 		for (Row row : sJson.getLogs()) {
 			maps.add(row.map());
 		}
@@ -85,7 +87,7 @@ public class SortMergeJoinerTest {
 	private static void runJoin(JoinType joinType, String rTableJson, String sTableJson, String expectedResultJson, SortField[] sortFields)
 			throws IOException {
 		RowBatch unsortedR = jsonToRowBatch(rTableJson);
-		List<Map<String, Object>> unsortedS = jsonToMaps(sTableJson);
+		Set<Map<String, Object>> unsortedS = jsonToMaps(sTableJson);
 
 		RowPipeForTest output = new RowPipeForTest();
 
@@ -97,11 +99,9 @@ public class SortMergeJoinerTest {
 
 		sortMergeJoiner.merge();
 
-		List<Map<String, Object>> expectedResult = jsonToMaps(expectedResultJson);
-		Iterator<Map<String, Object>> it = expectedResult.iterator();
+		Set<Map<String, Object>> expectedResult = jsonToMaps(expectedResultJson);
 		for (Row row : output.getRows()) {
-			Map<String, Object> expected = it.next();
-			assertTrue(expected.equals(row.map()));
+			assertTrue(expectedResult.contains(row.map()));
 		}
 
 		assertEquals(expectedResult.size(), output.getRows().size());
@@ -535,8 +535,96 @@ public class SortMergeJoinerTest {
 				+ "{'_id'=1, 'line'='2007-10-13 06:20:46 W3SVC1 123.223.21.233 GET /solution/1.982/asp/strawlv01982_msg.asp t=1&m=001921F08323 80 - 125.240.40.73 UtilMind+HTTPGet 404 0 3'},"
 				+ "{'_id'=7, 'line'='2007-10-13 06:20:46 W3SVC1 123.223.21.233 GET /solution/1.982/asp/strawlv01982_msg.asp t=1&m=0019DB807868 80 - 124.53.263.24 UtilMind+HTTPGet 404 0 3'},"
 				+ "]\"";
-		SortField[] sortFields = { new SortField("line"), new SortField("id") };
+		SortField[] sortFields = { new SortField("line"), new SortField("_id") };
 
+		runInnerJoin(rTableJson, sTableJson, innerJoinResult, sortFields);
+		runLeftJoin(rTableJson, sTableJson, leftJoinResult, sortFields);
+		runRightJoin(rTableJson, sTableJson, rightJoinResult, sortFields);
+		runFullJoin(rTableJson, sTableJson, fullJoinResult, sortFields);
+	}
+
+	@Test
+	public void sortMergeJoinerTest8() throws IOException {
+		String rTableJson = "json \"["
+				+ "{'_id': 1, 'fieldC': 'C1'}, "
+				+ "{'_id': 1, 'fieldC': 'C3'}, "
+				+ "{'_id': 1, 'fieldC': 'C5'}]\"";
+
+		String sTableJson = "json \"["
+				+ "]\"";
+
+		String innerJoinResult = "json \"["
+				+ "]\"";
+
+		String leftJoinResult = "json \"["
+				+ "{'_id': 1, 'fieldC': 'C1'}, "
+				+ "{'_id': 1, 'fieldC': 'C3'}, "
+				+ "{'_id': 1, 'fieldC': 'C5'}, "
+				+ "]\"";
+
+		String rightJoinResult = "json \"["
+				+ "]\"";
+
+		String fullJoinResult = "json \"["
+				+ "{'_id': 1, 'fieldC': 'C1'}, "
+				+ "{'_id': 1, 'fieldC': 'C3'}, "
+				+ "{'_id': 1, 'fieldC': 'C5'}, "
+				+ "]\"";
+
+		runInnerJoin(rTableJson, sTableJson, innerJoinResult);
+		runLeftJoin(rTableJson, sTableJson, leftJoinResult);
+		runRightJoin(rTableJson, sTableJson, rightJoinResult);
+		runFullJoin(rTableJson, sTableJson, fullJoinResult);
+	}
+
+	@Test
+	public void sortMergeJoinerTest9() throws IOException {
+		String rTableJson = "json \"["
+				+ "{'_id': 0, 'fieldA': 'A1'}, "
+				+ "{'_id': 1, 'fieldA': 'A2'}, "
+				+ "{'_id': 2, 'fieldA': 'A3'}, "
+				+ "{'_id': 1, 'fieldA': 'A4'}, "
+				+ "]\"";
+
+		String sTableJson = "json \"["
+				+ "{'_id': 1, 'fieldC': 'C1'}, "
+				+ "{'_id': 2, 'fieldC': 'C2'}, "
+				+ "{'_id': 1, 'fieldC': 'C3'}, "
+				+ "{'_id': 3, 'fieldC': 'C4'}, "
+				+ "{'_id': 1, 'fieldC': 'C5'}, "
+				+ "]\"";
+
+		String innerJoinResult = "json \"["
+				+ "]\"";
+
+		String leftJoinResult = "json \"["
+				+ "{'_id': 0, 'fieldA': 'A1'}, "
+				+ "{'_id': 1, 'fieldA': 'A2'}, "
+				+ "{'_id': 2, 'fieldA': 'A3'}, "
+				+ "{'_id': 1, 'fieldA': 'A4'}"
+				+ "]\"";
+
+		String rightJoinResult = "json \"["
+				+ "{'_id': 1, 'fieldC': 'C1'}, "
+				+ "{'_id': 2, 'fieldC': 'C2'}, "
+				+ "{'_id': 1, 'fieldC': 'C3'}, "
+				+ "{'_id': 3, 'fieldC': 'C4'}, "
+				+ "{'_id': 1, 'fieldC': 'C5'}, "
+				+ "]\"";
+
+		String fullJoinResult = "json \"["
+				+ "{'_id': 0, 'fieldA': 'A1'}, "
+				+ "{'_id': 1, 'fieldA': 'A2'}, "
+				+ "{'_id': 2, 'fieldA': 'A3'}, "
+				+ "{'_id': 1, 'fieldA': 'A4'}, "
+				+ "{'_id': 1, 'fieldC': 'C1'}, "
+				+ "{'_id': 2, 'fieldC': 'C2'}, "
+				+ "{'_id': 1, 'fieldC': 'C3'}, "
+				+ "{'_id': 3, 'fieldC': 'C4'}, "
+				+ "{'_id': 1, 'fieldC': 'C5'}, "
+				+ "]\"";
+
+		SortField[] sortFields = { new SortField("NONE") };
 		runInnerJoin(rTableJson, sTableJson, innerJoinResult, sortFields);
 		runLeftJoin(rTableJson, sTableJson, leftJoinResult, sortFields);
 		runRightJoin(rTableJson, sTableJson, rightJoinResult, sortFields);
