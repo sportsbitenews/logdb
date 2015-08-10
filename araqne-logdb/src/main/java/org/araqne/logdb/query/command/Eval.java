@@ -76,7 +76,6 @@ public class Eval extends QueryCommand implements ThreadSafe {
 		for (Expression expr : exprs) {
 			update(m, expr);
 		}
-//		m.put(field, expr.eval(m));
 		pushPipe(m);
 	}
 
@@ -89,7 +88,6 @@ public class Eval extends QueryCommand implements ThreadSafe {
 				for (Expression expr : exprs) {
 					update(row, expr);
 				}
-//				row.put(field, expr.eval(row));
 			}
 		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
@@ -97,7 +95,6 @@ public class Eval extends QueryCommand implements ThreadSafe {
 				for (Expression expr : exprs) {
 					update(row, expr);
 				}
-//				row.put(field, expr.eval(row));
 			}
 		}
 
