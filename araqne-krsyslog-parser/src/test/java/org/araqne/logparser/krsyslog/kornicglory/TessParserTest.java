@@ -17,8 +17,8 @@ public class TessParserTest {
 
 		TessParser p = new TessParser();
 		Map<String, Object> m = p.parse(log);
-		assertEquals("malware-virut-irc.11071201@", m.get("eventname"));
-		assertEquals("1008971", m.get("sigindex"));
+		assertEquals("malware-virut-irc.11071201@", m.get("event_name"));
+		assertEquals("1008971", m.get("sig_index"));
 		assertEquals("2013/02/26 10:11:57", m.get("time"));
 		assertEquals("00 1C 7F 3F 23", m.get("packet"));
 	}
@@ -32,8 +32,8 @@ public class TessParserTest {
 
 		TessParser p = new TessParser();
 		Map<String, Object> m = p.parse(log);
-		assertEquals("", m.get("managername"));
-		assertEquals("10.25.6.217", m.get("managerip"));
+		assertEquals("", m.get("manager_name"));
+		assertEquals("10.25.6.217", m.get("manager_ip"));
 		assertEquals("2.1 GHz", m.get("cpu_speed"));
 		assertEquals("4 %", m.get("cpu_usage"));
 		assertEquals("5 %", m.get("tess_session_usage"));
@@ -48,10 +48,10 @@ public class TessParserTest {
 
 		TessParser p = new TessParser();
 		Map<String, Object> m = p.parse(log);
-		assertEquals("\uD604\uB300\uC911\uACF5\uC5C5", m.get("sensorname"));
-		assertEquals("10.25.6.216", m.get("sensorip"));
-		assertEquals("502.55 K", m.get("totaltrafficpps"));
-		assertEquals("377.60 K (9.39 %)", m.get("malicioustrafficpps"));
+		assertEquals("\uD604\uB300\uC911\uACF5\uC5C5", m.get("sensor_name"));
+		assertEquals("10.25.6.216", m.get("sensor_ip"));
+		assertEquals("502.55 K", m.get("total_pps"));
+		assertEquals("377.60 K (9.39 %)", m.get("mal_pps"));
 	}
 
 	@Test
