@@ -109,6 +109,7 @@ public class Marshaler {
 		m.put("type", opt.getType());
 		m.put("required", opt.isRequired());
 		m.put("default_value", opt.getDefaultValue(locale));
+		m.put("subtype", opt.getSubtype());
 		return m;
 	}
 
