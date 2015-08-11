@@ -62,6 +62,15 @@ public class EvalParserTest {
 			assertEquals(2, r.get("c"));
 			assertEquals(3, r.get("d"));
 		}
+		
+		{
+			Eval eval = (Eval) p.parse(null, "eval (seq=min(1, 3, 4, -1))");
+			Row r = new Row();
+			eval.onPush(r);
+			assertEquals(1, r.map().size());
+			assertEquals(-1, r.get("seq"));
+		}
+
 	}
 
 	@Test
