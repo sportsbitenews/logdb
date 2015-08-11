@@ -72,6 +72,21 @@ public class EvalParserTest {
 		}
 
 	}
+	
+	@Test
+	public void testBackwardCompatibility() {
+		EvalParser p = new EvalParser();
+		p.setQueryParserService(queryParserService);
+		{
+			Eval eval = (Eval) p.parse(null, "eval (seq=min(1, 3, 4, -1))");
+			assertEquals("eval seq=min(1, 3, 4, -1)", eval.toString());
+			Row r = new Row();
+			eval.onPush(r);
+			assertEquals(1, r.map().size());
+			assertEquals(-1, r.get("seq"));
+		}
+		
+	}
 
 	@Test
 	public void testBrokenEval1() {
@@ -154,7 +169,7 @@ public class EvalParserTest {
 		p.setQueryParserService(queryParserService);
 
 		Eval eval = (Eval) p.parse(null, "eval n=1+2");
-		assertEquals("eval (n = (1 + 2))", eval.toString());
+		assertEquals("eval n=(1 + 2)", eval.toString());
 	}
 	
 	@Test

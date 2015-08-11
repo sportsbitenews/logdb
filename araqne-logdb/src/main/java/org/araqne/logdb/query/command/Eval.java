@@ -112,7 +112,12 @@ public class Eval extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder("eval ");
+		if (exprs.size() == 1 && exprs.get(0) instanceof Assign) {
+			// for backward compatibility
+			Assign a = Assign.class.cast(exprs.get(0));
+			return "eval " + a.getField() + "=" + a.getValueExpression();
+		} else {
+			StringBuilder sb = new StringBuilder("eval ");
 		boolean first = true;
 		for (Expression expr : exprs) {
 			if (!first)
@@ -122,5 +127,6 @@ public class Eval extends QueryCommand implements ThreadSafe {
 				first = false;
 		}
 		return sb.toString();
+		}
 	}
 }
