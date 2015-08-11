@@ -32,6 +32,10 @@ public class Eval extends QueryCommand implements ThreadSafe {
 
 	private List<Expression> exprs;
 
+	public Eval(Expression expr) {
+		this(expr, 0);
+	}
+	
 	public Eval(Expression expr, int length) {
 		if (expr instanceof Comma) {
 			Comma ce = Comma.class.cast(expr);
