@@ -72,8 +72,8 @@ public class TimeRollingLogWriterFactory extends AbstractLoggerFactory implement
 				"rolling file path", "롤링되는 파일 경로", "ローリングされるファイル経路", "滚动文件路径"), true, "local-file");
 		LoggerConfigOption rotateInterval = new StringConfigType("rotate_interval", t("rotate interval", "파일 교체 주기", "ファイル交代周期",
 				"滚动周期"), t("hour or day", "시간 (hour) 혹은 일자 (day)", "時間(hour)か日(day)", "1小时(输入hour)或者1天(输入day)"), true);
-		LoggerConfigOption charsetName = new StringConfigType("charset", t("charset", "문자집합", "文字セット", "字符集"), t(
-				"utf-8 by default", "기본값은 utf-8", "基本値はutf-8", "默认值为utf-8"), false);
+		LoggerConfigOption charsetName = new StringConfigType("charset", t("charset", "문자 집합", "文字セット", "字符集"), t(
+				"utf-8 by default", "기본값은 utf-8", "基本値はutf-8", "默认值为utf-8"), false, "charset");
 
 		return Arrays.asList(loggerName, filePath, rotateInterval, charsetName);
 	}

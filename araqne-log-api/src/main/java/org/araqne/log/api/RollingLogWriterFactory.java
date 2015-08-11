@@ -89,8 +89,8 @@ public class RollingLogWriterFactory extends AbstractLoggerFactory implements Ru
 		LoggerConfigOption maxBackupIndex = new IntegerConfigType("max_backup_index", t("max backup index", "최대 백업 인덱스",
 				"最大バックアップインデックス", "最大备份索引"), t("number of retained files", "롤링 백업되는 파일 갯수, 기본값 1", "ローリングバックアップされるファイルの数。基本値1",
 				"轮询备份的文件个数, 默认值1"), false);
-		LoggerConfigOption charsetName = new StringConfigType("charset", t("charset", "문자집합", "文字セット", "字符集"), t(
-				"utf-8 by default", "기본값은 utf-8", "基本値はutf-8", "默认值为utf-8"), false);
+		LoggerConfigOption charsetName = new StringConfigType("charset", t("charset", "문자 집합", "文字セット", "字符集"), t(
+				"utf-8 by default", "기본값은 utf-8", "基本値はutf-8", "默认值为utf-8"), false, "charset");
 
 		return Arrays.asList(loggerName, filePath, maxFileSize, maxBackupIndex, charsetName);
 	}

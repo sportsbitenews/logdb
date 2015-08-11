@@ -78,20 +78,20 @@ public class RotationFileLoggerFactory extends AbstractLoggerFactory {
 				"日期正则表达式"), t("Regex for date extraction", "날짜 문자열 추출에 사용되는 정규표현식", "日付文字列の抽出に使う正規表現", "用于提取日期字符串的正则表达式"), false,
 				t(null), "regex");
 
-		LoggerConfigOption dateFormat = new MutableStringConfigType("date_format", t("Date Format", "날짜 패턴", "日付パターン", "日期模式"),
+		LoggerConfigOption dateFormat = new MutableStringConfigType("date_format", t("Date Format", "날짜 포맷", "日付パターン", "日期模式"),
 				t("Date pattern of log file", "날짜 파싱에 필요한 패턴 (예시: yyyy-MM-dd HH:mm:ss)", "日付の解析に使うパターン (例: yyyy-MM-dd HH:mm:ss)",
-						"用于解析日期的特征"), false, t("MMM dd HH:mm:ss"));
+						"用于解析日期的特征"), false, t("MMM dd HH:mm:ss"), "date-format");
 
 		LoggerConfigOption dateLocale = new MutableStringConfigType("date_locale", t("Date Locale", "날짜 로케일", "日付ロケール", "日期区域"),
 				t("Date locale of log file", "날짜 문자열의 로케일. 가령 날짜 패턴의 MMM 지시어은 영문 로케일에서 Jan으로 인식됩니다.", "日付文字列ののロケール", "日期字符串区域"),
-				false, t("en"));
+				false, t("en"), "date-locale");
 
 		LoggerConfigOption charset = new MutableStringConfigType("charset", t("Charset", "문자 집합", "文字セット", "字符集"), t("Charset",
-				"문자 집합. 기본값 UTF-8", "文字セット。基本値はutf-8", "字符集，默认值为UTF-8"), false, t("utf-8"));
+				"문자 집합. 기본값 UTF-8", "文字セット。基本値はutf-8", "字符集，默认值为UTF-8"), false, t("utf-8"), "charset");
 
 		LoggerConfigOption timezone = new MutableStringConfigType("timezone", t("Time zone", "시간대", "時間帯", "时区"), t(
 				"Time zone, e.g. America/New_york ", "시간대, 예를 들면 KST 또는 Asia/Seoul", "時間帯。例えばJSTまたはAsia/Tokyo",
-				"时区， 例如 Asia/Beijing"), false);
+				"时区， 例如 Asia/Beijing"), false, "timezone");
 
 		LoggerConfigOption logBeginRegex = new MutableStringConfigType("begin_regex", t("Log begin regex", "로그 시작 정규표현식",
 				"ログ始め正規表現", "日志起始正则表达式"), t("Regular expression to determine whether the line is start of new log."
