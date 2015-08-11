@@ -415,6 +415,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			m.put("source", null);
 			m.put("login_name", null);
 		}
+		m.put("start_at", new Date());
 		m.put("query_string", query.getQueryString());
 		m.put("query_id", query.getId());
 

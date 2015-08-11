@@ -91,11 +91,11 @@ public class LocalImportWorker implements ImportWorker {
 				loadFile(zipFile, e, tableId);
 			}
 
-		} catch (IOException e) {
-			task.setFailureException(e);
-			slog.error("araqne logstorage: import job [" + req.getGuid() + "] failed", e);
 		} catch (InterruptedException e) {
 			task.setCancelled();
+		} catch (Throwable t) {
+			task.setFailureException(t);
+			slog.error("araqne logstorage: import job [" + req.getGuid() + "] failed", t);
 		} finally {
 			if (zipFile != null) {
 				try {
