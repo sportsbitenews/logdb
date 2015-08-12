@@ -15,11 +15,11 @@
  */
 package org.araqne.logdb;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class QueryContext {
 	private Session session;
@@ -30,7 +30,7 @@ public class QueryContext {
 	/**
 	 * includes main and dynamic sub queries
 	 */
-	private List<Query> queries = new ArrayList<Query>();
+	private List<Query> queries = new CopyOnWriteArrayList<Query>();
 
 	public QueryContext(Session session) {
 		this.session = session;
