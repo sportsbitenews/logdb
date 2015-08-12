@@ -249,6 +249,13 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 
 		// delete files
 		synchronized (writerLock) {
+			try {
+				writer.close();
+			} catch (IOException e) {
+				int queryId = config.getQuery().getId();
+				logger.warn("araqne logdb: cannot close query [" + queryId + "] result writer", e);
+			}
+			
 			writer.purge();
 		}
 	}
