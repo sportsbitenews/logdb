@@ -137,6 +137,28 @@ public class Marshaler {
 		return serializedObjects;
 	}
 
+	public static List<Object> marshalDisplayGroups(Collection<?> list, Locale locale) {
+		if (list == null)
+			return null;
+
+		List<Object> serializedObjects = new ArrayList<Object>();
+
+		for (Object obj : list) {
+			if (obj instanceof LoggerFactory)
+				serializedObjects.add(marshal((LoggerFactory) obj, locale));
+			else
+				throw new UnsupportedOperationException("unsupported class: " + obj.getClass().getSimpleName());
+		}
+
+		return serializedObjects;
+	}
+	
+	public static Map<String, Object> marshalDisplayGroup(LoggerFactory factory, Locale locale) {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("group", factory.getDisplayGroup(locale));
+		return m;
+	}
+	
 	private static String dateFormatting(Date date) {
 		if (date == null)
 			return null;
