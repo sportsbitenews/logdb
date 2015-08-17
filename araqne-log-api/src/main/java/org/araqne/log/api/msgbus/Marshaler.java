@@ -35,6 +35,8 @@ public class Marshaler {
 	public static Map<String, Object> marshal(LoggerFactory factory, Locale locale) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("full_name", factory.getFullName());
+		m.put("display_group", factory.getDisplayGroup(locale));
+		m.put("group", factory.getDisplayGroup(Locale.ENGLISH));
 		m.put("display_name", factory.getDisplayName(locale));
 		m.put("namespace", factory.getNamespace());
 		m.put("name", factory.getName());
