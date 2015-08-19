@@ -261,5 +261,6 @@
 		<module>araqne-logdb-jms</module>
 		<module>araqne-logdb-hprof</module>
 		<module>araqne-logdb-jxpath</module>
+		<module>araqne-logapi-http</module>
 	</modules>
 </project>
