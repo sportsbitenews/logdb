@@ -93,14 +93,11 @@ public abstract class QueryCommand {
 
 	public void tryClose(QueryStopReason reason) {
 		Lock lock = rwLock.writeLock();
-		try {
-			lock.lock();
+		lock.lock();
 
-			if (closeCalled.compareAndSet(false, true))
-				onClose(reason);
-		} finally {
-			lock.unlock();
-		}
+		if (closeCalled.compareAndSet(false, true))
+			onClose(reason);
+		lock.unlock();
 	}
 
 	public void onPush(Row row) {
@@ -124,45 +121,39 @@ public abstract class QueryCommand {
 
 	protected final void pushPipe(Row row) {
 		Lock lock = rwLock.readLock();
-		try {
-			lock.lock();
+		lock.lock();
 
-			outputCount++;
+		outputCount++;
 
-			if (output != null) {
-				if (output.isThreadSafe()) {
+		if (output != null) {
+			if (output.isThreadSafe()) {
+				output.onRow(row);
+			} else {
+				synchronized (output) {
 					output.onRow(row);
-				} else {
-					synchronized (output) {
-						output.onRow(row);
-					}
 				}
 			}
-		} finally {
-			lock.unlock();
 		}
 
+		lock.unlock();
 	}
 
 	protected final void pushPipe(RowBatch rowBatch) {
 		Lock lock = rwLock.readLock();
-		try {
-			lock.lock();
+		lock.lock();
 
-			outputCount += rowBatch.size;
-			if (output != null) {
-				if (output.isThreadSafe()) {
+		outputCount += rowBatch.size;
+		if (output != null) {
+			if (output.isThreadSafe()) {
+				output.onRowBatch(rowBatch);
+			} else {
+				synchronized (output) {
 					output.onRowBatch(rowBatch);
-				} else {
-					synchronized (output) {
-						output.onRowBatch(rowBatch);
-					}
 				}
 			}
-		} finally {
-			lock.unlock();
 		}
 
+		lock.unlock();
 	}
 
 	public boolean isDriver() {
