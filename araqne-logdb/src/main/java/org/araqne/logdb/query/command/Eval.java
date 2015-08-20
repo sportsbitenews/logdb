@@ -32,6 +32,10 @@ public class Eval extends QueryCommand implements ThreadSafe {
 
 	private List<Expression> exprs;
 
+	public Eval(Expression expr) {
+		this(expr, 0);
+	}
+	
 	public Eval(Expression expr, int length) {
 		if (expr instanceof Comma) {
 			Comma ce = Comma.class.cast(expr);
@@ -76,7 +80,6 @@ public class Eval extends QueryCommand implements ThreadSafe {
 		for (Expression expr : exprs) {
 			update(m, expr);
 		}
-//		m.put(field, expr.eval(m));
 		pushPipe(m);
 	}
 
@@ -89,7 +92,6 @@ public class Eval extends QueryCommand implements ThreadSafe {
 				for (Expression expr : exprs) {
 					update(row, expr);
 				}
-//				row.put(field, expr.eval(row));
 			}
 		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
@@ -97,7 +99,6 @@ public class Eval extends QueryCommand implements ThreadSafe {
 				for (Expression expr : exprs) {
 					update(row, expr);
 				}
-//				row.put(field, expr.eval(row));
 			}
 		}
 
@@ -111,7 +112,12 @@ public class Eval extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder("eval ");
+		if (exprs.size() == 1 && exprs.get(0) instanceof Assign) {
+			// for backward compatibility
+			Assign a = Assign.class.cast(exprs.get(0));
+			return "eval " + a.getField() + "=" + a.getValueExpression();
+		} else {
+			StringBuilder sb = new StringBuilder("eval ");
 		boolean first = true;
 		for (Expression expr : exprs) {
 			if (!first)
@@ -121,5 +127,6 @@ public class Eval extends QueryCommand implements ThreadSafe {
 				first = false;
 		}
 		return sb.toString();
+		}
 	}
 }

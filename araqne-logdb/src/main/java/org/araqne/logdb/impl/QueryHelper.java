@@ -51,7 +51,7 @@ public class QueryHelper {
 			if (cmd.getName().equals("union"))
 				unionCmds.add(cmd);
 		}
-		
+
 		for (QueryCommand cmd : commands) {
 			if (cmd.isDriver() && cmd.getMainTask() != null) {
 				for (QueryCommand join : joinCmds) {
@@ -99,9 +99,15 @@ public class QueryHelper {
 		}
 
 		List<Object> subQueries = new ArrayList<Object>();
-		for (Query subQuery : q.getContext().getQueries())
+		for (Query subQuery : q.getContext().getQueries()) {
+			if (subQuery == null) {
+				logger.warn("araqne logdb: null sub query found at query [{}:{}]", q.getId(), q.getQueryString());
+				continue;
+			}
+
 			if (q != subQuery)
 				subQueries.add(serializeSubQuery(subQuery));
+		}
 
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("id", q.getId());
@@ -173,7 +179,7 @@ public class QueryHelper {
 						fields = f.getFieldOrder();
 				}
 			}
-			
+
 			if (fields != null)
 				m.put("field_order", fields);
 
