@@ -63,13 +63,6 @@ public class DefaultQuery implements Query {
 		this.commands = commands;
 		this.scheduler = new QueryTaskScheduler(this, commands);
 
-		if (resultFactory != null)
-			openResult(resultFactory);
-
-		// sub query is built in reversed order
-		if (context != null)
-			context.getQueries().add(0, this);
-
 		for (QueryCommand cmd : commands) {
 			if (cmd instanceof FieldOrdering) {
 				FieldOrdering f = (FieldOrdering) cmd;
@@ -79,6 +72,14 @@ public class DefaultQuery implements Query {
 
 			cmd.setQuery(this);
 		}
+
+		if (resultFactory != null)
+			openResult(resultFactory);
+
+		// sub query is built in reversed order
+		if (context != null)
+			context.getQueries().add(0, this);
+
 	}
 
 	private void openResult(QueryResultFactory resultFactory) {
