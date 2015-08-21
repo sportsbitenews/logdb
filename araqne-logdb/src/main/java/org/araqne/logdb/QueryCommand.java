@@ -18,6 +18,9 @@ package org.araqne.logdb;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class QueryCommand {
 	public static enum Status {
@@ -31,6 +34,7 @@ public abstract class QueryCommand {
 	private long outputCount;
 	protected volatile Status status = Status.Waiting;
 	private AtomicBoolean closeCalled = new AtomicBoolean();
+	private ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 
 	public QueryTask getMainTask() {
 		return null;
@@ -88,8 +92,12 @@ public abstract class QueryCommand {
 	}
 
 	public void tryClose(QueryStopReason reason) {
+		Lock lock = rwLock.writeLock();
+		lock.lock();
+
 		if (closeCalled.compareAndSet(false, true))
 			onClose(reason);
+		lock.unlock();
 	}
 
 	public void onPush(Row row) {
@@ -112,6 +120,9 @@ public abstract class QueryCommand {
 	}
 
 	protected final void pushPipe(Row row) {
+		Lock lock = rwLock.readLock();
+		lock.lock();
+
 		outputCount++;
 
 		if (output != null) {
@@ -123,9 +134,14 @@ public abstract class QueryCommand {
 				}
 			}
 		}
+
+		lock.unlock();
 	}
 
 	protected final void pushPipe(RowBatch rowBatch) {
+		Lock lock = rwLock.readLock();
+		lock.lock();
+
 		outputCount += rowBatch.size;
 		if (output != null) {
 			if (output.isThreadSafe()) {
@@ -136,6 +152,8 @@ public abstract class QueryCommand {
 				}
 			}
 		}
+
+		lock.unlock();
 	}
 
 	public boolean isDriver() {
