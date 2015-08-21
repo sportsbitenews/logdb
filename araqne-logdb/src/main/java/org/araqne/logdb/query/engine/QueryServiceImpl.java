@@ -376,8 +376,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			commands = planner.plan(context, commands);
 
 		Query query = new DefaultQuery(context, queryString, commands, resultFactory);
-		for (QueryCommand cmd : commands)
-			cmd.setQuery(query);
 
 		queries.put(query.getId(), query);
 		query.getCallbacks().getStatusCallbacks().add(new EofReceiver());
