@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -54,6 +55,7 @@ public class DefaultQuery implements Query {
 
 	private List<String> fieldOrder;
 	private AtomicBoolean closed = new AtomicBoolean();
+	private CountDownLatch stopLatch = new CountDownLatch(1);
 
 	public DefaultQuery(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory) {
 		this.context = context;
@@ -77,6 +79,7 @@ public class DefaultQuery implements Query {
 		// sub query is built in reversed order
 		if (context != null)
 			context.getQueries().add(0, this);
+
 	}
 
 	private void openResult(QueryResultFactory resultFactory) {
@@ -206,6 +209,14 @@ public class DefaultQuery implements Query {
 	public void purge() {
 		// prevent deleted result file access caused by result check of query
 		// callback or timeline callbacks
+		stop(QueryStopReason.End);
+
+		try {
+			stopLatch.await();
+		} catch (InterruptedException e) {
+			logger.error("stopLatch failed", e);
+		}
+
 		callbacks.getStatusCallbacks().clear();
 
 		if (result != null) {
@@ -234,30 +245,34 @@ public class DefaultQuery implements Query {
 		if (!closed.compareAndSet(false, true))
 			return;
 
-		this.stopReason = reason;
-
-		// stop tasks
-		scheduler.stop(reason);
-
-		// send eof and close result writer
-		for (QueryCommand cmd : commands) {
-			if (cmd.getStatus() == Status.Finalizing || cmd.getStatus() == Status.End)
-				continue;
-
-			cmd.setStatus(Status.Finalizing);
-			try {
-				cmd.tryClose(reason);
-			} catch (Throwable t) {
-				logger.error("araqne logdb: cannot close command " + cmd.getName(), t);
-			}
-			cmd.setStatus(Status.End);
-		}
-
 		try {
-			if (result != null)
-				result.closeWriter();
-		} catch (Throwable t) {
-			logger.error("araqne logdb: cannot close query result", t);
+			this.stopReason = reason;
+
+			// stop tasks
+			scheduler.stop(reason);
+
+			// send eof and close result writer
+			for (QueryCommand cmd : commands) {
+				if (cmd.getStatus() == Status.Finalizing || cmd.getStatus() == Status.End)
+					continue;
+
+				cmd.setStatus(Status.Finalizing);
+				try {
+					cmd.tryClose(reason);
+				} catch (Throwable t) {
+					logger.error("araqne logdb: cannot close command " + cmd.getName(), t);
+				}
+				cmd.setStatus(Status.End);
+			}
+
+			try {
+				if (result != null)
+					result.closeWriter();
+			} catch (Throwable t) {
+				logger.error("araqne logdb: cannot close query result", t);
+			}
+		} finally {
+			stopLatch.countDown();
 		}
 	}
 
