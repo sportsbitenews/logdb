@@ -89,8 +89,8 @@ public class DefaultQuery implements Query {
 				if (context != null && context.getSession() != null)
 					currentLogin = context.getSession().getLoginName();
 
-				resultTracer.debug("araqne logdb: open query result for query [{}:{}], session [{}]", new Object[] { id,
-						queryString, currentLogin });
+				resultTracer.debug("araqne logdb: open query result for query [{}:{}], session [{}]",
+						new Object[] { id, queryString, currentLogin });
 			}
 
 			QueryResultConfig config = new QueryResultConfig();
@@ -242,6 +242,16 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public void stop(QueryStopReason reason) {
+		// stop() at onPush() can cause deadlock without this guard.
+		if (reason != QueryStopReason.End) {
+			if (this.stopReason == null)
+				this.stopReason = reason;
+
+			// cancel tasks
+			scheduler.stop(reason);
+			return;
+		}
+
 		if (!closed.compareAndSet(false, true))
 			return;
 
