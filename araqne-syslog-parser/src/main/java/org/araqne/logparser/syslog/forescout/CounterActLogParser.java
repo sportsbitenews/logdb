@@ -138,6 +138,6 @@ public class CounterActLogParser extends V1LogParser {
 				;
 			return Integer.parseInt(value.substring(0, endIndex));
 		} else
-			return value;
+			return value.trim();
 	}
 }
