@@ -20,7 +20,7 @@ public class CounterActLogParserTest {
 
 		assertEquals("HELLO", m.get("nac_name"));
 		assertEquals("NAC Policy Log", m.get("nac_log_type"));
-		assertEquals("룰", m.get("nac_rule"));
+		assertEquals("Policy \"룰\" ", m.get("nac_rule"));
 	}
 
 	@Test
