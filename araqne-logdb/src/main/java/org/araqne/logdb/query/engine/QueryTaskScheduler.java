@@ -92,7 +92,7 @@ public class QueryTaskScheduler implements Runnable {
 		startReadyTasks();
 	}
 
-	public void stop(QueryStopReason reason) {
+	public void stop() {
 		for (QueryCommand cmd : pipeline) {
 			if (cmd.getMainTask() != null)
 				stopRecursively(cmd.getMainTask());

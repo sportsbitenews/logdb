@@ -244,11 +244,11 @@ public class DefaultQuery implements Query {
 	public void stop(QueryStopReason reason) {
 		// stop() at onPush() can cause deadlock without this guard.
 		if (reason != QueryStopReason.End) {
-			if (this.stopReason == null)
-				this.stopReason = reason;
+			if (stopReason == null)
+				stopReason = reason;
 
 			// cancel tasks
-			scheduler.stop(reason);
+			scheduler.stop();
 			return;
 		}
 
@@ -256,10 +256,11 @@ public class DefaultQuery implements Query {
 			return;
 
 		try {
-			this.stopReason = reason;
+			if (stopReason == null)
+				this.stopReason = reason;
 
 			// stop tasks
-			scheduler.stop(reason);
+			scheduler.stop();
 
 			// send eof and close result writer
 			for (QueryCommand cmd : commands) {
@@ -268,7 +269,7 @@ public class DefaultQuery implements Query {
 
 				cmd.setStatus(Status.Finalizing);
 				try {
-					cmd.tryClose(reason);
+					cmd.tryClose(stopReason);
 				} catch (Throwable t) {
 					logger.error("araqne logdb: cannot close command " + cmd.getName(), t);
 				}
