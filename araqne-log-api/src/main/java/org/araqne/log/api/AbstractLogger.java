@@ -843,6 +843,17 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		return !unresolvedLoggers.isEmpty();
 	}
 
+	@Override
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+		notifyConfigChange();
+	}
+
+	@Override
+	public void setInterval(int interval) {
+		this.interval = interval;
+	}
+
 	public void addUnresolvedLogger(String fullName) {
 		if (this.slog.isDebugEnabled()) {
 			this.slog.debug("araqne log api: logger [{}] has unresolved logger [{}]", getFullName(), fullName);

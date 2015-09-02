@@ -444,5 +444,5 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			return s;
 		}
 	}
-
+	
 }

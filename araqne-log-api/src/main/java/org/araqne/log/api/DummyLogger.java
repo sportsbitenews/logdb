@@ -290,4 +290,12 @@ public class DummyLogger implements Logger {
 	@Override
 	public void removeUnresolvedLogger(String fullName) {
 	}
+
+	@Override
+	public void setEnabled(boolean enabled) {
+	}
+
+	@Override
+	public void setInterval(int interval) {
+	}
 }

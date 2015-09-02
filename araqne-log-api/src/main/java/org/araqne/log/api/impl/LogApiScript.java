@@ -284,7 +284,7 @@ public class LogApiScript implements Script {
 		}
 
 		// "name", "factoryFullName", "Running", "interval", "logCount",
-		// "lastStartDate", "lastRunDate",
+		// "lastStartDate", "lastRunDate", "enabled"
 		public String getName() {
 			return logger.getName();
 		}
@@ -343,6 +343,10 @@ public class LogApiScript implements Script {
 				return "";
 			return t.getMessage() != null ? t.getMessage() : t.getClass().getName();
 		}
+		
+		public boolean isEnabled() {
+			return logger.isEnabled();
+		}
 
 	}
 
@@ -385,22 +389,20 @@ public class LogApiScript implements Script {
 				context.println(logger.toString());
 			}
 		} else if (verbOpt != null)
-			context.println(ASCIITable.getInstance()
-					.getTable(
-							new CollectionASCIITableAware<LoggerListItem>(filteredList, new PropertyColumn("fullName", "l!name"),
-									new PropertyColumn("factoryFullName", "l!factory"), new PropertyColumn("status", "l!status"),
-									new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
-									new PropertyColumn("dropCount", "drop"), new PropertyColumn("lastStartDate", "l!last start"),
-									new PropertyColumn("lastRunDate", "l!last run"), new PropertyColumn("lastLogDate",
-											"l!last log"), new PropertyColumn("stopReason", "stop reason"), new PropertyColumn(
-											"temporaryFailure", "l!error"))));
+			context.println(ASCIITable.getInstance().getTable(
+					new CollectionASCIITableAware<LoggerListItem>(filteredList, new PropertyColumn("fullName", "l!name"),
+							new PropertyColumn("factoryFullName", "l!factory"), new PropertyColumn("status", "l!status"),
+							new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
+							new PropertyColumn("dropCount", "drop"), new PropertyColumn("lastStartDate", "l!last start"),
+							new PropertyColumn("lastRunDate", "l!last run"), new PropertyColumn("lastLogDate", "l!last log"),
+							new PropertyColumn("stopReason", "stop reason"), new PropertyColumn("temporaryFailure", "l!error"))));
 		else
 			context.println(ASCIITable.getInstance().getTable(
 					new CollectionASCIITableAware<LoggerListItem>(filteredList, new PropertyColumn("fullName", "l!name"),
-							new PropertyColumn("factoryName", "l!factory"), new PropertyColumn("status", "l!status"),
-							new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
-							new PropertyColumn("lastLogDate", "l!last log"), new PropertyColumn("stopReason", "stop reason"),
-							new PropertyColumn("temporaryFailure", "l!error"))));
+							new PropertyColumn("factoryName", "l!factory"), new PropertyColumn("enabled", "l!enabled"),
+							new PropertyColumn("status", "l!status"), new PropertyColumn("interval", "intvl.(ms)"),
+							new PropertyColumn("logCount", "log count"), new PropertyColumn("lastLogDate", "l!last log"),
+							new PropertyColumn("stopReason", "stop reason"), new PropertyColumn("temporaryFailure", "l!error"))));
 
 	}
 
@@ -628,6 +630,96 @@ public class LogApiScript implements Script {
 		}
 	}
 
+	@ScriptUsage(description = "enable the logger", arguments = {
+			@ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname to enable", autocompletion = LoggerAutoCompleter.class),
+			@ScriptArgument(name = "interval", type = "int", description = "sleep time of active logger thread in milliseconds. 60000ms by default. passive logger will ignore interval", optional = true) })
+	public void enableLogger(String[] args) {
+		String fullName = args[0];
+		int interval = 0;
+		if (args.length > 1)
+			interval = Integer.parseInt(args[1]);
+
+		Logger logger = loggerRegistry.getLogger(fullName);
+		if (logger == null) {
+			context.println("logger not found");
+			return;
+		}
+
+		logger.setInterval(interval);
+		logger.setEnabled(true);
+
+		context.println("enabled");
+	}
+
+	@ScriptUsage(description = "start loggers at once, passive logger will ignore interval", arguments = {
+			@ScriptArgument(name = "logger names", type = "string", description = "logger name wildcard expression"),
+			@ScriptArgument(name = "interval", type = "int", description = "run interval in milliseconds, 5000 by default", optional = true) })
+	public void enableLoggers(String[] args) {
+		if (!args[0].contains("*")) {
+			context.println("logger name expression should contains one or more wildcard");
+			return;
+		}
+
+		boolean useOldInterval = args.length == 1;
+		Pattern pattern = WildcardMatcher.buildPattern(args[0]);
+		int newInterval = 5000;
+		try {
+			if (args.length > 1) {
+				newInterval = Integer.parseInt(args[1]);
+			}
+		} catch (NumberFormatException e) {
+			// ignore
+		}
+
+		Matcher matcher = pattern.matcher("");
+		// start passive logger first
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			matcher.reset(logger.getFullName());
+			if (!matcher.find())
+				continue;
+
+			try {
+				if (logger.isPassive()) {
+					if (logger.isRunning()) {
+						context.println("logger [" + logger.getFullName() + "] is already enabled");
+					} else {
+						logger.setEnabled(true);
+						context.println("logger [" + logger.getFullName() + "] enabled");
+					}
+				}
+			} catch (Throwable t) {
+				context.println("cannot enable logger [" + logger.getFullName() + "], " + t.getMessage());
+				slog.error("araqne log api: canont enable logger " + logger.getFullName(), t);
+			}
+		}
+
+		// then, start active loggers
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			matcher.reset(logger.getFullName());
+			if (!matcher.find())
+				continue;
+
+			try {
+				if (!logger.isPassive()) {
+					if (logger.isRunning()) {
+						context.println("logger [" + logger.getFullName() + "] is already started");
+					} else {
+						int interval = logger.getInterval();
+						if (interval == 0 || !useOldInterval)
+							interval = newInterval;
+
+						logger.setInterval(interval);
+						logger.setEnabled(true);
+						context.println("logger [" + logger.getFullName() + "] started with interval " + interval + "ms");
+					}
+				}
+			} catch (Throwable t) {
+				context.println("cannot start logger [" + logger.getFullName() + "], " + t.getMessage());
+				slog.error("araqne log api: canont start logger " + logger.getFullName(), t);
+			}
+		}
+	}
+
 	@ScriptUsage(description = "stop the logger", arguments = {
 			@ScriptArgument(name = "logger names", type = "string", description = "the logger name to stop", autocompletion = LoggerAutoCompleter.class),
 			@ScriptArgument(name = "max wait time", type = "int", description = "max wait time in milliseconds, 5000 by default", optional = true) })
@@ -708,6 +800,101 @@ public class LogApiScript implements Script {
 						context.println("logger [" + logger.getFullName() + "] is not running");
 					} else {
 						logger.stop(LoggerStopReason.USER_REQUEST);
+						context.println("logger [" + logger.getFullName() + "] stopped");
+					}
+				}
+			} catch (Throwable t) {
+				context.println("cannot start logger [" + logger.getFullName() + "], " + t.getMessage());
+				slog.error("araqne log api: canont start logger " + logger.getFullName(), t);
+			}
+		}
+
+	}
+
+	@ScriptUsage(description = "stop the logger", arguments = {
+			@ScriptArgument(name = "logger names", type = "string", description = "the logger name to stop", autocompletion = LoggerAutoCompleter.class),
+			@ScriptArgument(name = "max wait time", type = "int", description = "max wait time in milliseconds, 5000 by default", optional = true) })
+	public void disableLogger(String[] args) {
+		try {
+			int maxWaitTime = 5000; // tick이 계속 도니까 최대 대기 시간은 필요 없을듯?
+			String name = args[0];
+			if (args.length > 1)
+				maxWaitTime = Integer.parseInt(args[1]);
+
+			Logger logger = loggerRegistry.getLogger(name);
+			if (logger == null) {
+				context.println("logger not found");
+				return;
+			}
+
+			if (!logger.isPassive())
+				context.println("waiting...");
+
+			logger.setEnabled(false);
+			// logger.stop(LoggerStopReason.USER_REQUEST, maxWaitTime);
+			context.println("logger stopped");
+		} catch (Exception e) {
+			context.println(e.getMessage());
+		}
+	}
+
+	@ScriptUsage(description = "stop loggers at once", arguments = {
+			@ScriptArgument(name = "logger", type = "string", description = "a logger name or many logger names separated by space"),
+			@ScriptArgument(name = "max wait time", type = "int", description = "stop wait time in milliseconds, 5000 by default", optional = true) })
+	public void disableLoggers(String[] args) {
+		if (!args[0].contains("*")) {
+			context.println("logger name expression should contains one or more wildcard");
+			return;
+		}
+
+		Pattern pattern = WildcardMatcher.buildPattern(args[0]);
+		int maxWaitTime = 5000;
+		try {
+			if (args.length > 1) {
+				maxWaitTime = Integer.parseInt(args[1]);
+			}
+		} catch (NumberFormatException e) {
+			// ignore
+		}
+
+		Matcher matcher = pattern.matcher("");
+
+		// stop active loggers first
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			matcher.reset(logger.getFullName());
+			if (!matcher.find())
+				continue;
+
+			try {
+				if (!logger.isPassive()) {
+					if (!logger.isRunning()) {
+						context.println("logger [" + logger.getFullName() + "] is not running");
+					} else {
+						logger.setEnabled(false);
+						// logger.stop(LoggerStopReason.USER_REQUEST,
+						// maxWaitTime);
+						context.println("logger [" + logger.getFullName() + "] stopped");
+					}
+				}
+			} catch (Throwable t) {
+				context.println("cannot start logger [" + logger.getFullName() + "], " + t.getMessage());
+				slog.error("araqne log api: canont start logger " + logger.getFullName(), t);
+			}
+		}
+
+		// then stop passive loggers
+		for (Logger logger : loggerRegistry.getLoggers()) {
+			matcher.reset(logger.getFullName());
+			if (!matcher.find())
+				continue;
+
+			try {
+				if (logger.isPassive()) {
+					if (!logger.isRunning()) {
+						context.println("logger [" + logger.getFullName() + "] is not running");
+					} else {
+						// logger.stop(LoggerStopReason.USER_REQUEST);
+						logger.setEnabled(false);
 						context.println("logger [" + logger.getFullName() + "] stopped");
 					}
 				}

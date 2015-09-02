@@ -36,16 +36,18 @@ import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
+import org.araqne.cron.AbstractTickTimer;
+import org.araqne.cron.TickService;
 import org.araqne.log.api.AbstractLoggerEventListener;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.Logger;
-import org.araqne.log.api.LoggerEventListener;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerFactoryEventListener;
 import org.araqne.log.api.LoggerFactoryRegistryEventListener;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerRegistryEventListener;
+import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 
 @Component(name = "logger-registry")
@@ -56,6 +58,9 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 
 	@Requires
 	private ConfigService conf;
+	
+	@Requires
+	private TickService tickService;
 
 	private ConcurrentMap<String, Logger> loggers;
 	private Set<LoggerRegistryEventListener> callbacks;
@@ -64,6 +69,8 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 
 	private Map<String, Set<String>> dependencies;
 	private DependencyResolver resolver;
+	private LoggerStarter loggerStarter = new LoggerStarter();
+
 
 	public LoggerRegistryImpl() {
 		loggers = new ConcurrentHashMap<String, Logger>();
@@ -99,6 +106,8 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 		addListener(resolver);
 
 		isOpen = true;
+		
+		tickService.addTimer(loggerStarter);
 	}
 
 	@Invalidate
@@ -108,6 +117,9 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 		isOpen = false;
 		callbacks.clear();
 		dependencies.clear();
+		
+		if(tickService != null)
+			tickService.removeTimer(loggerStarter);
 	}
 
 	@Override
@@ -401,6 +413,45 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 		}
 
 		public void onUpdated(Logger logger, Map<String, String> config) {
+			//start only unmanaged loggers
+			if(logger.isManualStart())
+				return;
+			
+			if (logger.isEnabled() && !logger.isRunning()) {
+				log.debug("araqne log api: trying to start logger [{}]", logger.getFullName());
+				startLogger(logger);
+			}
+
+			if (!logger.isEnabled() && logger.isRunning()) {
+				log.debug("araqne log api: trying to stop logger [{}]", logger.getFullName());
+				stopLogger(logger);
+			}
 		}
+	}
+	
+	private class LoggerStarter extends AbstractTickTimer {
+
+		@Override
+		public int getInterval() {
+			return 100;
+		}
+
+		@Override
+		public void onTick() {
+			
+		}
+		
+	}
+
+	private void startLogger(Logger logger) {
+		if (logger.isPassive()) {
+			logger.start(LoggerStartReason.USER_REQUEST);
+		} else {
+			logger.start(LoggerStartReason.USER_REQUEST, logger.getInterval());
+		}
+	}
+
+	private void stopLogger(Logger logger) {
+		logger.stop(LoggerStopReason.USER_REQUEST);
 	}
 }

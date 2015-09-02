@@ -50,7 +50,7 @@ public interface Logger {
 	Log getLastLog();
 
 	LoggerStopReason getStopReason();
-	
+
 	/**
 	 * @since 3.6.0
 	 */
@@ -79,6 +79,13 @@ public interface Logger {
 	boolean isPending();
 
 	void setPending(boolean pending);
+
+	/**
+	 * @since 3.7.0
+	 */
+	void setEnabled(boolean enabled);
+
+	void setInterval(int interval);
 
 	/**
 	 * @since 2.4.0
