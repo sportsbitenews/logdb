@@ -187,10 +187,13 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 						builder.suppressBugAlert();
 				}
 
+				LogTraverseCallbackImpl callback = new LogTraverseCallbackImpl(sink);
 				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder,
-						new LogTraverseCallbackImpl(sink));
+						callback);
 				req.setAsc(params.isAsc());
 				storage.search(req);
+				if (callback.isFailed())
+					throw new IllegalStateException(callback.getFailure());
 
 				isSuppressedBugAlert = isSuppressedBugAlert || (builder != null && builder.isBugAlertSuppressed());
 				if (sink.isEof())

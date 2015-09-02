@@ -18,6 +18,7 @@ package org.araqne.log.api.nio;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -60,6 +61,11 @@ public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory 
 	}
 
 	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
+	}
+
+	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "리커시브 디렉터리 와처";
@@ -71,11 +77,6 @@ public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory 
 	}
 
 	@Override
-	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
-	}
-
-	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "지정된 디렉터리에서 파일이름 패턴과 일치하는 모든 텍스트 로그 파일을 수집합니다.";
@@ -84,11 +85,6 @@ public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory 
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "从指定目录(包括子目录)中采集所有文本文件。";
 		return "Collect all text log files in specified directory";
-	}
-
-	@Override
-	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
@@ -121,15 +117,14 @@ public class RecursiveDirectoryWatchLoggerFactory extends AbstractLoggerFactory 
 				"time zone, e.g. EST or America/New_york ", "시간대, 예를 들면 KST 또는 Asia/Seoul", "時間帯。例えばJSTまたはAsia/Tokyo",
 				"时区， 例如 Asia/Beijing"), false, "timezone");
 
-		LoggerConfigOption newlogRegex = new MutableStringConfigType("newlog_designator", t("Regex for first line",
-				"로그 시작 정규표현식", "ログ始め正規表現", "日志起始正则表达式"), t(
-				"Regular expression to determine whether the line is start of new log."
-						+ "(if a line does not matches, the line will be merged to prev line.).",
+		LoggerConfigOption newlogRegex = new MutableStringConfigType("newlog_designator", t("Regex for first line", "로그 시작 정규식",
+				"ログ始め正規表現", "日志起始正则表达式"), t("Regular expression to determine whether the line is start of new log."
+				+ "(if a line does not matches, the line will be merged to prev line.).",
 				"새 로그의 시작을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "新しいログの始まりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)",
 				"用于识别日志起始位置的正则表达式(如没有匹配项，则合并到之前日志)"), false, "regex");
 
 		LoggerConfigOption newlogEndRegex = new MutableStringConfigType("newlog_end_designator", t("Regex for last line",
-				"로그 끝 정규표현식", "ログ終わり正規表現", "日志结束正则表达式"), t("Regular expression to determine whether the line is end of new log."
+				"로그 끝 정규식", "ログ終わり正規表現", "日志结束正则表达式"), t("Regular expression to determine whether the line is end of new log."
 				+ "(if a line does not matches, the line will be merged to prev line.).",
 				"로그의 끝을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "ログの終わりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)",
 				"用于识别日志结束位置地正则表达式(如没有匹配项，则合并到之前日志)"), false, "regex");

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
+
 import org.araqne.logdb.writer.LineWriter;
 import org.araqne.logdb.writer.LineWriterFactory;
 import org.slf4j.Logger;
@@ -92,12 +93,14 @@ public class PartitionOutput {
 		if (!path.contains("{") || !path.contains("}") || !path.contains(":"))
 			return path;
 
-		String convertedPath = path.substring(0, path.indexOf("{"));
+		int lastPos = path.indexOf("{");
+		String convertedPath = path.substring(0, lastPos);
 		for (int f = 0; (f = path.indexOf("{", f)) != -1; f++) {
 			int t = path.indexOf("}", f);
 			String s = path.substring(f, t + 1);
 			String time = s.substring(1, s.indexOf(":"));
 			String format = s.substring(s.indexOf(":") + 1, s.length() - 1);
+			convertedPath += path.substring(lastPos, f);
 
 			Date target = new Date();
 			if (time.equalsIgnoreCase("logtime"))
@@ -109,6 +112,8 @@ public class PartitionOutput {
 				SimpleDateFormat sdf = new SimpleDateFormat(format);
 				convertedPath += sdf.format(target);
 			}
+
+			lastPos = t + 1;
 		}
 
 		convertedPath += path.substring(path.lastIndexOf("}") + 1);

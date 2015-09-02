@@ -92,16 +92,13 @@ public class QueryTaskScheduler implements Runnable {
 		startReadyTasks();
 	}
 
-	public void stop(QueryStopReason reason) {
+	public void stop() {
 		for (QueryCommand cmd : pipeline) {
 			if (cmd.getMainTask() != null)
 				stopRecursively(cmd.getMainTask());
 		}
 
 		stopRecursively(tracer);
-		
-//		finished = true;
-//		finishTime = System.currentTimeMillis();
 	}
 
 	private synchronized void startReadyTasks() {
@@ -125,7 +122,7 @@ public class QueryTaskScheduler implements Runnable {
 		if (task.isRunnable()) {
 			// prevent duplicated run caused by late thread start
 			if (logger.isDebugEnabled())
-				logger.debug("araqne logdb: query [{}] task [{}:{}] start thread", 
+				logger.debug("araqne logdb: query [{}] task [{}:{}] start thread",
 						new Object[] { query.getId(), task.getID(), task });
 
 			task.setStatus(TaskStatus.RUNNING);
@@ -137,8 +134,8 @@ public class QueryTaskScheduler implements Runnable {
 					sb.append("\n\t" + d.getID() + ":" + d + " " + d.getStatus());
 
 				if (logger.isDebugEnabled())
-					logger.debug("araqne logdb: query [{}] task [{}:{} {}] is not runnable. dependencies => [{}]", new Object[] {
-							query.getId(), task.getID(), task, task.getStatus(), sb.toString() });
+					logger.debug("araqne logdb: query [{}] task [{}:{} {}] is not runnable. dependencies => [{}]",
+							new Object[] { query.getId(), task.getID(), task, task.getStatus(), sb.toString() });
 			}
 		}
 
@@ -147,6 +144,10 @@ public class QueryTaskScheduler implements Runnable {
 	}
 
 	private void stopRecursively(QueryTask task) {
+		// tracer should invoke postRun() even if query is cancelled
+		if (task instanceof QueryTaskTracer)
+			return;
+
 		if (task.getStatus() != TaskStatus.COMPLETED) {
 			task.setStatus(TaskStatus.CANCELED);
 			if (logger.isDebugEnabled()) {
@@ -193,7 +194,7 @@ public class QueryTaskScheduler implements Runnable {
 			event.setHandled(true);
 
 			if (logger.isDebugEnabled())
-				logger.debug("araqne logdb: query [{}] task [{}:{}] completed", 
+				logger.debug("araqne logdb: query [{}] task [{}:{}] completed",
 						new Object[] { query.getId(), event.getTask().getID(), event.getTask() });
 		}
 

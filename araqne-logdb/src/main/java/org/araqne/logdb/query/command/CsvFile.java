@@ -37,7 +37,7 @@ public class CsvFile extends DriverQueryCommand {
 
 		try {
 			is = new FileInputStream(filePath);
-			reader = new CSVReader(new InputStreamReader(is, "utf-8"));
+			reader = new CSVReader(new InputStreamReader(is, "utf-8"), ',', '\"', '\0');
 			String[] headers = reader.readNext();
 			int headerCount = headers.length;
 			while (true) {

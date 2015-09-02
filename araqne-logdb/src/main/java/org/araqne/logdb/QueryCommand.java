@@ -92,14 +92,15 @@ public abstract class QueryCommand {
 	}
 
 	public void tryClose(QueryStopReason reason) {
-		Lock lock = rwLock.writeLock();
-		try {
-			lock.lock();
+		if (closeCalled.compareAndSet(false, true)) {
+			Lock lock = rwLock.writeLock();
+			try {
+				lock.lock();
 
-			if (closeCalled.compareAndSet(false, true))
 				onClose(reason);
-		} finally {
-			lock.unlock();
+			} finally {
+				lock.unlock();
+			}
 		}
 	}
 

@@ -97,7 +97,7 @@ public class CsvImportScript implements Script {
 		try {
 			fis = new FileInputStream(path);
 			isr = new InputStreamReader(fis, charset);
-			reader = new CSVReader(isr);
+			reader = new CSVReader(isr, ',', '\"', '\0');
 			packer = new LogBatchPacker(table, 2000, 100, new LogCallback() {
 				@Override
 				public void onLogBatch(String tableName, List<Log> logBatch) {
