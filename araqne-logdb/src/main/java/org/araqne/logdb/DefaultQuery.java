@@ -197,7 +197,7 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public boolean isFinished() {
-		return scheduler.isFinished() || isCancelled();
+		return scheduler.isFinished();
 	}
 
 	@Override
@@ -257,7 +257,7 @@ public class DefaultQuery implements Query {
 
 		try {
 			if (stopReason == null)
-				this.stopReason = reason;
+				stopReason = reason;
 
 			// stop tasks
 			scheduler.stop();

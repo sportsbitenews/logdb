@@ -36,7 +36,7 @@ public class QueryTaskRunner extends Thread {
 		this.scheduler = scheduler;
 		this.task = task;
 		this.queryId = scheduler.getQuery().getId();
-		setName("Query Task #"+ idCounter.incrementAndGet() + " for query " + queryId);
+		setName("Query Task #" + idCounter.incrementAndGet() + " for query " + queryId);
 	}
 
 	@Override
@@ -72,8 +72,13 @@ public class QueryTaskRunner extends Thread {
 	}
 
 	private void triggerStartEvent(QueryTask task, QueryTaskEvent event) {
-		for (QueryTaskListener listener : task.getListeners())
-			listener.onStart(event);
+		for (QueryTaskListener listener : task.getListeners()) {
+			try {
+				listener.onStart(event);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: query task listener should not throw any exception", t);
+			}
+		}
 
 		// bubble
 		if (task.getParentTask() != null)
@@ -82,8 +87,13 @@ public class QueryTaskRunner extends Thread {
 	}
 
 	private void triggerCompleteEvent(QueryTask task, QueryTaskEvent event) {
-		for (QueryTaskListener listener : task.getListeners())
-			listener.onComplete(event);
+		for (QueryTaskListener listener : task.getListeners()) {
+			try {
+				listener.onComplete(event);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: query task listener should not throw any exception", t);
+			}
+		}
 
 		// bubble
 		if (task.getParentTask() != null)
@@ -92,8 +102,13 @@ public class QueryTaskRunner extends Thread {
 	}
 
 	private void triggerCleanUpEvent(QueryTask task, QueryTaskEvent event) {
-		for (QueryTaskListener listener : task.getListeners())
-			listener.onCleanUp(event);
+		for (QueryTaskListener listener : task.getListeners()) {
+			try {
+				listener.onCleanUp(event);
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: query task listener should not throw any exception", t);
+			}
+		}
 
 		// bubble
 		if (task.getParentTask() != null)
