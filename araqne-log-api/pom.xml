@@ -8,8 +8,9 @@
 		<groupId>org.araqne</groupId>
 		<version>1.0.0</version>
 	</parent>
+	<groupId>org.araqne</groupId>
 	<artifactId>araqne-log-api</artifactId>
-	<version>3.6.1</version>
+	<version>3.7.0-SNAPSHOT</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log API</name>
 	<build>
