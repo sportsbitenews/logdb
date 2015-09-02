@@ -62,15 +62,22 @@ public class XmlParser {
 
 		for (int i = 0; i < childCount; i++) {
 			Node child = list.item(i);
-			List<Object> children = (List<Object>) m.get(getNodeName(child));
-			if (children == null) {
-				children = new ArrayList<Object>();
-				m.put(getNodeName(child), children);
-			}
 
 			Object content = parseNode(child);
-			if (content != null)
-				children.add(content);
+			if (content == null)
+				continue;
+
+			Object v = m.get(getNodeName(child));
+			List<Object> children = null;
+			if (v instanceof List) {
+				children = (List<Object>) v;
+			} else {
+				children = new ArrayList<Object>();
+				if (v != null)
+					children.add(v);
+				m.put(getNodeName(child), children);
+			}
+			children.add(content);
 		}
 
 		for (String key : m.keySet()) {
