@@ -62,6 +62,8 @@ public class LocalImportWorker implements ImportWorker {
 
 	@Override
 	public void run() {
+		slog.info("araqne logstorage: start import job [{}]", req.getGuid());
+
 		ZipFile zipFile = null;
 		try {
 			DumpManifest manifest = dumpService.readManifest("local", req.getParams());
@@ -89,9 +91,11 @@ public class LocalImportWorker implements ImportWorker {
 				loadFile(zipFile, e, tableId);
 			}
 
-		} catch (IOException e) {
-			slog.error("araqne logstorage: import failed", e);
 		} catch (InterruptedException e) {
+			task.setCancelled();
+		} catch (Throwable t) {
+			task.setFailureException(t);
+			slog.error("araqne logstorage: import job [" + req.getGuid() + "] failed", t);
 		} finally {
 			if (zipFile != null) {
 				try {
@@ -100,7 +104,7 @@ public class LocalImportWorker implements ImportWorker {
 				}
 			}
 
-			slog.info("araqne logstorage: import completed");
+			slog.info("araqne logstorage: import job [{}] completed", req.getGuid());
 		}
 	}
 
@@ -115,6 +119,9 @@ public class LocalImportWorker implements ImportWorker {
 			is = zipFile.getInputStream(zipEntry);
 
 			while (true) {
+				if (task.isCancelled())
+					break;
+
 				byte[] blen = new byte[4];
 				int readBytes = Io.ensureRead(is, blen, 4);
 				if (readBytes <= 0)
@@ -126,6 +133,10 @@ public class LocalImportWorker implements ImportWorker {
 				readBytes = Io.ensureRead(is, b, len);
 				if (readBytes <= 0)
 					break;
+
+				if (slog.isDebugEnabled())
+					slog.debug("araqne logstorage: importing table [{}] block len [{}] actual len [{}]", new Object[] {
+							tableName, len, readBytes });
 
 				Object[] arr = (Object[]) EncodingRule.decode(ByteBuffer.wrap(b));
 				List<Log> logs = new ArrayList<Log>();

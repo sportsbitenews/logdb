@@ -68,6 +68,7 @@ import org.araqne.logdb.query.parser.BoxPlotParser;
 import org.araqne.logdb.query.parser.BypassParser;
 import org.araqne.logdb.query.parser.CheckTableParser;
 import org.araqne.logdb.query.parser.ConfdbParser;
+import org.araqne.logdb.query.parser.CsvFileParser;
 import org.araqne.logdb.query.parser.DropParser;
 import org.araqne.logdb.query.parser.EvalParser;
 import org.araqne.logdb.query.parser.EvalcParser;
@@ -93,11 +94,13 @@ import org.araqne.logdb.query.parser.ParseJsonParser;
 import org.araqne.logdb.query.parser.ParseKvParser;
 import org.araqne.logdb.query.parser.ParseMapParser;
 import org.araqne.logdb.query.parser.ParseParser;
+import org.araqne.logdb.query.parser.ParseXmlParser;
 import org.araqne.logdb.query.parser.ProcParser;
 import org.araqne.logdb.query.parser.PurgeParser;
 import org.araqne.logdb.query.parser.RateLimitParser;
 import org.araqne.logdb.query.parser.RenameParser;
 import org.araqne.logdb.query.parser.RepeatParser;
+import org.araqne.logdb.query.parser.ResultParser;
 import org.araqne.logdb.query.parser.RexParser;
 import org.araqne.logdb.query.parser.ScriptParser;
 import org.araqne.logdb.query.parser.SearchParser;
@@ -221,7 +224,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 				EvalcParser.class, SearchParser.class, StatsParser.class, FieldsParser.class, SortParser.class,
 				TimechartParser.class, RenameParser.class, RexParser.class, JsonParser.class, SignatureParser.class,
 				LimitParser.class, SetParser.class, BoxPlotParser.class, ParseKvParser.class, TransactionParser.class,
-				ExplodeParser.class, ParseJsonParser.class, ExecParser.class, ParseMapParser.class);
+				ExplodeParser.class, ParseJsonParser.class, ExecParser.class, ParseMapParser.class, ParseXmlParser.class,
+				CsvFileParser.class);
 
 		List<QueryCommandParser> parsers = new ArrayList<QueryCommandParser>();
 		for (Class<? extends AbstractQueryCommandParser> clazz : parserClazzes) {
@@ -235,7 +239,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		// add table and lookup (need some constructor injection)
 		parsers.add(new TableParser(accountService, storage, tableRegistry, parserFactoryRegistry, parserRegistry));
 		parsers.add(new LookupParser(lookupRegistry));
-		parsers.add(new ScriptParser(bc, scriptRegistry));
+		// parsers.add(new ScriptParser(bc, scriptRegistry));
 		parsers.add(new TextFileParser(parserFactoryRegistry));
 		parsers.add(new ZipFileParser(parserFactoryRegistry));
 		parsers.add(new JsonFileParser(parserFactoryRegistry));
@@ -261,8 +265,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new RateLimitParser(tickService));
 		parsers.add(new MemLookupParser(lookupRegistry));
 		parsers.add(new BypassParser());
-		
+
 		parsers.add(new RepeatParser());
+		parsers.add(new ResultParser(this));
 
 		if (allowQueryPurge)
 			parsers.add(new PurgeParser(storage, tableRegistry));
@@ -341,8 +346,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	public Query createQuery(QueryContext context, String queryString) {
 		Session session = context.getSession();
 		if (logger.isDebugEnabled())
-			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]",
-					new Object[] { queryString, session.getGuid(), session.getLoginName() });
+			logger.debug("araqne logdb: try to create query [{}] from session [{}:{}]", new Object[] { queryString,
+					session == null ? null : session.getGuid(), session == null ? null : session.getLoginName() });
 
 		List<QueryCommand> commands = null;
 		try {
@@ -350,13 +355,16 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		} catch (QueryParseException e) {
 			// write log(query execution failed)
 			HashMap<String, Object> m = new HashMap<String, Object>();
-			String source = (String) session.getProperty("araqne_logdb_query_source");
-			if (source != null)
-				m.put("source", source);
+			m.put("state", "parse_failure");
+			if (session != null) {
+				String source = (String) session.getProperty("araqne_logdb_query_source");
+				if (source != null)
+					m.put("source", source);
+				m.put("login_name", session.getLoginName());
+			}
 			m.put("query_string", queryString);
 			m.put("error_code", e.getType());
 			m.put("error_msg", e.getMessage());
-			m.put("login_name", session.getLoginName());
 
 			Date now = new Date();
 			writeLog(now, m);
@@ -368,8 +376,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			commands = planner.plan(context, commands);
 
 		Query query = new DefaultQuery(context, queryString, commands, resultFactory);
-		for (QueryCommand cmd : commands)
-			cmd.setQuery(query);
 
 		queries.put(query.getId(), query);
 		query.getCallbacks().getStatusCallbacks().add(new EofReceiver());
@@ -395,6 +401,23 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		QueryHelper.setJoinAndUnionDependencies(query.getCommands());
 
 		new Thread(query, "Query " + id).start();
+
+		HashMap<String, Object> m = new HashMap<String, Object>();
+		m.put("state", "started");
+		if (session != null) {
+			String source = (String) session.getProperty("araqne_logdb_query_source");
+			if (source != null)
+				m.put("source", source);
+			m.put("login_name", session.getLoginName());
+		} else {
+			m.put("source", null);
+			m.put("login_name", null);
+		}
+		m.put("start_at", new Date());
+		m.put("query_string", query.getQueryString());
+		m.put("query_id", query.getId());
+
+		writeLog(new Date(), m);
 		invokeCallbacks(query, QueryStatus.STARTED);
 	}
 
@@ -559,19 +582,34 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		}
 		m.put("start_at", new Date(query.getStartTime()));
 		m.put("eof_at", now);
-		m.put("login_name", session.getLoginName());
+		if (session != null)
+			m.put("login_name", session.getLoginName());
+		else
+			m.put("login_name", null);
 		m.put("cancelled", query.isCancelled());
+		try {
+			m.put("constants", query.getContext().getConstants());
+		} catch (Throwable t) {
+			m.put("constants", "N/A");
+		}
+		if (query.isFinished()) {
+			m.put("state", "stopped");
+		} else {
+			m.put("state", "running");
+		}
 		if (query.getStopReason() != null)
 			m.put("stop_reason", query.getStopReason().toString());
 
-		if (query.isStarted())
+		if (query.isStarted() && query.getFinishTime() > 0)
 			m.put("duration", (query.getFinishTime() - query.getStartTime()) / 1000.0);
 		else
 			m.put("duration", 0);
 
-		String source = (String) session.getProperty("araqne_logdb_query_source");
-		if (source != null)
-			m.put("source", source);
+		if (session != null) {
+			String source = (String) session.getProperty("araqne_logdb_query_source");
+			if (source != null)
+				m.put("source", source);
+		}
 	}
 
 	private void writeLog(Date now, HashMap<String, Object> m) {

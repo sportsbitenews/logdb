@@ -34,7 +34,7 @@ public class NexgFwParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "한솔 NEXG 방화벽";
 		return "Hansol NEXG Firewall";
 	}

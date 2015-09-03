@@ -18,6 +18,7 @@ package org.araqne.log.api;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -40,6 +41,18 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "선택자";
+		return "Selector";
+	}
+
+	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "로그 선택자";
@@ -50,11 +63,7 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 		return "Log Selector";
 	}
 
-	@Override
-	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
-	}
-
+	
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
@@ -67,16 +76,11 @@ public class SelectorLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
-	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
-	}
-
-	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption loggerName = new SourceLoggerConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름",
+		LoggerConfigOption loggerName = new MutableSourceLoggerConfigType(OPT_SOURCE_LOGGER, t("Source logger name", "원본 로거 이름",
 				"元ロガー名", "源数据采集器"), t("Full name of data source logger", "네임스페이스를 포함한 원본 로거 이름", "ネームスペースを含む元ロガー名",
 				"包含名字空间的源数据采集器名称"), true);
-		LoggerConfigOption pattern = new StringConfigType(OPT_PATTERN, t("Text pattern", "텍스트 패턴", "テキストパターン", "文本模式"), t(
+		LoggerConfigOption pattern = new MutableStringConfigType(OPT_PATTERN, t("Text pattern", "텍스트 패턴", "テキストパターン", "文本模式"), t(
 				"Text pattern to match", "매칭할 대상 문자열", "マッチングする対象文字列", "要匹配的字符串"), true);
 		return Arrays.asList(loggerName, pattern);
 	}

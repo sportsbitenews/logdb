@@ -16,30 +16,80 @@
 package org.araqne.logdb.query.expr;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
- *
+ * 
  */
 public class ToIntTest {
 
 	@Test
-	public void testInt(){
-		ToInt Int = new ToInt(null, expr("10"));
-		assertEquals( 10,  Int.eval(null));
-		}
-		    
+	public void testNormal() {
+		// null
+		assertNull(FunctionUtil.parseExpr("int(null)").eval(null));
+
+		// int
+		assertEquals(10, FunctionUtil.parseExpr("int(10)").eval(null));
+		assertEquals(0, FunctionUtil.parseExpr("int(0)").eval(null));
+		assertEquals(-15210, FunctionUtil.parseExpr("int(-15210)").eval(null));
+		assertNull(FunctionUtil.parseExpr("int(11111111111)").eval(null));
+
+		// double
+		assertEquals(10, FunctionUtil.parseExpr("int(10.5)").eval(null));
+		assertEquals(0, FunctionUtil.parseExpr("int(0.3)").eval(null));
+		assertEquals(-1, FunctionUtil.parseExpr("int(-1.2)").eval(null));
+		assertEquals(-11111111, FunctionUtil.parseExpr("int(-11111111.2)").eval(null));
+		assertNull(FunctionUtil.parseExpr("int(11111111111.2)").eval(null));
+
+		// String
+		assertEquals(10, FunctionUtil.parseExpr("int(\"10\")").eval(null));
+		assertEquals(0, FunctionUtil.parseExpr("int(\"0\")").eval(null));
+		assertEquals(-15210, FunctionUtil.parseExpr("int(\"-15210\")").eval(null));
+		assertNull(FunctionUtil.parseExpr("int(\"11111111111\")").eval(null));
+
+		// invalid String
+		assertNull(FunctionUtil.parseExpr("int(\"1.0\")").eval(null));
+	}
+
 	@Test
-	public void testError90830(){
+	public void testIP() {
+		// ip
+		assertEquals(16909060, FunctionUtil.parseExpr("int(ip(\"1.2.3.4\"))").eval(null));
+		assertEquals(-1062731775, FunctionUtil.parseExpr("int(ip(\"192.168.0.1\"))").eval(null));
+
+		// corner case
+		assertEquals(0, FunctionUtil.parseExpr("int(ip(\"0.0.0.0\"))").eval(null));
+		assertEquals(-1, FunctionUtil.parseExpr("int(ip(\"255.255.255.255\"))").eval(null));
+
+		// invalid String
+		assertNull(FunctionUtil.parseExpr("int(\"1.2.3.4\")").eval(null));
+		assertNull(FunctionUtil.parseExpr("int(\"0.0.0.0\")").eval(null));
+		assertNull(FunctionUtil.parseExpr("int(\"255.255.255.255\")").eval(null));
+
+		// invalid chars
+		assertNull(FunctionUtil.parseExpr("int(ip(\"-0.0.0.0\"))").eval(null));
+		assertNull(FunctionUtil.parseExpr("int(ip(\"0.0.0,0\"))").eval(null));
+
+		// invalid range
+		assertNull(FunctionUtil.parseExpr("int(ip(\"256.0.0.1\"))").eval(null));
+		assertNull(FunctionUtil.parseExpr("int(ip(\"2222.0.0.0\"))").eval(null));
+		assertNull(FunctionUtil.parseExpr("int(ip(\"22222.11111.0.0\"))").eval(null));
+
+		// invalid number count
+		assertNull(FunctionUtil.parseExpr("int(ip(\"1.2.3.4.5\"))").eval(null));
+		assertNull(FunctionUtil.parseExpr("int(ip(\"1.2.3.4.5.6\"))").eval(null));
+	}
+
+	@Test
+	public void testError90830() {
 		try {
-			new ToInt(null, expr("10", 5));
+			assertNull(FunctionUtil.parseExpr("int(10, 5)").eval(null));
 			fail();
 		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
@@ -47,22 +97,5 @@ public class ToIntTest {
 			}
 			assertEquals("90830", e.getType());
 		}
-	}
-	
-	private List<Expression> expr(Object...object ){
-		List<Expression> expr = new ArrayList<Expression>();
-
-		for(Object o: object){
-			if(o instanceof Expression)
-				expr.add((Expression)o);
-			else if(o instanceof String)
-				expr.add(new StringConstant((String)o));
-			else if(o instanceof Number)
-				expr.add(new NumberConstant((Number)o));
-			else if(o instanceof Boolean)
-				expr.add(new BooleanConstant((Boolean)o));
-		}
-
-		return expr;
 	}
 }

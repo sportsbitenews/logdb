@@ -36,6 +36,7 @@ import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
+import org.araqne.log.api.AbstractLoggerEventListener;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogPipe;
 import org.araqne.log.api.Logger;
@@ -346,7 +347,7 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 		}
 	}
 
-	private class DependencyResolver implements LoggerEventListener, LoggerRegistryEventListener {
+	private class DependencyResolver extends AbstractLoggerEventListener implements LoggerRegistryEventListener {
 		private DependencyResolver() {
 		}
 

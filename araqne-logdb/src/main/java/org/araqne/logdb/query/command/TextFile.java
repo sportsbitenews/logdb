@@ -23,10 +23,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
+import org.araqne.log.api.DummyLogger;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogPipe;
@@ -36,31 +36,32 @@ import org.araqne.log.api.MultilineLogExtractor;
 import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.impl.DummyLogger;
 import org.slf4j.LoggerFactory;
 
 public class TextFile extends DriverQueryCommand {
 	private final org.slf4j.Logger logger = LoggerFactory.getLogger(TextFile.class.getName());
 	private String filePath;
 	private LogParser parser;
-	private int offset;
-	private int limit;
-	private String startRex;
+	private long offset;
+	private long limit;
+	private String beginRegex;
+	private String endRegex;
 	private String dateFormat;
 	private String datePattern;
 	private String charset;
-	private int currentOffset;
-	private int pushCount;
+	private long currentOffset;
+	private long pushCount;
 	private DummyLogger dummyLogger = new DummyLogger();
-	private Semaphore closeSignal;
+	private Thread runner;
 
-	public TextFile(String filePath, LogParser parser, int offset, int limit, String startrex, String dateFormat,
-			String datePattern, String charset) {
+	public TextFile(String filePath, LogParser parser, long offset, long limit, String beginRegex, String endRegex,
+			String dateFormat, String datePattern, String charset) {
 		this.filePath = filePath;
 		this.parser = parser;
 		this.offset = offset;
 		this.limit = limit;
-		this.startRex = startrex;
+		this.beginRegex = beginRegex;
+		this.endRegex = endRegex;
 		this.dateFormat = dateFormat;
 		this.datePattern = datePattern;
 		this.charset = charset;
@@ -71,9 +72,9 @@ public class TextFile extends DriverQueryCommand {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		dummyLogger.setStatus(LoggerStatus.Stopped);
-		if (closeSignal != null) {
+		if (runner != null && !Thread.currentThread().equals(runner)) {
 			try {
-				closeSignal.acquire();
+				runner.join();
 			} catch (InterruptedException e) {
 			}
 		}
@@ -165,7 +166,6 @@ public class TextFile extends DriverQueryCommand {
 
 	@Override
 	public void run() {
-		closeSignal = new Semaphore(0);
 		status = Status.Running;
 
 		FileInputStream is = null;
@@ -175,8 +175,10 @@ public class TextFile extends DriverQueryCommand {
 			is = new FileInputStream(new File(filePath));
 
 			MultilineLogExtractor extractor = new MultilineLogExtractor(dummyLogger, pipe);
-			if (startRex != null)
-				extractor.setBeginMatcher(Pattern.compile(startRex).matcher(""));
+			if (beginRegex != null)
+				extractor.setBeginMatcher(Pattern.compile(beginRegex).matcher(""));
+			if (endRegex != null)
+				extractor.setEndMatcher(Pattern.compile(endRegex).matcher(""));
 			if (datePattern != null)
 				extractor.setDateMatcher(Pattern.compile(datePattern).matcher(""));
 			if (dateFormat != null)
@@ -190,7 +192,6 @@ public class TextFile extends DriverQueryCommand {
 		} finally {
 			IoHelper.close(br);
 			IoHelper.close(is);
-			closeSignal.release();
 		}
 	}
 
@@ -205,8 +206,11 @@ public class TextFile extends DriverQueryCommand {
 			limitOpt = " limit=" + limit;
 
 		String brexOpt = "";
-		if (startRex != null)
+		if (beginRegex != null)
 			brexOpt = " brex=" + quote(brexOpt);
+		String erexOpt = "";
+		if (endRegex != null)
+			erexOpt = " erex=" + quote(erexOpt);
 		String dfOpt = "";
 		if (dateFormat != null)
 			dfOpt = " df=" + quote(dateFormat);
@@ -217,7 +221,7 @@ public class TextFile extends DriverQueryCommand {
 		if (charset != null)
 			csOpt = " cs=" + charset;
 
-		return "textfile" + offsetOpt + limitOpt + brexOpt + dfOpt + dpOpt + csOpt + " " + filePath;
+		return "textfile" + offsetOpt + limitOpt + brexOpt + erexOpt + dfOpt + dpOpt + csOpt + " " + filePath;
 	}
 
 	private String quote(String s) {

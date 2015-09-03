@@ -4,4 +4,7 @@
 	<instance component="nashorn-script-factory" />
 	<instance component="nashorn-parser-script-registry" />
 	<instance component="logdb-nashorn-parser-factory" />
+	<instance component="logdb-nashorn-event-script-registry" />
+	<instance component="logdb-nashorn-query-script-registry" />
+	<instance component="logdb-nashorn-query-parser" />
 </ipojo>

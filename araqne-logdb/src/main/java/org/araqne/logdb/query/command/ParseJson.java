@@ -20,13 +20,15 @@ import java.util.Map;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 import org.json.JSONArray;
 import org.json.JSONConverter;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.slf4j.LoggerFactory;
 
-public class ParseJson extends QueryCommand {
+public class ParseJson extends QueryCommand implements ThreadSafe {
 	private final org.slf4j.Logger slog = LoggerFactory.getLogger(ParseJson.class);
 	private final String field;
 	private final boolean overlay;
@@ -43,12 +45,31 @@ public class ParseJson extends QueryCommand {
 
 	@Override
 	public void onPush(Row row) {
-		Object target = row.get(field);
-		if (target == null) {
-			if (overlay)
-				pushPipe(row);
-			return;
+		pushPipe(parse(row));
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+				rowBatch.rows[p] = parse(row);
+			}
+		} else {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+				rowBatch.rows[i] = parse(row);
+			}
 		}
+		
+		pushPipe(rowBatch);
+	}
+
+	private Row parse(Row row) {
+		Object target = row.get(field);
+		if (target == null)
+			return row;
 
 		String text = target.toString();
 		JSONTokener tokenizer = new JSONTokener(new StringReader(text));
@@ -67,15 +88,11 @@ public class ParseJson extends QueryCommand {
 				Object array = JSONConverter.parse((JSONArray) value);
 				row.put(field, array);
 			}
-
-			pushPipe(row);
 		} catch (Throwable t) {
-			if (overlay)
-				pushPipe(row);
-
 			if (slog.isDebugEnabled())
 				slog.debug("araqne logdb: cannot parse json [{}]", text);
 		}
+		return row;
 	}
 
 	@Override

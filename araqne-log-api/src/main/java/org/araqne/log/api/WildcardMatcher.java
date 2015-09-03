@@ -6,7 +6,8 @@ public class WildcardMatcher {
 	private WildcardMatcher() {
 	}
 
-	public static Pattern buildPattern(String s) {
+	public static Pattern buildPattern(String s, boolean caseSensitive) {
+		boolean cs = caseSensitive;
 		StringBuilder sb = new StringBuilder();
 		sb.append("^");
 		for (int i = 0; i < s.length(); i++) {
@@ -26,7 +27,11 @@ public class WildcardMatcher {
 		expanded = expanded.replaceAll("\\\\\\\\\\\\\\*", "\\\\*");
 
 		if (wildcard)
-			return Pattern.compile(expanded, Pattern.CASE_INSENSITIVE);
+			return Pattern.compile(expanded, cs ? 0 : Pattern.CASE_INSENSITIVE);
 		return null;
+	}
+	
+	public static Pattern buildPattern(String s) {
+		return buildPattern(s, false);
 	}
 }

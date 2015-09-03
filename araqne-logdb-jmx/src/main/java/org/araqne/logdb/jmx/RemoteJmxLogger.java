@@ -32,33 +32,25 @@ import org.araqne.log.api.AbstractLogger;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
+import org.araqne.log.api.Reconfigurable;
 import org.araqne.log.api.SimpleLog;
 
-public class RemoteJmxLogger extends AbstractLogger {
+public class RemoteJmxLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(RemoteJmxLogger.class);
 
-	private final String host;
-	private final int port;
-	private final String user;
-	private final String password;
-	private final JMXServiceURL url;
-	private final ObjectName objName;
+	private String user;
+	private String password;
+	private JMXServiceURL url;
+	private ObjectName objName;
 	private String[] attrNames;
 
 	public RemoteJmxLogger(LoggerSpecification spec, LoggerFactory factory) throws IOException {
 		super(spec, factory);
+		init(spec.getConfig());
+	}
 
-		Map<String, String> c = spec.getConfig();
-		this.host = c.get("host");
-		this.port = Integer.parseInt(c.get("port"));
-		this.user = c.get("user");
-		this.password = c.get("password");
-		try {
-			this.objName = new ObjectName(c.get("obj_name"));
-		} catch (Exception e) {
-			throw new IOException("invalid jmx object name: " + c.get("obj_name"), e);
-		}
-
+	private void init(Map<String, String> c) throws IOException {
+		String[] attrNames = null;
 		String s = c.get("attr_names");
 		if (s != null) {
 			ArrayList<String> l = new ArrayList<String>();
@@ -70,7 +62,27 @@ public class RemoteJmxLogger extends AbstractLogger {
 			attrNames = l.toArray(new String[0]);
 		}
 
-		this.url = JmxHelper.getURL(host, port);
+		ObjectName objName;
+		try {
+			objName = new ObjectName(c.get("obj_name"));
+		} catch (Exception e) {
+			throw new IOException("invalid jmx object name: " + c.get("obj_name"), e);
+		}
+
+		this.url = JmxHelper.getURL(c.get("host"), Integer.parseInt(c.get("port")));
+		this.user = c.get("user");
+		this.password = c.get("password");
+		this.attrNames = attrNames;
+		this.objName = objName;
+	}
+
+	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		try {
+			init(newConfigs);
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	@Override
@@ -86,7 +98,9 @@ public class RemoteJmxLogger extends AbstractLogger {
 			AttributeList attrs = mbeanConn.getAttributes(objName, names);
 			Log log = buildLog(attrs);
 			write(log);
+			setTemporaryFailure(null);
 		} catch (Throwable t) {
+			setTemporaryFailure(t);
 			slog.error("araqne log api: remote jmx failed, logger " + getFullName(), t);
 		} finally {
 			if (jmxConnector != null) {
@@ -102,13 +116,8 @@ public class RemoteJmxLogger extends AbstractLogger {
 		Map<String, Object> data = new HashMap<String, Object>();
 		for (Attribute attr : attrs.asList()) {
 			Object value = attr.getValue();
-			if (value instanceof Boolean ||
-					value instanceof Long ||
-					value instanceof Integer ||
-					value instanceof Short ||
-					value instanceof Float ||
-					value instanceof Double ||
-					value instanceof String) {
+			if (value instanceof Boolean || value instanceof Long || value instanceof Integer || value instanceof Short
+					|| value instanceof Float || value instanceof Double || value instanceof String) {
 				data.put(attr.getName(), value);
 			} else if (value != null) {
 				data.put(attr.getName(), value.toString());

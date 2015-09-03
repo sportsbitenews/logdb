@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.Eval;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
@@ -56,8 +57,10 @@ public class AbsTest {
 		p.setQueryParserService(queryParserService);
 
 		Eval eval = (Eval) p.parse(null, "eval n=abs(-1)");
-		Object o = eval.getExpression().eval(null);
-		assertEquals(1, o);
+		Row row = new Row();
+		eval.onPush(row);
+		assertEquals(1, row.map().size());
+		assertEquals(1, row.get("n"));
 	}
 
 	@Test
@@ -87,7 +90,7 @@ public class AbsTest {
 				System.out.println(e.getMessage());
 			}
 			assertEquals("90600", e.getType());
-			assertEquals("abs( -1,  2)", e.getParams().get("value"));
+			assertEquals("n=abs( -1,  2)", e.getParams().get("value"));
 		}
 	}
 

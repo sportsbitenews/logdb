@@ -12,6 +12,7 @@ import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.command.Sort.SortField;
 import org.slf4j.Logger;
@@ -19,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 public class Join extends QueryCommand {
 	public enum JoinType {
-		Inner, Left
+		Inner, Left, Right, Full
 	}
 
 	private final Logger logger = LoggerFactory.getLogger(Join.class);
@@ -49,7 +50,7 @@ public class Join extends QueryCommand {
 
 		logger.debug("araqne logdb: join subquery created [{}:{}]", subQuery.getId(), subQuery.getQueryString());
 	}
-	
+
 	@Override
 	public String getName() {
 		return "join";
@@ -65,7 +66,7 @@ public class Join extends QueryCommand {
 				subQueryTask.addSubTask(cmd.getMainTask());
 			}
 		}
-		
+
 		subQuery.preRun();
 	}
 
@@ -91,6 +92,21 @@ public class Join extends QueryCommand {
 			logger.error("araqne logdb: cannot stop subquery [" + subQuery.getQueryString() + "]", t);
 		} finally {
 			subQuery.purge();
+		}
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[rowBatch.selected[i]];
+				onPush(row);
+			}
+		} else {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+				onPush(row);
+			}
 		}
 	}
 
@@ -173,7 +189,7 @@ public class Join extends QueryCommand {
 						"araqne logdb: join fetch subquery result of query [{}:{}]", query.getId(),
 						query.getQueryString());
 
-				if (rs.size() <= HASH_JOIN_THRESHOLD)
+				if (rs.size() <= HASH_JOIN_THRESHOLD && (joinType == JoinType.Inner || joinType == JoinType.Left))
 					buildHashJoinTable(rs);
 				else
 					sortMergeJoiner.setS(rs);
@@ -235,8 +251,27 @@ public class Join extends QueryCommand {
 			if (getClass() != obj.getClass())
 				return false;
 			JoinKeys other = (JoinKeys) obj;
-			if (!Arrays.equals(keys, other.keys))
+
+			return equals(keys, other.keys);
+		}
+
+		public static boolean equals(Object[] a, Object[] a2) {
+			if (a == a2)
+				return true;
+			if (a == null || a2 == null)
 				return false;
+
+			int length = a.length;
+			if (a2.length != length)
+				return false;
+
+			for (int i = 0; i < length; i++) {
+				Object o1 = a[i];
+				Object o2 = a2[i];
+				if ((o1 == null || o2 == null) || (!o1.equals(o2)))
+					return false;
+			}
+
 			return true;
 		}
 	}

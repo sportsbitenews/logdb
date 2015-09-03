@@ -17,6 +17,10 @@ package org.araqne.logdb;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class QueryCommand {
 	public static enum Status {
@@ -29,6 +33,8 @@ public abstract class QueryCommand {
 	protected RowPipe output;
 	private long outputCount;
 	protected volatile Status status = Status.Waiting;
+	private AtomicBoolean closeCalled = new AtomicBoolean();
+	private ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 
 	public QueryTask getMainTask() {
 		return null;
@@ -81,8 +87,21 @@ public abstract class QueryCommand {
 		// override this for initialization
 	}
 
-	public void onClose(QueryStopReason reason) {
+	protected void onClose(QueryStopReason reason) {
 		// override this for resource clean up
+	}
+
+	public void tryClose(QueryStopReason reason) {
+		if (closeCalled.compareAndSet(false, true)) {
+			Lock lock = rwLock.writeLock();
+			try {
+				lock.lock();
+
+				onClose(reason);
+			} finally {
+				lock.unlock();
+			}
+		}
 	}
 
 	public void onPush(Row row) {
@@ -105,30 +124,46 @@ public abstract class QueryCommand {
 	}
 
 	protected final void pushPipe(Row row) {
-		outputCount++;
+		Lock lock = rwLock.readLock();
+		try {
+			lock.lock();
 
-		if (output != null) {
-			if (output.isThreadSafe()) {
-				output.onRow(row);
-			} else {
-				synchronized (output) {
+			outputCount++;
+
+			if (output != null) {
+				if (output.isThreadSafe()) {
 					output.onRow(row);
+				} else {
+					synchronized (output) {
+						output.onRow(row);
+					}
 				}
 			}
+		} finally {
+			lock.unlock();
 		}
+
 	}
 
 	protected final void pushPipe(RowBatch rowBatch) {
-		outputCount += rowBatch.size;
-		if (output != null) {
-			if (output.isThreadSafe()) {
-				output.onRowBatch(rowBatch);
-			} else {
-				synchronized (output) {
+		Lock lock = rwLock.readLock();
+		try {
+			lock.lock();
+
+			outputCount += rowBatch.size;
+			if (output != null) {
+				if (output.isThreadSafe()) {
 					output.onRowBatch(rowBatch);
+				} else {
+					synchronized (output) {
+						output.onRowBatch(rowBatch);
+					}
 				}
 			}
+		} finally {
+			lock.unlock();
 		}
+
 	}
 
 	public boolean isDriver() {

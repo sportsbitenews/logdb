@@ -15,6 +15,7 @@
  */
 package org.araqne.logstorage.backup;
 
+import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -24,19 +25,26 @@ import java.util.Map;
  * @author xeraph
  * 
  */
-public class StorageBackupJob {
+public class StorageBackupJob implements Cloneable {
 	private StorageBackupRequest request;
 
 	// sum bytes of all data files
 	private long totalBytes;
-
 	private Date submitAt;
-
 	private boolean done;
+	private File tablePath;
+	private Throwable errorCause;
 
 	// table to files
 	private Map<String, List<StorageFile>> storageFiles;
 	private Map<String, List<StorageMediaFile>> mediaFiles;
+
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		StorageBackupJob obj = (StorageBackupJob) super.clone();
+		obj.request = (StorageBackupRequest) request.clone();
+		return obj;
+	}
 
 	public StorageBackupRequest getRequest() {
 		return request;
@@ -68,6 +76,22 @@ public class StorageBackupJob {
 
 	public void setDone(boolean done) {
 		this.done = done;
+	}
+
+	public File getTablePath() {
+		return tablePath;
+	}
+
+	public void setTablePath(File tablePath) {
+		this.tablePath = tablePath;
+	}
+
+	public Throwable getErrorCause() {
+		return errorCause;
+	}
+
+	public void setErrorCause(Throwable errorCause) {
+		this.errorCause = errorCause;
 	}
 
 	public Map<String, List<StorageFile>> getStorageFiles() {

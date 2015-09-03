@@ -34,7 +34,7 @@ public class WebInsightParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "모니터랩 웹인사이트";
 		return "Monitorapp WebInsight";
 	}

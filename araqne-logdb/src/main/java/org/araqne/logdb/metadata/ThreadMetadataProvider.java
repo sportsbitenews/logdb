@@ -65,13 +65,13 @@ public class ThreadMetadataProvider implements MetadataProvider, FieldOrdering {
 			// throw new QueryParseException("no-read-permission", -1);
 		}
 
-		QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("prettystack"), functionRegistry);
+		QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("prettystack", "stack"), functionRegistry);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
-		ParseResult r = QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("prettystack"), functionRegistry);
+		ParseResult r = QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("prettystack", "stack"), functionRegistry);
 		Map<String, Object> options = (Map<String, Object>) r.value;
 
 		// enable by default
@@ -79,14 +79,46 @@ public class ThreadMetadataProvider implements MetadataProvider, FieldOrdering {
 		if (options.get("prettystack") != null) {
 			prettyStack = CommandOptions.parseBoolean(options.get("prettystack").toString());
 		}
+		
+		boolean stack = true;
+		if (options.get("stack") != null) {
+			stack = CommandOptions.parseBoolean(options.get("stack").toString());
+		}
 
-		for (int i = 0; i < 3; i++) {
-			try {
-				dumpThreads(callback, prettyStack);
-				break;
-			} catch (NullPointerException e) {
-				// ThreadInfo can throw NPE, retry is required
+		if (stack) {
+			for (int i = 0; i < 3; i++) {
+				try {
+					dumpThreads(callback, prettyStack);
+					break;
+				} catch (NullPointerException e) {
+					// ThreadInfo can throw NPE, retry is required
+				}
 			}
+		} else {
+			enumerateThreads(callback);
+		}
+	}
+	
+	private void enumerateThreads(MetadataCallback callback) {
+		ThreadGroup rootGroup = Thread.currentThread( ).getThreadGroup( );
+		ThreadGroup parentGroup;
+		while ( ( parentGroup = rootGroup.getParent() ) != null ) {
+		    rootGroup = parentGroup;
+		}
+		Thread[] threads = new Thread[ rootGroup.activeCount() ];
+		while ( rootGroup.enumerate( threads, true ) == threads.length ) {
+		    threads = new Thread[ threads.length * 2 ];
+		}
+
+		for (Thread t: threads) {
+			if (t == null || !t.isAlive())
+				continue;
+			Map<String, Object> m = new HashMap<String, Object>();
+			m.put("tid", t.getId());
+			m.put("name", t.getName());
+			m.put("state", t.getState().toString());
+
+			callback.onPush(new Row(m));
 		}
 	}
 

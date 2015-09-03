@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.command;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -100,6 +101,13 @@ public class Timechart extends QueryCommand {
 	public void onStart() {
 		super.onStart();
 		this.sorter = new ParallelMergeSorter(new ItemComparer());
+		int queryId = 0;
+		if (getQuery() != null)
+			queryId = getQuery().getId();
+		
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
+		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
+		
 		this.buffer = new HashMap<TimechartKey, AggregationFunction[]>();
 		this.spanMillis = timeSpan.getMillis();
 
@@ -280,8 +288,9 @@ public class Timechart extends QueryCommand {
 
 				mergeAndWrite(it);
 			}
-		} catch (IOException e) {
-			throw new IllegalStateException("timechart sort failed, query " + query, e);
+		} catch (Throwable t) {
+			getQuery().stop(t);
+			throw new IllegalStateException("timechart sort failed, query " + query, t);
 		} finally {
 			// close and delete final sorted run file
 			IoHelper.close(it);

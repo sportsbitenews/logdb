@@ -42,11 +42,11 @@ class RunOutput {
 	private boolean noIndexWrite;
 	private FastEncodingRule enc = new FastEncodingRule();
 
-	public RunOutput(int id, int length, AtomicInteger cacheCount) throws IOException {
-		this(id, length, cacheCount, false);
+	public RunOutput(int id, int length, AtomicInteger cacheCount, String tag) throws IOException {
+		this(id, length, cacheCount, false, tag);
 	}
 
-	public RunOutput(int id, int length, AtomicInteger cacheCount, boolean noIndexWrite) throws IOException {
+	public RunOutput(int id, int length, AtomicInteger cacheCount, boolean noIndexWrite, String tag) throws IOException {
 		this.noIndexWrite = noIndexWrite;
 
 		int remainCacheSize = cacheCount.addAndGet(-length);
@@ -59,9 +59,9 @@ class RunOutput {
 			String araDataDir = System.getProperty("araqne.sort.dir", System.getProperty("araqne.data.dir"));
 			File tmpDir = new File(araDataDir, "araqne-logdb/sort");
 			tmpDir.mkdirs();
-			File dataFile = File.createTempFile("run", ".dat", tmpDir);
+			File dataFile = File.createTempFile("run" + tag, ".dat", tmpDir);
 			if (!noIndexWrite) {
-				indexFile = File.createTempFile("run", ".idx", tmpDir);
+				indexFile = File.createTempFile("run" + tag, ".idx", tmpDir);
 				logger.debug("araqne logdb: creating run output index [{}]", indexFile.getAbsolutePath());
 				indexFos = new FileOutputStream(indexFile);
 				indexBos = new BufferedOutputStream(indexFos, WRITE_BUFFER_SIZE);

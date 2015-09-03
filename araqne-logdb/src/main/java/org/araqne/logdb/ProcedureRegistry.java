@@ -10,6 +10,15 @@ public interface ProcedureRegistry {
 
 	List<Procedure> getProcedures();
 
+	/**
+	 * get allowed procedures
+	 *
+	 * @since 2.6.34
+	 * @param loginName
+	 *            current session
+	 */
+	List<Procedure> getProcedures(String loginName);
+
 	Procedure getProcedure(String name);
 
 	void createProcedure(Procedure procedure);

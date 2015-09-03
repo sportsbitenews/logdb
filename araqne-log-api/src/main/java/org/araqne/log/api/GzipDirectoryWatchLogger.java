@@ -1,12 +1,15 @@
 package org.araqne.log.api;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -16,7 +19,7 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(GzipDirectoryWatchLogger.class);
 
 	public GzipDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
-		super(spec, factory);		
+		super(spec, factory);
 	}
 
 	@Override
@@ -25,20 +28,21 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 			setStates(new HashMap<String, Object>());
 		}
 	}
-	
+
 	@Override
 	protected void runOnce() {
 		Map<String, String> configs = getConfigs();
-		
+
 		String basePath = configs.get("base_path");
 		Pattern fileNamePattern = Pattern.compile(configs.get("filename_pattern"));
-		
+
 		boolean isDeleteFile = false;
 		if (configs.containsKey("is_delete"))
 			isDeleteFile = Boolean.parseBoolean(getConfigs().get("is_delete"));
-		
+
 		List<String> logFiles = FileUtils.matchFiles(basePath, fileNamePattern);
 		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
+		removeStatesOfDeletedFiles(lastPositions, logFiles);
 
 		try {
 			for (String path : logFiles) {
@@ -50,6 +54,14 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 			}
 		} finally {
 			setStates(LastPositionHelper.serialize(lastPositions));
+		}
+	}
+
+	private void removeStatesOfDeletedFiles(Map<String, LastPosition> lastPositions, List<String> currentFiles) {
+		Set<String> currentSet = new HashSet<String>(currentFiles);
+		for (String path : new ArrayList<String>(lastPositions.keySet())) {
+			if (!currentSet.contains(path))
+				lastPositions.remove(path);
 		}
 	}
 
@@ -74,7 +86,7 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 
 			Receiver receiver = new Receiver(position);
 			MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
-			
+
 			File file = new File(path);
 			fis = new FileInputStream(file);
 			gis = new GZIPInputStream(fis);
@@ -82,8 +94,13 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 			String dateFromFileName = getDateFromFileName(path, fileNamePattern);
 			extractor.extract(gis, new AtomicLong(), dateFromFileName);
 			position.setPosition(-1);
+		} catch (EOFException e) {
+			// abnormal end of content (e.g. missing new line), but read
+			// completed successfully
+			position.setPosition(-1);
 		} catch (FileNotFoundException e) {
 			logger.trace("araqne log api: [{}] logger read failure: file not found: {}", getName(), e.getMessage());
+			position.setPosition(-1);
 		} catch (Throwable e) {
 			logger.error("araqne log api: [" + getName() + "] logger read error", e);
 

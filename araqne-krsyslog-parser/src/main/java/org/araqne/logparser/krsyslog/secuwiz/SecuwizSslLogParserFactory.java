@@ -38,7 +38,7 @@ public class SecuwizSslLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "시큐위즈 SSL VPN 장비의 시스로그를 파싱합니다.";
 		return "Parse Secuwiz SSLVPN syslogs.";
 	}

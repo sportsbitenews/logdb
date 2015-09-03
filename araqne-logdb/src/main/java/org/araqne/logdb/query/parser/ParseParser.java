@@ -76,7 +76,7 @@ public class ParseParser extends AbstractQueryCommandParser {
 		//	throw new QueryParseException("missing-parameter", r.next);
 			throw new QueryParseException("21000", getCommandName().length() + 1, commandString.length() - 1, null);
 		
-		if (QueryTokenizer.findKeyword(remainder, "as") == -1) {
+		if (QueryTokenizer.tokenize(remainder).size() == 1) {
 			return newParserFromRegistry(overlay, remainder);
 		}
 		
@@ -142,7 +142,7 @@ public class ParseParser extends AbstractQueryCommandParser {
 			Map<String, String> params = new HashMap<String, String> ();
 			params.put("parser", parserName);
 			params.put("value", parserName);
-			throw new QueryParseException("21002",-1, -1, params);
+			throw new QueryParseException("21002", -1, t.getMessage(), t);
 		}
 	}
 }

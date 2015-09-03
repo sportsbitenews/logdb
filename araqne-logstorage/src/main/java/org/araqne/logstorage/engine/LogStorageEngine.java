@@ -296,7 +296,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	@Override
 	public void ensureTable(TableSchema schema) {
 		if (!tableRegistry.exists(schema.getName()))
-			createTable(schema);
+			tableRegistry.ensureTable(schema);
 	}
 
 	@Override
@@ -682,7 +682,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		if (!skipArgCheck) {
 			ReplicaStorageConfig config = ReplicaStorageConfig.parseTableSchema(schema);
 			if (config != null && config.mode() != ReplicationMode.ACTIVE)
-				throw new IllegalArgumentException("specified table has replica storage config and cannot purge non-active table");
+				throw new IllegalArgumentException("table [" + tableName
+						+ "] has replica storage config and cannot purge non-active table, day " + DateUtil.getDayText(day));
 		}
 
 		// evict online buffer and close
@@ -690,19 +691,20 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		if (writer != null)
 			writer.close();
 
-		String fileName = DateUtil.getDayText(day);
-		FilePath idxFile = dir.newFilePath(fileName + ".idx");
-		FilePath datFile = dir.newFilePath(fileName + ".dat");
+		String dayText = DateUtil.getDayText(day);
+		FilePath idxFile = dir.newFilePath(dayText + ".idx");
+		FilePath datFile = dir.newFilePath(dayText + ".dat");
 
 		for (LogStorageEventListener listener : callbackSet.get(LogStorageEventListener.class)) {
 			try {
 				listener.onPurge(tableName, day);
 			} catch (Throwable t) {
-				logger.error("araqne logstorage: storage event listener should not throw any exception", t);
+				logger.error("araqne logstorage: onPurge(" + tableName + "," + dayText
+						+ "), storage event listener should not throw any exception", t);
 			}
 		}
 
-		logger.debug("araqne logstorage: try to purge log data of table [{}], day [{}]", tableName, fileName);
+		logger.debug("araqne logstorage: try to purge log data of table [{}], day [{}]", tableName, dayText);
 		ensureDelete(idxFile);
 		ensureDelete(datFile);
 	}
@@ -724,14 +726,16 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	public void purge(String tableName, Date fromDay, Date toDay) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		String from = "unbound";
-		if (fromDay != null)
+		if (fromDay != null) {
+			fromDay = DateUtil.getDay(fromDay);
 			from = dateFormat.format(fromDay);
+		}
+
 		String to = "unbound";
-		if (toDay != null)
+		if (toDay != null) {
+			toDay = DateUtil.getDay(toDay);
 			to = dateFormat.format(toDay);
-		
-		fromDay = DateUtil.getDay(fromDay);
-		toDay = DateUtil.getDay(toDay);
+		}
 
 		logger.debug("araqne logstorage: try to purge log data of table [{}], range [{}~{}]",
 				new Object[] { tableName, from, to });
@@ -1411,11 +1415,6 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 			long flushedMaxId = (onlineMinId > 0) ? onlineMinId - 1 : maxId;
 			long readerMaxId = maxId != -1 ? Math.min(flushedMaxId, maxId) : flushedMaxId;
-
-			if (logger.isDebugEnabled()) {
-				logger.debug("#buffer flush bug# minId: {}, readerMaxId: {}", minId, readerMaxId);
-				logger.debug("#buffer flush bug# maxId: {}, onlineMinId: {}", maxId, flushedMaxId);
-			}
 
 			if (req.isAsc()) {
 				if (minId < 0 || readerMaxId < 0 || readerMaxId >= minId) {

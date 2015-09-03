@@ -35,6 +35,7 @@ import org.araqne.logdb.Account;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.Procedure;
 import org.araqne.logdb.ProcedureRegistry;
+import org.araqne.logdb.SecurityGroup;
 import org.araqne.logdb.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +81,19 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 		if (p == null)
 			throw new IllegalStateException("procedure not found: " + procedureName);
 
-		return p.getOwner().equals(loginName) || p.getGrants().contains(loginName);
+		if (accountService.isAdmin(loginName))
+			return true;
+
+		if (p.getOwner().equals(loginName) || p.getGrants().contains(loginName))
+			return true;
+
+		for (String guid : p.getGrantGroups()) {
+			SecurityGroup group = accountService.getSecurityGroup(guid);
+			if (group != null && group.getAccounts().contains(loginName))
+				return true;
+		}
+
+		return false;
 	}
 
 	@Override
@@ -90,9 +103,18 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 
 	@Override
 	public List<Procedure> getProcedures() {
+		return getProcedures(null);
+	}
+
+	@Override
+	public List<Procedure> getProcedures(String loginName) {
 		List<Procedure> l = new ArrayList<Procedure>();
-		for (Procedure p : procedures.values())
+		for (Procedure p : procedures.values()) {
+			if (loginName != null && !isGranted(p.getName(), loginName))
+				continue;
+
 			l.add(p.clone());
+		}
 
 		return l;
 	}
@@ -118,6 +140,8 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 		if (old != null)
 			throw new IllegalStateException("duplicated procedure name: " + procedure.getName());
 
+		filterGrants(procedure);
+
 		synchronized (dbLock) {
 			ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
 			db.add(procedure);
@@ -131,6 +155,8 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 
 		if (procedures.get(procedure.getName()) == null)
 			throw new IllegalStateException("procedure not found: " + procedure.getName());
+
+		filterGrants(procedure);
 
 		procedures.put(procedure.getName(), procedure);
 
@@ -160,6 +186,24 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 		}
 	}
 
+	private void filterGrants(Procedure p) {
+		Set<String> filteredGrants = new HashSet<String>();
+
+		for (String s : p.getGrants()) {
+			if (accountService.getAccount(s) != null)
+				filteredGrants.add(s);
+		}
+
+		Set<String> filteredGrantGroups = new HashSet<String>();
+		for (String s : p.getGrantGroups()) {
+			if (accountService.getSecurityGroup(s) != null)
+				filteredGrantGroups.add(s);
+		}
+
+		p.setGrants(filteredGrants);
+		p.setGrantGroups(filteredGrantGroups);
+	}
+
 	private class OrphanCleaner extends AbstractAccountEventListener {
 
 		@Override
@@ -169,6 +213,7 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 					removeProcedure(p.getName());
 					slog.info("araqne logdb: dropped procedure [{}] by remove cascade of user [{}]", p.getName(),
 							account.getLoginName());
+					continue;
 				}
 
 				if (p.getGrants().contains(account.getLoginName())) {
@@ -179,5 +224,46 @@ public class ProcedureRegistryImpl implements ProcedureRegistry {
 				}
 			}
 		}
+
+		@Override
+		public void onRemoveAccounts(Session session, List<Account> accounts) {
+			Set<String> loginNames = new HashSet<String>();
+			for (Account account : accounts)
+				loginNames.add(account.getLoginName());
+
+			for (Procedure p : procedures.values()) {
+				if (loginNames.contains(p.getOwner())) {
+					removeProcedure(p.getName());
+					slog.info("araqne logdb: dropped procedure [{}] by remove cascade of user [{}]", p.getName(), p.getOwner());
+					continue;
+				}
+
+				boolean contains = false;
+				for (String loginName : loginNames) {
+					if (p.getGrants().contains(loginName)) {
+						p.getGrants().remove(loginName);
+						contains = true;
+					}
+				}
+
+				if (contains) {
+					updateProcedure(p);
+					slog.info("araqne logdb: revoked procedure [{}] by remove cascade of users", p.getName());
+				}
+			}
+		}
+
+		@Override
+		public void onRemoveSecurityGroup(Session session, SecurityGroup group) {
+			for (Procedure p : procedures.values()) {
+				if (p.getGrantGroups().contains(group.getGuid())) {
+					p.getGrantGroups().remove(group.getGuid());
+					updateProcedure(p);
+					slog.info("araqne logdb: revoked procedure [{}] by remove cascade of security group [guid: {}, name: {}]",
+							new Object[] { p.getName(), group.getGuid(), group.getName() });
+				}
+			}
+		}
+
 	}
 }

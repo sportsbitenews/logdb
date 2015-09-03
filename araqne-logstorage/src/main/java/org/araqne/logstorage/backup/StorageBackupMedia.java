@@ -31,6 +31,8 @@ public interface StorageBackupMedia {
 
 	Map<String, String> getTableMetadata(String tableName) throws IOException;
 
+	boolean exists(String tableName, String fileName) throws IOException;
+
 	List<StorageMediaFile> getFiles(String tableName) throws IOException;
 
 	InputStream getInputStream(String tableName, String fileName) throws IOException;
@@ -41,4 +43,5 @@ public interface StorageBackupMedia {
 
 	void copyToMedia(StorageTransferRequest req) throws IOException;
 
+	boolean isWormMedia();
 }

@@ -27,5 +27,8 @@ public interface LoggerEventListener {
 	 */
 	void onSetTimeRange(Logger logger);
 
+	void onFailureChange(Logger logger);
+	
 	void onUpdated(Logger logger, Map<String, String> config);
+	
 }

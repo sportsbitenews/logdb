@@ -14,6 +14,7 @@ public class ExportTask implements Marshalable {
 	private long estimationDoneTime;
 	private long completedTime;
 	private boolean cancelled;
+	private Throwable failureException;
 	private Map<DumpTabletKey, ExportTabletTask> tabletTasks = new ConcurrentHashMap<DumpTabletKey, ExportTabletTask>();
 
 	public ExportTask(ExportRequest req) {
@@ -61,6 +62,16 @@ public class ExportTask implements Marshalable {
 		this.cancelled = true;
 	}
 
+	public Throwable getFailureException() {
+		return failureException;
+	}
+
+	public void setFailureException(Throwable failureException) {
+		if (failureException != null)
+			setCancelled();
+		this.failureException = failureException;
+	}
+
 	public Map<DumpTabletKey, ExportTabletTask> getTabletTasks() {
 		return tabletTasks;
 	}
@@ -75,6 +86,7 @@ public class ExportTask implements Marshalable {
 		c.estimationDoneTime = estimationDoneTime;
 		c.completedTime = completedTime;
 		c.cancelled = cancelled;
+		c.failureException = failureException;
 		c.tabletTasks = new ConcurrentHashMap<DumpTabletKey, ExportTabletTask>();
 		for (DumpTabletKey key : tabletTasks.keySet()) {
 			ExportTabletTask task = tabletTasks.get(key);
@@ -106,6 +118,8 @@ public class ExportTask implements Marshalable {
 		m.put("completed_tablet", completedTablet);
 		m.put("total_tablet", tabletTasks.size());
 		m.put("elapsed", elapsed);
+		m.put("cancelled", cancelled);
+		m.put("failure_msg", failureException != null ? failureException.getMessage() : null);
 
 		return m;
 	}

@@ -54,6 +54,8 @@ public class DateUtil {
 	static ConcurrentHashMap<Long, Date> dayStarts = new ConcurrentHashMap<Long, Date>();
 
 	public static Date getDay(Date date) {
+		if (date == null)
+			return null;
 		long time = date.getTime();
 		TimeZone timeZone = timeZoneCache;
 		long dayKey =

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
+
 import org.araqne.logdb.writer.LineWriter;
 import org.araqne.logdb.writer.LineWriterFactory;
 import org.slf4j.Logger;
@@ -41,6 +42,11 @@ public class PartitionOutput {
 
 	public PartitionOutput(LineWriterFactory lineWriterFactory, String path, String tmpPath, Date day, String encoding)
 			throws IOException {
+		this(lineWriterFactory, path, tmpPath, day, encoding, false);
+	}
+
+	public PartitionOutput(LineWriterFactory lineWriterFactory, String path, String tmpPath, Date day, String encoding,
+			boolean overwrite) throws IOException {
 		try {
 			this.tmpPath = tmpPath;
 			this.path = convertPath(path, day);
@@ -50,21 +56,24 @@ public class PartitionOutput {
 				this.f = new File(dir, UUID.randomUUID().toString() + ".part");
 
 				if (logger.isDebugEnabled())
-					logger.debug("araqne logdb: created temp partition output file [{}] for path [{}], day [{}]",
-							new Object[] { f.getAbsolutePath(), path, day });
+					logger.debug("araqne logdb: created temp partition output file [{}] for path [{}], day [{}]", new Object[] {
+							f.getAbsolutePath(), path, day });
 
 				this.tmpPath = f.getAbsolutePath();
 			} else {
 				this.f = new File(this.path);
 			}
 
-			f.getParentFile().mkdirs();
+			File parentFile = f.getParentFile();
+			boolean created = parentFile.mkdirs();
+			if (!(parentFile.exists() && parentFile.isDirectory()) && !created)
+				throw new IOException("cannot create partition output directory: " + parentFile.getAbsolutePath());
 
 			if (encoding == null)
 				encoding = "utf-8";
 
 			this.writer = lineWriterFactory.newWriter(f.getAbsolutePath());
-			mover = new LocalFileMover();
+			mover = new LocalFileMover(overwrite);
 		} catch (IOException e) {
 			logger.error("araqne logdb: cannot create partition output [" + f.getAbsolutePath() + "] tmp path [" + tmpPath + "]",
 					e);
@@ -84,12 +93,14 @@ public class PartitionOutput {
 		if (!path.contains("{") || !path.contains("}") || !path.contains(":"))
 			return path;
 
-		String convertedPath = path.substring(0, path.indexOf("{"));
+		int lastPos = path.indexOf("{");
+		String convertedPath = path.substring(0, lastPos);
 		for (int f = 0; (f = path.indexOf("{", f)) != -1; f++) {
 			int t = path.indexOf("}", f);
 			String s = path.substring(f, t + 1);
 			String time = s.substring(1, s.indexOf(":"));
 			String format = s.substring(s.indexOf(":") + 1, s.length() - 1);
+			convertedPath += path.substring(lastPos, f);
 
 			Date target = new Date();
 			if (time.equalsIgnoreCase("logtime"))
@@ -101,6 +112,8 @@ public class PartitionOutput {
 				SimpleDateFormat sdf = new SimpleDateFormat(format);
 				convertedPath += sdf.format(target);
 			}
+
+			lastPos = t + 1;
 		}
 
 		convertedPath += path.substring(path.lastIndexOf("}") + 1);

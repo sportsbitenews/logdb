@@ -16,47 +16,66 @@
 package org.araqne.logdb.query.expr;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
- *
+ * 
  */
 public class NetworkTest {
 
 	@Test
-	public void testError90740(){
-		
-		try {
-			new Network(null, expr(1, 1000));
-			fail();
-		} catch (QueryParseException e) {
-			if (e.isDebugMode()) {
-				System.out.println(e.getMessage());
-			}
-			assertEquals("90740", e.getType());
-			assertEquals("1000", e.getParams().get("mask"));
-		}
+	public void testConstantMask() {
+		assertEquals("1.2.3.0", test("1.2.3.4", 24));
+		assertEquals("1.2.0.0", test("1.2.3.4", 16));
+		assertNull(test("1.2.3.4", 100));
 	}
 
-	private List<Expression> expr(Object...object ){
+	@Test
+	public void testVariableMask() {
+		Network func = new Network(null, expr(field("ip"), field("mask")));
+		Map<String, Object> row = new HashMap<String, Object>();
+		row.put("ip", "1.2.3.4");
+		row.put("mask", 16);
+		assertEquals("1.2.0.0", func.eval(new Row(row)));
+	}
+
+	private Expression field(String s) {
+		return new Field(null, expr(s));
+	}
+
+	private String test(String ip, Object mask) {
+		Network func = new Network(null, expr(new Field(null, expr("ip")), mask));
+		return (String) func.eval(ip(ip));
+	}
+
+	private Row ip(String ip) {
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("ip", "1.2.3.4");
+		return new Row(m);
+	}
+
+	private List<Expression> expr(Object... object) {
 		List<Expression> expr = new ArrayList<Expression>();
 
-		for(Object o: object){
-			if(o instanceof Expression)
-				expr.add((Expression)o);
-			else if(o instanceof String)
-				expr.add(new StringConstant((String)o));
-			else if(o instanceof Number)
-				expr.add(new NumberConstant((Number)o));
-			else if(o instanceof Boolean)
-				expr.add(new BooleanConstant((Boolean)o));
+		for (Object o : object) {
+			if (o instanceof Expression)
+				expr.add((Expression) o);
+			else if (o instanceof String)
+				expr.add(new StringConstant((String) o));
+			else if (o instanceof Number)
+				expr.add(new NumberConstant((Number) o));
+			else if (o instanceof Boolean)
+				expr.add(new BooleanConstant((Boolean) o));
 		}
 
 		return expr;

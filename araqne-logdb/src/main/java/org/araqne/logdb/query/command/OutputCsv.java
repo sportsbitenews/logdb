@@ -70,65 +70,24 @@ public class OutputCsv extends QueryCommand {
 	private LineWriter writer;
 	private LineWriterFactory writerFactory;
 
-	@Deprecated
-	public OutputCsv(String pathToken, File f, String tmpPath, boolean overwrite, List<String> fields, String encoding,
-			boolean useBom, boolean useTab, boolean usePartition, boolean emptyfile, List<PartitionPlaceholder> holders,
-			boolean append, TimeSpan flushInterval, TickService tickService) {
-		try {
-			this.pathToken = pathToken;
-			this.f = f;
-			this.tmpPath = tmpPath;
-			this.overwrite = overwrite;
-			this.fields = fields;
-			this.usePartition = usePartition;
-			this.encoding = encoding;
-			this.holders = holders;
-			this.useTab = useTab;
-			this.useBom = useBom;
-			this.emptyfile = emptyfile;
-			char separator = useTab ? '\t' : ',';
-			this.append = append;
-			this.flushInterval = flushInterval;
-			this.writerFactory = new CsvLineWriterFactory(fields, encoding, separator, useBom, append);
+	public OutputCsv(String pathToken, String tmpPath, boolean overwrite, List<String> fields, String encoding, boolean useBom,
+			boolean useTab, boolean usePartition, boolean emptyfile, List<PartitionPlaceholder> holders, boolean append,
+			TimeSpan flushInterval, TickService tickService) {
+		this.pathToken = pathToken;
+		this.tmpPath = tmpPath;
+		this.overwrite = overwrite;
+		this.fields = fields;
+		this.usePartition = usePartition;
+		this.encoding = encoding;
+		this.holders = holders;
+		this.useTab = useTab;
+		this.useBom = useBom;
+		this.emptyfile = emptyfile;
+		this.append = append;
+		this.flushInterval = flushInterval;
 
-			if (flushInterval != null)
-				tickService.addTimer(flushTimer);
-
-			if (!usePartition) {
-				String path = pathToken;
-				if (tmpPath != null)
-					path = tmpPath;
-
-				this.writer = writerFactory.newWriter(path);
-				mover = new LocalFileMover();
-			} else {
-				this.holders = holders;
-				this.outputs = new HashMap<List<String>, PartitionOutput>();
-			}
-		} catch (Throwable t) { 
-			close();
-			throw new QueryParseException("io-error", -1);
-		}
-	}
-	
-	public OutputCsv(String pathToken, String tmpPath, boolean overwrite, List<String> fields, String encoding,
-			boolean useBom, boolean useTab, boolean usePartition,boolean emptyfile,  List<PartitionPlaceholder> holders,
-			boolean append, TimeSpan flushInterval, TickService tickService) {
-			this.pathToken = pathToken;
-			this.tmpPath = tmpPath;
-			this.overwrite = overwrite;
-			this.fields = fields;
-			this.usePartition = usePartition;
-			this.encoding = encoding;
-			this.holders = holders;
-			this.useTab = useTab;
-			this.useBom = useBom;
-			this.emptyfile = emptyfile;
-			this.append = append;
-			this.flushInterval = flushInterval;
-		
-			if (flushInterval != null)
-				tickService.addTimer(flushTimer);
+		if (flushInterval != null)
+			tickService.addTimer(flushTimer);
 	}
 
 	@Override
@@ -149,19 +108,19 @@ public class OutputCsv extends QueryCommand {
 	}
 
 	@Override
-	public void onStart(){
+	public void onStart() {
 		File csvFile = new File(pathToken);
-		if (csvFile.exists() && !overwrite  && !append)
+		if (csvFile.exists() && !overwrite && !append)
 			throw new IllegalStateException("csv file exists: " + csvFile.getAbsolutePath());
 
 		if (!usePartition && csvFile.getParentFile() != null)
 			csvFile.getParentFile().mkdirs();
-		
+
 		this.f = csvFile;
-		
+
 		char separator = useTab ? '\t' : ',';
 		this.writerFactory = new CsvLineWriterFactory(fields, encoding, separator, useBom, append);
-		
+
 		try {
 			if (!usePartition) {
 				String path = pathToken;
@@ -169,24 +128,24 @@ public class OutputCsv extends QueryCommand {
 					path = tmpPath;
 
 				this.writer = writerFactory.newWriter(path);
-				mover = new LocalFileMover();
+				mover = new LocalFileMover(overwrite);
 			} else {
-				//this.holders = holders;
+				// this.holders = holders;
 				this.outputs = new HashMap<List<String>, PartitionOutput>();
 			}
-		}catch(QueryParseException t){
+		} catch (QueryParseException t) {
 			close();
 			throw t;
 		} catch (Throwable t) {
 			close();
-			Map<String, String> params = new HashMap<String, String> ();
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("msg", t.getMessage());
-			throw new QueryParseException("30203",  -1, -1, params);
-			//throw new QueryParseException("io-error", -1);
+			throw new QueryParseException("30203", -1, -1, params);
+			// throw new QueryParseException("io-error", -1);
 		}
-		
+
 	}
-	
+
 	@Override
 	public void onPush(Row m) {
 		try {
@@ -211,7 +170,8 @@ public class OutputCsv extends QueryCommand {
 					writeLog(m);
 				}
 			} else {
-				for (Row m : rowBatch.rows) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row m = rowBatch.rows[i];
 					writeLog(m);
 				}
 			}
@@ -235,7 +195,7 @@ public class OutputCsv extends QueryCommand {
 
 			PartitionOutput output = outputs.get(key);
 			if (output == null) {
-				output = new PartitionOutput(writerFactory, pathToken, tmpPath, date, encoding);
+				output = new PartitionOutput(writerFactory, pathToken, tmpPath, date, encoding, overwrite);
 				outputs.put(key, output);
 
 				if (logger.isDebugEnabled())

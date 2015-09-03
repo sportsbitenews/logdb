@@ -11,9 +11,13 @@ public interface OpTerm extends Term {
 
 	// per instance
 	public boolean isUnary();
+	/** is there an operator has same symbol */
+	public boolean hasAltOp();  
+	public OpTerm getAltOp(); 
 	public boolean isAlpha();
 	public String getSymbol();
 	public int getPrecedence();
 	public boolean isLeftAssoc();
-	public OpTerm postProcessCloseParen(); // Postprocess for last operator before parenthesis closed.
+	/** Postprocess for last operator before parenthesis closed. */
+	public OpTerm postProcessCloseParen();
 }

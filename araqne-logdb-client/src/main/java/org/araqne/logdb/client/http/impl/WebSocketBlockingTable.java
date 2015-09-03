@@ -35,6 +35,11 @@ public class WebSocketBlockingTable {
 	private final Logger logger = LoggerFactory.getLogger(WebSocketBlockingTable.class);
 	private Message interruptSignal = new Message();
 	private ConcurrentMap<String, WaitingCall> lockMap = new ConcurrentHashMap<String, WaitingCall>();
+	private WebSocketSession session;
+
+	public WebSocketBlockingTable(WebSocketSession webSocketSession) {
+		this.session = webSocketSession;
+	}
 
 	public WaitingCall set(String guid) {
 		WaitingCall item = new WaitingCall(guid);
@@ -112,6 +117,7 @@ public class WebSocketBlockingTable {
 	}
 
 	public void close() {
+		logger.debug("interrupting all blocking calls: " + session.toString());
 		// cancel all blocking calls
 		for (String guid : lockMap.keySet()) {
 			WaitingCall item = lockMap.get(guid);

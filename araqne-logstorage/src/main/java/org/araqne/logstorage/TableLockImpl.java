@@ -17,19 +17,17 @@ public class TableLockImpl {
 	Semaphore sem = new Semaphore(EXCLUSIVE, true);
 
 	String owner;
-	int holdCount;
 	List<String> purposes;
 	private int tid;
 
 	@Override
 	public String toString() {
-		return String.format("TableLockImpl [owner=%s, holdCount=%s, purposes=%s]", owner, holdCount, purposes);
+		return String.format("TableLockImpl [owner=%s, purposes=%s]", owner, purposes);
 	}
 
 	public TableLockImpl(int tableId) {
 		this.tid = tableId;
 		owner = null;
-		holdCount = 0;
 		purposes = new LinkedList<String>();
 	}
 
@@ -42,12 +40,8 @@ public class TableLockImpl {
 
 		@Override
 		public void lock() {
-			try {
-				sem.acquire();
-				ownerTid = Thread.currentThread().getId();
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
-			}
+			sem.acquireUninterruptibly();
+			ownerTid = Thread.currentThread().getId();
 		}
 
 		@Override
@@ -121,16 +115,12 @@ public class TableLockImpl {
 
 		@Override
 		public void lock() {
-			try {
-				assert acquierer != null;
-				if (checkReentrant()) {
-					return;
-				}
-				sem.acquire(EXCLUSIVE);
-				onLockAcquired();
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
+			assert acquierer != null;
+			if (checkReentrant()) {
+				return;
 			}
+			sem.acquireUninterruptibly(EXCLUSIVE);
+			onLockAcquired();
 		}
 
 		private void onLockAcquired() {
@@ -138,7 +128,6 @@ public class TableLockImpl {
 				TableLockImpl.this.owner = acquierer;
 				TableLockImpl.this.purposes.clear();
 			}
-			TableLockImpl.this.holdCount += 1;
 			TableLockImpl.this.purposes.add(purpose);
 		}
 
@@ -200,14 +189,9 @@ public class TableLockImpl {
 					throw new IllegalMonitorStateException(owner + " cannot unlock this lock now: "
 							+ TableLockImpl.this.owner);
 				}
-				TableLockImpl.this.holdCount -= 1;
 				TableLockImpl.this.purposes.remove(purpose);
-				if (TableLockImpl.this.holdCount == 0) {
-					if (!TableLockImpl.this.purposes.isEmpty())
-						logger.warn(
-								"purposes isn't managed correctly: {}: {}", TableLockImpl.this, TableLockImpl.this.purposes);
+				if (TableLockImpl.this.purposes.size() == 0) {
 					TableLockImpl.this.owner = null;
-					TableLockImpl.this.purposes.clear();
 					return true;
 				}
 				return false;
@@ -247,7 +231,7 @@ public class TableLockImpl {
 	}
 
 	public int getReentrantCount() {
-		return holdCount;
+		return purposes.size();
 	}
 
 	public Collection<String> getPurposes() {

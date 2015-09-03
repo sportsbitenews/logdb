@@ -115,6 +115,7 @@ public class LocalExportWorker implements ExportWorker {
 
 				manifest.getEntries().add(t.toEntry());
 
+				bos.flush();
 				zos.closeEntry();
 			}
 
@@ -123,12 +124,13 @@ public class LocalExportWorker implements ExportWorker {
 			zos.closeEntry();
 
 		} catch (Throwable t) {
-			slog.error("araqne logstorage: export failed", t);
+			task.setFailureException(t);
+			slog.error("araqne logstorage: export job [" + req.getGuid() + "] failed", t);
 		} finally {
 			ensureClose(bos);
 			ensureClose(zos);
 			ensureClose(fos);
-			slog.info("araqne logstorage: export completed");
+			slog.info("araqne logstorage: export job [{}] completed", req.getGuid());
 
 			if (task.isCancelled()) {
 				path.delete();
@@ -149,7 +151,8 @@ public class LocalExportWorker implements ExportWorker {
 
 	private void ensureClose(Closeable c) {
 		try {
-			c.close();
+			if (c != null)
+				c.close();
 		} catch (IOException e) {
 		}
 	}

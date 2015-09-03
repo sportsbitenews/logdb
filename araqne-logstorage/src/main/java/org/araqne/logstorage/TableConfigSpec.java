@@ -28,8 +28,8 @@ public class TableConfigSpec {
 	private String key;
 	private boolean optional;
 	private boolean updatable;
-	private Map<Locale, String> displayNames;
-	private Map<Locale, String> descriptions;
+	private Map<Locale, String> displayNames = new HashMap<Locale, String>();
+	private Map<Locale, String> descriptions = new HashMap<Locale, String>();
 	private TableConfigValidator validator;
 
 	/**

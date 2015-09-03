@@ -15,16 +15,20 @@
  */
 package org.araqne.logdb;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.araqne.api.FieldOption;
 import org.araqne.confdb.CollectionName;
+import org.araqne.msgbus.Marshalable;
 
 @CollectionName("saved_results")
-public class SavedResult {
+public class SavedResult implements Marshalable, Comparable<SavedResult> {
 	@FieldOption(nullable = false)
 	private String guid = UUID.randomUUID().toString();
 
@@ -54,7 +58,7 @@ public class SavedResult {
 
 	@FieldOption(nullable = false)
 	private Date created = new Date();
-	
+
 	/**
 	 * @since 2.4.40
 	 */
@@ -156,4 +160,50 @@ public class SavedResult {
 				+ ", created=" + df.format(created);
 	}
 
+	public static SavedResult parse(Map<String, Object> m) {
+		SavedResult result = new SavedResult();
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		result.setGuid((String) m.get("guid"));
+		result.setTitle((String) m.get("title"));
+		result.setOwner((String) m.get("owner"));
+		result.setQueryString((String) m.get("query_string"));
+		result.setStorageName((String) m.get("storage_name"));
+		result.setIndexPath((String) m.get("index_path"));
+		result.setDataPath((String) m.get("data_path"));
+		result.setFileSize(Long.parseLong(m.get("file_size").toString()));
+		result.setRowCount(Long.parseLong(m.get("row_count").toString()));
+		try {
+			result.setCreated(df.parse((String) m.get("created")));
+		} catch (ParseException e) {
+		}
+
+		return result;
+	}
+
+	@Override
+	public Map<String, Object> marshal() {
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("guid", guid);
+		m.put("title", title);
+		m.put("owner", owner);
+		m.put("query_string", queryString);
+		m.put("storage_name", storageName);
+		m.put("index_path", indexPath);
+		m.put("data_path", dataPath);
+		m.put("file_size", fileSize);
+		m.put("row_count", rowCount);
+		m.put("created", df.format(created));
+
+		return m;
+	}
+
+	@Override
+	public int compareTo(SavedResult o) {
+		if (o == null)
+			return -1;
+
+		return o.created.compareTo(created);
+	}
 }

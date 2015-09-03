@@ -16,7 +16,7 @@
 package org.araqne.log.api;
 
 import java.util.Collection;
-
+import java.util.List;
 import java.util.Locale;
 
 import org.osgi.framework.BundleContext;
@@ -42,10 +42,22 @@ public interface LoggerFactory {
 
 	String getName();
 
+	/**
+	 * @since 3.6.0
+	 */
+	List<Locale> getLocales();
+	
+	/**
+	 * @since 3.6.0
+	 */
+	String getDisplayGroup(Locale locale);
+
+	@Deprecated
 	Collection<Locale> getDisplayNameLocales();
 
 	String getDisplayName(Locale locale);
 
+	@Deprecated
 	Collection<Locale> getDescriptionLocales();
 
 	String getDescription(Locale locale);

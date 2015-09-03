@@ -18,4 +18,6 @@
 	<instance component="firepower-snmp-log-parser-factory" />
 	<instance component="snort-log-parser-factory" />
 	<instance component="swg-parser-factory" />
+	<instance component="counteract-log-parser-factory" />
+	<instance component="protection-engine-log-parser-factory" />
 </ipojo>

@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
@@ -124,7 +125,8 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 		LogParserBuilder builder = null;
 		for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
-			if (!params.raw) {
+			// table may not exist in federation query mode
+			if (!params.raw && tableRegistry.exists(tableName.getTable())) {
 				builder = new DefaultLogParserBuilder(parserRegistry, parserFactoryRegistry, tableRegistry, tableName.getTable());
 			}
 		}
@@ -139,17 +141,31 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 			if (fo != null) {
 				l.addAll(fo);
 			}
-			// remove potentially duplicated field name first
-			l.remove("_time");
-			l.remove("_table");
-			l.remove("_id");
-			
-			l.addFirst("_id");
-			l.addFirst("_time");
-			l.addFirst("_table");
+			reorderSystemFields(l);
 			return l;
+		} else if (parser != null) {
+			List<FieldDefinition> fieldDefinitions = parser.getFieldDefinitions();
+			if (fieldDefinitions != null) {
+				LinkedList<String> l = new LinkedList<String>();
+				for (FieldDefinition def : fieldDefinitions)
+					l.add(def.getName());
+
+				reorderSystemFields(l);
+				return l;
+			}
 		}
 		return null;
+	}
+
+	private void reorderSystemFields(LinkedList<String> l) {
+		// remove potentially duplicated field name first
+		l.remove("_time");
+		l.remove("_table");
+		l.remove("_id");
+
+		l.addFirst("_id");
+		l.addFirst("_time");
+		l.addFirst("_table");
 	}
 
 	private void scanTables() {
@@ -158,6 +174,10 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 			boolean isSuppressedBugAlert = false;
 
 			for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
+				// table may not exist in federation query mode
+				if (!tableRegistry.exists(tableName.getTable()))
+					continue;
+
 				LogParserBuilder builder = null;
 
 				if (!params.raw) {
@@ -167,10 +187,13 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 						builder.suppressBugAlert();
 				}
 
+				LogTraverseCallbackImpl callback = new LogTraverseCallbackImpl(sink);
 				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder,
-						new LogTraverseCallbackImpl(sink));
+						callback);
 				req.setAsc(params.isAsc());
 				storage.search(req);
+				if (callback.isFailed())
+					throw new IllegalStateException(callback.getFailure());
 
 				isSuppressedBugAlert = isSuppressedBugAlert || (builder != null && builder.isBugAlertSuppressed());
 				if (sink.isEof())

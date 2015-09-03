@@ -126,7 +126,7 @@ public class TableParser extends AbstractQueryCommandParser {
 			to = QueryTokenizer.getDate(options.get("to"));
 
 		if (options.containsKey("offset"))
-			offset = Integer.parseInt(options.get("offset"));
+			offset = Long.parseLong(options.get("offset"));
 
 		if (offset < 0){
 			//throw new QueryParseException("negative-offset", -1);
@@ -137,7 +137,7 @@ public class TableParser extends AbstractQueryCommandParser {
 		}
 
 		if (options.containsKey("limit"))
-			limit = Integer.parseInt(options.get("limit"));
+			limit = Long.parseLong(options.get("limit"));
 
 		if (limit < 0){
 			//throw new QueryParseException("negative-limit", -1);
@@ -280,6 +280,16 @@ public class TableParser extends AbstractQueryCommandParser {
 
 			return ListEndComma;
 		}
+
+		@Override
+		public boolean hasAltOp() {
+			return false;
+		}
+
+		@Override
+		public OpTerm getAltOp() {
+			return null;
+		}
 	}
 
 	private static class OpEmitterFactoryI implements OpEmitterFactory {
@@ -339,7 +349,8 @@ public class TableParser extends AbstractQueryCommandParser {
 		public MetaS(Expression pred, TableSpec pat) {
 			this.predicate = pred;
 			this.pattern = pat;
-			this.mm = new MetadataMatcher<TableSpec>(predicate.eval(new Row()).toString(), Arrays.asList(pattern));
+			this.mm = new MetadataMatcher<TableSpec>(
+					predicate.eval(new Row()).toString(), Arrays.asList(pattern));
 		}
 
 		public Object clone() {
@@ -379,7 +390,19 @@ public class TableParser extends AbstractQueryCommandParser {
 			sb.append(")");
 			return sb.toString();
 		}
+
+		@Override
+		public boolean isOptional() {
+			return true;
+		}
+
+		@Override
+		public void setOptional(boolean optional) {
+			throw new UnsupportedOperationException(
+					"set table-metadata matcher as not-optional is not supported");
+		}
 	}
+	
 
 	private static class Meta implements Expression {
 		private List<TableSpec> patterns;

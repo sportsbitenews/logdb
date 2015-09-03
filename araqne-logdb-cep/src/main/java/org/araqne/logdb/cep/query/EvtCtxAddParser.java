@@ -44,6 +44,23 @@ public class EvtCtxAddParser extends AbstractQueryCommandParser {
 	@Requires
 	private EventContextService eventContextService;
 
+	public EvtCtxAddParser() {
+		setDescriptions(
+				"Create an event context if input tuple matches specified expression. If event context already exists then timeout is extended. Expiry time is not extended.",
+				"입력 데이터가 조건식과 일치하는 경우 주어진 키로 이벤트 컨텍스트를 생성합니다. 이벤트 컨텍스트에 타임아웃이 설정된 상태에서 조건식에 일치하는 입력 데이터가 추가로 들어오면, 타임아웃이 연장됩니다. 이 때 만료 시간은 연장되지 않습니다.");
+
+		setOptions("topic", REQUIRED, "Event topic namespace", "다른 규칙의 이벤트와 구분이 되도록 유일한 이름을 부여합니다.");
+		setOptions("key", REQUIRED, "Field name for event context key", "이벤트 컨텍스트를 구분하는 키 값을 추출할 필드를 입력합니다.");
+		setOptions("expire", OPTIONAL, "Event context will be removed in specified expiry time. "
+				+ "You can use s(second), m(minute), h(hour), d(day), mon(month) as time unit.",
+				"이벤트 컨텍스트 생성 시점부터 지정된 만료 시간 후에 이벤트 컨텍스트가 삭제됩니다. s(초), m(분), h(시), d(일), mon(월) 단위로 지정할 수 있습니다.");
+		setOptions("timeout", OPTIONAL, "Event context will be removed in specified timeout time. "
+				+ "You can use s(second), m(minute), h(hour), d(day), mon(month) as time unit.",
+				"마지막으로 매칭된 이벤트 수신 시점으로부터 타임아웃 시간 후에 이벤트 컨텍스트가 삭제됩니다. s(초), m(분), h(시), d(일), mon(월) 단위로 지정할 수 있습니다.");
+		setOptions("maxrows", OPTIONAL, "Max tuple count for an event context. Default is 10.",
+				"이벤트 컨텍스트에 저장할 최대 행 갯수를 지정합니다. 미지정 시 10으로 설정됩니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "evtctxadd";

@@ -32,6 +32,12 @@ public class StatsParser extends AbstractQueryCommandParser {
 	private static final String COMMAND = "stats";
 	private static final String BY = "by";
 
+	public StatsParser() {
+		setDescriptions(
+				"Calculate aggregation function over groups. If by-clause is not specified, all data is considered as same group. The output will be sorted by group field.",
+				"그룹을 대상으로 동작하는 집계 함수의 평가 결과를 출력합니다. by 절이 지정되지 않은 경우 이전 쿼리 명령어에서 넘어오는 전체 로그를 하나의 그룹으로 계산합니다. 그룹 필드를 기준으로 정렬되는 부수적인 효과가 있습니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return COMMAND;
@@ -46,7 +52,7 @@ public class StatsParser extends AbstractQueryCommandParser {
 		m.put("21703", new QueryErrorMessage("cannot-create-aggregation-function", "[function] 함수를 생성할 수 없습니다. [msg] "));
 		return m;
 	}
-	
+
 	public static class SyntaxParseResult {
 		public SyntaxParseResult(List<String> clauses, List<String> aggTerms) {
 			this.clauses = clauses;
@@ -70,22 +76,22 @@ public class StatsParser extends AbstractQueryCommandParser {
 				field = AggregationParser.parse(context, aggTerm, getFunctionRegistry());
 			} catch (QueryParseException e) {
 				Map<String, String> params = e.getParams();
-				if(params == null || !params.containsKey("value") || params.get("value") == null)
-					throw new QueryParseException(e.getType(), COMMAND.length() + 1, commandString.length() -1, params);
+				if (params == null || !params.containsKey("value") || params.get("value") == null)
+					throw new QueryParseException(e.getType(), COMMAND.length() + 1, commandString.length() - 1, params);
 
 				String subQuery = params.get("value");
 				int offset = commandString.indexOf(subQuery);
-				throw new QueryParseException(e.getType(), offset, offset + subQuery.length() -1 , params);
-			} 
+				throw new QueryParseException(e.getType(), offset, offset + subQuery.length() - 1, params);
+			}
 			fields.add(field);
 		}
 
 		if (fields.isEmpty())
-			//	throw new QueryParseException("missing-stats-function", -1);
-			throw new QueryParseException("21700", COMMAND.length() + 1, commandString.length() -1 ,null);
+			// throw new QueryParseException("missing-stats-function", -1);
+			throw new QueryParseException("21700", COMMAND.length() + 1, commandString.length() - 1, null);
 
 		return new Stats(fields, pr.clauses);
-	} 
+	}
 
 	public SyntaxParseResult parseSyntax(QueryContext context, String commandString) {
 		// stats <aggregation function holder> by <stats-fields>
@@ -100,8 +106,9 @@ public class StatsParser extends AbstractQueryCommandParser {
 			String clausePart = commandString.substring(byPos + BY.length());
 
 			if (clausePart.trim().endsWith(","))
-				//	throw new QueryParseException("missing-clause", commandString.length());
-				throw new QueryParseException("21701", COMMAND.length() + 1, commandString.length() -1 ,null);
+				// throw new QueryParseException("missing-clause",
+				// commandString.length());
+				throw new QueryParseException("21701", COMMAND.length() + 1, commandString.length() - 1, null);
 
 			// trim
 			for (String clause : clausePart.split(","))

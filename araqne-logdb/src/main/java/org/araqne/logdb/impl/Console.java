@@ -115,10 +115,10 @@ public class Console {
 				else
 					removeAccount(args[1]);
 			} else if (command.equals("passwd")) {
-				if (args.length < 2)
+				if (args.length < 1)
 					context.println("Usage: passwd [login name]");
 				else
-					changePassword(args[1]);
+					changePassword(args.length >= 2 ? args[1] : null);
 			} else if (command.equals("exec")) {
 				if (args.length < 2)
 					context.println("Usage: exec [file path]");
@@ -194,11 +194,11 @@ public class Console {
 			} else {
 				context.println("invalid syntax");
 			}
-		}catch (QueryParseException t){
+		} catch (QueryParseException t) {
 			context.println(line);
 			context.println(t.getMessage());
 			logger.error("araqne logdb: console fail", t);
-		}catch (Throwable t) {
+		} catch (Throwable t) {
 			context.println(t.getMessage());
 			logger.error("araqne logdb: console fail", t);
 		}
@@ -258,6 +258,19 @@ public class Console {
 	}
 
 	private void changePassword(String loginName) throws InterruptedException {
+		if (loginName == null)
+			loginName = session.getLoginName();
+
+		if (!loginName.equals(session.getLoginName()) && !session.isAdmin()) {
+			context.println("no permission");
+			return;
+		}
+
+		if (accountService.getAccount(loginName) == null) {
+			context.println("local account not found");
+			return;
+		}
+
 		context.println("Changing password for user " + loginName);
 		if (!session.isAdmin()) {
 			context.print("(current) password: ");
@@ -370,7 +383,7 @@ public class Console {
 			} catch (InterruptedException e) {
 			}
 		} while (!lq.isFinished());
-		
+
 		long duration = (System.nanoTime() - begin) / 1000000L;
 
 		if (lq.getCause() != null) {

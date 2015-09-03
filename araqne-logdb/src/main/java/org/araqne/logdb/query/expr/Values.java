@@ -23,6 +23,8 @@ import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @since 2.2.14
@@ -30,13 +32,27 @@ import org.araqne.logdb.query.aggregator.AggregationFunction;
  * 
  */
 public class Values implements AggregationFunction {
+	private static int VALUES_CAPACITY = 100;
+
 	private final List<Expression> exprs;
 	private final Expression arg;
 	private TreeSet<Object> set;
 
+	static {
+		String s = System.getProperty("araqne.logdb.values_capacity");
+		if (s != null) {
+			try {
+				VALUES_CAPACITY = Integer.parseInt(s);
+				Logger slog = LoggerFactory.getLogger(Values.class.getName());
+				slog.info("araqne logdb: changed capacity of values() aggregation function = " + VALUES_CAPACITY);
+			} catch (Throwable t) {
+			}
+		}
+	}
+
 	public Values(List<Expression> exprs) {
 		if (exprs.isEmpty())
-	//		throw new QueryParseException("missing-values-arg", -1);
+			// throw new QueryParseException("missing-values-arg", -1);
 			throw new QueryParseException("90870", -1, -1, null);
 
 		this.exprs = exprs;
@@ -57,7 +73,7 @@ public class Values implements AggregationFunction {
 	@Override
 	public void apply(Row map) {
 		Object obj = arg.eval(map);
-		if (obj != null && set.size() < 100) {
+		if (obj != null && set.size() < VALUES_CAPACITY) {
 			set.add(obj);
 		}
 	}

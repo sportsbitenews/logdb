@@ -24,6 +24,7 @@ import org.araqne.api.ScriptContext;
 import org.araqne.logstorage.backup.StorageBackupJob;
 import org.araqne.logstorage.backup.StorageBackupProgressMonitor;
 import org.araqne.logstorage.backup.StorageBackupType;
+import org.araqne.logstorage.backup.StorageFile;
 
 /**
  * @since 2.2.7
@@ -65,7 +66,7 @@ class BackupProgressPrinter implements StorageBackupProgressMonitor {
 	}
 
 	@Override
-	public void onCompleteFile(StorageBackupJob job, String tableName, String fileName, long fileLength) {
+	public void onCompleteFile(StorageBackupJob job, String tableName, String fileName, long fileLength, Throwable error) {
 		if (!disabled)
 			context.println(getTimestamp() + "< " + getType(job) + " file [" + tableName + ":" + fileName + "]");
 	}

@@ -18,6 +18,7 @@ package org.araqne.logdb.jms.logger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -28,7 +29,7 @@ import org.araqne.log.api.AbstractLoggerFactory;
 import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerConfigOption;
 import org.araqne.log.api.LoggerSpecification;
-import org.araqne.log.api.StringConfigType;
+import org.araqne.log.api.MutableStringConfigType;
 import org.araqne.logdb.jms.JmsProfileRegistry;
 
 @Component(name = "jms-logger-factory")
@@ -44,26 +45,43 @@ public class JmsLoggerFactory extends AbstractLoggerFactory {
 	}
 
 	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "메시지 큐";
+		return "Message Queue";
+	}
+
+	@Override
 	public String getDisplayName(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "JMS 수신기";
 		return "JMS Consumer";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "JMS 메시지를 수신합니다.";
 		return "Receives the JMS messages sent to the destination";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption profile = new StringConfigType("jms_profile", t("JMS Profile", "JMS 프로파일"), t("JMS profile name",
-				"JMS 프로파일 이름"), true);
+		LoggerConfigOption profile = new MutableStringConfigType("jms_profile", t("JMS Profile", "JMS 프로파일", "JMSプロファイル"), t(
+				"JMS profile name", "JMS 프로파일 이름", "JMSプロファイル名"), true);
 		return Arrays.asList(profile);
 	}
 
-	private Map<Locale, String> t(String en, String ko) {
+	private Map<Locale, String> t(String en, String ko, String jp) {
 		Map<Locale, String> m = new HashMap<Locale, String>();
 		m.put(Locale.ENGLISH, en);
 		m.put(Locale.KOREAN, ko);
+		m.put(Locale.JAPANESE, jp);
 		return m;
 	}
 

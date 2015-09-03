@@ -28,6 +28,7 @@ import org.araqne.logdb.QueryService;
 import org.araqne.logdb.QueryScriptRegistry;
 import org.araqne.logdb.LookupHandlerRegistry;
 import org.araqne.logdb.SavedResultManager;
+import org.araqne.logstorage.LogTableRegistry;
 
 @Component(name = "logdb-script-factory")
 @Provides
@@ -56,8 +57,12 @@ public class LogDBScriptFactory implements ScriptFactory {
 	@Requires
 	private ProcedureRegistry procedureRegistry;
 
+	@Requires
+	private LogTableRegistry tableRegistry;
+
 	@Override
 	public Script createScript() {
-		return new LogDBScript(qs, scriptRegistry, lookup, csvLookup, accountService, savedResultManager, procedureRegistry);
+		return new LogDBScript(qs, scriptRegistry, lookup, csvLookup, accountService, savedResultManager, procedureRegistry,
+				tableRegistry);
 	}
 }

@@ -15,23 +15,40 @@
  */
 package org.araqne.logdb;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class QueryContext {
 	private Session session;
+	private QueryContext parent;
 	private ParserContext parserContext = new ParserContext();
 	private Map<String, Object> constants = Collections.synchronizedMap(new HashMap<String, Object>());
 
 	/**
 	 * includes main and dynamic sub queries
 	 */
-	private List<Query> queries = new ArrayList<Query>();
+	private List<Query> queries = new CopyOnWriteArrayList<Query>();
 
 	public QueryContext(Session session) {
+		this.session = session;
+	}
+
+	public QueryContext(Session session, QueryContext parent) {
+		this(session);
+		this.parent = parent;
+	}
+
+	public Query getMainQuery() {
+		if (parent != null)
+			return parent.getMainQuery();
+
+		return this.getQueries().get(0);
+	}
+
+	public void setSession(Session session) {
 		this.session = session;
 	}
 

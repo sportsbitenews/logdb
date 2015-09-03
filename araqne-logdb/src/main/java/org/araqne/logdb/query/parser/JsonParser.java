@@ -47,7 +47,7 @@ public class JsonParser extends AbstractQueryCommandParser {
 				throw new QueryParseException("10200", getCommandName().length() + 1, commandString.length() - 1, null);
 
 			json = json.substring(1, json.length() - 1);
-			json = json.replaceAll("\\\\\\\\", "\\\\").replaceAll("\\\\\"", "\"");
+			json = json.replace("\\\"", "\"").replace("\\\\", "\\");
 		}
 
 		List<Row> logs = new ArrayList<Row>();
