@@ -55,7 +55,6 @@ public class Sort extends QueryCommand {
 
 	@Override
 	public void onStart() {
-		super.onStart();
 		if (limit != null && limit <= TOP_OPTIMIZE_THRESHOLD)
 			this.top = new TopSelector<Item>(limit, new DefaultComparator());
 		else {

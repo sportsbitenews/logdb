@@ -84,14 +84,10 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 	@Override
 	public void run() {
-		try {
-			if (params.window != null)
-				receiveTableInputs();
-			else
-				scanTables();
-		} catch (Exception e) {
-			throw new RuntimeException(String.format("Exception while running Table command: [%s] ", this.toString()), e);
-		}
+		if (params.window != null)
+			receiveTableInputs();
+		else
+			scanTables();
 	}
 
 	private void receiveTableInputs() {
@@ -188,8 +184,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 				}
 
 				LogTraverseCallbackImpl callback = new LogTraverseCallbackImpl(sink);
-				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder,
-						callback);
+				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder, callback);
 				req.setAsc(params.isAsc());
 				storage.search(req);
 				if (callback.isFailed())
@@ -201,10 +196,6 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 			}
 		} catch (InterruptedException e) {
 			logger.trace("araqne logdb: query interrupted");
-		} catch (Exception e) {
-			logger.error("araqne logdb: table exception", e);
-		} catch (Error e) {
-			logger.error("araqne logdb: table error", e);
 		}
 	}
 
