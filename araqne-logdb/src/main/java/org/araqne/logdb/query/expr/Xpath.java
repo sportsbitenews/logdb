@@ -13,12 +13,15 @@ import javax.xml.xpath.XPathFactory;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.impl.XmlParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 public class Xpath extends FunctionExpression {
+	private final Logger slog = LoggerFactory.getLogger(Xpath.class);
 
 	private Expression xmlExpr;
 	private Expression pathExpr;
@@ -61,8 +64,10 @@ public class Xpath extends FunctionExpression {
 				l.add(XmlParser.parseNode(node));
 			}
 
-			return XmlParser.parseXml(null);
+			return l;
 		} catch (Throwable t) {
+			if (slog.isDebugEnabled())
+				slog.debug("araqne logdb: xpath failure", t);
 			return null;
 		}
 	}
