@@ -118,7 +118,7 @@ public class PaloAltoLogParserTest {
 		assertEquals("HTTP Non RFC-Compliant Response Found(32880)", m.get("threat_id"));
 		assertEquals("any", m.get("category"));
 		assertEquals("informational", m.get("severity"));
-		assertEquals("client-to-server", m.get("direction"));
+		assertEquals("server-to-client", m.get("direction"));
 	}
 
 	private Map<String, Object> line(String line) {
