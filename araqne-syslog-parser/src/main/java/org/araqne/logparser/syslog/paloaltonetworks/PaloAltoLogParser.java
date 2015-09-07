@@ -59,7 +59,11 @@ public class PaloAltoLogParser extends V1LogParser {
 				l.add(line.substring(offset));
 				break;
 			}
-
+			if (line.substring(offset).startsWith("\"")) {
+				// recalculate pos
+				int endQuotePos = line.indexOf("\"", offset + 1);
+				pos = line.indexOf(',', endQuotePos);
+			}
 			l.add(line.substring(offset, pos));
 			offset = pos + 1;
 		}

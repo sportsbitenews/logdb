@@ -91,6 +91,11 @@ public abstract class QueryCommand {
 		// override this for resource clean up
 	}
 
+	public void tryStart() {
+		closeCalled.set(false);
+		onStart();
+	}
+
 	public void tryClose(QueryStopReason reason) {
 		if (closeCalled.compareAndSet(false, true)) {
 			Lock lock = rwLock.writeLock();

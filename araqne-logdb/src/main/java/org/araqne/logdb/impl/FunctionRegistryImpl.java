@@ -150,6 +150,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("not", Not.class);
 			define("datepart", DatePart.class);
 			define("xpath", Xpath.class);
+			define("daterange", DateRange.class);
 		}
 
 		private void define(String name, Class<?> clazz) {
