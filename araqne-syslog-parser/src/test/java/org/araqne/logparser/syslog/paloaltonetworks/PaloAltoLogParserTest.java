@@ -109,6 +109,18 @@ public class PaloAltoLogParserTest {
 		assertEquals("client-to-server", m.get("direction"));
 	}
 
+	@Test
+	public void testThreadLog2() {
+		String log = "=Jul 24 09:28:08 hoho.hoho.ad 1,2015/07/24 09:28:07,0009C102079,THREAT,vulnerability,1,2015/07/24 09:28:07,120.76.143.218,10.213.203.2,0.0.0.0,0.0.0.0,Permit_any,,hoho\1001339,unknown-tcp,vsys1,untrust,trust,ethernet1/21,ethernet1/22,Syslog,2015/07/24 09:28:07,34773722,1,80,56379,0,0,0x0,tcp,alert,\".q.Y7.o...7...W.7l._...(.....K.[.d..Q....H.......d\",HTTP Non RFC-Compliant Response Found(32880),any,informational,server-to-client,2686022103,0x0,KR,10.0.0.0-10.255.255.255,0,,0,, �";
+		Map<String, Object> m = new PaloAltoLogParser().parse(line(log));
+
+		assertEquals(".q.Y7.o...7...W.7l._...(.....K.[.d..Q....H.......d", m.get("misc"));
+		assertEquals("HTTP Non RFC-Compliant Response Found(32880)", m.get("threat_id"));
+		assertEquals("any", m.get("category"));
+		assertEquals("informational", m.get("severity"));
+		assertEquals("client-to-server", m.get("direction"));
+	}
+
 	private Map<String, Object> line(String line) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("line", line);

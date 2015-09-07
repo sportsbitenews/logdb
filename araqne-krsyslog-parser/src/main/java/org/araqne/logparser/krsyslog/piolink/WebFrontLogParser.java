@@ -36,7 +36,10 @@ public class WebFrontLogParser extends V1LogParser {
 			return log;
 		try {
 			Map<String, Object> m = new HashMap<String, Object>();
-			line = line.substring(1);
+			if(line.startsWith(" "))
+				line = line.substring(2);
+			else
+				line = line.substring(1);
 
 			int pos = line.indexOf(")");
 			m.put("level", line.substring(0, pos));
