@@ -126,7 +126,8 @@ public class SortMergeJoiner {
 				}
 
 				while (rItem != null && hasSameJoinKey(joinItem, rItem)) {
-					pushMergedItem(rItem, sameJoinKeyItems);
+					if (!containNull(rItem))
+						pushMergedItem(rItem, sameJoinKeyItems);
 					rItem = getNextItem(rIt);
 				}
 			}
@@ -161,12 +162,20 @@ public class SortMergeJoiner {
 
 				ArrayList<Item> sameJoinKeyItems = new ArrayList<Item>();
 				while (sItem != null && hasSameJoinKey(joinItem, sItem)) {
-					sameJoinKeyItems.add(sItem);
+					if (!containNull(sItem))
+						sameJoinKeyItems.add(sItem);
+					else
+						pushMergedItem(sItem);
+
 					sItem = getNextItem(sIt);
 				}
 
 				while (rItem != null && hasSameJoinKey(joinItem, rItem)) {
-					pushMergedItem(rItem, sameJoinKeyItems);
+					if (!containNull(rItem))
+						pushMergedItem(rItem, sameJoinKeyItems);
+					else
+						pushMergedItem(rItem);
+
 					rItem = getNextItem(rIt);
 				}
 			}
@@ -209,7 +218,11 @@ public class SortMergeJoiner {
 				}
 
 				while (rItem != null && hasSameJoinKey(joinItem, rItem)) {
-					pushMergedItem(rItem, sameJoinKeyItems);
+					if (!containNull(rItem))
+						pushMergedItem(rItem, sameJoinKeyItems);
+					else
+						pushMergedItem(rItem);
+
 					rItem = getNextItem(rIt);
 				}
 			}
@@ -223,6 +236,19 @@ public class SortMergeJoiner {
 
 	private boolean hasSameJoinKey(Item item1, Item item2) {
 		return comparator.compare(item1, item2) == 0;
+	}
+
+	private boolean containNull(Item item) {
+		@SuppressWarnings("unchecked")
+		Map<String, Object> m1 = (Map<String, Object>) item.getKey();
+
+		for (SortField field : sortFields) {
+			if (m1.get(field.getName()) == null) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -259,12 +285,6 @@ public class SortMergeJoiner {
 			for (SortField field : sortFields) {
 				Object v1 = m1.get(field.getName());
 				Object v2 = m2.get(field.getName());
-
-				boolean lhsNull = v1 == null;
-				boolean rhsNull = v2 == null;
-
-				if (lhsNull || rhsNull)
-					return field.isAsc() ? -1 : 1;
 
 				int diff = cmp.compare(v1, v2);
 				if (diff != 0) {
