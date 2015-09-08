@@ -624,7 +624,61 @@ public class SortMergeJoinerTest {
 				+ "{'_id': 1, 'fieldC': 'C5'}, "
 				+ "]\"";
 
-		SortField[] sortFields = { new SortField("NONE") };
+		SortField[] sortFields = { new SortField("line"), new SortField("NONE"), new SortField("id") };
+		runInnerJoin(rTableJson, sTableJson, innerJoinResult, sortFields);
+		runLeftJoin(rTableJson, sTableJson, leftJoinResult, sortFields);
+		runRightJoin(rTableJson, sTableJson, rightJoinResult, sortFields);
+		runFullJoin(rTableJson, sTableJson, fullJoinResult, sortFields);
+	}
+
+	@Test
+	public void sortMergeJoinerTest10() throws IOException {
+		String rTableJson = "json \"["
+				+ "{'_id': 0, 'fieldA': 'A1'}, "
+				+ "{'_id': 1, 'fieldA': 'A2', 'intersect' : 'true'}, "
+				+ "{'_id': 2, 'fieldA': 'A3'}, "
+				+ "{'_id': 1, 'fieldA': 'A4'}, "
+				+ "]\"";
+
+		String sTableJson = "json \"["
+				+ "{'_id': 1, 'fieldC': 'C1'}, "
+				+ "{'_id': 2, 'fieldC': 'C2'}, "
+				+ "{'_id': 1, 'fieldC': 'C3', 'intersect' : 'true'}, "
+				+ "{'_id': 3, 'fieldC': 'C4'}, "
+				+ "{'_id': 1, 'fieldC': 'C5'}, "
+				+ "]\"";
+
+		String innerJoinResult = "json \"["
+				+ "{'_id': 1, 'fieldC': 'C3', 'fieldA' : 'A2', 'intersect' : 'true'}, "
+				+ "]\"";
+
+		String leftJoinResult = "json \"["
+				+ "{'_id': 0, 'fieldA': 'A1'}, "
+				+ "{'_id': 1, 'fieldC': 'C3', 'fieldA' : 'A2', 'intersect' : 'true'}, "
+				+ "{'_id': 2, 'fieldA': 'A3'}, "
+				+ "{'_id': 1, 'fieldA': 'A4'}"
+				+ "]\"";
+
+		String rightJoinResult = "json \"["
+				+ "{'_id': 1, 'fieldC': 'C1'}, "
+				+ "{'_id': 2, 'fieldC': 'C2'}, "
+				+ "{'_id': 1, 'fieldC': 'C3', 'fieldA' : 'A2', 'intersect' : 'true'}, "
+				+ "{'_id': 3, 'fieldC': 'C4'}, "
+				+ "{'_id': 1, 'fieldC': 'C5'}, "
+				+ "]\"";
+
+		String fullJoinResult = "json \"["
+				+ "{'_id': 0, 'fieldA': 'A1'}, "
+				+ "{'_id': 2, 'fieldA': 'A3'}, "
+				+ "{'_id': 1, 'fieldA': 'A4'}, "
+				+ "{'_id': 1, 'fieldC': 'C1'}, "
+				+ "{'_id': 2, 'fieldC': 'C2'}, "
+				+ "{'_id': 1, 'fieldC': 'C3', 'fieldA' : 'A2', 'intersect' : 'true'}, "
+				+ "{'_id': 3, 'fieldC': 'C4'}, "
+				+ "{'_id': 1, 'fieldC': 'C5'}, "
+				+ "]\"";
+
+		SortField[] sortFields = { new SortField("intersect")};
 		runInnerJoin(rTableJson, sTableJson, innerJoinResult, sortFields);
 		runLeftJoin(rTableJson, sTableJson, leftJoinResult, sortFields);
 		runRightJoin(rTableJson, sTableJson, rightJoinResult, sortFields);
