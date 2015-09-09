@@ -26,7 +26,6 @@
 							org.araqne.logdb.cep.query,
 							org.araqne.logdb.cep.engine,
 							org.araqne.logdb.cep.script,
-							org.araqne.logdb.cep.redis,
 							org.araqne.logdb.cep.logger
 						</Private-Package>
 						<Import-Package>
@@ -35,7 +34,6 @@
 							!net.sf.cglib.*,
 							*
 						</Import-Package>
-						<Embed-Dependency>jedis,commons-pool2</Embed-Dependency>
 					</instructions>
 				</configuration>
 			</plugin>
@@ -76,21 +74,6 @@
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-cron</artifactId>
 			<version>1.8.6</version>
-		</dependency>
-		<dependency>
-			<groupId>redis.clients</groupId>
-			<artifactId>jedis</artifactId>
-			<version>2.7.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-pool2</artifactId>
-			<version>2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.logpresso</groupId>
-			<artifactId>logpresso-redis</artifactId>
-			<version>0.1.0</version>
 		</dependency>
 	</dependencies>
 </project>

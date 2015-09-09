@@ -62,8 +62,7 @@ public class EventClock<T extends EventClockItem> {
 	}
 
 	public List<T> getExpireContexts() {
-		List<T> l = new ArrayList<T>(expireQueue);// Arrays.asList(expireQueue.toArray(new
-													// EventContext[0]));
+		List<T> l = new ArrayList<T>(expireQueue);
 		Collections.sort(l, expireComparator);
 		return l;
 	}
@@ -114,16 +113,6 @@ public class EventClock<T extends EventClockItem> {
 				addTimeout(item);
 			}
 		}
-
-		// The ctx object will be added into the timeoutQueue again when
-		// ORIGINAL timeout has met;
-		// so following O(n) operation (remove) can be avoided.
-
-		// synchronized (timeoutQueue) {
-		// // reorder
-		// timeoutQueue.remove(ctx);
-		// timeoutQueue.add(ctx);
-		// }
 	}
 
 	private void addTimeout(T item) {
@@ -216,8 +205,8 @@ public class EventClock<T extends EventClockItem> {
 			}
 		}
 
-		for (Map.Entry<EventKey, T> e : expiredEvictees.entrySet())
-			callback.onRemove(e.getKey(), e.getValue(), host, EventCause.EXPIRE);
+		for (T e : expiredEvictees.values())
+			callback.onRemove(e, EventCause.EXPIRE);
 
 		expiredEvictees = null;
 
@@ -243,8 +232,8 @@ public class EventClock<T extends EventClockItem> {
 			}
 		}
 
-		for (Map.Entry<EventKey, T> e : timeoutEvictees.entrySet())
-			callback.onRemove(e.getKey(), e.getValue(), host, EventCause.TIMEOUT);
+		for (T e : timeoutEvictees.values())
+			callback.onRemove(e, EventCause.TIMEOUT);
 	}
 
 	@Override

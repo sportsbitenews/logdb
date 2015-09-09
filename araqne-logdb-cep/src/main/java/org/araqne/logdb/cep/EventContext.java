@@ -25,9 +25,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.araqne.logdb.Row;
-import org.araqne.msgbus.Marshalable;
 
-public class EventContext implements EventClockItem, Marshalable {
+public class EventContext implements EventClockItem {
 	private EventKey key;
 	private List<Row> rows;
 
@@ -44,24 +43,17 @@ public class EventContext implements EventClockItem, Marshalable {
 
 	private int maxRows;
 
-	// host for external log tick
-	// private String host;
-
 	private HashMap<String, Object> variables = new HashMap<String, Object>(1);
 
 	private CopyOnWriteArraySet<EventContextListener> listeners = new CopyOnWriteArraySet<EventContextListener>();
 
-	public EventContext(EventKey key, long created, long expireTime, long timeoutTime, int maxRows) {// ,
-																										// String
-																										// host)
-																										// {
+	public EventContext(EventKey key, long created, long expireTime, long timeoutTime, int maxRows) {
 		this.key = key;
 		this.created = created;
 		this.rows = Collections.synchronizedList(new ArrayList<Row>());
 		this.expireTime = expireTime;
 		this.timeoutTime = timeoutTime;
 		this.maxRows = maxRows;
-		// this.host = host;
 	}
 
 	public EventKey getKey() {
@@ -171,63 +163,6 @@ public class EventContext implements EventClockItem, Marshalable {
 
 	public void setListeners(CopyOnWriteArraySet<EventContextListener> listeners) {
 		this.listeners = listeners;
-	}
-
-	private List<Map<String, Object>> format(List<Row> rows) {
-		List<Map<String, Object>> rowMaps = new ArrayList<Map<String, Object>>();
-
-		for (Row row : rows) {
-			rowMaps.add(row.map());
-		}
-		return rowMaps;
-	}
-
-	@SuppressWarnings("unchecked")
-	private static List<Row> parseRows(Object[] rowMaps) {
-		List<Row> rows = Collections.synchronizedList(new ArrayList<Row>());
-		for (Object rowMap : rowMaps) {
-			rows.add(new Row((Map<String, Object>) rowMap));
-		}
-		return rows;
-	}
-
-	@Override
-	public Map<String, Object> marshal() {
-		HashMap<String, Object> m = new HashMap<String, Object>();
-		m.put("key", EventKey.marshal(key));
-		m.put("created", created);
-		m.put("expireTime", expireTime);
-		m.put("timeoutTime", timeoutTime);
-		m.put("maxRows", maxRows);
-		m.put("rows", format(rows));
-		m.put("variables", variables);
-		m.put("count", counter.get());
-		return m;
-	}
-
-	@SuppressWarnings("unchecked")
-	public static EventContext parse(Map<String, Object> m) {
-		EventKey key = EventKey.parse((String) m.get("key"));
-		Long created = (Long) m.get("created");
-		Long expireTime = (Long) m.get("expireTime");
-		Long timeoutTime = (Long) m.get("timeoutTime");
-		Integer maxRows = (Integer) m.get("maxRows");
-
-		List<Row> rows = parseRows((Object[]) m.get("rows"));
-		HashMap<String, Object> variables = (HashMap<String, Object>) m.get("variables");
-		Integer count = (Integer) m.get("count");
-		EventContext cxt = new EventContext(key, created, expireTime, timeoutTime, maxRows);// ,
-																							// host);
-		for (Row row : rows)
-			cxt.addRow(row);
-
-		if (count != null)
-			cxt.counter.addAndGet(count);
-
-		if (variables != null)
-			cxt.variables = variables;
-
-		return cxt;
 	}
 
 }

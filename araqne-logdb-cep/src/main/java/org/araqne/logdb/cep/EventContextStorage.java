@@ -52,14 +52,9 @@ public interface EventContextStorage {
 
 	void removeSubscriber(String topic, EventSubscriber subscriber);
 
-//	void removeContext(EventKey key, EventContext ctx, EventCause cause);
-//
-//	void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal);
-
 	void removeContext(EventKey key, Row row, EventCause cause);
 
 	void removeContexts(Map<EventKey, Row> contexts, EventCause removal);
-
 	
 	Map<EventKey, EventContext> getContexts(Set<EventKey> key);
 

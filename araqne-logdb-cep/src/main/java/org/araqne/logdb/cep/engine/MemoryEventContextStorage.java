@@ -75,10 +75,6 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Validate
 	public void start() {
-		String engine = System.getProperty("araqne.logdb.cepengine");
-		if (engine.equals("redis"))
-			return;
-
 		contexts = new ConcurrentHashMap<EventKey, EventContext>();
 		subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
 		logClocks = new ConcurrentHashMap<String, EventClock<EventContext>>();
