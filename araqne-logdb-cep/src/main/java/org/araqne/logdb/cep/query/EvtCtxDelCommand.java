@@ -52,47 +52,32 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(Row row) {
-		checkEvent(row);
+		checkEvent(row, null);
 		pushPipe(row);
 	}
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
-		ConcurrentHashMap<EventKey, EventContext> contexts = new ConcurrentHashMap<EventKey, EventContext>();
+		ConcurrentHashMap<EventKey, Row> contexts = new ConcurrentHashMap<EventKey, Row>();
 
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				checkEvent(row, new BatchCallbackRemove(contexts));
+				checkEvent(row, contexts);
 			}
 		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-				checkEvent(row, new BatchCallbackRemove(contexts));
+				checkEvent(row, contexts);
 			}
 		}
-		storage.removeContexts(contexts, EventCause.REMOVAL);
 
+		storage.removeContexts(contexts, EventCause.REMOVAL);
 		pushPipe(rowBatch);
 	}
 
-	private void checkEvent(Row row) {
-		checkEvent(row, new CallbackRemove() {
-
-			@Override
-			public void removeJob(EventKey eventKey, Row row) {
-				EventContext ctx = storage.getContext(eventKey);
-				if (ctx != null)
-					ctx.addRow(row);
-
-				storage.removeContext(eventKey, ctx, EventCause.REMOVAL);
-			}
-
-		});
-	}
-
-	private void checkEvent(Row row, CallbackRemove callback) {
+	private void checkEvent(Row row, ConcurrentHashMap<EventKey, Row> contexts) {
 		boolean matched = true;
 
 		Object o = matcher.eval(row);
@@ -130,7 +115,22 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 			EventKey eventKey = new EventKey(topic, key);
 			eventKey.setHost(host);
 
-			callback.removeJob(eventKey, row);
+			if (contexts != null) { // row batch
+			// EventContext ctx = contexts.get(eventKey);
+			// if (ctx == null)
+			// ctx = new EventContext(eventKey, 0L, 0L, 0L, 1);
+			//
+			// ctx.getCounter().incrementAndGet();
+			// ctx.addRow(row);
+				if (!contexts.containsKey(eventKey)) 
+					contexts.put(eventKey, row);
+			} else { // row
+			// EventContext ctx = storage.getContext(eventKey);
+			// if (ctx != null)
+			// ctx.addRow(row);
+				storage.removeContext(eventKey, row, EventCause.REMOVAL);
+			}
+
 		}
 	}
 
@@ -139,26 +139,42 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 		return "evtctxdel topic=" + topic + " key=" + keyField + " " + matcher;
 	}
 
-	private interface CallbackRemove {
-		void removeJob(EventKey key, Row row);
-	}
+	// private interface CallbackRemove {
+	// void removeJob(EventKey key, Row row);
+	// }
 
-	private class BatchCallbackRemove implements CallbackRemove {
-		ConcurrentHashMap<EventKey, EventContext> contexts;
+	// private void checkEvent(Row row) {
+	// checkEvent(row, new CallbackRemove() {
+	//
+	// @Override
+	// public void removeJob(EventKey eventKey, Row row) {
+	// EventContext ctx = storage.getContext(eventKey);
+	// if (ctx != null)
+	// ctx.addRow(row);
+	//
+	// storage.removeContext(eventKey, ctx, EventCause.REMOVAL);
+	// }
+	//
+	// });
+	// }
 
-		private BatchCallbackRemove(ConcurrentHashMap<EventKey, EventContext> contexts) {
-			this.contexts = contexts;
-		}
-
-		@Override
-		public void removeJob(EventKey eventKey, Row row) {
-			EventContext ctx = contexts.get(eventKey);
-			if (ctx == null)
-				ctx = new EventContext(eventKey, 0L, 0L, 0L, 1);
-
-			ctx.getCounter().incrementAndGet();
-			ctx.addRow(row);
-			contexts.put(eventKey, ctx);
-		}
-	}
+	// private class BatchCallbackRemove implements CallbackRemove {
+	// ConcurrentHashMap<EventKey, EventContext> contexts;
+	//
+	// private BatchCallbackRemove(ConcurrentHashMap<EventKey, EventContext>
+	// contexts) {
+	// this.contexts = contexts;
+	// }
+	//
+	// @Override
+	// public void removeJob(EventKey eventKey, Row row) {
+	// EventContext ctx = contexts.get(eventKey);
+	// if (ctx == null)
+	// ctx = new EventContext(eventKey, 0L, 0L, 0L, 1);
+	//
+	// ctx.getCounter().incrementAndGet();
+	// ctx.addRow(row);
+	// contexts.put(eventKey, ctx);
+	// }
+	// }
 }

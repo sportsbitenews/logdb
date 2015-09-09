@@ -59,7 +59,7 @@ public class RedisConfigRegistryImpl implements RedisConfigRegistry {
 	@Override
 	public void setConfig(RedisConfig config) throws JedisConnectionException {
 		if (config == null)
-			throw new IllegalArgumentException("ssh profile can not be null");
+			throw new IllegalArgumentException("redis profile can not be null");
 
 		this.config = config;
 

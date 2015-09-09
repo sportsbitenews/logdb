@@ -13,7 +13,6 @@
 	<instance component="cep-topic-meta-provider" />
 	<instance component="cep-clock-meta-provider" />
 	<instance component="redis-event-ctx-storage" />
-	<instance component="redis-expire-service" />
 	<instance component="redis-config-reg" />
 	<instance component="redis-cep-script-factory" />
 	<instance component="smslog-parser-factory" />

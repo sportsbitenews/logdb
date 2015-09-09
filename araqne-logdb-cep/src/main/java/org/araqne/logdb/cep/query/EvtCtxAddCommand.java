@@ -18,6 +18,7 @@ package org.araqne.logdb.cep.query;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
@@ -38,7 +39,6 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 	private TimeSpan timeout;
 	private int maxRows;
 	private Expression matcher;
-	private List<EventContext> contexts;
 
 	// host field for external clock
 	private String hostField;
@@ -62,24 +62,24 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(Row row) {
-		checkEvent(row, false);
+		checkEvent(row, null);
 		pushPipe(row);
 	}
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
-		contexts = new ArrayList<EventContext>();
+		CopyOnWriteArrayList<EventContext> contexts = new CopyOnWriteArrayList<EventContext>();
 
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				checkEvent(row, true);
+				checkEvent(row, contexts);
 			}
 		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-				checkEvent(row, true);
+				checkEvent(row, contexts);
 			}
 		}
 
@@ -87,7 +87,7 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 		pushPipe(rowBatch);
 	}
 
-	private void checkEvent(Row row, boolean batch) {
+	private void checkEvent(Row row, CopyOnWriteArrayList<EventContext> contexts) {
 		boolean matched = true;
 
 		Object o = matcher.eval(row);
@@ -145,9 +145,9 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			context.getCounter().incrementAndGet();
 			context.addRow(row);
 
-			if (batch) {
+			if (contexts != null) { // row batch
 				contexts.add(context);
-			} else {
+			} else { // row
 				storage.registerContext(context);
 			}
 		}

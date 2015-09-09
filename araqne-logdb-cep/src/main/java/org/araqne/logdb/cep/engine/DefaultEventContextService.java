@@ -58,11 +58,9 @@ public class DefaultEventContextService implements EventContextService, EventSub
 
 	@Override
 	public EventContextStorage getStorage(String name) {
-		if (name == null || name.equalsIgnoreCase("mem"))
-			return storages.get("mem");
-		else if (name.equalsIgnoreCase("redis"))
-			return storages.get("redis");
-		else
+		if(storages.containsKey(name))
+			return storages.get(name);
+		else 
 			return storages.get("mem");
 	}
 

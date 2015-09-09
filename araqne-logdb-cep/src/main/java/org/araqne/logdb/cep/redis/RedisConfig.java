@@ -15,26 +15,20 @@
  */
 package org.araqne.logdb.cep.redis;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import org.araqne.confdb.CollectionName;
-
-import redis.clients.jedis.HostAndPort;
 
 @CollectionName("redis_cep_profiles")
 public class RedisConfig {
-	public   String name = "rediscep";
+	public String name = "rediscep";
 	private String host = "127.0.0.1";
 	private int port = 6379;
 	private boolean isSentinel = false;
 	private String password = null;
 	private String sentinelName = "mymaster";
-	private List<HostAndPort> sentinels = new CopyOnWriteArrayList<HostAndPort>();
 
 	public RedisConfig() {
 	}
-	
+
 	public RedisConfig(String host, int port) {
 		this.host = host;
 		this.port = port;
@@ -43,31 +37,31 @@ public class RedisConfig {
 	public String getName() {
 		return name;
 	}
-	
+
 	public String getHost() {
 		return host;
 	}
-	
+
 	public void setHost(String host) {
 		this.host = host;
 	}
-	
+
 	public int getPort() {
 		return port;
 	}
-	
+
 	public void setPort(int port) {
 		this.port = port;
 	}
-	
+
 	public boolean isSentinel() {
 		return isSentinel;
 	}
-	
+
 	public void setSentinel(boolean isSentinel) {
 		this.isSentinel = isSentinel;
 	}
-	
+
 	public String getPassword() {
 		return password;
 	}
@@ -75,7 +69,7 @@ public class RedisConfig {
 	public void setPassword(String password) {
 		this.password = password;
 	}
-	
+
 	public String getSentinelName() {
 		return sentinelName;
 	}
@@ -84,18 +78,11 @@ public class RedisConfig {
 		this.sentinelName = sentinelName;
 	}
 
-	public List<HostAndPort> getSentinelNode() {
-		return sentinels;
-	}
-	
-	public synchronized void addSentinelNode(HostAndPort host) {
-		sentinels.add(host);
-	}
-
 	@Override
 	public String toString() {
-		return "";
+		if(isSentinel)
+			return "host=" + host + ", port=" + ", isSentinel=" + isSentinel;
+		
+		return "host=" + host + ", port=" + ", is_sentinel=" + isSentinel + ", sentinel_name=" + sentinelName;
 	}
-
-
 }

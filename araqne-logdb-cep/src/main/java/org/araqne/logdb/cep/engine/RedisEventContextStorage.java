@@ -128,7 +128,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 				jedis.flushDB();
 
 		} catch (Exception e) {
-			slog.debug("araqne logdb cep: failed to start redis storage", e);
+			slog.error("araqne logdb cep: failed to start redis storage", e);
 		}
 
 		new Thread(new Runnable() {
@@ -140,7 +140,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 					synchronized (theadLock) {
 						while (!subscribeStopRequested) {
-							for (HostAndPort server : registerdServers()) {
+							for (HostAndPort server : registerServers()) {
 								Jedis jedisForSub = null;
 								try {
 
@@ -156,6 +156,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 								} catch (Exception e) {
 									closeClient(jedisForSub);
 									aliveJedisServers.remove(server);
+									slog.warn("araqne logdb cep: cannot start subscribe client [" + server.toString() + "]", e);
 								}
 							}
 							theadLock.wait(1000);
@@ -163,10 +164,10 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					}
 					executor.shutdownNow();
 				} catch (Exception e) {
-					slog.debug("araqne logdb cep: failed to start redis expire monitoring service", e);
+					slog.error("araqne logdb cep: failed to start redis expire monitoring service", e);
 				}
 			}
-		}).start();
+		}, "Subcribing Redis Client").start();
 
 		eventContextService.registerStorage(this);
 	}
@@ -203,7 +204,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 				jedisPool = null;
 			}
 		} catch (Exception e) {
-			slog.debug("araqne logdb cep: failed to close redis storage", e);
+			slog.warn("araqne logdb cep: failed to close redis storage", e);
 		}
 	}
 
@@ -223,6 +224,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			if (jedisPool != null)
 				jedisPool.destroy();
 		} catch (Exception e) {
+			slog.info("araqne logdb cep: cannot return resource jedis client", e);
 		} finally {
 			jedis = null;
 			jedisForScan = null;
@@ -240,7 +242,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		}
 	}
 
-	private List<HostAndPort> registerdServers() {
+	private List<HostAndPort> registerServers() {
 		List<HostAndPort> servers = new ArrayList<HostAndPort>();
 		RedisConfig config = configReg.getConfig();
 
@@ -252,6 +254,8 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					String host = slave.get("ip");
 					int port = Integer.parseInt(slave.get("port"));
 					servers.add(new HostAndPort(host, port));
+					if (slog.isDebugEnabled())
+						slog.debug("araqne logdb cep: registered redis sentinel server [{}:{}]", host, port);
 				}
 			} finally {
 				sentinel.close();
@@ -270,14 +274,24 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 	private Pool<Jedis> getJedisPool() {
 		RedisConfig config = configReg.getConfig();
+		if(config == null) {
+			slog.error("araqne logdb cep: redis config does not exist");
+			throw new IllegalArgumentException("redis config does not exist");
+		}
+		
 		String host = config.getHost();
 		int port = config.getPort();
 
 		if (config.isSentinel()) {
 			Set<String> sentinels = new HashSet<String>();
 			sentinels.add(host + ":" + port);
+			if (slog.isDebugEnabled())
+				slog.debug("araqne logdb cep: conntecting jedis sentinel pool [{}:{}]", host, port);
 			return new JedisSentinelPool(config.getSentinelName(), sentinels);
 		} else {
+			if (slog.isDebugEnabled())
+				slog.debug("araqne logdb cep: connecting jedis pool [{}:{}]", host, port);
+
 			return new JedisPool(new JedisPoolConfig(), host, port, 10000);
 		}
 	}
@@ -322,6 +336,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					closeClient(jedis);
 					jedis = null;
 					lastException = e;
+					slog.debug("araqne logdb cep: cannot get event context [{}]", ctx);
 				}
 			}
 		}
@@ -405,6 +420,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					closeClient(jedis);
 					jedis = null;
 					lastException = e;
+					slog.debug("araqne logdb cep: cannot clear redis clocks - failed to delete");
 				}
 			}
 		}
@@ -449,6 +465,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					closeClient(jedis);
 					jedis = null;
 					lastException = e;
+					slog.debug("araqne logdb cep: cannot clear redis contexts - failed to delete");
 				}
 			}
 		}
@@ -550,6 +567,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					closeClient(jedis);
 					jedis = null;
 					lastException = e;
+					slog.debug("araqne logdb cep: cannot add redis context [{}]", ctx);
 				}
 			}
 		}
@@ -567,19 +585,20 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 		registerContexts(contexts);
 	}
 
-	private List<EventContext> preMergeContexts(List<EventContext> contexts) {
-		Map<EventKey, EventContext> map = new HashMap<EventKey, EventContext>();
-
-		for (EventContext ctx : contexts) {
-			if (!map.containsKey(ctx.getKey())) {
-				map.put(ctx.getKey(), ctx);
-			} else {
-				contextMerge(map.get(ctx.getKey()), ctx);
-			}
-		}
-
-		return new ArrayList<EventContext>(map.values());
-	}
+	// private List<EventContext> preMergeContexts(List<EventContext> contexts)
+	// {
+	// Map<EventKey, EventContext> map = new HashMap<EventKey, EventContext>();
+	//
+	// for (EventContext ctx : contexts) {
+	// if (!map.containsKey(ctx.getKey())) {
+	// map.put(ctx.getKey(), ctx);
+	// } else {
+	// contextMerge(map.get(ctx.getKey()), ctx);
+	// }
+	// }
+	//
+	// return new ArrayList<EventContext>(map.values());
+	// }
 
 	@Override
 	public void registerContexts(List<EventContext> contexts) {
@@ -615,6 +634,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					closeClient(jedis);
 					jedis = null;
 					lastException = e;
+					slog.debug("araqne logdb cep: cannot add redis contexts");
 				}
 			}
 		}
@@ -718,9 +738,9 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			clock = new EventClock<EventClockSimpleItem>(new EventClockCallback() {
 
 				@Override
-				public void onRemove(EventKey key, EventClockItem value, String host, EventCause cause) {
-					removeContext(key, new EventContext(key, 0L, value.getExpireTime(), value.getTimeoutTime(), 0), cause);
-					logClockItems.remove(key);
+				public void onRemove( EventClockItem value,  EventCause cause) {
+					removeContext(value.getKey(), null, cause);
+					logClockItems.remove(value.getKey());
 				}
 			}, host, time, 11);
 
@@ -734,14 +754,14 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 	}
 
 	@Override
-	public void removeContext(EventKey key, EventContext ctx, EventCause cause) {
-		Map<EventKey, EventContext> contexts = new HashMap<EventKey, EventContext>();
-		contexts.put(key, ctx);
+	public void removeContext(EventKey key, Row row, EventCause cause) {
+		Map<EventKey, Row> contexts = new HashMap<EventKey, Row>();
+		contexts.put(key, row);
 		removeContexts(contexts, cause);
 	}
 
 	@Override
-	public void removeContexts(Map<EventKey, EventContext> contexts, EventCause cause) {
+	public void removeContexts(Map<EventKey, Row> contexts, EventCause cause) {
 		ConcurrentHashMap<EventKey, Response<byte[]>> responses = new ConcurrentHashMap<EventKey, Response<byte[]>>();
 		RuntimeException lastException = null;
 		synchronized (jedisLock) {
@@ -766,6 +786,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					closeClient(jedis);
 					jedis = null;
 					lastException = e;
+					slog.debug("araqne logdb cep: cannot remove redis contexts");
 				}
 			}
 		}
@@ -784,8 +805,10 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					logClock.remove(logClockItems.get(oldCtx.getKey()));
 					logClockItems.remove(oldCtx.getKey());
 				}
+				
+				oldCtx.addRow(contexts.get(evtkey));
 
-				generateEvent(contextMerge(oldCtx, contexts.get(evtkey)), cause);
+				generateEvent(oldCtx, cause);
 			}
 		}
 	}
@@ -817,6 +840,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 					closeClient(jedis);
 					jedis = null;
 					lastException = e;
+					slog.debug("araqne logdb cep: cannot get redis contexts");
 				}
 			}
 		}
@@ -849,6 +873,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			try {
 				jedisPool.returnResource(jedis);
 			} catch (Exception e) {
+				slog.debug("araqne logdb cep: cannot return resource", e);
 			}
 		}
 	}
@@ -859,6 +884,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 				jedis.disconnect();
 				jedis.close();
 			} catch (Exception e) {
+				slog.debug("araqne logdb cep: cannot close client", e);
 			}
 	}
 
@@ -891,6 +917,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 			} catch (Exception e) {
 				closeClient(registeredJedis);
 				aliveJedisServers.remove(server);
+				slog.error("araqne logdb cep: disconnected subscribe client [" + server + "]", e);
 			}
 			return 0L;
 		}
@@ -906,7 +933,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 
 			try {
 				key = parseExpireKey(message);
-				removeContext(key, new EventContext(key, 0L, 0L, 0L, 0), EventCause.EXPIRE);
+				removeContext(key, null, EventCause.EXPIRE);
 			} catch (Exception e) {
 				slog.debug("araqne logdb cep : event key parse error (" + key + ")", e);
 			}
@@ -971,6 +998,7 @@ public class RedisEventContextStorage implements EventContextStorage, EventConte
 						jedisForScan = null;
 						jedis = null;
 						lastException = e;
+						slog.debug("aranqe logdb cep:cannot scan jedis client", e);
 					}
 				}
 			}

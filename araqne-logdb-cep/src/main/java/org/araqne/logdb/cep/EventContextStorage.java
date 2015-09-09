@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.araqne.logdb.Row;
+
 public interface EventContextStorage {
 	String getName();
 
@@ -38,8 +40,6 @@ public interface EventContextStorage {
 
 	EventContext addContext(EventContext ctx);
 
-	void removeContext(EventKey key, EventContext ctx, EventCause cause);
-
 	void advanceTime(String host, long now);
 
 	void clearClocks();
@@ -52,8 +52,15 @@ public interface EventContextStorage {
 
 	void removeSubscriber(String topic, EventSubscriber subscriber);
 
-	void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal);
+//	void removeContext(EventKey key, EventContext ctx, EventCause cause);
+//
+//	void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal);
 
+	void removeContext(EventKey key, Row row, EventCause cause);
+
+	void removeContexts(Map<EventKey, Row> contexts, EventCause removal);
+
+	
 	Map<EventKey, EventContext> getContexts(Set<EventKey> key);
 
 	void registerContext(EventContext ctx);

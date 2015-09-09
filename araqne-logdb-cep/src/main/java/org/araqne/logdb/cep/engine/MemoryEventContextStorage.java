@@ -75,7 +75,6 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Validate
 	public void start() {
-
 		String engine = System.getProperty("araqne.logdb.cepengine");
 		if (engine.equals("redis"))
 			return;
@@ -193,7 +192,12 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public void removeContext(EventKey key, EventContext ctx, EventCause cause) {
+	public void removeContext(EventKey key, Row row, EventCause cause) {
+		EventContext ctx = getContext(key);
+
+		if (ctx != null && row != null)
+			ctx.addRow(row);
+
 		if (contexts.remove(key, ctx)) {
 			ctx.getListeners().remove(this);
 
@@ -322,14 +326,9 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public void removeContexts(Map<EventKey, EventContext> contexts, EventCause removal) {
-		for (Entry<EventKey, EventContext> entry : contexts.entrySet()) {
-			EventContext ctx = getContext(entry.getKey());
-			if (ctx != null)
-				for (Row row : entry.getValue().getRows())
-					ctx.addRow(row);
-
-			removeContext(entry.getKey(), ctx, removal);
+	public void removeContexts(Map<EventKey, Row> contexts, EventCause removal) {
+		for (Entry<EventKey, Row> entry : contexts.entrySet()) {
+			removeContext(entry.getKey(), entry.getValue(), removal);
 		}
 	}
 
@@ -345,8 +344,8 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	private class MemEventClockCallback implements EventClockCallback {
 
 		@Override
-		public void onRemove(EventKey key, EventClockItem value, String host, EventCause expire) {
-			removeContext(key, (EventContext) value, expire);
+		public void onRemove(EventClockItem value, EventCause expire) {
+			removeContext(value.getKey(), null, expire);
 		}
 	}
 }
