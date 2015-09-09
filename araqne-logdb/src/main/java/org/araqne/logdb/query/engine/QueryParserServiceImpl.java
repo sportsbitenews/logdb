@@ -70,12 +70,17 @@ public class QueryParserServiceImpl implements QueryParserService {
 	}
 
 	@Override
+	public List<QueryCommandParser> getCommandParsers() {
+		return new ArrayList<QueryCommandParser>(commandParsers.values());
+	}
+
+	@Override
 	public List<QueryCommand> parseCommands(QueryContext context, String queryString) {
 		List<QueryCommand> commands = new ArrayList<QueryCommand>();
 		int offsetCnt = 0; //
 		try {
 			for (String q : QueryTokenizer.parseCommands(queryString)) {
-				q = q.trim();
+				q = q.trim().replaceAll("\n", " ");
 				StringTokenizer tok = new StringTokenizer(q, " \n\t");
 				String commandType = tok.nextToken();
 				QueryCommandParser parser = commandParsers.get(commandType);
@@ -95,12 +100,14 @@ public class QueryParserServiceImpl implements QueryParserService {
 			e.addOffset(offsetCnt);
 			// FIXME : 로케일 하드 코딩 되어 있음
 			String errorMessage = formatErrorMessage(e.getType(), Locale.ENGLISH, e.getParams());
-			throw new QueryParseException(e.getType(), e.getStartOffset(), errorMessage);
+			if (errorMessage == null)
+				errorMessage = e.getNote();
+			throw new QueryParseException(e.getType(), e.getStartOffset(), errorMessage, e);
 		} catch (Throwable t) {
 			closePrematureCommands(commands);
 			slog.debug("QueryParserServiceImpl", t);
 
-			throw new QueryParseException("parse failure", -1, t.toString());
+			throw new QueryParseException("parse failure", -1, t.toString(), t);
 		}
 
 		if (commands.isEmpty())
@@ -119,7 +126,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 		for (QueryCommand cmd : commands) {
 			try {
 				slog.debug("araqne logdb: parse failed, closing command [{}]", cmd.toString());
-				cmd.onClose(QueryStopReason.CommandFailure);
+				cmd.tryClose(QueryStopReason.CommandFailure);
 			} catch (Throwable t2) {
 				slog.error("araqne logdb: cannot close command", t2);
 			}
@@ -190,19 +197,19 @@ public class QueryParserServiceImpl implements QueryParserService {
 		add("90610", "null-context-reference", "값이 입력되지 않았습니다.");
 		add("90611", "null-context-reference", "null 값이 입력되었습니다.");
 		/* dateAdd */
-		add("90620", "invalid-dateadd-args", "올바르지 않는 입력 형식입니다.");
+		add("90620", "invalid-dateadd-args", "올바르지 않은 dateadd 매개변수입니다.");
 		add("90621", "invalid-dateadd-calendar-field", "[field]는 잘못된 유형입니다.");
 		add("90622", "invalid-dateadd-delta-type", "[time]는 잘못된 시간입니다.");
 		/* DateDiff */
-		add("90630", "invalid-datediff-args", "올바르지 않는 입력 형식입니다.");
+		add("90630", "invalid-datediff-args", "올바르지 않은 datediff 매개변수입니다.");
 		add("90631", "invalid-datediff-unit", "[field]는 잘못된 유형입니다.");
 		/* DateTrunc */
-		add("90640", "invalid-datetrunc-args", "올바르지 않는 입력 형식입니다.");
+		add("90640", "invalid-datetrunc-args", "올바르지 않은 datetrunc 매개변수입니다.");
 		/* Decrypt */
-		add("90650", "insufficient-decrypt-args", "올바르지 않는 입력 형식입니다.");
+		add("90650", "insufficient-decrypt-args", "올바르지 않은 decrypt 매개변수입니다.");
 		add("90651", "invalid-cipher-algorithm", "[algorithm]은 지원하지 않는 암호화 알고리즘 입니다.");
 		/* Encrypt */
-		add("90660", "insufficient-encrypt-args", "올바르지 않는 입력 형식입니다.");
+		add("90660", "insufficient-encrypt-args", "올바르지 않은 encrypt 매개변수입니다.");
 		add("90661", "invalid-cipher-algorithm", "[algorithm]은 지원하지 않는 암호화 알고리즘 입니다.");
 		/* Field */
 		add("90670", "missing-field-name", "필드 이름을 입력하십시오.");
@@ -213,14 +220,14 @@ public class QueryParserServiceImpl implements QueryParserService {
 		add("90691", "missing-hash-data", "바이너리 표현식을 입력하십시오.");
 		add("90692", "unsupported-hash", "[algorithm]은 지원하지 않는 해시 알고리즘 입니다.");
 		/* In */
-		// add("90700", "insufficient-arguments", "올바르지 않는 입력 형식입니다."); - 99000
+		// add("90700", "insufficient-arguments", "올바르지 않은 입력 형식입니다."); - 99000
 		// 으로 대체
 		/* Ip2Long */
-		add("90710", "invalid-ip2long-args", "올바르지 않는 입력 형식입니다.");
+		//add("90710", "invalid-ip2long-args", "올바르지 않은 ip2long 매개변수입니다."); - 99000으로 대체
 		/* Left */
 		add("90720", "left-func-negative-length", "길이는 0보다 커야 합니다.(입력값 : [length])");
 		/* Long2Ip */
-		add("90730", "invalid-long2ip-args", "올바르지 않는 입력 형식입니다.");
+		//add("90730", "invalid-long2ip-args", "올바르지 않은 long2ip 매개변수입니다."); - 99000으로 대체
 		/* Network */
 		add("90740", "invalid-mask", "CIDR 값이 올바르지 않습니다.(입력값: [mask])");
 		/* Rand */
@@ -230,13 +237,13 @@ public class QueryParserServiceImpl implements QueryParserService {
 		add("90760", "invalid-rand-argument", "길이는 숫자여야 합니다.(입력값: [length])");
 		add("90761", "invalid-randbytes-len", "길이는 0보다 크거나 1000000보다 작아야 합니다.(입력값: [length])");
 		/* Split */
-		// add("90770", "missing-split-args", "올바르지 않는 입력 형식입니다."); - 99000 으로
+		// add("90770", "missing-split-args", "올바르지 않은 split 매개변수입니다."); - 99000 으로
 		// 대체
-		add("90771", "invalid-delimiters", "올바르지 않는  구분자입니다.([exception])");
+		add("90771", "invalid-delimiters", "올바르지 않은 구분자입니다.([exception])");
 		add("90772", "empty-delimiters", "구분자가 없습니다.");
 		/* StrJoin */
-		add("90780", "nvalid-strjoin-args", "올바르지 않는  구분자입니다.([exception])");
-		add("90781", "strjoin-require-constant-separato", "올바르지 않는 입력 형식입니다.");
+		add("90780", "nvalid-strjoin-args", "올바르지 않은 구분자입니다.([exception])");
+		add("90781", "strjoin-require-constant-separator", "strjoin 구분자는 상수이어야 합니다.");
 		/* Substr */
 		// add("90790", "invalid-substr-range",
 		// "시작 위치는 0보다 커야합니다(입력값 : [begin])");
@@ -260,11 +267,14 @@ public class QueryParserServiceImpl implements QueryParserService {
 		// add("90860", "insufficient-valueof-args", "올바르지 않는 입력 형식입니다."); -
 		// 99000 으로 대체
 		/* Values */
-		add("90870", "missing-values-arg", "올바르지 않는 입력 형식입니다.");
+		add("90870", "missing-values-arg", "올바르지 않은 입력 형식입니다.");
+		/* DatePart */
+		add("90880", "invalid-datepart-args", "datepart 매개변수 개수가 일치하지 않습니다.");
+		add("90881", "invalid-datepart-type", "datepart에서 지원하지 않는 날짜 구성요소입니다.");
 		/* Count */
-		add("91010", "invalid-count-args", "올바르지 않는 입력 형식입니다.");
+		add("91010", "invalid-count-args", "올바르지 않은 입력 형식입니다.");
 		/* First */
-		add("91020", "invalid-parameter-count", "올바르지 않는 입력 형식입니다.");
+		add("91020", "invalid-parameter-count", "올바르지 않은 입력 형식입니다.");
 		/* Format */
 		add("91030", "invalid-format-string", "[exp]은 문자열 형식이 아닙니다.");
 		/* FunctionExpression */

@@ -39,6 +39,10 @@ public class GroovyQueryParser extends AbstractQueryCommandParser {
 	@Requires
 	private QueryParserService queryParserService;
 
+	public GroovyQueryParser() {
+		setDescriptions("Run user defind groovy script query.", "사용자 정의 그루비 스크립트 쿼리를 실행합니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "groovy";

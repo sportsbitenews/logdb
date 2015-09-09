@@ -23,10 +23,10 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-public class WtmpLogger extends AbstractLogger {
+public class WtmpLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(WtmpLogger.class);
 	private final File dataDir;
-	private final String path;
+	private String path;
 
 	public WtmpLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
@@ -41,6 +41,14 @@ public class WtmpLogger extends AbstractLogger {
 			Map<String, LastPosition> lastPositions = LastPositionHelper.readLastPositions(oldLastFile);
 			setStates(LastPositionHelper.serialize(lastPositions));
 			oldLastFile.renameTo(new File(oldLastFile.getAbsolutePath() + ".migrated"));
+		}
+	}
+
+	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		if (!oldConfigs.get("path").equals(newConfigs.get("path"))) {
+			this.path = newConfigs.get("path");
+			setStates(new HashMap<String, Object>());
 		}
 	}
 
@@ -105,9 +113,9 @@ public class WtmpLogger extends AbstractLogger {
 				data.put("pid", e.getPid());
 				data.put("session", e.getSession());
 				data.put("user", e.getUser());
-				
-				data.put("deviceName", e.getDeviceName());
-				data.put("initTabId", e.getInitTabId());
+
+				data.put("device", e.getDeviceName());
+				data.put("inittab_id", e.getInitTabId());
 
 				write(new SimpleLog(e.getDate(), getFullName(), data));
 				pos += blockSize;

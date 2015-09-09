@@ -16,9 +16,11 @@
 package org.araqne.logdb.query.command;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,23 +44,21 @@ import org.slf4j.LoggerFactory;
 public class Stats extends QueryCommand implements FieldOrdering {
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
 	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
-	private int inputCount;
+
 	private final List<AggregationField> fields;
 	private final List<String> clauses;
 	private final int clauseCount;
 	private final boolean useClause;
 	private final List<Object> EMPTY_KEY;
+	private static final boolean discardNullGroup;
 
 	// clone template
 	private AggregationFunction[] funcs;
-
-	private ParallelMergeSorter sorter;
-
-	private ConcurrentMap<List<Object>, AggregationFunction[]> buffer;
-
 	private ArrayList<String> fieldOrder;
 
-	private static final boolean discardNullGroup;
+	private ParallelMergeSorter sorter;
+	private ConcurrentMap<List<Object>, AggregationFunction[]> buffer;
+	private int inputCount;;
 
 	static {
 		String s = System.getProperty("araqne.logdb.discard_null_group");
@@ -70,8 +70,6 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		this.clauses = clause;
 		this.clauseCount = clauses.size();
 		this.useClause = clauseCount > 0;
-		this.sorter = new ParallelMergeSorter(new ItemComparer());
-		this.buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
 		this.fields = fields;
 		this.funcs = new AggregationFunction[fields.size()];
 		this.fieldOrder = new ArrayList<String>(clauses);
@@ -104,7 +102,17 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public void onStart() {
-		super.onStart();
+		inputCount = 0;
+		sorter = new ParallelMergeSorter(new ItemComparer());
+
+		int queryId = 0;
+		if (getQuery() != null)
+			queryId = getQuery().getId();
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
+		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
+
+		this.buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
 
 		for (AggregationFunction f : funcs)
 			f.clean();
@@ -152,7 +160,8 @@ public class Stats extends QueryCommand implements FieldOrdering {
 					f.apply(row);
 			}
 		} else {
-			for (Row m : rowBatch.rows) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row m = rowBatch.rows[i];
 				if (useClause) {
 					keys.clear();
 					boolean isNullGroup = false;
@@ -175,8 +184,8 @@ public class Stats extends QueryCommand implements FieldOrdering {
 				AggregationFunction[] fs = buffer.get(keys);
 				if (fs == null) {
 					fs = new AggregationFunction[funcs.length];
-					for (int i = 0; i < fs.length; i++)
-						fs[i] = funcs[i].clone();
+					for (int j = 0; j < fs.length; j++)
+						fs[j] = funcs[j].clone();
 
 					buffer.put(new ArrayList<Object>(keys), fs);
 				}
@@ -258,7 +267,9 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public void onClose(QueryStopReason reason) {
-		this.status = Status.Finalizing;
+		// command is not started
+		if (sorter == null)
+			return;
 
 		logger.debug("araqne logdb: stats sort input count [{}]", inputCount);
 		CloseableIterator it = null;
@@ -327,8 +338,9 @@ public class Stats extends QueryCommand implements FieldOrdering {
 			}
 
 			logger.debug("araqne logdb: sorted stats input [{}]", count);
-		} catch (IOException e) {
-			throw new IllegalStateException("sort failed, query " + query, e);
+		} catch (Throwable t) {
+			getQuery().stop(t);
+			throw new IllegalStateException("sort failed, query " + query, t);
 		} finally {
 			if (it != null) {
 				try {

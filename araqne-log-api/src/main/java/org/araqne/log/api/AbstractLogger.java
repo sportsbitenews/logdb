@@ -64,6 +64,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private LoggerFactory factory;
 	private LoggerStopReason lastStopReason;
 	private Set<String> unresolvedLoggers = new CopyOnWriteArraySet<String>();
+	private Throwable temporaryFailure;
 
 	/**
 	 * @since 1.7.0
@@ -156,6 +157,42 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public LoggerStopReason getStopReason() {
 		return lastStopReason;
+	}
+
+	public Throwable getTemporaryFailure() {
+		return temporaryFailure;
+	}
+
+	public void setTemporaryFailure(Throwable temporaryFailure) {
+		boolean changed = false;
+
+		Throwable lhs = this.temporaryFailure;
+		Throwable rhs = temporaryFailure;
+
+		if (lhs == null && rhs == null) {
+			changed = false;
+		} else if (checkOneSideNull(lhs, rhs)) {
+			changed = true;
+		} else if (checkOneSideNull(lhs.getMessage(), rhs.getMessage())
+				|| ((lhs.getMessage() != null && rhs.getMessage() != null && !lhs.getMessage().equals(rhs.getMessage())))) {
+			changed = true;
+		}
+
+		this.temporaryFailure = temporaryFailure;
+
+		if (changed) {
+			for (LoggerEventListener callback : eventListeners) {
+				try {
+					callback.onFailureChange(this);
+				} catch (Throwable t) {
+					slog.warn("araqne log api; logger [" + getFullName() + "] callback should not throw any exception", t);
+				}
+			}
+		}
+	}
+
+	private boolean checkOneSideNull(Object lhs, Object rhs) {
+		return (lhs != null && rhs == null) || (lhs == null && rhs != null);
 	}
 
 	@Override
@@ -631,7 +668,13 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		this.config = configs;
 
-		((Reconfigurable) this).onConfigChange(oldConfigs, newConfigs);
+		try {
+			((Reconfigurable) this).onConfigChange(oldConfigs, newConfigs);
+		} catch (Throwable t) {
+			this.config = oldConfigs;
+			throw new IllegalStateException(t);
+		}
+
 		notifyConfigChange();
 	}
 

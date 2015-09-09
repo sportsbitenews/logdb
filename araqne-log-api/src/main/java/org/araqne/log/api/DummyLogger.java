@@ -1,4 +1,19 @@
-package org.araqne.logdb.msgbus;
+/**
+ * Copyright 2015 Eediom Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.araqne.log.api;
 
 import java.util.Date;
 import java.util.Map;
@@ -15,7 +30,22 @@ import org.araqne.log.api.LoggerStatus;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.TimeRange;
 
-class DummyLogger implements Logger {
+/**
+ * @since 3.4.18
+ * @author xeraph
+ * 
+ */
+public class DummyLogger implements Logger {
+
+	private LoggerStatus status;
+	private Map<String, String> configs;
+	
+	public DummyLogger() {
+	}
+	
+	public DummyLogger(Map<String, String> configs) {
+		this.configs = configs;
+	}
 
 	@Override
 	public String getFullName() {
@@ -88,6 +118,11 @@ class DummyLogger implements Logger {
 	}
 
 	@Override
+	public Throwable getTemporaryFailure() {
+		return null;
+	}
+
+	@Override
 	public long getDropCount() {
 		return 0;
 	}
@@ -132,7 +167,11 @@ class DummyLogger implements Logger {
 
 	@Override
 	public LoggerStatus getStatus() {
-		return null;
+		return status;
+	}
+
+	public void setStatus(LoggerStatus status) {
+		this.status = status;
 	}
 
 	@Override
@@ -196,7 +235,11 @@ class DummyLogger implements Logger {
 
 	@Override
 	public Map<String, String> getConfigs() {
-		return null;
+		return configs;
+	}
+
+	public void setConfigs(Map<String, String> configs) {
+		this.configs = configs;
 	}
 
 	@Override

@@ -15,6 +15,10 @@ public class JmapCommandParser extends AbstractQueryCommandParser {
 	@Requires
 	private QueryParserService parserService;
 
+	public JmapCommandParser() {
+		setDescriptions("Load heap dump information in hprof binary file.", "hprof 바이너리 포맷으로 된 파일의 힙 덤프 정보를 조회합니다.");
+	}
+
 	@Validate
 	public void start() {
 		parserService.addCommandParser(this);

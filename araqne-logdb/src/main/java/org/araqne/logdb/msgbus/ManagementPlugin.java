@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -42,6 +43,7 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.AuthServiceNotLoadedException;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.Privilege;
+import org.araqne.logdb.SecurityGroup;
 import org.araqne.logstorage.LockKey;
 import org.araqne.logstorage.LockStatus;
 import org.araqne.logstorage.LogCryptoProfile;
@@ -96,8 +98,6 @@ public class ManagementPlugin {
 
 	@Requires
 	private TokenApi tokenApi;
-
-	private UploadDataHandler uploadDataHandler = new UploadDataHandler();
 
 	@AllowGuestAccess
 	@MsgbusMethod
@@ -328,6 +328,122 @@ public class ManagementPlugin {
 			accountService.revokePrivilege(session, loginName, tableName, Permission.READ);
 	}
 
+	/**
+	 * @since 2.6.34
+	 */
+	@MsgbusMethod
+	public void listSecurityGroups(Request req, Response resp) {
+		List<SecurityGroup> groups = accountService.getSecurityGroups();
+		Boolean isUserFilter = req.has("user_filter") ? req.getBoolean("user_filter") : false;
+		String reqLoginName = req.getSession().getAdminLoginName();
+		// return without details
+		List<Object> l = new ArrayList<Object>();
+		for (SecurityGroup group : groups) {
+			if (isUserFilter && !group.getAccounts().contains(reqLoginName))
+				continue;
+
+			Map<String, Object> m = new HashMap<String, Object>();
+			m.put("guid", group.getGuid());
+			m.put("name", group.getName());
+			m.put("description", group.getDescription());
+			m.put("created", group.getCreated());
+			m.put("updated", group.getUpdated());
+			l.add(m);
+		}
+
+		resp.put("security_groups", l);
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@MsgbusMethod
+	public void getSecurityGroup(Request req, Response resp) {
+		String guid = req.getString("guid", true);
+		SecurityGroup group = accountService.getSecurityGroup(guid);
+		resp.put("security_group", group == null ? null : group.marshal());
+	}
+
+	@MsgbusMethod
+	public void isMemberOfSecurityGroup(Request req, Response resp) {
+		String guid = req.getString("guid", true);
+		SecurityGroup group = accountService.getSecurityGroup(guid);
+		if (group == null)
+			throw new MsgbusException("logdb", "security group not found:" + guid);
+
+		resp.put("result", group.getAccounts().contains(req.getSession().getAdminLoginName()));
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void createSecurityGroup(Request req, Response resp) {
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+		SecurityGroup group = new SecurityGroup();
+		if (req.get("guid") != null)
+			group.setGuid(req.getString("guid"));
+
+		group.setName(req.getString("name", true));
+		group.setDescription(req.getString("description"));
+
+		if (req.get("table_names") != null)
+			group.setReadableTables(new HashSet<String>((List<String>) req.get("table_names")));
+
+		if (req.get("accounts") != null)
+			group.setAccounts(new HashSet<String>((List<String>) req.get("accounts")));
+
+		try {
+			accountService.createSecurityGroup(session, group);
+		} catch (IllegalStateException e) {
+			throw new MsgbusException("logdb", e.getMessage());
+		}
+
+		resp.put("guid", group.getGuid());
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void updateSecurityGroup(Request req, Response resp) {
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+
+		SecurityGroup group = accountService.getSecurityGroup(req.getString("guid", true));
+		if (group == null)
+			throw new MsgbusException("logdb", "security group not found");
+
+		group.setName(req.getString("name", true));
+		group.setDescription(req.getString("description"));
+		group.setAccounts(new HashSet<String>((List<String>) req.get("accounts", true)));
+		group.setReadableTables(new HashSet<String>((List<String>) req.get("table_names", true)));
+
+		accountService.updateSecurityGroup(session, group);
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void removeSecurityGroups(Request req, Response resp) {
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+		List<String> guids = (List<String>) req.get("group_guids", true);
+		List<String> failed = new ArrayList<String>();
+		for (String guid : guids) {
+			try {
+				accountService.removeSecurityGroup(session, guid);
+			} catch (Throwable t) {
+				failed.add(guid);
+				slog.error("araqne logdb: cannot remove security group [" + guid + "]", t);
+			}
+		}
+
+		resp.put("failed_groups", failed);
+	}
+
 	@MsgbusMethod
 	public void listTables(Request req, Response resp) {
 		org.araqne.logdb.Session session = ensureDbSession(req);
@@ -342,12 +458,12 @@ public class ManagementPlugin {
 			for (TableSchema schema : tableRegistry.getTableSchemas()) {
 				schemas.put(schema.getName(), schema.marshal());
 				tables.put(schema.getName(), getTableMetadata(schema));
-				
+
 				LockStatus s = storage.lockStatus(new LockKey("script", schema.getName(), null));
 				locks.put(schema.getName(), s.isLocked());
 				owners.put(schema.getName(), s.getOwner());
-				purposes.put(schema.getName(), s.getPurposes());				
-				
+				purposes.put(schema.getName(), s.getPurposes());
+
 				List<FieldDefinition> defs = schema.getFieldDefinitions();
 				if (defs != null)
 					fields.put(schema.getName(), PrimitiveConverter.serialize(defs));
@@ -359,12 +475,12 @@ public class ManagementPlugin {
 					TableSchema schema = tableRegistry.getTableSchema(p.getTableName(), true);
 					schemas.put(p.getTableName(), schema.marshal());
 					tables.put(schema.getName(), getTableMetadata(schema));
-					
+
 					LockStatus s = storage.lockStatus(new LockKey("script", schema.getName(), null));
 					locks.put(schema.getName(), s.isLocked());
 					owners.put(schema.getName(), s.getOwner());
 					purposes.put(schema.getName(), s.getPurposes());
-					
+
 					List<FieldDefinition> defs = schema.getFieldDefinitions();
 					if (defs != null)
 						fields.put(schema.getName(), PrimitiveConverter.serialize(defs));
@@ -702,16 +818,6 @@ public class ManagementPlugin {
 	}
 
 	@MsgbusMethod
-	public void loadTextFile(Request req, Response resp) throws IOException {
-		uploadDataHandler.loadTextFile(storage, req, resp);
-	}
-
-	@MsgbusMethod
-	public void previewTextFile(Request req, Response resp) throws IOException {
-		resp.put("preview", uploadDataHandler.previewTextFile(req, resp));
-	}
-
-	@MsgbusMethod
 	public void getStorageEngines(Request req, Response resp) {
 		Locale locale = req.getSession().getLocale();
 		String s = req.getString("locale");
@@ -823,7 +929,6 @@ public class ManagementPlugin {
 		ConfigDatabase db = conf.ensureDatabase("araqne-logstorage");
 		ConfigCollection col = db.ensureCollection("global_settings");
 		Config c = col.findOne(null);
-		Map<String, Object> reqParams = req.getParams();
 
 		Map<String, Object> m = new HashMap<String, Object>();
 		if (c != null)
@@ -833,14 +938,8 @@ public class ManagementPlugin {
 		if (minFreeDiskSpaceType != null) {
 			if (!minFreeDiskSpaceType.equals("Percentage") && !minFreeDiskSpaceType.equals("Megabyte"))
 				throw new MsgbusException("logdb", "invalid-unit");
-			else {
+			else
 				m.put("min_free_disk_space_type", minFreeDiskSpaceType);
-				if (minFreeDiskSpaceType.equals("Percentage")) {
-					reqParams.put("disk_space_unit", "%");
-				} else {
-					reqParams.put("disk_space_unit", "MB");
-				}
-			}
 		}
 
 		String minFreeDiskSpaceValue = (String) req.get("min_free_disk_space_value");
@@ -857,18 +956,8 @@ public class ManagementPlugin {
 		if (diskLackAction != null) {
 			if ((!diskLackAction.equals("StopLogging") && !diskLackAction.equals("RemoveOldLog")))
 				throw new MsgbusException("logdb", "invalid-disk-lack-action");
-			else {
+			else
 				m.put("disk_lack_action", diskLackAction);
-				if (diskLackAction.equals("StopLogging")) {
-					reqParams.put("lack_action_ko", "수집을 중단하도록 설정합니다.");
-					reqParams.put("lack_action_en", "stop loggers.");
-					reqParams.put("lack_action_zh", "停止采集数据.");
-				} else {
-					reqParams.put("lack_action_ko", "과거 데이터를 자동 삭제하도록 설정합니다.");
-					reqParams.put("lack_action_en", "automatically delete existing data.");
-					reqParams.put("lack_action_zh", "将自动删除旧数据.");
-				}
-			}
 		}
 
 		if (c != null) {

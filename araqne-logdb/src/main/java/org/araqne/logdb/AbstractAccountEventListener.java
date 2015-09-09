@@ -15,6 +15,8 @@
  */
 package org.araqne.logdb;
 
+import java.util.List;
+
 /**
  * Empty callback implementations for override.
  * 
@@ -29,6 +31,31 @@ public class AbstractAccountEventListener implements AccountEventListener {
 
 	@Override
 	public void onRemoveAccount(Session session, Account account) {
+	}
+
+	@Override
+	public void onRemoveAccounts(Session session, List<Account> accounts) {
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@Override
+	public void onCreateSecurityGroup(Session session, SecurityGroup group) {
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@Override
+	public void onUpdateSecurityGroup(Session session, SecurityGroup group) {
+	}
+
+	/**
+	 * @since 2.6.34
+	 */
+	@Override
+	public void onRemoveSecurityGroup(Session session, SecurityGroup group) {
 	}
 
 	@Override

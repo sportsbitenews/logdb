@@ -107,7 +107,7 @@ public class LocalFilePath implements FilePath {
 	public FilePath[] listFiles(FilePathNameFilter filter) {
 		File[] files = path.listFiles();
 		if (files == null)
-			return null;
+			return new FilePath[0];
 
 		List<FilePath> ret = new ArrayList<FilePath>();
 		for (File f : files) {

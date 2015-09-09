@@ -15,31 +15,37 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
-
 
 public class Ip2Long extends FunctionExpression {
 	private Expression valueExpr;
+
 	public Ip2Long(QueryContext ctx, List<Expression> exprs) {
 		super("ip2long", exprs, 1);
-		
-		if (exprs.size() > 1)
-//			throw new QueryParseException("invalid-ip2long-args", -1);
-			throw new QueryParseException("90710", -1, -1, null);
 		this.valueExpr = exprs.get(0);
 	}
 
 	@Override
 	public Object eval(Row map) {
-		Object value = valueExpr.eval(map);
-		if (value == null)
+
+		Object v = valueExpr.eval(map);
+		if (v == null)
 			return null;
 
-		return convert(value.toString());
+		InetAddress addr = null;
+
+		if (v instanceof Inet4Address)
+			addr = (InetAddress) v;
+		else {
+			return convert(v.toString());
+		}
+
+		return ToLong.convert(addr.getAddress());
 	}
 
 	public static Long convert(String ip) {

@@ -62,7 +62,7 @@ public class WildcardTableSpec implements TableSpec {
 			namespace = selectNonNull(matcher.group(1), matcher.group(2));
 			table = selectNonNull(matcher.group(3), matcher.group(4));
 			optional = matcher.group(5) != null;
-			pattern = WildcardMatcher.buildPattern(table);
+			pattern = WildcardMatcher.buildPattern(table, true);
 		} else {
 			throw new IllegalArgumentException();
 		}
@@ -151,6 +151,11 @@ public class WildcardTableSpec implements TableSpec {
 	@Override
 	public void setNamespace(String ns) {
 		this.namespace = ns;
+	}
+	
+	@Override
+	public void setOptional(boolean optional) {
+		this.optional = optional;
 	}
 }
 

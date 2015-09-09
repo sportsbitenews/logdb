@@ -17,9 +17,11 @@ package org.araqne.logdb.query.command;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserInput;
 import org.araqne.log.api.LogParserOutput;
@@ -59,7 +61,29 @@ public class Parse extends QueryCommand implements ThreadSafe, FieldOrdering {
 	public List<String> getFieldOrder() {
 		if (parser instanceof FieldOrdering)
 			return ((FieldOrdering) parser).getFieldOrder();
+
+		List<FieldDefinition> fieldDefinitions = parser.getFieldDefinitions();
+		if (fieldDefinitions != null) {
+			LinkedList<String> l = new LinkedList<String>();
+			for (FieldDefinition def : fieldDefinitions)
+				l.add(def.getName());
+
+			reorderSystemFields(l);
+			return l;
+		}
+		
 		return null;
+	}
+
+	private void reorderSystemFields(LinkedList<String> l) {
+		// remove potentially duplicated field name first
+		l.remove("_time");
+		l.remove("_table");
+		l.remove("_id");
+
+		l.addFirst("_id");
+		l.addFirst("_time");
+		l.addFirst("_table");
 	}
 
 	@Override

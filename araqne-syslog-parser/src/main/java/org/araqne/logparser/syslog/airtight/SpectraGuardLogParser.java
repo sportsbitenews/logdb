@@ -33,6 +33,19 @@ public class SpectraGuardLogParser extends V1LogParser {
 			return null;
 
 		HashMap<String, Object> m = new HashMap<String, Object>();
+		if (!line.startsWith("<")) {
+			int b = 0;
+			int e = line.indexOf("<");
+
+			String datetimeAndHost = line.substring(b, e);
+			line = line.substring(e);
+			for (int i = 0; i < 3; ++i) {
+				e = datetimeAndHost.indexOf(" ", b);
+				b = e + 1;
+			}
+
+			m.put("host", datetimeAndHost.substring(e).trim());
+		}
 		Scanner sc = null;
 		try {
 			sc = new Scanner(line);
@@ -53,8 +66,11 @@ public class SpectraGuardLogParser extends V1LogParser {
 				msg = token;
 			}
 
-			m.put("msg", msg);
+			if (msg.equals("Possible Mobile Client matching watch list signature detected")) {
+				msg += sc.next().trim();
+			}
 
+			m.put("msg", msg);
 			String location = sc.next().trim();
 			int p = location.indexOf("://");
 			String sensorIp = location.substring(0, p);
@@ -64,6 +80,12 @@ public class SpectraGuardLogParser extends V1LogParser {
 			m.put("location", location);
 			m.put("date", sc.next().trim());
 			m.put("severity", sc.next().trim());
+			m.put("event_id", sc.next().trim());
+			m.put("event_major_num", sc.next().trim());
+			m.put("event_intermediate_num", sc.next().trim());
+			m.put("event_minor_num", sc.next().trim());
+			if (sc.hasNext())
+				m.put("closest_sensor_name", sc.next().trim());
 
 			if (msg.startsWith("Rogue Client")) {
 				m.put("type", "Rogue Client");

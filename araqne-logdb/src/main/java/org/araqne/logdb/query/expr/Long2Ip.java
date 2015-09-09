@@ -15,53 +15,27 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.net.InetAddress;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class Long2Ip extends FunctionExpression {
-	private Expression valueExpr;
+	private ToIp toIp;
 
 	public Long2Ip(QueryContext ctx, List<Expression> exprs) {
 		super("long2ip", exprs, 1);
-		
-		if (exprs.size() > 1)
-	//		throw new QueryParseException("invalid-long2ip-args", -1);
-			throw new QueryParseException("90730", -1, -1, null);
-			
-		this.valueExpr = exprs.get(0);
+		toIp = new ToIp(ctx, exprs);
 	}
 
 	@Override
 	public Object eval(Row map) {
-		Object value = valueExpr.eval(map);
-		if (value == null)
-			return null;
+		Object o = toIp.eval(map);
 
-		if (value instanceof Long)
-			return converToIp(((Long) value));
-		if (value instanceof Integer)
-			return converToIp(((Integer) value));
-		if (value instanceof Short)
-			return converToIp(((Short) value));
-
-		return null;
-	}
-
-	private String converToIp(long targetLong) {
-		if (targetLong < 0 || targetLong > 4294967295L)
-			return null;
-
-		String result = "";
-		for (int count = 24; count >= 0; count -= 8) {
-			long part = (targetLong >> count) & 0xff;
-			result += part;
-			if (count != 0)
-				result += ".";
-		}
-
-		return result;
+		if (o != null && o instanceof InetAddress)
+			return ((InetAddress) o).getHostAddress();
+		else
+			return o;
 	}
 }

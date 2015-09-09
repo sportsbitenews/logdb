@@ -18,6 +18,7 @@ package org.araqne.logdb.query.parser;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -125,14 +126,14 @@ public class QueryTokenizerTest {
 	}
 
 	@Test
-	public void testError90000() { 
+	public void testError90000() {
 		String query = "search offset = 1  limit=10 ";
 
 		try {
 			QueryTokenizer.parseOptions(null, query, "search".length(), Arrays.asList("offset", "limit"), functionRegistry);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -141,16 +142,16 @@ public class QueryTokenizerTest {
 			assertEquals(13, e.getEndOffset());
 		}
 	}
-	
+
 	@Test
-	public void testError90001() { 
+	public void testError90001() {
 		String query = "textfile limit=100 \"parser\"=\"<key = value>\" foo.txt";
 
 		try {
 			QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("parser", "limit"), functionRegistry);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -168,7 +169,7 @@ public class QueryTokenizerTest {
 			QueryTokenizer.parseOptions(null, query, "textfile".length(), Arrays.asList("parser", "limit"), functionRegistry);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -202,7 +203,7 @@ public class QueryTokenizerTest {
 			QueryTokenizer.parseCommands(query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -217,7 +218,7 @@ public class QueryTokenizerTest {
 			QueryTokenizer.parseCommands(query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -226,16 +227,16 @@ public class QueryTokenizerTest {
 			assertEquals(15, e.getEndOffset());
 		}
 	}
-	
+
 	@Test
-	public void testError90004(){
+	public void testError90004() {
 		String query = "";
-		
+
 		try {
 			QueryTokenizer.nextString(query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -244,22 +245,36 @@ public class QueryTokenizerTest {
 			assertEquals(0, e.getEndOffset());
 		}
 	}
-	
+
 	@Test
-	public void testError90005(){
+	public void testError90005() {
 		String query = "\"table test";
-		
+
 		try {
 			QueryTokenizer.nextString(query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
 			assertEquals("90005", e.getType());
 			assertEquals(query, e.getParams().get("value"));
 		}
-		
+
+	}
+
+	@Test
+	public void testEscape() {
+		List<String> queries = new ArrayList<String>();
+		queries.add("search contains(query_string,\"rex field=line \\\\\\\"(GET|POST)\\\")\")");
+		queries.add("search contains(query_string,\"search contains(query_string,\\\"rex field=line \\\\\\\\\\\\\\\"(GET|POST)\\\\\\\")\\\"\")");
+		queries.add("json \"{\"test\": \"\\\\\\\\\\\\\\\\\\\\\"\\\\\"\\\\\\\\\\\\\"\\\\\\\\\"}\"");
+
+		for (String query : queries) {
+			List<String> result = QueryTokenizer.parseCommands(query);
+			assertEquals(result.size() > 0, true);
+			assertEquals(query, result.get(0));
+		}
 	}
 }

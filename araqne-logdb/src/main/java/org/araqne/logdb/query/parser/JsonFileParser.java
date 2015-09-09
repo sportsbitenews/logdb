@@ -60,11 +60,11 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 
 		try {
 			boolean overlay = false;
-			int offset = 0;
+			long offset = 0;
 			if (options.containsKey("offset"))
 				offset = Integer.valueOf(options.get("offset"));
 
-			int limit = 0;
+			long limit = 0;
 			if (options.containsKey("limit"))
 				limit = Integer.valueOf(options.get("limit"));
 

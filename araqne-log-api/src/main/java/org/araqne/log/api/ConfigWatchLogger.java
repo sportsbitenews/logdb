@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 
 import org.araqne.log.api.impl.FileUtils;
 
-public class ConfigWatchLogger extends AbstractLogger {
+public class ConfigWatchLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(ConfigWatchLogger.class);
 	protected String basePath;
 	protected Pattern fileNamePattern;
@@ -36,6 +36,15 @@ public class ConfigWatchLogger extends AbstractLogger {
 			processFile(states, f);
 
 		setStates(ConfigState.serializeMap(states));
+	}
+
+	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		this.fileNamePattern = Pattern.compile(newConfigs.get("filename_pattern"));
+		this.basePath = newConfigs.get("base_path");
+		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))) {
+			setStates(new HashMap<String, Object>());
+		}
 	}
 
 	protected void processFile(Map<String, ConfigState> states, File f) {

@@ -156,7 +156,7 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 				} else {
 					for (int i = 0; i < rowBatch.size; i++) {
 						Row row = rowBatch.rows[i];
-						
+
 						long count = counter.incrementAndGet();
 						if (!streaming)
 							writer.write(new Log("$Result$", new Date(), count, row.map()));
@@ -227,8 +227,14 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 
 		eofDate = new Date();
 
-		for (QueryStatusCallback callback : config.getQuery().getCallbacks().getStatusCallbacks())
-			callback.onChange(config.getQuery());
+		for (QueryStatusCallback callback : config.getQuery().getCallbacks().getStatusCallbacks()) {
+			try {
+				callback.onChange(config.getQuery());
+			} catch (Throwable t) {
+				int queryId = config.getQuery().getId();
+				logger.warn("araqne logdb: query [" + queryId + "] status callback should not throw any exception", t);
+			}
+		}
 
 		invokeCloseCallbacks(QueryStopReason.End);
 	}
@@ -243,6 +249,13 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 
 		// delete files
 		synchronized (writerLock) {
+			try {
+				writer.close();
+			} catch (IOException e) {
+				int queryId = config.getQuery().getId();
+				logger.warn("araqne logdb: cannot close query [" + queryId + "] result writer", e);
+			}
+			
 			writer.purge();
 		}
 	}

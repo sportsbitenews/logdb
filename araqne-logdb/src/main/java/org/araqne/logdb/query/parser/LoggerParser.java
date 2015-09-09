@@ -39,6 +39,18 @@ public class LoggerParser extends AbstractQueryCommandParser {
 
 	public LoggerParser(LoggerRegistry loggerRegistry) {
 		this.loggerRegistry = loggerRegistry;
+
+		setDescriptions(
+				"Receive logger output during specified timespan in real-time. Query result can be empty if there is no logger output. "
+						+ "This command requires administrator privilege. Logger name is assigned as _logger field.",
+				"쿼리 시작 시점부터 지정한 시간 동안 실시간으로 로그 수집기의 출력을 수신합니다. "
+						+ "쿼리가 실행되는 동안 수집되는 로그가 없으면 빈 결과를 내보내게 됩니다. 이 커맨드를 실행하려면 관리자 권한이 필요합니다. 로그 수집기의 이름이 _logger 필드로 포함됩니다.");
+
+		setOptions(
+				"window",
+				REQUIRED,
+				"Receive logger output until specified timespan is elapsed. You can use time unit of s(second), m(minute), h(hour), d(day), mon(month). For example, '10s' means 10 seconds from query start time.",
+				"쿼리 시작 시점으로부터 일정 시간 범위 이내의 로그 수집기 출력을 수신합니다. s(초), m(분), h(시), d(일), mon(월) 단위로 지정할 수 있습니다. 예를 들면, 10s의 경우 쿼리 시작 시점으로부터 10초까지의 범위를 의미합니다.");
 	}
 
 	@Override

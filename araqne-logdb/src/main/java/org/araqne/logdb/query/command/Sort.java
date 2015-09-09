@@ -16,8 +16,10 @@
 package org.araqne.logdb.query.command;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -53,11 +55,17 @@ public class Sort extends QueryCommand {
 
 	@Override
 	public void onStart() {
-		super.onStart();
 		if (limit != null && limit <= TOP_OPTIMIZE_THRESHOLD)
 			this.top = new TopSelector<Item>(limit, new DefaultComparator());
-		else
+		else {
 			this.sorter = new ParallelMergeSorter(new DefaultComparator());
+			int queryId = 0;
+			if (getQuery() != null)
+				queryId = getQuery().getId();
+			
+			SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
+			sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
+		}
 	}
 
 	public Integer getLimit() {
@@ -161,7 +169,8 @@ public class Sort extends QueryCommand {
 					pushPipe(new Row(value));
 				}
 
-			} catch (IOException e) {
+			} catch (Throwable t) {
+				getQuery().stop(t);
 			} finally {
 				// close and delete sorted run file
 				if (it != null) {
@@ -170,10 +179,10 @@ public class Sort extends QueryCommand {
 					} catch (IOException e) {
 					}
 				}
+				
+				// support sorter cache GC when query processing is ended
+				sorter = null;
 			}
-
-			// support sorter cache GC when query processing is ended
-			sorter = null;
 		}
 	}
 

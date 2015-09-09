@@ -15,6 +15,9 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
@@ -63,12 +66,23 @@ public class ToLong extends FunctionExpression {
 			if (v instanceof Float)
 				return ((Float) v).longValue();
 
+			if (v instanceof Inet4Address) {
+				return convert(((InetAddress) v).getAddress());
+			}
+
 			String s = v.toString();
 			if (s.isEmpty())
 				return null;
+
 			return Long.parseLong(s, radix);
+
 		} catch (Throwable t) {
 			return null;
 		}
 	}
+
+	public static long convert(byte[] bytes) {
+		return ByteBuffer.wrap(new byte[] { 0, 0, 0, 0, bytes[0], bytes[1], bytes[2], bytes[3] }).getLong();
+	}
+
 }

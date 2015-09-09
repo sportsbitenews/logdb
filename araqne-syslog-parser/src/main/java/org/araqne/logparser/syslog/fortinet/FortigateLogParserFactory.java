@@ -40,7 +40,7 @@ public class FortigateLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "포티게이트";
 		return "Fortigate";
 	}
@@ -52,7 +52,7 @@ public class FortigateLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDescription(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "WELF 형식으로 된 포티게이트 로그를 파싱합니다.";
 		if(locale != null && locale.equals(Locale.CHINESE))
 			return "用于解析WELF格式的FortiGate日志。";

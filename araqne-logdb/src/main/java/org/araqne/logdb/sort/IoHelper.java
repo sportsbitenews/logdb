@@ -19,7 +19,25 @@ import java.io.IOException;
 import java.io.InputStream;
 
 class IoHelper {
+	private static final int ONE_GB = 1024 * 1024 * 1024;
+	private static final int FRAG_UNIT = 8 * 1024;
+
 	private IoHelper() {
+	}
+
+	// fallback for large buffer request
+	public static byte[] ensureBuffer(byte[] shared, int len) {
+		if (len >= ONE_GB)
+			throw new IllegalArgumentException("exceeds max buffer size: " + len);
+
+		if (len <= 0)
+			throw new IllegalArgumentException("invalid buffer size: " + len);
+
+		if (shared.length >= len)
+			return shared;
+
+		int n = (len + FRAG_UNIT) / FRAG_UNIT * FRAG_UNIT;
+		return new byte[n];
 	}
 
 	public static void encodeLong(byte[] b, long n) {

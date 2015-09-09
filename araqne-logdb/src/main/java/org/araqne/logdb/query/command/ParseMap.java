@@ -4,8 +4,10 @@ import java.util.Map;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 
-public class ParseMap extends QueryCommand {
+public class ParseMap extends QueryCommand implements ThreadSafe {
 	private final String field;
 	private final boolean overlay;
 
@@ -21,12 +23,31 @@ public class ParseMap extends QueryCommand {
 
 	@Override
 	public void onPush(Row row) {
-		Object target = row.get(field);
-		if (target == null || !(target instanceof Map)) {
-			if (overlay)
-				pushPipe(row);
-			return;
+		pushPipe(parse(row));
+	}
+
+	@Override
+	public void onPush(RowBatch rowBatch) {
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				Row row = rowBatch.rows[p];
+				rowBatch.rows[p] = parse(row);
+			}
+		} else {
+			for (int i = 0; i < rowBatch.size; i++) {
+				Row row = rowBatch.rows[i];
+				rowBatch.rows[i] = parse(row);
+			}
 		}
+
+		pushPipe(rowBatch);
+	}
+
+	private Row parse(Row row) {
+		Object target = row.get(field);
+		if (target == null || !(target instanceof Map))
+			return row;
 
 		@SuppressWarnings("unchecked")
 		Map<String, Object> m = (Map<String, Object>) target;
@@ -35,7 +56,7 @@ public class ParseMap extends QueryCommand {
 		else
 			row = new Row(m);
 
-		pushPipe(row);
+		return row;
 	}
 
 	@Override

@@ -34,7 +34,7 @@ public class CyberoamParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getDisplayName(Locale locale) {
-		if (locale.equals(Locale.KOREAN))
+		if (locale != null && locale.equals(Locale.KOREAN))
 			return "사이버롬 UTM";
 		return "Cyberoam UTM";
 	}

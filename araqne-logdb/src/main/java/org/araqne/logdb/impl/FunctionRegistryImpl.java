@@ -114,6 +114,7 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("guid", Guid.class);
 			define("seq", Seq.class);
 			define("ip2long", Ip2Long.class);
+			define("ip2int", Ip2Int.class);
 			define("long2ip", Long2Ip.class);
 			define("round", Round.class);
 			define("field", Field.class);
@@ -147,6 +148,8 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("nvl", Nvl.class);
 			define("whoami", Whoami.class);
 			define("not", Not.class);
+			define("datepart", DatePart.class);
+			define("xpath", Xpath.class);
 		}
 
 		private void define(String name, Class<?> clazz) {

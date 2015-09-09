@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import java.util.StringTokenizer;
-import java.util.Vector;
 
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
@@ -414,15 +413,21 @@ public class ExpressionParser {
 			OpTerm op = rule.getOpTerm().parse(token);
 
 			// check if unary operator
-			// TODO: move deciding unary code into OpTerm
-			if (op != null && op.getSymbol().equals("-")) {
+			// handling operator which can be both unary and binary
+			if (op != null && op.hasAltOp()) {
 				Term lastTerm = null;
 				if (!tokens.isEmpty()) {
 					lastTerm = tokens.get(tokens.size() - 1);
 				}
 
-				if (lastToken == null || lastToken.equals("(") || rule.getOpTerm().isInstance(lastTerm)) {
-					op = EvalOpTerm.Neg;
+				if (!op.isUnary()) {
+					if (lastToken == null || lastToken.equals("(") || rule.getOpTerm().isInstance(lastTerm)) {
+						op = op.getAltOp();
+					}
+				} else {
+					if (lastToken != null && !lastToken.equals("(") && !rule.getOpTerm().isInstance(lastTerm)) {
+						op = op.getAltOp();
+					}
 				}
 			}
 

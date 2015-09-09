@@ -41,6 +41,14 @@ public class EvtCtxDelParser extends AbstractQueryCommandParser {
 	@Requires
 	private EventContextService eventContextService;
 
+	public EvtCtxDelParser() {
+		setDescriptions("Remove event context if input tuple matches the specified expression",
+				"입력 데이터가 조건식과 일치하는 경우 주어진 키로 이벤트 컨텍스트를 삭제합니다.");
+
+		setOptions("topic", REQUIRED, "Event topic namespace", "이벤트 토픽. 각 이벤트 컨텍스트 이름 공간을 구분합니다.");
+		setOptions("key", REQUIRED, "Field name for event context key", "키 필드 이름. 이벤트 컨텍스트를 구분하는 키 값을 추출할 필드를 입력합니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "evtctxdel";

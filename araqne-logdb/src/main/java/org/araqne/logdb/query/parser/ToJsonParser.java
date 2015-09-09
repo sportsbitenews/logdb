@@ -31,6 +31,12 @@ import org.araqne.logdb.query.command.ToJson;
 
 public class ToJsonParser extends AbstractQueryCommandParser {
 
+	public ToJsonParser() {
+		setDescriptions("Convert specified fields to json string.", "주어진 필드 값들을 json 포맷의 텍스트로 변환합니다.");
+		setOptions("output", OPTIONAL, "Specify output field name. Default value is '_json'",
+				"json 포맷으로 변환한 결과물이 저장될 필드를 지정합니다. 지정하지 않을 경우 _json 필드에 저장합니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "tojson";
@@ -39,18 +45,19 @@ public class ToJsonParser extends AbstractQueryCommandParser {
 	@Override
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
-		m.put("22300", new QueryErrorMessage("missing-field","필드가 없습니다."));
+		m.put("22300", new QueryErrorMessage("missing-field", "필드가 없습니다."));
 		return m;
 	}
-	
+
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (commandString.trim().endsWith(","))
-		//	throw new QueryParseException("missing-field", commandString.length());
-			throw new QueryParseException("22300", getCommandName().length()  + 1,  commandString.length() - 1, null);
+			// throw new QueryParseException("missing-field",
+			// commandString.length());
+			throw new QueryParseException("22300", getCommandName().length() + 1, commandString.length() - 1, null);
 
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("output"), getFunctionRegistry());
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("output"),
+				getFunctionRegistry());
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 

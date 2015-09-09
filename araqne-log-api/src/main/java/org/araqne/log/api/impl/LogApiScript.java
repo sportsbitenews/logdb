@@ -337,6 +337,13 @@ public class LogApiScript implements Script {
 			return reason.toString().toLowerCase().replace('_', ' ');
 		}
 
+		public String getTemporaryFailure() {
+			Throwable t = logger.getTemporaryFailure();
+			if (t == null)
+				return "";
+			return t.getMessage() != null ? t.getMessage() : t.getClass().getName();
+		}
+
 	}
 
 	public void loggers(String[] args) {
@@ -378,18 +385,22 @@ public class LogApiScript implements Script {
 				context.println(logger.toString());
 			}
 		} else if (verbOpt != null)
-			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerListItem>(filteredList, new PropertyColumn("fullName", "l!name"),
-							new PropertyColumn("factoryFullName", "l!factory"), new PropertyColumn("status", "l!status"),
-							new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
-							new PropertyColumn("dropCount", "drop"), new PropertyColumn("lastStartDate", "l!last start"),
-							new PropertyColumn("lastRunDate", "l!last run"), new PropertyColumn("lastLogDate", "l!last log"))));
+			context.println(ASCIITable.getInstance()
+					.getTable(
+							new CollectionASCIITableAware<LoggerListItem>(filteredList, new PropertyColumn("fullName", "l!name"),
+									new PropertyColumn("factoryFullName", "l!factory"), new PropertyColumn("status", "l!status"),
+									new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
+									new PropertyColumn("dropCount", "drop"), new PropertyColumn("lastStartDate", "l!last start"),
+									new PropertyColumn("lastRunDate", "l!last run"), new PropertyColumn("lastLogDate",
+											"l!last log"), new PropertyColumn("stopReason", "stop reason"), new PropertyColumn(
+											"temporaryFailure", "l!error"))));
 		else
 			context.println(ASCIITable.getInstance().getTable(
 					new CollectionASCIITableAware<LoggerListItem>(filteredList, new PropertyColumn("fullName", "l!name"),
 							new PropertyColumn("factoryName", "l!factory"), new PropertyColumn("status", "l!status"),
 							new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
-							new PropertyColumn("lastLogDate", "l!last log"), new PropertyColumn("stopReason", "stop reason"))));
+							new PropertyColumn("lastLogDate", "l!last log"), new PropertyColumn("stopReason", "stop reason"),
+							new PropertyColumn("temporaryFailure", "l!error"))));
 
 	}
 
@@ -558,11 +569,12 @@ public class LogApiScript implements Script {
 			return;
 		}
 
+		boolean useOldInterval = args.length == 1;
 		Pattern pattern = WildcardMatcher.buildPattern(args[0]);
-		int interval = 5000;
+		int newInterval = 5000;
 		try {
 			if (args.length > 1) {
-				interval = Integer.parseInt(args[1]);
+				newInterval = Integer.parseInt(args[1]);
 			}
 		} catch (NumberFormatException e) {
 			// ignore
@@ -601,6 +613,10 @@ public class LogApiScript implements Script {
 					if (logger.isRunning()) {
 						context.println("logger [" + logger.getFullName() + "] is already started");
 					} else {
+						int interval = logger.getInterval();
+						if (interval == 0 || !useOldInterval)
+							interval = newInterval;
+
 						logger.start(LoggerStartReason.USER_REQUEST, interval);
 						context.println("logger [" + logger.getFullName() + "] started with interval " + interval + "ms");
 					}

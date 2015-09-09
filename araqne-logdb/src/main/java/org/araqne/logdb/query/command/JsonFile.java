@@ -38,11 +38,11 @@ public class JsonFile extends DriverQueryCommand {
 	private String filePath;
 	private LogParser parser;
 	private String parseTarget;
-	private int offset;
-	private int limit;
+	private long offset;
+	private long limit;
 	private boolean overlay;
 
-	public JsonFile(String filePath, LogParser parser, String parseTarget, boolean overlay, int offset, int limit) {
+	public JsonFile(String filePath, LogParser parser, String parseTarget, boolean overlay, long offset, long limit) {
 		this.filePath = filePath;
 		this.parser = parser;
 		this.parseTarget = parseTarget;

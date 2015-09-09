@@ -259,9 +259,11 @@ public class LogQueryPlugin {
 
 		QueryStatusCallback qs = new MsgbusStatusCallback(orgDomain);
 		query.getCallbacks().getStatusCallbacks().add(qs);
+		
+		org.araqne.logdb.Session dbSession = getDbSession(req);
 
 		// start query
-		service.startQuery(query.getId());
+		service.startQuery(dbSession, query.getId());
 	}
 
 	@MsgbusMethod
@@ -389,7 +391,9 @@ public class LogQueryPlugin {
 		if (!query.isAccessible(dbSession))
 			throw new MsgbusException("logdb", "no-permission");
 
-		query.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, new QueryContext(dbSession));
+		QueryContext context = query.getContext();
+		context.setSession(dbSession);
+		query.setRunMode(background ? RunMode.BACKGROUND : RunMode.FOREGROUND, null);
 	}
 
 	/**

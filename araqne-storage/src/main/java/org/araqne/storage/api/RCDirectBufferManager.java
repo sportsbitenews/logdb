@@ -1,78 +1,51 @@
 package org.araqne.storage.api;
 
-import java.lang.reflect.Method;
+import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.felix.ipojo.annotations.Component;
-import org.apache.felix.ipojo.annotations.Provides;
-import org.apache.felix.ipojo.annotations.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+public interface RCDirectBufferManager {
+	public RCDirectBuffer allocateDirect(int capacity);
 
-@Component(name = "araqne-rcdirectbuffer-manager")
-@Provides
-public class RCDirectBufferManager {
-	private final Logger dbLogger = LoggerFactory.getLogger("direct-buffer-cleaner-logger");
-	private AtomicInteger objCount;
-	private AtomicLong totalCapacity;
+	public RCDirectBuffer allocateDirect(int capacity, String poolName, String usageName) throws ExceedPoolSizeLimitException;
+	
+	public RCDirectBuffer wrap(ByteBuffer buffer);
+	
+	public RCDirectBuffer wrap(ByteBuffer buffer, String poolName, String usageName) throws ExceedPoolSizeLimitException;
 
-	private Method cleanerMethod = null;
-	private Method cleanMethod = null;
+	public long getTotalCapacity();
 
-	public static RCDirectBufferManager getTestManager() {
-		RCDirectBufferManager manager = new RCDirectBufferManager();
-		manager.start();
-		manager.dbLogger.info("TEST RCDirectBufferManager HAS STARTED!!");
-		return manager;
-	}
+	public int getObjectCount();
 
-	RCDirectBufferManager() {
-	}
+	@Deprecated
+	void clean(ByteBuffer buffer);
 
-	public RCDirectBuffer allocateDirect(int capacity) {
-		ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
-		int objcnt = objCount.incrementAndGet();
-		long totalCap = totalCapacity.addAndGet(buffer.capacity());
-		if (dbLogger.isDebugEnabled())
-			dbLogger.debug("directByteBuffer allocated: RCDirectBuffer objCount: {}, totalCapacity: {}", objcnt, totalCap);
-		return new RCDirectBuffer(this, buffer);
-	}
+	void clean(RCDirectBuffer buffer, String poolName, String usageName);
 
-	void clean(ByteBuffer buffer) {
-		try {
-			int capacity = buffer.capacity();
-			if (cleanerMethod == null) {
-				cleanerMethod = buffer.getClass().getMethod("cleaner");
-				cleanerMethod.setAccessible(true);
-			}
-			Object cleaner = cleanerMethod.invoke(buffer);
-			if (cleanMethod == null) {
-				cleanMethod = cleaner.getClass().getMethod("clean");
-				cleanMethod.setAccessible(true);
-			}
-			cleanMethod.invoke(cleaner);
-			long totalCap = totalCapacity.addAndGet(-capacity);
-			int objcnt = objCount.decrementAndGet();
-			if (dbLogger.isDebugEnabled())
-				dbLogger.debug("directByteBuffer destroyed: RCDirectBuffer objCount: {}, totalCapacity: {}", objcnt, totalCap);
-		} catch (Throwable t) {
-			dbLogger.warn("directByteBuffer destruction failed: ", t);
+	public void setMemoryLimitOfPool(String poolName, Long size);
+
+	public long getUsingPoolSize(String poolName);
+
+	public long getAvailablePoolSize(String poolName);
+
+	public long getUsingObjectSize(String usageName);
+
+	public Iterable<String> getPoolNames();
+
+	public Iterable<String> getUsagesNames();
+
+	@SuppressWarnings("serial")
+	public class ExceedPoolSizeLimitException extends IOException {
+		private Long size;
+		private Long limit;
+
+		ExceedPoolSizeLimitException(Long size, Long limit) {
+			this.size = size;
+			this.limit = limit;
 		}
-	}
 
-	@Validate
-	public void start() {
-		objCount = new AtomicInteger(0);
-		totalCapacity = new AtomicLong(0);
-	}
-
-	public long getTotalCapacity() {
-		return totalCapacity.get();
-	}
-
-	public int getObjectCount() {
-		return objCount.get();
+		@Override
+		public String getMessage() {
+			return "ExceedPoolSizeLimitException : Allocated Offheap size is " + this.size + " but limit is " + this.limit;
+		}
 	}
 }

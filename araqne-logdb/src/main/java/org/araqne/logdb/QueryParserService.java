@@ -21,6 +21,12 @@ import java.util.Map;
 
 public interface QueryParserService {
 	/**
+	 * 
+	 * @since 2.6.24
+	 */
+	List<QueryCommandParser> getCommandParsers();
+
+	/**
 	 * @since 2.0.3
 	 */
 	QueryCommandParser getCommandParser(String name);

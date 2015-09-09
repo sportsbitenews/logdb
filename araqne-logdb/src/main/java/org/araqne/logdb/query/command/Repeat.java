@@ -42,18 +42,35 @@ public class Repeat extends QueryCommand implements ThreadSafe {
 			if (cancelled)
 				break;
 
-			pushPipe(row.clone());
+			pushPipe(new Row(Row.clone(row.map())));
 		}
 	}
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
-		for (int i = 0; i < count; i++) {
+		for (int index = 0; index < count; index++) {
 			if (cancelled)
 				break;
 
-			rowBatch.rebuild();
-			pushPipe(rowBatch);
+			RowBatch clone = new RowBatch();
+			clone.size = rowBatch.size;
+			clone.rows = new Row[rowBatch.size];
+			int c = 0;
+
+			if (rowBatch.selectedInUse) {
+				for (int i = 0; i < rowBatch.size; i++) {
+					int p = rowBatch.selected[i];
+					Row row = rowBatch.rows[p];
+					clone.rows[c++] = new Row(Row.clone(row.map()));
+				}
+			} else {
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row row = rowBatch.rows[i];
+					clone.rows[c++] = new Row(Row.clone(row.map()));
+				}
+			}
+
+			pushPipe(clone);
 		}
 	}
 

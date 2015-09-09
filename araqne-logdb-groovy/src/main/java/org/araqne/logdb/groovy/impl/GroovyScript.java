@@ -32,11 +32,9 @@ import org.araqne.logdb.groovy.GroovyQueryScriptRegistry;
 public class GroovyScript implements Script {
 
 	private ScriptContext context;
-	private GroovyQueryScriptRegistry queryScriptRegistry;
 	private GroovyEventScriptRegistry eventScriptRegistry;
 
-	public GroovyScript(GroovyQueryScriptRegistry queryScriptRegistry, GroovyEventScriptRegistry eventScriptRegistry) {
-		this.queryScriptRegistry = queryScriptRegistry;
+	public GroovyScript(GroovyEventScriptRegistry eventScriptRegistry) {
 		this.eventScriptRegistry = eventScriptRegistry;
 	}
 

@@ -21,23 +21,15 @@ import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -91,6 +83,7 @@ import org.slf4j.LoggerFactory;
  * 
  */
 public class LogDbClient implements TrapListener, Closeable {
+	private static final int MAX_THROTTLE_PERMIT = 100000;
 	private Logger logger = LoggerFactory.getLogger(LogDbClient.class);
 	private LogDbTransport transport;
 	private LogDbSession session;
@@ -103,9 +96,10 @@ public class LogDbClient implements TrapListener, Closeable {
 	private AtomicReference<Flusher> flusher = new AtomicReference<Flusher>(null);
 
 	private StreamingResultEncoder streamingEncoder;
-	private int counter = 0;
+	private Semaphore inputThrottler = new Semaphore(MAX_THROTTLE_PERMIT);
+//	private int counter = 0;
 
-	private int insertBatchSize = 5000;
+	private int insertBatchSize = 3500;
 
 	// milliseconds
 	private int indexFlushInterval = 1000;
@@ -599,6 +593,113 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("table_name", privilege.getTableName());
 
 		rpc("org.araqne.logdb.msgbus.ManagementPlugin.revokePrivilege", params);
+	}
+
+	/**
+	 * 보안 그룹 목록을 조회합니다. 보안 그룹에 속한 계정 목록과 테이블 권한 정보는 조회되지 않습니다.
+	 * 
+	 * @since 1.1.3
+	 */
+	@SuppressWarnings("unchecked")
+	public List<SecurityGroupInfo> listSecurityGroups() throws IOException {
+		List<SecurityGroupInfo> groups = new ArrayList<SecurityGroupInfo>();
+		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.listSecurityGroups");
+
+		List<Object> l = (List<Object>) resp.get("security_groups");
+		for (Object o : l) {
+			groups.add(parseSecurityGroup((Map<String, Object>) o));
+		}
+
+		return groups;
+	}
+
+	/**
+	 * 보안 그룹을 조회합니다. 계정 목록과 테이블 권한 정보를 포함합니다.
+	 * 
+	 * @param guid
+	 *            보안그룹 식별자
+	 */
+	@SuppressWarnings("unchecked")
+	public SecurityGroupInfo getSecurityGroup(String guid) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("guid", guid);
+		Message resp = rpc("org.araqne.logdb.msgbus.ManagementPlugin.getSecurityGroup", params);
+		Map<String, Object> o = (Map<String, Object>) resp.get("group");
+		if (o == null)
+			return null;
+
+		return parseSecurityGroup(o);
+	}
+
+	/**
+	 * 새 보안 그룹을 생성합니다.
+	 * 
+	 * @throws IOException
+	 * 
+	 * @since 1.1.3
+	 */
+	public void createSecurityGroup(SecurityGroupInfo group) throws IOException {
+		Map<String, Object> params = buildSecurityGroupRequest(group);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.createSecurityGroup", params);
+	}
+
+	/**
+	 * 보안 그룹 설정을 수정합니다.
+	 * 
+	 * @since 1.1.3
+	 */
+	public void updateSecurityGroup(SecurityGroupInfo group) throws IOException {
+		Map<String, Object> params = buildSecurityGroupRequest(group);
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.updateSecurityGroup", params);
+	}
+
+	private Map<String, Object> buildSecurityGroupRequest(SecurityGroupInfo group) {
+		checkNotNull("name", group.getName());
+		checkNotNull("guid", group.getGuid());
+		
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("guid", group.getGuid());
+		m.put("name", group.getName());
+		m.put("description", group.getDescription());
+		m.put("accounts", group.getAccounts());
+		m.put("table_names", group.getReadableTables());
+		return m;
+	}
+
+	/**
+	 * 보안 그룹을 삭제합니다.
+	 * 
+	 * @param guid
+	 *            보안그룹 식별자
+	 * @since 1.1.3
+	 */
+	public void removeSecurityGroup(String guid) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("group_guids", Arrays.asList(guid));
+		rpc("org.araqne.logdb.msgbus.ManagementPlugin.removeSecurityGroups", params);
+	}
+
+	@SuppressWarnings("unchecked")
+	private SecurityGroupInfo parseSecurityGroup(Map<String, Object> o) {
+		List<String> accounts = (List<String>) o.get("accounts");
+		List<String> readableTables = (List<String>) o.get("table_names");
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+		SecurityGroupInfo g = new SecurityGroupInfo();
+		g.setGuid((String) o.get("guid"));
+		g.setName((String) o.get("name"));
+		g.setDescription((String) o.get("description"));
+
+		if (accounts != null)
+			g.setAccounts(new HashSet<String>(accounts));
+
+		if (readableTables != null)
+			g.setReadableTables(new HashSet<String>(readableTables));
+
+		g.setCreated(df.parse((String) o.get("created"), new ParsePosition(0)));
+		g.setUpdated(df.parse((String) o.get("updated"), new ParsePosition(0)));
+
+		return g;
 	}
 
 	/**
@@ -2114,6 +2215,117 @@ public class LogDbClient implements TrapListener, Closeable {
 	}
 
 	/**
+	 * 프로시저 목록을 조회합니다.
+	 * 
+	 * @since 1.1.3
+	 */
+	@SuppressWarnings("unchecked")
+	public List<ProcedureInfo> listProcedures() throws IOException {
+		Message resp = rpc("com.logpresso.core.msgbus.ProcedurePlugin.getProcedures");
+
+		List<Object> l = (List<Object>) resp.get("procedures");
+		List<ProcedureInfo> procedures = new ArrayList<ProcedureInfo>();
+		for (Object o : l) {
+			procedures.add(parseProcedure((Map<String, Object>) o));
+		}
+
+		return procedures;
+
+	}
+
+	@SuppressWarnings("unchecked")
+	private ProcedureInfo parseProcedure(Map<String, Object> m) {
+		List<ProcedureParameterInfo> parameters = new ArrayList<ProcedureParameterInfo>();
+		for (Map<String, Object> o : (List<Map<String, Object>>) m.get("parameters")) {
+			ProcedureParameterInfo pp = new ProcedureParameterInfo();
+
+			pp.setKey((String) o.get("key"));
+			pp.setType((String) o.get("type"));
+			pp.setName((String) o.get("name"));
+			pp.setDescription((String) o.get("description"));
+
+			parameters.add(pp);
+		}
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
+		ProcedureInfo p = new ProcedureInfo();
+		p.setName((String) m.get("name"));
+		p.setDescription((String) m.get("description"));
+		p.setQueryString((String) m.get("query_string"));
+		p.setParameters(parameters);
+		p.setOwner((String) m.get("owner"));
+		p.setGrantLogins(new HashSet<String>((List<String>) m.get("grants")));
+		p.setGrantGroups(new HashSet<String>((List<String>) m.get("grant_groups")));
+		p.setCreated(df.parse((String) m.get("created"), new ParsePosition(0)));
+		p.setModified(df.parse((String) m.get("modified"), new ParsePosition(0)));
+		return p;
+	}
+
+	/**
+	 * 프로시저를 생성합니다. 프로시저 이름이 중복되는 경우 예외가 발생합니다.
+	 * 
+	 * @since 1.1.3
+	 */
+	public void createProcedure(ProcedureInfo procedure) throws IOException {
+		Map<String, Object> params = buildProcedureRequest(procedure);
+		rpc("com.logpresso.core.msgbus.ProcedurePlugin.createProcedure", params);
+	}
+
+	/**
+	 * 프로시저를 수정합니다. 프로시저가 존재하지 않는 경우 예외가 발생합니다. 현재 세션이 관리자나 프로시저 소유자가 아닌 경우 예외가
+	 * 발생합니다.
+	 * 
+	 * @since 1.1.3
+	 */
+	public void updateProcedure(ProcedureInfo procedure) throws IOException {
+		Map<String, Object> params = buildProcedureRequest(procedure);
+		rpc("com.logpresso.core.msgbus.ProcedurePlugin.updateProcedure", params);
+	}
+
+	private Map<String, Object> buildProcedureRequest(ProcedureInfo p) {
+		checkNotNull("name", p.getName());
+		checkNotNull("query string", p.getQueryString());
+		checkNotNull("procedure paramter list", p.getParameters());
+
+		List<Object> parameters = new ArrayList<Object>();
+		for (ProcedureParameterInfo pp : p.getParameters()) {
+			checkNotNull("procedure paramter key", pp.getKey());
+			checkNotNull("procedure paramter type", pp.getType());
+
+			Map<String, Object> o = new HashMap<String, Object>();
+			o.put("key", pp.getKey());
+			o.put("type", pp.getType());
+			o.put("name", pp.getName());
+			o.put("description", pp.getDescription());
+			parameters.add(o);
+		}
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("name", p.getName());
+		m.put("description", p.getDescription());
+		m.put("query_string", p.getQueryString());
+		m.put("parameters", parameters);
+		m.put("grants", p.getGrantLogins());
+		m.put("grant_groups", p.getGrantGroups());
+		return m;
+	}
+
+	/**
+	 * 프로시저를 삭제합니다. 존재하지 않는 프로시저를 삭제하려고 시도하는 경우 예외가 발생합니다. 현재 세션이 관리자나 프로시저 소유자가
+	 * 아닌 경우 예외가 발생합니다.
+	 * 
+	 * @param name
+	 *            프로시저 이름
+	 * @since 1.1.3
+	 */
+	public void removeProcedure(String name) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("name", name);
+
+		rpc("com.logpresso.core.msgbus.ProcedurePlugin.removeProcedure", params);
+	}
+
+	/**
 	 * 주어진 쿼리 문자열을 사용하여 쿼리를 생성합니다. 권한이 없거나 문법이 틀린 경우 예외가 발생합니다.
 	 * 
 	 * @param queryString
@@ -2325,16 +2537,31 @@ public class LogDbClient implements TrapListener, Closeable {
 				flusher.get().start();
 			}
 		}
+		
+		boolean acResult = inputThrottler.tryAcquire(rows.size());
+		if (!acResult) {
+			flusher.get().signal();
+			while (true) {
+				try {
+					inputThrottler.acquire(rows.size());
+					break;
+				} catch (InterruptedException e) {
+					if (isClosed())
+						break;
+				}
+			}
+		}
+
 		synchronized (flushBuffers) {
 			if (!flushBuffers.containsKey(tableName))
 				flushBuffers.put(tableName, new ArrayList<QueuedRows>());
 			QueuedRows qr = new QueuedRows(rows, flusher.get());
 			flushBuffers.get(tableName).add(qr);
 			ret = qr;
-			counter += rows.size();
+//			counter += rows.size();
 		}
 		// count over -> flush
-		if (counter >= insertBatchSize) {
+		if (inputThrottler.availablePermits() <= MAX_THROTTLE_PERMIT * 0.8) {
 			flusher.get().signal();
 		}
 		return ret;
@@ -2360,6 +2587,21 @@ public class LogDbClient implements TrapListener, Closeable {
 				flusher.get().start();
 			}
 		}
+
+		boolean acResult = inputThrottler.tryAcquire();
+		if (!acResult) {
+			flusher.get().signal();
+			while (true) {
+				try {
+					inputThrottler.acquire();
+					break;
+				} catch (InterruptedException e) {
+					if (isClosed())
+						break;
+				}
+			}
+		}
+
 		synchronized (flushBuffers) {
 			if (!flushBuffers.containsKey(tableName))
 				flushBuffers.put(tableName, new ArrayList<QueuedRows>());
@@ -2367,11 +2609,10 @@ public class LogDbClient implements TrapListener, Closeable {
 			QueuedRows qr = new QueuedRows(Arrays.asList(row), flusher.get());
 			flushBuffers.get(tableName).add(qr);
 			ret = qr;
-			counter++;
 		}
 
 		// count over -> flush
-		if (counter >= insertBatchSize) {
+		if (inputThrottler.availablePermits() != MAX_THROTTLE_PERMIT) {
 			flusher.get().signal();
 		}
 
@@ -2381,13 +2622,12 @@ public class LogDbClient implements TrapListener, Closeable {
 	public class Flusher implements Runnable {
 		Thread th;
 
-		ConcurrentHashMap<QueuedRows, QueuedRows> wCalls =
-				new ConcurrentHashMap<QueuedRows, QueuedRows>();
+		ConcurrentHashMap<QueuedRows, QueuedRows> wCalls = new ConcurrentHashMap<QueuedRows, QueuedRows>();
 
 		public void start() {
 			synchronized (this) {
 				if (th == null) {
-					th = new Thread(this, "Insert flush thread");
+					th = new Thread(this, String.format("Insert flush thread"));
 					th.start();
 				}
 			}
@@ -2420,20 +2660,30 @@ public class LogDbClient implements TrapListener, Closeable {
 			while (running) {
 				try {
 					long started = System.nanoTime();
-					flush();
-					long nextWaitMillis =
-							indexFlushInterval - (System.nanoTime() - started) / 1000000L;
-					if (wCalls.size() == 0 && nextWaitMillis > 0)
+					flushInternal();
+					long nextWaitMillis = indexFlushInterval - (System.nanoTime() - started) / 1000000L;
+					if (inputThrottler.availablePermits() == MAX_THROTTLE_PERMIT && wCalls.size() == 0 && nextWaitMillis > 0)
 						synchronized (this) {
 							this.wait(nextWaitMillis);
 						}
 				} catch (InterruptedException e) {
 				}
 			}
+			// give one more chance to flush  
+			flushInternal();
 		}
 
 		void shutdown() {
 			running = false;
+			synchronized(this) {
+				this.notifyAll();
+			}
+			while (!flushBuffers.isEmpty()) {
+				try {
+					th.join();
+				} catch (InterruptedException e) {
+				}
+			}
 		}
 
 		public void signal() {
@@ -2450,33 +2700,52 @@ public class LogDbClient implements TrapListener, Closeable {
 	 * @since 0.9.5
 	 */
 	public void flush() {
-		if (counter == 0)
+	}
+	
+	private void flushInternal() {
+		if (inputThrottler.availablePermits() == MAX_THROTTLE_PERMIT)
 			return;
 
 		Map<String, List<QueuedRows>> binsMap = null;
 		synchronized (flushBuffers) {
 			binsMap = new HashMap<String, List<QueuedRows>>(flushBuffers);
 			flushBuffers.clear();
-			counter = 0;
 		}
+		int counter = 0;
+		for (Map.Entry<String, List<QueuedRows>> entry : binsMap.entrySet()) {
+			for (QueuedRows rows: entry.getValue()) {
+				counter += rows.getRows().size();
+			}
+		}
+		inputThrottler.release(counter);
 
 		for (Map.Entry<String, List<QueuedRows>> entry : binsMap.entrySet()) {
 			String tableName = entry.getKey();
 			List<QueuedRows> items = entry.getValue();
 			try {
-				List<Object> l = new ArrayList<Object>(items.size());
-				for (QueuedRows rows : items) {
-					for (Row row : rows.getRows())
-						l.add(row.map());
-				}
-
-				List<Map<String, Object>> bins = streamingEncoder.encode(l, false);
-				Map<String, Object> params = new HashMap<String, Object>();
-				params.put("table", entry.getKey());
-				params.put("bins", bins);
-				rpc("org.araqne.logdb.msgbus.LogQueryPlugin.insertBatch", params);
-				for (QueuedRows rows : items) {
-					rows.setDone();
+				Iterator<QueuedRows> it = items.iterator();
+				while (it.hasNext()) {
+					List<Object> l = new ArrayList<Object>(items.size());
+					List<QueuedRows> currItems = new ArrayList<QueuedRows>();
+					
+					while (it.hasNext()) {
+						QueuedRows rows = it.next();
+						for (Row row: rows.getRows()) {
+							l.add(row.map());
+						}
+						currItems.add(rows);
+						if (l.size() >= insertBatchSize)
+							break;
+					}
+					
+					List<Map<String, Object>> bins = streamingEncoder.encode(l, false);
+					Map<String, Object> params = new HashMap<String, Object>();
+					params.put("table", entry.getKey());
+					params.put("bins", bins);
+					rpc("org.araqne.logdb.msgbus.LogQueryPlugin.insertBatch", params);
+					for (QueuedRows rows : currItems) {
+						rows.setDone();
+					}
 				}
 			} catch (Throwable t) {
 				logger.debug("araqne logdb client: cannot insert data", t);
@@ -2586,8 +2855,11 @@ public class LogDbClient implements TrapListener, Closeable {
 	 */
 	public void close() throws IOException {
 
-		if (counter > 0)
+		if (inputThrottler.availablePermits() != MAX_THROTTLE_PERMIT)
 			flush();
+
+		if (flusher.get() != null)
+			flusher.get().shutdown();
 
 		if (session != null)
 			session.close();
@@ -2596,9 +2868,6 @@ public class LogDbClient implements TrapListener, Closeable {
 			streamingDecoder.close();
 			streamingDecoder = null;
 		}
-
-		if (flusher.get() != null)
-			flusher.get().shutdown();
 
 		if (streamingEncoder != null) {
 			streamingEncoder.close();
@@ -2695,7 +2964,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		if (o == null)
 			throw new IllegalArgumentException(name + " parameter should be not null");
 	}
-	
+
 	private Message rpc(String method, int timeout) throws IOException, TimeoutException {
 		if (session == null)
 			throw new IOException("not connected yet, use connect()");
@@ -2715,7 +2984,7 @@ public class LogDbClient implements TrapListener, Closeable {
 			throw new IOException("not connected yet, use connect()");
 		return session.rpc(method, params, timeout);
 	}
-	
+
 	private Message rpc(String method, Map<String, Object> params) throws IOException {
 		try {
 			return rpc(method, params, 0);

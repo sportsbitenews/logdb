@@ -41,6 +41,13 @@ public class EvtCtxDropParser extends AbstractQueryCommandParser {
 	@Requires
 	private EventContextService eventContextService;
 
+	public EvtCtxDropParser() {
+		setDescriptions("Delete all event contexts by event topic", "지정된 주제에 해당하는 모든 이벤트 컨텍스트를 일괄 삭제합니다.");
+
+		setOptions("all", OPTIONAL, "To delete all event contexts, use 't' as value.", "t로 지정 시, 모든 이벤트 컨텍스트를 일괄적으로 삭제합니다.");
+		setOptions("topic", OPTIONAL, "Delete all event contexts by topic", "지정된 주제를 가진 모든 이벤트 컨텍스트를 삭제합니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "evtctxdrop";

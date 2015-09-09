@@ -20,6 +20,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -30,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultQuery implements Query {
 	private Logger logger = LoggerFactory.getLogger(DefaultQuery.class);
+	private Logger resultTracer = LoggerFactory.getLogger("query-result-trace");
 	private static AtomicInteger nextId = new AtomicInteger(1);
 
 	private final int id = nextId.getAndIncrement();
@@ -51,6 +54,8 @@ public class DefaultQuery implements Query {
 	private AtomicLong stamp = new AtomicLong(1);
 
 	private List<String> fieldOrder;
+	private AtomicBoolean closed = new AtomicBoolean();
+	private CountDownLatch stopLatch = new CountDownLatch(1);
 
 	public DefaultQuery(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory) {
 		this.context = context;
@@ -74,14 +79,29 @@ public class DefaultQuery implements Query {
 		// sub query is built in reversed order
 		if (context != null)
 			context.getQueries().add(0, this);
+
 	}
 
 	private void openResult(QueryResultFactory resultFactory) {
 		try {
+			if (resultTracer.isDebugEnabled()) {
+				String currentLogin = null;
+				if (context != null && context.getSession() != null)
+					currentLogin = context.getSession().getLoginName();
+
+				resultTracer.debug("araqne logdb: open query result for query [{}:{}], session [{}]",
+						new Object[] { id, queryString, currentLogin });
+			}
+
 			QueryResultConfig config = new QueryResultConfig();
 			config.setQuery(this);
 			result = resultFactory.createResult(config);
 		} catch (IOException e) {
+			if (resultTracer.isDebugEnabled()) {
+				resultTracer.debug("araqne logdb: delete query result for query [" + id + ":" + queryString + "], run mode ["
+						+ runMode + "] by exception", e);
+			}
+
 			result.closeWriter();
 			result.purge();
 			throw new IllegalStateException("cannot create result, maybe disk full", e);
@@ -99,8 +119,11 @@ public class DefaultQuery implements Query {
 
 		commands.get(commands.size() - 1).setOutput(result);
 		logger.trace("araqne logdb: run query => {}", queryString);
-		for (QueryCommand command : commands)
-			command.onStart();
+		for (QueryCommand command : commands) {
+			command.setStatus(Status.Waiting);
+			command.tryStart();
+			command.setStatus(Status.Running);
+		}
 	}
 
 	@Override
@@ -177,7 +200,7 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public boolean isFinished() {
-		return scheduler.isFinished() || isCancelled();
+		return scheduler.isFinished();
 	}
 
 	@Override
@@ -189,10 +212,25 @@ public class DefaultQuery implements Query {
 	public void purge() {
 		// prevent deleted result file access caused by result check of query
 		// callback or timeline callbacks
+		stop(QueryStopReason.End);
+
+		try {
+			stopLatch.await();
+		} catch (InterruptedException e) {
+			logger.error("stopLatch failed", e);
+		}
+
 		callbacks.getStatusCallbacks().clear();
 
-		if (result != null)
+		if (result != null) {
+			if (resultTracer.isDebugEnabled()) {
+				resultTracer.debug(
+						"araqne logdb: delete query result for query [{}:{}], run mode [{}], stop reason [{}], cause [{}]",
+						new Object[] { id, queryString, runMode, stopReason, cause });
+			}
+
 			result.purge();
+		}
 	}
 
 	@Override
@@ -207,42 +245,59 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public void stop(QueryStopReason reason) {
-		if (stopReason != null)
+		// stop() at onPush() can cause deadlock without this guard.
+		if (reason != QueryStopReason.End) {
+			if (stopReason == null)
+				stopReason = reason;
+
+			// cancel tasks
+			scheduler.stop();
 			return;
-
-		stopReason = reason;
-
-		// stop tasks
-		scheduler.stop(reason);
-
-		// send eof and close result writer
-		for (QueryCommand cmd : commands) {
-			if (cmd.getStatus() == Status.Finalizing || cmd.getStatus() == Status.End)
-				continue;
-
-			cmd.setStatus(Status.Finalizing);
-			try {
-				cmd.onClose(reason);
-			} catch (Throwable t) {
-				logger.error("araqne logdb: cannot close command " + cmd.getName(), t);
-			}
-			cmd.setStatus(Status.End);
 		}
 
+		if (!closed.compareAndSet(false, true))
+			return;
+
 		try {
-			if (result != null)
-				result.closeWriter();
-		} catch (Throwable t) {
-			logger.error("araqne logdb: cannot close query result", t);
+			if (stopReason == null)
+				stopReason = reason;
+
+			// stop tasks
+			scheduler.stop();
+
+			// send eof and close result writer
+			for (QueryCommand cmd : commands) {
+				if (cmd.getStatus() == Status.Finalizing || cmd.getStatus() == Status.End)
+					continue;
+
+				cmd.setStatus(Status.Finalizing);
+				try {
+					cmd.tryClose(stopReason);
+				} catch (Throwable t) {
+					logger.error("araqne logdb: cannot close command " + cmd.getName(), t);
+				}
+				cmd.setStatus(Status.End);
+			}
+
+			try {
+				if (result != null)
+					result.closeWriter();
+			} catch (Throwable t) {
+				logger.error("araqne logdb: cannot close query result", t);
+			}
+		} finally {
+			stopLatch.countDown();
 		}
 	}
 
 	@Override
 	public void stop(Throwable cause) {
-		if (stopReason != null)
-			return;
+		// onClose callback can fail (e.g. sort) even if driver is ended
+		if (this.cause == null && cause != null) {
+			this.cause = cause;
+			this.stopReason = QueryStopReason.CommandFailure;
+		}
 
-		this.cause = cause;
 		stop(QueryStopReason.CommandFailure);
 	}
 
@@ -273,12 +328,7 @@ public class DefaultQuery implements Query {
 		if (result == null)
 			return null;
 
-		try {
-			result.syncWriter();
-		} catch (Throwable t) {
-			logger.debug("araqne logdb: result disk sync failed", t);
-		}
-
+		result.syncWriter();
 		return result.getResultSet();
 	}
 
