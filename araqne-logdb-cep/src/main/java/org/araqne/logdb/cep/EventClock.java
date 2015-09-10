@@ -115,6 +115,16 @@ public class EventClock<T extends EventClockItem> {
 		}
 	}
 
+	// The ctx object will be added into the timeoutQueue again when ORIGINAL
+	// timeout has met;
+	// so following O(n) operation (remove) can be avoided.
+
+	// synchronized (timeoutQueue) {
+	// // reorder
+	// timeoutQueue.remove(ctx);
+	// timeoutQueue.add(ctx);
+	// }
+
 	private void addTimeout(T item) {
 		timeoutQueue.add(new Expirable<T>(item, item.getTimeoutTime()));
 		timeoutSet.add(item);

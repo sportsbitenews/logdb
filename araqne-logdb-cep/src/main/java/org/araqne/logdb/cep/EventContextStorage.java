@@ -58,7 +58,7 @@ public interface EventContextStorage {
 	
 	Map<EventKey, EventContext> getContexts(Set<EventKey> key);
 
-	void registerContext(EventContext ctx);
+	void storeContext(EventContext ctx);
 
-	void registerContexts(List<EventContext> contexts);
+	void storeContexts(List<EventContext> contexts);
 }

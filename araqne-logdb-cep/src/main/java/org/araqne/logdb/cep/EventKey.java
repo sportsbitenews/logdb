@@ -67,8 +67,14 @@ public class EventKey {
 
 		// topic and key is always not null
 		EventKey other = (EventKey) obj;
-		return host == null ? key.equals(other.key) && topic.equals(other.topic) : key.equals(other.key)
-				&& topic.equals(other.topic) && host.equals(other.host);
+
+		if (host == null) {
+			if (other.host != null)
+				return false;
+			return key.equals(other.key) && topic.equals(other.topic);
+		}
+
+		return key.equals(other.key) && topic.equals(other.topic) && host.equals(other.host);
 	}
 
 	@Override

@@ -161,30 +161,22 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public void registerContext(EventContext context) {
-		boolean newContext = false;
-		EventContext ctx = getContext(context.getKey());
-		if (ctx == null) {
-			ctx = context;
-			EventContext oldCtx = addContext(ctx);
-			newContext = ctx == oldCtx;
-			ctx = oldCtx;
-		} else {
-			ctx.addRow(context.getRows().get(0));
-			ctx.getCounter().incrementAndGet();
+	public void storeContext(EventContext ctx) {
+		EventContext oldCtx = addContext(ctx);
+
+		if (ctx != oldCtx) { // exists ctx aleady
+			oldCtx.addRow(ctx.getRows().get(0));
+			oldCtx.getCounter().incrementAndGet();
+			oldCtx.setTimeoutTime(ctx.getTimeoutTime());
 		}
 
-		// extend timeout
-		if (!newContext)
-			ctx.setTimeoutTime(context.getTimeoutTime());
-
-		generateEvent(ctx, EventCause.CREATE);
+		generateEvent(oldCtx, EventCause.CREATE);
 	}
 
 	@Override
-	public void registerContexts(List<EventContext> contexts) {
+	public void storeContexts(List<EventContext> contexts) {
 		for (EventContext context : contexts)
-			registerContext(context);
+			storeContext(context);
 	}
 
 	@Override
@@ -232,8 +224,20 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 		while (itr.hasNext()) {
 			EventKey key = itr.next();
-			if (topic == null || key.getTopic().equals(topic))
-				contexts.remove(key);
+			if (topic == null || key.getTopic().equals(topic)) {
+				EventContext ctx = contexts.get(key);
+			
+				if (contexts.remove(key, ctx)) {
+					ctx.getListeners().remove(this);
+
+					if (key.getHost() != null) {
+						EventClock<EventContext> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+						logClock.remove(ctx);
+					} else {
+						realClock.remove(ctx);
+					}
+				}
+			}
 		}
 	}
 

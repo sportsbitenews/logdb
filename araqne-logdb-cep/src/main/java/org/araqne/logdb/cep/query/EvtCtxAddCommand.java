@@ -15,9 +15,7 @@
  */
 package org.araqne.logdb.cep.query;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.araqne.logdb.QueryCommand;
@@ -83,7 +81,7 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			}
 		}
 
-		storage.registerContexts(contexts);
+		storage.storeContexts(contexts);
 		pushPipe(rowBatch);
 	}
 
@@ -148,7 +146,7 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			if (contexts != null) { // row batch
 				contexts.add(context);
 			} else { // row
-				storage.registerContext(context);
+				storage.storeContext(context);
 			}
 		}
 	}

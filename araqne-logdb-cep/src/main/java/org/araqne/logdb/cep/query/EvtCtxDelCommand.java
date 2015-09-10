@@ -23,7 +23,6 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
 import org.araqne.logdb.cep.EventCause;
-import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.query.expr.Expression;
@@ -116,18 +115,9 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 			eventKey.setHost(host);
 
 			if (contexts != null) { // row batch
-			// EventContext ctx = contexts.get(eventKey);
-			// if (ctx == null)
-			// ctx = new EventContext(eventKey, 0L, 0L, 0L, 1);
-			//
-			// ctx.getCounter().incrementAndGet();
-			// ctx.addRow(row);
 				if (!contexts.containsKey(eventKey)) 
 					contexts.put(eventKey, row);
 			} else { // row
-			// EventContext ctx = storage.getContext(eventKey);
-			// if (ctx != null)
-			// ctx.addRow(row);
 				storage.removeContext(eventKey, row, EventCause.REMOVAL);
 			}
 
