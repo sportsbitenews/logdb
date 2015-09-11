@@ -16,8 +16,7 @@ public class EvtCtxCntFunction implements Expression {
 	private Expression topicExpr;
 
 	public EvtCtxCntFunction(QueryContext ctx, List<Expression> exprs, EventContextService eventContextService) {
-		String engine = System.getProperty("araqne.logdb.cepengine");
-		this.storage = eventContextService.getStorage(engine);
+		this.storage = eventContextService.getDefaultStorage();
 
 		if (exprs.size() != 1)
 			throw new QueryParseException("invalid-evtctxcnt-arguments", -1, "argument-count-mismatch");

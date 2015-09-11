@@ -58,7 +58,7 @@ public class CepScript implements Script {
 			return;
 		}
 
-		EventContextStorage storage = eventStorage();
+		EventContextStorage storage = getEventStorage();
 		EventClock<? extends EventClockItem> clock = storage.getClock(host);
 		if (clock == null) {
 			context.println("clock not found");
@@ -70,13 +70,13 @@ public class CepScript implements Script {
 	}
 
 	public void clearContexts(String[] args) {
-		EventContextStorage storage = eventStorage();
+		EventContextStorage storage = getEventStorage();
 		storage.clearContexts();
 		context.println("completed");
 	}
 
 	public void clearClocks(String[] args) {
-		EventContextStorage storage = eventStorage();
+		EventContextStorage storage = getEventStorage();
 		storage.clearClocks();
 		context.println("completed");
 	}
@@ -88,7 +88,7 @@ public class CepScript implements Script {
 		String host = args[0];
 		String queueType = args[1];
 
-		EventContextStorage storage = eventStorage();
+		EventContextStorage storage = getEventStorage();
 		EventClock<? extends EventClockItem> clock = storage.getClock(host);
 		if (clock == null) {
 			context.println("clock not found");
@@ -132,7 +132,7 @@ public class CepScript implements Script {
 		context.println("Event Clocks");
 		context.println("-----------------");
 
-		EventContextStorage storage = eventStorage();
+		EventContextStorage storage = getEventStorage();
 		List<String> hosts = new ArrayList<String>(storage.getHosts());
 		List<String> page = hosts.subList(Math.min(offset, hosts.size()), Math.min(offset + limit, hosts.size()));
 
@@ -160,7 +160,7 @@ public class CepScript implements Script {
 		context.println("Event Contexts");
 		context.println("-----------------");
 
-		EventContextStorage storage = eventStorage();
+		EventContextStorage storage = getEventStorage();
 		Iterator<EventKey> itr = storage.getContextKeys();
 		int size = 0;
 		while (itr.hasNext()) {
@@ -180,7 +180,7 @@ public class CepScript implements Script {
 		context.println("total " + size + " contexts");
 	}
 
-	private EventContextStorage eventStorage() {
-		return eventContextService.getStorage(System.getProperty("araqne.logdb.cepengine"));
+	private EventContextStorage getEventStorage() {
+		return eventContextService.getDefaultStorage();
 	}
 }

@@ -60,32 +60,39 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(Row row) {
-		checkEvent(row, null);
+		EventContext context = buildEventContext(row);
+		if (context != null)
+			storage.storeContext(context);
+
 		pushPipe(row);
 	}
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
-		CopyOnWriteArrayList<EventContext> contexts = new CopyOnWriteArrayList<EventContext>();
+		CopyOnWriteArrayList<EventContext> batchContexts = new CopyOnWriteArrayList<EventContext>();
 
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				checkEvent(row, contexts);
+				EventContext context = buildEventContext(row);
+				if (context != null)
+					batchContexts.add(context);
 			}
 		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-				checkEvent(row, contexts);
+				EventContext context = buildEventContext(row);
+				if (context != null)
+					batchContexts.add(context);
 			}
 		}
 
-		storage.storeContexts(contexts);
+		storage.storeContexts(batchContexts);
 		pushPipe(rowBatch);
 	}
 
-	private void checkEvent(Row row, CopyOnWriteArrayList<EventContext> contexts) {
+	private EventContext buildEventContext(Row row) {
 		boolean matched = true;
 
 		Object o = matcher.eval(row);
@@ -128,8 +135,7 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 
 		if (matched) {
 			String key = k.toString();
-			EventKey eventKey = new EventKey(topic, key);
-			eventKey.setHost(clockHost);
+			EventKey eventKey = new EventKey(topic, key, clockHost);
 
 			long expireTime = 0;
 			if (expire != null)
@@ -142,13 +148,9 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			EventContext context = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows);
 			context.getCounter().incrementAndGet();
 			context.addRow(row);
-
-			if (contexts != null) { // row batch
-				contexts.add(context);
-			} else { // row
-				storage.storeContext(context);
-			}
+			return context;
 		}
+		return null;
 	}
 
 	@Override

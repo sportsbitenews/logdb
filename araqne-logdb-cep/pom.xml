@@ -31,7 +31,6 @@
 						<Import-Package>
 							org.araqne.log.api;version="3.4.0",
 							org.araqne.logdb;version="2.2.10",
-							!net.sf.cglib.*,
 							*
 						</Import-Package>
 					</instructions>

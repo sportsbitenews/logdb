@@ -55,9 +55,8 @@ public class CepTopicMetadataProvider implements MetadataProvider, FieldOrdering
 
 	@Override
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
-		String engine = System.getProperty("araqne.logdb.cepengine");
-		EventContextStorage storage = eventContextService.getStorage(engine);
-
+		EventContextStorage storage = eventContextService.getDefaultStorage();
+		
 		HashMap<String, Integer> topicMap = new HashMap<String, Integer>();
 
 		// for (EventKey key : storage.getContextKeys()) {

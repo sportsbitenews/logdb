@@ -16,7 +16,7 @@
 package org.araqne.logdb.cep.query;
 
 import java.util.Date;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
@@ -51,32 +51,39 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(Row row) {
-		checkEvent(row, null);
+		EventKey key = buildEventKey(row);
+		if (key != null)
+			storage.removeContext(key, EventCause.REMOVAL);
+
 		pushPipe(row);
 	}
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
-		ConcurrentHashMap<EventKey, Row> contexts = new ConcurrentHashMap<EventKey, Row>();
+		CopyOnWriteArrayList<EventKey> batchContexts = new CopyOnWriteArrayList<EventKey>();
 
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				checkEvent(row, contexts);
+				EventKey key = buildEventKey(row);
+				if (key != null)
+					batchContexts.add(key);
 			}
 		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-				checkEvent(row, contexts);
+				EventKey key = buildEventKey(row);
+				if (key != null)
+					batchContexts.add(key);
 			}
 		}
 
-		storage.removeContexts(contexts, EventCause.REMOVAL);
+		storage.removeContexts(batchContexts, EventCause.REMOVAL);
 		pushPipe(rowBatch);
 	}
 
-	private void checkEvent(Row row, ConcurrentHashMap<EventKey, Row> contexts) {
+	private EventKey buildEventKey(Row row) {
 		boolean matched = true;
 
 		Object o = matcher.eval(row);
@@ -111,60 +118,14 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 
 		if (matched) {
 			String key = k.toString();
-			EventKey eventKey = new EventKey(topic, key);
-			eventKey.setHost(host);
-
-			if (contexts != null) { // row batch
-				if (!contexts.containsKey(eventKey)) 
-					contexts.put(eventKey, row);
-			} else { // row
-				storage.removeContext(eventKey, row, EventCause.REMOVAL);
-			}
-
+			EventKey eventKey = new EventKey(topic, key, host);
+			return eventKey;
 		}
+		return null;
 	}
 
 	@Override
 	public String toString() {
 		return "evtctxdel topic=" + topic + " key=" + keyField + " " + matcher;
 	}
-
-	// private interface CallbackRemove {
-	// void removeJob(EventKey key, Row row);
-	// }
-
-	// private void checkEvent(Row row) {
-	// checkEvent(row, new CallbackRemove() {
-	//
-	// @Override
-	// public void removeJob(EventKey eventKey, Row row) {
-	// EventContext ctx = storage.getContext(eventKey);
-	// if (ctx != null)
-	// ctx.addRow(row);
-	//
-	// storage.removeContext(eventKey, ctx, EventCause.REMOVAL);
-	// }
-	//
-	// });
-	// }
-
-	// private class BatchCallbackRemove implements CallbackRemove {
-	// ConcurrentHashMap<EventKey, EventContext> contexts;
-	//
-	// private BatchCallbackRemove(ConcurrentHashMap<EventKey, EventContext>
-	// contexts) {
-	// this.contexts = contexts;
-	// }
-	//
-	// @Override
-	// public void removeJob(EventKey eventKey, Row row) {
-	// EventContext ctx = contexts.get(eventKey);
-	// if (ctx == null)
-	// ctx = new EventContext(eventKey, 0L, 0L, 0L, 1);
-	//
-	// ctx.getCounter().incrementAndGet();
-	// ctx.addRow(row);
-	// contexts.put(eventKey, ctx);
-	// }
-	// }
 }

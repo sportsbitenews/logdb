@@ -17,10 +17,7 @@ package org.araqne.logdb.cep;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
-import org.araqne.logdb.Row;
 
 public interface EventContextStorage {
 	String getName();
@@ -38,8 +35,6 @@ public interface EventContextStorage {
 
 	EventContext getContext(EventKey key);
 
-	EventContext addContext(EventContext ctx);
-
 	void advanceTime(String host, long now);
 
 	void clearClocks();
@@ -52,13 +47,15 @@ public interface EventContextStorage {
 
 	void removeSubscriber(String topic, EventSubscriber subscriber);
 
-	void removeContext(EventKey key, Row row, EventCause cause);
+	void removeContext(EventKey key, EventCause cause);
 
-	void removeContexts(Map<EventKey, Row> contexts, EventCause removal);
-	
-	Map<EventKey, EventContext> getContexts(Set<EventKey> key);
+	void removeContexts(List<EventKey> contexts, EventCause removal);
+
+	List<EventContext> getContexts(Set<EventKey> key);
 
 	void storeContext(EventContext ctx);
 
 	void storeContexts(List<EventContext> contexts);
+	
+	void addContextVariable(EventKey evtKey, String key, Object value);
 }

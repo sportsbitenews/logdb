@@ -24,9 +24,10 @@ public class EventKey {
 
 	private final int hashCode;
 
-	public EventKey(String topic, String key) {
+	public EventKey(String topic, String key, String host) {
 		this.topic = topic;
 		this.key = key;
+		this.host = host;
 		if (host != null)
 			this.hashCode = topic.hashCode() ^ key.hashCode() ^ host.hashCode();
 		else
@@ -43,10 +44,6 @@ public class EventKey {
 
 	public String getHost() {
 		return host;
-	}
-
-	public void setHost(String host) {
-		this.host = host;
 	}
 
 	@Override

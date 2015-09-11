@@ -15,12 +15,10 @@
  */
 package org.araqne.logdb.cep.engine;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -32,7 +30,6 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.cron.AbstractTickTimer;
 import org.araqne.cron.TickService;
-import org.araqne.logdb.Row;
 import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventCause;
 import org.araqne.logdb.cep.EventClock;
@@ -49,6 +46,8 @@ import org.slf4j.LoggerFactory;
 
 @Component(name = "mem-event-ctx-storage")
 public class MemoryEventContextStorage implements EventContextStorage, EventContextListener {
+	private static final int INITIAL_CAPACITY = 11;
+
 	private final Logger slog = LoggerFactory.getLogger(MemoryEventContextStorage.class);
 
 	@Requires
@@ -127,30 +126,12 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		return contexts.get(key);
 	}
 
-	@Override
-	public EventContext addContext(EventContext ctx) {
-		EventContext old = contexts.putIfAbsent(ctx.getKey(), ctx);
-		if (old == null) {
-			ctx.getListeners().add(this);
-
-			if (ctx.getHost() != null) {
-				EventClock<EventContext> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-				logClock.add(ctx);
-			} else {
-				realClock.add(ctx);
-			}
-
-			return ctx;
-		}
-		return old;
-	}
-
 	private EventClock<EventContext> ensureClock(ConcurrentHashMap<String, EventClock<EventContext>> clocks, String host,
 			long time) {
 		EventClock<EventContext> clock = null;
 		clock = clocks.get(host);
 		if (clock == null) {
-			clock = new EventClock<EventContext>(new MemEventClockCallback(), host, time, 11);
+			clock = new EventClock<EventContext>(new MemEventClockCallback(), host, time, INITIAL_CAPACITY);
 			EventClock<EventContext> old = clocks.putIfAbsent(host, clock);
 			if (old != null)
 				return old;
@@ -162,15 +143,32 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void storeContext(EventContext ctx) {
-		EventContext oldCtx = addContext(ctx);
+		EventContext oldCtx = contexts.putIfAbsent(ctx.getKey(), ctx);
+		if (oldCtx == null) {
+			ctx.getListeners().add(this);
 
-		if (ctx != oldCtx) { // exists ctx aleady
+			if (ctx.getHost() != null) {
+				EventClock<EventContext> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
+				logClock.add(ctx);
+			} else {
+				realClock.add(ctx);
+			}
+			generateEvent(ctx, EventCause.CREATE);
+
+		} else {
 			oldCtx.addRow(ctx.getRows().get(0));
 			oldCtx.getCounter().incrementAndGet();
 			oldCtx.setTimeoutTime(ctx.getTimeoutTime());
 		}
+	}
 
-		generateEvent(oldCtx, EventCause.CREATE);
+	@Override
+	public void addContextVariable(EventKey evtKey, String key, Object value) {
+		if (!contexts.containsKey(evtKey))
+			return;
+
+		EventContext ctx = getContext(evtKey);
+		ctx.setVariable(key, value);
 	}
 
 	@Override
@@ -180,11 +178,8 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public void removeContext(EventKey key, Row row, EventCause cause) {
+	public void removeContext(EventKey key, EventCause cause) {
 		EventContext ctx = getContext(key);
-
-		if (ctx != null && row != null)
-			ctx.addRow(row);
 
 		if (contexts.remove(key, ctx)) {
 			ctx.getListeners().remove(this);
@@ -225,18 +220,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		while (itr.hasNext()) {
 			EventKey key = itr.next();
 			if (topic == null || key.getTopic().equals(topic)) {
-				EventContext ctx = contexts.get(key);
-			
-				if (contexts.remove(key, ctx)) {
-					ctx.getListeners().remove(this);
-
-					if (key.getHost() != null) {
-						EventClock<EventContext> logClock = ensureClock(logClocks, ctx.getHost(), ctx.getCreated());
-						logClock.remove(ctx);
-					} else {
-						realClock.remove(ctx);
-					}
-				}
+				removeContext(key, EventCause.REMOVAL);
 			}
 		}
 	}
@@ -326,17 +310,17 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public void removeContexts(Map<EventKey, Row> contexts, EventCause removal) {
-		for (Entry<EventKey, Row> entry : contexts.entrySet()) {
-			removeContext(entry.getKey(), entry.getValue(), removal);
+	public void removeContexts(List<EventKey> contexts, EventCause removal) {
+		for (EventKey key : contexts) {
+			removeContext(key, removal);
 		}
 	}
 
 	@Override
-	public Map<EventKey, EventContext> getContexts(Set<EventKey> keys) {
-		Map<EventKey, EventContext> contexts = new HashMap<EventKey, EventContext>();
+	public List<EventContext> getContexts(Set<EventKey> keys) {
+		List<EventContext> contexts = new ArrayList<EventContext>();
 		for (EventKey key : keys) {
-			contexts.put(key, getContext(key));
+			contexts.add(getContext(key));
 		}
 		return contexts;
 	}
@@ -345,7 +329,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 		@Override
 		public void onRemove(EventClockItem value, EventCause expire) {
-			removeContext(value.getKey(), null, expire);
+			removeContext(value.getKey(), expire);
 		}
 	}
 }
