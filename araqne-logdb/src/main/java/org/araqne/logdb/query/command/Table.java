@@ -166,7 +166,9 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 	private void scanTables() {
 		try {
-			ResultSink sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
+			ResultSink sink = null;
+			if (!params.eachTable)
+				sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
 			boolean isSuppressedBugAlert = false;
 
 			for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
@@ -182,6 +184,9 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 					if (isSuppressedBugAlert)
 						builder.suppressBugAlert();
 				}
+				
+				if (params.eachTable)
+					sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
 
 				LogTraverseCallbackImpl callback = new LogTraverseCallbackImpl(sink);
 				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder, callback);
@@ -191,7 +196,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 					throw new IllegalStateException(callback.getFailure());
 
 				isSuppressedBugAlert = isSuppressedBugAlert || (builder != null && builder.isBugAlertSuppressed());
-				if (sink.isEof())
+				if (!params.eachTable && sink.isEof())
 					break;
 			}
 		} catch (InterruptedException e) {
@@ -210,6 +215,10 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 	public List<TableSpec> getTableSpecs() {
 		return params.tableNames;
+	}
+	
+	public TableParams getTableParams() {
+		return new ReadOnlyTableParams(params);
 	}
 
 	public void setTableNames(List<TableSpec> tableNames) {
@@ -278,6 +287,14 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 	public Date getTo() {
 		return params.to;
+	}
+	
+	public boolean getEachTable() {
+		return params.eachTable;
+	}
+	
+	public boolean isAsc() {
+		return params.isAsc();
 	}
 
 	@Override
@@ -384,6 +401,56 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 			return logs;
 		}
 	}
+	
+	public static class ReadOnlyTableParams extends TableParams {
+		public ReadOnlyTableParams(TableParams params) {
+			super(params);
+		}
+
+		public void setTableSpecs(List<TableSpec> tableNames) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setOffset(long offset) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setLimit(long limit) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setFrom(Date from) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setTo(Date to) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setWindow(TimeSpan window) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setParserName(String parserName) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setOrdered(boolean ordered) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setAsc(boolean asc) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setRaw(boolean raw) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setEachTable(boolean eachTable) {
+			throw new UnsupportedOperationException();
+		}
+	}
 
 	public static class TableParams {
 		private List<TableSpec> tableNames;
@@ -396,6 +463,24 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 		private TimeSpan window;
 		private String parserName;
 		private boolean raw;
+		private boolean eachTable;
+
+		public TableParams() {
+		}
+		
+		public TableParams(TableParams other) {
+			this.tableNames = other.tableNames;
+			this.offset = other.offset;
+			this.limit = other.limit;
+			this.ordered = other.ordered;
+			this.asc = other.asc;
+			this.from = other.from;
+			this.to = other.to;
+			this.window = other.window;
+			this.parserName = other.parserName;
+			this.raw = other.raw;
+			this.eachTable = other.eachTable;
+		}
 
 		public List<TableSpec> getTableSpecs() {
 			return tableNames;
@@ -476,6 +561,14 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 		public void setRaw(boolean raw) {
 			this.raw = raw;
 		}
+
+		public void setEachTable(boolean eachTable) {
+			this.eachTable = eachTable;
+		}
+
+		public boolean isEachTable() {
+			return this.eachTable;
+		}
 	}
 
 	@Override
@@ -503,6 +596,9 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 		if (params.isAsc())
 			s += " order=asc";
+		
+		if (params.isEachTable())
+			s += " eachtable=t";
 
 		return s + " " + Strings.join(getTableNames(), ", ");
 	}
