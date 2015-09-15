@@ -30,7 +30,7 @@ public class WebFrontLogParserTest {
 
 	@Test
 	public void testParser1() {
-		String line = "(warn) kernel: [WEBFRONT/0x00721004] Violated Access Control - Requested URL is in the Block URL List (log_id=\"800453\",app_name=\"9_ennavi_co_kr\",app_id=\"9\",src_if=\"aaa\",src_ip=\"208.115.113.84\",src_port=\"46511\",dest_ip=\"211.200.15.185\",dest_port=\"80\",forwarded_for=\"\",host=\"ennavi.co.kr\",url=\"/robots.txt\",sig_warning=\"Middle\",url_param=\"\",block=\"yes\",owasp=\"A8\",sigid=\"110100016\")"; 
+		String line = " (warn) kernel: [WEBFRONT/0x00721004] Violated Access Control - Requested URL is in the Block URL List (log_id=\"800453\",app_name=\"9_ennavi_co_kr\",app_id=\"9\",src_if=\"aaa\",src_ip=\"208.115.113.84\",src_port=\"46511\",dest_ip=\"211.200.15.185\",dest_port=\"80\",forwarded_for=\"\",host=\"ennavi.co.kr\",url=\"/robots.txt\",sig_warning=\"Middle\",url_param=\"\",block=\"yes\",owasp=\"A8\",sigid=\"110100016\")"; 
 
 		WebFrontLogParser parser = new WebFrontLogParser();
 		Map<String, Object> m = parser.parse(line(line));
