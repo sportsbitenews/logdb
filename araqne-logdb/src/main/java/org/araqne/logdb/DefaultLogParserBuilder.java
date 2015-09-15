@@ -71,12 +71,21 @@ public class DefaultLogParserBuilder implements LogParserBuilder {
 						String optionName = configOption.getName();
 						String optionValue = schema.getMetadata().get(optionName);
 						if (configOption.isRequired() && optionValue == null)
-							throw new IllegalArgumentException("require table metadata " + optionName);
+							throw new IllegalArgumentException(formatException(
+									this.tableParserName, this.tableParserFactoryName,
+									this.tableName, optionName));
 						parserProperty.put(optionName, optionValue);
 					}
 				}
 			}
 		}
+	}
+
+	private String formatException(
+			String parserName, String parserFactoryName, String tableName, String optionName) {
+		return String.format(
+				"table [%s]: parser [%s] (factory: %s) requires table metadata [%s]",
+				tableName, parserName, parserFactoryName, optionName);
 	}
 
 	@Override
