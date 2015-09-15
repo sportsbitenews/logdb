@@ -91,7 +91,7 @@ public class TimechartParser extends AbstractQueryCommandParser {
 			timeSpan = new TimeSpan(1, TimeUnit.Day);
 		
 		boolean pivot = false;
-		if (options.containsKey("pivot") && QueryTokenizer.isTrue(options.get("pivot")))
+		if (options.containsKey("pivot") && CommandOptions.parseBoolean(options.get("pivot")))
 			pivot = true;
 
 		String clause = null;

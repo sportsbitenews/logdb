@@ -27,13 +27,23 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.FieldOrdering;
-import org.araqne.logdb.Row;
-import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
-import org.araqne.logdb.Privilege;
-import org.araqne.logstorage.*;
+import org.araqne.logdb.Permission;
+import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.Row;
+import org.araqne.logstorage.LockKey;
+import org.araqne.logstorage.LockStatus;
+import org.araqne.logstorage.LogFileService;
+import org.araqne.logstorage.LogFileServiceRegistry;
+import org.araqne.logstorage.LogRetentionPolicy;
+import org.araqne.logstorage.LogStorage;
+import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.StorageConfig;
+import org.araqne.logstorage.TableConfig;
+import org.araqne.logstorage.TableConfigSpec;
+import org.araqne.logstorage.TableSchema;
 
 @Component(name = "logdb-table-metadata")
 public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
@@ -46,13 +56,12 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 
 	@Requires
 	private LogFileServiceRegistry lfsRegistry;
-	
+
 	@Requires
 	private LogStorage storage;
 
 	@Requires
 	private MetadataService metadataService;
-	
 
 	@Validate
 	public void start() {
@@ -76,17 +85,9 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 
 	@Override
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
-		if (context.getSession().isAdmin()) {
-			for (String tableName : tableRegistry.getTableNames()) {
+		for (String tableName : tableRegistry.getTableNames()) {
+			if (accountService.checkPermission(context.getSession(), tableName, Permission.READ))
 				writeTableInfo(tableName, callback);
-			}
-		} else {
-			List<Privilege> privileges = accountService.getPrivileges(context.getSession(), context.getSession().getLoginName());
-			for (Privilege p : privileges) {
-				if (p.getPermissions().size() > 0 && tableRegistry.exists(p.getTableName())) {
-					writeTableInfo(p.getTableName(), callback);
-				}
-			}
 		}
 	}
 
@@ -98,7 +99,7 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 		// primary storage
 		StorageConfig primaryStorage = s.getPrimaryStorage();
 		LogFileService lfs = lfsRegistry.getLogFileService(primaryStorage.getType());
-		for (TableConfigSpec spec: lfs.getConfigSpecs()) {
+		for (TableConfigSpec spec : lfs.getConfigSpecs()) {
 			String config = null;
 			TableConfig c = primaryStorage.getConfig(spec.getKey());
 			if (c != null && c.getValues().size() > 1)
@@ -135,7 +136,7 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 				m.put("fields", line);
 			}
 		}
-		
+
 		m.put("metadata", s.getMetadata());
 
 		// retention pollicy
@@ -147,7 +148,7 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 		m.put("retention_policy", retention);
 
 		m.put("data_path", storage.getTableDirectory(tableName).getAbsolutePath());
-		
+
 		LockStatus status = storage.lockStatus(new LockKey("script", tableName, null));
 		if (status.isLocked()) {
 			m.put("lock_owner", status.getOwner());
@@ -156,15 +157,14 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 		} else {
 			m.put("lock_owner", null);
 		}
-		
+
 		callback.onPush(new Row(m));
 	}
 
 	@Override
 	public List<String> getFieldOrder() {
-		return Arrays.asList("table", "compression", "crypto", "metadata", "replication_mode", 
-				"replication_table", "lock_owner", "lock_purpose", "lock_reentcnt",
-				"retention_policy", "data_path");
+		return Arrays.asList("table", "compression", "crypto", "metadata", "replication_mode", "replication_table", "lock_owner",
+				"lock_purpose", "lock_reentcnt", "retention_policy", "data_path");
 	}
 
 }
