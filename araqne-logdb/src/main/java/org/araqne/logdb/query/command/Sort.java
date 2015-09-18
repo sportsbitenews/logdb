@@ -18,8 +18,10 @@ package org.araqne.logdb.query.command;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,15 +39,26 @@ import org.araqne.logdb.sort.Item;
 import org.araqne.logdb.sort.ParallelMergeSorter;
 
 public class Sort extends QueryCommand {
+	private static final int GROUPBY_LIMIT_THRESHOLD = 100;
 	private static final int TOP_OPTIMIZE_THRESHOLD = 10000;
+	private static final int FLUSH_THRESHOLD = 1000000;
 	private Integer limit;
 	private SortField[] fields;
 	private ParallelMergeSorter sorter;
 	private TopSelector<Item> top;
+	private List<String> partitions;
+	private Map<String, List<Item>> sortBuffer;
+	private Integer sortBufferLength;
 
-	public Sort(Integer limit, SortField[] fields) {
+	public Sort(Integer limit, SortField[] fields, List<String> partitions) {
 		this.limit = limit;
 		this.fields = fields;
+		this.partitions = partitions;
+
+		if (partitions.size() > 0) {
+			sortBuffer = new HashMap<String, List<Item>>();
+			sortBufferLength = 0;
+		}
 	}
 
 	@Override
@@ -55,17 +68,24 @@ public class Sort extends QueryCommand {
 
 	@Override
 	public void onStart() {
-		if (limit != null && limit <= TOP_OPTIMIZE_THRESHOLD)
+		if (partitions.size() > 0) {
+			this.sorter = new ParallelMergeSorter(new PKSKComparator());
+			initParallelMergeSorter();
+		} else if (limit != null && limit <= TOP_OPTIMIZE_THRESHOLD) {
 			this.top = new TopSelector<Item>(limit, new DefaultComparator());
-		else {
+		} else {
 			this.sorter = new ParallelMergeSorter(new DefaultComparator());
-			int queryId = 0;
-			if (getQuery() != null)
-				queryId = getQuery().getId();
-			
-			SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
-			sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
+			initParallelMergeSorter();
 		}
+	}
+
+	private void initParallelMergeSorter() {
+		int queryId = 0;
+		if (getQuery() != null)
+			queryId = getQuery().getId();
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
+		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
 	}
 
 	public Integer getLimit() {
@@ -79,9 +99,11 @@ public class Sort extends QueryCommand {
 	@Override
 	public void onPush(Row m) {
 		try {
-			if (top != null)
+			if (sortBuffer != null) {
+				optimizeByClause(m);
+			} else if (top != null) {
 				top.add(new Item(m.map(), null));
-			else if (sorter != null) {
+			} else if (sorter != null) {
 				// onClose() thread can interfere
 				synchronized (sorter) {
 					sorter.add(new Item(m.map(), null));
@@ -100,7 +122,9 @@ public class Sort extends QueryCommand {
 					int p = rowBatch.selected[i];
 					Row row = rowBatch.rows[p];
 
-					if (top != null)
+					if (sortBuffer != null)
+						optimizeByClause(row);
+					else if (top != null)
 						top.add(new Item(row.map(), null));
 					else if (sorter != null)
 						sorter.add(new Item(row.map(), null));
@@ -108,8 +132,10 @@ public class Sort extends QueryCommand {
 			} else {
 				for (int i = 0; i < rowBatch.size; i++) {
 					Row row = rowBatch.rows[i];
-					
-					if (top != null)
+
+					if (sortBuffer != null)
+						optimizeByClause(row);
+					else if (top != null)
 						top.add(new Item(row.map(), null));
 					else if (sorter != null) {
 						synchronized (sorter) {
@@ -132,7 +158,6 @@ public class Sort extends QueryCommand {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		this.status = Status.Finalizing;
-
 		if (top != null) {
 			Iterator<Item> it = top.getTopEntries();
 			while (it.hasNext()) {
@@ -156,19 +181,52 @@ public class Sort extends QueryCommand {
 					return;
 				}
 
+				if (sortBuffer != null) {
+					for (List<Item> flushItems : sortBuffer.values()) {
+						for (Item flushItem : flushItems) {
+							sorter.add(flushItem);
+						}
+					}
+				}
+
 				synchronized (sorter) {
 					it = sorter.sort();
 				}
 
-				while (it.hasNext()) {
-					Object o = it.next();
-					if (--count < 0)
-						break;
+				if (sortBuffer != null) {
+					String currentPK = "";
+					boolean isSkip = false;
+					int currentCount = 0;
 
-					Map<String, Object> value = (Map<String, Object>) ((Item) o).getKey();
-					pushPipe(new Row(value));
+					while (it.hasNext()) {
+						Object o = it.next();
+						String partitionKey = (String) ((Item) o).getKey();
+
+						if (!currentPK.equals(partitionKey)) {
+							isSkip = false;
+							currentCount = 0;
+							currentPK = partitionKey;
+						} else {
+							if (isSkip)
+								continue;
+						}
+
+						Map<String, Object> value = (Map<String, Object>) ((Item) o).getValue();
+						pushPipe(new Row(value));
+
+						if (++currentCount == count)
+							isSkip = true;
+					}
+				} else {
+					while (it.hasNext()) {
+						Object o = it.next();
+						if (--count < 0)
+							break;
+
+						Map<String, Object> value = (Map<String, Object>) ((Item) o).getKey();
+						pushPipe(new Row(value));
+					}
 				}
-
 			} catch (Throwable t) {
 				getQuery().stop(t);
 			} finally {
@@ -179,9 +237,55 @@ public class Sort extends QueryCommand {
 					} catch (IOException e) {
 					}
 				}
-				
+
 				// support sorter cache GC when query processing is ended
 				sorter = null;
+				if (sortBuffer != null)
+					sortBuffer = null;
+			}
+		}
+	}
+
+	private void optimizeByClause(Row m) throws IOException {
+		if (limit != null && limit <= GROUPBY_LIMIT_THRESHOLD) {
+			String partitionKey = getPartitionKey(m);
+
+			synchronized (sortBuffer) {
+				List<Item> items = sortBuffer.get(partitionKey);
+				if (items == null) {
+					items = new ArrayList<Item>(limit);
+					items.add(new Item(partitionKey, m.map()));
+					sortBuffer.put(partitionKey, items);
+				} else {
+					if (items.size() == limit) {
+						PKSKComparator comparator = new PKSKComparator();
+						Item item = Collections.max(items, comparator);
+						Item newItem = new Item(partitionKey, m.map());
+
+						if (comparator.compare(newItem, item) < 0)
+							items.set(items.indexOf(item), newItem);
+					} else {
+						items.add(new Item(partitionKey, m.map()));
+					}
+				}
+
+				if (sortBufferLength >= FLUSH_THRESHOLD) {
+					for (List<Item> flushItems : sortBuffer.values()) {
+						for (Item flushItem : flushItems) {
+							sorter.add(flushItem);
+						}
+					}
+
+					sortBuffer.clear();
+				}
+			}
+		} else {
+			if (top != null) {
+				top.add(new Item(m.map(), null));
+			} else {
+				synchronized (sorter) {
+					sorter.add(new Item(m.map(), null));
+				}
 			}
 		}
 	}
@@ -195,30 +299,20 @@ public class Sort extends QueryCommand {
 			Map<String, Object> m1 = (Map<String, Object>) o1.getKey();
 			Map<String, Object> m2 = (Map<String, Object>) o2.getKey();
 
-			for (SortField field : fields) {
-				Object v1 = m1.get(field.name);
-				Object v2 = m2.get(field.name);
+			return compareMaps(cmp, m1, m2);
+		}
+	}
 
-				boolean lhsNull = v1 == null;
-				boolean rhsNull = v2 == null;
+	private class PKSKComparator implements Comparator<Item> {
+		private ObjectComparator cmp = new ObjectComparator();
 
-				if (lhsNull && rhsNull)
-					continue;
-				else if (lhsNull)
-					return field.asc ? -1 : 1;
-				else if (rhsNull)
-					return field.asc ? 1 : -1;
+		@SuppressWarnings("unchecked")
+		@Override
+		public int compare(Item o1, Item o2) {
+			Map<String, Object> m1 = (Map<String, Object>) o1.getValue();
+			Map<String, Object> m2 = (Map<String, Object>) o2.getValue();
 
-				int diff = cmp.compare(v1, v2);
-				if (diff != 0) {
-					if (!field.asc)
-						diff *= -1;
-
-					return diff;
-				}
-			}
-
-			return 0;
+			return compareMaps(cmp, m1, m2);
 		}
 	}
 
@@ -295,6 +389,7 @@ public class Sort extends QueryCommand {
 		}
 	}
 
+	// TODO by clause가 반영된 toString을 찍어내야 함
 	@Override
 	public String toString() {
 		String limitOpt = "";
@@ -310,5 +405,52 @@ public class Sort extends QueryCommand {
 		}
 
 		return "sort" + limitOpt + fieldOpt;
+	}
+
+	private String getPartitionKey(Row m) {
+		String partitionKey = "";
+
+		for (String partition : partitions) {
+			Object o = m.get(partition);
+			if (o instanceof String) {
+				partitionKey += o;
+			} else if (o instanceof Integer) {
+				partitionKey += ((Integer) o).toString();
+			} else if (o instanceof Date) {
+				partitionKey += ((Date) o).toString();
+			} else if (o instanceof Boolean) {
+				partition += ((Boolean) o) ? "1" : "0";
+			}
+
+		}
+
+		return partitionKey;
+	}
+
+	private int compareMaps(ObjectComparator cmp, Map<String, Object> m1, Map<String, Object> m2) {
+		for (SortField field : fields) {
+			Object v1 = m1.get(field.name);
+			Object v2 = m2.get(field.name);
+
+			boolean lhsNull = v1 == null;
+			boolean rhsNull = v2 == null;
+
+			if (lhsNull && rhsNull)
+				continue;
+			else if (lhsNull)
+				return field.asc ? -1 : 1;
+			else if (rhsNull)
+				return field.asc ? 1 : -1;
+
+			int diff = cmp.compare(v1, v2);
+			if (diff != 0) {
+				if (!field.asc)
+					diff *= -1;
+
+				return diff;
+			}
+		}
+
+		return 0;
 	}
 }
