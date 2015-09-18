@@ -54,18 +54,17 @@ public class DataBlockV3 {
 	int[] logOffsets;
 	byte[] iv;
 	byte[] signature;
-	
+
 	ByteBuffer dataBuffer;
-	
+
 	byte[] compressedBuffer;
 
 	long dataFp;
 
 	String compressionMethod;
 	DataBlockV3Params params;
-	
-	public DataBlockV3(DataBlockV3Params params)
-			throws IOException {
+
+	public DataBlockV3(DataBlockV3Params params) throws IOException {
 		int length = 0;
 		int pos = 0;
 		try {
@@ -105,7 +104,7 @@ public class DataBlockV3 {
 			maxId = bb.getLong();
 			originalSize = bb.getInt();
 			compressedSize = bb.getInt();
-			
+
 			// check fixed block
 			if (isFixed()) {
 				if ((originalSize & 0x80000000) != 0x80000000) {
@@ -159,10 +158,13 @@ public class DataBlockV3 {
 				block.get(dataBuffer.array(), 0, originalSize);
 			}
 		} catch (Throwable t) {
-			throw new IllegalStateException("exception on " + params.dataPath.getAbsolutePath() +" : block length - " + Integer.toString(length) + ", pos - " + Integer.toString(pos) + ", compressedSize - " + Integer.toString(compressedSize), t);
-		} 
+			throw new IllegalStateException(
+					"exception on " + params.dataPath.getAbsolutePath() + " : block length - " + Integer.toString(length)
+							+ ", pos - " + Integer.toString(pos) + ", compressedSize - " + Integer.toString(compressedSize),
+					t);
+		}
 	}
-	
+
 	public boolean isFixed() {
 		return (flag & 0x40) == 0x40;
 	}
@@ -192,7 +194,11 @@ public class DataBlockV3 {
 	}
 
 	private Compression newCompression() {
-		if (compressionMethod.equals("snappy"))
+		if (compressionMethod.equals("lz4"))
+			return new Lz4Compression();
+		if (compressionMethod.equals("lz4hc"))
+			return new Lz4HcCompression();
+		else if (compressionMethod.equals("snappy"))
 			return new SnappyCompression();
 		else
 			return new DeflaterCompression();
@@ -233,7 +239,7 @@ public class DataBlockV3 {
 	public int getCompressedSize() {
 		return compressedSize;
 	}
-	
+
 	public int getLogOffsetCount() {
 		return logOffsets.length;
 	}
@@ -249,19 +255,19 @@ public class DataBlockV3 {
 	public byte[] getCompressedBuffer() {
 		return compressedBuffer;
 	}
-	
+
 	public String getDataHash() {
 		byte[] data = compressedBuffer;
 		if (compressionMethod == null) {
 			data = dataBuffer.array();
 		}
-		
-        try {
+
+		try {
 			return String.format("%X", new BigInteger(1, MessageDigest.getInstance("MD5").digest(data)));
 		} catch (NoSuchAlgorithmException e) {
 			// It is impossible there is no MD5 algorithm
 			throw new IllegalStateException(e);
-		}		
+		}
 	}
 
 }
