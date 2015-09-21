@@ -19,7 +19,6 @@ public class EvtCtxGetFunction implements Expression {
 	private Expression fieldExpr;
 	private final String field;
 	private Expression hostExpr;
-	
 
 	// 1: counter, 2: created, 3: expire_at, 4: host, 5: timeout_at, 6: rows
 	private int fieldType;
@@ -37,10 +36,10 @@ public class EvtCtxGetFunction implements Expression {
 		this.topicExpr = exprs.get(0);
 		this.keyExpr = exprs.get(1);
 		this.fieldExpr = exprs.get(2);
-		
-		if(exprs.size() == 4)
+
+		if (exprs.size() == 4)
 			this.hostExpr = exprs.get(3);
-		
+
 		try {
 			this.field = fieldExpr.eval(null).toString();
 			if (field.equals("counter")) {
@@ -98,7 +97,8 @@ public class EvtCtxGetFunction implements Expression {
 		return "evtctxget(" + topicExpr + ", " + keyExpr + ", " + fieldExpr + ")";
 	}
 
-	public static EventContext findContext(EventContextStorage storage, Expression topicExpr, Expression keyExpr, Expression hostExpr, Row row) {
+	public static EventContext findContext(EventContextStorage storage, Expression topicExpr, Expression keyExpr,
+			Expression hostExpr, Row row) {
 		Object arg1 = topicExpr.eval(row);
 		Object arg2 = keyExpr.eval(row);
 
@@ -109,11 +109,12 @@ public class EvtCtxGetFunction implements Expression {
 		String key = arg2.toString();
 
 		String host = null;
-		if(hostExpr != null) {
+		if (hostExpr != null) {
 			Object arg3 = hostExpr.eval(row);
-			host = arg3.toString();
+			if (arg3 != null)
+				host = arg3.toString();
 		}
-		
+
 		return storage.getContext(new EventKey(topic, key, host));
 	}
 }

@@ -164,10 +164,10 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public void addContextVariable(EventKey evtKey, String key, Object value) {
-		if (!contexts.containsKey(evtKey))
-			return;
-
 		EventContext ctx = getContext(evtKey);
+		if (ctx == null)
+			return;
+		
 		ctx.setVariable(key, value);
 	}
 

@@ -39,27 +39,28 @@ public class EvtCtxSetVarFunction implements Expression {
 	public Object eval(Row row) {
 		Object arg1 = topicExpr.eval(row);
 		Object arg2 = keyExpr.eval(row);
-		
-		if(arg1 == null || arg2 == null)
+
+		if (arg1 == null || arg2 == null)
 			return false;
-		
+
 		String topic = arg1.toString();
 		String key = arg2.toString();
-		
+
 		String host = null;
-		if(hostExpr != null) {
+		if (hostExpr != null) {
 			Object arg5 = hostExpr.eval(row);
-			host = arg5.toString();
+			if (arg5 != null)
+				host = arg5.toString();
 		}
-		
+
 		EventKey evtKey = new EventKey(topic, key, host);
-		
+
 		Object arg3 = varNameExpr.eval(row);
 		Object arg4 = varDataExpr.eval(row);
-		
+
 		if (arg3 == null)
 			return false;
-		
+
 		storage.addContextVariable(evtKey, arg3.toString(), arg4);
 		return true;
 	}
