@@ -912,7 +912,7 @@ public class ManagementPlugin {
 				var = "Percentage";
 
 			if (key.equals("min_free_disk_space_value") && var == null)
-				var = "10";
+				var = "5";
 
 			if (key.equals("disk_lack_action") && var == null)
 				var = "StopLogging";
