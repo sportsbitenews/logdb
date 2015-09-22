@@ -15,6 +15,8 @@
  */
 package org.araqne.logdb.cep;
 
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 public interface EventContextStorage {
@@ -25,27 +27,35 @@ public interface EventContextStorage {
 	 */
 	Set<String> getHosts();
 
-	EventClock getClock(String host);
+	EventClock<? extends EventClockItem> getClock(String host);
 
-	Set<EventKey> getContextKeys();
-	
-	Set<EventKey> getContextKeys(String topic);
+	Iterator<EventKey> getContextKeys();
+
+	Iterator<EventKey> getContextKeys(String topic);
 
 	EventContext getContext(EventKey key);
-
-	EventContext addContext(EventContext ctx);
-
-	void removeContext(EventKey key, EventContext ctx, EventCause cause);
 
 	void advanceTime(String host, long now);
 
 	void clearClocks();
 
 	void clearContexts();
-	
+
 	void clearContexts(String topic);
 
 	void addSubscriber(String topic, EventSubscriber subscriber);
 
 	void removeSubscriber(String topic, EventSubscriber subscriber);
+
+	void removeContext(EventKey key, EventCause cause);
+
+	void removeContexts(List<EventKey> contexts, EventCause removal);
+
+	List<EventContext> getContexts(Set<EventKey> key);
+
+	void storeContext(EventContext ctx);
+
+	void storeContexts(List<EventContext> contexts);
+	
+	void addContextVariable(EventKey evtKey, String key, Object value);
 }

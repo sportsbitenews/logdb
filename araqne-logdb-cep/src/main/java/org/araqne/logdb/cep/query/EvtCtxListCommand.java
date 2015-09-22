@@ -3,7 +3,11 @@ package org.araqne.logdb.cep.query;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.FieldOrdering;
@@ -35,13 +39,33 @@ public class EvtCtxListCommand extends DriverQueryCommand implements FieldOrderi
 
 	@Override
 	public void run() {
-		EventContextStorage mem = eventContextService.getStorage("mem");
+		EventContextStorage storage = eventContextService.getDefaultStorage();
+		Iterator<EventKey> eventKeyItr = storage.getContextKeys(topicFilter);
 
-		for (EventKey key : mem.getContextKeys()) {
-			EventContext ctx = mem.getContext(key);
+		Set<EventKey> keys = new HashSet<EventKey>();
+		int i = 0;
+		while (eventKeyItr.hasNext()) {
+			EventKey key = eventKeyItr.next();
+			keys.add(key);
+
+			if (++i >= 5000) {
+				pushEventContexts(storage.getContexts(keys));
+				keys.clear();
+				i = 0;
+			}
+		}
+
+		pushEventContexts(storage.getContexts(keys));
+	}
+
+	private void pushEventContexts(List<EventContext> events) {
+
+		for (EventContext ctx : events) {
 			if (ctx == null)
 				continue;
 
+			EventKey key = ctx.getKey();
+			
 			String topic = key.getTopic();
 			if (topicFilter != null && !topic.equals(topicFilter))
 				continue;

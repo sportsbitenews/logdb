@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Eediom Inc.
+ * Copyright 2015 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package org.araqne.logdb.cep.query;
 
 import java.util.Date;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
@@ -59,29 +60,39 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(Row row) {
-		checkEvent(row);
+		EventContext context = buildEventContext(row);
+		if (context != null)
+			storage.storeContext(context);
+
 		pushPipe(row);
 	}
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
+		CopyOnWriteArrayList<EventContext> batchContexts = new CopyOnWriteArrayList<EventContext>();
+
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				checkEvent(row);
+				EventContext context = buildEventContext(row);
+				if (context != null)
+					batchContexts.add(context);
 			}
 		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-				checkEvent(row);
+				EventContext context = buildEventContext(row);
+				if (context != null)
+					batchContexts.add(context);
 			}
 		}
 
+		storage.storeContexts(batchContexts);
 		pushPipe(rowBatch);
 	}
 
-	private void checkEvent(Row row) {
+	private EventContext buildEventContext(Row row) {
 		boolean matched = true;
 
 		Object o = matcher.eval(row);
@@ -116,9 +127,15 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			created = System.currentTimeMillis();
 		}
 
+		if (clockHost != null && logTime != null) {
+			Object date = row.get("_time");
+			if (date instanceof Date)
+				storage.advanceTime(clockHost, logTime.getTime());
+		}
+
 		if (matched) {
 			String key = k.toString();
-			EventKey eventKey = new EventKey(topic, key);
+			EventKey eventKey = new EventKey(topic, key, clockHost);
 
 			long expireTime = 0;
 			if (expire != null)
@@ -128,29 +145,12 @@ public class EvtCtxAddCommand extends QueryCommand implements ThreadSafe {
 			if (timeout != null)
 				timeoutTime = created + timeout.unit.getMillis() * timeout.amount;
 
-			boolean newContext = false;
-			EventContext ctx = storage.getContext(eventKey);
-			if (ctx == null) {
-				ctx = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows, (String) clockHost);
-				EventContext oldCtx = storage.addContext(ctx);
-				newContext = ctx == oldCtx;
-				ctx = oldCtx;
-			}
-
-			ctx.getCounter().incrementAndGet();
-
-			// extend timeout
-			if (!newContext)
-				ctx.setTimeoutTime(timeoutTime);
-
-			ctx.addRow(row);
+			EventContext context = new EventContext(eventKey, created, expireTime, timeoutTime, maxRows);
+			context.getCounter().incrementAndGet();
+			context.addRow(row);
+			return context;
 		}
-
-		if (clockHost != null && logTime != null) {
-			Object date = row.get("_time");
-			if (date instanceof Date)
-				storage.advanceTime(clockHost, logTime.getTime());
-		}
+		return null;
 	}
 
 	@Override

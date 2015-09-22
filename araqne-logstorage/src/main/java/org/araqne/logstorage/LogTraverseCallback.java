@@ -64,23 +64,28 @@ public abstract class LogTraverseCallback {
 	public static abstract class Sink {
 		private final long offset;
 		private final long limit;
-		private long curr;
 		private final boolean ordered;
+
+		/** guarded by this */
+		private long curr;
+		/** guarded by this */
 		private boolean eof;
 
 		public Sink(long offset, long limit) {
 			this(offset, limit, true);
 		}
 
+		/** if ordered can be false, processLogs() and onBlockSkipped() should be thread-safe. */
 		public Sink(long offset, long limit, boolean order) {
 			this.offset = offset;
 			this.limit = limit;
+			this.ordered = order;
+
 			this.curr = 0;
 			this.eof = false;
-			this.ordered = order;
 		}
 
-		public boolean isEof() {
+		public synchronized boolean isEof() {
 			return eof;
 		}
 
@@ -88,30 +93,40 @@ public abstract class LogTraverseCallback {
 			return ordered;
 		}
 
-		// returns whether result is end or not
+		/** 
+		 * @param logs
+		 * @return true when it is not closed
+		 *         false when it is closed 
+		 */
 		public boolean write(List<Log> logs) {
 			if (logs.isEmpty())
-				return !eof;
+				return !isEof();
 
-			long start = curr;
-			curr += logs.size();
+			int processEnd = logs.size();
 
-			if (eof)
-				return false;
+			int cnt = logs.size();
+			long start = -1;
+			long end = -1;
 
-			if (offset > 0 && curr <= offset)
+			synchronized (this) {
+				if (eof)
+					return false;
+				
+				start = curr;
+				end = curr += cnt;
+
+				if (limit > 0 && end >= offset + limit) {
+					processEnd = (int) (offset + limit - start);
+					eof = true;
+				}
+			}
+
+			if (offset > 0 && end <= offset)
 				return true;
 
 			int processBegin = 0;
-			int processEnd = logs.size();
-
 			if (offset > 0 && start <= offset) {
 				processBegin = (int) (offset - start);
-			}
-
-			if (limit > 0 && curr >= offset + limit) {
-				processEnd = (int) (offset + limit - start);
-				eof = true;
 			}
 
 			if (processBegin == 0 && processEnd == logs.size())
@@ -119,9 +134,10 @@ public abstract class LogTraverseCallback {
 			else
 				processLogs(logs.subList(processBegin, processEnd));
 
-			return !eof;
+			return !isEof();
 		}
 
+		/** this method should be thread-safe if it is used in not-ordered case. */
 		protected abstract void processLogs(List<Log> logs);
 		
 		protected void onBlockSkipped(BlockSkipReason reason, long firstId, int logCount) {

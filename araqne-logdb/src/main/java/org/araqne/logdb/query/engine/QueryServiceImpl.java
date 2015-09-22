@@ -64,6 +64,7 @@ import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
 import org.araqne.logdb.impl.QueryHelper;
+import org.araqne.logdb.query.parser.AcSearchParser;
 import org.araqne.logdb.query.parser.BoxPlotParser;
 import org.araqne.logdb.query.parser.BypassParser;
 import org.araqne.logdb.query.parser.CheckTableParser;
@@ -265,6 +266,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new RateLimitParser(tickService));
 		parsers.add(new MemLookupParser(lookupRegistry));
 		parsers.add(new BypassParser());
+		parsers.add(new AcSearchParser(queryParserService, resultFactory));
 
 		parsers.add(new RepeatParser());
 		parsers.add(new ResultParser(this));

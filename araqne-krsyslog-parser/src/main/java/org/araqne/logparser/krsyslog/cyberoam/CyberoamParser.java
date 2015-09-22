@@ -87,7 +87,7 @@ public class CyberoamParser extends V1LogParser {
 			builder.delete(b, e);
 
 			while ((e = builder.indexOf("=", b)) > 0) {
-				String key = builder.substring(b, e);
+				String key = builder.substring(b, e).trim();
 				if (key.equals("src_mac")) {
 					String value = builder.substring(e + 1, e + 18);
 					m.put(key, value);

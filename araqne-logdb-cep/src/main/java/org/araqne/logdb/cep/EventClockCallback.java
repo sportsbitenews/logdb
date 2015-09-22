@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Eediom Inc.
+ * Copyright 2015 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,20 +15,6 @@
  */
 package org.araqne.logdb.cep;
 
-import java.util.List;
-
-public interface EventContextService {
-	List<EventContextStorage> getStorages();
-
-	EventContextStorage getStorage(String name);
-
-	void registerStorage(EventContextStorage storage);
-
-	void unregisterStorage(EventContextStorage storage);
-
-	void addSubscriber(String topic, EventSubscriber subscriber);
-
-	void removeSubscriber(String topic, EventSubscriber subscriber);
-	
-	EventContextStorage getDefaultStorage();
+public interface EventClockCallback {
+	void onRemove(EventClockItem value, EventCause expire);
 }
