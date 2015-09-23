@@ -33,6 +33,10 @@ public class Len extends FunctionExpression {
 		Object value = valueExpr.eval(map);
 		if (value == null)
 			return 0;
+		else if (value instanceof List)
+			return ((List<?>) value).size();
+		else if (value instanceof Object[])
+			return ((Object[]) value).length;
 
 		return (value.toString()).length();
 	}
