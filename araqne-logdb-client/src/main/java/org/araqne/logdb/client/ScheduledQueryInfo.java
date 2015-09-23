@@ -35,6 +35,7 @@ public class ScheduledQueryInfo {
 	private boolean saveResult;
 	private boolean useAlert;
 	private String alertQuery;
+	private boolean skipWhileRunning = true;
 
 	private int suppressInterval;
 	private String mailProfile;
@@ -195,6 +196,25 @@ public class ScheduledQueryInfo {
 	 */
 	public void setAlertQuery(String alertQuery) {
 		this.alertQuery = alertQuery;
+	}
+
+	/**
+	 * 이전 예약 쿼리 실행 중일 때 현재 예약 쿼리 실행을 건너뛸지 여부를 반환합니다.
+	 *
+	 * @return 이전 예약 쿼리 실행 중일 때 현재 예약 쿼리 실행 skip 여부
+	 */
+	public boolean isSkipWhileRunning() {
+		return skipWhileRunning;
+	}
+
+	/**
+	 * 이전 예약 쿼리 실행 중일 때 현재 예약 쿼리 실행을 건너뛸지 여부를 설정합니다. false인 경우엔 예약 쿼리를 중첩모드로 실행합니다.
+	 *
+	 * @param skipWhileRunning
+	 *            이전 예약 쿼리 실행 중일 때 현재 예약 쿼리 실행 skip 여부
+	 */
+	public void setSkipWhileRunning(boolean skipWhileRunning) {
+		this.skipWhileRunning = skipWhileRunning;
 	}
 
 	/**

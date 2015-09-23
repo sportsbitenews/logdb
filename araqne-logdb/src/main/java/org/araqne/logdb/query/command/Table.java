@@ -390,7 +390,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 		@Override
 		protected List<Log> filter(List<Log> logs) {
-			if (logger.isDebugEnabled()) {
+			if (logger.isDebugEnabled() && isOrdered()) {
 				if (__lastId != -1) {
 					if (logs.get(0).getId() > __lastId) {
 						logger.info("log id reversed: {}->{}", __lastId, logs.get(0).getId());
@@ -398,6 +398,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 				}
 				__lastId = logs.get(logs.size() - 1).getId();
 			}
+			
 			return logs;
 		}
 	}
