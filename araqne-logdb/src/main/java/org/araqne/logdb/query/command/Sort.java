@@ -18,13 +18,14 @@ package org.araqne.logdb.query.command;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryCommand;
@@ -42,23 +43,18 @@ public class Sort extends QueryCommand {
 	private static final int GROUPBY_LIMIT_THRESHOLD = 100;
 	private static final int TOP_OPTIMIZE_THRESHOLD = 10000;
 	private static final int FLUSH_THRESHOLD = 1000000;
+	private final List<String> partitionFields;
 	private Integer limit;
 	private SortField[] fields;
 	private ParallelMergeSorter sorter;
 	private TopSelector<Item> top;
-	private List<String> partitions;
-	private Map<String, List<Item>> sortBuffer;
+	private Map<List<Object>, PriorityQueue<Item>> sortBuffer;
 	private Integer sortBufferLength;
 
-	public Sort(Integer limit, SortField[] fields, List<String> partitions) {
+	public Sort(Integer limit, SortField[] fields, List<String> partitionFields) {
 		this.limit = limit;
 		this.fields = fields;
-		this.partitions = partitions;
-
-		if (partitions.size() > 0) {
-			sortBuffer = new HashMap<String, List<Item>>();
-			sortBufferLength = 0;
-		}
+		this.partitionFields = partitionFields;
 	}
 
 	@Override
@@ -68,18 +64,25 @@ public class Sort extends QueryCommand {
 
 	@Override
 	public void onStart() {
-		if (partitions.size() > 0) {
-			this.sorter = new ParallelMergeSorter(new PKSKComparator());
-			initParallelMergeSorter();
-		} else if (limit != null && limit <= TOP_OPTIMIZE_THRESHOLD) {
-			this.top = new TopSelector<Item>(limit, new DefaultComparator());
+		if (partitionFields.size() > 0) {
+			this.sorter = new ParallelMergeSorter(new PartitionComparator(false));
+			initSorter();
+
+			if (limit != null && limit <= GROUPBY_LIMIT_THRESHOLD) {
+				sortBuffer = new HashMap<List<Object>, PriorityQueue<Item>>();
+				sortBufferLength = 0;
+			}
 		} else {
-			this.sorter = new ParallelMergeSorter(new DefaultComparator());
-			initParallelMergeSorter();
+			if (limit != null && limit <= TOP_OPTIMIZE_THRESHOLD)
+				this.top = new TopSelector<Item>(limit, new DefaultComparator());
+			else {
+				this.sorter = new ParallelMergeSorter(new DefaultComparator());
+				initSorter();
+			}
 		}
 	}
 
-	private void initParallelMergeSorter() {
+	private void initSorter() {
 		int queryId = 0;
 		if (getQuery() != null)
 			queryId = getQuery().getId();
@@ -99,8 +102,8 @@ public class Sort extends QueryCommand {
 	@Override
 	public void onPush(Row m) {
 		try {
-			if (sortBuffer != null) {
-				optimizeByClause(m);
+			if (partitionFields.size() > 0) {
+				sortbyPartitionFields(m);
 			} else if (top != null) {
 				top.add(new Item(m.map(), null));
 			} else if (sorter != null) {
@@ -122,8 +125,8 @@ public class Sort extends QueryCommand {
 					int p = rowBatch.selected[i];
 					Row row = rowBatch.rows[p];
 
-					if (sortBuffer != null)
-						optimizeByClause(row);
+					if (partitionFields.size() > 0)
+						sortbyPartitionFields(row);
 					else if (top != null)
 						top.add(new Item(row.map(), null));
 					else if (sorter != null)
@@ -133,8 +136,8 @@ public class Sort extends QueryCommand {
 				for (int i = 0; i < rowBatch.size; i++) {
 					Row row = rowBatch.rows[i];
 
-					if (sortBuffer != null)
-						optimizeByClause(row);
+					if (partitionFields.size() > 0)
+						sortbyPartitionFields(row);
 					else if (top != null)
 						top.add(new Item(row.map(), null));
 					else if (sorter != null) {
@@ -182,9 +185,11 @@ public class Sort extends QueryCommand {
 				}
 
 				if (sortBuffer != null) {
-					for (List<Item> flushItems : sortBuffer.values()) {
-						for (Item flushItem : flushItems) {
-							sorter.add(flushItem);
+					synchronized (sorter) {
+						for (PriorityQueue<Item> flushItems : sortBuffer.values()) {
+							for (Item flushItem : flushItems) {
+								sorter.add(flushItem);
+							}
 						}
 					}
 				}
@@ -193,29 +198,28 @@ public class Sort extends QueryCommand {
 					it = sorter.sort();
 				}
 
-				if (sortBuffer != null) {
-					String currentPK = "";
-					boolean isSkip = false;
+				if (partitionFields.size() > 0) {
+					Object[] currentPK = null;
 					int currentCount = 0;
 
 					while (it.hasNext()) {
 						Object o = it.next();
-						String partitionKey = (String) ((Item) o).getKey();
+						Object[] partitionSortKey = (Object[]) ((Item) o).getKey();
+						Object[] partitionKey = Arrays.copyOfRange(partitionSortKey, 0, partitionFields.size());
 
-						if (!currentPK.equals(partitionKey)) {
-							isSkip = false;
+						if (currentPK == null || !Arrays.deepEquals(currentPK, partitionKey)) {
 							currentCount = 0;
 							currentPK = partitionKey;
-						} else {
-							if (isSkip)
-								continue;
 						}
 
-						Map<String, Object> value = (Map<String, Object>) ((Item) o).getValue();
-						pushPipe(new Row(value));
-
-						if (++currentCount == count)
-							isSkip = true;
+						if (currentCount++ < count) {
+							Map<String, Object> value = (Map<String, Object>) ((Item) o).getValue();
+							int i = 0;
+							for (SortField field : fields) {
+								value.put(field.getName(), partitionSortKey[i++]);
+							}
+							pushPipe(new Row(value));
+						}
 					}
 				} else {
 					while (it.hasNext()) {
@@ -246,47 +250,48 @@ public class Sort extends QueryCommand {
 		}
 	}
 
-	private void optimizeByClause(Row m) throws IOException {
+	private synchronized void sortbyPartitionFields(Row m) throws IOException {
+		Object[] partitionSortKey = getPartitionSortKey(m);
+		Object[] partitionKey = getPartitionKey(m);
+
+		Map<String, Object> vMap = m.map();
+		for (SortField field : fields) {
+			vMap.remove(field.getName());
+		}
+
 		if (limit != null && limit <= GROUPBY_LIMIT_THRESHOLD) {
-			String partitionKey = getPartitionKey(m);
-
-			synchronized (sortBuffer) {
-				List<Item> items = sortBuffer.get(partitionKey);
-				if (items == null) {
-					items = new ArrayList<Item>(limit);
-					items.add(new Item(partitionKey, m.map()));
-					sortBuffer.put(partitionKey, items);
+			PriorityQueue<Item> items = sortBuffer.get(Arrays.asList(partitionKey));
+			if (items == null) {
+				items = new PriorityQueue<Item>(limit, new PartitionComparator(true));
+				items.add(new Item(partitionSortKey, vMap));
+				sortBuffer.put(Arrays.asList(partitionKey), items);
+				sortBufferLength++;
+			} else {
+				if (items.size() == limit) {
+					Item item = items.peek();
+					Item newItem = new Item(partitionSortKey, vMap);
+					if (new PartitionComparator(true).compare(newItem, item) > 0) {
+						items.poll();
+						items.add(newItem);
+					}
 				} else {
-					if (items.size() == limit) {
-						PKSKComparator comparator = new PKSKComparator();
-						Item item = Collections.max(items, comparator);
-						Item newItem = new Item(partitionKey, m.map());
+					items.add(new Item(partitionSortKey, vMap));
+					sortBufferLength++;
+				}
+			}
 
-						if (comparator.compare(newItem, item) < 0)
-							items.set(items.indexOf(item), newItem);
-					} else {
-						items.add(new Item(partitionKey, m.map()));
+			if (sortBufferLength >= FLUSH_THRESHOLD) {
+				for (PriorityQueue<Item> flushItems : sortBuffer.values()) {
+					for (Item flushItem : flushItems) {
+						sorter.add(flushItem);
 					}
 				}
-
-				if (sortBufferLength >= FLUSH_THRESHOLD) {
-					for (List<Item> flushItems : sortBuffer.values()) {
-						for (Item flushItem : flushItems) {
-							sorter.add(flushItem);
-						}
-					}
-
-					sortBuffer.clear();
-				}
+				sortBuffer.clear();
+				sortBufferLength = 0;
 			}
 		} else {
-			if (top != null) {
-				top.add(new Item(m.map(), null));
-			} else {
-				synchronized (sorter) {
-					sorter.add(new Item(m.map(), null));
-				}
-			}
+			Item newItem = new Item(partitionSortKey, vMap);
+			sorter.add(newItem);
 		}
 	}
 
@@ -299,20 +304,73 @@ public class Sort extends QueryCommand {
 			Map<String, Object> m1 = (Map<String, Object>) o1.getKey();
 			Map<String, Object> m2 = (Map<String, Object>) o2.getKey();
 
-			return compareMaps(cmp, m1, m2);
+			for (SortField field : fields) {
+				Object v1 = m1.get(field.name);
+				Object v2 = m2.get(field.name);
+
+				boolean lhsNull = v1 == null;
+				boolean rhsNull = v2 == null;
+
+				if (lhsNull && rhsNull)
+					continue;
+				else if (lhsNull)
+					return field.asc ? -1 : 1;
+				else if (rhsNull)
+					return field.asc ? 1 : -1;
+
+				int diff = cmp.compare(v1, v2);
+				if (diff != 0) {
+					if (!field.asc)
+						diff *= -1;
+
+					return diff;
+				}
+			}
+
+			return 0;
 		}
 	}
 
-	private class PKSKComparator implements Comparator<Item> {
+	private class PartitionComparator implements Comparator<Item> {
 		private ObjectComparator cmp = new ObjectComparator();
+		private boolean reverse = false;
 
-		@SuppressWarnings("unchecked")
+		public PartitionComparator(boolean reverse) {
+			this.reverse = reverse;
+		}
+
 		@Override
 		public int compare(Item o1, Item o2) {
-			Map<String, Object> m1 = (Map<String, Object>) o1.getValue();
-			Map<String, Object> m2 = (Map<String, Object>) o2.getValue();
+			Object[] m1 = (Object[]) o1.getKey();
+			Object[] m2 = (Object[]) o2.getKey();
 
-			return compareMaps(cmp, m1, m2);
+			int i = 0;
+			for (SortField field : fields) {
+				Object v1 = m1[i];
+				Object v2 = m2[i];
+
+				boolean lhsNull = v1 == null;
+				boolean rhsNull = v2 == null;
+
+				if (lhsNull && rhsNull)
+					continue;
+				else if (lhsNull)
+					return field.asc ? -1 : 1;
+				else if (rhsNull)
+					return field.asc ? 1 : -1;
+
+				int diff = cmp.compare(v1, v2);
+				if (diff != 0) {
+					if (!field.asc)
+						diff *= -1;
+
+					return (reverse) ? diff *= -1 : diff;
+				}
+
+				i++;
+			}
+
+			return 0;
 		}
 	}
 
@@ -407,50 +465,23 @@ public class Sort extends QueryCommand {
 		return "sort" + limitOpt + fieldOpt;
 	}
 
-	private String getPartitionKey(Row m) {
-		String partitionKey = "";
+	private Object[] getPartitionKey(Row m) {
+		Object[] partitionKey = new Object[partitionFields.size()];
 
-		for (String partition : partitions) {
-			Object o = m.get(partition);
-			if (o instanceof String) {
-				partitionKey += o;
-			} else if (o instanceof Integer) {
-				partitionKey += ((Integer) o).toString();
-			} else if (o instanceof Date) {
-				partitionKey += ((Date) o).toString();
-			} else if (o instanceof Boolean) {
-				partition += ((Boolean) o) ? "1" : "0";
-			}
-
+		for (int i = 0; i < partitionKey.length; ++i) {
+			partitionKey[i] = m.get(partitionFields.get(i));
 		}
 
 		return partitionKey;
 	}
 
-	private int compareMaps(ObjectComparator cmp, Map<String, Object> m1, Map<String, Object> m2) {
-		for (SortField field : fields) {
-			Object v1 = m1.get(field.name);
-			Object v2 = m2.get(field.name);
+	private Object[] getPartitionSortKey(Row m) {
+		Object[] partitionSortKey = new Object[fields.length];
 
-			boolean lhsNull = v1 == null;
-			boolean rhsNull = v2 == null;
-
-			if (lhsNull && rhsNull)
-				continue;
-			else if (lhsNull)
-				return field.asc ? -1 : 1;
-			else if (rhsNull)
-				return field.asc ? 1 : -1;
-
-			int diff = cmp.compare(v1, v2);
-			if (diff != 0) {
-				if (!field.asc)
-					diff *= -1;
-
-				return diff;
-			}
+		for (int i = 0; i < fields.length; ++i) {
+			partitionSortKey[i] = m.get(fields[i].getName());
 		}
 
-		return 0;
+		return partitionSortKey;
 	}
 }

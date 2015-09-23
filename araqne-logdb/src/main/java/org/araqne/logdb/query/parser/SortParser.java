@@ -48,7 +48,7 @@ public class SortParser extends AbstractQueryCommandParser {
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
 		m.put("21600", new QueryErrorMessage("need-column", "정렬할 필드명을 입력하십시오."));
-		m.put("21601", new QueryErrorMessage("missing-clause", "잘못된 쿼리 입니다. "));
+		m.put("21601", new QueryErrorMessage("invalid-by-clause", "by절에 필드명들을 콤마로 구분하여 올바르게 입력하십시오. "));
 		m.put("21602", new QueryErrorMessage("invalid-limit-option", "limit 값이 유효하지 않습니다. "));
 		return m;
 	}
