@@ -83,16 +83,10 @@ public class SortParser extends AbstractQueryCommandParser {
 
 		try {
 			List<SortField> fields = null;
-
 			if (partitions.size() == 0)
 				fields = SortField.parseSortFields(commandString, r);
-			else {
-				fields = new ArrayList<SortField>();
-				for (String partition : partitions) {
-					fields.add(new SortField(partition));
-				}
-				fields.addAll(SortField.parseSortFields(commandString.substring(0, byPos), r));
-			}
+			else
+				fields = SortField.parseSortFields(commandString.substring(0, byPos), r);
 
 			return new Sort(count, fields.toArray(new SortField[0]), partitions);
 		} catch (QueryParseException e) {
