@@ -2153,6 +2153,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		query.setQueryString((String) m.get("query"));
 		query.setSaveResult((Boolean) m.get("use_save_result"));
 		query.setUseAlert((Boolean) m.get("use_alert"));
+		query.setSkipWhileRunning((Boolean) m.get("skip_while_running"));
 		query.setAlertQuery((String) m.get("alert_query"));
 		query.setSuppressInterval((Integer) m.get("suppress_interval"));
 		query.setMailProfile((String) m.get("mail_profile"));
@@ -2194,6 +2195,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("save_result", query.isSaveResult());
 		params.put("use_alert", query.isUseAlert());
 		params.put("alert_query", query.getAlertQuery());
+		params.put("skip_while_running", query.isSkipWhileRunning());
 		params.put("suppress_interval", query.getSuppressInterval());
 		params.put("mail_profile", query.getMailProfile());
 		params.put("mail_from", query.getMailFrom());
