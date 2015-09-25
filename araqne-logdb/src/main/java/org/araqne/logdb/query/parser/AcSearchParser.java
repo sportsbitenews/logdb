@@ -2,6 +2,7 @@ package org.araqne.logdb.query.parser;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
@@ -12,6 +13,7 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryResultFactory;
 import org.araqne.logdb.QueryStatusCallback;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.command.AcSearch;
 
 public class AcSearchParser extends AbstractQueryCommandParser {
@@ -36,8 +38,14 @@ public class AcSearchParser extends AbstractQueryCommandParser {
 		String fieldToken = commandString.substring(getCommandName().length(), b);
 		String subQueryString = commandString.substring(b + 1, e).trim();
 
-		List<String> optionTypes = Arrays.asList();
+		List<String> optionTypes = Arrays.asList("timeout");
 		ParseResult r = QueryTokenizer.parseOptions(context, fieldToken, 0, optionTypes, getFunctionRegistry());
+		@SuppressWarnings("unchecked")
+		Map<String, String> options = (Map<String, String>) r.value;
+
+		TimeSpan timeout = null;
+		if (options.containsKey("timeout"))
+			timeout = TimeSpan.parse(options.get("timeout"));
 
 		String field = fieldToken.substring(r.next).trim();
 
@@ -48,7 +56,7 @@ public class AcSearchParser extends AbstractQueryCommandParser {
 		SubQueryCountDownLatch subQueryLatch = new SubQueryCountDownLatch();
 		subQuery.getCallbacks().getStatusCallbacks().add(subQueryLatch);
 
-		return new AcSearch(field, subQuery, subQueryLatch.latch);
+		return new AcSearch(field, timeout, subQuery, subQueryLatch.latch);
 	}
 
 	private static class SubQueryCountDownLatch implements QueryStatusCallback {
