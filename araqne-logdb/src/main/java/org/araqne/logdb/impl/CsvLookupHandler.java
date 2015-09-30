@@ -35,7 +35,7 @@ public class CsvLookupHandler implements LookupHandler2 {
 			is = new FileInputStream(f);
 			is.skip(skipBytes);
 
-			reader = new CSVReader(new InputStreamReader(is, "utf-8"));
+			reader = new CSVReader(new InputStreamReader(is, "utf-8"), ',', '\"', '\0');
 
 			String[] nextLine = reader.readNext();
 			if (nextLine == null)

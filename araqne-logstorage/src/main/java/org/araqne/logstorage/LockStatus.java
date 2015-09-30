@@ -24,6 +24,13 @@ public class LockStatus {
 		this.reentrantCount = 0;
 	}
 	
+	@Override
+	public String toString() {
+		return "LockStatus [locked=" + locked + ", owner=" + owner + ", availableShared="
+				+ availableShared + ", reentrantCount=" + reentrantCount + ", purposes=" + purposes
+				+ "]";
+	}
+
 	public boolean isLocked() {
 		return locked;
 	}

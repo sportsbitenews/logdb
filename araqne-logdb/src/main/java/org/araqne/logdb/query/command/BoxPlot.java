@@ -50,14 +50,6 @@ public class BoxPlot extends QueryCommand {
 		this.expr = expr;
 		this.clauses = clauses;
 		this.clauseCount = clauses.size();
-		this.groupCounts = new HashMap<GroupKey, AtomicLong>();
-		this.sorter = new ParallelMergeSorter(new ItemComparer());
-		int queryId = 0;
-		if (getQuery() != null)
-			queryId = getQuery().getId();
-		
-		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
-		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
 	}
 
 	@Override
@@ -71,6 +63,18 @@ public class BoxPlot extends QueryCommand {
 
 	public List<String> getClauses() {
 		return clauses;
+	}
+
+	@Override
+	public void onStart() {
+		this.groupCounts = new HashMap<GroupKey, AtomicLong>();
+		this.sorter = new ParallelMergeSorter(new ItemComparer());
+		int queryId = 0;
+		if (getQuery() != null)
+			queryId = getQuery().getId();
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
+		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
 	}
 
 	@Override
@@ -104,12 +108,16 @@ public class BoxPlot extends QueryCommand {
 		try {
 			sorter.add(new Item(item, null));
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new IllegalStateException("cannot add sort item for query " + getQuery().getId(), e);
 		}
 	}
 
 	@Override
 	public void onClose(QueryStopReason reason) {
+		// command is not started
+		if (sorter == null)
+			return;
+		
 		long rank = 0;
 		long iqr1Index = 0;
 		long iqr2Index = 0;

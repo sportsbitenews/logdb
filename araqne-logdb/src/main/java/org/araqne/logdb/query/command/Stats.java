@@ -44,23 +44,21 @@ import org.slf4j.LoggerFactory;
 public class Stats extends QueryCommand implements FieldOrdering {
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
 	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
-	private int inputCount;
+
 	private final List<AggregationField> fields;
 	private final List<String> clauses;
 	private final int clauseCount;
 	private final boolean useClause;
 	private final List<Object> EMPTY_KEY;
+	private static final boolean discardNullGroup;
 
 	// clone template
 	private AggregationFunction[] funcs;
-
-	private ParallelMergeSorter sorter;
-
-	private ConcurrentMap<List<Object>, AggregationFunction[]> buffer;
-
 	private ArrayList<String> fieldOrder;
 
-	private static final boolean discardNullGroup;
+	private ParallelMergeSorter sorter;
+	private ConcurrentMap<List<Object>, AggregationFunction[]> buffer;
+	private int inputCount;;
 
 	static {
 		String s = System.getProperty("araqne.logdb.discard_null_group");
@@ -72,16 +70,6 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		this.clauses = clause;
 		this.clauseCount = clauses.size();
 		this.useClause = clauseCount > 0;
-		this.sorter = new ParallelMergeSorter(new ItemComparer());
-
-		int queryId = 0;
-		if (getQuery() != null)
-			queryId = getQuery().getId();
-
-		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
-		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
-
-		this.buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
 		this.fields = fields;
 		this.funcs = new AggregationFunction[fields.size()];
 		this.fieldOrder = new ArrayList<String>(clauses);
@@ -114,7 +102,17 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public void onStart() {
-		super.onStart();
+		inputCount = 0;
+		sorter = new ParallelMergeSorter(new ItemComparer());
+
+		int queryId = 0;
+		if (getQuery() != null)
+			queryId = getQuery().getId();
+
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
+		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
+
+		this.buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
 
 		for (AggregationFunction f : funcs)
 			f.clean();
@@ -269,7 +267,9 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public void onClose(QueryStopReason reason) {
-		this.status = Status.Finalizing;
+		// command is not started
+		if (sorter == null)
+			return;
 
 		logger.debug("araqne logdb: stats sort input count [{}]", inputCount);
 		CloseableIterator it = null;

@@ -970,7 +970,7 @@ public class LogStorageScript implements Script {
 			storage.search(new TableScanRequest(tableName, from, to, null, new SimpleLogTraverseCallback(counter)));
 			long elapsed = new Date().getTime() - timestamp.getTime();
 
-			context.println("total count: " + counter.count + ", elapsed: " + elapsed + "ms");
+			context.println("total count: " + counter.getCount() + ", elapsed: " + elapsed + "ms");
 		} catch (ParseException e) {
 			context.println("invalid date format");
 		} catch (InterruptedException e) {
@@ -979,9 +979,13 @@ public class LogStorageScript implements Script {
 	}
 
 	private class CounterSink extends LogTraverseCallback.Sink {
-		int count;
-		long minId = Long.MAX_VALUE;
-		long maxId = Long.MIN_VALUE;
+		/** guarded by this */
+		private int count;
+		/** guarded by this */
+		private long minId;
+		/** guarded by this */
+		private long maxId;
+		
 		@SuppressWarnings("unused")
 		long rsvCnt = 0;
 		@SuppressWarnings("unused")
@@ -989,7 +993,13 @@ public class LogStorageScript implements Script {
 
 		public CounterSink(long limit) {
 			super(0, limit);
-			count = 0;
+			this.count = 0;
+			this.minId = Long.MAX_VALUE;
+			this.maxId = Long.MIN_VALUE;
+		}
+
+		public synchronized int getCount() {
+			return count;
 		}
 
 		@Override
@@ -1002,13 +1012,22 @@ public class LogStorageScript implements Script {
 
 		@Override
 		protected void processLogs(List<Log> logs) {
-			count += logs.size();
+			long min = Long.MAX_VALUE;
+			long max = Long.MIN_VALUE;
 			for (Log l : logs) {
 				long id = l.getId();
-				if (minId > id)
-					minId = id;
-				if (maxId < id)
-					maxId = id;
+				if (min > id)
+					min = id;
+				if (max < id)
+					max = id;
+			}
+			
+			synchronized (this) {
+				count += logs.size();
+				if (minId > min)
+					minId = min;
+				if (maxId < max)
+					maxId = max;
 			}
 		}
 	}

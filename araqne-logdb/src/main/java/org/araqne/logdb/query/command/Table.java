@@ -84,14 +84,10 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 	@Override
 	public void run() {
-		try {
-			if (params.window != null)
-				receiveTableInputs();
-			else
-				scanTables();
-		} catch (Exception e) {
-			throw new RuntimeException(String.format("Exception while running Table command: [%s] ", this.toString()), e);
-		}
+		if (params.window != null)
+			receiveTableInputs();
+		else
+			scanTables();
 	}
 
 	private void receiveTableInputs() {
@@ -170,7 +166,9 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 	private void scanTables() {
 		try {
-			ResultSink sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
+			ResultSink sink = null;
+			if (!params.eachTable)
+				sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
 			boolean isSuppressedBugAlert = false;
 
 			for (StorageObjectName tableName : expandTableNames(params.tableNames)) {
@@ -186,25 +184,23 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 					if (isSuppressedBugAlert)
 						builder.suppressBugAlert();
 				}
+				
+				if (params.eachTable)
+					sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
 
 				LogTraverseCallbackImpl callback = new LogTraverseCallbackImpl(sink);
-				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder,
-						callback);
+				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder, callback);
 				req.setAsc(params.isAsc());
 				storage.search(req);
 				if (callback.isFailed())
 					throw new IllegalStateException(callback.getFailure());
 
 				isSuppressedBugAlert = isSuppressedBugAlert || (builder != null && builder.isBugAlertSuppressed());
-				if (sink.isEof())
+				if (!params.eachTable && sink.isEof())
 					break;
 			}
 		} catch (InterruptedException e) {
 			logger.trace("araqne logdb: query interrupted");
-		} catch (Exception e) {
-			logger.error("araqne logdb: table exception", e);
-		} catch (Error e) {
-			logger.error("araqne logdb: table error", e);
 		}
 	}
 
@@ -219,6 +215,10 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 	public List<TableSpec> getTableSpecs() {
 		return params.tableNames;
+	}
+	
+	public TableParams getTableParams() {
+		return new ReadOnlyTableParams(params);
 	}
 
 	public void setTableNames(List<TableSpec> tableNames) {
@@ -287,6 +287,14 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 	public Date getTo() {
 		return params.to;
+	}
+	
+	public boolean getEachTable() {
+		return params.eachTable;
+	}
+	
+	public boolean isAsc() {
+		return params.isAsc();
 	}
 
 	@Override
@@ -382,7 +390,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 		@Override
 		protected List<Log> filter(List<Log> logs) {
-			if (logger.isDebugEnabled()) {
+			if (logger.isDebugEnabled() && isOrdered()) {
 				if (__lastId != -1) {
 					if (logs.get(0).getId() > __lastId) {
 						logger.info("log id reversed: {}->{}", __lastId, logs.get(0).getId());
@@ -390,7 +398,58 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 				}
 				__lastId = logs.get(logs.size() - 1).getId();
 			}
+			
 			return logs;
+		}
+	}
+	
+	public static class ReadOnlyTableParams extends TableParams {
+		public ReadOnlyTableParams(TableParams params) {
+			super(params);
+		}
+
+		public void setTableSpecs(List<TableSpec> tableNames) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setOffset(long offset) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setLimit(long limit) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setFrom(Date from) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setTo(Date to) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setWindow(TimeSpan window) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setParserName(String parserName) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setOrdered(boolean ordered) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setAsc(boolean asc) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setRaw(boolean raw) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setEachTable(boolean eachTable) {
+			throw new UnsupportedOperationException();
 		}
 	}
 
@@ -405,6 +464,24 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 		private TimeSpan window;
 		private String parserName;
 		private boolean raw;
+		private boolean eachTable;
+
+		public TableParams() {
+		}
+		
+		public TableParams(TableParams other) {
+			this.tableNames = other.tableNames;
+			this.offset = other.offset;
+			this.limit = other.limit;
+			this.ordered = other.ordered;
+			this.asc = other.asc;
+			this.from = other.from;
+			this.to = other.to;
+			this.window = other.window;
+			this.parserName = other.parserName;
+			this.raw = other.raw;
+			this.eachTable = other.eachTable;
+		}
 
 		public List<TableSpec> getTableSpecs() {
 			return tableNames;
@@ -485,6 +562,14 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 		public void setRaw(boolean raw) {
 			this.raw = raw;
 		}
+
+		public void setEachTable(boolean eachTable) {
+			this.eachTable = eachTable;
+		}
+
+		public boolean isEachTable() {
+			return this.eachTable;
+		}
 	}
 
 	@Override
@@ -512,6 +597,9 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 		if (params.isAsc())
 			s += " order=asc";
+		
+		if (params.isEachTable())
+			s += " eachtable=t";
 
 		return s + " " + Strings.join(getTableNames(), ", ");
 	}

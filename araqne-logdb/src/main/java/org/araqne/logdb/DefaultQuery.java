@@ -119,8 +119,11 @@ public class DefaultQuery implements Query {
 
 		commands.get(commands.size() - 1).setOutput(result);
 		logger.trace("araqne logdb: run query => {}", queryString);
-		for (QueryCommand command : commands)
-			command.onStart();
+		for (QueryCommand command : commands) {
+			command.setStatus(Status.Waiting);
+			command.tryStart();
+			command.setStatus(Status.Running);
+		}
 	}
 
 	@Override
@@ -197,7 +200,7 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public boolean isFinished() {
-		return scheduler.isFinished() || isCancelled();
+		return scheduler.isFinished();
 	}
 
 	@Override
@@ -257,7 +260,7 @@ public class DefaultQuery implements Query {
 
 		try {
 			if (stopReason == null)
-				this.stopReason = reason;
+				stopReason = reason;
 
 			// stop tasks
 			scheduler.stop();
