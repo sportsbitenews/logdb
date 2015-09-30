@@ -12,6 +12,7 @@
 	<instance component="piolink-webfront-factory" />
 	<instance component="pnp-dbsafer-parser-factory" />
 	<instance component="mf2-log-parser-factory" />
+	<instance component="mfi-log-parser-factory" />
 	<instance component="nxg-log-parser-factory" />
 	<instance component="sniper-log-parser-factory" />
 	<instance component="neobox-log-parser-factory" />
@@ -28,4 +29,5 @@
 	<instance component="tess-audit-parser-factory" />
 	<instance component="tess-parser-factory" />
 	<instance component="spamsniper-parser-factory" />
+	<instance component="cube-defense-parser-factory" />
 </ipojo>

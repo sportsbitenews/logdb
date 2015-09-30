@@ -64,6 +64,17 @@ public class FortigateLogParserTest {
 		assertEquals("/ckepco/front/jsp/CY/A/B/CYABPP006.jsp?div=2", m.get("url"));
 	}
 	
+	@Test
+	public void test_6() {
+		String line = "date=2015-09-24 time=13:51:22 devname=CGN_FGT-3000 device_id=FG30002C05400053 log_id=0021010001 type=traffic subtype=allowed pri=notice vd=root SN=910428087 duration=130 user=N/A group=N/A rule=176 policyid=176 proto=6 service=80/tcp app_type=N/A status=accept src=122.36.85.72 srcname=122.36.85.72 dst=1.234.77.43 dstname=1.234.77.43 src_int=\"external\" dst_int=\"port4/ha\" sent=418 rcvd=656 sent_pkt=4 rcvd_pkt=3 src_port=51418 dst_port=80 vpn=\"N/A\" tran_ip=0.0.0.0 tran_port=0 dir_disp=org tran_disp=noop";
+
+		FortigateLogParser p = new FortigateLogParser();
+		Map<String, Object> m = p.parse(line(line));
+		assertEquals("2015-09-24", m.get("date"));
+		assertEquals("external", m.get("src_int"));
+		assertEquals("N/A", m.get("vpn"));
+	}
+
 	private Map<String, Object> line(String line) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("line", line);

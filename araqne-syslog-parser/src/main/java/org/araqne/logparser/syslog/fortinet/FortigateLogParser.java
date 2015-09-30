@@ -61,7 +61,7 @@ public class FortigateLogParser extends V1LogParser {
 		addField("sent_pkt", "string");
 		addField("rcvd_pkt", "string");
 	}
-	
+
 	private static void addField(String name, String type) {
 		fields.add(new FieldDefinition(name, type));
 	}
@@ -78,10 +78,9 @@ public class FortigateLogParser extends V1LogParser {
 			return params;
 
 		int e = line.indexOf(">");
-		if (e < 0)
-			return params;
+		if (e >= 0)
+			line = line.substring(e + 1);
 
-		String newLine = line.substring(e + 1);
 		try {
 			// tokenize pairs
 
@@ -89,11 +88,11 @@ public class FortigateLogParser extends V1LogParser {
 			char last = '\0';
 			boolean quoteOpen = false;
 			int begin = 0;
-			for (int i = 0; i < newLine.length(); i++) {
-				char c = newLine.charAt(i);
+			for (int i = 0; i < line.length(); i++) {
+				char c = line.charAt(i);
 				if (last != '\\' && c == '"') {
 					if (quoteOpen) {
-						String t = newLine.substring(begin, i + 1).trim();
+						String t = line.substring(begin, i + 1).trim();
 						tokens.add(t);
 						quoteOpen = false;
 						begin = ++i;
@@ -103,7 +102,7 @@ public class FortigateLogParser extends V1LogParser {
 				}
 
 				if (c == ' ' && !quoteOpen) {
-					String t = newLine.substring(begin, i).trim();
+					String t = line.substring(begin, i).trim();
 					tokens.add(t);
 					begin = i + 1;
 				}
@@ -111,7 +110,7 @@ public class FortigateLogParser extends V1LogParser {
 				last = c;
 			}
 
-			String lastToken = newLine.substring(begin).trim();
+			String lastToken = line.substring(begin).trim();
 			if (!lastToken.isEmpty())
 				tokens.add(lastToken);
 
