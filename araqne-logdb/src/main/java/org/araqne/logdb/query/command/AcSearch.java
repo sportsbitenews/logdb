@@ -8,9 +8,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.araqne.ahocorasick.AhoCorasickSearch;
+import org.araqne.ahocorasick.Keyword;
+import org.araqne.ahocorasick.SearchContext;
 import org.araqne.ahocorasick.SearchResult;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
@@ -19,7 +23,10 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.ThreadSafe;
+import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.query.expr.And;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.Or;
@@ -35,25 +42,32 @@ import org.araqne.logdb.query.parser.TermEmitterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AcSearch extends QueryCommand {
+public class AcSearch extends QueryCommand implements ThreadSafe {
 	private final Logger logger = LoggerFactory.getLogger(AcSearch.class);
 
 	private AhoCorasickSearch acs;
 	private String field;
+	private TimeSpan timeout;
 	private Query subQuery;
+	private String subQueryError = null;
 
-	private Map<Expression, Object> exprmap;
+	private Map<Expression, Object> exprToRow;
+	private Set<Expression> inclNot;
 
 	private AtomicInteger subQueryCounter;
 	private CountDownLatch subQueryLatch;
 	private CountDownLatch subQueryTaskLatch;
 
-	public AcSearch(String field, Query subQuery, CountDownLatch subQueryLatch) {
+	public AcSearch(String field, TimeSpan timeout, Query subQuery, CountDownLatch subQueryLatch) {
 		this.field = field;
+		this.timeout = timeout;
 		this.subQuery = subQuery;
-		this.subQueryLatch = subQueryLatch;
+
+		this.exprToRow = new HashMap<Expression, Object>();
+		this.inclNot = new HashSet<Expression>();
 
 		this.subQueryCounter = new AtomicInteger(0);
+		this.subQueryLatch = subQueryLatch;
 		this.subQueryTaskLatch = new CountDownLatch(1);
 	}
 
@@ -92,32 +106,65 @@ public class AcSearch extends QueryCommand {
 	}
 
 	@Override
+	public void onPush(RowBatch rowBatch) {
+		waitForSubQueryTaskDone();
+		for (int i = 0; i < rowBatch.size; i++)
+			rowBatch.rows[i] = pushProcess(rowBatch.rows[i]);
+		pushPipe(rowBatch);
+	}
+
+	@Override
 	public void onPush(Row row) {
 		waitForSubQueryTaskDone();
+		pushPipe(pushProcess(row));
+	}
 
-		Map<String, Object> m = row.map();
-		if (!row.containsKey(field) || row.get(field) == null) {
-			pushPipe(new Row(m));
-			return;
+	private Row pushProcess(Row row) {
+		if (subQueryError != null) {
+			row.put("_ac_error", subQueryError);
+			return row;
 		}
 
-		String content = m.get(field).toString();
-		List<SearchResult> acsResults = acs.search(content);
+		if (!row.containsKey(field) || row.get(field) == null)
+			return row;
+
+		String content = row.get(field).toString();
+		SearchContext sc = new SearchContext();
+		sc.setIncludePatterns(true);
+		List<SearchResult> acsResults = acs.search(content.getBytes(), sc);
+
 		Set<String> found = new HashSet<String>();
 		for (SearchResult sr : acsResults)
 			found.add(sr.getKeyword().getName());
-		Map<String, Object> result = new HashMap<String, Object>();
-		result.put("result", found);
+
+		Set<Expression> exprs = new HashSet<Expression>(inclNot);
+		for (SearchResult acsResult : acsResults) {
+			AcSearchKeyword pattern = (AcSearchKeyword) acsResult.getKeyword();
+			exprs.addAll(pattern.exprs);
+		}
 
 		List<Object> l = new ArrayList<Object>();
-		for (Expression e : exprmap.keySet()) {
-			if (e.eval(new Row(result)) == Boolean.TRUE) {
-				l.add(exprmap.get(e));
+		Row result = new Row();
+		result.put("result", found);
+
+		if (logger.isDebugEnabled())
+			logger.debug("logpresso query: query " + query.getId() + ", acsearch eval " + exprs.size() + " expression(s)");
+		for (Expression expr : exprs) {
+			if (expr.eval(result) == Boolean.TRUE) {
+				l.add(exprToRow.get(expr));
 			}
 		}
 
-		m.put("_ac_result", l);
-		pushPipe(new Row(m));
+		row.put("_ac_result", l);
+		return row;
+	}
+
+	@Override
+	public String toString() {
+		String timeoutOpt = "";
+		if (timeout != null)
+			timeoutOpt = "timeout=" + timeout + " ";
+		return "acsearch " + timeoutOpt + field + " [ " + subQuery.getQueryString() + " ]";
 	}
 
 	private class SubQueryTask extends QueryTask {
@@ -128,41 +175,113 @@ public class AcSearch extends QueryCommand {
 
 			try {
 				subQuery.run();
-				subQueryLatch.await();
+				boolean isDone = await(subQueryLatch);
+
+				if (!isDone) {
+					subQueryError = "sub query timeout";
+					return;
+				} else if (subQuery.isCancelled()) {
+					subQueryError = "sub query is cancelled";
+					return;
+				}
+
+				AtomicBoolean not = new AtomicBoolean(false);
+				Set<String> keywords = new HashSet<String>();
+				Map<String, AcSearchKeyword> patterns = new HashMap<String, AcSearchKeyword>();
+
+				OpEmitterFactory of = new AcSearchOpEmitterFactory(not);
+				TermEmitterFactory tf = new AcSearchTermEmitterFactory(keywords);
+				FuncEmitterFactory ff = new AcSearchFuncEmitterFactory();
+				ParsingRule pr = new ParsingRule(AcSearchOpTerm.NOP, of, ff, tf);
 
 				List<Map<String, Object>> subQueryResult = subQuery.getResultAsList();
-				Set<String> keywords = new HashSet<String>();
-				exprmap = new HashMap<Expression, Object>();
 				for (Map<String, Object> m : subQueryResult) {
 					Object e = m.get("expr");
 					if (e == null)
 						continue;
 
+					not.set(false);
+					keywords.clear();
 					try {
-						OpEmitterFactory of = new AcSearchOpEmitterFactory();
-						TermEmitterFactory tf = new AcSearchTermEmitterFactory(keywords);
-						FuncEmitterFactory ff = new AcSearchFuncEmitterFactory();
-						ParsingRule pr = new ParsingRule(AcSearchOpTerm.NOP, of, ff, tf);
-
 						Expression expr = ExpressionParser.parse(getContext(), e.toString(), pr);
-						exprmap.put(expr, m);
-					} catch (QueryParseException q) {
-						logger.warn("logpresso query: invalid expr content [" + e.toString() + "]");
+						exprToRow.put(expr, m);
+
+						if (not.get())
+							inclNot.add(expr);
+
+						for (String keyword : keywords) {
+							AcSearchKeyword pattern = patterns.get(keyword);
+							if (pattern == null) {
+								pattern = new AcSearchKeyword(keyword);
+								patterns.put(keyword, pattern);
+							}
+
+							if (!not.get()) {
+								pattern.exprs.add(expr);
+							}
+						}
+					} catch (QueryParseException qe) {
+						logger.warn("logpresso query: query " + query.getId() + ", invalid expr content [" + e.toString() + "]",
+								qe);
 					}
 				}
 
 				acs = new AhoCorasickSearch();
-				for (String keyword : keywords)
-					acs.addKeyword(keyword);
+				for (AcSearchKeyword pattern : patterns.values())
+					acs.addKeyword(pattern);
 				acs.compile();
 			} catch (Throwable t) {
+				subQueryError = "sub query error";
 				logger.error("logpresso query: acsearch subquery error", t);
-			} finally {
+			}
+		}
+
+		private boolean await(CountDownLatch latch) throws InterruptedException {
+			if (timeout == null) {
+				latch.await();
+				return true;
+			} else {
+				return latch.await(timeout.getMillis(), TimeUnit.MILLISECONDS);
 			}
 		}
 	}
 
+	private class AcSearchKeyword implements Keyword {
+		private String str;
+		private byte[] keyword;
+		private int length;
+		private Set<Expression> exprs;
+
+		public AcSearchKeyword(String str) {
+			this.str = str;
+			this.keyword = str.getBytes();
+			this.length = keyword.length;
+			this.exprs = new HashSet<Expression>();
+		}
+
+		@Override
+		public String getName() {
+			return str;
+		}
+
+		@Override
+		public byte[] getKeyword() {
+			return keyword;
+		}
+
+		@Override
+		public int length() {
+			return length;
+		}
+	}
+
 	private class AcSearchOpEmitterFactory implements OpEmitterFactory {
+		private AtomicBoolean not;
+
+		public AcSearchOpEmitterFactory(AtomicBoolean not) {
+			this.not = not;
+		}
+
 		@Override
 		public void emit(Stack<Expression> exprStack, Term term) {
 			AcSearchOpTerm op = (AcSearchOpTerm) term;
@@ -171,6 +290,7 @@ public class AcSearch extends QueryCommand {
 				Expression expr = exprStack.pop();
 				if (op != AcSearchOpTerm.Not)
 					throw new QueryParseException("unsupported operator " + op.toString(), -1);
+				not.set(true);
 				exprStack.add(new NotExpression(expr));
 				return;
 			}
@@ -217,16 +337,17 @@ public class AcSearch extends QueryCommand {
 
 		@Override
 		public void emit(Stack<Expression> exprStack, TokenTerm t) {
-			if (!t.getText().equals("(") && !t.getText().equals(")")) {
-				String token = ((TokenTerm) t).getText().trim();
-				if (!token.startsWith("\"") || !token.endsWith("\""))
-					return;
+			if (t.getText().equals("(") || t.getText().equals(")"))
+				return;
 
-				String str = token.substring(1, token.length() - 1);
-				Expression expr = new StringExpression(str);
-				keywords.add(str);
-				exprStack.add(expr);
-			}
+			String token = ((TokenTerm) t).getText().trim();
+			if (!token.startsWith("\"") || !token.endsWith("\""))
+				return;
+
+			String str = token.substring(1, token.length() - 1);
+			Expression expr = new StringExpression(str);
+			keywords.add(str);
+			exprStack.add(expr);
 		}
 	}
 
@@ -324,7 +445,7 @@ public class AcSearch extends QueryCommand {
 
 		@Override
 		public OpTerm postProcessCloseParen() {
-			return null;
+			return this;
 		}
 
 		@Override
