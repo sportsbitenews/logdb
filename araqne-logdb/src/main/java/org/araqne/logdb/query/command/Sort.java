@@ -47,6 +47,7 @@ public class Sort extends QueryCommand {
 	private SortField[] fields;
 	private List<String> partitionFields;
 	private SortField[] compareFields;
+	private ObjectComparator cmp;
 	private ParallelMergeSorter sorter;
 	private TopSelector<Item> top;
 	private Map<List<Object>, PriorityQueue<Item>> sortBuffer;
@@ -57,6 +58,7 @@ public class Sort extends QueryCommand {
 		this.limit = limit;
 		this.fields = fields;
 		this.partitionFields = partitionFields;
+		this.cmp = new ObjectComparator();
 
 		if (partitionFields.size() > 0) {
 			// merge partition fields + sort fields
@@ -224,7 +226,7 @@ public class Sort extends QueryCommand {
 
 						if (currentPK == null || !compareTwoPartitionKeys(currentPK, partitionSortKey)) {
 							currentCount = 0;
-							currentPK = Arrays.copyOfRange(partitionSortKey, 0, partitionFields.size());
+							currentPK = partitionSortKey;
 						}
 
 						if (currentCount++ < count) {
@@ -311,7 +313,6 @@ public class Sort extends QueryCommand {
 	}
 
 	private boolean compareTwoPartitionKeys(Object[] currentPK, Object[] partitionSortKey) {
-		ObjectComparator cmp = new ObjectComparator();
 		for (int i = 0; i < partitionFields.size(); ++i) {
 			Object v1 = currentPK[i];
 			Object v2 = partitionSortKey[i];
@@ -325,8 +326,6 @@ public class Sort extends QueryCommand {
 	}
 
 	private class DefaultComparator implements Comparator<Item> {
-		private ObjectComparator cmp = new ObjectComparator();
-
 		@SuppressWarnings("unchecked")
 		@Override
 		public int compare(Item o1, Item o2) {
@@ -361,7 +360,6 @@ public class Sort extends QueryCommand {
 	}
 
 	private class PartitionComparator implements Comparator<Item> {
-		private ObjectComparator cmp = new ObjectComparator();
 		private boolean reverse = false;
 
 		public PartitionComparator(boolean reverse) {
