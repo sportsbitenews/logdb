@@ -1,6 +1,7 @@
 package org.araqne.logdb.query.command;
 
 import java.util.ArrayList;
+import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -220,6 +221,9 @@ public class AcSearch extends QueryCommand implements ThreadSafe {
 								pattern.exprs.add(expr);
 							}
 						}
+					} catch (EmptyStackException ee) {
+						logger.warn("logpresso query: query " + query.getId() + ", invalid expr content [" + e.toString() + "]",
+								ee);
 					} catch (QueryParseException qe) {
 						logger.warn("logpresso query: query " + query.getId() + ", invalid expr content [" + e.toString() + "]",
 								qe);
