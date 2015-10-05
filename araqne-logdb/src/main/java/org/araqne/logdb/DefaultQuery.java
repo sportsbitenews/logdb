@@ -139,6 +139,9 @@ public class DefaultQuery implements Query {
 		} catch (Throwable t) {
 			logger.error("araqne logdb: query failed - " + this, t);
 			stop(t);
+
+			// call postRun(), all other tasks are already cancelled
+			scheduler.run();
 		}
 	}
 
