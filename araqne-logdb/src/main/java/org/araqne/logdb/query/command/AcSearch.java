@@ -1,7 +1,6 @@
 package org.araqne.logdb.query.command;
 
 import java.util.ArrayList;
-import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,6 +16,7 @@ import org.araqne.ahocorasick.AhoCorasickSearch;
 import org.araqne.ahocorasick.Keyword;
 import org.araqne.ahocorasick.SearchContext;
 import org.araqne.ahocorasick.SearchResult;
+import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
@@ -52,19 +52,26 @@ public class AcSearch extends QueryCommand implements ThreadSafe {
 	private Query subQuery;
 	private String subQueryError = null;
 
+	private FunctionRegistry functionRegistry;
+
 	private Map<Expression, Object> exprToRow;
+	private Map<Expression, Expression> secondFilters;
 	private Set<Expression> inclNot;
 
 	private AtomicInteger subQueryCounter;
 	private CountDownLatch subQueryLatch;
 	private CountDownLatch subQueryTaskLatch;
 
-	public AcSearch(String field, TimeSpan timeout, Query subQuery, CountDownLatch subQueryLatch) {
+	public AcSearch(String field, TimeSpan timeout, Query subQuery, CountDownLatch subQueryLatch,
+			FunctionRegistry functionRegistry) {
 		this.field = field;
 		this.timeout = timeout;
 		this.subQuery = subQuery;
 
+		this.functionRegistry = functionRegistry;
+
 		this.exprToRow = new HashMap<Expression, Object>();
+		this.secondFilters = new HashMap<Expression, Expression>();
 		this.inclNot = new HashSet<Expression>();
 
 		this.subQueryCounter = new AtomicInteger(0);
@@ -109,8 +116,18 @@ public class AcSearch extends QueryCommand implements ThreadSafe {
 	@Override
 	public void onPush(RowBatch rowBatch) {
 		waitForSubQueryTaskDone();
-		for (int i = 0; i < rowBatch.size; i++)
-			rowBatch.rows[i] = pushProcess(rowBatch.rows[i]);
+
+		if (rowBatch.selectedInUse) {
+			for (int i = 0; i < rowBatch.size; i++) {
+				int p = rowBatch.selected[i];
+				rowBatch.rows[p] = pushProcess(rowBatch.rows[p]);
+			}
+		} else {
+			for (int i = 0; i < rowBatch.size; i++) {
+				rowBatch.rows[i] = pushProcess(rowBatch.rows[i]);
+			}
+		}
+
 		pushPipe(rowBatch);
 	}
 
@@ -152,6 +169,16 @@ public class AcSearch extends QueryCommand implements ThreadSafe {
 			logger.debug("logpresso query: query " + query.getId() + ", acsearch eval " + exprs.size() + " expression(s)");
 		for (Expression expr : exprs) {
 			if (expr.eval(result) == Boolean.TRUE) {
+				Expression expr2 = secondFilters.get(expr);
+				if (expr2 != null) {
+					Object o = expr2.eval(row);
+					boolean ret = (o != null);
+					if (o instanceof Boolean)
+						ret = (Boolean) o;
+
+					if (!ret)
+						continue;
+				}
 				l.add(exprToRow.get(expr));
 			}
 		}
@@ -197,14 +224,26 @@ public class AcSearch extends QueryCommand implements ThreadSafe {
 
 				List<Map<String, Object>> subQueryResult = subQuery.getResultAsList();
 				for (Map<String, Object> m : subQueryResult) {
+					boolean isExpr = true;
 					Object e = m.get("expr");
-					if (e == null)
+					if (e == null) {
+						logger.warn("logpresso query: query " + query.getId() + ", expr content not found [" + m + "]");
 						continue;
+					}
 
 					not.set(false);
 					keywords.clear();
 					try {
 						Expression expr = ExpressionParser.parse(getContext(), e.toString(), pr);
+
+						isExpr = false;
+						e = m.get("expr2");
+						Expression expr2 = null;
+						if (e != null) {
+							expr2 = ExpressionParser.parse(getContext(), e.toString(), functionRegistry);
+							secondFilters.put(expr, expr2);
+						}
+
 						exprToRow.put(expr, m);
 
 						if (not.get())
@@ -221,12 +260,9 @@ public class AcSearch extends QueryCommand implements ThreadSafe {
 								pattern.exprs.add(expr);
 							}
 						}
-					} catch (EmptyStackException ee) {
-						logger.warn("logpresso query: query " + query.getId() + ", invalid expr content [" + e.toString() + "]",
-								ee);
-					} catch (QueryParseException qe) {
-						logger.warn("logpresso query: query " + query.getId() + ", invalid expr content [" + e.toString() + "]",
-								qe);
+					} catch (Throwable t) {
+						logger.warn("logpresso query: query " + query.getId() + ", invalid expr" + (isExpr ? "" : "2")
+								+ " content [" + e.toString() + "]", t);
 					}
 				}
 

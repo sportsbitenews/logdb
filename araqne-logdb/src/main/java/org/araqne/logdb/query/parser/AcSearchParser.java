@@ -56,7 +56,7 @@ public class AcSearchParser extends AbstractQueryCommandParser {
 		SubQueryCountDownLatch subQueryLatch = new SubQueryCountDownLatch();
 		subQuery.getCallbacks().getStatusCallbacks().add(subQueryLatch);
 
-		return new AcSearch(field, timeout, subQuery, subQueryLatch.latch);
+		return new AcSearch(field, timeout, subQuery, subQueryLatch.latch, getFunctionRegistry());
 	}
 
 	private static class SubQueryCountDownLatch implements QueryStatusCallback {
