@@ -29,6 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -235,7 +236,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 				setStates(LastPositionHelper.serialize(lastPositions));
 			else
 				slog.debug("araqne-logapi-nio: logger [{}] has no modification, skip setStates()", getFullName());
-			
+
 			modifiedStates = false;
 		}
 	}
@@ -286,7 +287,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 				return;
 
 			modifiedStates = true;
-			
+
 			AtomicLong lastPosition = new AtomicLong(offset);
 			receiver.filename = file.getName();
 			is = new FileInputStream(file);
@@ -551,6 +552,10 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		if (isRunning())
 			throw new IllegalStateException("logger is running");
 
+		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))
+				|| !oldConfigs.get("filename_pattern").equals(newConfigs.get("filename_pattern"))) {
+			setStates(new HashMap<String, Object>());
+		}
 		applyConfig();
 	}
 }

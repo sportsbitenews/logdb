@@ -38,7 +38,8 @@ public class MultiRotationFileLogger extends AbstractLogger implements Reconfigu
 	@Override
 	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
 		// purge old states if base path is changed
-		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))) {
+		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))
+				|| !oldConfigs.get("filename_pattern").equals(newConfigs.get("filename_pattern"))) {
 			setStates(new HashMap<String, Object>());
 		}
 	}

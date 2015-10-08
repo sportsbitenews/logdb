@@ -38,9 +38,6 @@ public class CepEventLogger extends AbstractLogger implements EventSubscriber, R
 
 	@Override
 	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
-		if (!oldConfigs.get("topics").equals(newConfigs.get("topics"))) {
-			setStates(new HashMap<String, Object>());
-		}
 	}
 
 	@Override
