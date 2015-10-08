@@ -33,7 +33,8 @@ public class DailyRollingDirectoryWatchLogger extends AbstractLogger implements 
 
 	@Override
 	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
-		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))) {
+		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))
+				|| !oldConfigs.get("filename_pattern").equals(newConfigs.get("filename_pattern"))) {
 			setStates(new HashMap<String, Object>());
 		}
 	}

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -243,6 +244,10 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 		if (isRunning())
 			throw new IllegalStateException("logger is running");
 
+		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))
+				|| !oldConfigs.get("filename_pattern").equals(newConfigs.get("filename_pattern"))) {
+			setStates(new HashMap<String, Object>());
+		}
 		applyConfig();
 	}
 }
