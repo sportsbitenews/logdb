@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.expr;
 
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
@@ -33,6 +34,12 @@ public class Len extends FunctionExpression {
 		Object value = valueExpr.eval(map);
 		if (value == null)
 			return 0;
+		else if (value instanceof List)
+			return ((List<?>) value).size();
+		else if (value instanceof Object[])
+			return ((Object[]) value).length;
+		else if (value instanceof Map)
+			return ((Map<?, ?>) value).size();
 
 		return (value.toString()).length();
 	}
