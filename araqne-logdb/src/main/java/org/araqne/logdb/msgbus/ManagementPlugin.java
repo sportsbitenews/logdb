@@ -143,6 +143,15 @@ public class ManagementPlugin {
 				} else {
 					throw e;
 				}
+			} catch (IllegalStateException e) {
+				if (e.getMessage() != null && e.getMessage().equals("invalid password")) {
+					Map<String, Object> errorParams = new HashMap<String, Object>();
+					errorParams.put("login", loginName);
+					errorParams.put("remote_ip", session.getRemoteAddress() != null ? session.getRemoteAddress().getHostAddress() : null);
+					throw new MsgbusException("logdb", "invalid password", errorParams);
+				}
+				
+				throw e;
 			}
 		}
 
