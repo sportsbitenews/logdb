@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Eediom Inc
+ * Copyright 2014 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logparser.krsyslog.cyberoam;
+
+package org.araqne.logparser.syslog.riorey;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,41 +26,48 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
-@Component(name = "cyberoam-parser-factory")
+/**
+ * @author kyun
+ */
+@Component(name = "riorey-syslog-parser-factory")
 @Provides
-public class CyberoamParserFactory extends AbstractLogParserFactory {
+public class RioreySyslogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
-		return "cyberoam";
+		return "riorey-sys";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
-
+	
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "사이버롬 UTM";
-		return "Cyberoam UTM";
+			return "리오레이 시스로그";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "Riorey Syslog";
+		return "Riorey Syslog";
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "사이버롬 UTM의 로그를 파싱합니다.";
-		return "Parse Cyberoam UTM logs.";
+			return "리오레이 디도스 방어 솔루션의 시스로그를 파싱합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "解析riorey DDoS防御产品的Syslog。";
+		return "Parse Riorey Riorey syslogs.";
 	}
 
 	@Override
 	public LogParser createParser(Map<String, String> configs) {
-		return new CyberoamParser();
+		return new RioreySyslogParser();
 	}
 }

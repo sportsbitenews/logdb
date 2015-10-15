@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Eediom Inc
+ * Copyright 2012 Future Systems, Inc
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logparser.krsyslog.cyberoam;
+package org.araqne.logparser.syslog.juniper;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,41 +25,45 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
-@Component(name = "cyberoam-parser-factory")
+@Component(name = "srx-log-parser-factory")
 @Provides
-public class CyberoamParserFactory extends AbstractLogParserFactory {
+public class SrxLogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public String getName() {
-		return "cyberoam";
+		return "srx";
 	}
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
-	}
-
-	@Override
-	public Collection<Locale> getDescriptionLocales() {
-		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "사이버롬 UTM";
-		return "Cyberoam UTM";
+			return "SRX 서비스 게이트웨이";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "SRX网关";
+		return "SRX Series Service Gateway";
+	}
+
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "사이버롬 UTM의 로그를 파싱합니다.";
-		return "Parse Cyberoam UTM logs.";
+			return "주니퍼 SRX 시리즈 서비스 게이트웨이 로그를 파싱합니다.";
+		if (locale != null && locale.equals(Locale.CHINESE))
+			return "解析juniper SRX系列网关日志。";
+		return "Parse Juniper SRX Series Service Gateway logs.";
 	}
 
 	@Override
-	public LogParser createParser(Map<String, String> configs) {
-		return new CyberoamParser();
+	public LogParser createParser(Map<String, String> config) {
+		return new SrxLogParser();
 	}
 }

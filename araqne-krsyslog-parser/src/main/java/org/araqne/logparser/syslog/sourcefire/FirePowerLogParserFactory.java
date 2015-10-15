@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Eediom Inc
+ * Copyright 2014 Eediom Inc
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.logparser.krsyslog.cyberoam;
+package org.araqne.logparser.syslog.sourcefire;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,13 +25,12 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
-@Component(name = "cyberoam-parser-factory")
+@Component(name = "firepower-snmp-log-parser-factory")
 @Provides
-public class CyberoamParserFactory extends AbstractLogParserFactory {
-
+public class FirePowerLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getName() {
-		return "cyberoam";
+		return "firepower";
 	}
 
 	@Override
@@ -40,26 +39,28 @@ public class CyberoamParserFactory extends AbstractLogParserFactory {
 	}
 
 	@Override
+	public String getDisplayName(Locale locale) {
+		if (locale != null && locale.equals(Locale.KOREAN))
+			return "소스파이어 FirePOWER SNMP";
+		return "Sourcefire FirePOWER SNMP";
+	}
+
+	@Override
 	public Collection<Locale> getDescriptionLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
-	public String getDisplayName(Locale locale) {
-		if (locale != null && locale.equals(Locale.KOREAN))
-			return "사이버롬 UTM";
-		return "Cyberoam UTM";
-	}
-
-	@Override
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "사이버롬 UTM의 로그를 파싱합니다.";
-		return "Parse Cyberoam UTM logs.";
+			return "소스파이어의 FirePOWER SNMP 로그를 파싱 합니다.";
+		return "Parse Sourcefire FirePOWER SNMP logs.";
 	}
 
 	@Override
-	public LogParser createParser(Map<String, String> configs) {
-		return new CyberoamParser();
+	public LogParser createParser(Map<String, String> config) {
+		return new FirePowerLogParser();
 	}
 }
+
+
