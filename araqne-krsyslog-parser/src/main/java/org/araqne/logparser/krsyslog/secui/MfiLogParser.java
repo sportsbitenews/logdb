@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Eediom Inc.
+ * Copyright 2015 Eediom Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,7 @@
  */
 package org.araqne.logparser.krsyslog.secui;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.V1LogParser;
@@ -25,7 +23,6 @@ import org.araqne.log.api.V1LogParser;
 public class MfiLogParser extends V1LogParser {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(Mf2LogParser.class.getName());
 
-	private static Map<String, List<String[]>> overlappedFieldMap = new HashMap<String, List<String[]>>();
 	private static Map<String, String[]> typeFieldMap = new HashMap<String, String[]>();
 
 	public enum Mode {
@@ -37,16 +34,6 @@ public class MfiLogParser extends V1LogParser {
 	static void add(String type, String fields) {
 		String[] tokens = fields.split(",");
 		typeFieldMap.put(type, tokens);
-	}
-
-	static void addOverlapped(String type, String fields) {
-		String[] tokens = fields.split(",");
-		if (overlappedFieldMap.get(type) == null) {
-			overlappedFieldMap.put(type, new ArrayList<String[]>());
-		}
-
-		List<String[]> l = overlappedFieldMap.get(type);
-		l.add(tokens);
 	}
 
 	static {
@@ -79,11 +66,11 @@ public class MfiLogParser extends V1LogParser {
 
 	@Override
 	public Map<String, Object> parse(Map<String, Object> params) {
-		try {
-			String line = (String) params.get("line");
-			if (line == null)
-				return params;
+		String line = (String) params.get("line");
+		if (line == null)
+			return params;
 
+		try {
 			Map<String, Object> m = new HashMap<String, Object>();
 
 			// parse header
@@ -122,10 +109,8 @@ public class MfiLogParser extends V1LogParser {
 			parse(line, m, fields, e, delimiter);
 			return m;
 		} catch (Throwable t) {
-			if (slog.isDebugEnabled()) {
-				String line = (String) params.get("line");
+			if (slog.isDebugEnabled())
 				slog.debug("araqne krsyslog parser: cannot parse log [" + line + "]", t);
-			}
 
 			return params;
 		}
@@ -149,6 +134,7 @@ public class MfiLogParser extends V1LogParser {
 			String content = line.substring(b);
 			m.put(fields[index], content);
 		} catch (IndexOutOfBoundsException e1) {
+			throw e1;
 		}
 	}
 }

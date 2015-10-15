@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @author kyun
+ * @author mindori
  */
 
 public class SrxNewLogParser extends V1LogParser {
@@ -34,7 +34,7 @@ public class SrxNewLogParser extends V1LogParser {
 		Map<String, Object> m = new HashMap<String, Object>();
 		String line = (String) params.get("line");
 		if (line == null)
-			return null;
+			return params;
 
 		try {
 			int b = 2;
@@ -70,18 +70,17 @@ public class SrxNewLogParser extends V1LogParser {
 					int i = e + 2;
 
 					while (true) {
-						try {
-							char ch = line.charAt(i);
-							if (ch == '"' && line.charAt(i + 1) == ' ') {
-								value = line.substring(e + 2, i);
-								break;
-							}
-							i++;
-						} catch (IndexOutOfBoundsException ex) {
-							value = line.substring(e + 2, i - 2);
+						char ch = line.charAt(i);
+						char nextCh = line.charAt(i + 1);
+						if (ch == '"' && nextCh == ' ') {
+							value = line.substring(e + 2, i);
+							break;
+						} else if (ch == '"' && nextCh == ']') {
+							value = line.substring(e + 2, i);
 							isEnd = true;
 							break;
 						}
+						i++;
 					}
 					m.put(key, value);
 					b = i + 2;
@@ -104,7 +103,8 @@ public class SrxNewLogParser extends V1LogParser {
 			}
 
 		} catch (Throwable t) {
-			logger.warn("araqne syslog parser: juniper srx3400 parse error [" + line + "]", t);
+			if (logger.isDebugEnabled())
+				logger.debug("araqne syslog parser: juniper srx3400 parse error [" + line + "]", t);
 			return params;
 		}
 
