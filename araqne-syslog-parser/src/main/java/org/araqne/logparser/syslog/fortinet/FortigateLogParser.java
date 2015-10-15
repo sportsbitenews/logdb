@@ -17,58 +17,32 @@ package org.araqne.logparser.syslog.fortinet;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.V1LogParser;
 
 public class FortigateLogParser extends V1LogParser {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(FortigateLogParser.class.getName());
 
-	private static final List<FieldDefinition> fields;
+	private static final Map<String, String> COLUMNS = new HashMap<String, String>();
 
 	static {
-		fields = new ArrayList<FieldDefinition>();
-		addField("date", "string");
-		addField("time", "string");
-		addField("devname", "string");
-		addField("device_id", "string");
-		addField("log_id", "string");
-		addField("type", "string");
-		addField("subtype", "string");
-		addField("pri", "string");
-		addField("vd", "string");
-		addField("src", "string");
-		addField("src_port", "string");
-		addField("src_int", "string");
-		addField("dst", "string");
-		addField("dst_port", "string");
-		addField("dst_int", "string");
-		addField("SN", "string");
-		addField("status", "string");
-		addField("policyid", "string");
-		addField("dst_country", "string");
-		addField("src_country", "string");
-		addField("tran_disp", "string");
-		addField("tran_ip", "string");
-		addField("tran_port", "string");
-		addField("service", "string");
-		addField("proto", "string");
-		addField("duration", "string");
-		addField("sent", "string");
-		addField("rcvd", "string");
-		addField("sent_pkt", "string");
-		addField("rcvd_pkt", "string");
-	}
-
-	private static void addField(String name, String type) {
-		fields.add(new FieldDefinition(name, type));
-	}
-
-	@Override
-	public List<FieldDefinition> getFieldDefinitions() {
-		return fields;
+		COLUMNS.put("src", "src_ip");
+		COLUMNS.put("srcip", "src_ip");
+		COLUMNS.put("dst", "dst_ip");
+		COLUMNS.put("dstip", "dst_ip");
+		COLUMNS.put("srcport", "src_port");
+		COLUMNS.put("dstport", "dst_port");
+		COLUMNS.put("proto", "protocol");
+		COLUMNS.put("status", "action");
+		COLUMNS.put("rcvd_pkt", "recv_pkts");
+		COLUMNS.put("rcvdpkt", "recv_pkts");
+		COLUMNS.put("sent_pkt", "sent_pkts");
+		COLUMNS.put("sentpkt", "sent_pkts");
+		COLUMNS.put("rcvd", "recv_bytes");
+		COLUMNS.put("rcvdbyte", "recv_bytes");
+		COLUMNS.put("sent", "sent_bytes");
+		COLUMNS.put("sentbyte", "sent_bytes");
 	}
 
 	@Override
@@ -126,8 +100,13 @@ public class FortigateLogParser extends V1LogParser {
 						String value = tokens.get(++i).trim();
 						if (value.startsWith("\"") && value.length() > 1)
 							value = value.substring(1, value.length() - 1);
+
+						if (COLUMNS.containsKey(t))
+							t = COLUMNS.get(t);
 						m.put(t, value);
 					} else {
+						if (COLUMNS.containsKey(t))
+							t = COLUMNS.get(t);
 						m.put(t, null);
 					}
 				} else {
@@ -135,6 +114,8 @@ public class FortigateLogParser extends V1LogParser {
 					String value = t.substring(p + 1).trim();
 					if (value.startsWith("\"") && value.length() > 1)
 						value = value.substring(1, value.length() - 1);
+					if (COLUMNS.containsKey(key))
+						key = COLUMNS.get(key);
 					m.put(key, value);
 				}
 			}
