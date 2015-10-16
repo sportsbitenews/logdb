@@ -52,6 +52,21 @@ import org.slf4j.LoggerFactory;
  * @author xeraph@eediom.com
  */
 public class WgetQueryCommand extends DriverQueryCommand {
+	private static long WGET_MAX_SIZE;
+
+	static {
+		WGET_MAX_SIZE = 10485760;
+
+		// override default max size
+		String s = System.getProperty("araqne.logdb.wget_max_size");
+		if (s != null) {
+			try {
+				WGET_MAX_SIZE = Long.valueOf(s);
+			} catch (NumberFormatException e) {
+			}
+		}
+	}
+
 	private final Logger slog = LoggerFactory.getLogger(WgetQueryCommand.class);
 	private final TrustManager[] trustAllCerts = new TrustManager[] { new IgnoreTrustManager() };
 	private final HostnameVerifier hostnameVerifier = new IgnoreHostnameVerifier();
@@ -105,11 +120,11 @@ public class WgetQueryCommand extends DriverQueryCommand {
 			if (selector != null)
 				fetchUrlByJsoup(row, url);
 			else
-				fetchUrl(row, url);
+				fetchUrl(row, url, true);
 
 			pushPipe(row);
 		} catch (Throwable t) {
-			slog.error("araqne logdb crawler: wget failed - " + url, t);
+			slog.debug("araqne logdb crawler: wget failed - " + url, t);
 			throw new IllegalStateException("wget: " + t.getMessage());
 		}
 	}
@@ -127,7 +142,7 @@ public class WgetQueryCommand extends DriverQueryCommand {
 			if (selector != null)
 				fetchUrlByJsoup(row, url);
 			else
-				fetchUrl(row, url);
+				fetchUrl(row, url, false);
 		} catch (Throwable t) {
 			if (slog.isDebugEnabled())
 				slog.debug("araqne logdb crawler: wget failed - " + url, t);
@@ -136,7 +151,7 @@ public class WgetQueryCommand extends DriverQueryCommand {
 		}
 	}
 
-	private void fetchUrl(Row row, String url) throws Exception {
+	private void fetchUrl(Row row, String url, boolean throwException) throws Exception {
 		HttpURLConnection conn = null;
 		InputStream is = null;
 		byte[] b = new byte[8096];
@@ -165,7 +180,10 @@ public class WgetQueryCommand extends DriverQueryCommand {
 					break;
 
 				total += len;
-				if (total >= 10485760) {
+				if (total >= WGET_MAX_SIZE) {
+					if (throwException)
+						throw new IllegalStateException("Too large HTTP response, exceeds max size " + WGET_MAX_SIZE);
+					
 					row.put("_wget_error", "exceeds-max-size");
 					return;
 				}
