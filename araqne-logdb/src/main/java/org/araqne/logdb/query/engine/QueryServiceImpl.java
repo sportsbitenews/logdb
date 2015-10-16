@@ -409,6 +409,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			if (source != null)
 				m.put("source", source);
 			m.put("login_name", session.getLoginName());
+			m.put("remote_ip", session.getProperty("remote_ip"));
 		} else {
 			m.put("source", null);
 			m.put("login_name", null);
@@ -606,6 +607,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			m.put("duration", 0);
 
 		if (session != null) {
+			m.put("remote_ip", session.getProperty("remote_ip"));
 			String source = (String) session.getProperty("araqne_logdb_query_source");
 			if (source != null)
 				m.put("source", source);
