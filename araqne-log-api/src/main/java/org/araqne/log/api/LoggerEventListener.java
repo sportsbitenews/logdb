@@ -32,8 +32,10 @@ public interface LoggerEventListener {
 	void onUpdated(Logger logger, Map<String, String> config);
 	
 	/**
-	 * @Since 3. TODO:
+	 * @Since 3. TODO: 
 	 */
-	void onPending(Logger logger);
+	void onPend(Logger logger, LoggerStopReason reason);
+	
+	void onResolved(Logger logger, LoggerStopReason reason);
 	
 }

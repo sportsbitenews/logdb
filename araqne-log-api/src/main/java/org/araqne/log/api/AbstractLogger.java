@@ -185,7 +185,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 				try {
 					callback.onFailureChange(this);
 				} catch (Throwable t) {
-					slog.warn("araqne log api; logger [" + getFullName() + "] callback should not throw any exception", t);
+					slog.error("araqne log api; logger [" + getFullName() + "] callback should not throw any exception", t);
 				}
 			}
 		}
@@ -231,21 +231,21 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public void setPending(boolean pending) {
 		this.pending = pending;
-		if (pending) {
 
-			for(LoggerEventListener callback : eventListeners) {
-				try {
-					callback.onPending(this);
-				} catch (Throwable t) {
-					slog.warn("araqne log api; logger [" + getFullName() + "] callback should not throw any exception", t);
-				}
-			}
-			
+		if (pending) {
+			LoggerStopReason reason = null;
 			if (!unresolvedLoggers.isEmpty())
-				lastStopReason = LoggerStopReason.LOGGER_DEPENDENCY;
+				reason = LoggerStopReason.LOGGER_DEPENDENCY;
 			else if (config.get("transformer") != null && transformer == null)
-				lastStopReason = LoggerStopReason.TRANSFORMER_DEPENDENCY;
+				reason = LoggerStopReason.TRANSFORMER_DEPENDENCY;
+
+			notifyPending(reason);
+			if (reason != null)
+				lastStopReason = reason;
+		} else {
+				notifyResolved(lastStopReason);
 		}
+
 	}
 
 	@Override
@@ -298,7 +298,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public void start(LoggerStartReason reason) {
 		verifyPending();
-		
+
 		if (!isPassive())
 			throw new IllegalStateException("not passive mode. use start(interval)");
 
@@ -324,7 +324,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		status = LoggerStatus.Starting;
 		doStop = false;
-		
+
 		this.interval = interval;
 
 		invokeStartCallback(reason);
@@ -341,13 +341,17 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	private void verifyPending() {
+		if(!isEnabled())
+			throw new IllegalStateException("disabled");
+		
+		if(isRunning())
+			throw new IllegalStateException("running");
+		
 		if ((config.get("transformer") != null) && (transformer == null)) {
-			setPending(true);
 			throw new IllegalStateException("pending transformer");
 		}
 
 		if (!unresolvedLoggers.isEmpty()) {
-			setPending(true);
 			throw new IllegalStateException("pending logger");
 		}
 	}
@@ -599,7 +603,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 				if (e.getCause() != null && e.getCause().getMessage() != null
 						&& e.getCause().getMessage().contains("archive not opened"))
 					reason = LoggerStopReason.LOW_DISK;
-				
+
 				this.slog.warn("araqne-log-api: stopping logger [" + getFullName() + "] by exception", e);
 				if (isPassive())
 					stop(reason);
@@ -703,6 +707,26 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		}
 	}
 
+	private void notifyPending(LoggerStopReason reason) {
+		for (LoggerEventListener callback : eventListeners) {
+			try {
+				callback.onPend(this, reason);
+			} catch (Throwable t) {
+				slog.error("araqne log api; logger [" + getFullName() + "] callback should not throw any exception", t);
+			}
+		}
+	}
+
+	private void notifyResolved(LoggerStopReason reason) {
+		for (LoggerEventListener callback : eventListeners) {
+			try {
+				callback.onResolved(this, reason);
+			} catch (Throwable e) {
+				slog.error("araqne log api; logger [" + getFullName() + "] callback should not throw any exception", t);
+			}
+		}
+	}
+
 	/**
 	 * Use getConfigs() instead
 	 */
@@ -802,15 +826,17 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public void setTransformer(LogTransformer transformer) {
 		this.transformer = transformer;
-
-		boolean transformerResolved = (config.get("transformer") == null) || (transformer != null);
-		if (!manualStart && enabled && isPending() && transformerResolved && unresolvedLoggers.isEmpty()) {
-			start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
-		}
-		if ((enabled) && (!transformerResolved)) {
-			setPending(true);
-			stop(LoggerStopReason.TRANSFORMER_DEPENDENCY, 5000);
-		}
+		checkPending();
+		//boolean transformerResolved = (config.get("transformer") == null) || (transformer != null);
+		// if (!manualStart && enabled && isPending() && transformerResolved &&
+		// unresolvedLoggers.isEmpty()) {
+		// start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
+		// }
+		//
+		// if ((enabled) && (!transformerResolved)) {
+		// setPending(true);
+		// stop(LoggerStopReason.TRANSFORMER_DEPENDENCY, 5000);
+		// }
 	}
 
 	@Override
@@ -876,11 +902,12 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		}
 
 		unresolvedLoggers.add(fullName);
-
-		if (this.enabled) {
-			setPending(true);
-			stop(LoggerStopReason.LOGGER_DEPENDENCY, 5000);
-		}
+		
+		checkPending();
+//		if (this.enabled) {
+//			setPending(true);
+//			stop(LoggerStopReason.LOGGER_DEPENDENCY, 5000);
+//		}
 	}
 
 	public void removeUnresolvedLogger(String fullName) {
@@ -891,10 +918,20 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		if (!this.unresolvedLoggers.remove(fullName))
 			return;
 
-		boolean transformerResolved = config.get("transformer") == null || transformer != null;
-		if (!manualStart && status != LoggerStatus.Running && enabled && transformerResolved && unresolvedLoggers.isEmpty()) {
-			start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
-		}
+		checkPending();
+		//setPending(false);
+		// boolean transformerResolved = config.get("transformer") == null ||
+		// transformer != null;
+		// if (!manualStart && status != LoggerStatus.Running && enabled &&
+		// transformerResolved && unresolvedLoggers.isEmpty()) {
+		// start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
+		// }
+	}
+
+	public void checkPending() {
+		boolean transformerPending = config.get("transformer") != null && transformer == null;
+		boolean dependencyPending = !unresolvedLoggers.isEmpty();
+		setPending(transformerPending || dependencyPending);
 	}
 
 	@Override

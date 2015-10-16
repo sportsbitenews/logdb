@@ -31,7 +31,7 @@ public class SrxLogParser extends V1LogParser {
 		Map<String, Object> m = new HashMap<String, Object>();
 		String line = (String) params.get("line");
 		if (line == null)
-			return null;
+			return params;
 
 		Scanner s = new Scanner(line);
 		try {
@@ -117,12 +117,6 @@ public class SrxLogParser extends V1LogParser {
 	private void parseKeyValue(Map<String, Object> m, String token) {
 		String[] t = token.split("=", 2);
 		m.put(t[0], t[1].subSequence(1, t[1].length() - 1));
-	}
-
-	private void parseStat(Map<String, Object> m, String prefix, String source) {
-		int p1 = source.indexOf('(');
-		m.put(prefix + "_" + "pkts", Long.valueOf(source.substring(0, p1)));
-		m.put(prefix + "_" + "bytes", Long.valueOf(source.substring(p1 + 1, source.length() - 1)));
 	}
 
 	private void parseCommon(Map<String, Object> m, Scanner s) {

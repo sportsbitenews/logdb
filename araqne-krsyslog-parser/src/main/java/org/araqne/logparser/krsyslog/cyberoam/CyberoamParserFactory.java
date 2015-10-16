@@ -15,6 +15,8 @@
  */
 package org.araqne.logparser.krsyslog.cyberoam;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 
@@ -30,6 +32,16 @@ public class CyberoamParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getName() {
 		return "cyberoam";
+	}
+
+	@Override
+	public Collection<Locale> getDisplayNameLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+	}
+
+	@Override
+	public Collection<Locale> getDescriptionLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override

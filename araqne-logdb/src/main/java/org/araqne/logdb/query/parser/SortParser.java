@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.araqne.logdb.query.command.Sort;
 import org.araqne.logdb.query.command.Sort.SortField;
 
 public class SortParser extends AbstractQueryCommandParser {
+	private static final String BY = "by";
 
 	public SortParser() {
 		setDescriptions(
@@ -46,6 +48,8 @@ public class SortParser extends AbstractQueryCommandParser {
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
 		m.put("21600", new QueryErrorMessage("need-column", "정렬할 필드명을 입력하십시오."));
+		m.put("21601", new QueryErrorMessage("invalid-by-clause", "by절에 필드명들을 콤마로 구분하여 올바르게 입력하십시오. "));
+		m.put("21602", new QueryErrorMessage("invalid-limit-option", "limit 값이 유효하지 않습니다. "));
 		return m;
 	}
 
@@ -57,15 +61,35 @@ public class SortParser extends AbstractQueryCommandParser {
 		Map<String, String> options = (Map<String, String>) r.value;
 
 		Integer count = null;
-		if (options.containsKey("limit"))
+		if (options.containsKey("limit")) {
 			count = Integer.parseInt(options.get("limit"));
+			if (count <= 0)
+				throw new QueryParseException("21602", "sort".length() + 1, commandString.length() - 1, null);
+		}
+
+		List<String> partitions = new ArrayList<String>();
+		int byPos = QueryTokenizer.findKeyword(commandString, BY, 0, true);
+		if (byPos > 0) {
+			String partitionsPart = commandString.substring(byPos + BY.length());
+
+			if (partitionsPart.trim().endsWith(","))
+				throw new QueryParseException("21601", "sort".length() + 1, commandString.length() - 1, null);
+
+			// trim
+			for (String partition : partitionsPart.split(",")) {
+				partitions.add(partition.trim());
+			}
+		}
 
 		try {
-			List<SortField> fields = SortField.parseSortFields(commandString, r);
-			return new Sort(count, fields.toArray(new SortField[0]));
+			List<SortField> fields = null;
+			if (partitions.size() == 0)
+				fields = SortField.parseSortFields(commandString, r);
+			else
+				fields = SortField.parseSortFields(commandString.substring(0, byPos), r);
+
+			return new Sort(count, fields.toArray(new SortField[0]), partitions);
 		} catch (QueryParseException e) {
-			// if (e.getType().equals("need-string-token"))
-			// throw new QueryParseException("need-column", r.next);
 			if (e.getType().equals("90004"))
 				throw new QueryParseException("21600", r.next, commandString.length() - 1, null);
 			throw e;

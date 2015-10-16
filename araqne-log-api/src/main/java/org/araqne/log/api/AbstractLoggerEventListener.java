@@ -45,7 +45,11 @@ public class AbstractLoggerEventListener implements LoggerEventListener {
 	}
 
 	@Override
-	public void onPending(Logger logger) {
+	public void onPend(Logger logger, LoggerStopReason reason) {
+	}
+	
+	@Override
+	public void onResolved(Logger logger, LoggerStopReason reason) {
 	}
 
 }

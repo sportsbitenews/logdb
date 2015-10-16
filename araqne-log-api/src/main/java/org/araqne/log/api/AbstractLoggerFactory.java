@@ -238,7 +238,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 						waitingFullName);
 				loggerPending = true;
 				logger.addUnresolvedLogger(waitingFullName);
-			} else if (waiting.isPending()) {// ((waiting.isEnabled()) && (!waiting.isRunning())) {
+			} else if ((waiting.isEnabled()) && (!waiting.isRunning())) {
 				slog.debug("araqne log api: logger [{}] is pending for logger [{}] is started", logger.getFullName(),
 						waitingFullName);
 				loggerPending = true;
@@ -426,7 +426,12 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		}
 		
 		@Override
-		public void onPending(Logger logger) {
+		public void onPend(Logger logger, LoggerStopReason reason) {
+			//TODO
+		}
+		
+		@Override
+		public void onResolved(Logger logger, LoggerStopReason reason) {
 			//TODO
 		}
 
