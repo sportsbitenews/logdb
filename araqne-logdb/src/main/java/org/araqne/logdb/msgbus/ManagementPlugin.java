@@ -121,6 +121,7 @@ public class ManagementPlugin {
 
 			loginName = token.getSession().getAdminLoginName();
 			dbSession = accountService.newSession(loginName);
+			dbSession.setProperty("remote_ip", getRemoteAddr(session));
 		} else {
 			loginName = req.getString("login_name", true);
 			String password = req.getString("password", true);
@@ -130,6 +131,8 @@ public class ManagementPlugin {
 
 			try {
 				dbSession = accountService.login(loginName, password);
+				dbSession.setProperty("remote_ip", getRemoteAddr(session));
+
 				if (slog.isDebugEnabled())
 					slog.debug("araqne logdb: [{}] is logged in successfully from [{}]", loginName, session.getRemoteAddress()
 							.getHostAddress());
@@ -147,7 +150,7 @@ public class ManagementPlugin {
 				if (e.getMessage() != null && e.getMessage().equals("invalid password")) {
 					Map<String, Object> errorParams = new HashMap<String, Object>();
 					errorParams.put("login", loginName);
-					errorParams.put("remote_ip", session.getRemoteAddress() != null ? session.getRemoteAddress().getHostAddress() : null);
+					errorParams.put("remote_ip", getRemoteAddr(session));
 					throw new MsgbusException("logdb", "invalid password", errorParams);
 				}
 				
@@ -162,6 +165,10 @@ public class ManagementPlugin {
 		}
 
 		session.setProperty("araqne_logdb_session", dbSession);
+	}
+	
+	private String getRemoteAddr(Session session) {
+		return session.getRemoteAddress() != null ? session.getRemoteAddress().getHostAddress() : null;
 	}
 
 	@MsgbusMethod
