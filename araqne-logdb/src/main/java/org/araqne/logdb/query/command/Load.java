@@ -38,11 +38,7 @@ public class Load extends DriverQueryCommand {
 					break;
 
 				Log log = cursor.next();
-				Map<String, Object> m = new HashMap<String, Object>();
-				m.putAll(log.getData());
-				m.put("_time", log.getDate());
-				m.put("_id", log.getId());
-				pushPipe(new Row(m));
+				pushPipe(new Row(log.getData()));
 			}
 		} finally {
 			cursor.close();
