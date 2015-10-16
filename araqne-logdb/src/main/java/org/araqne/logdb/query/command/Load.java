@@ -1,8 +1,5 @@
 package org.araqne.logdb.query.command;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.Row;
