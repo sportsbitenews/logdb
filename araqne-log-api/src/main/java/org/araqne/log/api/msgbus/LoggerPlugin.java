@@ -229,6 +229,20 @@ public class LoggerPlugin {
 	}
 
 	@MsgbusMethod
+	public void updateLoggerOptions(Request req, Response resp) {
+		String fullName = req.getString("logger");
+
+		Logger logger = loggerRegistry.getLogger(fullName);
+		if (logger == null) {
+			throw new IllegalStateException("cannot found logger " + fullName);
+		}
+
+		logger.setEnabled(req.getBoolean("enabled", true));
+		if(!logger.isPassive())
+			logger.setInterval(req.getInteger("interval", true));
+	}
+
+	@MsgbusMethod
 	public void startLogger(Request req, Response resp) {
 		String fullName = req.getString("logger");
 		int interval = req.getInteger("interval");

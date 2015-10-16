@@ -49,6 +49,8 @@ import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerRegistryEventListener;
 import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
 
 @Component(name = "logger-registry")
 @Provides(specifications = { LoggerRegistry.class })
@@ -58,7 +60,7 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 
 	@Requires
 	private ConfigService conf;
-	
+
 	@Requires
 	private TickService tickService;
 
@@ -70,7 +72,6 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 	private Map<String, Set<String>> dependencies;
 	private DependencyResolver resolver;
 	private LoggerStarter loggerStarter = new LoggerStarter();
-
 
 	public LoggerRegistryImpl() {
 		loggers = new ConcurrentHashMap<String, Logger>();
@@ -106,7 +107,7 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 		addListener(resolver);
 
 		isOpen = true;
-		
+
 		tickService.addTimer(loggerStarter);
 	}
 
@@ -117,8 +118,8 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 		isOpen = false;
 		callbacks.clear();
 		dependencies.clear();
-		
-		if(tickService != null)
+
+		if (tickService != null)
 			tickService.removeTimer(loggerStarter);
 	}
 
@@ -273,6 +274,17 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 		return s;
 	}
 
+	//의존하는 로거는 최대 1개
+	private String getHost(String fullName) {
+		for( String sourceFullName : dependencies.keySet()) {
+			Set<String> s = dependencies.get(sourceFullName);
+			if(s.contains(fullName))
+				return sourceFullName;
+		}
+		
+		return null;
+	}
+	
 	@Override
 	public boolean hasDependency(String fullName, String sourceFullName) {
 		synchronized (dependencies) {
@@ -380,6 +392,10 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 
 		public void loggerRemoved(Logger logger) {
 			log.debug("aranqe log api: dependency resolver detected logger [{}] removal", logger.getFullName());
+			
+			if(!logger.isEnabled())
+				return;
+			
 			synchronized (dependencies) {
 				for (Entry<String, Set<String>> e : dependencies.entrySet()) {
 					String source = (String) e.getKey();
@@ -395,7 +411,7 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 				}
 			}
 		}
-
+	
 		public void onStart(Logger logger) {
 			log.debug("aranqe log api: dependency resolver detected logger [{}] start", logger.getFullName());
 			for (Logger l : loggers.values()) {
@@ -405,21 +421,43 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 			}
 		}
 
+		@Override
+		public void onPending(Logger logger) {
+			String hostFullName = getHost(logger.getFullName());
+			if (hostFullName == null || hostFullName.isEmpty())
+				return;
+
+			Logger hostLogger = getLogger(hostFullName);
+			if(hostLogger == null)
+				return;
+			
+			hostLogger.addUnresolvedLogger(logger.getFullName());
+		}
+		
 		public void onStop(Logger logger, LoggerStopReason reason) {
 			log.debug("aranqe log api: dependency resolver detected logger [{}] stop", logger.getFullName());
 		}
-
+		
 		public void onSetTimeRange(Logger logger) {
 		}
 
 		public void onUpdated(Logger logger, Map<String, String> config) {
+			
 			//start only unmanaged loggers
 			if(logger.isManualStart())
 				return;
 			
 			if (logger.isEnabled() && !logger.isRunning()) {
 				log.debug("araqne log api: trying to start logger [{}]", logger.getFullName());
-				startLogger(logger);
+				try {
+					startLogger(logger);
+				} catch (IllegalStateException e) {
+					String errMsg = e.getMessage();
+					if(errMsg !=null && errMsg.equals("pending logger")) {
+						logger.setPending(true);
+						log.error("error");
+					}
+				}
 			}
 
 			if (!logger.isEnabled() && logger.isRunning()) {
@@ -428,7 +466,7 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 			}
 		}
 	}
-	
+
 	private class LoggerStarter extends AbstractTickTimer {
 
 		@Override
@@ -438,9 +476,9 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 
 		@Override
 		public void onTick() {
-			
+
 		}
-		
+
 	}
 
 	private void startLogger(Logger logger) {

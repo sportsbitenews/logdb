@@ -427,7 +427,7 @@ public class LoggerInfo {
 		if (states != null && states.size() > 0)
 			details += ", states=" + states;
 
-		return String.format("name=%s, factory=%s, status=%s, log count=%d, last start=%s, last run=%s, last log=%s" + details,
-				getFullName(), factoryName, status, getLogCount(), start, run, log);
+		return String.format("name=%s, factory=%s, enabled=%s, status=%s, log count=%d, last start=%s, last run=%s, last log=%s" + details,
+				getFullName(), factoryName, enabled, status, getLogCount(), start, run, log);
 	}
 }

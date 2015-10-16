@@ -232,6 +232,15 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	public void setPending(boolean pending) {
 		this.pending = pending;
 		if (pending) {
+
+			for(LoggerEventListener callback : eventListeners) {
+				try {
+					callback.onPending(this);
+				} catch (Throwable t) {
+					slog.warn("araqne log api; logger [" + getFullName() + "] callback should not throw any exception", t);
+				}
+			}
+			
 			if (!unresolvedLoggers.isEmpty())
 				lastStopReason = LoggerStopReason.LOGGER_DEPENDENCY;
 			else if (config.get("transformer") != null && transformer == null)
@@ -289,7 +298,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public void start(LoggerStartReason reason) {
 		verifyPending();
-
+		
 		if (!isPassive())
 			throw new IllegalStateException("not passive mode. use start(interval)");
 
@@ -314,6 +323,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			throw new IllegalStateException("logger is already running");
 
 		status = LoggerStatus.Starting;
+		doStop = false;
+		
 		this.interval = interval;
 
 		invokeStartCallback(reason);
@@ -330,11 +341,15 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	private void verifyPending() {
-		if ((config.get("transformer") != null) && (transformer == null))
+		if ((config.get("transformer") != null) && (transformer == null)) {
+			setPending(true);
 			throw new IllegalStateException("pending transformer");
+		}
 
-		if (!unresolvedLoggers.isEmpty())
+		if (!unresolvedLoggers.isEmpty()) {
+			setPending(true);
 			throw new IllegalStateException("pending logger");
+		}
 	}
 
 	protected ExecutorService getExecutor() {
@@ -584,7 +599,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 				if (e.getCause() != null && e.getCause().getMessage() != null
 						&& e.getCause().getMessage().contains("archive not opened"))
 					reason = LoggerStopReason.LOW_DISK;
-
+				
 				this.slog.warn("araqne-log-api: stopping logger [" + getFullName() + "] by exception", e);
 				if (isPassive())
 					stop(reason);
@@ -793,6 +808,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
 		}
 		if ((enabled) && (!transformerResolved)) {
+			setPending(true);
 			stop(LoggerStopReason.TRANSFORMER_DEPENDENCY, 5000);
 		}
 	}
@@ -862,6 +878,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		unresolvedLoggers.add(fullName);
 
 		if (this.enabled) {
+			setPending(true);
 			stop(LoggerStopReason.LOGGER_DEPENDENCY, 5000);
 		}
 	}
@@ -892,7 +909,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		else
 			status += " (interval=" + interval + "ms)";
 
-		return String.format("name=%s, factory=%s, status=%s, log count=%d, last start=%s, last run=%s, last log=%s",
-				getFullName(), factoryFullName, status, getLogCount(), start, run, log);
+		return String.format("name=%s, factory=%s, enabled=%s, status=%s, log count=%d, last start=%s, last run=%s, last log=%s",
+				getFullName(), factoryFullName, enabled, status, getLogCount(), start, run, log);
 	}
 }

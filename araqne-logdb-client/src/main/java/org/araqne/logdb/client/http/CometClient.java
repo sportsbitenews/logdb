@@ -467,6 +467,7 @@ public class CometClient implements TrapListener {
 			lo.setDescription((String) m.get("description"));
 			lo.setPassive((Boolean) m.get("is_passive"));
 			lo.setInterval((Integer) m.get("interval"));
+			lo.setEnabled((Boolean) m.get("enabled"));
 			lo.setStatus((String) m.get("status"));
 			lo.setLastStartAt(parseDate((String) m.get("last_start")));
 			lo.setLastRunAt(parseDate((String) m.get("last_run")));

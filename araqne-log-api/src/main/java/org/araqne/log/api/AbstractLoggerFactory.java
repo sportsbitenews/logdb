@@ -238,9 +238,10 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 						waitingFullName);
 				loggerPending = true;
 				logger.addUnresolvedLogger(waitingFullName);
-			} else if ((waiting.isEnabled()) && (!waiting.isRunning())) {
+			} else if (waiting.isPending()) {// ((waiting.isEnabled()) && (!waiting.isRunning())) {
 				slog.debug("araqne log api: logger [{}] is pending for logger [{}] is started", logger.getFullName(),
 						waitingFullName);
+				loggerPending = true;
 				logger.addUnresolvedLogger(waitingFullName);
 			}
 		}
@@ -266,7 +267,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 
 	private boolean setupTransformer(Logger logger) {
 		Map<String, String> config = logger.getConfigs();
-		
+
 		boolean transformerPending = false;
 		LogTransformerRegistry transformerRegistry;
 		if (config.containsKey("transformer")) {
@@ -423,6 +424,11 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		public void onUpdated(Logger logger, Map<String, String> config) {
 			saveLoggerConfig(logger, config);
 		}
+		
+		@Override
+		public void onPending(Logger logger) {
+			//TODO
+		}
 
 		private LastState buildState(Logger logger) {
 			LastState s = new LastState();
@@ -444,5 +450,5 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			return s;
 		}
 	}
-	
+
 }

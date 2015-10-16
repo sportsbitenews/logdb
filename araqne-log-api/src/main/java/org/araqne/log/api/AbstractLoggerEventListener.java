@@ -44,4 +44,8 @@ public class AbstractLoggerEventListener implements LoggerEventListener {
 	public void onUpdated(Logger logger, Map<String, String> config) {
 	}
 
+	@Override
+	public void onPending(Logger logger) {
+	}
+
 }

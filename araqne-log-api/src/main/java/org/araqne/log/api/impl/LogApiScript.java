@@ -832,7 +832,7 @@ public class LogApiScript implements Script {
 
 			logger.setEnabled(false);
 			// logger.stop(LoggerStopReason.USER_REQUEST, maxWaitTime);
-			context.println("logger stopped");
+			context.println("logger disabled");
 		} catch (Exception e) {
 			context.println(e.getMessage());
 		}
