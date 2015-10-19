@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query.engine;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -102,7 +103,6 @@ import org.araqne.logdb.query.parser.RenameParser;
 import org.araqne.logdb.query.parser.RepeatParser;
 import org.araqne.logdb.query.parser.ResultParser;
 import org.araqne.logdb.query.parser.RexParser;
-import org.araqne.logdb.query.parser.ScriptParser;
 import org.araqne.logdb.query.parser.SearchParser;
 import org.araqne.logdb.query.parser.SetParser;
 import org.araqne.logdb.query.parser.SignatureParser;
@@ -417,6 +417,12 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		m.put("start_at", new Date());
 		m.put("query_string", query.getQueryString());
 		m.put("query_id", query.getId());
+		try {
+			m.put("constants", query.getContext().getConstants());
+		} catch (Throwable t) {
+			m.put("constants", null);
+		}
+
 
 		writeLog(new Date(), m);
 		invokeCallbacks(query, QueryStatus.STARTED);
@@ -591,7 +597,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		try {
 			m.put("constants", query.getContext().getConstants());
 		} catch (Throwable t) {
-			m.put("constants", "N/A");
+			m.put("constants", null);
 		}
 		if (query.isFinished()) {
 			m.put("state", "stopped");

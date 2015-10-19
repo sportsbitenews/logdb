@@ -171,10 +171,6 @@ public class ManagementPlugin {
 		return session.getRemoteAddress() != null ? session.getRemoteAddress().getHostAddress() : null;
 	}
 
-	private String getRemoteAddr(Session session) {
-		return session.getRemoteAddress() != null ? session.getRemoteAddress().getHostAddress() : null;
-	}
-
 	@MsgbusMethod
 	public void logout(Request req, Response resp) {
 		Session session = req.getSession();
