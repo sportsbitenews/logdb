@@ -56,7 +56,9 @@ public class ConfigWatchLoggerFactory extends AbstractLoggerFactory {
 				"ファイルなパータン", "文件名模式"), t("Regular expression to match log file name", "대상 로그 파일을 선택하는데 사용할 정규표현식",
 				"対象ログファイルを選ぶとき使う正規表現", "用于筛选文件的正则表达式"), true, "regex");
 
-		return Arrays.asList(basePath, fileNamePattern);
+		LoggerConfigOption fileTag = new MutableStringConfigType("file_tag", t("Filename Tag", "파일이름 태그", "ファイル名タグ", "文件名标记"), t(
+				"Field name for filename tagging", "파일명을 태깅할 필드 이름", "ファイル名をタギングするフィールド名", "要进行文件名标记的字段"), false);
+		return Arrays.asList(basePath, fileNamePattern, fileTag);
 	}
 
 	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {

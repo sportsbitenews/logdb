@@ -17,9 +17,14 @@ import java.util.zip.GZIPInputStream;
 
 public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(GzipDirectoryWatchLogger.class);
+	private String fileTag;
+	private String fileName;
 
 	public GzipDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
+
+		// optional
+		this.fileTag = getConfigs().get("file_tag");
 	}
 
 	@Override
@@ -91,6 +96,7 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 			fis = new FileInputStream(file);
 			gis = new GZIPInputStream(fis);
 
+			this.fileName = file.getName();
 			String dateFromFileName = getDateFromFileName(path, fileNamePattern);
 			extractor.extract(gis, new AtomicLong(), dateFromFileName);
 			position.setPosition(-1);
@@ -142,6 +148,9 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 
 		@Override
 		public void onLog(Logger logger, Log log) {
+			if (fileTag != null)
+				log.getParams().put(fileTag, fileName);
+
 			if (position.getPosition() < offset)
 				write(log);
 
@@ -151,6 +160,12 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 		@Override
 		public void onLogBatch(Logger logger, Log[] logs) {
 			List<Log> filtered = new ArrayList<Log>();
+
+			if (fileTag != null) {
+				for (Log log : logs) {
+					log.getParams().put(fileTag, fileName);
+				}
+			}
 
 			for (Log log : logs) {
 				if (log != null) {

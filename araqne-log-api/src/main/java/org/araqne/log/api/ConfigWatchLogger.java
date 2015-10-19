@@ -17,6 +17,8 @@ public class ConfigWatchLogger extends AbstractLogger implements Reconfigurable 
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(ConfigWatchLogger.class);
 	protected String basePath;
 	protected Pattern fileNamePattern;
+	protected String fileTag;
+	protected String fileName;
 
 	public ConfigWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
@@ -25,6 +27,9 @@ public class ConfigWatchLogger extends AbstractLogger implements Reconfigurable 
 
 		String fileNameRegex = getConfigs().get("filename_pattern");
 		fileNamePattern = Pattern.compile(fileNameRegex);
+
+		// optional
+		this.fileTag = getConfigs().get("file_tag");
 	}
 
 	@Override
@@ -72,7 +77,11 @@ public class ConfigWatchLogger extends AbstractLogger implements Reconfigurable 
 				params.put("old_hash", oldState.getHash());
 				params.put("new_hash", newHash);
 
-				write(new SimpleLog(new Date(), fullName, params));
+				Log log = new SimpleLog(new Date(), fullName, params);
+				if (fileTag != null)
+					log.getParams().put(fileTag, fileName);
+
+				write(log);
 			}
 
 			states.put(path, new ConfigState(newHash));

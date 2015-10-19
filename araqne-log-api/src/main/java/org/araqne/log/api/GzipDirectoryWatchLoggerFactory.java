@@ -101,9 +101,11 @@ public class GzipDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				"수집 완료된 GZIP 파일의 삭제 여부, true 혹은 false", "収集を完了したGZIPファイルの削除可否。trueかfalse", "采集完成之后，是否删除GZIP文件，true或者false"),
 				false);
 
-		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, timezone, newlogRegex,
-				newlogEndRegex, charset, isDeleteFile);
+		LoggerConfigOption fileTag = new MutableStringConfigType("file_tag", t("Filename Tag", "파일이름 태그", "ファイル名タグ", "文件名标记"), t(
+				"Field name for filename tagging", "파일명을 태깅할 필드 이름", "ファイル名をタギングするフィールド名", "要进行文件名标记的字段"), false);
 
+		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, timezone, newlogRegex,
+				newlogEndRegex, charset, isDeleteFile, fileTag);
 	}
 
 	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {

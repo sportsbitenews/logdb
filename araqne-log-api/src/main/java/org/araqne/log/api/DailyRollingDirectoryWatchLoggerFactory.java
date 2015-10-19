@@ -126,7 +126,7 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 		LoggerConfigOption charset = new MutableStringConfigType("charset", t("Charset", "문자 집합", "文字セット", "字符集"), t(
 				"Charset encoding", "텍스트 파일의 문자 인코딩 방식", "テキストファイルの文字エンコーディング方式", "文本文件的字符编码方式"), false, "charset");
 
-		LoggerConfigOption fileTag = new MutableStringConfigType("file_tag", t("Filename Tag", "파일네임 태그", "ファイル名タグ", "文件名标记"), t(
+		LoggerConfigOption fileTag = new MutableStringConfigType("file_tag", t("Filename Tag", "파일이름 태그", "ファイル名タグ", "文件名标记"), t(
 				"Field name for filename tagging", "파일명을 태깅할 필드 이름", "ファイル名をタギングするフィールド名", "要进行文件名标记的字段"), false);
 
 		return Arrays.asList(period, basePath, fileNamePattern, dirDatePattern, dirDateFormat, oldDirScanFrom, oldDirScanTo,
