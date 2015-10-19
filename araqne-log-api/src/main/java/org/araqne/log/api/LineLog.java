@@ -65,4 +65,9 @@ public class LineLog implements Log {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		return String.format("date=%s, logger=%s, line=%s", dateFormat.format(date), fullName, line);
 	}
+
+	@Override
+	public long getDataLength() {
+		return line.getBytes().length;
+	}
 }

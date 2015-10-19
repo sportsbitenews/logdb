@@ -29,6 +29,8 @@ public interface Log {
 	String getLoggerName();
 
 	String getMessage();
-	
+
 	Map<String, Object> getParams();
+
+	long getDataLength();
 }
