@@ -102,7 +102,7 @@ public class Proc extends QueryCommand implements FieldOrdering {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		try {
-			subQuery.stop(reason);
+			subQuery.cancel(reason);
 		} catch (Throwable t) {
 			slog.error("araqne logdb: cannot stop proc subquery [" + subQuery.getQueryString() + "]", t);
 		}

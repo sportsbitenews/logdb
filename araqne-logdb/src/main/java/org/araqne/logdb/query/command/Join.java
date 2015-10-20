@@ -87,7 +87,7 @@ public class Join extends QueryCommand {
 		}
 
 		try {
-			subQuery.stop(reason);
+			subQuery.cancel(reason);
 		} catch (Throwable t) {
 			logger.error("araqne logdb: cannot stop subquery [" + subQuery.getQueryString() + "]", t);
 		} finally {

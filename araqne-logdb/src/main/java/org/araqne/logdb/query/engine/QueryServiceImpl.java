@@ -456,7 +456,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			query.getResult().getResultCallbacks().clear();
 
 			if (query.isStarted() && !query.isFinished())
-				query.stop(QueryStopReason.UserRequest);
+				query.cancel(QueryStopReason.UserRequest);
 		} catch (Throwable t) {
 			logger.error("araqne logdb: cannot cancel query " + query, t);
 		}
