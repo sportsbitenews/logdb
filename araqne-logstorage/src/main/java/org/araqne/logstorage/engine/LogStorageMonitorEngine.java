@@ -39,6 +39,7 @@ import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.PurgeEventListener;
 import org.araqne.storage.api.FilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +70,8 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 	private int minFreeSpaceValue;
 	private DiskLackAction diskLackAction;
 	private Set<DiskLackCallback> diskLackCallbacks = new HashSet<DiskLackCallback>();
-
+	private Set<PurgeEventListener> listeners = new HashSet<PurgeEventListener>();
+	private Set<String> systemTableNames = new HashSet<String>();
 	private boolean stopByLowDisk;
 
 	public LogStorageMonitorEngine() {
@@ -80,6 +82,7 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 		minFreeSpaceType = DiskSpaceType.valueOf(getStringParameter(Constants.MinFreeDiskSpaceType, DEFAULT_MIN_FREE_SPACE_TYPE));
 		minFreeSpaceValue = getIntParameter(Constants.MinFreeDiskSpaceValue, DEFAULT_MIN_FREE_SPACE_VALUE);
 		diskLackAction = DiskLackAction.valueOf(getStringParameter(Constants.DiskLackAction, DEFAULT_DISK_LACK_ACTION));
+		loadSystemTableNames();
 	}
 
 	@Override
@@ -136,8 +139,35 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 	}
 
 	@Override
+	public void addListener(PurgeEventListener listener) {
+		listeners.add(listener);
+	}
+
+	@Override
+	public void removeListener(PurgeEventListener listener) {
+		listeners.remove(listener);
+	}
+
+	@Override
 	public void forceRetentionCheck() {
 		checkRetentions(true);
+	}
+
+	private void loadSystemTableNames() {
+		if (systemTableNames.size() != 0)
+			return;
+
+		systemTableNames.add("araqne_query_logs");
+		systemTableNames.add("sys_table_trends");
+		systemTableNames.add("sys_alerts");
+		systemTableNames.add("sys_audit_logs");
+		systemTableNames.add("sys_query_logs");
+		systemTableNames.add("sys_cpu_logs");
+		systemTableNames.add("sys_mem_logs");
+		systemTableNames.add("sys_gc_logs");
+		systemTableNames.add("sys_disk_logs");
+		systemTableNames.add("sys_node_logs");
+		systemTableNames.add("sys_logger_trends");
 	}
 
 	private boolean isDiskLack(FilePath dir) {
@@ -224,6 +254,9 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 		Map<FilePath, List<String>> partitionTables = new HashMap<FilePath, List<String>>();
 
 		for (String tableName : tableRegistry.getTableNames()) {
+			if (systemTableNames.contains(tableName))
+				continue;
+
 			FilePath tableDir = storage.getTableDirectory(tableName);
 			if (tableDir == null)
 				continue;
@@ -289,6 +322,9 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 					LogFile lf = files.get(index++);
 					logger.info("araqne logstorage: removing old log, table [{}], date [{}]", lf.tableName, sdf.format(lf.date));
 					storage.purge(lf.tableName, lf.date);
+					for (PurgeEventListener listener : listeners) {
+						listener.onPurgeLogs(lf.tableName, lf.date);
+					}
 				} while (isDiskLack(partitionPath));
 			}
 

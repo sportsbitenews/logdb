@@ -31,4 +31,8 @@ public interface LogStorageMonitor extends Runnable {
 	void registerDiskLackCallback(DiskLackCallback callback);
 
 	void unregisterDiskLackCallback(DiskLackCallback callback);
+
+	void addListener(PurgeEventListener listener);
+
+	void removeListener(PurgeEventListener listener);
 }
