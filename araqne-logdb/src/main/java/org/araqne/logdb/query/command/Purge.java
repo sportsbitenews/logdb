@@ -50,10 +50,6 @@ public class Purge extends QueryCommand {
 
 	@Override
 	public void onStart() {
-		if (this.from.after(this.to))
-			throw new IllegalArgumentException("araqne-logdb: invalid date range(from: " + this.from.toString() + ", to: "
-					+ this.to.toString());
-
 		for (String tableName : this.tableNames)
 			storage.purge(tableName, this.from, this.to);
 	}
