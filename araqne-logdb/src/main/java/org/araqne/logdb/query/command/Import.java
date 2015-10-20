@@ -85,7 +85,7 @@ public class Import extends QueryCommand implements ThreadSafe {
 			storage.write(log);
 			pushPipe(row);
 		} catch (InterruptedException e) {
-			getQuery().stop(QueryStopReason.Interrupted);
+			getQuery().cancel(QueryStopReason.Interrupted);
 		}
 	}
 
@@ -109,7 +109,7 @@ public class Import extends QueryCommand implements ThreadSafe {
 			storage.write(logs);
 			pushPipe(rowBatch);
 		} catch (InterruptedException e) {
-			getQuery().stop(QueryStopReason.Interrupted);
+			getQuery().cancel(QueryStopReason.Interrupted);
 		}
 	}
 

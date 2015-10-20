@@ -141,7 +141,7 @@ public class OutputJson extends QueryCommand {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot write log to json file", t);
 
-			getQuery().stop(QueryStopReason.CommandFailure);
+			getQuery().cancel(QueryStopReason.CommandFailure);
 		}
 		pushPipe(m);
 	}
@@ -166,7 +166,7 @@ public class OutputJson extends QueryCommand {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot write log to json file", t);
 
-			getQuery().stop(QueryStopReason.CommandFailure);
+			getQuery().cancel(QueryStopReason.CommandFailure);
 		}
 
 		pushPipe(rowBatch);

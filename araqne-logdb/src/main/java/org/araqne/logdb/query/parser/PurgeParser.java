@@ -57,35 +57,37 @@ public class PurgeParser extends AbstractQueryCommandParser {
 	@Override
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
-		m.put("11400", new QueryErrorMessage("no-permission","프로시저를 찾을 수 없습니다."));
-		m.put("11401", new QueryErrorMessage("missing-field","불완전한 표현식입니다."));
-		m.put("11402", new QueryErrorMessage("from-not-found","시작 날짜를 입력하십시오."));
-		m.put("11403", new QueryErrorMessage("to-not-found","끝 날짜를 입력하십시오."));
-		m.put("11404", new QueryErrorMessage("invalid-date-format","잘못된 날짜표현식입니다: [msg]."));
-		m.put("11405", new QueryErrorMessage("table-not-found","[table] 테이블이 존재하지 않습니다."));
+		m.put("11400", new QueryErrorMessage("no-permission", "프로시저를 찾을 수 없습니다."));
+		m.put("11401", new QueryErrorMessage("missing-field", "불완전한 표현식입니다."));
+		m.put("11402", new QueryErrorMessage("from-not-found", "시작 날짜를 입력하십시오."));
+		m.put("11403", new QueryErrorMessage("to-not-found", "끝 날짜를 입력하십시오."));
+		m.put("11404", new QueryErrorMessage("invalid-date-format", "잘못된 날짜표현식입니다: [msg]."));
+		m.put("11405", new QueryErrorMessage("table-not-found", "[table] 테이블이 존재하지 않습니다."));
+		m.put("11406", new QueryErrorMessage("invalid-date-range", "유효하지 않은 날짜 범위 입니다."));
 		return m;
 	}
-		
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (!context.getSession().isAdmin())
-		//	throw new QueryParseException("no-permission", -1);
+			// throw new QueryParseException("no-permission", -1);
 			throw new QueryParseException("11400", -1, -1, null);
-		
+
 		if (commandString.trim().endsWith(","))
-		//	throw new QueryParseException("missing-field", commandString.length());
-			throw new QueryParseException("11401" , -1, -1, null);
-			
+			// throw new QueryParseException("missing-field",
+			// commandString.length());
+			throw new QueryParseException("11401", -1, -1, null);
+
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
 				Arrays.asList("from", "to"), getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		if (options.get("from") == null)
-		//throw new QueryParseException("from-not-found", -1);
+			// throw new QueryParseException("from-not-found", -1);
 			throw new QueryParseException("11402", -1, -1, null);
 
 		if (options.get("to") == null)
-		//throw new QueryParseException("to-not-found", -1);
+			// throw new QueryParseException("to-not-found", -1);
 			throw new QueryParseException("11403", -1, -1, null);
 
 		String fromString = options.get("from").toString();
@@ -96,14 +98,17 @@ public class PurgeParser extends AbstractQueryCommandParser {
 			Date from = sdf.parse(fromString);
 			Date to = sdf.parse(toString);
 
+			if (from.after(to))
+				throw new QueryParseException("11406", -1, -1, null);
+
 			String tableName = ExpressionParser.evalContextReference(context, commandString.substring(r.next).trim(),
 					getFunctionRegistry());
 
 			return new Purge(storage, expandTableNames(tableName), from, to);
 		} catch (ParseException e) {
-		//	throw new QueryParseException("invalid-date-format", -1);
-			Map<String, String> params = new HashMap<String, String> ();
-			params.put("msg",  e.getMessage());
+			// throw new QueryParseException("invalid-date-format", -1);
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("msg", e.getMessage());
 			throw new QueryParseException("11404", -1, -1, params);
 		}
 	}
@@ -117,9 +122,9 @@ public class PurgeParser extends AbstractQueryCommandParser {
 					continue;
 				if (son.isOptional() && !tableRegistry.exists(son.getTable()))
 					continue;
-				if (!son.isOptional() && !tableRegistry.exists(son.getTable())){
-					//hrow new QueryParseException("table-not-found", -1);
-					Map<String, String> params = new HashMap<String, String> ();
+				if (!son.isOptional() && !tableRegistry.exists(son.getTable())) {
+					// hrow new QueryParseException("table-not-found", -1);
+					Map<String, String> params = new HashMap<String, String>();
 					params.put("table", tableName);
 					throw new QueryParseException("11405", -1, -1, params);
 				}

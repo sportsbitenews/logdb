@@ -166,7 +166,7 @@ public class ManagementPlugin {
 
 		session.setProperty("araqne_logdb_session", dbSession);
 	}
-	
+
 	private String getRemoteAddr(Session session) {
 		return session.getRemoteAddress() != null ? session.getRemoteAddress().getHostAddress() : null;
 	}

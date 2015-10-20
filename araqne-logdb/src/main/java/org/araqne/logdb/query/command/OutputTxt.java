@@ -174,7 +174,7 @@ public class OutputTxt extends QueryCommand {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot write log to txt file", t);
 
-			getQuery().stop(QueryStopReason.CommandFailure);
+			getQuery().cancel(t);
 		}
 
 		pushPipe(rowBatch);
@@ -188,7 +188,7 @@ public class OutputTxt extends QueryCommand {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot write log to txt file", t);
 
-			getQuery().stop(QueryStopReason.CommandFailure);
+			getQuery().cancel(t);
 		}
 		pushPipe(m);
 	}
