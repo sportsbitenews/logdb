@@ -203,7 +203,7 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public boolean isFinished() {
-		return scheduler.isFinished();
+		return stopLatch.getCount() == 0;
 	}
 
 	@Override
