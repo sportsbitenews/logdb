@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
@@ -18,6 +19,7 @@ import org.araqne.logstorage.LockStatus;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogUtil;
+import org.araqne.logstorage.TableLock;
 import org.araqne.logstorage.TableLockImpl;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -35,12 +37,12 @@ public class TableLockTest {
 		ls = mock(LogStorage.class);
 		lock = new TableLockImpl(0);
 		when(ls.lock(any(LockKey.class), any(String.class), any(Long.class), any(TimeUnit.class))).thenAnswer(
-				new Answer<Boolean>() {
+				new Answer<UUID>() {
 					@Override
-					public Boolean answer(InvocationOnMock inv) throws Throwable {
+					public UUID answer(InvocationOnMock inv) throws Throwable {
 						LockKey key = (LockKey) inv.getArguments()[0];
 						String p = (String) inv.getArguments()[1];
-						Lock writeLock = lock.writeLock(key.owner, p);
+						TableLock writeLock = lock.writeLock(key.owner, p);
 						return writeLock.tryLock();
 					}
 				});
@@ -50,7 +52,7 @@ public class TableLockTest {
 			public Object answer(InvocationOnMock inv) throws Throwable {
 				LockKey key = (LockKey) inv.getArguments()[0];
 				String p = (String) inv.getArguments()[1];
-				Lock writeLock = lock.writeLock(key.owner, p);
+				TableLock writeLock = lock.writeLock(key.owner, p);
 				writeLock.unlock();
 				return null;
 			}
@@ -73,11 +75,11 @@ public class TableLockTest {
 		when(ls.tryWrite(any(Log.class))).thenAnswer(new Answer<Boolean>() {
 			@Override
 			public Boolean answer(InvocationOnMock invocation) throws Throwable {
-				Lock readLock = lock.readLock();
-				boolean locked = readLock.tryLock();
-				if (locked)
+				TableLock readLock = lock.readLock();
+				UUID locked = readLock.tryLock();
+				if (locked != null)
 					readLock.unlock();
-				return locked;
+				return locked != null;
 			}
 		});
 
@@ -113,18 +115,18 @@ public class TableLockTest {
 		assertEquals(null, ls.lockStatus(lk).getOwner());
 
 		// test
-		assertTrue(ls.lock(lk, "test1", Long.MAX_VALUE, TimeUnit.SECONDS));
-		assertTrue(ls.lock(lk, "test2", Long.MAX_VALUE, TimeUnit.SECONDS));
+		assertTrue(ls.lock(lk, "test1", Long.MAX_VALUE, TimeUnit.SECONDS) != null);
+		assertTrue(ls.lock(lk, "test2", Long.MAX_VALUE, TimeUnit.SECONDS) != null);
 		assertFalse(ls.lock(
-				new LockKey("test2", "T2", null), "test1", Long.MAX_VALUE, TimeUnit.SECONDS));
+				new LockKey("test2", "T2", null), "test1", Long.MAX_VALUE, TimeUnit.SECONDS) != null);
 		assertEquals("test", ls.lockStatus(new LockKey("test", "T2", null)).getOwner());
 		assertEquals(
-				"[test1, test2]",
+				"[test1:1, test2:1]",
 				Arrays.toString(ls.lockStatus(new LockKey("test", "T2", null)).getPurposes().toArray()));
 		ls.unlock(lk, "test2");
 		assertEquals("test", ls.lockStatus(new LockKey("test", "T2", null)).getOwner());
 		assertFalse(ls.lock(
-				new LockKey("test2", "T2", null), "test1", Long.MAX_VALUE, TimeUnit.SECONDS));
+				new LockKey("test2", "T2", null), "test1", Long.MAX_VALUE, TimeUnit.SECONDS) != null);
 		ls.unlock(lk, "test1");
 
 		// postcondition

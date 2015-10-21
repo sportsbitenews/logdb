@@ -1240,8 +1240,8 @@ public class LogStorageScript implements Script {
 	}
 
 	public void _lock(String[] args) throws InterruptedException {
-		boolean lock = storage.lock(new LockKey("script", args[0], null), args[1], 5, TimeUnit.SECONDS);
-		if (lock)
+		UUID lock = storage.lock(new LockKey("script", args[0], null), args[1], 5, TimeUnit.SECONDS);
+		if (lock != null)
 			context.println("locked");
 		else {
 			context.printf("failed: %s\n", lockStatusStr(args[0]));

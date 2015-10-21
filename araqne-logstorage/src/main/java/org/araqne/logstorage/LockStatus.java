@@ -1,15 +1,18 @@
 package org.araqne.logstorage;
 
+import java.util.ArrayList;
 import java.util.Collection;
+
+import org.araqne.logstorage.TableLock.Purpose;
 
 public class LockStatus {
 	boolean locked;
 	String owner;
 	int availableShared;
 	int reentrantCount;
-	Collection<String> purposes;
+	Collection<Purpose> purposes;
 	
-	public LockStatus(String owner, int availableShared, int reentrantCount, Collection<String> purposes) {
+	public LockStatus(String owner, int availableShared, int reentrantCount, Collection<Purpose> purposes) {
 		this.locked = true;
 		this.owner = owner;
 		this.availableShared = availableShared;
@@ -48,7 +51,11 @@ public class LockStatus {
 	}
 
 	public Collection<String> getPurposes() {
-		return purposes;
+		ArrayList<String> purposeList = new ArrayList<String>();
+		for (Purpose p: purposes) {
+			purposeList.add(p.toString());
+		}
+		return purposeList;
 	}
 
 }
