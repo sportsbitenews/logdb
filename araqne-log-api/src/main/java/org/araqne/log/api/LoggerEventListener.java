@@ -28,14 +28,14 @@ public interface LoggerEventListener {
 	void onSetTimeRange(Logger logger);
 
 	void onFailureChange(Logger logger);
-	
+
 	void onUpdated(Logger logger, Map<String, String> config);
-	
+
 	/**
-	 * @Since 3. TODO: 
+	 * @Since 3. TODO:
 	 */
+	boolean dissentStart(Logger logger);
+
 	void onPend(Logger logger, LoggerStopReason reason);
-	
-	void onResolved(Logger logger, LoggerStopReason reason);
-	
+
 }

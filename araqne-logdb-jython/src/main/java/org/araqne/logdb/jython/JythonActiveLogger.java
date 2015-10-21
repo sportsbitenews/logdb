@@ -435,8 +435,8 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		String status = getStatus().toString().toLowerCase();
 		status += " (interval=" + interval + "ms)";
 
-		return String.format("name=%s, factory=%s, script=%s, status=%s, log count=%d, last start=%s, last run=%s, last log=%s",
-				getFullName(), factory.getFullName(), getClass().getSimpleName(), status, getLogCount(), start, run, log);
+		return String.format("name=%s, factory=%s, script=%s, enabled=%s, status=%s, log count=%d, last start=%s, last run=%s, last log=%s",
+				getFullName(), factory.getFullName(), getClass().getSimpleName(), enabled, status, getLogCount(), start, run, log);
 	}
 
 }

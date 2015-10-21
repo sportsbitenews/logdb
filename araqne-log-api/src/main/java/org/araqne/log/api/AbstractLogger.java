@@ -39,6 +39,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private CopyOnWriteArraySet<LogPipe> pipes;
 	private Thread t;
 	private int interval;
+	private int maxWaitTime = INFINITE;
 	private TimeRange timeRange;
 
 	private Map<String, String> config;
@@ -239,11 +240,21 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			else if (config.get("transformer") != null && transformer == null)
 				reason = LoggerStopReason.TRANSFORMER_DEPENDENCY;
 
-			notifyPending(reason);
+			stop(reason);
+
+			for (LoggerEventListener callback : eventListeners) {
+				try {
+					callback.onPend(this, reason);
+				} catch (Throwable t) {
+					slog.warn("araqne log api: logger [" + getFullName() + "] callback should not throw any exception", t);
+				}
+			}
+
 			if (reason != null)
 				lastStopReason = reason;
 		} else {
-				notifyResolved(lastStopReason);
+			if (enabled)
+				requestStart(LoggerStartReason.DEPENDENCY_RESOLVED);
 		}
 
 	}
@@ -341,12 +352,6 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	}
 
 	private void verifyPending() {
-		if(!isEnabled())
-			throw new IllegalStateException("disabled");
-		
-		if(isRunning())
-			throw new IllegalStateException("running");
-		
 		if ((config.get("transformer") != null) && (transformer == null)) {
 			throw new IllegalStateException("pending transformer");
 		}
@@ -392,7 +397,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			status = LoggerStatus.Stopped;
 			this.pending = ((reason == LoggerStopReason.TRANSFORMER_DEPENDENCY) || (reason == LoggerStopReason.LOGGER_DEPENDENCY));
 		} else
-			stop(reason, INFINITE);
+			stop(reason, maxWaitTime);
 	}
 
 	@Override
@@ -707,26 +712,6 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		}
 	}
 
-	private void notifyPending(LoggerStopReason reason) {
-		for (LoggerEventListener callback : eventListeners) {
-			try {
-				callback.onPend(this, reason);
-			} catch (Throwable t) {
-				slog.error("araqne log api; logger [" + getFullName() + "] callback should not throw any exception", t);
-			}
-		}
-	}
-
-	private void notifyResolved(LoggerStopReason reason) {
-		for (LoggerEventListener callback : eventListeners) {
-			try {
-				callback.onResolved(this, reason);
-			} catch (Throwable e) {
-				slog.error("araqne log api; logger [" + getFullName() + "] callback should not throw any exception", t);
-			}
-		}
-	}
-
 	/**
 	 * Use getConfigs() instead
 	 */
@@ -827,16 +812,6 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	public void setTransformer(LogTransformer transformer) {
 		this.transformer = transformer;
 		checkPending();
-		//boolean transformerResolved = (config.get("transformer") == null) || (transformer != null);
-		// if (!manualStart && enabled && isPending() && transformerResolved &&
-		// unresolvedLoggers.isEmpty()) {
-		// start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
-		// }
-		//
-		// if ((enabled) && (!transformerResolved)) {
-		// setPending(true);
-		// stop(LoggerStopReason.TRANSFORMER_DEPENDENCY, 5000);
-		// }
 	}
 
 	@Override
@@ -887,13 +862,46 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 	@Override
 	public void setEnabled(boolean enabled) {
-		this.enabled = enabled;
-		notifyConfigChange();
+		try {
+			this.enabled = enabled;
+
+			if (enabled) {
+				requestStart(LoggerStartReason.USER_REQUEST);
+			} else {
+				if (!stopped) {
+					slog.debug("arane log api: trying to stop logger [{}]", fullName);
+					stop(LoggerStopReason.USER_REQUEST);
+				}
+			}
+		} finally {
+			notifyConfigChange();
+		}
+	}
+
+	private void requestStart(LoggerStartReason reason) {
+		for (LoggerEventListener callback : eventListeners) {
+			if (callback.dissentStart(this)) {
+				slog.debug("araqne log api: one or more listeners dissent from logger [{}] start", fullName);
+				return;
+			}
+		}
+
+		if (slog.isDebugEnabled())
+			slog.debug("araqne log api: all listeners assent to logger [{}] start", fullName);
+
+		if (stopped) {
+			start(reason, interval);
+		}
 	}
 
 	@Override
 	public void setInterval(int interval) {
 		this.interval = interval;
+	}
+
+	@Override
+	public void setMaxWaitTime(int maxWaitTime) {
+		this.maxWaitTime = maxWaitTime;
 	}
 
 	public void addUnresolvedLogger(String fullName) {
@@ -902,12 +910,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		}
 
 		unresolvedLoggers.add(fullName);
-		
 		checkPending();
-//		if (this.enabled) {
-//			setPending(true);
-//			stop(LoggerStopReason.LOGGER_DEPENDENCY, 5000);
-//		}
 	}
 
 	public void removeUnresolvedLogger(String fullName) {
@@ -919,13 +922,6 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			return;
 
 		checkPending();
-		//setPending(false);
-		// boolean transformerResolved = config.get("transformer") == null ||
-		// transformer != null;
-		// if (!manualStart && status != LoggerStatus.Running && enabled &&
-		// transformerResolved && unresolvedLoggers.isEmpty()) {
-		// start(LoggerStartReason.DEPENDENCY_RESOLVED, getInterval());
-		// }
 	}
 
 	public void checkPending() {

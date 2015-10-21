@@ -688,9 +688,8 @@ public class LogStorageScript implements Script {
 			context.println(c.getName() + ": " + ConfigUtil.get(conf, c));
 		}
 	}
-	
-	@ScriptUsage(description = "set parameters", arguments = {
-			@ScriptArgument(name = "key", type = "string", description = "parameter key") })
+
+	@ScriptUsage(description = "set parameters", arguments = { @ScriptArgument(name = "key", type = "string", description = "parameter key") })
 	public void unsetParameter(String[] args) {
 		Constants configKey = Constants.parse(args[0]);
 		if (configKey == null) {
@@ -985,7 +984,7 @@ public class LogStorageScript implements Script {
 		private long minId;
 		/** guarded by this */
 		private long maxId;
-		
+
 		@SuppressWarnings("unused")
 		long rsvCnt = 0;
 		@SuppressWarnings("unused")
@@ -1021,7 +1020,7 @@ public class LogStorageScript implements Script {
 				if (max < id)
 					max = id;
 			}
-			
+
 			synchronized (this) {
 				count += logs.size();
 				if (minId > min)
@@ -1209,6 +1208,11 @@ public class LogStorageScript implements Script {
 		String receivedTableName = args[0];
 		Date fromDay = df.parse(args[1]);
 		Date toDay = df.parse(args[2]);
+
+		if (fromDay.after(toDay)) {
+			context.println("invalid date range");
+			return;
+		}
 
 		PurgePrinter printer = new PurgePrinter();
 		try {

@@ -24,10 +24,14 @@ public class EventKey {
 
 	private final int hashCode;
 
-	public EventKey(String topic, String key) {
+	public EventKey(String topic, String key, String host) {
 		this.topic = topic;
 		this.key = key;
-		this.hashCode = topic.hashCode() ^ key.hashCode();
+		this.host = host;
+		if (host != null)
+			this.hashCode = topic.hashCode() ^ key.hashCode() ^ host.hashCode();
+		else
+			this.hashCode = topic.hashCode() ^ key.hashCode();
 	}
 
 	public String getTopic() {
@@ -40,10 +44,6 @@ public class EventKey {
 
 	public String getHost() {
 		return host;
-	}
-
-	public void setHost(String host) {
-		this.host = host;
 	}
 
 	@Override
@@ -64,7 +64,14 @@ public class EventKey {
 
 		// topic and key is always not null
 		EventKey other = (EventKey) obj;
-		return key.equals(other.key) && topic.equals(other.topic);
+
+		if (host == null) {
+			if (other.host != null)
+				return false;
+			return key.equals(other.key) && topic.equals(other.topic);
+		}
+
+		return key.equals(other.key) && topic.equals(other.topic) && host.equals(other.host);
 	}
 
 	@Override

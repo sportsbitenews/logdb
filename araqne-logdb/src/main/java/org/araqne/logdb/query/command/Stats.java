@@ -339,7 +339,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 			logger.debug("araqne logdb: sorted stats input [{}]", count);
 		} catch (Throwable t) {
-			getQuery().stop(t);
+			getQuery().cancel(t);
 			throw new IllegalStateException("sort failed, query " + query, t);
 		} finally {
 			if (it != null) {

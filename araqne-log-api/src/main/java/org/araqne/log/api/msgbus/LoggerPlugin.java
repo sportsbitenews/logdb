@@ -60,6 +60,7 @@ public class LoggerPlugin {
 			locale = new Locale(s);
 
 		resp.put("factories", Marshaler.marshal(loggerFactoryRegistry.getLoggerFactories(), locale));
+		resp.put("groups", Marshaler.marshalDisplayGroups(loggerFactoryRegistry.getLoggerFactories(), locale));
 	}
 
 	@MsgbusMethod
@@ -238,7 +239,7 @@ public class LoggerPlugin {
 		}
 
 		logger.setEnabled(req.getBoolean("enabled", true));
-		if(!logger.isPassive())
+		if (!logger.isPassive())
 			logger.setInterval(req.getInteger("interval", true));
 	}
 

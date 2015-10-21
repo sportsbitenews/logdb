@@ -185,7 +185,7 @@ public class BoxPlot extends QueryCommand {
 				writeSummary(lastGroupKey, min, iqr1, iqr2, iqr3, max, count);
 
 		} catch (Throwable t) {
-			getQuery().stop(t);
+			getQuery().cancel(t);
 		}
 	}
 

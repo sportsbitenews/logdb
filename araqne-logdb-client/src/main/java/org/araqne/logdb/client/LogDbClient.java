@@ -1789,11 +1789,11 @@ public class LogDbClient implements TrapListener, Closeable {
 	 * @since 1.2.0
 	 * 
 	 */
-	public void updateLoggerOptions(LoggerInfo logger) throws IOException {
+	public void updateLoggerInfo(LoggerInfo loggerInfo) throws IOException {
 		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("logger", logger.getFullName());
-		params.put("enabled", logger.isEnabled());
-		params.put("interval", logger.getInterval());
+		params.put("logger", loggerInfo.getFullName());
+		params.put("enabled", loggerInfo.isEnabled());
+		params.put("interval", loggerInfo.getInterval());
 		rpc("org.araqne.log.api.msgbus.LoggerPlugin.updateLoggerOptions", params);
 	}
 

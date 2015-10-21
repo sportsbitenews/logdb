@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.araqne.logdb.Row;
 
-public class EventContext {
+public class EventContext implements EventClockItem {
 	private EventKey key;
 	private List<Row> rows;
 
@@ -43,21 +43,17 @@ public class EventContext {
 
 	private int maxRows;
 
-	// host for external log tick
-	private String host;
-
 	private HashMap<String, Object> variables = new HashMap<String, Object>(1);
 
 	private CopyOnWriteArraySet<EventContextListener> listeners = new CopyOnWriteArraySet<EventContextListener>();
 
-	public EventContext(EventKey key, long created, long expireTime, long timeoutTime, int maxRows, String host) {
+	public EventContext(EventKey key, long created, long expireTime, long timeoutTime, int maxRows) {
 		this.key = key;
 		this.created = created;
 		this.rows = Collections.synchronizedList(new ArrayList<Row>());
 		this.expireTime = expireTime;
 		this.timeoutTime = timeoutTime;
 		this.maxRows = maxRows;
-		this.host = host;
 	}
 
 	public EventKey getKey() {
@@ -100,12 +96,9 @@ public class EventContext {
 		return maxRows;
 	}
 
+	@Override
 	public String getHost() {
-		return host;
-	}
-
-	public void setHost(String host) {
-		this.host = host;
+		return key.getHost();
 	}
 
 	public long getCreated() {
@@ -171,4 +164,5 @@ public class EventContext {
 	public void setListeners(CopyOnWriteArraySet<EventContextListener> listeners) {
 		this.listeners = listeners;
 	}
+
 }

@@ -14,23 +14,28 @@ public class EvtCtxGetVarFunction implements Expression {
 	private Expression topicExpr;
 	private Expression keyExpr;
 	private Expression varNameExpr;
+	private Expression hostExpr;
 
-	private EventContextStorage memStorage;
+	private EventContextStorage storage;
 
 	public EvtCtxGetVarFunction(QueryContext ctx, List<Expression> exprs, EventContextService eventContextService) {
-		this.memStorage = eventContextService.getStorage("mem");
+		this.storage = eventContextService.getDefaultStorage();
 
-		if (exprs.size() != 3)
+		if (exprs.size() != 3 && exprs.size() != 4)
 			throw new QueryParseException("invalid-evtctxgetvar-arguments", -1, "argument-count-mismatch");
 
 		this.topicExpr = exprs.get(0);
 		this.keyExpr = exprs.get(1);
 		this.varNameExpr = exprs.get(2);
+
+		if (exprs.size() == 4)
+			this.hostExpr = exprs.get(3);
+
 	}
 
 	@Override
 	public Object eval(Row row) {
-		EventContext ctx = EvtCtxGetFunction.findContext(memStorage, topicExpr, keyExpr, row);
+		EventContext ctx = EvtCtxGetFunction.findContext(storage, topicExpr, keyExpr, hostExpr, row);
 		if (ctx == null)
 			return null;
 
@@ -43,7 +48,7 @@ public class EvtCtxGetVarFunction implements Expression {
 
 	@Override
 	public String toString() {
-		return "evtctxgetvar(" + topicExpr + ", " + keyExpr + ", " + varNameExpr + ")";
+		return "evtctxgetvar(" + topicExpr + ", " + keyExpr + ", " + varNameExpr + ", " + hostExpr + ")";
 	}
 
 }

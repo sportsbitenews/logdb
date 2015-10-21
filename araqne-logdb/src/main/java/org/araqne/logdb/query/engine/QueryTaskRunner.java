@@ -18,6 +18,7 @@ package org.araqne.logdb.query.engine;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.QueryCancelException;
+import org.araqne.logdb.QueryResultClosedException;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.QueryTaskEvent;
@@ -52,6 +53,8 @@ public class QueryTaskRunner extends Thread {
 			task.setStatus(TaskStatus.COMPLETED);
 
 			triggerCompleteEvent(task, new QueryTaskEvent(task));
+		} catch (QueryResultClosedException e) {
+			logger.debug("araqne logdb: query [" + queryId + "] task [" + task + "] result is already closed");
 		} catch (QueryCancelException e) {
 			logger.error("araqne logdb: query [" + queryId + "] task [" + task + "] canceled");
 			task.setStatus(TaskStatus.CANCELED);
@@ -60,7 +63,7 @@ public class QueryTaskRunner extends Thread {
 			logger.error("araqne logdb: query [" + queryId + "] task [" + task + "] failed", t);
 			task.setStatus(TaskStatus.CANCELED);
 			task.setFailure(t);
-			scheduler.getQuery().stop(t);
+			scheduler.getQuery().cancel(t);
 		} finally {
 			try {
 				triggerCleanUpEvent(task, new QueryTaskEvent(task));

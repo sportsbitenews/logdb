@@ -5,9 +5,7 @@ import java.util.Map;
 
 import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.Query;
-import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryResultSet;
-import org.araqne.logdb.QueryService;
 import org.araqne.logdb.Row;
 
 public class Result extends DriverQueryCommand {

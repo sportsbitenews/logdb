@@ -424,16 +424,6 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 		public void onUpdated(Logger logger, Map<String, String> config) {
 			saveLoggerConfig(logger, config);
 		}
-		
-		@Override
-		public void onPend(Logger logger, LoggerStopReason reason) {
-			//TODO
-		}
-		
-		@Override
-		public void onResolved(Logger logger, LoggerStopReason reason) {
-			//TODO
-		}
 
 		private LastState buildState(Logger logger) {
 			LastState s = new LastState();
@@ -455,5 +445,4 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			return s;
 		}
 	}
-
 }

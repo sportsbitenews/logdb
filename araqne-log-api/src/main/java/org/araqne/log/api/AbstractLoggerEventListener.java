@@ -20,7 +20,7 @@ import java.util.Map;
 /**
  * @since 3.6.0
  * @author xeraph
- *
+ * 
  */
 public class AbstractLoggerEventListener implements LoggerEventListener {
 
@@ -45,11 +45,12 @@ public class AbstractLoggerEventListener implements LoggerEventListener {
 	}
 
 	@Override
-	public void onPend(Logger logger, LoggerStopReason reason) {
+	public boolean dissentStart(Logger logger) {
+		return false;
 	}
-	
+
 	@Override
-	public void onResolved(Logger logger, LoggerStopReason reason) {
+	public void onPend(Logger logger, LoggerStopReason reason) {
 	}
 
 }

@@ -38,7 +38,7 @@ public class EvtCtxFunctionFactory implements FunctionFactory {
 
 	@Override
 	public Set<String> getFunctionNames() {
-		return new HashSet<String>(Arrays.asList("evtctxget", "evtctxgetvar", "evtctxsetvar"));
+		return new HashSet<String>(Arrays.asList("evtctxget", "evtctxgetvar", "evtctxsetvar", "evtctxcnt"));
 	}
 
 	@Override
@@ -49,6 +49,8 @@ public class EvtCtxFunctionFactory implements FunctionFactory {
 			return new EvtCtxGetVarFunction(ctx, exprs, eventContextService);
 		} else if (name.equals("evtctxsetvar")) {
 			return new EvtCtxSetVarFunction(ctx, exprs, eventContextService);
+		} else if (name.equals("evtctxcnt")) {
+			return new EvtCtxCntFunction(ctx, exprs, eventContextService);
 		}
 
 		throw new QueryParseException("unsupported-function", -1, name);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 NCHOVY
+ * Copyright 2015 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,33 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.araqne.log.api;
+package org.araqne.logdb.cep;
 
-import java.util.Collection;
-import java.util.Locale;
-
-public interface LoggerConfigOption {
-	String getName();
-
-	Collection<Locale> getDisplayNameLocales();
-
-	String getDisplayName(Locale locale);
-
-	Collection<Locale> getDescriptionLocales();
-
-	String getDescription(Locale locale);
-
-	String getType();
-
-	boolean isRequired();
-
-	Collection<Locale> getDefaultValueLocales();
-
-	String getDefaultValue(Locale locale);
-
-	void validate(Object value);
-
-	Object parse(String value);
-
-	String getSubtype();
+public interface EventClockCallback {
+	void onRemove(EventClockItem value, EventCause expire);
 }

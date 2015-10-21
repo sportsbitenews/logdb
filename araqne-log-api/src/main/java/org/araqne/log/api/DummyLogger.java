@@ -298,4 +298,9 @@ public class DummyLogger implements Logger {
 	@Override
 	public void setInterval(int interval) {
 	}
+
+	@Override
+	public void setMaxWaitTime(int maxWaitTime) {
+		
+	}
 }

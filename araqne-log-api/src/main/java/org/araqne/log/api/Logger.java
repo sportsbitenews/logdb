@@ -87,6 +87,8 @@ public interface Logger {
 
 	void setInterval(int interval);
 
+	void setMaxWaitTime(int maxWaitTime);
+
 	/**
 	 * @since 2.4.0
 	 */

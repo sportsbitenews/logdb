@@ -94,14 +94,10 @@ public class ParseWithAnchor extends V1LogParser {
 		HashMap<String, Object> m = new HashMap<String, Object>(anchors.size());
 		
 		mchr.reset(line);
-		int found = 0;
 		int start = 0;
 		while (mchr.find(start)) {
-			found++;
 			String[] field = findField(mchr);
-			
 			m.put(field[0], field[1]);
-			
 			start = mchr.end() - 1;
 		}
 		

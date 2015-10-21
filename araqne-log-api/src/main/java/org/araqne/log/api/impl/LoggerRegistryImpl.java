@@ -36,8 +36,6 @@ import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
 import org.araqne.confdb.Predicates;
-import org.araqne.cron.AbstractTickTimer;
-import org.araqne.cron.TickService;
 import org.araqne.log.api.AbstractLoggerEventListener;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogPipe;
@@ -47,7 +45,6 @@ import org.araqne.log.api.LoggerFactoryEventListener;
 import org.araqne.log.api.LoggerFactoryRegistryEventListener;
 import org.araqne.log.api.LoggerRegistry;
 import org.araqne.log.api.LoggerRegistryEventListener;
-import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStopReason;
 
 @Component(name = "logger-registry")
@@ -59,9 +56,6 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 	@Requires
 	private ConfigService conf;
 
-	@Requires
-	private TickService tickService;
-
 	private ConcurrentMap<String, Logger> loggers;
 	private Set<LoggerRegistryEventListener> callbacks;
 	private ConcurrentMap<String, Set<LogPipe>> pipeMap;
@@ -69,7 +63,6 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 
 	private Map<String, Set<String>> dependencies;
 	private DependencyResolver resolver;
-	private LoggerStarter loggerStarter = new LoggerStarter();
 
 	public LoggerRegistryImpl() {
 		loggers = new ConcurrentHashMap<String, Logger>();
@@ -106,7 +99,6 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 
 		isOpen = true;
 
-		tickService.addTimer(loggerStarter);
 	}
 
 	@Invalidate
@@ -116,9 +108,6 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 		isOpen = false;
 		callbacks.clear();
 		dependencies.clear();
-
-		if (tickService != null)
-			tickService.removeTimer(loggerStarter);
 	}
 
 	@Override
@@ -418,37 +407,6 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 			}
 		}
 
-		public void onPend(Logger logger, LoggerStopReason reason) {
-			log.debug("aranqe log api: dependency resolver detected logger [{}] pending", logger.getFullName());
-
-			// XXX manual도 정지?
-			if (logger.isRunning()) {
-				logger.stop(reason);
-
-				String sourceFullName = getSourceLogger(logger.getFullName());
-				if (sourceFullName == null || sourceFullName.isEmpty())
-					return;
-
-				Logger sourceLogger = getLogger(sourceFullName);
-				if (sourceLogger == null)
-					return;
-
-				sourceLogger.addUnresolvedLogger(logger.getFullName());
-			}
-		}
-
-		public void onResolved(Logger logger, LoggerStopReason reason) {
-			log.debug("aranqe log api: dependency resolver detected logger [{}] resolved", logger.getFullName());
-
-			if (!logger.isManualStart() && !logger.isRunning())
-				try {
-					logger.start(LoggerStartReason.DEPENDENCY_RESOLVED, logger.getInterval());
-				} catch (Exception e) {
-					log.info("logpresso core: cannot start managed logger [{}] ", logger.getFullName(), e);
-				}
-			
-		}
-
 		public void onStop(Logger logger, LoggerStopReason reason) {
 			log.debug("aranqe log api: dependency resolver detected logger [{}] stop", logger.getFullName());
 		}
@@ -457,55 +415,29 @@ public class LoggerRegistryImpl implements LoggerRegistry, LoggerFactoryRegistry
 		}
 
 		public void onUpdated(Logger logger, Map<String, String> config) {
-			// start only unmanaged loggers
-			if (logger.isManualStart())
+		}
+
+		@Override
+		public boolean dissentStart(Logger logger) {
+			if (logger.isRunning())
+				return true;
+
+			return false;
+		}
+
+		@Override
+		public void onPend(Logger logger, LoggerStopReason reason) {
+			log.debug("aranqe log api: dependency resolver detected logger [{}] pending", logger.getFullName());
+
+			String sourceFullName = getSourceLogger(logger.getFullName());
+			if (sourceFullName == null || sourceFullName.isEmpty())
 				return;
 
-			if (logger.isEnabled() && !logger.isRunning() && !logger.isPending()) {
-				log.debug("araqne log api: trying to start logger [{}]", logger.getFullName());
-				try {
-					startLogger(logger);
-				} catch (IllegalStateException e) {
-					log.error("fatal error", e);
-					// String errMsg = e.getMessage();
-					// if(errMsg !=null && errMsg.equals("pending logger")) {//이
-					// 로거가 시작안하면 다른로거대기가 발생해야되는가?
-					// logger.setPending(true);
-					// log.error("error");
-					// }
-				}
-			}
+			Logger sourceLogger = getLogger(sourceFullName);
+			if (sourceLogger == null)
+				return;
 
-			if (!logger.isEnabled() && logger.isRunning()) {
-				log.debug("araqne log api: trying to stop logger [{}]", logger.getFullName());
-				stopLogger(logger);
-			}
+			sourceLogger.addUnresolvedLogger(logger.getFullName());
 		}
-	}
-
-	private class LoggerStarter extends AbstractTickTimer {
-
-		@Override
-		public int getInterval() {
-			return 100;
-		}
-
-		@Override
-		public void onTick() {
-
-		}
-
-	}
-
-	private void startLogger(Logger logger) {
-		if (logger.isPassive()) {
-			logger.start(LoggerStartReason.USER_REQUEST);
-		} else {
-			logger.start(LoggerStartReason.USER_REQUEST, logger.getInterval());
-		}
-	}
-
-	private void stopLogger(Logger logger) {
-		logger.stop(LoggerStopReason.USER_REQUEST);
 	}
 }

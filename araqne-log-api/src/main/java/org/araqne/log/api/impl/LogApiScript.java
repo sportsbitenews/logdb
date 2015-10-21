@@ -343,7 +343,7 @@ public class LogApiScript implements Script {
 				return "";
 			return t.getMessage() != null ? t.getMessage() : t.getClass().getName();
 		}
-		
+
 		public boolean isEnabled() {
 			return logger.isEnabled();
 		}
@@ -632,12 +632,9 @@ public class LogApiScript implements Script {
 
 	@ScriptUsage(description = "enable the logger", arguments = {
 			@ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname to enable", autocompletion = LoggerAutoCompleter.class),
-			@ScriptArgument(name = "interval", type = "int", description = "sleep time of active logger thread in milliseconds. 60000ms by default. passive logger will ignore interval", optional = true) })
+			@ScriptArgument(name = "interval", type = "int", description = "sleep time of active logger thread in milliseconds. passive logger will ignore interval", optional = true) })
 	public void enableLogger(String[] args) {
 		String fullName = args[0];
-		int interval = 0;
-		if (args.length > 1)
-			interval = Integer.parseInt(args[1]);
 
 		Logger logger = loggerRegistry.getLogger(fullName);
 		if (logger == null) {
@@ -645,13 +642,19 @@ public class LogApiScript implements Script {
 			return;
 		}
 
-		logger.setInterval(interval);
-		logger.setEnabled(true);
+		try {
+			if (args.length > 1)
+				logger.setInterval(Integer.parseInt(args[1]));
+		} catch (NumberFormatException e) {
+			context.println("interval should be number");
+			return;
+		}
 
-		context.println("enabled");
+		logger.setEnabled(true);
+		context.println("logger enabled");
 	}
 
-	@ScriptUsage(description = "start loggers at once, passive logger will ignore interval", arguments = {
+	@ScriptUsage(description = "enable loggers at once, passive logger will ignore interval", arguments = {
 			@ScriptArgument(name = "logger names", type = "string", description = "logger name wildcard expression"),
 			@ScriptArgument(name = "interval", type = "int", description = "run interval in milliseconds, 5000 by default", optional = true) })
 	public void enableLoggers(String[] args) {
@@ -668,7 +671,8 @@ public class LogApiScript implements Script {
 				newInterval = Integer.parseInt(args[1]);
 			}
 		} catch (NumberFormatException e) {
-			// ignore
+			context.println("interval should be number");
+			return;
 		}
 
 		Matcher matcher = pattern.matcher("");
@@ -680,7 +684,7 @@ public class LogApiScript implements Script {
 
 			try {
 				if (logger.isPassive()) {
-					if (logger.isRunning()) {
+					if (logger.isEnabled()) {
 						context.println("logger [" + logger.getFullName() + "] is already enabled");
 					} else {
 						logger.setEnabled(true);
@@ -701,8 +705,8 @@ public class LogApiScript implements Script {
 
 			try {
 				if (!logger.isPassive()) {
-					if (logger.isRunning()) {
-						context.println("logger [" + logger.getFullName() + "] is already started");
+					if (logger.isEnabled()) {
+						context.println("logger [" + logger.getFullName() + "] is already enabled");
 					} else {
 						int interval = logger.getInterval();
 						if (interval == 0 || !useOldInterval)
@@ -710,12 +714,12 @@ public class LogApiScript implements Script {
 
 						logger.setInterval(interval);
 						logger.setEnabled(true);
-						context.println("logger [" + logger.getFullName() + "] started with interval " + interval + "ms");
+						context.println("logger [" + logger.getFullName() + "] enabled with interval " + interval + "ms");
 					}
 				}
 			} catch (Throwable t) {
-				context.println("cannot start logger [" + logger.getFullName() + "], " + t.getMessage());
-				slog.error("araqne log api: canont start logger " + logger.getFullName(), t);
+				context.println("cannot enable logger [" + logger.getFullName() + "], " + t.getMessage());
+				slog.error("araqne log api: canont enable logger " + logger.getFullName(), t);
 			}
 		}
 	}
@@ -811,15 +815,21 @@ public class LogApiScript implements Script {
 
 	}
 
-	@ScriptUsage(description = "stop the logger", arguments = {
-			@ScriptArgument(name = "logger names", type = "string", description = "the logger name to stop", autocompletion = LoggerAutoCompleter.class),
+	@ScriptUsage(description = "disable the logger", arguments = {
+			@ScriptArgument(name = "logger names", type = "string", description = "the logger name to disable", autocompletion = LoggerAutoCompleter.class),
 			@ScriptArgument(name = "max wait time", type = "int", description = "max wait time in milliseconds, 5000 by default", optional = true) })
 	public void disableLogger(String[] args) {
 		try {
-			int maxWaitTime = 5000; // tick이 계속 도니까 최대 대기 시간은 필요 없을듯?
+			int maxWaitTime = 5000;
 			String name = args[0];
-			if (args.length > 1)
-				maxWaitTime = Integer.parseInt(args[1]);
+
+			try {
+				if (args.length > 1)
+					maxWaitTime = Integer.parseInt(args[1]);
+			} catch (NumberFormatException e) {
+				context.println("interval should be number");
+				return;
+			}
 
 			Logger logger = loggerRegistry.getLogger(name);
 			if (logger == null) {
@@ -830,8 +840,8 @@ public class LogApiScript implements Script {
 			if (!logger.isPassive())
 				context.println("waiting...");
 
+			logger.setMaxWaitTime(maxWaitTime);
 			logger.setEnabled(false);
-			// logger.stop(LoggerStopReason.USER_REQUEST, maxWaitTime);
 			context.println("logger disabled");
 		} catch (Exception e) {
 			context.println(e.getMessage());
@@ -854,7 +864,8 @@ public class LogApiScript implements Script {
 				maxWaitTime = Integer.parseInt(args[1]);
 			}
 		} catch (NumberFormatException e) {
-			// ignore
+			context.println("interval should be number");
+			return;
 		}
 
 		Matcher matcher = pattern.matcher("");
@@ -867,18 +878,17 @@ public class LogApiScript implements Script {
 
 			try {
 				if (!logger.isPassive()) {
-					if (!logger.isRunning()) {
-						context.println("logger [" + logger.getFullName() + "] is not running");
+					if (!logger.isEnabled()) {
+						context.println("logger [" + logger.getFullName() + "] is not enabled");
 					} else {
+						logger.setMaxWaitTime(maxWaitTime);
 						logger.setEnabled(false);
-						// logger.stop(LoggerStopReason.USER_REQUEST,
-						// maxWaitTime);
-						context.println("logger [" + logger.getFullName() + "] stopped");
+						context.println("logger [" + logger.getFullName() + "] disabled");
 					}
 				}
 			} catch (Throwable t) {
-				context.println("cannot start logger [" + logger.getFullName() + "], " + t.getMessage());
-				slog.error("araqne log api: canont start logger " + logger.getFullName(), t);
+				context.println("cannot disable logger [" + logger.getFullName() + "], " + t.getMessage());
+				slog.error("araqne log api: canont disable logger " + logger.getFullName(), t);
 			}
 		}
 
@@ -890,17 +900,16 @@ public class LogApiScript implements Script {
 
 			try {
 				if (logger.isPassive()) {
-					if (!logger.isRunning()) {
-						context.println("logger [" + logger.getFullName() + "] is not running");
+					if (!logger.isEnabled()) {
+						context.println("logger [" + logger.getFullName() + "] is not enabled");
 					} else {
-						// logger.stop(LoggerStopReason.USER_REQUEST);
 						logger.setEnabled(false);
-						context.println("logger [" + logger.getFullName() + "] stopped");
+						context.println("logger [" + logger.getFullName() + "] disabled");
 					}
 				}
 			} catch (Throwable t) {
-				context.println("cannot start logger [" + logger.getFullName() + "], " + t.getMessage());
-				slog.error("araqne log api: canont start logger " + logger.getFullName(), t);
+				context.println("cannot disable logger [" + logger.getFullName() + "], " + t.getMessage());
+				slog.error("araqne log api: canont disable logger " + logger.getFullName(), t);
 			}
 		}
 

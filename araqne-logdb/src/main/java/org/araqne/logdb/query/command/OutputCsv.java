@@ -154,7 +154,7 @@ public class OutputCsv extends QueryCommand {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot write log to csv file", t);
 
-			getQuery().stop(QueryStopReason.CommandFailure);
+			getQuery().cancel(t);
 		}
 		pushPipe(m);
 	}
@@ -179,7 +179,7 @@ public class OutputCsv extends QueryCommand {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot write log to csv file", t);
 
-			getQuery().stop(QueryStopReason.CommandFailure);
+			getQuery().cancel(QueryStopReason.CommandFailure);
 		}
 
 		pushPipe(rowBatch);
