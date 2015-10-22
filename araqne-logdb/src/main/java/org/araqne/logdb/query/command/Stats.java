@@ -271,6 +271,18 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		if (sorter == null)
 			return;
 
+		if (reason != QueryStopReason.End && reason != QueryStopReason.PartialFetch) {
+			try {
+				sorter.cancel();
+				sorter = null;
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: cannot close stats sorter, query [" + getQuery().getId() + ":"
+						+ getQuery().getQueryString() + "]", t);
+			}
+
+			return;
+		}
+
 		logger.debug("araqne logdb: stats sort input count [{}]", inputCount);
 		CloseableIterator it = null;
 		try {
