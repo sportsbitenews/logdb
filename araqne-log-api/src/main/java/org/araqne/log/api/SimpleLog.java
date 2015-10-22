@@ -77,6 +77,7 @@ public class SimpleLog implements Log {
 		return params;
 	}
 
+	@Override
 	public long getDataLength() {
 		return dataLength;
 	}
