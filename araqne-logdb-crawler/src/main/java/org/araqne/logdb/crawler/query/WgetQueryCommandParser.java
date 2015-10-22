@@ -25,6 +25,7 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
@@ -56,7 +57,7 @@ public class WgetQueryCommandParser extends AbstractQueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("selector", "timeout", "method", "encoding", "url"), getFunctionRegistry());
+				Arrays.asList("selector", "timeout", "method", "encoding", "url", "auth"), getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
@@ -71,11 +72,15 @@ public class WgetQueryCommandParser extends AbstractQueryCommandParser {
 		String method = options.get("method");
 		if (method == null)
 			method = "get";
+		else if (!method.equals("get") && !method.equals("post"))
+			throw new QueryParseException("invalid-wget-method", -1);
 
 		String encoding = options.get("encoding");
 		if (encoding == null)
 			encoding = "utf-8";
 
-		return new WgetQueryCommand(url, selector, timeout, method, encoding);
+		String auth = options.get("auth");
+
+		return new WgetQueryCommand(url, selector, timeout, method, encoding, auth);
 	}
 }

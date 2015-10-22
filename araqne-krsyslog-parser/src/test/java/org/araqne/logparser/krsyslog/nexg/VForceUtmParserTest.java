@@ -34,12 +34,12 @@ public class VForceUtmParserTest {
 		VForceUtmParser p = new VForceUtmParser();
 		Map<String, Object> m = p.parse(log);
 
-		assertEquals("Apr 14 03:19:34", m.get("DateTime"));
-		assertEquals("session", m.get("Log_Category"));
-		assertEquals("1", m.get("Proto"));
-		assertEquals("10.10.81.16", m.get("Src"));
-		assertEquals("Apr 14 03:19:34", m.get("Start_Time"));
-		assertEquals("-", m.get("End_Time"));
+		assertEquals("Apr 14 03:19:34", m.get("datetime"));
+		assertEquals("session", m.get("log_category"));
+		assertEquals("1", m.get("proto"));
+		assertEquals("10.10.81.16", m.get("src"));
+		assertEquals("Apr 14 03:19:34", m.get("start_time"));
+		assertEquals("-", m.get("end_time"));
 	}
 
 	@Test
@@ -52,9 +52,23 @@ public class VForceUtmParserTest {
 		VForceUtmParser p = new VForceUtmParser();
 		Map<String, Object> m = p.parse(log);
 
-		assertEquals("Apr 14 17:42:53", m.get("DateTime"));
-		assertEquals("appgw_http", m.get("Log_Category"));
-		assertEquals("http-filter-test-1", m.get("Name"));
-		assertEquals("/pub/firefox/releases/37.0.1/update/win32/ko/firefox-37.0.1.complete.mar", m.get("Path"));
+		assertEquals("Apr 14 17:42:53", m.get("datetime"));
+		assertEquals("appgw_http", m.get("log_category"));
+		assertEquals("http-filter-test-1", m.get("name"));
+		assertEquals("/pub/firefox/releases/37.0.1/update/win32/ko/firefox-37.0.1.complete.mar", m.get("path"));
+	}
+
+	@Test
+	public void testSample3() {
+		String line = "Jul 7 10:12:12 session: NZC25081310046 Proto:6, Policy:pass, Rule:90, Type:close-RST, Src:201.232.182.39, Dst:112.156.130.230, Spt_c:2085, Dpt_t:17880, Bytes:1109, Packets:6, Repl_Src:112.136.170.230, Repl_Dst:211.232.102.39, Repl_Spt_c:17880, Repl_Dpt_t:2085, Repl_Bytes:2328, Repl_Packets:5, Count:1, Start_Time:Jul 7 10:11:44, End_Time:Jul 7 10:12:12";
+
+		HashMap<String, Object> log = new HashMap<String, Object>();
+		log.put("line", line);
+
+		VForceUtmParser p = new VForceUtmParser();
+		Map<String, Object> m = p.parse(log);
+
+		assertEquals("6", m.get("proto"));
+		assertEquals("close-RST", m.get("type"));
 	}
 }

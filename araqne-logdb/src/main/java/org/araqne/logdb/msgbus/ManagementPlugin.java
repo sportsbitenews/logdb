@@ -121,6 +121,7 @@ public class ManagementPlugin {
 
 			loginName = token.getSession().getAdminLoginName();
 			dbSession = accountService.newSession(loginName);
+			dbSession.setProperty("remote_ip", getRemoteAddr(session));
 		} else {
 			loginName = req.getString("login_name", true);
 			String password = req.getString("password", true);
@@ -130,6 +131,8 @@ public class ManagementPlugin {
 
 			try {
 				dbSession = accountService.login(loginName, password);
+				dbSession.setProperty("remote_ip", getRemoteAddr(session));
+
 				if (slog.isDebugEnabled())
 					slog.debug("araqne logdb: [{}] is logged in successfully from [{}]", loginName, session.getRemoteAddress()
 							.getHostAddress());
@@ -143,6 +146,15 @@ public class ManagementPlugin {
 				} else {
 					throw e;
 				}
+			} catch (IllegalStateException e) {
+				if (e.getMessage() != null && e.getMessage().equals("invalid password")) {
+					Map<String, Object> errorParams = new HashMap<String, Object>();
+					errorParams.put("login", loginName);
+					errorParams.put("remote_ip", getRemoteAddr(session));
+					throw new MsgbusException("logdb", "invalid password", errorParams);
+				}
+
+				throw e;
 			}
 		}
 
@@ -153,6 +165,10 @@ public class ManagementPlugin {
 		}
 
 		session.setProperty("araqne_logdb_session", dbSession);
+	}
+
+	private String getRemoteAddr(Session session) {
+		return session.getRemoteAddress() != null ? session.getRemoteAddress().getHostAddress() : null;
 	}
 
 	@MsgbusMethod
@@ -704,6 +720,9 @@ public class ManagementPlugin {
 		} catch (ParseException e) {
 			throw new MsgbusException("logdb", "not-parse-date");
 		}
+
+		if ((fromDay != null && toDay != null) && fromDay.after(toDay))
+			throw new IllegalArgumentException("araqne-logdb: invalid date range(from: " + fromDay + ", to: " + toDay);
 
 		storage.purge(tableName, fromDay, toDay);
 

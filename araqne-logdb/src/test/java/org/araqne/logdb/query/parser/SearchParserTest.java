@@ -106,7 +106,7 @@ public class SearchParserTest {
 		map.put("sip", "10.2.2.2");
 		assertFalse((Boolean) expr.eval(map));
 
-		assertEquals("search (((sip == \"74.86.*\") or (sip == \"211.*\")) or (sip == \"110.221.*\"))", search.toString());
+		assertEquals("search ((sip == \"74.86.*\") or (sip == \"211.*\") or (sip == \"110.221.*\"))", search.toString());
 	}
 
 	@Test

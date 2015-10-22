@@ -159,11 +159,10 @@ public class CsvLogParserTest {
 		CsvLogParser parser = new CsvLogParser(false, false, null, "line", false);
 
 		Map<String, Object> parsed = parser.parse(m);
-
-		assertEquals("\"a", parsed.get("column0"));
-		assertEquals(" b\"", parsed.get("column1"));
-		assertEquals(" c\"d ", parsed.get("column2"));
-		assertEquals(" \"e\"f\"g\"", parsed.get("column3"));
+		assertEquals("\\\"a", parsed.get("column0"));
+		assertEquals(" b\\\"", parsed.get("column1"));
+		assertEquals(" c\\\"d ", parsed.get("column2"));
+		assertEquals(" \\\"e\\\"f\\\"g\\\"", parsed.get("column3"));
 	}
 
 	@Test

@@ -15,37 +15,61 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.araqne.logdb.Row;
 
-public class Or extends BinaryExpression {
+public class Or implements Expression {
+	List<Expression> operands;
 
+	/** this constructor can modify lhs's operands. */
 	public Or(Expression lhs, Expression rhs) {
-		super(lhs, rhs);
+		if (lhs instanceof Or) {
+			operands = Or.class.cast(lhs).operands;
+		} else {
+			operands = new ArrayList<Expression>(2);
+			operands.add(lhs);
+		}
+		
+		if (rhs instanceof Or) {
+			operands.addAll(Or.class.cast(rhs).operands);
+		} else {
+			operands.add(rhs);
+		}
 	}
 
 	@Override
 	public Object eval(Row map) {
-		Object lo = lhs.eval(map);
-		Object ro = rhs.eval(map);
-
-		boolean l = false;
-		boolean r = false;
-
-		if (lo instanceof Boolean)
-			l = (Boolean) lo;
-		else
-			l = lo != null;
-
-		if (ro instanceof Boolean)
-			r = (Boolean) ro;
-		else
-			r = ro != null;
-
-		return l || r;
+		for (Expression e : operands) {
+			Object o = e.eval(map);
+			if (o instanceof Boolean) {
+				if ((Boolean) o)
+					return true;
+			} else {
+				if (o != null)
+					return true;
+			}
+		}
+		
+		return false;
 	}
 
 	@Override
 	public String toString() {
-		return "(" + lhs + " or " + rhs + ")";
+		StringBuilder sb = new StringBuilder();
+		sb.append("(");
+		boolean first = true;
+		for (Expression e : operands) {
+			if (first) {
+				first = false;
+			} else {
+				sb.append(" or ");
+			}
+			sb.append(e);
+		}
+		
+		sb.append(")");
+		return sb.toString();
 	}
 }

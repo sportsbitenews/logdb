@@ -289,7 +289,7 @@ public class Timechart extends QueryCommand {
 				mergeAndWrite(it);
 			}
 		} catch (Throwable t) {
-			getQuery().stop(t);
+			getQuery().cancel(t);
 			throw new IllegalStateException("timechart sort failed, query " + query, t);
 		} finally {
 			// close and delete final sorted run file
