@@ -18,7 +18,6 @@ public class ConfigWatchLogger extends AbstractLogger implements Reconfigurable 
 	protected String basePath;
 	protected Pattern fileNamePattern;
 	protected String fileTag;
-	protected String fileName;
 
 	public ConfigWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
@@ -76,11 +75,10 @@ public class ConfigWatchLogger extends AbstractLogger implements Reconfigurable 
 				params.put("path", path);
 				params.put("old_hash", oldState.getHash());
 				params.put("new_hash", newHash);
+				if (fileTag != null)
+					params.put(fileTag, f.getName());
 
 				Log log = new SimpleLog(new Date(), fullName, params);
-				if (fileTag != null)
-					log.getParams().put(fileTag, fileName);
-
 				write(log);
 			}
 
