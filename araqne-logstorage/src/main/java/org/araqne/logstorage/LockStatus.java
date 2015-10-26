@@ -52,6 +52,10 @@ public class LockStatus {
 
 	public Collection<String> getPurposes() {
 		ArrayList<String> purposeList = new ArrayList<String>();
+		
+		if (purposes == null)
+			return purposeList;
+		
 		for (Purpose p: purposes) {
 			purposeList.add(p.toString());
 		}
