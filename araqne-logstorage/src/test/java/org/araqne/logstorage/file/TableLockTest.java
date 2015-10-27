@@ -8,6 +8,8 @@ import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -121,8 +123,8 @@ public class TableLockTest {
 				new LockKey("test2", "T2", null), "test1", Long.MAX_VALUE, TimeUnit.SECONDS) != null);
 		assertEquals("test", ls.lockStatus(new LockKey("test", "T2", null)).getOwner());
 		assertEquals(
-				"[test1:1, test2:1]",
-				Arrays.toString(ls.lockStatus(new LockKey("test", "T2", null)).getPurposes().toArray()));
+				"[test2:1, test1:1]",
+				sortedPurposes(ls.lockStatus(new LockKey("test", "T2", null)).getPurposes()));
 		ls.unlock(lk, "test2");
 		assertEquals("test", ls.lockStatus(new LockKey("test", "T2", null)).getOwner());
 		assertFalse(ls.lock(
@@ -131,6 +133,12 @@ public class TableLockTest {
 
 		// postcondition
 		assertEquals(null, ls.lockStatus(new LockKey("test", "T1", null)).getOwner());
+	}
+
+	private String sortedPurposes(Collection<String> purposes) {
+		Object[] arr = purposes.toArray();
+		Arrays.sort(arr, Collections.reverseOrder());
+		return Arrays.toString(arr);
 	}
 
 	@Test
