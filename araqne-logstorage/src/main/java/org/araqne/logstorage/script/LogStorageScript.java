@@ -228,12 +228,7 @@ public class LogStorageScript implements Script {
 				context.println();
 			}
 
-			long total = 0;
-			FilePath dir = storage.getTableDirectory(tableName);
-			if (dir.exists()) {
-				for (FilePath f : dir.listFiles())
-					total += f.length();
-			}
+			long total = storage.getDiskUsage(tableName, null, null);
 
 			LogRetentionPolicy retentionPolicy = storage.getRetentionPolicy(tableName);
 			String retention = "None";

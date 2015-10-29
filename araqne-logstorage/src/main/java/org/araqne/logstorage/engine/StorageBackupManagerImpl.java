@@ -105,7 +105,36 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 			throw new IllegalArgumentException("invalid backup options [guid:" + req.getGuid() + "]");
 
 		Map<String, List<StorageFile>> storageFiles = new HashMap<String, List<StorageFile>>();
-		long totalBytes = getRequiredBytes(storageFiles, req.getTableNames(), req.getFrom(), req.getTo());
+		long totalBytes = 0;
+		for (String tableName : req.getTableNames()) {
+			List<StorageFile> files = new ArrayList<StorageFile>();
+
+			for (Date day : storage.getLogDates(tableName)) {
+				if ((req.getFrom() != null && day.before(req.getFrom())) || (req.getTo() != null && day.after(req.getTo())))
+					continue;
+
+				TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+				int tableId = schema.getId();
+				String basePath = schema.getPrimaryStorage().getBasePath();
+				FilePath baseDir = storageManager.resolveFilePath(basePath);
+				if (baseDir == null)
+					baseDir = storage.getDirectory();
+
+				if (!(baseDir instanceof LocalFilePath)) {
+					logger.warn("araqne logstorage : unsupported base path : " + basePath);
+					continue;
+				}
+
+				totalBytes += addStorageFile(files, tableName, tableId,
+						((LocalFilePath) DatapathUtil.getIndexFile(tableId, day, baseDir)).getFile());
+				totalBytes += addStorageFile(files, tableName, tableId,
+						((LocalFilePath) DatapathUtil.getDataFile(tableId, day, baseDir)).getFile());
+				totalBytes += addStorageFile(files, tableName, tableId,
+						((LocalFilePath) DatapathUtil.getKeyFile(tableId, day, baseDir)).getFile());
+			}
+
+			storageFiles.put(tableName, files);
+		}
 
 		StorageBackupJob job = new StorageBackupJob();
 		job.setRequest(req);
@@ -140,65 +169,13 @@ public class StorageBackupManagerImpl implements StorageBackupManager {
 		return job;
 	}
 
-	@Override
-	public long getRequiredBytes(Map<String, List<StorageFile>> storageFiles, Set<String> tableNames, Date from, Date to) {
-		long totalBytes = 0;
-		for (String tableName : tableNames) {
-			List<StorageFile> files = null;
-			if (storageFiles != null)
-				files = new ArrayList<StorageFile>();
-
-			for (Date day : storage.getLogDates(tableName)) {
-				if ((from != null && day.before(from)) || (to != null && day.after(to)))
-					continue;
-
-				TableSchema schema = tableRegistry.getTableSchema(tableName, true);
-				int tableId = schema.getId();
-				String basePath = schema.getPrimaryStorage().getBasePath();
-				FilePath baseDir = storageManager.resolveFilePath(basePath);
-				if (baseDir == null)
-					baseDir = storage.getDirectory();
-
-				if (!(baseDir instanceof LocalFilePath)) {
-					logger.warn("araqne logstorage : unsupported base path : " + basePath);
-					continue;
-				}
-
-				StorageFile indexFile = getStorageFile(tableName, tableId,
-						((LocalFilePath) DatapathUtil.getIndexFile(tableId, day, baseDir)).getFile());
-				StorageFile dataFile = getStorageFile(tableName, tableId,
-						((LocalFilePath) DatapathUtil.getDataFile(tableId, day, baseDir)).getFile());
-				StorageFile keyFile = getStorageFile(tableName, tableId,
-						((LocalFilePath) DatapathUtil.getKeyFile(tableId, day, baseDir)).getFile());
-
-				if (indexFile != null)
-					totalBytes += indexFile.getLength();
-				if (dataFile != null)
-					totalBytes += dataFile.getLength();
-				if (keyFile != null)
-					totalBytes += keyFile.getLength();
-
-				if (storageFiles != null) {
-					if (indexFile != null)
-						files.add(indexFile);
-					if (dataFile != null)
-						files.add(dataFile);
-					if (keyFile != null)
-						files.add(keyFile);
-				}
-			}
-			if (storageFiles != null)
-				storageFiles.put(tableName, files);
-		}
-
-		return totalBytes;
-	}
-
-	private StorageFile getStorageFile(String tableName, int tableId, File f) {
+	private long addStorageFile(List<StorageFile> files, String tableName, int tableId, File f) {
 		if (!f.exists())
-			return null;
+			return 0;
 
-		return new StorageFile(tableName, tableId, f);
+		StorageFile bf = new StorageFile(tableName, tableId, f);
+		files.add(bf);
+		return bf.getLength();
 	}
 
 	@Override
