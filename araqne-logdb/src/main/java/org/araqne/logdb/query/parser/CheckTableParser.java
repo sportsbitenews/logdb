@@ -22,24 +22,25 @@ import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 
 public class CheckTableParser extends AbstractQueryCommandParser {
-
-	private String commandName;
 	private LogTableRegistry tableRegistry;
 	private LogStorage storage;
 	private LogFileServiceRegistry fileServiceRegistry;
 
-	public CheckTableParser(String commandName, LogTableRegistry tableRegistry, LogStorage storage,
-			LogFileServiceRegistry fileServiceRegistry) {
-		this.commandName = commandName;
+	public CheckTableParser(LogTableRegistry tableRegistry, LogStorage storage, LogFileServiceRegistry fileServiceRegistry) {
 		this.tableRegistry = tableRegistry;
 		this.storage = storage;
 		this.fileServiceRegistry = fileServiceRegistry;
-		help.setCommandName(commandName);
+
+		setDescriptions(
+				"Check data integrity of table. This command will verify tables which has crypto profile with digest algorithm. You can specify wildcard for table name. This command requires administrator privilege.",
+				"지정한 날짜 범위의 테이블 데이터 무결성을 검사합니다. 대상 테이블이 다이제스트 알고리즘이 설정된 암호화 프로파일을 이용하는 경우에만 무결성 검사가 수행되며, 무결성 검사에 필요한 HMAC 시그니처를 포함하지 않는 테이블은 검사에서 자동으로 제외됩니다. 테이블 이름은 와일드카드를 지원합니다. 이 커맨드를 실행하려면 관리자 권한이 필요합니다.");
+		setOptions("from", true, "yyyyMMdd format. Start day of range", "yyyyMMdd 포맷, 무결성 검사 대상 시작 날짜");
+		setOptions("to", true, "yyyyMMdd format. End day of range", "yyyyMMdd 포맷, 무결성 검사 대상 끝 날짜");
 	}
 
 	@Override
 	public String getCommandName() {
-		return commandName;
+		return "checktable";
 	}
 
 	@Override
@@ -95,7 +96,7 @@ public class CheckTableParser extends AbstractQueryCommandParser {
 		String tableToken = commandString.substring(r.next).trim();
 
 		Set<String> tableNames = getFilteredTableNames(tableToken);
-		return new CheckTable(commandName, tableNames, from, to, trace, tableToken, tableRegistry, storage, fileServiceRegistry);
+		return new CheckTable(tableNames, from, to, trace, tableToken, tableRegistry, storage, fileServiceRegistry);
 	}
 
 	private Set<String> getFilteredTableNames(String t) {

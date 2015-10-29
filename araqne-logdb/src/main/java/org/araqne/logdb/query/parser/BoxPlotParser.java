@@ -32,6 +32,10 @@ public class BoxPlotParser extends AbstractQueryCommandParser {
 	private final String COMMAND = "boxplot";
 	private static final String BY = "by";
 
+	public BoxPlotParser() {
+		setDescriptions("Calculate five number summary per group.", "그룹별 최소, 최대, 사분위수를 계산합니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return COMMAND;
@@ -39,7 +43,7 @@ public class BoxPlotParser extends AbstractQueryCommandParser {
 
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
-		m.put("20000", new QueryErrorMessage("missing-clause","불완전한 표현식입니다"));
+		m.put("20000", new QueryErrorMessage("missing-clause", "불완전한 표현식입니다"));
 		m.put("20001", new QueryErrorMessage("missing-expr", "입력된 표현식 값이 없습니다"));
 		return m;
 	}
@@ -57,7 +61,7 @@ public class BoxPlotParser extends AbstractQueryCommandParser {
 
 			if (clausePart.trim().endsWith(",")) {
 				// throw new QueryParseException("missing-clause",
-				throw new QueryParseException("20000",  commandString.length() - 1, commandString.length() - 1, null);
+				throw new QueryParseException("20000", commandString.length() - 1, commandString.length() - 1, null);
 			}
 
 			// trim
@@ -67,8 +71,8 @@ public class BoxPlotParser extends AbstractQueryCommandParser {
 
 		if (exprToken.trim().isEmpty()) {
 			// throw new QueryParseException("missing-expr", -1);
-			throw new QueryParseException("20001", getCommandName().length() + 1, (byPos > 0) ? byPos
-					: commandString.length() - 1, null);
+			throw new QueryParseException("20001", getCommandName().length() + 1,
+					(byPos > 0) ? byPos : commandString.length() - 1, null);
 		}
 
 		Expression expr = ExpressionParser.parse(context, exprToken, getFunctionRegistry());

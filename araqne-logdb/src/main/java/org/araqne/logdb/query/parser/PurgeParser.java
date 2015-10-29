@@ -47,6 +47,11 @@ public class PurgeParser extends AbstractQueryCommandParser {
 	public PurgeParser(LogStorage storage, LogTableRegistry tableRegistry) {
 		this.storage = storage;
 		this.tableRegistry = tableRegistry;
+
+		setDescriptions("Purge specified range of data when query starts. This command requires administrator privilege.",
+				"전체 쿼리가 시작하는 시점에 지정한 날짜 범위의 테이블 데이터를 파기합니다. 주로 쿼리를 실행할 때마다 기존 데이터를 파기하고 새로운 데이터를 입력하려는 경우에 사용합니다. 이 커맨드를 실행하려면 관리자 권한이 필요합니다.");
+		setOptions("from", true, "yyyyMMdd format. Start day of range", "yyyyMMdd 포맷, 파기 대상 시작 날짜");
+		setOptions("to", true, "yyyyMMdd format. End day of range", "yyyyMMdd 포맷, 파기 대상 끝 날짜");
 	}
 
 	@Override

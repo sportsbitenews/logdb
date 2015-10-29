@@ -249,8 +249,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new OutputTxtParser(tickService));
 		parsers.add(new SystemCommandParser("logdb", metadataService)); // deprecated
 		parsers.add(new SystemCommandParser("system", metadataService));
-		parsers.add(new CheckTableParser("logcheck", tableRegistry, storage, fileServiceRegistry)); // deprecated
-		parsers.add(new CheckTableParser("checktable", tableRegistry, storage, fileServiceRegistry));
+		parsers.add(new CheckTableParser(tableRegistry, storage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService, resultFactory));
 		parsers.add(new UnionParser(queryParserService));
 		parsers.add(new ImportParser(tableRegistry, storage));
