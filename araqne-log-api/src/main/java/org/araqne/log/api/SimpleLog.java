@@ -24,6 +24,7 @@ public class SimpleLog implements Log {
 	private Date date;
 	private String loggerName;
 	private Map<String, Object> params;
+	private long dataLength;
 
 	public SimpleLog(Date date, String loggerName, Map<String, Object> params) {
 		this.date = date == null ? new Date() : date;
@@ -74,6 +75,15 @@ public class SimpleLog implements Log {
 	@Override
 	public Map<String, Object> getParams() {
 		return params;
+	}
+
+	@Override
+	public long getDataLength() {
+		return dataLength;
+	}
+
+	public void setDataLength(long dataLength) {
+		this.dataLength = dataLength;
 	}
 
 	@Override

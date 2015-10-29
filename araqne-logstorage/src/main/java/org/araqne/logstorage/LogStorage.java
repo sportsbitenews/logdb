@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.araqne.logstorage.file.LogFileWriter;
@@ -91,7 +92,7 @@ public interface LogStorage {
 	Collection<Log> getLogs(String tableName, Date from, Date to, int limit);
 
 	Collection<Log> getLogs(String tableName, Date from, Date to, long offset, int limit);
-
+	
 	CachedRandomSeeker openCachedRandomSeeker();
 
 	LogCursor openCursor(String tableName, Date day, boolean ascending) throws IOException;
@@ -137,7 +138,7 @@ public interface LogStorage {
 	/*
 	 * @since 2.5.5
 	 */
-	boolean lock(LockKey storageLockKey, String purpose, long timeout, TimeUnit unit) throws InterruptedException;
+	UUID lock(LockKey storageLockKey, String purpose, long timeout, TimeUnit unit) throws InterruptedException;
 
 	void unlock(LockKey storageLockKey, String purpose);
 

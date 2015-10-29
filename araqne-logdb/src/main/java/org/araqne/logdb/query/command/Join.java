@@ -165,8 +165,8 @@ public class Join extends QueryCommand {
 	@Override
 	public String toString() {
 		String typeOpt = "";
-		if (joinType == JoinType.Left)
-			typeOpt = " type=left";
+		if (joinType != JoinType.Inner)
+			typeOpt = " type=" + joinType.toString().toLowerCase();
 
 		return "join" + typeOpt + " " + SortField.serialize(sortFields) + " [ " + subQuery.getQueryString() + " ] ";
 	}
