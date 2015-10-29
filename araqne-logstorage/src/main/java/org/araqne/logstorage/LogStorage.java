@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -92,7 +93,7 @@ public interface LogStorage {
 	Collection<Log> getLogs(String tableName, Date from, Date to, int limit);
 
 	Collection<Log> getLogs(String tableName, Date from, Date to, long offset, int limit);
-	
+
 	CachedRandomSeeker openCachedRandomSeeker();
 
 	LogCursor openCursor(String tableName, Date day, boolean ascending) throws IOException;
@@ -165,4 +166,8 @@ public interface LogStorage {
 	<T> void addFallback(Class<T> clazz, T fallback);
 
 	<T> void removeFallback(Class<T> clazz, T fallback);
+
+	long getDiskUsage(String tableName, Date from, Date to);
+
+	long getDiskUsage(Set<String> tableNames, Date from, Date to);
 }

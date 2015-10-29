@@ -16,10 +16,7 @@
 package org.araqne.logstorage.backup;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * @since 2.2.7
@@ -37,10 +34,7 @@ public interface StorageBackupManager {
 
 	StorageBackupJob prepare(StorageBackupRequest req) throws IOException;
 
-	long getRequiredBytes(Map<String, List<StorageFile>> storageFiles, Set<String> tableNames, Date from, Date to);
-
 	void execute(StorageBackupJob job);
 
 	void cancel(String guid);
-
 }
