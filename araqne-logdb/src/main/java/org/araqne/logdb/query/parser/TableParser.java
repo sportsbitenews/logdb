@@ -59,6 +59,20 @@ public class TableParser extends AbstractQueryCommandParser {
 		this.tableRegistry = tableRegistry;
 		this.parserFactoryRegistry = parserFactoryRegistry;
 		this.parserRegistry = parserRegistry;
+
+		setDescriptions("Scan all tuples from tables.", "로그프레소 테이블에 저장된 데이터를 조회합니다.");
+		setOptions("offset", false, "Skip count", "건너 뛸 로그 갯수");
+		setOptions("limit", false, "Max output count", "가져올 최대 로그 갯수");
+		setOptions("duration", false,
+				"Scan only recent data. You should use s(second), m(minute), h(hour), d(day), mon(month) time unit. For example, `10s` means data from 10 seconds earlier.",
+				"현재 시각으로부터 일정 시간 범위 이내의 로그로 한정. s(초), m(분), h(시), d(일), mon(월) 단위로 지정할 수 있습니다. 예를 들면, 10s의 경우 현재 시각으로부터 10초 이전까지의 범위를 의미합니다.");
+		setOptions("from", false, "Start time of range. yyyyMMddHHmmss format. If you omit time part, it will be padded by zero.",
+				"yyyyMMddHHmmss 포맷으로 범위의 시작을 지정합니다. 뒷자리를 쓰지 않으면 0으로 채워집니다.");
+		setOptions("to", false, "End time of range. yyyyMMddHHmmss format. If you omit time part, it will be padded by zero.",
+				"yyyyMMddHHmmss 포맷으로 범위의 끝을 지정합니다. 뒷자리를 쓰지 않으면 0으로 채워집니다.");
+		setOptions("window", false,
+				"Receive table input in realtime for specified duration. You should use s(second), m(minute), h(hour), d(day), mon(month) time unit. For example, `10s` means real-time data for 10 seconds timeout.",
+				"쿼리 시작 시점으로부터 일정 시간 동안 테이블 입력을 수신합니다. s(초), m(분), h(시), d(일), mon(월) 단위로 지정할 수 있습니다. 예를 들면, 10s의 경우 쿼리 시작 후 10초 동안 입력을 수신합니다. window 옵션을 사용하는 경우 from, to, duration 옵션을 사용할 수 없습니다.");
 	}
 
 	@Override
@@ -85,8 +99,8 @@ public class TableParser extends AbstractQueryCommandParser {
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		if (logStorage.getStatus() != LogStorageStatus.Open)
-			//	throw new QueryParseException("archive-not-opened", -1);
-			throw new QueryParseException("10600",  -1, -1, null);
+			// throw new QueryParseException("archive-not-opened", -1);
+			throw new QueryParseException("10600", -1, -1, null);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
 				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order", "window", "raw", "eachtable"),
@@ -129,25 +143,24 @@ public class TableParser extends AbstractQueryCommandParser {
 		if (options.containsKey("offset"))
 			offset = Long.parseLong(options.get("offset"));
 
-		if (offset < 0){
-			//throw new QueryParseException("negative-offset", -1);
+		if (offset < 0) {
+			// throw new QueryParseException("negative-offset", -1);
 			Map<String, String> param = new HashMap<String, String>();
 			param.put("offset", options.get("offset"));
 			int offsetS = QueryTokenizer.findKeyword(commandString, options.get("offset"));
-			throw new QueryParseException("10601", offsetS, offsetS + options.get("offset").length()  -1, param);
+			throw new QueryParseException("10601", offsetS, offsetS + options.get("offset").length() - 1, param);
 		}
 
 		if (options.containsKey("limit"))
 			limit = Long.parseLong(options.get("limit"));
 
-		if (limit < 0){
-			//throw new QueryParseException("negative-limit", -1);
+		if (limit < 0) {
+			// throw new QueryParseException("negative-limit", -1);
 			Map<String, String> param = new HashMap<String, String>();
 			param.put("limit", options.get("limit"));
 			int offsetS = QueryTokenizer.findKeyword(commandString, options.get("limit"));
-			throw new QueryParseException("10602", offsetS, offsetS + options.get("limit").length()  -1 , param);
+			throw new QueryParseException("10602", offsetS, offsetS + options.get("limit").length() - 1, param);
 		}
-
 
 		if (options.get("parser") != null)
 			parser = options.get("parser");
@@ -157,7 +170,7 @@ public class TableParser extends AbstractQueryCommandParser {
 			ordered = !orderOpt.equals("f");
 			asc = orderOpt.equals("asc");
 		}
-		
+
 		eachTable = CommandOptions.parseBoolean(options.get("eachtable"));
 
 		TableParams params = new TableParams();
@@ -353,8 +366,7 @@ public class TableParser extends AbstractQueryCommandParser {
 		public MetaS(Expression pred, TableSpec pat) {
 			this.predicate = pred;
 			this.pattern = pat;
-			this.mm = new MetadataMatcher<TableSpec>(
-					predicate.eval(new Row()).toString(), Arrays.asList(pattern));
+			this.mm = new MetadataMatcher<TableSpec>(predicate.eval(new Row()).toString(), Arrays.asList(pattern));
 		}
 
 		public Object clone() {
@@ -402,11 +414,9 @@ public class TableParser extends AbstractQueryCommandParser {
 
 		@Override
 		public void setOptional(boolean optional) {
-			throw new UnsupportedOperationException(
-					"set table-metadata matcher as not-optional is not supported");
+			throw new UnsupportedOperationException("set table-metadata matcher as not-optional is not supported");
 		}
 	}
-	
 
 	private static class Meta implements Expression {
 		private List<TableSpec> patterns;

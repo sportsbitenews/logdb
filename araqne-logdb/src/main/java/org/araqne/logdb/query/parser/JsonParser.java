@@ -20,6 +20,11 @@ import org.json.JSONTokener;
 
 public class JsonParser extends AbstractQueryCommandParser {
 
+	public JsonParser() {
+		setDescriptions("Generate tuples using json literal. Double quote should be escaped using backslash.",
+				"JSON 문자열을 이용하여 데이터 원본을 생성합니다. 일반적으로 이후에 연결되는 쿼리 커맨드의 동작을 테스트하기 위한 용도로 사용합니다. JSON 문자열 내에 큰 따옴표가 들어가는 경우에는 역슬래시 (\\)를 사용하여 이스케이프 합니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "json";

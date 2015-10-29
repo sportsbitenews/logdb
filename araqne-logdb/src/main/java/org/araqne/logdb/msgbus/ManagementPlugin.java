@@ -127,15 +127,16 @@ public class ManagementPlugin {
 			String password = req.getString("password", true);
 
 			if (slog.isDebugEnabled())
-				slog.debug("araqne logdb: trying to login [{}] from [{}]", loginName, session.getRemoteAddress().getHostAddress());
+				slog.debug("araqne logdb: trying to login [{}] from [{}]", loginName,
+						session.getRemoteAddress().getHostAddress());
 
 			try {
 				dbSession = accountService.login(loginName, password);
 				dbSession.setProperty("remote_ip", getRemoteAddr(session));
 
 				if (slog.isDebugEnabled())
-					slog.debug("araqne logdb: [{}] is logged in successfully from [{}]", loginName, session.getRemoteAddress()
-							.getHostAddress());
+					slog.debug("araqne logdb: [{}] is logged in successfully from [{}]", loginName,
+							session.getRemoteAddress().getHostAddress());
 
 			} catch (AuthServiceNotLoadedException e) {
 				Boolean useErrorReturn = req.getBoolean("use_error_return");
@@ -194,14 +195,18 @@ public class ManagementPlugin {
 		if (session == null)
 			return;
 
-		org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) session.get("araqne_logdb_session");
-		if (dbSession != null) {
-			try {
-				accountService.logout(dbSession);
-			} catch (Throwable t) {
-			}
+		try {
+			org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) session.get("araqne_logdb_session");
+			if (dbSession != null) {
+				try {
+					accountService.logout(dbSession);
+				} catch (Throwable t) {
+				}
 
-			session.unsetProperty("araqne_logdb_session");
+				session.unsetProperty("araqne_logdb_session");
+			}
+		} catch (ClassCastException e) {
+			// ignore (error after bundle update)
 		}
 	}
 
