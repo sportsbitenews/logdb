@@ -19,11 +19,16 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.araqne.logstorage.backup.StorageFile;
 import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
+
+import com.logpresso.index.backup.IndexQualifiedName;
 
 public interface LogStorage {
 	/**
@@ -164,4 +169,8 @@ public interface LogStorage {
 	<T> void addFallback(Class<T> clazz, T fallback);
 
 	<T> void removeFallback(Class<T> clazz, T fallback);
+
+	long getDiskUsage(String tableName, Date from, Date to);
+
+	long getDiskUsage(Set<String> tableNames, Date from, Date to);
 }

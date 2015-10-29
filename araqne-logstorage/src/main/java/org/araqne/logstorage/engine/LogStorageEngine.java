@@ -15,6 +15,7 @@
  */
 package org.araqne.logstorage.engine;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.SyncFailedException;
 import java.nio.BufferUnderflowException;
@@ -33,6 +34,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -86,6 +88,7 @@ import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.logstorage.WriteFallback;
 import org.araqne.logstorage.WriterPreparationException;
+import org.araqne.logstorage.backup.StorageFile;
 import org.araqne.logstorage.file.DatapathUtil;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV2;
@@ -93,6 +96,7 @@ import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.file.LogRecordCursor;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1567,5 +1571,52 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	@Override
 	public void write(List<Log> logs) throws InterruptedException {
 		tryWrite(logs, Long.MAX_VALUE, TimeUnit.SECONDS);
+	}
+
+	@Override
+	public long getDiskUsage(String tableName, Date from, Date to) {
+		long totalBytes = 0;
+
+		for (Date day : getLogDates(tableName)) {
+			if ((from != null && day.before(from)) || (to != null && day.after(to)))
+				continue;
+
+			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+			int tableId = schema.getId();
+			String basePath = schema.getPrimaryStorage().getBasePath();
+			FilePath baseDir = storageManager.resolveFilePath(basePath);
+			if (baseDir == null)
+				baseDir = getDirectory();
+
+			if (!(baseDir instanceof LocalFilePath)) {
+				logger.warn("araqne logstorage : unsupported base path : " + basePath);
+				continue;
+			}
+
+			totalBytes += getStorageFileLength(tableName, tableId,
+					((LocalFilePath) DatapathUtil.getIndexFile(tableId, day, baseDir)).getFile());
+			totalBytes += getStorageFileLength(tableName, tableId,
+					((LocalFilePath) DatapathUtil.getDataFile(tableId, day, baseDir)).getFile());
+			totalBytes += getStorageFileLength(tableName, tableId,
+					((LocalFilePath) DatapathUtil.getKeyFile(tableId, day, baseDir)).getFile());
+		}
+
+		return totalBytes;
+	}
+
+	@Override
+	public long getDiskUsage(Set<String> tableNames, Date from, Date to) {
+		long totalBytes = 0;
+		for (String tableName : tableNames) {
+			totalBytes += getDiskUsage(tableName, from, to);
+		}
+		return totalBytes;
+	}
+
+	private long getStorageFileLength(String tableName, int tableId, File f) {
+		if (!f.exists())
+			return 0;
+
+		return new StorageFile(tableName, tableId, f).getLength();
 	}
 }
