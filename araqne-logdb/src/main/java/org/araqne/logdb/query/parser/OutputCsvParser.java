@@ -43,6 +43,19 @@ public class OutputCsvParser extends AbstractQueryCommandParser {
 	public OutputCsvParser(TickService tickService, boolean useBom) {
 		this.tickService = tickService;
 		this.defaultUseBom = useBom;
+		setDescriptions("Write input tuples to CSV file.",
+				"지정된 파일시스템 경로에 주어진 필드 값들을 CSV 포맷으로 기록합니다.");
+
+		setOptions("overwrite", false, "Use `overwrite=t` to overwrite existing file.",
+				"t로 설정 시 이미 파일이 있더라도 덮어씁니다. 미설정 시 파일이 존재하면 쿼리가 실패합니다.");
+		setOptions("bom", false, "Use `bom=t` to write BOM header.", "t로 설정 시 바이트 오더 마크를 추가합니다. 미설정 시 파일 헤더에 BOM을 추가하지 않습니다.");
+		setOptions("tab", false, "Use `tab=t` to write tab delimiter instead of comma.", "t로 설정 시 쉼표 대신 탭 문자를 구분자로 사용합니다.");
+		setOptions("encoding", false, "Specify output encoding. Default is `utf-8`.", "파일 인코딩을 지정합니다. 미설정 시 기본값은 utf-8입니다.");
+		setOptions("tmp", false, "Write output to temporary file, and rename it at last.",
+				"임시 파일경로를 설정할 경우 파일을 해당 경로에 임시로 작성한 후 쿼리가 종료되면 입력된 파일경로로 이동시킵니다.");
+		setOptions("partition", false,
+				"Use `partition=t` to separate output files by partition key. You can use `logtime` or `now` macro for partition key.",
+				"t로 설정 시 파일 경로에 시간 기반으로 입력된 매크로를 기준으로 디렉토리를 설정할 수 있습니다. 로그 시각을 기준으로 하는 logtime 매크로와 현재 시각을 기준으로 하는 now 매크로를 사용할 수 있으며, 파티션 옵션을 지정하고 경로에 매크로를 사용하지 않으면 쿼리가 실패합니다.");
 	}
 
 	@Override

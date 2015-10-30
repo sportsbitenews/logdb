@@ -27,6 +27,15 @@ public class InsertParser extends AbstractQueryCommandParser {
 	public InsertParser(LogTableRegistry tableRegistry, LogStorage storage) {
 		this.tableRegistry = tableRegistry;
 		this.storage = storage;
+
+		setDescriptions(
+				"Insert tuple to the table which is specified by field value. This command requires administrator privilege.",
+				"입력된 필드 값을 기준으로 테이블을 선택하여 데이터를 입력합니다. 관리자 권한이 없으면 쿼리가 실패합니다.");
+
+		setOptions("table", true, "Field which has name of target table.", "대상 테이블을 지정할 필드 이름");
+		setOptions("create", false,
+				"Create new table if table does not exist. If table does not exist and create option is false, then query will fail.",
+				"t로 지정되는 경우 테이블이 없으면 자동으로 테이블을 생성합니다. create 옵션이 지정되지 않은 상태에서 임포트할 테이블이 존재하지 않으면 쿼리가 중단됩니다.");
 	}
 
 	@Override

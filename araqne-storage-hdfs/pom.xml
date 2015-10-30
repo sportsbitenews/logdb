@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-storage-hdfs</artifactId>
-	<version>0.0.5</version>
+	<version>0.1.0-SNAPSHOT</version>
 	<packaging>bundle</packaging>
 	<name>Araqne HDFS Storage</name>
 	<build>
@@ -70,12 +70,12 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-storage</artifactId>
-			<version>0.0.11</version>
+			<version>1.1.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>hadoop-client-osgi</artifactId>
-			<version>2.2.0</version>
+			<version>2.4.1</version>
 		</dependency>
 	</dependencies>
 </project>

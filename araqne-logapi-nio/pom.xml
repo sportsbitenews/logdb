@@ -8,8 +8,9 @@
 		<groupId>org.araqne</groupId>
 		<version>1.0.0</version>
 	</parent>
+	<groupId>org.araqne</groupId>
 	<artifactId>araqne-logapi-nio</artifactId>
-	<version>0.2.0</version>
+	<version>0.5.0-SNAPSHOT</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log API NIO</name>
 	<build>
@@ -88,7 +89,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.6.1</version>
+			<version>4.0.0-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 </project>

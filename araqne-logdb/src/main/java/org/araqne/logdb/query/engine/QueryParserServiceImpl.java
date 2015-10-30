@@ -191,6 +191,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 		/* TimeSpan */
 		add("90500", "invalid-timespan", "mon 은 12의 소인수(1,2,3,4,6)만 사용가능합니다.");
 		add("90501", "year should be 1", "y 앞에는 1만 사용가능합니다.");
+		add("90502", "invalid time unit", "시간 단위는 y, mon, m, w, d, m, s 중 하나만 사용 가능합니다.");
 		/* Abs */
 		add("90600", "invalid-abs-args", "abs의 매개변수는 하나여야만 합니다.");
 		/* ContextReference */

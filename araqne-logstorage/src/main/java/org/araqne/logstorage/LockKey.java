@@ -7,8 +7,8 @@ public class LockKey {
 	public final String tableName;
 	public final Date day;
 
-	public LockKey(String keyName, String tableName, Date day) {
-		this.owner = keyName;
+	public LockKey(String owner, String tableName, Date day) {
+		this.owner = owner;
 		this.tableName = tableName;
 		this.day = day;
 	}

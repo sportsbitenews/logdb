@@ -26,6 +26,11 @@ import org.araqne.logdb.query.command.Repeat;
 
 public class RepeatParser extends AbstractQueryCommandParser {
 
+	public RepeatParser() {
+		setDescriptions("Copy input data and write N times.", "입력 데이터를 지정된 횟수만큼 복사하여 출력합니다.");
+		setOptions("count", true, "Repeat count", "반복 횟수");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "repeat";

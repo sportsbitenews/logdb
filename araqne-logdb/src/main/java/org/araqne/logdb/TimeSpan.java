@@ -36,6 +36,12 @@ public class TimeSpan {
 			unit = TimeUnit.Month;
 		else if (f.equalsIgnoreCase("y"))
 			unit = TimeUnit.Year;
+		else {
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("value", value);
+			throw new QueryParseException("90502", -1, -1, params);
+		}
+		
 		amount = Integer.parseInt(value.substring(0, i));
 
 		if (unit == TimeUnit.Month && (amount != 1 && amount != 2 && amount != 3 && amount != 4 && amount != 6)){

@@ -18,6 +18,7 @@ public class LookupParser extends AbstractQueryCommandParser {
 
 	public LookupParser(LookupHandlerRegistry registry) {
 		this.registry = registry;
+		setDescriptions("Lookup field by key.", "매핑 테이블을 조회하여 특정한 필드 값을 다른 값으로 변환합니다.");
 	}
 
 	@Override

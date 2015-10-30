@@ -22,6 +22,10 @@ import org.araqne.logdb.query.command.Bypass;
 
 public class BypassParser extends AbstractQueryCommandParser {
 
+	public BypassParser() {
+		setDescriptions("Bypass all tuples.", "모든 입력값을 그대로 출력합니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "bypass";

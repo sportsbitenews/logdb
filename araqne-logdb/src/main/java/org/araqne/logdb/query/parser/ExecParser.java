@@ -34,6 +34,14 @@ import org.araqne.logdb.query.expr.Expression;
  * 
  */
 public class ExecParser extends AbstractQueryCommandParser {
+	public ExecParser() {
+		setDescriptions("Execute external program and read standard output.",
+				"임의의 시스템 명령을 실행하여 표준출력을 조회합니다. 관리자 권한이 없으면 쿼리가 실패합니다.");
+
+		setOptions("timeout", false,
+				"Process timeout. You should use s(second), m(minute), h(hour), d(day), mon(month) time unit. For example, `10s` means wait 10 seconds and kill process after timeout.",
+				"프로세스 종료 대기 타임아웃. s(초), m(분), h(시), d(일), mon(월) 단위로 지정할 수 있습니다. 예를 들면, 10s의 경우 10초 안에 프로세스가 종료되지 않으면 프로세스를 강제 종료합니다.");
+	}
 
 	@Override
 	public String getCommandName() {

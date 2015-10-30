@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -42,7 +43,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -320,7 +320,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		if (c != null)
 			c.remove();
 
-		Lock tLock = tableRegistry.getExclusiveTableLock(tableName, "engine", "dropTable");
+		TableLock tLock = tableRegistry.getExclusiveTableLock(tableName, "engine", "dropTable");
 		try {
 			tLock.lock();
 			// drop table metadata
@@ -936,7 +936,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 
-		Lock tableLock = tableRegistry.getSharedTableLock(tableName);
+		TableLock tableLock = tableRegistry.getSharedTableLock(tableName);
 		try {
 			tableLock.lock();
 
@@ -1474,20 +1474,21 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	}
 
 	@Override
-	public boolean lock(LockKey key, String purpose, long timeout, TimeUnit unit) throws InterruptedException {
-		Lock lock = tableRegistry.getExclusiveTableLock(key.tableName, key.owner, purpose);
+	public UUID lock(LockKey key, String purpose, long timeout, TimeUnit unit) throws InterruptedException {
+		TableLock lock = tableRegistry.getExclusiveTableLock(key.tableName, key.owner, purpose);
 
-		if (lock.tryLock(timeout, unit)) {
+		UUID lockId = null;
+		if ((lockId = lock.tryLock(timeout, unit)) != null) {
 			flush(key.tableName);
-			return true;
+			return lockId;
 		} else {
-			return false;
+			return null;
 		}
 	}
 
 	@Override
 	public void unlock(LockKey storageLockKey, String purpose) {
-		Lock lock = tableRegistry.getExclusiveTableLock(storageLockKey.tableName, storageLockKey.owner, purpose);
+		TableLock lock = tableRegistry.getExclusiveTableLock(storageLockKey.tableName, storageLockKey.owner, purpose);
 
 		lock.unlock();
 	}

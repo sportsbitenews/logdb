@@ -106,7 +106,7 @@ public class EvtCtxAddParser extends AbstractQueryCommandParser {
 
 		Expression matcher = ExpressionParser.parse(context, commandString.substring(r.next), getFunctionRegistry());
 
-		EventContextStorage storage = eventContextService.getStorage("mem");
+		EventContextStorage storage = eventContextService.getDefaultStorage();
 		return new EvtCtxAddCommand(storage, topic, keyField, expire, timeout, maxRows, matcher, hostField);
 	}
 }
