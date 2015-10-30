@@ -158,6 +158,8 @@ public class ManagementPlugin {
 				throw e;
 			}
 		}
+		
+		dbSession.setProperty("locale", session.getLocale());
 
 		if (session.getOrgDomain() == null && session.getAdminLoginName() == null) {
 			session.setProperty("org_domain", "localhost");
