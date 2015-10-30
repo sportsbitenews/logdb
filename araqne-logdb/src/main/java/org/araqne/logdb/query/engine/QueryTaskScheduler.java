@@ -99,6 +99,9 @@ public class QueryTaskScheduler implements Runnable {
 		}
 
 		stopRecursively(tracer);
+		
+		// start tracer
+		startRecursively(tracer);
 	}
 
 	private synchronized void startReadyTasks() {

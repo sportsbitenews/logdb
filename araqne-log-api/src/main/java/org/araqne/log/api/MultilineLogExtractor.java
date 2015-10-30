@@ -96,9 +96,9 @@ public class MultilineLogExtractor {
 		String charset = configs.get("charset");
 		if (charset == null)
 			charset = "utf-8";
-		
+
 		extractor.setCharset(charset);
-		
+
 		String newlogRegex = configs.get("newlog_designator");
 		if (newlogRegex != null)
 			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
@@ -106,7 +106,7 @@ public class MultilineLogExtractor {
 		String newlogEndRegex = configs.get("newlog_end_designator");
 		if (newlogEndRegex != null)
 			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
-		
+
 		return extractor;
 	}
 
@@ -217,8 +217,11 @@ public class MultilineLogExtractor {
 	private void buildLogOutput(ByteArrayOutputStream logBuf, byte[] b, int offset, int length, AtomicLong lastPosition,
 			ByteArrayOutputStream temp, String dateFromFileName, List<Log> output) {
 		String log = null;
+		long dataLength = 0;
 		try {
+			long before = lastPosition.get();
 			log = buildLog(logBuf, b, offset, length, lastPosition, temp);
+			dataLength = lastPosition.get() - before;
 		} catch (UnsupportedEncodingException e) {
 		}
 
@@ -240,12 +243,16 @@ public class MultilineLogExtractor {
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("line", log);
 
-				output.add(new SimpleLog(d, logger == null ? null : logger.getFullName(), m));
+				SimpleLog simpleLog = new SimpleLog(d, logger == null ? null : logger.getFullName(), m);
+				simpleLog.setDataLength(dataLength);
+				output.add(simpleLog);
 			} else if (collectEmptyLine) {
 				Date d = parseDate("", dateFromFileName);
 				Map<String, Object> m = new HashMap<String, Object>();
 				m.put("line", "");
-				output.add(new SimpleLog(d, logger == null ? null : logger.getFullName(), m));
+				SimpleLog simpleLog = new SimpleLog(d, logger == null ? null : logger.getFullName(), m);
+				simpleLog.setDataLength(0);
+				output.add(simpleLog);
 			}
 		}
 	}

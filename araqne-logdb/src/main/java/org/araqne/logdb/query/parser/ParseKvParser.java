@@ -24,6 +24,15 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.ParseKv;
 
 public class ParseKvParser extends AbstractQueryCommandParser {
+	public ParseKvParser() {
+		setDescriptions("Parse key/value pairs.", "키와 값의 쌍으로 이루어진 로그를 파싱합니다.");
+
+		setOptions("field", false, "Specify target field name. Default value is `line`.", "대상 필드를 별도로 지정하지 않는 경우 기본값은 line입니다.");
+		setOptions("overlay", false, "Use `overlay=t` option if you want to override parsed fields on original data.",
+				"t로 주면, 원본 필드에  추출된 필드를 덮어씌운 결과를 출력으로 내보냅니다. 별도로 overlay 옵션을 지정하지 않으면, 키/값 문자열을 파싱한 결과만 출력으로 내보냅니다.");
+		setOptions("pairdelim", false, "Pair delimiter. Default is white-space.", "필드 쌍 구분자를 지정합니다. 미설정 시 공백 문자로 지정됩니다.");
+		setOptions("kvdelim", false, "Key/value delimiter. Default is '=' character.", "키, 값 구분자를 지정합니다. 미설정 시 = 문자로 지정됩니다.");
+	}
 
 	@Override
 	public String getCommandName() {

@@ -15,24 +15,15 @@
  */
 package org.araqne.logstorage.engine;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.SyncFailedException;
 import java.nio.BufferUnderflowException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.ConcurrentModificationException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -40,7 +31,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
 
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Invalidate;
@@ -86,6 +76,7 @@ import org.araqne.logstorage.TableSchema;
 import org.araqne.logstorage.UnsupportedLogFileTypeException;
 import org.araqne.logstorage.WriteFallback;
 import org.araqne.logstorage.WriterPreparationException;
+import org.araqne.logstorage.backup.StorageFile;
 import org.araqne.logstorage.file.DatapathUtil;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV2;
@@ -93,6 +84,7 @@ import org.araqne.logstorage.file.LogFileWriter;
 import org.araqne.logstorage.file.LogRecordCursor;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
+import org.araqne.storage.localfile.LocalFilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -316,7 +308,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		if (c != null)
 			c.remove();
 
-		Lock tLock = tableRegistry.getExclusiveTableLock(tableName, "engine", "dropTable");
+		TableLock tLock = tableRegistry.getExclusiveTableLock(tableName, "engine", "dropTable");
 		try {
 			tLock.lock();
 			// drop table metadata
@@ -932,7 +924,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 		TableSchema schema = tableRegistry.getTableSchema(tableName, true);
 
-		Lock tableLock = tableRegistry.getSharedTableLock(tableName);
+		TableLock tableLock = tableRegistry.getSharedTableLock(tableName);
 		try {
 			tableLock.lock();
 
@@ -1470,20 +1462,21 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	}
 
 	@Override
-	public boolean lock(LockKey key, String purpose, long timeout, TimeUnit unit) throws InterruptedException {
-		Lock lock = tableRegistry.getExclusiveTableLock(key.tableName, key.owner, purpose);
+	public UUID lock(LockKey key, String purpose, long timeout, TimeUnit unit) throws InterruptedException {
+		TableLock lock = tableRegistry.getExclusiveTableLock(key.tableName, key.owner, purpose);
 
-		if (lock.tryLock(timeout, unit)) {
+		UUID lockId = null;
+		if ((lockId = lock.tryLock(timeout, unit)) != null) {
 			flush(key.tableName);
-			return true;
+			return lockId;
 		} else {
-			return false;
+			return null;
 		}
 	}
 
 	@Override
 	public void unlock(LockKey storageLockKey, String purpose) {
-		Lock lock = tableRegistry.getExclusiveTableLock(storageLockKey.tableName, storageLockKey.owner, purpose);
+		TableLock lock = tableRegistry.getExclusiveTableLock(storageLockKey.tableName, storageLockKey.owner, purpose);
 
 		lock.unlock();
 	}
@@ -1567,5 +1560,52 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	@Override
 	public void write(List<Log> logs) throws InterruptedException {
 		tryWrite(logs, Long.MAX_VALUE, TimeUnit.SECONDS);
+	}
+
+	@Override
+	public long getDiskUsage(String tableName, Date from, Date to) {
+		long totalBytes = 0;
+
+		for (Date day : getLogDates(tableName)) {
+			if ((from != null && day.before(from)) || (to != null && day.after(to)))
+				continue;
+
+			TableSchema schema = tableRegistry.getTableSchema(tableName, true);
+			int tableId = schema.getId();
+			String basePath = schema.getPrimaryStorage().getBasePath();
+			FilePath baseDir = storageManager.resolveFilePath(basePath);
+			if (baseDir == null)
+				baseDir = getDirectory();
+
+			if (!(baseDir instanceof LocalFilePath)) {
+				logger.warn("araqne logstorage : unsupported base path : " + basePath);
+				continue;
+			}
+
+			totalBytes += getStorageFileLength(tableName, tableId,
+					((LocalFilePath) DatapathUtil.getIndexFile(tableId, day, baseDir)).getFile());
+			totalBytes += getStorageFileLength(tableName, tableId,
+					((LocalFilePath) DatapathUtil.getDataFile(tableId, day, baseDir)).getFile());
+			totalBytes += getStorageFileLength(tableName, tableId,
+					((LocalFilePath) DatapathUtil.getKeyFile(tableId, day, baseDir)).getFile());
+		}
+
+		return totalBytes;
+	}
+
+	@Override
+	public long getDiskUsage(Set<String> tableNames, Date from, Date to) {
+		long totalBytes = 0;
+		for (String tableName : tableNames) {
+			totalBytes += getDiskUsage(tableName, from, to);
+		}
+		return totalBytes;
+	}
+
+	private long getStorageFileLength(String tableName, int tableId, File f) {
+		if (!f.exists())
+			return 0;
+
+		return new StorageFile(tableName, tableId, f).getLength();
 	}
 }

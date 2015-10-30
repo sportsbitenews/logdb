@@ -82,7 +82,7 @@ public class RegexSelectorLoggerFactory extends AbstractLoggerFactory {
 				"包含命名空间的源数据采集器名称"), true);
 		LoggerConfigOption pattern = new MutableStringConfigType(OPT_PATTERN,
 				t("Regex pattern", "정규표현식 패턴", "正規表現パターン", "正则表达式"), t("Regex pattern to match", "매칭할 정규표현식", "マッチングする正規表現",
-						"输入用于匹配数据的正则表达式"), true);
+						"输入用于匹配数据的正则表达式"), true, "regex");
 		LoggerConfigOption invert = new MutableStringConfigType(OPT_INVERT, t("Invert match", "매칭 결과 반전", "結果反転", "返回匹配结果"), t(
 				"Invert pattern match result", "정규표현식 매칭 결과 반전", "正規表現マッチング結果を反転します。", "返回正则表达式匹配结果"), false);
 		return Arrays.asList(loggerName, pattern, invert);

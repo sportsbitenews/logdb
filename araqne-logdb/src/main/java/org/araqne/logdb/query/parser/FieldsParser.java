@@ -29,19 +29,23 @@ import org.araqne.logdb.query.command.Fields;
 
 public class FieldsParser extends AbstractQueryCommandParser {
 
+	public FieldsParser() {
+		setDescriptions("Select fields or remove only specified fields. If hypen(-) is specified, following fields are removed.",
+				"특정한 필드만 출력하거나, 특정한 필드만 선택적으로 제외합니다. - 부호를 사용한 경우에는 뒤에 나열되는 필드만 제거하고, - 부호가 생략된 경우에는 뒤에 나열되는 필드만 출력합니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "fields";
 	}
-	
+
 	@Override
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
-		m.put("20400", new QueryErrorMessage("no-field-args","필드 이름이 없습니다. "));
+		m.put("20400", new QueryErrorMessage("no-field-args", "필드 이름이 없습니다. "));
 		return m;
 	}
 
-	
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
@@ -49,17 +53,15 @@ public class FieldsParser extends AbstractQueryCommandParser {
 		List<String> fields = new ArrayList<String>();
 		List<String> args = tokens.substrings(1);
 
-		
 		boolean selector = true;
 		if (args.get(0).equals("-")) {
 			selector = false;
 			args.remove(0);
 		}
-		
-		if (args.size() == 0)
-			//throw new QueryParseException("no-field-args", -1);
-			throw new QueryParseException("20400", getCommandName().length()  + 1,  commandString.length() - 1, null);
 
+		if (args.size() == 0)
+			// throw new QueryParseException("no-field-args", -1);
+			throw new QueryParseException("20400", getCommandName().length() + 1, commandString.length() - 1, null);
 
 		for (String t : args) {
 			String[] csv = t.split(",");

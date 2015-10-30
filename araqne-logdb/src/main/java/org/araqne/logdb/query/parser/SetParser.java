@@ -32,6 +32,10 @@ import org.araqne.logdb.query.expr.Expression;
  * 
  */
 public class SetParser extends AbstractQueryCommandParser {
+	
+	public SetParser() {
+		setDescriptions("Set query parameter.", "쿼리 매개변수를 설정합니다.");
+	}
 
 	@Override
 	public String getCommandName() {

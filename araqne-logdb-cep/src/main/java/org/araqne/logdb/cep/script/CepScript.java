@@ -19,6 +19,7 @@ import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import org.araqne.api.Script;
@@ -26,7 +27,7 @@ import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
 import org.araqne.api.ScriptUsage;
 import org.araqne.logdb.cep.EventClock;
-import org.araqne.logdb.cep.EventContext;
+import org.araqne.logdb.cep.EventClockItem;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
@@ -57,8 +58,8 @@ public class CepScript implements Script {
 			return;
 		}
 
-		EventContextStorage storage = eventContextService.getStorage("mem");
-		EventClock clock = storage.getClock(host);
+		EventContextStorage storage = getEventStorage();
+		EventClock<? extends EventClockItem> clock = storage.getClock(host);
 		if (clock == null) {
 			context.println("clock not found");
 			return;
@@ -69,13 +70,13 @@ public class CepScript implements Script {
 	}
 
 	public void clearContexts(String[] args) {
-		EventContextStorage storage = eventContextService.getStorage("mem");
+		EventContextStorage storage = getEventStorage();
 		storage.clearContexts();
 		context.println("completed");
 	}
 
 	public void clearClocks(String[] args) {
-		EventContextStorage storage = eventContextService.getStorage("mem");
+		EventContextStorage storage = getEventStorage();
 		storage.clearClocks();
 		context.println("completed");
 	}
@@ -87,8 +88,8 @@ public class CepScript implements Script {
 		String host = args[0];
 		String queueType = args[1];
 
-		EventContextStorage storage = eventContextService.getStorage("mem");
-		EventClock clock = storage.getClock(host);
+		EventContextStorage storage = getEventStorage();
+		EventClock<? extends EventClockItem> clock = storage.getClock(host);
 		if (clock == null) {
 			context.println("clock not found");
 			return;
@@ -104,13 +105,13 @@ public class CepScript implements Script {
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 		if (queueType.equals("timeout")) {
-			for (EventContext ctx : clock.getTimeoutContexts()) {
-				context.println("timeout [" + df.format(ctx.getTimeoutTime()) + "] " + ctx.getKey());
+			for (EventClockItem item : clock.getTimeoutContexts()) {
+				context.println("timeout [" + df.format(item.getTimeoutTime()) + "] " + item.getKey());
 			}
 
 		} else if (queueType.equals("expire")) {
-			for (EventContext ctx : clock.getExpireContexts()) {
-				context.println("expire [" + df.format(ctx.getExpireTime()) + "] " + ctx.getKey());
+			for (EventClockItem item : clock.getExpireContexts()) {
+				context.println("expire [" + df.format(item.getExpireTime()) + "] " + item.getKey());
 			}
 		}
 	}
@@ -131,12 +132,12 @@ public class CepScript implements Script {
 		context.println("Event Clocks");
 		context.println("-----------------");
 
-		EventContextStorage storage = eventContextService.getStorage("mem");
+		EventContextStorage storage = getEventStorage();
 		List<String> hosts = new ArrayList<String>(storage.getHosts());
 		List<String> page = hosts.subList(Math.min(offset, hosts.size()), Math.min(offset + limit, hosts.size()));
 
 		for (String host : page) {
-			EventClock clock = storage.getClock(host);
+			EventClock<? extends EventClockItem> clock = storage.getClock(host);
 			context.println(clock);
 		}
 
@@ -159,15 +160,27 @@ public class CepScript implements Script {
 		context.println("Event Contexts");
 		context.println("-----------------");
 
-		EventContextStorage storage = eventContextService.getStorage("mem");
+		EventContextStorage storage = getEventStorage();
+		Iterator<EventKey> itr = storage.getContextKeys();
+		int size = 0;
+		while (itr.hasNext()) {
+			EventKey key = itr.next();
 
-		List<EventKey> keys = new ArrayList<EventKey>(storage.getContextKeys());
-		List<EventKey> page = keys.subList(Math.min(offset, keys.size()), Math.min(offset + limit, keys.size()));
+			if (size < offset) {
+				size++;
+				continue;
+			}
 
-		for (EventKey key : page) {
-			context.println(key);
+			if (limit + offset > size)
+				context.println(key);
+
+			size++;
 		}
 
-		context.println("total " + keys.size() + " contexts");
+		context.println("total " + size + " contexts");
+	}
+
+	private EventContextStorage getEventStorage() {
+		return eventContextService.getDefaultStorage();
 	}
 }

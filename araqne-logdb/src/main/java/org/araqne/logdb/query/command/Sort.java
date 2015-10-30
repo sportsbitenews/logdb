@@ -249,7 +249,7 @@ public class Sort extends QueryCommand {
 					}
 				}
 			} catch (Throwable t) {
-				getQuery().stop(t);
+				getQuery().cancel(t);
 			} finally {
 				// close and delete sorted run file
 				if (it != null) {

@@ -36,20 +36,28 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 
 	public JsonFileParser(LogParserFactoryRegistry parserFactoryRegistry) {
 		this.parserFactoryRegistry = parserFactoryRegistry;
+		setDescriptions("Read JSON literal from text file line by line.",
+				"CR LF 혹은 LF로 구분되는 줄 단위로 JSON을 포함하는 텍스트 파일에서 데이터를 조회합니다. JSON의 키/값은 자동으로 로그프레소 타입으로 매핑되어 파싱됩니다.");
+
+		setOptions("offset", false, "Skip count", "건너뛸 레코드 갯수");
+		setOptions("limit", false, "Max output count", "가져올 최대 레코드 갯수");
+		setOptions("parser", false, "Parse tuple using parser.", "JSON 파싱 후, 별도의 파서를 추가로 적용하려면 파서 이름을 입력합니다.");
+		setOptions("overlay", false, "Use `overlay=t` option if you want to override parsed fields on original data.",
+				"파서를 추가로 적용하는 경우, 원본 데이터를 그대로 유지하면서 파싱된 키/값을 덮어쓰려면 overlay 옵션의 값을 t로 지정합니다. 만약 overlay를 t로 지정하지 않고 parser를 적용하면, 원본 대신 파싱된 키/값만 출력됩니다.");
 	}
 
 	@Override
 	public String getCommandName() {
 		return "jsonfile";
 	}
-	
+
 	@Override
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
-		m.put("10900", new QueryErrorMessage("invalid-jsonfile-path","[file]이 존재하지 않거나 읽을수 없습니다"));
+		m.put("10900", new QueryErrorMessage("invalid-jsonfile-path", "[file]이 존재하지 않거나 읽을수 없습니다"));
 		return m;
 	}
-	
+
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>(),
@@ -74,14 +82,14 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 			}
 
 			File f = new File(filePath);
-			if (!f.exists() || !f.canRead()){
-			//	throw new QueryParseException("invalid-jsonfile-path", -1);
+			if (!f.exists() || !f.canRead()) {
+				// throw new QueryParseException("invalid-jsonfile-path", -1);
 				Map<String, String> params = new HashMap<String, String>();
-				params.put("file",filePath);
+				params.put("file", filePath);
 				int offsetS = QueryTokenizer.findKeyword(commandString, filePath, r.next);
-				throw new QueryParseException("10900",  offsetS, offsetS + filePath.length() -1, params );
+				throw new QueryParseException("10900", offsetS, offsetS + filePath.length() - 1, params);
 			}
-			
+
 			String parserName = options.get("parser");
 			LogParser parser = null;
 			if (parserName != null) {
@@ -95,9 +103,9 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 			String parseTarget = options.get("parsetarget");
 
 			return new JsonFile(filePath, parser, parseTarget, overlay, offset, limit);
-		} catch(QueryParseException t){
+		} catch (QueryParseException t) {
 			throw t;
-		}catch (Throwable t) {
+		} catch (Throwable t) {
 			throw new RuntimeException("cannot create jsonfile source", t);
 		}
 	}

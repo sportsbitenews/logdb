@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.araqne.codec.EncodingRule;
 import org.araqne.logdb.QueryResult;
 import org.araqne.logdb.QueryResultCallback;
+import org.araqne.logdb.QueryResultClosedException;
 import org.araqne.logdb.QueryResultConfig;
 import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.QueryResultStorage;
@@ -103,7 +104,7 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 			if (!streaming) {
 				synchronized (writerLock) {
 					if (writerClosed)
-						throw new IllegalStateException("result writer is already closed");
+						throw new QueryResultClosedException();
 
 					writer.write(new Log("$Result$", new Date(), count, row.map()));
 				}
@@ -113,7 +114,7 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 			synchronized (writerLock) {
 				if (!stopRequested && writer.isLowDisk()) {
 					stopRequested = true;
-					config.getQuery().stop(QueryStopReason.LowDisk);
+					config.getQuery().cancel(QueryStopReason.LowDisk);
 				}
 			}
 			throw new IllegalStateException(e);
@@ -176,7 +177,7 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 			synchronized (writerLock) {
 				if (!stopRequested && writer.isLowDisk()) {
 					stopRequested = true;
-					config.getQuery().stop(QueryStopReason.LowDisk);
+					config.getQuery().cancel(QueryStopReason.LowDisk);
 				}
 			}
 			throw new IllegalStateException(e);

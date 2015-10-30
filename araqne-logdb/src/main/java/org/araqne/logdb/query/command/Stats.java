@@ -271,6 +271,18 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		if (sorter == null)
 			return;
 
+		if (reason != QueryStopReason.End && reason != QueryStopReason.PartialFetch) {
+			try {
+				sorter.cancel();
+				sorter = null;
+			} catch (Throwable t) {
+				logger.warn("araqne logdb: cannot close stats sorter, query [" + getQuery().getId() + ":"
+						+ getQuery().getQueryString() + "]", t);
+			}
+
+			return;
+		}
+
 		logger.debug("araqne logdb: stats sort input count [{}]", inputCount);
 		CloseableIterator it = null;
 		try {
@@ -339,7 +351,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 			logger.debug("araqne logdb: sorted stats input [{}]", count);
 		} catch (Throwable t) {
-			getQuery().stop(t);
+			getQuery().cancel(t);
 			throw new IllegalStateException("sort failed, query " + query, t);
 		} finally {
 			if (it != null) {

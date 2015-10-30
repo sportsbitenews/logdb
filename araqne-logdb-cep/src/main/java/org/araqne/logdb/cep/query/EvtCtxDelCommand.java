@@ -16,13 +16,13 @@
 package org.araqne.logdb.cep.query;
 
 import java.util.Date;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
 import org.araqne.logdb.cep.EventCause;
-import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.query.expr.Expression;
@@ -51,29 +51,39 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(Row row) {
-		checkEvent(row);
+		EventKey key = buildEventKey(row);
+		if (key != null)
+			storage.removeContext(key, EventCause.REMOVAL);
+
 		pushPipe(row);
 	}
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
+		CopyOnWriteArrayList<EventKey> batchContexts = new CopyOnWriteArrayList<EventKey>();
+
 		if (rowBatch.selectedInUse) {
 			for (int i = 0; i < rowBatch.size; i++) {
 				int p = rowBatch.selected[i];
 				Row row = rowBatch.rows[p];
-				checkEvent(row);
+				EventKey key = buildEventKey(row);
+				if (key != null)
+					batchContexts.add(key);
 			}
 		} else {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row row = rowBatch.rows[i];
-				checkEvent(row);
+				EventKey key = buildEventKey(row);
+				if (key != null)
+					batchContexts.add(key);
 			}
 		}
 
+		storage.removeContexts(batchContexts, EventCause.REMOVAL);
 		pushPipe(rowBatch);
 	}
 
-	private void checkEvent(Row row) {
+	private EventKey buildEventKey(Row row) {
 		boolean matched = true;
 
 		Object o = matcher.eval(row);
@@ -103,19 +113,15 @@ public class EvtCtxDelCommand extends QueryCommand implements ThreadSafe {
 		if (t instanceof Date)
 			logTime = (Date) t;
 
-		if (matched) {
-			String key = k.toString();
-			EventKey eventKey = new EventKey(topic, key);
-
-			EventContext ctx = storage.getContext(eventKey);
-			if (ctx != null)
-				ctx.addRow(row);
-
-			storage.removeContext(eventKey, ctx, EventCause.REMOVAL);
-		}
-
 		if (host != null && logTime != null)
 			storage.advanceTime(host, logTime.getTime());
+
+		if (matched) {
+			String key = k.toString();
+			EventKey eventKey = new EventKey(topic, key, host);
+			return eventKey;
+		}
+		return null;
 	}
 
 	@Override

@@ -203,7 +203,7 @@ public class DefaultQuery implements Query {
 
 	@Override
 	public boolean isFinished() {
-		return scheduler.isFinished();
+		return stopLatch.getCount() == 0;
 	}
 
 	@Override
@@ -215,7 +215,7 @@ public class DefaultQuery implements Query {
 	public void purge() {
 		// prevent deleted result file access caused by result check of query
 		// callback or timeline callbacks
-		stop(QueryStopReason.End);
+		stop();
 
 		try {
 			stopLatch.await();
@@ -244,6 +244,21 @@ public class DefaultQuery implements Query {
 	@Override
 	public Throwable getCause() {
 		return cause;
+	}
+
+	@Override
+	public void stop() {
+		stop(QueryStopReason.End);
+	}
+
+	@Override
+	public void cancel(QueryStopReason reason) {
+		stop(reason);
+	}
+
+	@Override
+	public void cancel(Throwable cause) {
+		stop(cause);
 	}
 
 	@Override

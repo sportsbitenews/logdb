@@ -84,7 +84,7 @@ public class Search extends QueryCommand implements ThreadSafe {
 
 				pushPipe(rowBatch);
 				count.addAndGet(more);
-				getQuery().stop(QueryStopReason.PartialFetch);
+				getQuery().cancel(QueryStopReason.PartialFetch);
 			} finally {
 				lock.unlock();
 			}
@@ -148,7 +148,7 @@ public class Search extends QueryCommand implements ThreadSafe {
 			rowBatch.size = more;
 			pushPipe(rowBatch);
 			count.addAndGet(more);
-			getQuery().stop(QueryStopReason.PartialFetch);
+			getQuery().cancel(QueryStopReason.PartialFetch);
 		} finally {
 			lock.unlock();
 		}
@@ -174,7 +174,7 @@ public class Search extends QueryCommand implements ThreadSafe {
 			pushPipe(m);
 
 			if (limit != null && count.incrementAndGet() >= limit)
-				getQuery().stop(QueryStopReason.PartialFetch);
+				getQuery().cancel(QueryStopReason.PartialFetch);
 		} finally {
 			lock.unlock();
 		}

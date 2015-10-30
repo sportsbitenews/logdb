@@ -32,7 +32,16 @@ public class CsvParser {
 		List<String> values = new ArrayList<String>();
 		for (int i = 0; i < length; i++) {
 			char c = line.charAt(i);
-			if (c == escape) {
+			if (!openChar && c == qoute) {
+				if (!openQuote)
+					startIndex = i + 1;
+				else {
+					endIndex = i;
+					checkEnd = true;
+				}
+
+				openQuote = !openQuote;
+			} else if (openQuote && c == escape) {
 				if (!containEscape)
 					containEscape = true;
 
@@ -46,16 +55,7 @@ public class CsvParser {
 				if (openChar)
 					endIndex = i + 1;
 
-			} else if (c == qoute) {
-				if (!openQuote)
-					startIndex = i + 1;
-				else {
-					endIndex = i;
-					checkEnd = true;
-				}
-
-				openQuote = !openQuote;
-			} else if (c == delimiter) {
+			} else if (c == delimiter && !openQuote) {
 				String value = line.substring(startIndex, endIndex);
 				if (containEscape) {
 					value = removeEscape(value, escape);
@@ -72,7 +72,7 @@ public class CsvParser {
 					openChar = true;
 				}
 
-				if (!checkEnd && openChar)
+				if ((!checkEnd && openChar) || openQuote)
 					endIndex = i + 1;
 			}
 		}

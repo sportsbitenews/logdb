@@ -65,64 +65,66 @@ public class DailyRollingDirectoryWatchLoggerFactory extends AbstractLoggerFacto
 						"指定实时监控周期。如果为0，将不进行实时监控。"), true);
 
 		LoggerConfigOption basePath = new MutableStringConfigType("base_path", t("Directory path", "디렉터리 경로", "ディレクトリ経路", "目录"),
-				t("Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true);
+				t("Base log file directory path", "로그 파일을 수집할 대상 디렉터리 경로", "ログファイルを収集する対象ディレクトリ経路", "要采集的日志文件所在目录"), true,
+				"local-dir");
 
 		LoggerConfigOption fileNamePattern = new MutableStringConfigType("filename_pattern", t("Filename pattern", "파일이름 패턴",
 				"ファイル名パータン", "文件名模式"), t("Regular expression to match log file name", "대상 로그 파일을 선택하는데 사용할 정규표현식",
-				"対象ログファイルを選ぶとき使う正規表現", "用于筛选文件的正则表达式"), true);
+				"対象ログファイルを選ぶとき使う正規表現", "用于筛选文件的正则表达式"), true, "regex");
 
 		LoggerConfigOption dirDatePattern = new MutableStringConfigType("dir_date_pattern", t("Directory date pattern",
 				"디렉터리 날짜 정규표현식", "ディレクトリ日付パターン", "目录日期正则表达式"), t("Regular expression for extracting date from directory name",
-				"디렉터리 이름에서 날짜를 추출하는데 사용할 정규표현식", "ディレクトリ名から日付を読み込む正規表現", "设置用于从目录名称提取日期的正则表达式。"), false);
+				"디렉터리 이름에서 날짜를 추출하는데 사용할 정규표현식", "ディレクトリ名から日付を読み込む正規表現", "设置用于从目录名称提取日期的正则表达式。"), false, "regex");
 
 		LoggerConfigOption dirDateFormat = new MutableStringConfigType("dir_date_format", t("Directory date format",
 				"디렉터리 날짜 포맷", "ディレクトリ日付フォーマット", "目录日期格式"), t(
 				"Date format for parsing date from directory name. yyyyMMdd by default",
 				"디렉터리 이름에서 날짜를 파싱하는데 사용할 포맷. 미설정 시 yyyyMMdd를 기본값으로 사용합니다.", "ディレクトリ名から日付を解析するフォーマット。 デフォルトは yyyyMMdd です。",
-				"设置用于从目录名称解析日期的格式。如果未指定，将使用yyyyMMdd作为日期格式。"), false);
+				"设置用于从目录名称解析日期的格式。如果未指定，将使用yyyyMMdd作为日期格式。"), false, "date-format");
 
 		LoggerConfigOption oldDirScanFrom = new MutableStringConfigType("old_dir_scan_from", t("Begin date for old log scan",
 				"과거 로그 수집 시작 일자", "過去ログ収集開始日付", "历史数据采集起始日期"), t(
 				"Use yyyyMMdd format. Old log scan will be disabled if not specified",
 				"yyyyMMdd 포맷으로 시작 일자를 지정합니다. 미설정 시 과거 로그 수집이 비활성화됩니다.", "yyyyMMdd フォーマットで収取を開始する日付を設定します。設定しないと過去ログ収取は行いません。",
-				"以yyyyMMdd格式指定起始日期。如果未指定，将不采集历史数据。"), false);
+				"以yyyyMMdd格式指定起始日期。如果未指定，将不采集历史数据。"), false, "date-format");
 
 		LoggerConfigOption oldDirScanTo = new MutableStringConfigType("old_dir_scan_to", t("End date for old log scan",
 				"과거 로그 수집 끝 일자", "過去ログ収集終了日付", "历史数据采集结束日期"), t(
 				"Use yyyyMMdd format. Old log scan will be disabled if not specified",
 				"yyyyMMdd 포맷으로 끝 일자를 지정합니다. 미설정 시 과거 로그 수집이 비활성화됩니다.", "yyyyMMdd フォーマットで終了日付を設定します。設定しないと過去ログ収取は行いません。",
-				"以yyyyMMdd格式指定结束日期。如果未指定，将不采集历史数据。"), false);
+				"以yyyyMMdd格式指定结束日期。如果未指定，将不采集历史数据。"), false, "date-format");
 
 		LoggerConfigOption datePattern = new MutableStringConfigType("date_pattern", t("Date pattern", "날짜 정규표현식", "日付正規表現",
 				"日期正则表达式"), t("Regular expression to match date and time strings", "날짜 및 시각을 추출하는데 사용할 정규표현식", "日付と時刻を解析する正規表現",
-				"用于提取日期及时间的正则表达式"), false);
+				"用于提取日期及时间的正则表达式"), false, "regex");
 
 		LoggerConfigOption dateFormat = new MutableStringConfigType("date_format", t("Date format", "날짜 포맷", "日付フォーマット", "日期格式"),
 				t("Date format to parse date and time strings. e.g. yyyy-MM-dd HH:mm:ss",
 						"날짜 및 시각 문자열을 파싱하는데 사용할 포맷. 예) yyyy-MM-dd HH:mm:ss", "日付と時刻を解析するフォーマット。例) yyyy-MM-dd HH:mm:ss",
-						"用于解析日期及时间字符串的格式。 示例) yyyy-MM-dd HH:mm:ss"), false);
+						"用于解析日期及时间字符串的格式。 示例) yyyy-MM-dd HH:mm:ss"), false, "date-format");
 
 		LoggerConfigOption dateLocale = new MutableStringConfigType("date_locale", t("Date locale", "날짜 로케일", "日付ロケール", "日期区域"),
-				t("Date locale, e.g. en", "날짜 로케일, 예를 들면 ko", "日付ロケール。例えばjp", "日期区域， 例如 zh"), false);
+				t("Date locale, e.g. en", "날짜 로케일, 예를 들면 ko", "日付ロケール。例えばjp", "日期区域， 例如 zh"), false, "date-locale");
 
 		LoggerConfigOption timezone = new MutableStringConfigType("timezone", t("Time zone", "시간대", "時間帯", "时区"), t(
 				"Time zone, e.g. America/New_york ", "시간대, 예를 들면 KST 또는 Asia/Seoul", "時間帯。例えばJSTまたはAsia/Tokyo",
-				"时区，例如 Asia/Beijing"), false);
+				"时区，例如 Asia/Beijing"), false, "timezone");
 
-		LoggerConfigOption newlogRegex = new MutableStringConfigType("newlog_designator", t("Regex for first line", "로그 시작 정규식",
-				"ログ始め正規表現", "日志起始正则表达式"), t("Regular expression to determine whether the line is start of new log. "
-				+ "if a line does not matches, the line will be merged to prev line.).",
+		LoggerConfigOption newlogRegex = new MutableStringConfigType("newlog_designator", t("Regex for first line",
+				"로그 시작 정규표현식", "ログ始め正規表現", "日志起始正则表达式"), t(
+				"Regular expression to determine whether the line is start of new log. "
+						+ "if a line does not matches, the line will be merged to prev line.).",
 				"새 로그의 시작을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "新しいログの始まりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)",
-				"用于识别日志起始位置的正则表达式(如没有匹配项，则合并到之前日志)"), false);
+				"用于识别日志起始位置的正则表达式(如没有匹配项，则合并到之前日志)"), false, "regex");
 
 		LoggerConfigOption newlogEndRegex = new MutableStringConfigType("newlog_end_designator", t("Regex for last line",
-				"로그 끝 정규식", "ログ終わり正規表現", "日志结束正则表达式"), t("Regular expression to determine whether the line is end of new log."
+				"로그 끝 정규표현식", "ログ終わり正規表現", "日志结束正则表达式"), t("Regular expression to determine whether the line is end of new log."
 				+ "(if a line does not matches, the line will be merged to prev line.).",
 				"로그의 끝을 인식하기 위한 정규식(매칭되지 않는 경우 이전 줄에 병합됨)", "ログの終わりを認識する正規表現 (マッチングされない場合は前のラインに繋げる)",
-				"用于识别日志结束位置地正则表达式(如没有匹配项，则合并到之前日志)"), false);
+				"用于识别日志结束位置地正则表达式(如没有匹配项，则合并到之前日志)"), false, "regex");
 
 		LoggerConfigOption charset = new MutableStringConfigType("charset", t("Charset", "문자 집합", "文字セット", "字符集"), t(
-				"Charset encoding", "텍스트 파일의 문자 인코딩 방식", "テキストファイルの文字エンコーディング方式", "文本文件的字符编码方式"), false);
+				"Charset encoding", "텍스트 파일의 문자 인코딩 방식", "テキストファイルの文字エンコーディング方式", "文本文件的字符编码方式"), false, "charset");
 
 		LoggerConfigOption fileTag = new MutableStringConfigType("file_tag", t("Filename Tag", "파일이름 태그", "ファイル名タグ", "文件名标记"), t(
 				"Field name for filename tagging", "파일명을 태깅할 필드 이름", "ファイル名をタギングするフィールド名", "要进行文件名标记的字段"), false);

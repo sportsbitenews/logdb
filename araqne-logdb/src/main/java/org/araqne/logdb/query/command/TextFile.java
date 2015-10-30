@@ -34,12 +34,11 @@ import org.araqne.log.api.Logger;
 import org.araqne.log.api.LoggerStatus;
 import org.araqne.log.api.MultilineLogExtractor;
 import org.araqne.logdb.DriverQueryCommand;
+import org.araqne.logdb.QueryResultClosedException;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
-import org.slf4j.LoggerFactory;
 
 public class TextFile extends DriverQueryCommand {
-	private final org.slf4j.Logger logger = LoggerFactory.getLogger(TextFile.class.getName());
 	private String filePath;
 	private LogParser parser;
 	private long offset;
@@ -52,7 +51,6 @@ public class TextFile extends DriverQueryCommand {
 	private long currentOffset;
 	private long pushCount;
 	private DummyLogger dummyLogger = new DummyLogger();
-	private Thread runner;
 
 	public TextFile(String filePath, LogParser parser, long offset, long limit, String beginRegex, String endRegex,
 			String dateFormat, String datePattern, String charset) {
@@ -72,12 +70,6 @@ public class TextFile extends DriverQueryCommand {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		dummyLogger.setStatus(LoggerStatus.Stopped);
-		if (runner != null && !Thread.currentThread().equals(runner)) {
-			try {
-				runner.join();
-			} catch (InterruptedException e) {
-			}
-		}
 	}
 
 	@Override
@@ -186,9 +178,11 @@ public class TextFile extends DriverQueryCommand {
 			extractor.setCharset(Charset.forName(charset).name());
 			extractor.extract(is, new AtomicLong());
 		} catch (LimitReachedException e) {
-			// ignore;
+			// ignore
+		} catch (QueryResultClosedException e) {
+			// ignore
 		} catch (Throwable t) {
-			logger.error("araqne logdb: file error", t);
+			throw new IllegalStateException(t);
 		} finally {
 			IoHelper.close(br);
 			IoHelper.close(is);

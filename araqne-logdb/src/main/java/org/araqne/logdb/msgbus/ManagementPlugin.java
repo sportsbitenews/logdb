@@ -127,15 +127,16 @@ public class ManagementPlugin {
 			String password = req.getString("password", true);
 
 			if (slog.isDebugEnabled())
-				slog.debug("araqne logdb: trying to login [{}] from [{}]", loginName, session.getRemoteAddress().getHostAddress());
+				slog.debug("araqne logdb: trying to login [{}] from [{}]", loginName,
+						session.getRemoteAddress().getHostAddress());
 
 			try {
 				dbSession = accountService.login(loginName, password);
 				dbSession.setProperty("remote_ip", getRemoteAddr(session));
 
 				if (slog.isDebugEnabled())
-					slog.debug("araqne logdb: [{}] is logged in successfully from [{}]", loginName, session.getRemoteAddress()
-							.getHostAddress());
+					slog.debug("araqne logdb: [{}] is logged in successfully from [{}]", loginName,
+							session.getRemoteAddress().getHostAddress());
 
 			} catch (AuthServiceNotLoadedException e) {
 				Boolean useErrorReturn = req.getBoolean("use_error_return");
@@ -153,10 +154,12 @@ public class ManagementPlugin {
 					errorParams.put("remote_ip", getRemoteAddr(session));
 					throw new MsgbusException("logdb", "invalid password", errorParams);
 				}
-				
+
 				throw e;
 			}
 		}
+		
+		dbSession.setProperty("locale", session.getLocale());
 
 		if (session.getOrgDomain() == null && session.getAdminLoginName() == null) {
 			session.setProperty("org_domain", "localhost");
@@ -166,7 +169,7 @@ public class ManagementPlugin {
 
 		session.setProperty("araqne_logdb_session", dbSession);
 	}
-	
+
 	private String getRemoteAddr(Session session) {
 		return session.getRemoteAddress() != null ? session.getRemoteAddress().getHostAddress() : null;
 	}
@@ -194,14 +197,18 @@ public class ManagementPlugin {
 		if (session == null)
 			return;
 
-		org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) session.get("araqne_logdb_session");
-		if (dbSession != null) {
-			try {
-				accountService.logout(dbSession);
-			} catch (Throwable t) {
-			}
+		try {
+			org.araqne.logdb.Session dbSession = (org.araqne.logdb.Session) session.get("araqne_logdb_session");
+			if (dbSession != null) {
+				try {
+					accountService.logout(dbSession);
+				} catch (Throwable t) {
+				}
 
-			session.unsetProperty("araqne_logdb_session");
+				session.unsetProperty("araqne_logdb_session");
+			}
+		} catch (ClassCastException e) {
+			// ignore (error after bundle update)
 		}
 	}
 
@@ -720,6 +727,9 @@ public class ManagementPlugin {
 		} catch (ParseException e) {
 			throw new MsgbusException("logdb", "not-parse-date");
 		}
+
+		if ((fromDay != null && toDay != null) && fromDay.after(toDay))
+			throw new IllegalArgumentException("araqne-logdb: invalid date range(from: " + fromDay + ", to: " + toDay);
 
 		storage.purge(tableName, fromDay, toDay);
 

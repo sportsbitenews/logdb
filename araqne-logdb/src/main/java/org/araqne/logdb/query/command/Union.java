@@ -79,7 +79,7 @@ public class Union extends QueryCommand {
 	@Override
 	public void onClose(QueryStopReason reason) {
 		try {
-			subQuery.stop(reason);
+			subQuery.cancel(reason);
 		} catch (Throwable t) {
 			slog.error("araqne logdb: cannot stop union subquery [" + subQuery.getQueryString() + "]", t);
 		}

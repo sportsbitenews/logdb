@@ -18,22 +18,27 @@ public class EvtCtxGetFunction implements Expression {
 	private Expression keyExpr;
 	private Expression fieldExpr;
 	private final String field;
+	private Expression hostExpr;
 
 	// 1: counter, 2: created, 3: expire_at, 4: host, 5: timeout_at, 6: rows
 	private int fieldType;
 
-	private EventContextStorage memStorage;
+	private EventContextStorage storage;
 
 	// evtctxget("topic", "key", "counter")
+	// evtctxget("topic", "key", "counter", "host")
 	public EvtCtxGetFunction(QueryContext ctx, List<Expression> exprs, EventContextService eventContextService) {
-		this.memStorage = eventContextService.getStorage("mem");
+		this.storage = eventContextService.getDefaultStorage();
 
-		if (exprs.size() != 3)
+		if (exprs.size() != 3 && exprs.size() != 4)
 			throw new QueryParseException("invalid-evtctxget-arguments", -1, "argument-count-mismatch");
 
 		this.topicExpr = exprs.get(0);
 		this.keyExpr = exprs.get(1);
 		this.fieldExpr = exprs.get(2);
+
+		if (exprs.size() == 4)
+			this.hostExpr = exprs.get(3);
 
 		try {
 			this.field = fieldExpr.eval(null).toString();
@@ -58,7 +63,7 @@ public class EvtCtxGetFunction implements Expression {
 
 	@Override
 	public Object eval(Row row) {
-		EventContext ctx = EvtCtxGetFunction.findContext(memStorage, topicExpr, keyExpr, row);
+		EventContext ctx = EvtCtxGetFunction.findContext(storage, topicExpr, keyExpr, hostExpr, row);
 		if (ctx == null)
 			return null;
 
@@ -92,7 +97,8 @@ public class EvtCtxGetFunction implements Expression {
 		return "evtctxget(" + topicExpr + ", " + keyExpr + ", " + fieldExpr + ")";
 	}
 
-	public static EventContext findContext(EventContextStorage storage, Expression topicExpr, Expression keyExpr, Row row) {
+	public static EventContext findContext(EventContextStorage storage, Expression topicExpr, Expression keyExpr,
+			Expression hostExpr, Row row) {
 		Object arg1 = topicExpr.eval(row);
 		Object arg2 = keyExpr.eval(row);
 
@@ -102,6 +108,13 @@ public class EvtCtxGetFunction implements Expression {
 		String topic = arg1.toString();
 		String key = arg2.toString();
 
-		return storage.getContext(new EventKey(topic, key));
+		String host = null;
+		if (hostExpr != null) {
+			Object arg3 = hostExpr.eval(row);
+			if (arg3 != null)
+				host = arg3.toString();
+		}
+
+		return storage.getContext(new EventKey(topic, key, host));
 	}
 }
