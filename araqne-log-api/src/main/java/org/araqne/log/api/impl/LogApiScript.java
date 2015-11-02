@@ -435,6 +435,7 @@ public class LogApiScript implements Script {
 
 		context.println(" * Description: " + logger.getDescription());
 		context.println(" * Logger Factory: " + logger.getFactoryFullName());
+		context.println(" * Enabled: " + logger.isEnabled());
 		context.println(" * Status: " + logger.getStatus());
 		context.println(" * Interval: " + logger.getInterval() + "ms");
 		context.println(" * Time Range: " + (logger.getTimeRange() != null ? logger.getTimeRange() : "N/A"));
@@ -650,6 +651,11 @@ public class LogApiScript implements Script {
 			return;
 		}
 
+		if (logger.getInterval() <= 0) {
+			context.println("cannot enable logger, interval is more than 0");
+			return;
+		}
+
 		logger.setEnabled(true);
 		context.println("logger enabled");
 	}
@@ -664,7 +670,7 @@ public class LogApiScript implements Script {
 		}
 
 		boolean useOldInterval = args.length == 1;
-		Pattern pattern = WildcardMatcher.buildPattern(args[0]);
+		Pattern pattern = buildPattern(args[0]);
 		int newInterval = 5000;
 		try {
 			if (args.length > 1) {
@@ -857,7 +863,7 @@ public class LogApiScript implements Script {
 			return;
 		}
 
-		Pattern pattern = WildcardMatcher.buildPattern(args[0]);
+		Pattern pattern = buildPattern(args[0]);
 		int maxWaitTime = 5000;
 		try {
 			if (args.length > 1) {
@@ -1136,5 +1142,28 @@ public class LogApiScript implements Script {
 			String status = set.contains(loggerName) ? "unresolved" : "resolved";
 			context.println(loggerName + " -> " + status);
 		}
+	}
+	
+	public static Pattern buildPattern(String s) {
+		StringBuilder sb = new StringBuilder();
+		
+		sb.append("^");
+		int lastPos = 0;
+		for(int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			if(c == '*') {
+				sb.append(Pattern.quote(s.substring(lastPos, i)));
+				sb.append('.');
+				sb.append('*');
+				lastPos = i + 1;
+			}
+		}
+		
+		if(lastPos < s.length()) {
+			sb.append(Pattern.quote(s.substring(lastPos)));
+		}
+		
+		sb.append("$");
+		return Pattern.compile(sb.toString());
 	}
 }
