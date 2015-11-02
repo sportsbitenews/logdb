@@ -41,7 +41,7 @@ public class TextFileParser extends AbstractQueryCommandParser {
 				"Read text file. You can recognize multi-line entry using regular expressions. Each tuple has 'line' field.",
 				"텍스트 파일에서 데이터를 조회합니다. 정규표현식으로 사용하여 여러개의 줄로 구성된 데이터의 시작과 끝을 인식시킬 수 있습니다. " + "텍스트 파일에서 조회한 각 레코드는 line 필드를 포함합니다.");
 
-		setOptions("offset", OPTIONAL, "Skip output count", "건너뛸 레코드 갯수");
+		setOptions("offset", OPTIONAL, "Skip input count", "건너뛸 레코드 갯수");
 		setOptions("limit", OPTIONAL, "Max output count", "가져올 최대 레코드 갯수");
 		setOptions("brex", OPTIONAL, "Regular expression for recognizing the first line of entry.",
 				"다수의 줄로 구성된 하나의 레코드를 구분할 수 있도록, 레코드 시작 줄을 판정하는 정규표현식을 입력합니다. "

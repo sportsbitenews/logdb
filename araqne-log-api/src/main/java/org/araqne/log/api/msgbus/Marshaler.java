@@ -20,9 +20,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.Logger;
@@ -35,6 +37,8 @@ public class Marshaler {
 	public static Map<String, Object> marshal(LoggerFactory factory, Locale locale) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("full_name", factory.getFullName());
+		m.put("display_group", factory.getDisplayGroup(locale));
+		m.put("group", factory.getDisplayGroup(Locale.ENGLISH));
 		m.put("display_name", factory.getDisplayName(locale));
 		m.put("namespace", factory.getNamespace());
 		m.put("name", factory.getName());
@@ -109,6 +113,7 @@ public class Marshaler {
 		m.put("type", opt.getType());
 		m.put("required", opt.isRequired());
 		m.put("default_value", opt.getDefaultValue(locale));
+		m.put("subtype", opt.getSubtype());
 		return m;
 	}
 
@@ -131,6 +136,19 @@ public class Marshaler {
 				serializedObjects.add(marshal((LoggerConfigOption) obj, locale));
 			else
 				throw new UnsupportedOperationException("unsupported class: " + obj.getClass().getSimpleName());
+		}
+
+		return serializedObjects;
+	}
+
+	public static Set<String> marshalDisplayGroups(Collection<LoggerFactory> list, Locale locale) {
+		if (list == null)
+			return null;
+
+		Set<String> serializedObjects = new HashSet<String>();
+
+		for (LoggerFactory factory : list) {
+			serializedObjects.add(factory.getDisplayGroup(locale));
 		}
 
 		return serializedObjects;

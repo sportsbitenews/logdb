@@ -58,7 +58,18 @@ public class DefaultEventContextService implements EventContextService, EventSub
 
 	@Override
 	public EventContextStorage getStorage(String name) {
-		return storages.get(name);
+		if (name == null)
+			name = "mem";
+		EventContextStorage storage = storages.get(name);
+		if (storage == null)
+			throw new IllegalStateException("invalid cep engine: " + name);
+		return storage;
+	}
+
+	@Override
+	public EventContextStorage getDefaultStorage() {
+		String engine = System.getProperty("araqne.logdb.cepengine");
+		return getStorage(engine);
 	}
 
 	@Override
@@ -118,4 +129,5 @@ public class DefaultEventContextService implements EventContextService, EventSub
 			}
 		}
 	}
+
 }

@@ -47,8 +47,22 @@ public interface Query extends Runnable {
 	 */
 	Throwable getCause();
 
+	/**
+	 * ensure query is stopped after return
+	 */
+	void stop();
+
+	/**
+	 * signal query stop 
+	 */
+	void cancel(QueryStopReason reason);
+
+	void cancel(Throwable cause);
+
+	@Deprecated
 	void stop(QueryStopReason reason);
 
+	@Deprecated
 	void stop(Throwable cause);
 
 	void purge();

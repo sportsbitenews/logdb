@@ -139,7 +139,7 @@ public class CheckTableParserTest {
 		LogTableRegistry tableRegistry = mock(LogTableRegistry.class);
 		when(tableRegistry.getTableNames()).thenReturn(Arrays.asList("secure_log", "secure_event", "text_log"));
 
-		CheckTableParser parser = new CheckTableParser("checktable", tableRegistry, null, null);
+		CheckTableParser parser = new CheckTableParser(tableRegistry, null, null);
 		parser.setQueryParserService(queryParserService);
 		
 		CheckTable c = (CheckTable) parser.parse(getContext(), query);

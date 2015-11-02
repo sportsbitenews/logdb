@@ -98,8 +98,12 @@ public class QueryParserServiceImpl implements QueryParserService {
 			closePrematureCommands(commands);
 			// XXX : 오프셋 위치가 정확하지 않을 수 있으니 테스트 해 볼 것!
 			e.addOffset(offsetCnt);
-			// FIXME : 로케일 하드 코딩 되어 있음
-			String errorMessage = formatErrorMessage(e.getType(), Locale.ENGLISH, e.getParams());
+			
+			Locale locale = Locale.ENGLISH;
+			if (context.getSession() != null && context.getSession().getProperty("locale") != null)
+				locale = (Locale) context.getSession().getProperty("locale");
+
+			String errorMessage = formatErrorMessage(e.getType(), locale, e.getParams());
 			if (errorMessage == null)
 				errorMessage = e.getNote();
 			throw new QueryParseException(e.getType(), e.getStartOffset(), errorMessage, e);
@@ -191,6 +195,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 		/* TimeSpan */
 		add("90500", "invalid-timespan", "mon 은 12의 소인수(1,2,3,4,6)만 사용가능합니다.");
 		add("90501", "year should be 1", "y 앞에는 1만 사용가능합니다.");
+		add("90502", "invalid time unit", "시간 단위는 y, mon, m, w, d, m, s 중 하나만 사용 가능합니다.");
 		/* Abs */
 		add("90600", "invalid-abs-args", "abs의 매개변수는 하나여야만 합니다.");
 		/* ContextReference */
@@ -223,11 +228,13 @@ public class QueryParserServiceImpl implements QueryParserService {
 		// add("90700", "insufficient-arguments", "올바르지 않은 입력 형식입니다."); - 99000
 		// 으로 대체
 		/* Ip2Long */
-		//add("90710", "invalid-ip2long-args", "올바르지 않은 ip2long 매개변수입니다."); - 99000으로 대체
+		// add("90710", "invalid-ip2long-args", "올바르지 않은 ip2long 매개변수입니다."); -
+		// 99000으로 대체
 		/* Left */
 		add("90720", "left-func-negative-length", "길이는 0보다 커야 합니다.(입력값 : [length])");
 		/* Long2Ip */
-		//add("90730", "invalid-long2ip-args", "올바르지 않은 long2ip 매개변수입니다."); - 99000으로 대체
+		// add("90730", "invalid-long2ip-args", "올바르지 않은 long2ip 매개변수입니다."); -
+		// 99000으로 대체
 		/* Network */
 		add("90740", "invalid-mask", "CIDR 값이 올바르지 않습니다.(입력값: [mask])");
 		/* Rand */
@@ -237,7 +244,8 @@ public class QueryParserServiceImpl implements QueryParserService {
 		add("90760", "invalid-rand-argument", "길이는 숫자여야 합니다.(입력값: [length])");
 		add("90761", "invalid-randbytes-len", "길이는 0보다 크거나 1000000보다 작아야 합니다.(입력값: [length])");
 		/* Split */
-		// add("90770", "missing-split-args", "올바르지 않은 split 매개변수입니다."); - 99000 으로
+		// add("90770", "missing-split-args", "올바르지 않은 split 매개변수입니다."); - 99000
+		// 으로
 		// 대체
 		add("90771", "invalid-delimiters", "올바르지 않은 구분자입니다.([exception])");
 		add("90772", "empty-delimiters", "구분자가 없습니다.");

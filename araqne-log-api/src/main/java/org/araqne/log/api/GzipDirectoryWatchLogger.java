@@ -85,12 +85,12 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 			if (offset == -1)
 				return;
 
-			Receiver receiver = new Receiver(position);
-			MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
-
 			File file = new File(path);
 			fis = new FileInputStream(file);
 			gis = new GZIPInputStream(fis);
+
+			Receiver receiver = new Receiver(position, getConfigs().get("file_tag"), file.getName());
+			MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
 
 			String dateFromFileName = getDateFromFileName(path, fileNamePattern);
 			extractor.extract(gis, new AtomicLong(), dateFromFileName);
@@ -136,13 +136,20 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 	private class Receiver extends AbstractLogPipe {
 		private long offset;
 		private LastPosition position;
+		private String fileTag;
+		private String fileName;
 
-		public Receiver(LastPosition position) {
+		public Receiver(LastPosition position, String fileTag, String fileName) {
 			this.position = position;
+			this.fileTag = fileTag;
+			this.fileName = fileName;
 		}
 
 		@Override
 		public void onLog(Logger logger, Log log) {
+			if (fileTag != null)
+				log.getParams().put(fileTag, fileName);
+
 			if (position.getPosition() < offset)
 				write(log);
 
@@ -152,6 +159,12 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 		@Override
 		public void onLogBatch(Logger logger, Log[] logs) {
 			List<Log> filtered = new ArrayList<Log>();
+
+			if (fileTag != null) {
+				for (Log log : logs) {
+					log.getParams().put(fileTag, fileName);
+				}
+			}
 
 			for (Log log : logs) {
 				if (log != null) {

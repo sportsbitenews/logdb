@@ -60,6 +60,7 @@ public class LoggerPlugin {
 			locale = new Locale(s);
 
 		resp.put("factories", Marshaler.marshal(loggerFactoryRegistry.getLoggerFactories(), locale));
+		resp.put("groups", Marshaler.marshalDisplayGroups(loggerFactoryRegistry.getLoggerFactories(), locale));
 	}
 
 	@MsgbusMethod

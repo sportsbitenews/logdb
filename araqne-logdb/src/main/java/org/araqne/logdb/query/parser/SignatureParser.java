@@ -22,6 +22,11 @@ import org.araqne.logdb.query.command.Signature;
 
 public class SignatureParser extends AbstractQueryCommandParser {
 
+	public SignatureParser() {
+		setDescriptions("Grab all special ascii characters from line field and generate `signature` field.",
+				"line 필드의 문자열에서 특수문자만 모은 문자열을 만들고 signature 필드에 할당합니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "signature";

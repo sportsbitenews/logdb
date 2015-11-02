@@ -14,6 +14,7 @@ import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.cep.EventClock;
+import org.araqne.logdb.cep.EventClockItem;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
 
@@ -52,10 +53,10 @@ public class CepClockMetadataProvider implements MetadataProvider, FieldOrdering
 
 	@Override
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
-		EventContextStorage storage = eventContextService.getStorage("mem");
+		EventContextStorage storage = eventContextService.getDefaultStorage();
 
 		for (String host : storage.getHosts()) {
-			EventClock clock = storage.getClock(host);
+			EventClock<? extends EventClockItem> clock = storage.getClock(host);
 			if (clock == null)
 				continue;
 

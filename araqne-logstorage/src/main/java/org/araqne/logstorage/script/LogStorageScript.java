@@ -228,12 +228,7 @@ public class LogStorageScript implements Script {
 				context.println();
 			}
 
-			long total = 0;
-			FilePath dir = storage.getTableDirectory(tableName);
-			if (dir.exists()) {
-				for (FilePath f : dir.listFiles())
-					total += f.length();
-			}
+			long total = storage.getDiskUsage(tableName, null, null);
 
 			LogRetentionPolicy retentionPolicy = storage.getRetentionPolicy(tableName);
 			String retention = "None";
@@ -688,9 +683,8 @@ public class LogStorageScript implements Script {
 			context.println(c.getName() + ": " + ConfigUtil.get(conf, c));
 		}
 	}
-	
-	@ScriptUsage(description = "set parameters", arguments = {
-			@ScriptArgument(name = "key", type = "string", description = "parameter key") })
+
+	@ScriptUsage(description = "set parameters", arguments = { @ScriptArgument(name = "key", type = "string", description = "parameter key") })
 	public void unsetParameter(String[] args) {
 		Constants configKey = Constants.parse(args[0]);
 		if (configKey == null) {
@@ -985,7 +979,7 @@ public class LogStorageScript implements Script {
 		private long minId;
 		/** guarded by this */
 		private long maxId;
-		
+
 		@SuppressWarnings("unused")
 		long rsvCnt = 0;
 		@SuppressWarnings("unused")
@@ -1021,7 +1015,7 @@ public class LogStorageScript implements Script {
 				if (max < id)
 					max = id;
 			}
-			
+
 			synchronized (this) {
 				count += logs.size();
 				if (minId > min)
@@ -1210,6 +1204,11 @@ public class LogStorageScript implements Script {
 		Date fromDay = df.parse(args[1]);
 		Date toDay = df.parse(args[2]);
 
+		if (fromDay.after(toDay)) {
+			context.println("invalid date range");
+			return;
+		}
+
 		PurgePrinter printer = new PurgePrinter();
 		try {
 			storage.addEventListener(printer);
@@ -1236,8 +1235,8 @@ public class LogStorageScript implements Script {
 	}
 
 	public void _lock(String[] args) throws InterruptedException {
-		boolean lock = storage.lock(new LockKey("script", args[0], null), args[1], 5, TimeUnit.SECONDS);
-		if (lock)
+		UUID lock = storage.lock(new LockKey("script", args[0], null), args[1], 5, TimeUnit.SECONDS);
+		if (lock != null)
 			context.println("locked");
 		else {
 			context.printf("failed: %s\n", lockStatusStr(args[0]));

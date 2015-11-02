@@ -29,4 +29,6 @@ public interface EventContextService {
 	void addSubscriber(String topic, EventSubscriber subscriber);
 
 	void removeSubscriber(String topic, EventSubscriber subscriber);
+	
+	EventContextStorage getDefaultStorage();
 }

@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.araqne.logstorage.file.LogFileWriter;
@@ -137,7 +139,7 @@ public interface LogStorage {
 	/*
 	 * @since 2.5.5
 	 */
-	boolean lock(LockKey storageLockKey, String purpose, long timeout, TimeUnit unit) throws InterruptedException;
+	UUID lock(LockKey storageLockKey, String purpose, long timeout, TimeUnit unit) throws InterruptedException;
 
 	void unlock(LockKey storageLockKey, String purpose);
 
@@ -164,4 +166,8 @@ public interface LogStorage {
 	<T> void addFallback(Class<T> clazz, T fallback);
 
 	<T> void removeFallback(Class<T> clazz, T fallback);
+
+	long getDiskUsage(String tableName, Date from, Date to);
+
+	long getDiskUsage(Set<String> tableNames, Date from, Date to);
 }

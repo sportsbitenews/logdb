@@ -61,7 +61,7 @@ public class Limit extends QueryCommand {
 			pushPipe(m);
 			count++;
 		} else {
-			getQuery().stop(QueryStopReason.PartialFetch);
+			getQuery().cancel(QueryStopReason.PartialFetch);
 		}
 	}
 

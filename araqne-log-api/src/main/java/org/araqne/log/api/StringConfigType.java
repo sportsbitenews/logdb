@@ -20,14 +20,23 @@ import java.util.Map;
 
 public class StringConfigType extends AbstractConfigType {
 
-	public StringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
-			boolean required) {
+	public StringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions, boolean required) {
 		super(name, displayNames, descriptions, required);
 	}
 
-	public StringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions,
-			boolean required, Map<Locale, String> defaultValues) {
+	public StringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions, boolean required,
+			Map<Locale, String> defaultValues) {
 		super(name, displayNames, descriptions, required, defaultValues);
+	}
+
+	public StringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions, boolean required,
+			String subtype) {
+		super(name, displayNames, descriptions, required, subtype);
+	}
+
+	public StringConfigType(String name, Map<Locale, String> displayNames, Map<Locale, String> descriptions, boolean required,
+			Map<Locale, String> defaultValues, String subtype) {
+		super(name, displayNames, descriptions, required, defaultValues, subtype);
 	}
 
 	@Override

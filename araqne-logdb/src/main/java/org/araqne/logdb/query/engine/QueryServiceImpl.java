@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query.engine;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -102,7 +103,6 @@ import org.araqne.logdb.query.parser.RenameParser;
 import org.araqne.logdb.query.parser.RepeatParser;
 import org.araqne.logdb.query.parser.ResultParser;
 import org.araqne.logdb.query.parser.RexParser;
-import org.araqne.logdb.query.parser.ScriptParser;
 import org.araqne.logdb.query.parser.SearchParser;
 import org.araqne.logdb.query.parser.SetParser;
 import org.araqne.logdb.query.parser.SignatureParser;
@@ -249,8 +249,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new OutputTxtParser(tickService));
 		parsers.add(new SystemCommandParser("logdb", metadataService)); // deprecated
 		parsers.add(new SystemCommandParser("system", metadataService));
-		parsers.add(new CheckTableParser("logcheck", tableRegistry, storage, fileServiceRegistry)); // deprecated
-		parsers.add(new CheckTableParser("checktable", tableRegistry, storage, fileServiceRegistry));
+		parsers.add(new CheckTableParser(tableRegistry, storage, fileServiceRegistry));
 		parsers.add(new JoinParser(queryParserService, resultFactory));
 		parsers.add(new UnionParser(queryParserService));
 		parsers.add(new ImportParser(tableRegistry, storage));
@@ -409,6 +408,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			if (source != null)
 				m.put("source", source);
 			m.put("login_name", session.getLoginName());
+			m.put("remote_ip", session.getProperty("remote_ip"));
 		} else {
 			m.put("source", null);
 			m.put("login_name", null);
@@ -416,6 +416,12 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		m.put("start_at", new Date());
 		m.put("query_string", query.getQueryString());
 		m.put("query_id", query.getId());
+		try {
+			m.put("constants", query.getContext().getConstants());
+		} catch (Throwable t) {
+			m.put("constants", null);
+		}
+
 
 		writeLog(new Date(), m);
 		invokeCallbacks(query, QueryStatus.STARTED);
@@ -455,7 +461,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			query.getResult().getResultCallbacks().clear();
 
 			if (query.isStarted() && !query.isFinished())
-				query.stop(QueryStopReason.UserRequest);
+				query.cancel(QueryStopReason.UserRequest);
 		} catch (Throwable t) {
 			logger.error("araqne logdb: cannot cancel query " + query, t);
 		}
@@ -590,7 +596,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		try {
 			m.put("constants", query.getContext().getConstants());
 		} catch (Throwable t) {
-			m.put("constants", "N/A");
+			m.put("constants", null);
 		}
 		if (query.isFinished()) {
 			m.put("state", "stopped");
@@ -606,6 +612,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			m.put("duration", 0);
 
 		if (session != null) {
+			m.put("remote_ip", session.getProperty("remote_ip"));
 			String source = (String) session.getProperty("araqne_logdb_query_source");
 			if (source != null)
 				m.put("source", source);

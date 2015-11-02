@@ -1,13 +1,19 @@
 package org.araqne.logstorage;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.araqne.logstorage.TableLock.Purpose;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,9 +21,70 @@ public class TableLockImpl {
 	public static Logger logger = LoggerFactory.getLogger(TableLockImpl.class);
 	static final int EXCLUSIVE = 65535;
 	Semaphore sem = new Semaphore(EXCLUSIVE, true);
+	
+	public static UUID READ_LOCK_UUID = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
+
+	private static AtomicLong nextGuid = new AtomicLong(0);
+	
+	private static class PurposeImpl implements Purpose {
+		String name;
+		UUID uuid;
+		int count;
+		
+		public PurposeImpl(String purpose) {
+			name = purpose;
+			uuid = UUID.randomUUID();
+			count = 1;
+		}
+		
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((name == null) ? 0 : name.hashCode());
+			result = prime * result + ((uuid == null) ? 0 : uuid.hashCode());
+			return result;
+		}
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			PurposeImpl other = (PurposeImpl) obj;
+			if (name == null) {
+				if (other.name != null)
+					return false;
+			} else if (!name.equals(other.name))
+				return false;
+			if (uuid == null) {
+				if (other.uuid != null)
+					return false;
+			} else if (!uuid.equals(other.uuid))
+				return false;
+			return true;
+		}
+		
+		@Override
+		public String getName() {
+			return name;
+		}
+		
+		@Override
+		public UUID getUUID() {
+			return uuid;
+		}
+		
+		@Override
+		public String toString() {
+			return String.format("%s:%d", name, count);
+		}
+	};
 
 	String owner;
-	List<String> purposes;
+	Map<String, PurposeImpl> purposes;
 	private int tid;
 
 	@Override
@@ -28,7 +95,7 @@ public class TableLockImpl {
 	public TableLockImpl(int tableId) {
 		this.tid = tableId;
 		owner = null;
-		purposes = new LinkedList<String>();
+		purposes = new HashMap<String, PurposeImpl>();
 	}
 
 	public int availableShared() {
@@ -39,33 +106,39 @@ public class TableLockImpl {
 		long ownerTid = -1;
 
 		@Override
-		public void lock() {
+		public UUID lock() {
 			sem.acquireUninterruptibly();
 			ownerTid = Thread.currentThread().getId();
+			return READ_LOCK_UUID;
 		}
 
 		@Override
-		public void lockInterruptibly() throws InterruptedException {
+		public UUID lockInterruptibly() throws InterruptedException {
 			sem.acquire();
 			ownerTid = Thread.currentThread().getId();
+			return READ_LOCK_UUID;
 		}
 
 		@Override
-		public boolean tryLock() {
+		public UUID tryLock() {
 			boolean locked = sem.tryAcquire();
 			if (locked) {
 				ownerTid = Thread.currentThread().getId();
+				return READ_LOCK_UUID;
+			} else {
+				return null;
 			}
-			return locked;
 		}
 
 		@Override
-		public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+		public UUID tryLock(long time, TimeUnit unit) throws InterruptedException {
 			boolean locked = sem.tryAcquire(time, unit);
 			if (locked) {
 				ownerTid = Thread.currentThread().getId();
+				return READ_LOCK_UUID;
+			} else {
+				return null;
 			}
-			return locked;
 		}
 
 		@Override
@@ -80,11 +153,6 @@ public class TableLockImpl {
 		}
 
 		@Override
-		public Condition newCondition() {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
 		public int getTableId() {
 			return tid;
 		}
@@ -95,7 +163,7 @@ public class TableLockImpl {
 		}
 
 		@Override
-		public Collection<String> getPurposes() {
+		public Collection<Purpose> getPurposes() {
 			return TableLockImpl.this.getPurposes();
 		}
 	}
@@ -114,13 +182,14 @@ public class TableLockImpl {
 		}
 
 		@Override
-		public void lock() {
+		public UUID lock() {
 			assert acquierer != null;
 			if (checkReentrant()) {
-				return;
+				return TableLockImpl.this.getUuid(purpose);
 			}
 			sem.acquireUninterruptibly(EXCLUSIVE);
 			onLockAcquired();
+			return TableLockImpl.this.getUuid(purpose);
 		}
 
 		private void onLockAcquired() {
@@ -128,39 +197,44 @@ public class TableLockImpl {
 				TableLockImpl.this.owner = acquierer;
 				TableLockImpl.this.purposes.clear();
 			}
-			TableLockImpl.this.purposes.add(purpose);
+			TableLockImpl.this.acquirePurpose(purpose);
 		}
 
 		@Override
-		public void lockInterruptibly() throws InterruptedException {
+		public UUID lockInterruptibly() throws InterruptedException {
 			if (checkReentrant()) {
-				return;
+				return TableLockImpl.this.getUuid(purpose);
 			}
 			sem.acquire(EXCLUSIVE);
 			onLockAcquired();
+			return TableLockImpl.this.getUuid(purpose);
 		}
 
 		@Override
-		public boolean tryLock() {
+		public UUID tryLock() {
 			if (checkReentrant()) {
-				return true;
+				return TableLockImpl.this.getUuid(purpose);
 			}
 			boolean locked = sem.tryAcquire(EXCLUSIVE);
 			if (locked) {
 				onLockAcquired();
+				return TableLockImpl.this.getUuid(purpose);
+			} else {
+				return null;
 			}
-			return locked;
 		}
 
 		@Override
-		public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+		public UUID tryLock(long time, TimeUnit unit) throws InterruptedException {
 			if (checkReentrant())
-				return true;
+				return TableLockImpl.this.getUuid(purpose);
 			boolean locked = sem.tryAcquire(EXCLUSIVE, time, unit);
 			if (locked) {
 				onLockAcquired();
+				return TableLockImpl.this.getUuid(purpose);
+			} else {
+				return null;
 			}
-			return locked;
 		}
 
 		private boolean checkReentrant() {
@@ -189,18 +263,13 @@ public class TableLockImpl {
 					throw new IllegalMonitorStateException(owner + " cannot unlock this lock now: "
 							+ TableLockImpl.this.owner);
 				}
-				TableLockImpl.this.purposes.remove(purpose);
+				releasePurpose(purpose);
 				if (TableLockImpl.this.purposes.size() == 0) {
 					TableLockImpl.this.owner = null;
 					return true;
 				}
 				return false;
 			}
-		}
-
-		@Override
-		public Condition newCondition() {
-			throw new UnsupportedOperationException();
 		}
 
 		@Override
@@ -214,16 +283,46 @@ public class TableLockImpl {
 		}
 
 		@Override
-		public Collection<String> getPurposes() {
+		public Collection<Purpose> getPurposes() {
 			return TableLockImpl.this.getPurposes();
 		}
-
 	}
 
 	public TableLock writeLock(String owner, String purpose) {
 		if (owner == null)
 			throw new IllegalArgumentException("owner argument cannot be null");
 		return new WriteLock(owner, purpose);
+	}
+
+	// being called with mutex
+	public void acquirePurpose(String purpose) {
+		if (purposes.containsKey(purpose)) {
+			purposes.get(purpose).count++;
+		} else {
+			purposes.put(purpose, new PurposeImpl(purpose));
+		}
+	}
+
+	// being called with mutex
+	public void releasePurpose(String purpose) {
+		if (purposes.containsKey(purpose)) {
+			PurposeImpl p = purposes.get(purpose);
+			p.count--;
+			if (p.count == 0)
+				purposes.remove(purpose);
+		} else {
+			// ignore 
+			// throw new IllegalStateException("doesn't contain the purpose [" + purpose + "]");
+		}
+		
+	}
+
+	public UUID getUuid(String purpose) {
+		PurposeImpl p = purposes.get(purpose);
+		if (p != null)
+			return p.uuid;
+		else
+			return null;
 	}
 
 	public String getOwner() {
@@ -234,8 +333,11 @@ public class TableLockImpl {
 		return purposes.size();
 	}
 
-	public Collection<String> getPurposes() {
-		return Collections.unmodifiableCollection(purposes);
-	}
-
+	public Collection<Purpose> getPurposes() {
+		ArrayList<Purpose> purposeList = new ArrayList<Purpose>();
+		for (Entry<String, PurposeImpl> p: purposes.entrySet()) {
+			purposeList.add(p.getValue());
+		}
+		return purposeList;
+	}	
 }

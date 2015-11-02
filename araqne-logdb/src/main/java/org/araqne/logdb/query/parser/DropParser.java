@@ -21,6 +21,13 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.query.command.Drop;
 
 public class DropParser extends AbstractQueryCommandParser {
+
+	public DropParser() {
+		setDescriptions("Drop all input data. You can use this command to measure net query performance.",
+				"들어오는 모든 입력을 버립니다. 일반적으로 스크립트와 같이 부수적인 효과가 있는 쿼리 커맨드를 실행하고 출력 결과는 버릴 때나, 배치 실행만 하고 쿼리 결과는 필요없을 때, 이전 커맨드의 쿼리 수행 시간만을 측정하려고 할 때 사용합니다.");
+		setUsages("drop", "drop");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "drop";

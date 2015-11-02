@@ -1,11 +1,15 @@
 package org.araqne.logstorage.engine;
 
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.araqne.logstorage.TableLock;
 
 public class BackOffLock {
 	private static ThreadLocal<Random> rand = new ThreadLocal<Random>() {
@@ -22,18 +26,18 @@ public class BackOffLock {
 	private long to;
 	private boolean locked = false;
 
-	private Lock lock;
+	private TableLock lock;
 
 	private int tryCnt = 0;
 
-	public BackOffLock(Lock l) {
+	public BackOffLock(TableLock l) {
 		this.lock = l;
 		to = Integer.MIN_VALUE;
 		this.min = 10000; // 0.01ms
 		this.max = MAX_WAIT;
 	}
 
-	public BackOffLock(Lock l, long time, TimeUnit unit) {
+	public BackOffLock(TableLock l, long time, TimeUnit unit) {
 		this.lock = l;
 		to = unit.toNanos(time);
 
@@ -54,9 +58,9 @@ public class BackOffLock {
 			long cbo = nextBackOff();
 			if (to != Integer.MIN_VALUE)
 				to -= cbo;
-			return (locked = lock.tryLock(cbo, TimeUnit.NANOSECONDS));
+			return (locked = lock.tryLock(cbo, TimeUnit.NANOSECONDS) != null);
 		} else {
-			return (locked = lock.tryLock());
+			return (locked = lock.tryLock() != null);
 		}
 	}
 
@@ -78,7 +82,61 @@ public class BackOffLock {
 	}
 
 	public static void main(String[] args) throws InterruptedException {
-		final Lock l = new ReentrantLock(true);
+		final TableLock l = new TableLock() {
+
+			@Override
+			public UUID lock() {
+				l.lock();
+				return uuid = UUID.randomUUID();
+			}
+
+			@Override
+			public UUID lockInterruptibly() throws InterruptedException {
+				l.lockInterruptibly();
+				return uuid = UUID.randomUUID();
+			}
+
+			@Override
+			public UUID tryLock() {
+				if (l.tryLock()) {
+					return uuid = UUID.randomUUID();
+				} else {
+					return null;
+				}
+			}
+
+			@Override
+			public UUID tryLock(long time, TimeUnit unit) throws InterruptedException {
+				if (l.tryLock(time, unit)) {
+					return uuid = UUID.randomUUID();
+				} else {
+					return null;
+				}
+			}
+
+			@Override
+			public void unlock() {
+				uuid = null;
+				l.unlock();
+			}
+
+			@Override
+			public int getTableId() {
+				return 0;
+			}
+
+			@Override
+			public String getLockOwner() {
+				return null;
+			}
+
+			@Override
+			public Collection<Purpose> getPurposes() {
+				return null;
+			}
+			Lock l = new ReentrantLock(true);
+			UUID uuid = null;
+		};
 		l.lock();
 		Thread t = new Thread(new Runnable() {
 

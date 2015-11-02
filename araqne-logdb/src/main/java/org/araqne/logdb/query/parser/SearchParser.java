@@ -26,6 +26,13 @@ import org.araqne.logdb.query.expr.Expression;
 
 public class SearchParser extends AbstractQueryCommandParser {
 
+	public SearchParser() {
+		setDescriptions(
+				"Filter tuples using expression. Tuples are fed into next command only if evaluated expression is true. Query will be completed after output count is over limit.",
+				"조건 표현식에 따라 레코드를 필터링합니다. 표현식이 참인 경우에만 레코드가 다음 쿼리 명령어로 전달됩니다. limit 옵션이 주어지는 경우, 주어진 갯수만큼 표현식이 참이 되면 쿼리 전체가 완료됩니다.");
+		setOptions("limit", false, "Max output count", "최대 출력 건수");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "search";
@@ -33,14 +40,13 @@ public class SearchParser extends AbstractQueryCommandParser {
 
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("limit"),
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("limit"),
 				getFunctionRegistry());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 		String exprToken = commandString.substring(r.next);
-		Long limit = null; 
+		Long limit = null;
 		if (options.containsKey("limit"))
 			limit = Long.parseLong(options.get("limit"));
 

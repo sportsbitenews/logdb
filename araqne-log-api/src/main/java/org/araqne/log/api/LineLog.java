@@ -15,6 +15,7 @@
  */
 package org.araqne.log.api;
 
+import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -64,5 +65,15 @@ public class LineLog implements Log {
 	public String toString() {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		return String.format("date=%s, logger=%s, line=%s", dateFormat.format(date), fullName, line);
+	}
+
+	@Override
+	public long getDataLength() {
+		try {
+			return line.getBytes("utf-8").length;
+		} catch (UnsupportedEncodingException e) {
+		}
+
+		return 0;
 	}
 }

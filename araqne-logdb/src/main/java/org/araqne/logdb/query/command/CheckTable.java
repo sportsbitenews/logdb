@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 public class CheckTable extends QueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(CheckTable.class);
 
-	private final String commandName;
 	private IntegrityCheckTask mainTask = new IntegrityCheckTask();
 	private Set<String> tableNames;
 	private Date from;
@@ -56,9 +55,8 @@ public class CheckTable extends QueryCommand {
 	private LogStorage storage;
 	private LogFileServiceRegistry fileServiceRegistry;
 
-	public CheckTable(String commandName, Set<String> tableNames, Date from, Date to, boolean trace, String tableToken,
+	public CheckTable(Set<String> tableNames, Date from, Date to, boolean trace, String tableToken,
 			LogTableRegistry tableRegistry, LogStorage storage, LogFileServiceRegistry fileSerivceRegistry) {
-		this.commandName = commandName;
 		this.tableNames = tableNames;
 		this.from = from;
 		this.to = to;
@@ -214,7 +212,7 @@ public class CheckTable extends QueryCommand {
 		if (!tables.isEmpty())
 			tables = " " + tables;
 
-		return commandName + fromOption + toOption + traceOption + tables;
+		return "checktable" + fromOption + toOption + traceOption + tables;
 	}
 
 	private class IntegrityCheckTask extends QueryTask {

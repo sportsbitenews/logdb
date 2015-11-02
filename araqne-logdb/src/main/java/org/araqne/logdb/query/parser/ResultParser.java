@@ -35,6 +35,9 @@ public class ResultParser extends AbstractQueryCommandParser {
 
 	public ResultParser(QueryService queryService) {
 		this.queryService = queryService;
+		setDescriptions("Load other query result of current session.", "현재 세션의 다른 쿼리 결과를 조회합니다.");
+		setOptions("offset", false, "Skip count", "건너 뛸 결과 갯수");
+		setOptions("limit", false, "Max output count", "가져올 최대 결과 갯수");
 	}
 
 	@Override

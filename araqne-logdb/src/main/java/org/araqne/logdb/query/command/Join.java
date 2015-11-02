@@ -87,7 +87,7 @@ public class Join extends QueryCommand {
 		}
 
 		try {
-			subQuery.stop(reason);
+			subQuery.cancel(reason);
 		} catch (Throwable t) {
 			logger.error("araqne logdb: cannot stop subquery [" + subQuery.getQueryString() + "]", t);
 		} finally {
@@ -165,8 +165,8 @@ public class Join extends QueryCommand {
 	@Override
 	public String toString() {
 		String typeOpt = "";
-		if (joinType == JoinType.Left)
-			typeOpt = " type=left";
+		if (joinType != JoinType.Inner)
+			typeOpt = " type=" + joinType.toString().toLowerCase();
 
 		return "join" + typeOpt + " " + SortField.serialize(sortFields) + " [ " + subQuery.getQueryString() + " ] ";
 	}

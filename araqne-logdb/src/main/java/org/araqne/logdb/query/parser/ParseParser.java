@@ -41,6 +41,10 @@ public class ParseParser extends AbstractQueryCommandParser {
 
 	public ParseParser(LogParserRegistry registry) {
 		this.registry = registry;
+		setDescriptions("Parse input tuples.", "파서를 이용하여 입력 데이터를 파싱한 결과를 출력합니다.");
+		setOptions("field", false, "Specify target field name. Default value is `line`.", "대상 필드를 별도로 지정하지 않는 경우 기본값은 line입니다.");
+		setOptions("overlay", false, "Use `overlay=t` option if you want to override parsed fields on original data.",
+				"t로 주면, 원본 필드에  추출된 필드를 덮어씌운 결과를 출력으로 내보냅니다. 별도로 overlay 옵션을 지정하지 않으면, 원본 데이터를 파싱한 결과만 출력으로 내보냅니다.");
 	}
 
 	@Override
@@ -51,39 +55,37 @@ public class ParseParser extends AbstractQueryCommandParser {
 	@Override
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
-		m.put("21000", new QueryErrorMessage("missing-parser-name","파서 이름을 입력하십시오."));
+		m.put("21000", new QueryErrorMessage("missing-parser-name", "파서 이름을 입력하십시오."));
 		m.put("21001", new QueryErrorMessage("parser-not-found", "[parser] 파서가 존재하지 않습니다."));
-		m.put("21002", new QueryErrorMessage("parser-init-failure", "[parser] 파서 초기화에 실패했습니다.")); 
-		m.put("21003", new QueryErrorMessage("syntax-error: \"as\" needed", "구문 안에\"as\" 가 필요합니다.")); 
-		m.put("21004", new QueryErrorMessage("syntax-error: anchor should be quoted", "anchor 값([anc])은 쌍따옴표로 묶여야 합니다.")); 
-		m.put("21005", new QueryErrorMessage("syntax-error: alias should not be quoted", "alias 값([alias])은 쌍따옴표로 묶여야 합니다.")); 
+		m.put("21002", new QueryErrorMessage("parser-init-failure", "[parser] 파서 초기화에 실패했습니다."));
+		m.put("21003", new QueryErrorMessage("syntax-error: \"as\" needed", "구문 안에\"as\" 가 필요합니다."));
+		m.put("21004", new QueryErrorMessage("syntax-error: anchor should be quoted", "anchor 값([anc])은 쌍따옴표로 묶여야 합니다."));
+		m.put("21005", new QueryErrorMessage("syntax-error: alias should not be quoted", "alias 값([alias])은 쌍따옴표로 묶여야 합니다."));
 		return m;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		ParseResult r =
-				QueryTokenizer.parseOptions(
-						context, commandString, getCommandName().length(), Arrays.asList("overlay", "field"),
-						getFunctionRegistry());
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
+				Arrays.asList("overlay", "field"), getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		boolean overlay = CommandOptions.parseBoolean(options.get("overlay"));
 		String field = options.get("field");
 		String remainder = commandString.substring(r.next).trim();
 
 		if (remainder.isEmpty())
-		//	throw new QueryParseException("missing-parameter", r.next);
+			// throw new QueryParseException("missing-parameter", r.next);
 			throw new QueryParseException("21000", getCommandName().length() + 1, commandString.length() - 1, null);
-		
+
 		if (QueryTokenizer.tokenize(remainder).size() == 1) {
 			return newParserFromRegistry(overlay, remainder);
 		}
-		
+
 		List<String> parseByComma = QueryTokenizer.parseByComma(remainder);
 		List<String> anchors = new ArrayList<String>(parseByComma.size());
 		List<String> aliases = new ArrayList<String>(parseByComma.size());
-		
+
 		for (String e : parseByComma) {
 			e = e.trim();
 			try {
@@ -92,21 +94,23 @@ public class ParseParser extends AbstractQueryCommandParser {
 				ParseResult alias = QueryTokenizer.nextString(e, as.next);
 
 				if (!"as".equals(as.value))
-				//	throw new QueryParseException("syntax-error: \"as\" needed", remainder.indexOf(e));
+					// throw new QueryParseException("syntax-error: \"as\"
+					// needed", remainder.indexOf(e));
 					throw new QueryParseException("21003", -1, -1, null);
-				
-				
-				if (!QueryTokenizer.isQuoted((String) anchor.value)){
-				//	throw new QueryParseException("syntax-error: anchor should be quoted", remainder.indexOf(e));
-					Map<String, String> params = new HashMap<String, String> ();
+
+				if (!QueryTokenizer.isQuoted((String) anchor.value)) {
+					// throw new QueryParseException("syntax-error: anchor
+					// should be quoted", remainder.indexOf(e));
+					Map<String, String> params = new HashMap<String, String>();
 					params.put("anc", (String) anchor.value);
 					throw new QueryParseException("21004", -1, -1, null);
 				}
 
-				if (QueryTokenizer.isQuoted((String) alias.value)){
-				//	throw new QueryParseException("syntax-error: alias should not be quoted", remainder.indexOf(e));
-					Map<String, String> params = new HashMap<String, String> ();
-					params.put("alias", (String)alias.value);
+				if (QueryTokenizer.isQuoted((String) alias.value)) {
+					// throw new QueryParseException("syntax-error: alias should
+					// not be quoted", remainder.indexOf(e));
+					Map<String, String> params = new HashMap<String, String>();
+					params.put("alias", (String) alias.value);
 					throw new QueryParseException("21005", -1, -1, null);
 				}
 
@@ -128,23 +132,22 @@ public class ParseParser extends AbstractQueryCommandParser {
 	}
 
 	private QueryCommand newParserFromRegistry(boolean overlay, String parserName) {
-		if (registry.getProfile(parserName) == null){
-			//throw new QueryParseException("parser-not-found", -1);
+		if (registry.getProfile(parserName) == null) {
+			// throw new QueryParseException("parser-not-found", -1);
 			Map<String, String> params = new HashMap<String, String>();
-			params.put("parser" , parserName);
+			params.put("parser", parserName);
 			params.put("value", parserName);
 			throw new QueryParseException("21001", -1, -1, params);
 		}
 		try {
 			return new Parse(parserName, registry.newParser(parserName), overlay);
 		} catch (Throwable t) {
-			//throw new QueryParseException("parser-init-failure", -1, t.toString());
-			Map<String, String> params = new HashMap<String, String> ();
+			// throw new QueryParseException("parser-init-failure", -1,
+			// t.toString());
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("parser", parserName);
 			params.put("value", parserName);
 			throw new QueryParseException("21002", -1, t.getMessage(), t);
 		}
 	}
 }
-
-

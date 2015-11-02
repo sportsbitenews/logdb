@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.json.JSONConverter;
@@ -71,7 +70,7 @@ public class ToJson extends QueryCommand {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot convert to json", t);
 			
-			getQuery().stop(QueryStopReason.CommandFailure);
+			getQuery().cancel(t);
 		}
 		
 		pushPipe(m);
@@ -97,7 +96,7 @@ public class ToJson extends QueryCommand {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot convert to json", t);
 
-			getQuery().stop(QueryStopReason.CommandFailure);
+			getQuery().cancel(t);
 		}
 
 		pushPipe(rowBatch);

@@ -271,7 +271,7 @@ public class LogQueryPlugin {
 		int id = req.getInteger("id", true);
 		Query query = service.getQuery(id);
 		if (query != null)
-			query.stop(QueryStopReason.UserRequest);
+			query.cancel(QueryStopReason.UserRequest);
 		else {
 			Map<String, Object> params = new HashMap<String, Object>();
 			params.put("query_id", id);
