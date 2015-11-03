@@ -3,12 +3,10 @@ package org.araqne.log.api.nio;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
@@ -31,10 +29,6 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 	private Pattern fileNamePattern;
 	private Pattern dirPathPattern;
 	private boolean recursive;
-	private String fileTag;
-	private MultilineLogExtractor extractor;
-
-	private Receiver receiver = new Receiver();
 
 	public NaiveRecursiveDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
@@ -42,60 +36,29 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 		if (logger.isDebugEnabled())
 			logger.debug("araqne-logapi-nio: recursive dirwatcher used recursive scan");
 
-		applyConfig();
+		load();
 	}
 
-	private void applyConfig() {
-		basePath = getConfigs().get("base_path");
+	@Override
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		load();
+		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))
+				|| !oldConfigs.get("filename_pattern").equals(newConfigs.get("filename_pattern"))) {
+			setStates(new HashMap<String, Object>());
+		}
+	}
 
+	private void load() {
+		basePath = getConfigs().get("base_path");
 		String fileNameRegex = getConfigs().get("filename_pattern");
 		fileNamePattern = Pattern.compile(fileNameRegex);
 
-		// optional
 		String dirNameRegex = getConfigs().get("dirpath_pattern");
 		if (dirNameRegex != null)
 			dirPathPattern = Pattern.compile(dirNameRegex);
 
-		extractor = new MultilineLogExtractor(this, receiver);
-
-		// optional
-		String dateExtractRegex = getConfigs().get("date_pattern");
-		if (dateExtractRegex != null)
-			extractor.setDateMatcher(Pattern.compile(dateExtractRegex).matcher(""));
-
-		// optional
-		String dateLocale = getConfigs().get("date_locale");
-		if (dateLocale == null)
-			dateLocale = "en";
-
-		// optional
-		String dateFormatString = getConfigs().get("date_format");
-		String timeZone = getConfigs().get("timezone");
-		if (dateFormatString != null)
-			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
-
-		// optional
-		String newlogRegex = getConfigs().get("newlog_designator");
-		if (newlogRegex != null)
-			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
-
-		String newlogEndRegex = getConfigs().get("newlog_end_designator");
-		if (newlogEndRegex != null)
-			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
-
-		// optional
-		String charset = getConfigs().get("charset");
-		if (charset == null)
-			charset = "utf-8";
-
-		// optional
-		String recursive = getConfigs().get("recursive");
-		this.recursive = ((recursive != null) && (recursive.compareToIgnoreCase("true") == 0));
-
-		// optional
-		this.fileTag = getConfigs().get("file_tag");
-
-		extractor.setCharset(charset);
+		String recursiveStr = getConfigs().get("recursive");
+		recursive = ((recursiveStr != null) && (recursiveStr.compareToIgnoreCase("true") == 0));
 	}
 
 	@Override
@@ -131,10 +94,11 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 			if (file.length() <= offset)
 				return;
 
-			receiver.filename = file.getName();
 			is = new FileInputStream(file);
 			is.skip(offset);
 
+			Receiver receiver = new Receiver(getConfigs().get("file_tag"), file.getName());
+			MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
 			extractor.extract(is, lastPosition, getDateString(f));
 
 			logger.debug("araqne-logapi-nio: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
@@ -219,12 +183,18 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 	}
 
 	private class Receiver extends AbstractLogPipe {
-		private String filename;
+		private String fileTag;
+		private String fileName;
+
+		public Receiver(String fileTag, String fileName) {
+			this.fileTag = fileTag;
+			this.fileName = fileName;
+		}
 
 		@Override
 		public void onLog(Logger logger, Log log) {
 			if (fileTag != null)
-				log.getParams().put(fileTag, filename);
+				log.getParams().put(fileTag, fileName);
 			write(log);
 		}
 
@@ -232,22 +202,10 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 		public void onLogBatch(Logger logger, Log[] logs) {
 			if (fileTag != null) {
 				for (Log log : logs) {
-					log.getParams().put(fileTag, filename);
+					log.getParams().put(fileTag, fileName);
 				}
 			}
 			writeBatch(logs);
 		}
-	}
-
-	@Override
-	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
-		if (isRunning())
-			throw new IllegalStateException("logger is running");
-
-		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))
-				|| !oldConfigs.get("filename_pattern").equals(newConfigs.get("filename_pattern"))) {
-			setStates(new HashMap<String, Object>());
-		}
-		applyConfig();
 	}
 }

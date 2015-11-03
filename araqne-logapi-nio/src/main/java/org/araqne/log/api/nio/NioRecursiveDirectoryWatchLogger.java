@@ -25,14 +25,12 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -62,16 +60,11 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	private Pattern fileNamePattern;
 	private Pattern dirPathPattern;
 	private boolean recursive;
-	private String fileTag;
-
-	private Receiver receiver = new Receiver();
 
 	/**
 	 * NOTE: must be separate thread for accurate event processing
 	 */
 	private ChangeDetector detector;
-
-	private MultilineLogExtractor extractor;
 
 	private boolean walkTreeRequired = true;
 	private boolean walkForceStopped = false;
@@ -88,7 +81,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		if (slog.isDebugEnabled())
 			slog.debug("araqne-logapi-nio: recursive dirwatcher uses nio");
 
-		applyConfig();
+		load();
 	}
 
 	private void loadPollConfigs() {
@@ -112,62 +105,31 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	}
 
 	@Override
-	protected void onResetStates() {
-		walkTreeRequired = true;
-		slog.debug("araqne-logapi-nio: recursive-dirwatch [{}] will retraverse directories", getFullName());
+	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
+		load();
+		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))
+				|| !oldConfigs.get("filename_pattern").equals(newConfigs.get("filename_pattern"))) {
+			setStates(new HashMap<String, Object>());
+		}
 	}
 
-	private void applyConfig() {
+	private void load() {
 		basePath = getConfigs().get("base_path");
-
 		String fileNameRegex = getConfigs().get("filename_pattern");
 		fileNamePattern = Pattern.compile(fileNameRegex);
 
-		// optional
 		String dirNameRegex = getConfigs().get("dirpath_pattern");
 		if (dirNameRegex != null)
 			dirPathPattern = Pattern.compile(dirNameRegex);
 
-		extractor = new MultilineLogExtractor(this, receiver);
+		String recursiveStr = getConfigs().get("recursive");
+		recursive = ((recursiveStr != null) && (recursiveStr.compareToIgnoreCase("true") == 0));
+	}
 
-		// optional
-		String dateExtractRegex = getConfigs().get("date_pattern");
-		if (dateExtractRegex != null)
-			extractor.setDateMatcher(Pattern.compile(dateExtractRegex).matcher(""));
-
-		// optional
-		String dateLocale = getConfigs().get("date_locale");
-		if (dateLocale == null)
-			dateLocale = "en";
-
-		// optional
-		String dateFormatString = getConfigs().get("date_format");
-		String timeZone = getConfigs().get("timezone");
-		if (dateFormatString != null)
-			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
-
-		// optional
-		String newlogRegex = getConfigs().get("newlog_designator");
-		if (newlogRegex != null)
-			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
-
-		String newlogEndRegex = getConfigs().get("newlog_end_designator");
-		if (newlogEndRegex != null)
-			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
-
-		// optional
-		String charset = getConfigs().get("charset");
-		if (charset == null)
-			charset = "utf-8";
-
-		// optional
-		String recursive = getConfigs().get("recursive");
-		this.recursive = ((recursive != null) && (recursive.compareToIgnoreCase("true") == 0));
-
-		// optional
-		this.fileTag = getConfigs().get("file_tag");
-
-		extractor.setCharset(charset);
+	@Override
+	protected void onResetStates() {
+		walkTreeRequired = true;
+		slog.debug("araqne-logapi-nio: recursive-dirwatch [{}] will retraverse directories", getFullName());
 	}
 
 	@Override
@@ -289,10 +251,11 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 			modifiedStates = true;
 
 			AtomicLong lastPosition = new AtomicLong(offset);
-			receiver.filename = file.getName();
 			is = new FileInputStream(file);
 			is.skip(offset);
 
+			Receiver receiver = new Receiver(getConfigs().get("file_tag"), file.getName());
+			MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
 			extractor.extract(is, lastPosition, dateFromFileName);
 
 			slog.debug("araqne-logapi-nio: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
@@ -348,12 +311,18 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	}
 
 	private class Receiver extends AbstractLogPipe {
-		private String filename;
+		private String fileTag;
+		private String fileName;
+
+		public Receiver(String fileTag, String fileName) {
+			this.fileTag = fileTag;
+			this.fileName = fileName;
+		}
 
 		@Override
 		public void onLog(Logger logger, Log log) {
 			if (fileTag != null)
-				log.getParams().put(fileTag, filename);
+				log.getParams().put(fileTag, fileName);
 			write(log);
 		}
 
@@ -361,7 +330,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		public void onLogBatch(Logger logger, Log[] logs) {
 			if (fileTag != null) {
 				for (Log log : logs) {
-					log.getParams().put(fileTag, filename);
+					log.getParams().put(fileTag, fileName);
 				}
 			}
 			writeBatch(logs);
@@ -545,17 +514,5 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 			if (slog.isDebugEnabled())
 				slog.debug("araqne-logapi-nio: logger [{}] detect modified file [{}]", getFullName(), file.getAbsolutePath());
 		}
-	}
-
-	@Override
-	public void onConfigChange(Map<String, String> oldConfigs, Map<String, String> newConfigs) {
-		if (isRunning())
-			throw new IllegalStateException("logger is running");
-
-		if (!oldConfigs.get("base_path").equals(newConfigs.get("base_path"))
-				|| !oldConfigs.get("filename_pattern").equals(newConfigs.get("filename_pattern"))) {
-			setStates(new HashMap<String, Object>());
-		}
-		applyConfig();
 	}
 }
