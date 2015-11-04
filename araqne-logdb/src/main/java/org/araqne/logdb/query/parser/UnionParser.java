@@ -49,6 +49,8 @@ public class UnionParser extends AbstractQueryCommandParser {
 
 	public UnionParser(QueryParserService queryParserService) {
 		this.queryParserService = queryParserService;
+		setDescriptions("Merge result set of sub-query. `union` runs in parallel, and do not guarantee order.",
+				"서브 쿼리의 결과를 병합합니다. union은 다른 쿼리와 병행하여 실행되므로 출력 순서를 보장하지 않습니다. 통계 처리를 수행하는 경우처럼, 순서가 중요하지 않으면서 높은 수행 성능이 필요할 때에 주로 사용합니다.");
 	}
 
 	@Override
@@ -160,7 +162,7 @@ public class UnionParser extends AbstractQueryCommandParser {
 		@Override
 		public void start() {
 			// TODO Auto-generated method stub
-			
+
 		}
 	}
 }

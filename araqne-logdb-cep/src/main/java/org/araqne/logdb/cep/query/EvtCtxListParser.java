@@ -23,6 +23,11 @@ public class EvtCtxListParser extends AbstractQueryCommandParser {
 	@Requires
 	private EventContextService eventContextService;
 
+	public EvtCtxListParser() {
+		setDescriptions("Scan all event contexts.", "이벤트 컨텍스트 목록을 조회합니다.");
+		setOptions("topic", false, "Filter by topic.", "이벤트 컨텍스트 토픽으로 필터링합니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "evtctxlist";
