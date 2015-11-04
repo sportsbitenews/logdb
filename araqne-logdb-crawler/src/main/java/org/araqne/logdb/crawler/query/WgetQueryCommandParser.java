@@ -38,6 +38,15 @@ public class WgetQueryCommandParser extends AbstractQueryCommandParser {
 	@Requires
 	private QueryParserService parserService;
 
+	public WgetQueryCommandParser() {
+		setDescriptions("Fetch HTTP content and parse DOM elements.", "HTTP 통신을 통해 웹페이지를 다운로드하고 해석한 결과를 출력합니다.");
+		setOptions("url", false, "Request URL, starts with http:// or https://", "HTTP 요청할 URL을 입력합니다.");
+		setOptions("selector", false, "DOM selector", "CSS의 셀렉터와 동일한 문법으로 HTML DOM 트리에서 선택할 요소를 지정합니다.");
+		setOptions("timeout", false, "HTTP timeout. Default is 30 seconds.", "HTTP 연결 타임아웃 시간을 초 단위로 지정합니다. 미지정 시 기본값은 30초입니다.");
+		setOptions("encoding", false, "Character encoding. Default is `utf-8`.",
+				"HTTP 응답 해석에 사용할 인코딩을 지정합니다. 미지정 시 기본값은 utf-8 입니다.");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "wget";

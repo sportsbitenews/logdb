@@ -259,7 +259,7 @@ public class LogQueryPlugin {
 
 		QueryStatusCallback qs = new MsgbusStatusCallback(orgDomain);
 		query.getCallbacks().getStatusCallbacks().add(qs);
-		
+
 		org.araqne.logdb.Session dbSession = getDbSession(req);
 
 		// start query
@@ -536,6 +536,7 @@ public class LogQueryPlugin {
 			if (!sr.getOwner().equals(dbSession.getLoginName()))
 				throw new MsgbusException("logdb", "no-permission");
 
+			req.getParams().put("title", sr.getTitle());
 			savedResultManager.deleteResult(guid);
 		} catch (IOException e) {
 			throw new MsgbusException("logdb", "io-error");
@@ -547,7 +548,7 @@ public class LogQueryPlugin {
 	public void deleteResults(Request req, Response resp) {
 		org.araqne.logdb.Session dbSession = getDbSession(req);
 		List<String> guids = (List<String>) req.get("guids", true);
-
+		List<String> titles = new ArrayList<String>();
 		try {
 			for (String guid : guids) {
 				SavedResult sr = savedResultManager.getResult(guid);
@@ -556,9 +557,10 @@ public class LogQueryPlugin {
 
 				if (!sr.getOwner().equals(dbSession.getLoginName()))
 					throw new MsgbusException("logdb", "no-permission");
-
+				titles.add(sr.getTitle());
 				savedResultManager.deleteResult(guid);
 			}
+			req.getParams().put("titles", titles);
 		} catch (IOException e) {
 			throw new MsgbusException("logdb", "io-error");
 		}

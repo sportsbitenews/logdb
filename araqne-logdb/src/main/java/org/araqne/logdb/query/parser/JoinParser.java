@@ -32,10 +32,10 @@ public class JoinParser extends AbstractQueryCommandParser {
 		this.parserService = parserService;
 		this.resultFactory = resultFactory;
 
-		setDescriptions("Join sub query result set. You should use 'streamjoin' instead of 'join' in stream query.",
+		setDescriptions("Join sub query result set. You should use `streamjoin` instead of `join` in stream query.",
 				"서브 쿼리 결과 집합을 조인합니다. 스트림 쿼리에서는 join 명령어가 지원되지 않으므로, 이후에 설명할 streamjoin 명령어를 사용해야 합니다.");
 
-		setOptions("type", OPTIONAL, "'inner', 'left', 'right', or 'full'",
+		setOptions("type", OPTIONAL, "`inner`, `left`, `right`, or `full`",
 				"조인 유형을 지정합니다. left 지정 시 조인 키가 일치하지 않더라도 입력 데이터가 출력됩니다.");
 	}
 
@@ -103,8 +103,8 @@ public class JoinParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("unexpected-expression", -1, "expression is [" + fieldString + "]");
 		}
 
-		Expression sqExpr = ExpressionParser.parse(context, commandString.substring(b), new ParsingRule(JoinOpTerm.NOP, of, ff,
-				tf));
+		Expression sqExpr = ExpressionParser.parse(context, commandString.substring(b),
+				new ParsingRule(JoinOpTerm.NOP, of, ff, tf));
 		if (!(sqExpr instanceof SubQueryTerm))
 			throw new QueryParseException("no-subquery", -1, "join query has no subquery");
 
@@ -115,8 +115,8 @@ public class JoinParser extends AbstractQueryCommandParser {
 	}
 
 	private static enum JoinOpTerm implements OpTerm {
-		Asc("+", 500, false, true, false), Desc("-", 500, false, true, false), Comma(",", 200), ListEndComma(",", 200), NOP("",
-				0, true, false, true);
+		Asc("+", 500, false, true, false), Desc("-", 500, false, true, false), Comma(",", 200), ListEndComma(",", 200), NOP("", 0,
+				true, false, true);
 
 		private JoinOpTerm(String symbol, int precedence) {
 			this(symbol, precedence, true, false, false);
@@ -247,8 +247,8 @@ public class JoinParser extends AbstractQueryCommandParser {
 					break;
 				}
 				default:
-					throw new QueryParseException("unsupported-operator", -1, "unsupported unary operator [" + op.toString()
-							+ "]");
+					throw new QueryParseException("unsupported-operator", -1,
+							"unsupported unary operator [" + op.toString() + "]");
 				}
 				return;
 			}

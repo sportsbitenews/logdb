@@ -113,14 +113,14 @@ public class OutputTxt extends QueryCommand {
 
 	@Override
 	public void onStart() {
-		File jsonFile = new File(filePath);
-		if (jsonFile.exists() && !overwrite && !append)
-			throw new IllegalStateException("json file exists: " + jsonFile.getAbsolutePath());
+		File txtFile = new File(filePath);
+		if (txtFile.exists() && !overwrite && !append)
+			throw new IllegalStateException("text file exists: " + txtFile.getAbsolutePath());
 
-		if (!usePartition && jsonFile.getParentFile() != null)
-			jsonFile.getParentFile().mkdirs();
+		if (!usePartition && txtFile.getParentFile() != null)
+			txtFile.getParentFile().mkdirs();
 
-		this.f = jsonFile;
+		this.f = txtFile;
 
 		try {
 			if (useRowFlush)
