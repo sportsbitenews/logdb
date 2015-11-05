@@ -15,20 +15,30 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class Right extends FunctionExpression {
-
 	private Expression valueExpr;
+	private Expression lengthExpr;
 	private int length;
 
 	public Right(QueryContext ctx, List<Expression> exprs) {
 		super("right", exprs, 2);
 		this.valueExpr = exprs.get(0);
-		this.length = Integer.parseInt(exprs.get(1).eval(null).toString());
+		this.lengthExpr = exprs.get(1);
+
+		if (lengthExpr instanceof NumberConstant) {
+			length = Integer.parseInt(lengthExpr.eval(null).toString());
+			lengthExpr = null;
+		}
+		if (length < 0)
+			throwInvalidLengthException(true);
 	}
 
 	@Override
@@ -37,10 +47,27 @@ public class Right extends FunctionExpression {
 		if (value == null)
 			return null;
 
+		if (lengthExpr != null) {
+			Object o = lengthExpr.eval(map);
+			if (o instanceof Number) {
+				length = Integer.parseInt(new NumberConstant((Number) o).eval(null).toString());
+				if (length < 0)
+					throwInvalidLengthException(true);
+			} else
+				throwInvalidLengthException(false);
+		}
+
 		String s = value.toString();
 		if (s.length() < length)
 			return s;
 
 		return s.substring(s.length() - length, s.length());
+	}
+
+	private void throwInvalidLengthException(boolean isNumber) {
+		Map<String, String> params = new HashMap<String, String>();
+		params.put("length", length + "");
+		String code = (isNumber) ? "90722" : "90723";
+		throw new QueryParseException(code, -1, -1, params);
 	}
 }
