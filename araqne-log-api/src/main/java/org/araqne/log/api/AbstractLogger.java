@@ -231,6 +231,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 	@Override
 	public void setPending(boolean pending) {
+		if(this.pending == pending)
+			return;
+		
 		this.pending = pending;
 
 		if (pending) {
