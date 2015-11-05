@@ -232,10 +232,8 @@ public class QueryParserServiceImpl implements QueryParserService {
 		// 99000으로 대체
 		/* Left */
 		add("90720", "left-func-negative-length", "길이는 0보다 커야 합니다.(입력값 : [length])");
-		add("90721", "left-func-invalid-length", "길이는 숫자여야 합니다.(입력값 : [length])");
 		/* Right */
-		add("90722", "right-func-negative-length", "길이는 0보다 커야 합니다.(입력값 : [length])");
-		add("90723", "right-func-invalid-length", "길이는 숫자여야 합니다.(입력값 : [length])");
+		add("90721", "right-func-negative-length", "길이는 0보다 커야 합니다.(입력값 : [length])");
 		/* Long2Ip */
 		// add("90730", "invalid-long2ip-args", "올바르지 않은 long2ip 매개변수입니다."); -
 		// 99000으로 대체
