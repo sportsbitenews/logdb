@@ -45,12 +45,12 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private Map<String, String> config;
 
 	private volatile LoggerStatus status = LoggerStatus.Stopped;
-	private volatile boolean enabled = false;
 	private volatile boolean doStop = false;
 	private volatile boolean stopped = true;
 	private volatile boolean pending = false;
 	private volatile boolean manualStart = false;
 	private volatile boolean stopCallbacked = false;
+	protected volatile boolean enabled = false;
 
 	private volatile Date lastStartDate;
 	private volatile Date lastRunDate;
