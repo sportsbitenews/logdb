@@ -33,12 +33,16 @@ public class Right extends FunctionExpression {
 		this.valueExpr = exprs.get(0);
 		this.lengthExpr = exprs.get(1);
 
-		if (lengthExpr instanceof NumberConstant) {
+		if (lengthExpr instanceof NumberConstant || lengthExpr instanceof Neg) {
 			length = Integer.parseInt(lengthExpr.eval(null).toString());
 			lengthExpr = null;
 		}
-		if (length < 0)
-			throwInvalidLengthException(true);
+
+		if (length < 0) {
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("length", length + "");
+			throw new QueryParseException("90721", -1, -1, params);
+		}
 	}
 
 	@Override
@@ -49,12 +53,12 @@ public class Right extends FunctionExpression {
 
 		if (lengthExpr != null) {
 			Object o = lengthExpr.eval(map);
-			if (o instanceof Number) {
-				length = Integer.parseInt(new NumberConstant((Number) o).eval(null).toString());
-				if (length < 0)
-					throwInvalidLengthException(true);
-			} else
-				throwInvalidLengthException(false);
+			if (!(o instanceof Number))
+				return null;
+
+			length = Integer.parseInt(new NumberConstant((Number) o).eval(null).toString());
+			if (length < 0)
+				return null;
 		}
 
 		String s = value.toString();
@@ -62,12 +66,5 @@ public class Right extends FunctionExpression {
 			return s;
 
 		return s.substring(s.length() - length, s.length());
-	}
-
-	private void throwInvalidLengthException(boolean isNumber) {
-		Map<String, String> params = new HashMap<String, String>();
-		params.put("length", length + "");
-		String code = (isNumber) ? "90722" : "90723";
-		throw new QueryParseException(code, -1, -1, params);
 	}
 }
