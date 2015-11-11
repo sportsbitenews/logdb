@@ -46,8 +46,8 @@ public class SetParser extends AbstractQueryCommandParser {
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
 		m.put("10400", new QueryErrorMessage("assign-token-not-found", "할당자(=) 가 없습니다."));
-		m.put("10401", new QueryErrorMessage("field-name-not-found", "올바르지 않는 필드 이름입니다."));
-		m.put("10402", new QueryErrorMessage("expression-not-found", "올바르지 않는 표현식입니다."));
+		m.put("10401", new QueryErrorMessage("field-name-not-found", "필드 이름을 찾을 수 없습니다."));
+		m.put("10402", new QueryErrorMessage("expression-not-found", "표현식을 찾을 수 없습니다."));
 		return m;
 	}
 	
