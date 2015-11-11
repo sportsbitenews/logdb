@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.Row;
 
@@ -39,7 +40,7 @@ public class EventContext implements EventClockItem {
 	private long expireTime;
 
 	// 0 means infinite, extended when new row arrives
-	private long timeoutTime;
+	private AtomicLong timeoutTime;
 
 	private int maxRows;
 
@@ -52,7 +53,7 @@ public class EventContext implements EventClockItem {
 		this.created = created;
 		this.rows = Collections.synchronizedList(new ArrayList<Row>());
 		this.expireTime = expireTime;
-		this.timeoutTime = timeoutTime;
+		this.timeoutTime = new AtomicLong(timeoutTime);
 		this.maxRows = maxRows;
 	}
 
@@ -69,14 +70,22 @@ public class EventContext implements EventClockItem {
 	}
 
 	public long getTimeoutTime() {
-		return timeoutTime;
+		return timeoutTime.get();
 	}
 
-	public void setTimeoutTime(long timeoutTime) {
-		this.timeoutTime = timeoutTime;
+	public void setTimeoutTime(long newTimeoutTime) {
+		// set only if when timeout time is increased
+		while (true) {
+			long l = timeoutTime.get();
+			if (newTimeoutTime < l)
+				break;
 
-		for (EventContextListener listener : listeners) {
-			listener.onUpdateTimeout(this);
+			if (timeoutTime.compareAndSet(l, newTimeoutTime)) {
+				for (EventContextListener listener : listeners) {
+					listener.onUpdateTimeout(this);
+				}
+				break;
+			}
 		}
 	}
 
