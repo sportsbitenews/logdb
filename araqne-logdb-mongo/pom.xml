@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <project
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
 	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -54,17 +54,17 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-api</artifactId>
-			<version>2.6.3</version>
+			<version>3.0.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logdb</artifactId>
-			<version>2.4.0</version>
+			<version>3.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.0.1</version>
+			<version>3.8.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mongodb</groupId>
