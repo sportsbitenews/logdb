@@ -37,8 +37,9 @@ public class WebInsightParser extends V1LogParser {
 	private final static String[] systemFields2 = { "time", "gateway", "cpu", "memory", "cps", "tps", "inbound_kbyte_persec",
 			"outbound_kbyte_persec", "inbound_pps", "outbound_pps" };
 
-	private final static String[] commonFields = { "time", "client_ip", "client_port", "server_ip", "server_port", "gateway", "detect_classification",
-		"rule_id", "detect_base", "detect_result", "risk_level", "protocol", "host", "request_length", "request_data" };
+	private final static String[] commonFields = { "time", "client_ip", "client_port", "server_ip", "server_port", "gateway",
+			"detect_classification", "rule_id", "detect_base", "detect_result", "risk_level", "protocol", "host",
+			"request_length", "request_data" };
 
 	private static final List<FieldDefinition> fields;
 
@@ -97,38 +98,35 @@ public class WebInsightParser extends V1LogParser {
 			int beginIndex = pos + 1;
 			int endIndex = 0;
 			if (type.equals("DETECT")) {
+				int i = 0;
 				for (String fields : detectFields) {
-					endIndex = line.indexOf(delim, beginIndex);
-					if (endIndex < 0)
-						endIndex = line.length();
-					m.put(fields, line.substring(beginIndex, endIndex).trim());
-					beginIndex = endIndex + 1;
+					if (i == 10) {
+						String[] actions = new String[] { "PASS", "BLOCK", "MASK", "PAGE_RESTORE" };
+						for (String action : actions) {
+							if ((endIndex = line.indexOf(action, beginIndex)) != -1)
+								break;
+						}
+						m.put(fields, line.substring(beginIndex, endIndex - 1).trim());
+						beginIndex = endIndex;
+					} else if (i == 16) {
+						m.put(fields, line.substring(beginIndex, line.length()).trim());
+					} else {
+						beginIndex = getToken(line, m, delim, beginIndex, fields);
+					}
+					i++;
 				}
 			} else if (type.equals("SYSTEM")) {
 				for (String fields : systemFields) {
-					endIndex = line.indexOf(delim, beginIndex);
-					if (endIndex < 0)
-						endIndex = line.length();
-					m.put(fields, line.substring(beginIndex, endIndex).trim());
-					beginIndex = endIndex + 1;
+					beginIndex = getToken(line, m, delim, beginIndex, fields);
 				}
 			} else if (type.equals("SYS")) {
 				for (String fields : systemFields2) {
-					endIndex = line.indexOf(delim, beginIndex);
-					if (endIndex < 0)
-						endIndex = line.length();
-					m.put(fields, line.substring(beginIndex, endIndex).trim());
-					beginIndex = endIndex + 1;
+					beginIndex = getToken(line, m, delim, beginIndex, fields);
 				}
 			} else if (type.equals("COMMON")) {
 				beginIndex = 0;
-
 				for (String fields : commonFields) {
-					endIndex = line.indexOf(delim, beginIndex);
-					if (endIndex < 0)
-						endIndex = line.length();
-					m.put(fields, line.substring(beginIndex, endIndex).trim());
-					beginIndex = endIndex + 1;
+					beginIndex = getToken(line, m, delim, beginIndex, fields);
 				}
 			} else {
 				throw new UnsupportedTypeException(line);
@@ -143,5 +141,14 @@ public class WebInsightParser extends V1LogParser {
 			}
 			return params;
 		}
+	}
+
+	private int getToken(String line, Map<String, Object> m, char delim, int beginIndex, String fields) {
+		int endIndex = line.indexOf(delim, beginIndex);
+		if (endIndex < 0)
+			endIndex = line.length();
+		m.put(fields, line.substring(beginIndex, endIndex).trim());
+		beginIndex = endIndex + 1;
+		return beginIndex;
 	}
 }

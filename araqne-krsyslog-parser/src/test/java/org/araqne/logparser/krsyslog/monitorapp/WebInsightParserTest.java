@@ -128,4 +128,34 @@ public class WebInsightParserTest {
 		assertEquals("OPTIONS", m.get("request_data"));
 	}
 
+	@Test
+	public void testAbnormalLog() {
+		String line = "DETECT|12.175.92.178|v3|2015-10-28 16:58:02|27|COMMAND_INJECTION|304:Command Injection 2|21.89.15.19|59713|112.175.92.80|80|query/payload \"|UNAME\" |PASS|MEDIUM|http|hoho.com|229|GET /xml/UInfo_xml.asp?USessionKey=2015914FIIB8F173931&DataType=UID||UNAME HTTP/1.1\r\nConnection: Keep-Alive\r\nAccept: /\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)\r\nContent-Length: 0\r\nHost: tourbaksa.com\r\n\r\n";
+
+		WebInsightParser parser = new WebInsightParser();
+		Map<String, Object> args = new HashMap<String, Object>();
+		args.put("line", line);
+		Map<String, Object> m = parser.parse(args);
+
+		assertEquals("DETECT", m.get("log_type"));
+		assertEquals("12.175.92.178", m.get("mgmt_ip"));
+		assertEquals("v3", m.get("version"));
+		assertEquals("2015-10-28 16:58:02", m.get("time"));
+		assertEquals("27", m.get("detect_code_num"));
+		assertEquals("COMMAND_INJECTION", m.get("detect_type"));
+		assertEquals("304:Command Injection 2", m.get("rule_name"));
+		assertEquals("21.89.15.19", m.get("client_ip"));
+		assertEquals("59713", m.get("client_port"));
+		assertEquals("112.175.92.80", m.get("server_ip"));
+		assertEquals("80", m.get("server_port"));
+		assertEquals("query/payload \"|UNAME\"", m.get("detect_contents"));
+		assertEquals("PASS", m.get("action"));
+		assertEquals("MEDIUM", m.get("severity"));
+		assertEquals("http", m.get("protocol"));
+		assertEquals("hoho.com", m.get("host"));
+		assertEquals("229", m.get("request_len"));
+		assertEquals(
+				"GET /xml/UInfo_xml.asp?USessionKey=2015914FIIB8F173931&DataType=UID||UNAME HTTP/1.1\r\nConnection: Keep-Alive\r\nAccept: /\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)\r\nContent-Length: 0\r\nHost: tourbaksa.com",
+				m.get("request_data"));
+	}
 }

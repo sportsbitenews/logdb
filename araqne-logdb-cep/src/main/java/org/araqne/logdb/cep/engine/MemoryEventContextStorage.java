@@ -30,6 +30,7 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.cron.AbstractTickTimer;
 import org.araqne.cron.TickService;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventCause;
 import org.araqne.logdb.cep.EventClock;
@@ -156,7 +157,8 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 			generateEvent(ctx, EventCause.CREATE);
 
 		} else {
-			oldCtx.addRow(ctx.getRows().get(0));
+			if (ctx.getRows().size() > 1)
+				oldCtx.addRow(ctx.getRows().get(0));
 			oldCtx.getCounter().incrementAndGet();
 			oldCtx.setTimeoutTime(ctx.getTimeoutTime());
 		}
@@ -167,7 +169,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		EventContext ctx = getContext(evtKey);
 		if (ctx == null)
 			return;
-		
+
 		ctx.setVariable(key, value);
 	}
 

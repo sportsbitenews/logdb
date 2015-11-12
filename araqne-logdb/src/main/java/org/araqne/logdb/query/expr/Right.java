@@ -15,20 +15,34 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 
 public class Right extends FunctionExpression {
-
 	private Expression valueExpr;
+	private Expression lengthExpr;
 	private int length;
 
 	public Right(QueryContext ctx, List<Expression> exprs) {
 		super("right", exprs, 2);
 		this.valueExpr = exprs.get(0);
-		this.length = Integer.parseInt(exprs.get(1).eval(null).toString());
+		this.lengthExpr = exprs.get(1);
+
+		if (lengthExpr instanceof NumberConstant || lengthExpr instanceof Neg) {
+			length = Integer.parseInt(lengthExpr.eval(null).toString());
+			lengthExpr = null;
+		}
+
+		if (length < 0) {
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("length", length + "");
+			throw new QueryParseException("90721", -1, -1, params);
+		}
 	}
 
 	@Override
@@ -36,6 +50,16 @@ public class Right extends FunctionExpression {
 		Object value = valueExpr.eval(map);
 		if (value == null)
 			return null;
+
+		if (lengthExpr != null) {
+			Object o = lengthExpr.eval(map);
+			if (!(o instanceof Number))
+				return null;
+
+			length = Integer.parseInt(new NumberConstant((Number) o).eval(null).toString());
+			if (length < 0)
+				return null;
+		}
 
 		String s = value.toString();
 		if (s.length() < length)

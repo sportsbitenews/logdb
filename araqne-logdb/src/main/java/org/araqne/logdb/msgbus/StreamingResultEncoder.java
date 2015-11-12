@@ -12,13 +12,13 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
+import org.araqne.api.NamedThreadFactory;
 import org.araqne.codec.Base64;
 import org.araqne.codec.FastEncodingRule;
 import org.slf4j.Logger;
@@ -161,19 +161,6 @@ public class StreamingResultEncoder {
 			msg.put("size", bb.array().length);
 			msg.put("bin", new String(Base64.encode(compressed.array())));
 			return msg;
-		}
-	}
-
-	private class NamedThreadFactory implements ThreadFactory {
-		private final String prefix;
-
-		public NamedThreadFactory(String prefix) {
-			this.prefix = prefix;
-		}
-
-		@Override
-		public Thread newThread(Runnable r) {
-			return new Thread(r, prefix);
 		}
 	}
 

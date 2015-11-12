@@ -87,7 +87,9 @@ public class QueryParserServiceImpl implements QueryParserService {
 				if (parser == null) {
 					// throw new QueryParseException("unsupported-command", -1,
 					// "command is [" + commandType + "]");
-					throw new QueryParseException("92000", -1, "command is [" + commandType + "]");
+					Map<String, String> params = new HashMap<String, String>();
+					params.put("command", commandType);
+					throw new QueryParseException("92000", -1, -1, params);
 				}
 
 				QueryCommand cmd = parser.parse(context, q);
@@ -232,6 +234,8 @@ public class QueryParserServiceImpl implements QueryParserService {
 		// 99000으로 대체
 		/* Left */
 		add("90720", "left-func-negative-length", "길이는 0보다 커야 합니다.(입력값 : [length])");
+		/* Right */
+		add("90721", "right-func-negative-length", "길이는 0보다 커야 합니다.(입력값 : [length])");
 		/* Long2Ip */
 		// add("90730", "invalid-long2ip-args", "올바르지 않은 long2ip 매개변수입니다."); -
 		// 99000으로 대체
@@ -309,7 +313,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 		add("90902", "cannot create function instance", "[function] 함수 오류 : [msg].");
 		add("90903", "no-read-permission", "[funtion] 함수 읽기 권한이 없습니다.");
 		/* Unsupported Command Type */
-		add("92000", "unsupported-command", "지원하지 않는 명령어입니다.");
+		add("92000", "unsupported-command", "지원하지 않는 명령어: [command]");
 	}
 
 	private void add(String code, String en, String ko) {
