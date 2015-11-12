@@ -30,12 +30,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.araqne.api.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,8 +73,9 @@ public class ParallelMergeSorter {
 		this.comparator = comparator;
 		this.buffer = new LinkedList<Item>();
 		this.runIndexer = new AtomicInteger();
-		this.executor = new ThreadPoolExecutor(8, 8, 10, TimeUnit.SECONDS, new LimitedQueue<Runnable>(8),
-				new NamedThreadFactory("Sort Worker"), new CallerRunsPolicy());
+		this.executor = new ThreadPoolExecutor(8, 8, 10, TimeUnit.SECONDS, new LimitedQueue<Runnable>(8), new NamedThreadFactory(
+				"Sort Worker"), new CallerRunsPolicy());
+
 		this.cacheCount = new AtomicInteger(memoryRunCount);
 	}
 
@@ -507,18 +508,4 @@ public class ParallelMergeSorter {
 			return id - o.id;
 		}
 	}
-
-	private static class NamedThreadFactory implements ThreadFactory {
-		private final String name;
-
-		public NamedThreadFactory(String name) {
-			this.name = name;
-		}
-
-		@Override
-		public Thread newThread(Runnable r) {
-			return new Thread(r, name);
-		}
-	}
-
 }

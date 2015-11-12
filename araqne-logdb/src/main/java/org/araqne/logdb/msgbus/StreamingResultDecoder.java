@@ -10,13 +10,13 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+import org.araqne.api.NamedThreadFactory;
 import org.araqne.codec.Base64;
 import org.araqne.codec.EncodingRule;
 import org.slf4j.Logger;
@@ -87,7 +87,7 @@ public class StreamingResultDecoder {
 			}
 
 			Map<String, Object> m = (Map<String, Object>) EncodingRule.decode(ByteBuffer.wrap(output));
-			
+
 			if (m.isEmpty())
 				return Arrays.asList();
 
@@ -113,19 +113,6 @@ public class StreamingResultDecoder {
 			}
 
 			return Arrays.asList(rows);
-		}
-	}
-
-	public static class NamedThreadFactory implements ThreadFactory {
-		private final String prefix;
-
-		public NamedThreadFactory(String prefix) {
-			this.prefix = prefix;
-		}
-
-		@Override
-		public Thread newThread(Runnable r) {
-			return new Thread(r, prefix);
 		}
 	}
 
