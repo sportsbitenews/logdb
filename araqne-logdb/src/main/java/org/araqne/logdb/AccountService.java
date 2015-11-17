@@ -50,7 +50,7 @@ public interface AccountService {
 	void removeAccount(Session session, String loginName);
 
 	void removeAccounts(Session session, Set<String> loginNames);
-	
+
 	Set<String> getSecurityGroupGuids();
 
 	/**
@@ -72,6 +72,12 @@ public interface AccountService {
 	 * @since 2.6.34
 	 */
 	void updateSecurityGroup(Session session, SecurityGroup group);
+
+	/**
+	 * 
+	 * @since 3.0.1
+	 */
+	void updateSecurityGroups(Session session, List<SecurityGroup> groups);
 
 	/**
 	 * @since 2.6.34
@@ -97,7 +103,7 @@ public interface AccountService {
 
 	List<Privilege> getPrivileges(Session session, String loginName);
 
-	void setPrivileges(Session session, List<Privilege> privileges);
+	void resetPrivileges(Session session, List<Privilege> privileges);
 
 	void setPrivileges(Session session, String loginName, List<Privilege> privileges);
 
@@ -143,5 +149,4 @@ public interface AccountService {
 	String getInstanceGuid();
 
 	void setInstanceGuid(String guid);
-
 }

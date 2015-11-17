@@ -127,16 +127,15 @@ public class ManagementPlugin {
 			String password = req.getString("password", true);
 
 			if (slog.isDebugEnabled())
-				slog.debug("araqne logdb: trying to login [{}] from [{}]", loginName,
-						session.getRemoteAddress().getHostAddress());
+				slog.debug("araqne logdb: trying to login [{}] from [{}]", loginName, session.getRemoteAddress().getHostAddress());
 
 			try {
 				dbSession = accountService.login(loginName, password);
 				dbSession.setProperty("remote_ip", getRemoteAddr(session));
 
 				if (slog.isDebugEnabled())
-					slog.debug("araqne logdb: [{}] is logged in successfully from [{}]", loginName,
-							session.getRemoteAddress().getHostAddress());
+					slog.debug("araqne logdb: [{}] is logged in successfully from [{}]", loginName, session.getRemoteAddress()
+							.getHostAddress());
 
 			} catch (AuthServiceNotLoadedException e) {
 				Boolean useErrorReturn = req.getBoolean("use_error_return");
@@ -158,7 +157,7 @@ public class ManagementPlugin {
 				throw e;
 			}
 		}
-		
+
 		dbSession.setProperty("locale", session.getLocale());
 
 		if (session.getOrgDomain() == null && session.getAdminLoginName() == null) {
@@ -290,6 +289,51 @@ public class ManagementPlugin {
 			privileges.add(new Privilege(loginName, tableName, Permission.READ));
 
 		accountService.setPrivileges(session, loginName, privileges);
+	}
+
+	@SuppressWarnings("unchecked")
+	@MsgbusMethod
+	public void setTablePrivileges(Request req, Response resp) {
+		org.araqne.logdb.Session session = ensureAdminSession(req);
+		String tableName = req.getString("table_name", true);
+		if (tableRegistry.getTableSchema(tableName) == null)
+			throw new MsgbusException("logdb", "table not found:" + tableName);
+
+		// set newer table privileges
+		List<String> loginNames = (List<String>) req.get("login_names", true);
+		List<Privilege> privileges = new ArrayList<Privilege>();
+		for (String loginName : loginNames)
+			privileges.add(new Privilege(loginName, tableName, Permission.READ));
+
+		// add other old table privileges
+		for (Privilege privilige : accountService.getPrivileges(session, null)) {
+			if (privilige.getTableName().equals(tableName))
+				continue;
+
+			privileges.add(privilige);
+		}
+
+		accountService.resetPrivileges(session, privileges);
+
+		List<String> groups = (List<String>) req.get("security_groups", true);
+		List<SecurityGroup> updateGroups = new ArrayList<SecurityGroup>();
+
+		for (SecurityGroup group : accountService.getSecurityGroups()) {
+			if (groups.contains(group.getName())) {
+				if (!group.getReadableTables().contains(tableName)) {
+					group.getReadableTables().add(tableName);
+					updateGroups.add(group);
+				}
+			} else {
+				if (group.getReadableTables().contains(tableName)) {
+					group.getReadableTables().remove(tableName);
+					updateGroups.add(group);
+				}
+			}
+		}
+
+		if (!updateGroups.isEmpty())
+			accountService.updateSecurityGroups(session, updateGroups);
 	}
 
 	/**

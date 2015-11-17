@@ -30,7 +30,7 @@ import org.araqne.confdb.CollectionName;
 public class Account {
 	public static String DEFAULT_HASH_TYPE = "sha512";
 	public static String DEFAULT_HASH_ALGORITHM = "SHA-512";
-	
+
 	private String loginName;
 
 	private String salt;
@@ -60,6 +60,14 @@ public class Account {
 		this.password = password;
 	}
 
+	public Account clone() {
+		Account account = new Account(this.loginName, this.salt, this.password);
+		account.setHashType(this.hashType);
+		account.setReadableTables(new ArrayList<String>(this.readableTables));
+
+		return account;
+	}
+
 	public String getLoginName() {
 		return loginName;
 	}
@@ -83,18 +91,18 @@ public class Account {
 	public void setPassword(String password) {
 		this.password = password;
 	}
-	
+
 	public String getHashAlgorithm() {
 		if (hashType == null)
 			return null;
-		
+
 		if (hashType.equals("sha1"))
 			return "SHA-1";
 		if (hashType.equals("sha256"))
 			return "SHA-256";
 		if (hashType.equals("sha512"))
 			return "SHA-512";
-		
+
 		throw new IllegalStateException("unknown hash algorithm: " + hashType);
 	}
 

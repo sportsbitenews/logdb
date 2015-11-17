@@ -221,21 +221,21 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	}
 
 	@Override
-	public void setPrivileges(Session session, List<Privilege> privileges) {
+	public void resetPrivileges(Session session, List<Privilege> privileges) {
 		verifyNotNull(privileges, "privileges");
 		verifyAdminSession(session);
 
 		Map<String, Account> accounts = new HashMap<String, Account>();
-		for (Privilege privilege : privileges) {
-			String loginName = privilege.getLoginName();
-			Account account = accounts.get(loginName);
-			if (account == null) {
-				account = ensureAccount(loginName);
-				account.getReadableTables().clear();
+		for (Account account : localAccounts.values()) {
+			account = account.clone();
+			account.getReadableTables().clear();
+
+			for (Privilege privilege : privileges) {
+				if (privilege.getLoginName().equals(account.getLoginName()))
+					account.getReadableTables().add(privilege.getTableName());
 			}
 
-			account.getReadableTables().add(privilege.getTableName());
-			accounts.put(loginName, account);
+			accounts.put(account.getLoginName(), account);
 		}
 
 		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
@@ -266,8 +266,8 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			}
 			xact.commit("araqne-logdb", "set accounts");
 
-			for (String loginName : accounts.keySet())
-				localAccounts.putIfAbsent(loginName, accounts.get(loginName));
+			for (Account account : accounts.values())
+				localAccounts.put(account.getLoginName(), account);
 		} catch (Throwable t) {
 			if (xact != null)
 				xact.rollback();
@@ -322,7 +322,11 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 
 	@Override
 	public Account getAccount(String name) {
-		return localAccounts.get(name);
+		Account account = localAccounts.get(name);
+		if (account == null)
+			return null;
+
+		return account.clone();
 	}
 
 	@Override
@@ -490,7 +494,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			db.add(account);
 		}
 
-		localAccounts.putIfAbsent(account.getLoginName(), account);
+		localAccounts.put(account.getLoginName(), account);
 	}
 
 	@Override
@@ -674,6 +678,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		}
 	}
 
+	@Override
 	public void updateSecurityGroups(Session session, List<SecurityGroup> groups) {
 		Map<String, SecurityGroup> securityGroups = new HashMap<String, SecurityGroup>();
 		for (SecurityGroup group : groups) {
@@ -681,35 +686,37 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			securityGroups.put(group.getGuid(), group);
 		}
 
-		ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
-		ConfigIterator it = null;
-		ConfigTransaction xact = null;
-		try {
-			it = db.find(SecurityGroup.class, Predicates.in("guid", securityGroups.keySet()));
-			List<SecurityGroup> updatedGroups = new ArrayList<SecurityGroup>();
-			xact = db.beginTransaction();
-			while (it.hasNext()) {
-				Config c = it.next();
-				SecurityGroup old = c.getDocument(SecurityGroup.class);
-				SecurityGroup newGroup = securityGroups.get(old.getGuid());
-				if (newGroup == null)
-					continue;
+		synchronized (this.securityGroups) {
+			ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
+			ConfigIterator it = null;
+			ConfigTransaction xact = null;
+			try {
+				it = db.find(SecurityGroup.class, Predicates.in("guid", securityGroups.keySet()));
+				List<SecurityGroup> updatedGroups = new ArrayList<SecurityGroup>();
+				xact = db.beginTransaction();
+				while (it.hasNext()) {
+					Config c = it.next();
+					SecurityGroup old = c.getDocument(SecurityGroup.class);
+					SecurityGroup newGroup = securityGroups.get(old.getGuid());
+					if (newGroup == null)
+						continue;
 
-				db.update(xact, c, newGroup, false);
-				updatedGroups.add(newGroup);
+					db.update(xact, c, newGroup, false);
+					updatedGroups.add(newGroup);
+				}
+
+				xact.commit("araqne-logdb", "update security groups");
+
+				for (SecurityGroup group : updatedGroups)
+					this.securityGroups.put(group.getGuid(), group);
+			} catch (Throwable t) {
+				if (xact != null)
+					xact.rollback();
+				throw new RuntimeException(t);
+			} finally {
+				if (it != null)
+					it.close();
 			}
-
-			xact.commit("araqne-logdb", "update security groups");
-
-			for (SecurityGroup group : updatedGroups)
-				this.securityGroups.put(group.getGuid(), group);
-		} catch (Throwable t) {
-			if (xact != null)
-				xact.rollback();
-			throw new RuntimeException(t);
-		} finally {
-			if (it != null)
-				it.close();
 		}
 	}
 
