@@ -30,7 +30,6 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.cron.AbstractTickTimer;
 import org.araqne.cron.TickService;
-import org.araqne.logdb.Row;
 import org.araqne.logdb.cep.Event;
 import org.araqne.logdb.cep.EventCause;
 import org.araqne.logdb.cep.EventClock;
@@ -112,6 +111,9 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 
 	@Override
 	public Iterator<EventKey> getContextKeys(String topic) {
+		if (topic == null)
+			return new HashSet<EventKey>(contexts.keySet()).iterator();
+		
 		HashSet<EventKey> keys = new HashSet<EventKey>();
 
 		for (EventKey key : contexts.keySet()) {
