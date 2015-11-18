@@ -1,5 +1,6 @@
 package org.araqne.logdb.query.parser;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,10 +30,10 @@ public class LookupParser extends AbstractQueryCommandParser {
 	@Override
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
-		m.put("20700", new QueryErrorMessage("output-token-not-found", "출력 대상 필드(output)를 입력하십시오."));
-		m.put("20701", new QueryErrorMessage("invalid-lookup-name", "[table]은 유효하지 않는 매핑 테이블 입니다."));
-		m.put("20702", new QueryErrorMessage("invalid-lookup-field", "출력 필드가 유효하지 않는 형식입니다. "));
-		m.put("20703", new QueryErrorMessage("as-token-not-found", "잘못된 문법 : [as] 자리에 as 가 와야 합니다. "));
+		m.put("20700", new QueryErrorMessage("output-token-not-found", "lookup 명령에서 output 구문이 누락되었습니다."));
+		m.put("20701", new QueryErrorMessage("invalid-lookup-name", "lookup 명령에서 [table]은 유효하지 않는 매핑 테이블입니다."));
+		m.put("20702", new QueryErrorMessage("invalid-lookup-field", "lookup 필드 문법이 유효하지 않습니다. `필드 as 별칭` 문법을 사용하십시오."));
+		m.put("20703", new QueryErrorMessage("as-token-not-found", "lookup 명령의 [as] 자리에 as가 와야 합니다."));
 		return m;
 	}
 
@@ -42,11 +43,11 @@ public class LookupParser extends AbstractQueryCommandParser {
 		int p = QueryTokenizer.skipSpaces(commandString, last);
 		p = commandString.indexOf(' ', p);
 		if (p < 0)
-			throw new QueryParseException("20701", p);
+			throw new QueryParseException("20701", -1, -1, params("table", "빈 값"));
 
 		String handlerName = commandString.substring(last, p).trim();
 		if (registry != null && registry.getLookupHandler(handlerName) == null)
-			throw new QueryParseException("20701", last + 1, p - 1, null);
+			throw new QueryParseException("20701", last + 1, p - 1, params("table", handlerName));
 
 		last = p;
 
@@ -81,7 +82,7 @@ public class LookupParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("20702", begin, end, null);
 
 		if (!tokens.get(1).equalsIgnoreCase("as"))
-			throw new QueryParseException("20703", begin, end, null);
+			throw new QueryParseException("20703", begin, end, params("as", tokens.get(1)));
 
 		field.first = tokens.get(0);
 		field.second = tokens.get(2);

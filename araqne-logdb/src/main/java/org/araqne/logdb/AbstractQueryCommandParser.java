@@ -1,6 +1,7 @@
 package org.araqne.logdb;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -74,5 +75,19 @@ public abstract class AbstractQueryCommandParser implements QueryCommandParser {
 
 	protected void setUsage(Locale locale, String usage) {
 		help.getUsages().put(locale, usage);
+	}
+	
+	public static Map<String, String> params(String... params) {
+		Map<String, String> map = new HashMap<String, String>();
+		String key = null;
+		for (String param : params) {
+			if (key == null)
+				key = param;
+			else {
+				map.put(key, param);
+				key = null;
+			}
+		}
+		return map;
 	}
 }
