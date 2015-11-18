@@ -82,7 +82,7 @@ public class DataBlockV3 {
 					dataStream.seek(dataFp);
 					blockLength = length = dataStream.readInt();
 					
-					if (length < 0 || length > params.dataStream.available())
+					if (length < 0 || length - 4 > params.dataStream.available())
 						throw new IllegalStateException(
 								String.format("invalid length: %d", length));
 
