@@ -66,7 +66,7 @@ public abstract class AbstractConfigType implements LoggerConfigOption {
 	public String getDisplayName(Locale locale) {
 		String displayName = displayNames.get(locale);
 		if (displayName == null)
-			return displayNames.get(locale);
+			return displayNames.get(Locale.ENGLISH);
 		return displayName;
 	}
 
