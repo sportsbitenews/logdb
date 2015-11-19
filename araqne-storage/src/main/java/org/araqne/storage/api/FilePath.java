@@ -58,4 +58,13 @@ public interface FilePath extends Comparable<FilePath> {
 	long getTotalSpace() throws SecurityException;
 
 	long lastModified() throws SecurityException, IOException;
+	
+	/* since 1.1.0 */
+	void touch() throws SecurityException, IOException;
+	
+	void setExecutable(boolean executable, boolean ownerOnly) throws SecurityException;
+	
+	void setWritable(boolean writable, boolean ownerOnly) throws SecurityException;
+	
+	void setReadable(boolean readable, boolean ownerOnly) throws SecurityException;
 }

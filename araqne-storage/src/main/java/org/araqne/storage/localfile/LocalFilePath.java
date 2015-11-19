@@ -226,4 +226,24 @@ public class LocalFilePath implements FilePath {
 		return path.lastModified();
 	}
 
+	@Override
+	public void touch() throws SecurityException, IOException {
+		path.createNewFile();
+	}
+
+	@Override
+	public void setExecutable(boolean executable, boolean ownerOnly) throws SecurityException {
+		path.setExecutable(executable, ownerOnly);
+	}
+
+	@Override
+	public void setWritable(boolean writable, boolean ownerOnly) throws SecurityException {
+		path.setWritable(writable, ownerOnly);
+	}
+
+	@Override
+	public void setReadable(boolean readable, boolean ownerOnly) throws SecurityException {
+		path.setReadable(readable, ownerOnly);		
+	}
+
 }

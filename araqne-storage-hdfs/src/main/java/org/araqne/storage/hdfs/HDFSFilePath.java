@@ -25,6 +25,7 @@ import org.araqne.storage.api.FilePathNameFilter;
 import org.araqne.storage.api.StorageInputStream;
 import org.araqne.storage.api.StorageOutputStream;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
@@ -331,5 +332,25 @@ public class HDFSFilePath implements FilePath {
 	public long lastModified() throws SecurityException, IOException {
 		FileStatus fileStatus = root.getFileSystem().getFileStatus(path);
 		return fileStatus.getModificationTime();
+	}
+
+	@Override
+	public void touch() throws SecurityException, IOException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public void setExecutable(boolean executable, boolean ownerOnly) throws SecurityException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public void setWritable(boolean writable, boolean ownerOnly) throws SecurityException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public void setReadable(boolean readable, boolean ownerOnly) throws SecurityException {
+		throw new UnsupportedOperationException();
 	}
 }
