@@ -38,4 +38,18 @@ public interface AggregationFunction {
 	void clean();
 
 	AggregationFunction clone();
+
+	// True if
+	// AggragtionFunction of Table
+	// has equivalent meaning with
+	// Reducer of (Mapper of SubTables)
+	// Ex)
+	// Count of Table
+	// is equivalent with
+	// Sum of (Count of SubTables)
+	boolean canBeDistributed();
+
+	AggregationFunction mapper(List<Expression> exprs);
+
+	AggregationFunction reducer(List<Expression> exprs);
 }

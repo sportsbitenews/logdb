@@ -20,22 +20,16 @@ import java.util.List;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Last implements AggregationFunction {
-	private List<Expression> exprs;
+public class Last extends AbstractAggregationFunction {
 	private Object last;
 
 	public Last(List<Expression> exprs) {
-		this.exprs = exprs;
+		super(exprs);
 	}
 
 	@Override
 	public String getName() {
 		return "last";
-	}
-
-	@Override
-	public List<Expression> getArguments() {
-		return exprs;
 	}
 
 	@Override
