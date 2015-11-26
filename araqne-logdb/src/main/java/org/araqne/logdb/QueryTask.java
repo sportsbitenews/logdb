@@ -18,6 +18,7 @@ package org.araqne.logdb;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -36,79 +37,93 @@ public abstract class QueryTask implements Runnable {
 		INIT, RUNNING, FINALIZING, COMPLETED, CANCELED
 	}
 
+	private CountDownLatch latch = new CountDownLatch(1);
+
 	private TaskStatus status = TaskStatus.INIT;
 	private Throwable failure;
 	private QueryTask parentTask;
 	private CopyOnWriteArraySet<QueryTask> subTasks = new CopyOnWriteArraySet<QueryTask>();
 	private CopyOnWriteArraySet<QueryTask> dependencies = new CopyOnWriteArraySet<QueryTask>();
 	private CopyOnWriteArraySet<QueryTaskListener> listeners = new CopyOnWriteArraySet<QueryTaskListener>();
-	
+
 	private static AtomicLong l = new AtomicLong(1);
-	
+
 	private long id = l.incrementAndGet();
 
-	public TaskStatus getStatus() {
+	public synchronized TaskStatus getStatus() {
 		return status;
 	}
 
-	public void setStatus(TaskStatus status) {
+	public synchronized CountDownLatch getLatch() {
+		return this.latch;
+	}
+
+	public synchronized void done() {
+		latch.countDown();
+	}
+
+	public synchronized void setStatus(TaskStatus status) {
 		this.status = status;
 	}
 
-	public Throwable getFailure() {
+	public synchronized Throwable getFailure() {
 		return failure;
 	}
 
-	public void setFailure(Throwable failure) {
+	public synchronized void setFailure(Throwable failure) {
 		this.failure = failure;
 	}
 
-	public Collection<QueryTask> getSubTasks() {
+	public synchronized Collection<QueryTask> getSubTasks() {
 		return new ArrayList<QueryTask>(subTasks);
 	}
 
-	public QueryTask getParentTask() {
+	public synchronized QueryTask getParentTask() {
 		return parentTask;
 	}
 
-	public void setParentTask(QueryTask parentTask) {
+	public synchronized void setParentTask(QueryTask parentTask) {
 		this.parentTask = parentTask;
 	}
 
-	public void addSubTask(QueryTask task) {
+	public synchronized void addSubTask(QueryTask task) {
 		if (task == null)
 			throw new IllegalArgumentException("null task is not allowed");
 		task.setParentTask(this);
 		subTasks.add(task);
 	}
 
-	public void removeSubTask(QueryTask task) {
+	public synchronized void removeSubTask(QueryTask task) {
 		if (task == null)
 			throw new IllegalArgumentException("null task is not allowed");
 		subTasks.remove(task);
 	}
 
-	public boolean isRunnable() {
+	public synchronized boolean isStopped() {
+		return (this.status == TaskStatus.CANCELED || this.status == TaskStatus.COMPLETED);
+	}
+
+	public synchronized boolean isRunnable() {
 		for (QueryTask t : dependencies)
-			if (t.getStatus() != TaskStatus.COMPLETED && t.getStatus() != TaskStatus.CANCELED)
+			if (!isStopped())
 				return false;
 
 		return status == TaskStatus.INIT;
 	}
 
 	// invoked when task is started
-	public void onStart() {
+	public synchronized void onStart() {
 	}
 
 	// like finally block, regardless of normal complete or cancel
-	public void onCleanUp() {
+	public synchronized void onCleanUp() {
 	}
 
-	public Collection<QueryTask> getDependencies() {
+	public synchronized Collection<QueryTask> getDependencies() {
 		return dependencies;
 	}
 
-	public void addDependency(QueryTask task) {
+	public synchronized void addDependency(QueryTask task) {
 		checkNotNull(task, "task");
 
 		if (logger.isDebugEnabled())
@@ -117,21 +132,21 @@ public abstract class QueryTask implements Runnable {
 		dependencies.add(task);
 	}
 
-	public void removeDependency(QueryTask task) {
+	public synchronized void removeDependency(QueryTask task) {
 		checkNotNull(task, "task");
 		dependencies.remove(task);
 	}
 
-	public Collection<QueryTaskListener> getListeners() {
+	public synchronized Collection<QueryTaskListener> getListeners() {
 		return listeners;
 	}
 
-	public void addListener(QueryTaskListener listener) {
+	public synchronized void addListener(QueryTaskListener listener) {
 		checkNotNull(listener, "listener");
 		listeners.add(listener);
 	}
 
-	public void removeListener(QueryTaskListener listener) {
+	public synchronized void removeListener(QueryTaskListener listener) {
 		checkNotNull(listener, "listener");
 		listeners.remove(listener);
 	}
@@ -141,7 +156,7 @@ public abstract class QueryTask implements Runnable {
 			throw new IllegalArgumentException("null " + name + " is not allowed");
 	}
 
-	public long getID() {
+	public synchronized long getID() {
 		return id;
 	}
 }
