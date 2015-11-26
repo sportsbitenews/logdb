@@ -66,6 +66,7 @@ public class QueryTaskRunner extends Thread {
 			scheduler.getQuery().cancel(t);
 		} finally {
 			try {
+				task.done();
 				triggerCleanUpEvent(task, new QueryTaskEvent(task));
 				task.onCleanUp();
 			} catch (Throwable t) {

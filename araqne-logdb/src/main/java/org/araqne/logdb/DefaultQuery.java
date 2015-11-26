@@ -277,7 +277,7 @@ public class DefaultQuery implements Query {
 				stopReason = reason;
 
 			// cancel tasks
-			scheduler.stop();
+			scheduler.cancel();
 			return;
 		}
 

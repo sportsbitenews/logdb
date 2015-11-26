@@ -17,12 +17,15 @@ package org.araqne.logdb.query.engine;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryCommand.Status;
 import org.araqne.logdb.QueryStatusCallback;
-import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.QueryTaskEvent;
@@ -48,6 +51,8 @@ public class QueryTaskScheduler implements Runnable {
 
 	// monitor task complete and start new ready tasks
 	private QueryTaskTracer tracer = new QueryTaskTracer();
+
+	private ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 
 	public QueryTaskScheduler(Query query, List<QueryCommand> pipeline) {
 		this.query = query;
@@ -92,17 +97,69 @@ public class QueryTaskScheduler implements Runnable {
 		startReadyTasks();
 	}
 
+	public void cancel() {
+		for (QueryTask dependency : tracer.getDependencies()) {
+			markCancledRecursively(dependency);
+		}
+	}
+
 	public void stop() {
-		for (QueryCommand cmd : pipeline) {
-			if (cmd.getMainTask() != null)
-				stopRecursively(cmd.getMainTask());
+		Lock lock = rwLock.writeLock();
+		try {
+			lock.lock();
+
+			// TODO
+			// Comparse and set
+			if (!tracer.isStopped()) {
+				QueryTask running = null;
+				for (QueryTask dependency : tracer.getDependencies()) {
+					running = markCancledRecursively(dependency);
+				}
+
+				if (running != null) {
+					CountDownLatch latch = running.getLatch();
+					try {
+						latch.await();
+					} catch (InterruptedException e) {
+						logger.error("QueryTaskScheduler.stop() failed because waiting runnigTask failed", e);
+					}
+				}
+
+				startRecursively(tracer);
+			}
+
+		} finally {
+			lock.unlock();
 		}
 
-		stopRecursively(tracer);
-		
-		// start tracer
-		startRecursively(tracer);
 	}
+
+	/*
+	 * private synchronized void start(QueryTask task) { System.out.println("start : " +
+	 * task.getClass().toString()); if (task.isRunnable()) { // prevent duplicated run caused by late thread
+	 * start if (logger.isDebugEnabled()) logger.debug("araqne logdb: query [{}] task [{}:{}] start thread",
+	 * new Object[] { query.getId(), task.getID(), task });
+	 * 
+	 * // TODO: Need multi Threading for speed up . Easy. QueryTaskRunner Parraralization // TODO: by @Jun
+	 * Gyoung Seong task.setStatus(TaskStatus.RUNNING); new QueryTaskRunner(this, task).start();
+	 * 
+	 * } }
+	 * 
+	 * private void logError(QueryTask task) { if (logger.isDebugEnabled()) { StringBuilder sb = new
+	 * StringBuilder(); for (QueryTask d : task.getDependencies()) sb.append("\n\t" + d.getID() + ":" + d +
+	 * " " + d.getStatus());
+	 * 
+	 * if (logger.isDebugEnabled())
+	 * logger.debug("araqne logdb: query [{}] task [{}:{} {}] is not runnable. dependencies => [{}]", new
+	 * Object[] { query.getId(), task.getID(), task, task.getStatus(), sb.toString() }); }
+	 * 
+	 * }
+	 * 
+	 * private void startRecursively(QueryTask task) { // Post Order Tree Traverse for (QueryTask dependency :
+	 * task.getDependencies()) { startRecursively(dependency); }
+	 * 
+	 * start(task); }
+	 */
 
 	private synchronized void startReadyTasks() {
 		// later task runner can be completed before tracer.run(), and can cause
@@ -146,25 +203,52 @@ public class QueryTaskScheduler implements Runnable {
 			startRecursively(subTask);
 	}
 
-	private void stopRecursively(QueryTask task) {
-		// tracer should invoke postRun() even if query is cancelled
-		if (task instanceof QueryTaskTracer)
-			return;
+	/*
+	 * private void stopRecursively(QueryTask task) { // tracer should invoke postRun() even if query is
+	 * cancelled if (task instanceof QueryTaskTracer) return;
+	 * 
+	 * if (task.getStatus() != TaskStatus.COMPLETED) { task.setStatus(TaskStatus.CANCELED); if
+	 * (logger.isDebugEnabled()) { String msg = null; Throwable failure = task.getFailure(); if (failure !=
+	 * null) msg = failure.getMessage() != null ? failure.getMessage() : failure.getClass().getName();
+	 * 
+	 * logger.debug("araqne logdb: canceled query [{}] task [{}] cause [{}]", new Object[] { query.getId(),
+	 * task, msg }); } }
+	 * 
+	 * for (QueryTask subTask : task.getSubTasks()) stopRecursively(subTask); }
+	 */
+
+	private synchronized QueryTask markCancled(QueryTask task) {
+		QueryTask running = null;
+		if (task.getStatus() == TaskStatus.RUNNING) {
+			running = task;
+		}
 
 		if (task.getStatus() != TaskStatus.COMPLETED) {
 			task.setStatus(TaskStatus.CANCELED);
+
 			if (logger.isDebugEnabled()) {
 				String msg = null;
 				Throwable failure = task.getFailure();
 				if (failure != null)
 					msg = failure.getMessage() != null ? failure.getMessage() : failure.getClass().getName();
 
-				logger.debug("araqne logdb: canceled query [{}] task [{}] cause [{}]", new Object[] { query.getId(), task, msg });
+				logger.debug("araqne logdb: canceled query [{}] task [{}] cause [{}]", new Object[] {
+						query.getId(), task, msg });
 			}
 		}
 
-		for (QueryTask subTask : task.getSubTasks())
-			stopRecursively(subTask);
+		return running;
+	}
+
+	private QueryTask markCancledRecursively(QueryTask task) {
+		QueryTask running = null;
+		// Post Order Traverse
+		for (QueryTask dependency : task.getDependencies()) {
+			running = markCancledRecursively(dependency);
+		}
+
+		running = markCancled(task);
+		return running;
 	}
 
 	private class QueryTaskTracer extends QueryTask implements QueryTaskListener {
