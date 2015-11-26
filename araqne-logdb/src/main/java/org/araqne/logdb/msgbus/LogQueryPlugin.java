@@ -586,8 +586,8 @@ public class LogQueryPlugin {
 					// @since 2.2.17
 					if (query.getCause() != null) {
 						m.put("error_code", GENERAL_QUERY_FAILURE_CODE);
-						m.put("error_detail", query.getCause().getMessage() != null ? query.getCause().getMessage() : query
-								.getCause().getClass().getName());
+						m.put("error_detail", query.getCause().getMessage() != null ? query.getCause().getMessage()
+								: query.getCause().getClass().getName());
 					}
 
 					pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);
@@ -632,6 +632,7 @@ public class LogQueryPlugin {
 		private int streamFlushInterval;
 		private ArrayList<Object> rows = new ArrayList<Object>(10000);
 		private AtomicBoolean closed = new AtomicBoolean();
+		private AtomicBoolean flushing = new AtomicBoolean();
 
 		private MsgbusQueryResultCallback(Query query, String orgDomain, boolean streaming, String compression,
 				int streamFlushSize, int streamFlushInterval) {
@@ -654,8 +655,16 @@ public class LogQueryPlugin {
 
 		@Override
 		public void onTick() {
-			synchronized (rows) {
-				flushResultSet(query, false);
+			// prevent other flush call until one thread get out of here
+			if (!flushing.compareAndSet(false, true))
+				return;
+
+			try {
+				synchronized (rows) {
+					flushResultSet(query, false);
+				}
+			} finally {
+				flushing.set(false);
 			}
 		}
 
