@@ -37,7 +37,7 @@ public abstract class QueryTask implements Runnable {
 		INIT, RUNNING, FINALIZING, COMPLETED, CANCELED
 	}
 
-	private CountDownLatch latch = new CountDownLatch(1);
+	private CountDownLatch latch;
 
 	private TaskStatus status = TaskStatus.INIT;
 	private Throwable failure;
@@ -56,19 +56,26 @@ public abstract class QueryTask implements Runnable {
 		return status;
 	}
 
-	public CountDownLatch getLatch() {
-		return this.latch;
+	public void await() {
+		if(this.latch != null)
+			try {
+				this.latch.await();
+			} catch (InterruptedException e) {
+			}
 	}
 
 	public void done() {
-		latch.countDown();
+		if (latch != null)
+			latch.countDown();
 	}
 
 	public void setStatus(TaskStatus status) {
 		synchronized (statusLock) {
-			if (this.status.ordinal() > status.ordinal())
+			if (this.status.ordinal() >= status.ordinal())
 				return;
-			
+
+			if (status == TaskStatus.RUNNING)
+				latch = new CountDownLatch(1);
 			this.status = status;
 		}
 	}
