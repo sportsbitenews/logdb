@@ -64,6 +64,7 @@ public class Account {
 		Account account = new Account(this.loginName, this.salt, this.password);
 		account.setHashType(this.hashType);
 		account.setReadableTables(new ArrayList<String>(this.readableTables));
+		account.setAdmin(admin);
 
 		return account;
 	}
