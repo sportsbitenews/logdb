@@ -126,4 +126,6 @@ public interface Query extends Runnable {
 	 * @since 2.4.60
 	 */
 	List<String> getFieldOrder();
+	
+	void awaitFinish();
 }

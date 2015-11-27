@@ -207,6 +207,14 @@ public class DefaultQuery implements Query {
 	}
 
 	@Override
+	public void awaitFinish() {
+		try {
+			stopLatch.await();
+		} catch (InterruptedException e) {
+		}
+	}
+
+	@Override
 	public long getFinishTime() {
 		return scheduler.getFinishTime();
 	}
