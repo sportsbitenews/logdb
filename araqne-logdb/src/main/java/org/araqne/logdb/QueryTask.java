@@ -50,60 +50,67 @@ public abstract class QueryTask implements Runnable {
 
 	private long id = l.incrementAndGet();
 
-	public synchronized TaskStatus getStatus() {
+	private Object statusLock = new Object();
+
+	public TaskStatus getStatus() {
 		return status;
 	}
 
-	public synchronized CountDownLatch getLatch() {
+	public CountDownLatch getLatch() {
 		return this.latch;
 	}
 
-	public synchronized void done() {
+	public void done() {
 		latch.countDown();
 	}
 
-	public synchronized void setStatus(TaskStatus status) {
-		this.status = status;
+	public void setStatus(TaskStatus status) {
+		synchronized (statusLock) {
+			if (this.status.ordinal() > status.ordinal())
+				return;
+			
+			this.status = status;
+		}
 	}
 
-	public synchronized Throwable getFailure() {
+	public Throwable getFailure() {
 		return failure;
 	}
 
-	public synchronized void setFailure(Throwable failure) {
+	public void setFailure(Throwable failure) {
 		this.failure = failure;
 	}
 
-	public synchronized Collection<QueryTask> getSubTasks() {
+	public Collection<QueryTask> getSubTasks() {
 		return new ArrayList<QueryTask>(subTasks);
 	}
 
-	public synchronized QueryTask getParentTask() {
+	public QueryTask getParentTask() {
 		return parentTask;
 	}
 
-	public synchronized void setParentTask(QueryTask parentTask) {
+	public void setParentTask(QueryTask parentTask) {
 		this.parentTask = parentTask;
 	}
 
-	public synchronized void addSubTask(QueryTask task) {
+	public void addSubTask(QueryTask task) {
 		if (task == null)
 			throw new IllegalArgumentException("null task is not allowed");
 		task.setParentTask(this);
 		subTasks.add(task);
 	}
 
-	public synchronized void removeSubTask(QueryTask task) {
+	public void removeSubTask(QueryTask task) {
 		if (task == null)
 			throw new IllegalArgumentException("null task is not allowed");
 		subTasks.remove(task);
 	}
 
-	public synchronized boolean isStopped() {
+	public boolean isStopped() {
 		return (this.status == TaskStatus.CANCELED || this.status == TaskStatus.COMPLETED);
 	}
 
-	public synchronized boolean isRunnable() {
+	public boolean isRunnable() {
 		for (QueryTask t : dependencies)
 			if (!t.isStopped())
 				return false;
@@ -112,18 +119,18 @@ public abstract class QueryTask implements Runnable {
 	}
 
 	// invoked when task is started
-	public synchronized void onStart() {
+	public void onStart() {
 	}
 
 	// like finally block, regardless of normal complete or cancel
-	public synchronized void onCleanUp() {
+	public void onCleanUp() {
 	}
 
-	public synchronized Collection<QueryTask> getDependencies() {
+	public Collection<QueryTask> getDependencies() {
 		return dependencies;
 	}
 
-	public synchronized void addDependency(QueryTask task) {
+	public void addDependency(QueryTask task) {
 		checkNotNull(task, "task");
 
 		if (logger.isDebugEnabled())
@@ -132,21 +139,21 @@ public abstract class QueryTask implements Runnable {
 		dependencies.add(task);
 	}
 
-	public synchronized void removeDependency(QueryTask task) {
+	public void removeDependency(QueryTask task) {
 		checkNotNull(task, "task");
 		dependencies.remove(task);
 	}
 
-	public synchronized Collection<QueryTaskListener> getListeners() {
+	public Collection<QueryTaskListener> getListeners() {
 		return listeners;
 	}
 
-	public synchronized void addListener(QueryTaskListener listener) {
+	public void addListener(QueryTaskListener listener) {
 		checkNotNull(listener, "listener");
 		listeners.add(listener);
 	}
 
-	public synchronized void removeListener(QueryTaskListener listener) {
+	public void removeListener(QueryTaskListener listener) {
 		checkNotNull(listener, "listener");
 		listeners.remove(listener);
 	}
@@ -156,7 +163,7 @@ public abstract class QueryTask implements Runnable {
 			throw new IllegalArgumentException("null " + name + " is not allowed");
 	}
 
-	public synchronized long getID() {
+	public long getID() {
 		return id;
 	}
 }

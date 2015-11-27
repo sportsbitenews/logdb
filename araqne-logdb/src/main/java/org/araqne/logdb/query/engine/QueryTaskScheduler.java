@@ -217,7 +217,7 @@ public class QueryTaskScheduler implements Runnable {
 	 * for (QueryTask subTask : task.getSubTasks()) stopRecursively(subTask); }
 	 */
 
-	private synchronized QueryTask markCancled(QueryTask task) {
+	private QueryTask markCancel(QueryTask task) {
 		QueryTask running = null;
 		if (task.getStatus() == TaskStatus.RUNNING) {
 			running = task;
@@ -247,7 +247,7 @@ public class QueryTaskScheduler implements Runnable {
 			running = markCancledRecursively(dependency);
 		}
 
-		running = markCancled(task);
+		running = markCancel(task);
 		return running;
 	}
 

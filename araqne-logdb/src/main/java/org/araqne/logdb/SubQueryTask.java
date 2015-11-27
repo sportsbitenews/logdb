@@ -17,4 +17,14 @@ public class SubQueryTask extends QueryTask {
 		subQuery.run();
 		subQuery.awaitFinish();
 	}
+
+	@Override
+	public synchronized void setStatus(TaskStatus status) {
+		if (status == TaskStatus.CANCELED)
+			subQuery.cancel(QueryStopReason.Interrupted);
+		
+		super.setStatus(status);
+	}
+	
+	
 }
