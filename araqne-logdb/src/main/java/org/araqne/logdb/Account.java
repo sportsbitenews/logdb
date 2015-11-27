@@ -65,6 +65,7 @@ public class Account {
 		account.setHashType(this.hashType);
 		account.setReadableTables(new ArrayList<String>(this.readableTables));
 		account.setAdmin(admin);
+		account.setAuthServiceName(authServiceName);
 
 		return account;
 	}
