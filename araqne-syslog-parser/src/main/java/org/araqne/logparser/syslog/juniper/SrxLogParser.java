@@ -79,7 +79,7 @@ public class SrxLogParser extends V1LogParser {
 					m.put("action", "close");
 
 					String reason = s.next();
-					if (!reason.endsWith(":"))
+					while (!reason.endsWith(":"))
 						reason += " " + s.next();
 
 					m.put("reason", reason.substring(0, reason.length() - 1));
