@@ -126,13 +126,13 @@ public class LogDBScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "create new log query script workspace", arguments = { @ScriptArgument(name = "workspace name", type = "string", description = "log query script workspace name") })
+	@ScriptUsage(description = "create new query script workspace", arguments = { @ScriptArgument(name = "workspace name", type = "string", description = "query script workspace name") })
 	public void createScriptWorkspace(String[] args) {
 		scriptRegistry.createWorkspace(args[0]);
 		context.println("created");
 	}
 
-	@ScriptUsage(description = "remove log query script workspace", arguments = { @ScriptArgument(name = "workspace name", type = "string", description = "log query script workspace name") })
+	@ScriptUsage(description = "remove query script workspace", arguments = { @ScriptArgument(name = "workspace name", type = "string", description = "query script workspace name") })
 	public void dropScriptWorkspace(String[] args) {
 		scriptRegistry.dropWorkspace(args[0]);
 		context.println("dropped");
@@ -210,7 +210,7 @@ public class LogDBScript implements Script {
 			return;
 		}
 
-		context.println("Log Query Status");
+		context.println("Query Status");
 		context.println("------------------");
 		context.println(QueryPrintHelper.getQueryStatus(q));
 	}

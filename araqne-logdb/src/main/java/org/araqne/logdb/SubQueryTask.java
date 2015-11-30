@@ -22,9 +22,12 @@ public class SubQueryTask extends QueryTask {
 	public synchronized void setStatus(TaskStatus status) {
 		if (status == TaskStatus.CANCELED)
 			subQuery.cancel(QueryStopReason.Interrupted);
-		
+
 		super.setStatus(status);
 	}
-	
-	
+
+	@Override
+	public String toString() {
+		return "subquery task: " + subQuery.toString();
+	}
 }

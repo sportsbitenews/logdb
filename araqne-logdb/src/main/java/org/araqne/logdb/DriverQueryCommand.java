@@ -41,7 +41,8 @@ public abstract class DriverQueryCommand extends QueryCommand {
 
 		@Override
 		public String toString() {
-			return "query: " + getQuery().getId() + " scan: " + DriverQueryCommand.this.toString();
+			String queryId = getQuery() != null ? Integer.toString(getQuery().getId()) : "null";
+			return "query: " + queryId + " scan: " + DriverQueryCommand.this.toString();
 		}
 	}
 }
