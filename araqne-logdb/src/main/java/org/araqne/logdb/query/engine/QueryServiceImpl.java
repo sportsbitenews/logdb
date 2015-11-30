@@ -85,6 +85,7 @@ import org.araqne.logdb.query.parser.LimitParser;
 import org.araqne.logdb.query.parser.LoadParser;
 import org.araqne.logdb.query.parser.LoggerParser;
 import org.araqne.logdb.query.parser.LookupParser;
+import org.araqne.logdb.query.parser.MakeBatchParser;
 import org.araqne.logdb.query.parser.MemLookupParser;
 import org.araqne.logdb.query.parser.MvParser;
 import org.araqne.logdb.query.parser.OutputCsvParser;
@@ -258,6 +259,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 		parsers.add(new RepeatParser());
 		parsers.add(new ResultParser(this));
+		parsers.add(new MakeBatchParser());
 
 		if (allowQueryPurge)
 			parsers.add(new PurgeParser(storage, tableRegistry));
