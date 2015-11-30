@@ -44,6 +44,7 @@
 							org.araqne.logstorage.file;version="2.10.0",
 							org.araqne.log.api;version="3.4.0",
 							org.araqne.msgbus;version="1.9.9",
+							org.araqne.api;version="3.0.5",
 							*
 						</Import-Package>
 					</instructions>
@@ -79,7 +80,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-api</artifactId>
-			<version>3.0.4</version>
+			<version>3.0.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>

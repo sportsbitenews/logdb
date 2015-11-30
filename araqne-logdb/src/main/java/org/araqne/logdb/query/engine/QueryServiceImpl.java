@@ -33,6 +33,7 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
+import org.araqne.api.SystemProperty;
 import org.araqne.confdb.ConfigService;
 import org.araqne.cron.TickService;
 import org.araqne.log.api.LogParserFactoryRegistry;
@@ -206,13 +207,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		File dir = new File(System.getProperty("araqne.data.dir"), "araqne-logdb/query");
 		dir.mkdirs();
 
-		allowQueryPurge = Boolean.parseBoolean(System.getProperty("araqne.logdb.allowpurge"));
-		if (System.getProperty("araqne.logdb.purge") != null) {
-			String s = System.getProperty("araqne.logdb.purge");
-			allowQueryPurge = s.equalsIgnoreCase("enabled") || s.equalsIgnoreCase("true");
-		}
-
-		useBom = Boolean.parseBoolean(System.getProperty("araqne.logdb.utf8bom"));
+		allowQueryPurge = SystemProperty.isEnabled("araqne.logdb.allowpurge");
+		allowQueryPurge = SystemProperty.isEnabled("araqne.logdb.purge");
+		useBom = SystemProperty.isEnabled("araqne.logdb.utf8bom");
 
 		prepareQueryParsers();
 	}
@@ -435,8 +432,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			if (session == null) {
 				logger.debug("araqne logdb: try to remove query [{}]", id);
 			} else {
-				logger.debug("araqne logdb: try to remove query [{}] from session [{}:{}]",
-						new Object[] { id, session.getGuid(), session.getLoginName() });
+				logger.debug("araqne logdb: try to remove query [{}] from session [{}:{}]", new Object[] { id, session.getGuid(),
+						session.getLoginName() });
 			}
 		}
 
@@ -448,8 +445,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 		if (session != null && !query.isAccessible(session)) {
 			Session querySession = query.getContext().getSession();
-			logger.warn("araqne logdb: security violation, [{}] access to query of login [{}] session [{}]",
-					new Object[] { session.getLoginName(), querySession.getLoginName(), querySession.getGuid() });
+			logger.warn("araqne logdb: security violation, [{}] access to query of login [{}] session [{}]", new Object[] {
+					session.getLoginName(), querySession.getLoginName(), querySession.getGuid() });
 			return;
 		}
 
@@ -566,8 +563,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 			Session s = q.getContext().getSession();
 			if (q.getRunMode() == RunMode.FOREGROUND && s.equals(session)) {
-				logger.trace("araqne logdb: removing foreground query [{}:{}] by session [{}] logout",
-						new Object[] { q.getId(), q.getQueryString(), session.getLoginName() });
+				logger.trace("araqne logdb: removing foreground query [{}:{}] by session [{}] logout", new Object[] { q.getId(),
+						q.getQueryString(), session.getLoginName() });
 				removeQuery(q.getId());
 			}
 		}

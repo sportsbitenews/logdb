@@ -39,6 +39,7 @@ import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Unbind;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.api.PrimitiveConverter;
+import org.araqne.api.SystemProperty;
 import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigDatabase;
 import org.araqne.confdb.ConfigService;
@@ -356,7 +357,15 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		Config c = db.findOne(LogRetentionPolicy.class, Predicates.field("table_name", tableName));
 		if (c == null)
 			return null;
-		return c.getDocument(LogRetentionPolicy.class);
+
+		LogRetentionPolicy policy = c.getDocument(LogRetentionPolicy.class);
+		if (SystemProperty.isEnabled("cc_compliant")) {
+			if (policy.getRetentionDays() != 0 && policy.getRetentionDays() < 180) {
+				policy.setRetentionDays(180);
+			}
+		}
+
+		return policy;
 	}
 
 	@Override

@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.araqne.api.SystemProperty;
 import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryCommand;
@@ -61,8 +62,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 	private int inputCount;;
 
 	static {
-		String s = System.getProperty("araqne.logdb.discard_null_group");
-		discardNullGroup = s != null && s.equalsIgnoreCase("enabled");
+		discardNullGroup = SystemProperty.isEnabled("araqne.logdb.discard_null_group");
 	}
 
 	public Stats(List<AggregationField> fields, List<String> clause) {

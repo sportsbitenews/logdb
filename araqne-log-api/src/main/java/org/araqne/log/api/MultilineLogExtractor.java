@@ -34,6 +34,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.araqne.api.SystemProperty;
+
 /**
  * @since 2.4.6
  * @author xeraph
@@ -57,9 +59,7 @@ public class MultilineLogExtractor {
 	private Calendar yearModifier;
 
 	static {
-		String s = System.getProperty("araqne.logapi.collect_empty_line");
-		if (s != null && (s.equalsIgnoreCase("enabled") || s.equalsIgnoreCase("true")))
-			collectEmptyLine = true;
+		collectEmptyLine = SystemProperty.isEnabled("araqne.logapi.collect_empty_line");
 	}
 
 	public static MultilineLogExtractor build(Logger logger, LogPipe receiver) {

@@ -41,6 +41,7 @@
 							org.araqne.codec;version=2.2.0,
 							org.araqne.confdb;version=0.10.0,
 							org.araqne.confdb.file;version=0.10.0,
+							org.araqne.api;version="3.0.5",
 							org.xerial.snappy;resolution:=optional,
 							!org.junit,*
 						</Import-Package>
@@ -76,7 +77,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-api</artifactId>
-			<version>3.0.4</version>
+			<version>3.0.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
