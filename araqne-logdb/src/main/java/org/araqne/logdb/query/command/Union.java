@@ -46,6 +46,11 @@ public class Union extends QueryCommand implements SubQueryCommand {
 	}
 
 	@Override
+	public boolean isDriver() {
+		return true;
+	}
+
+	@Override
 	public QueryTask getMainTask() {
 		return subQueryTask;
 	}

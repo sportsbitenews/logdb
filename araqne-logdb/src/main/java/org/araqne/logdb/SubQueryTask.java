@@ -13,6 +13,14 @@ public class SubQueryTask extends QueryTask {
 	}
 
 	@Override
+	public boolean isRunnable() {
+		if (!subQuery.isRunnable())
+			return false;
+
+		return super.isRunnable();
+	}
+
+	@Override
 	public void run() {
 		subQuery.run();
 		subQuery.awaitFinish();
