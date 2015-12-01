@@ -105,9 +105,8 @@ public class QueryTaskScheduler implements Runnable {
 	}
 
 	public void awaitTaskDoneRecusively(QueryTask task) throws InterruptedException {
-		// Post Order Traverse
-		for (QueryTask dependency : task.getDependencies()) {
-			awaitTaskDoneRecusively(dependency);
+		for (QueryTask subTask : task.getSubTasks()) {
+			awaitTaskDoneRecusively(subTask);
 		}
 
 		task.await();
@@ -193,16 +192,14 @@ public class QueryTaskScheduler implements Runnable {
 				if (failure != null)
 					msg = failure.getMessage() != null ? failure.getMessage() : failure.getClass().getName();
 
-				logger.debug("araqne logdb: canceled query [{}] task [{}] cause [{}]", new Object[] {
-						query.getId(), task, msg });
+				logger.debug("araqne logdb: canceled query [{}] task [{}] cause [{}]", new Object[] { query.getId(), task, msg });
 			}
 		}
 	}
 
 	private void markCancelRecursively(QueryTask task) {
-		// Post Order Traverse
-		for (QueryTask dependency : task.getDependencies()) {
-			markCancelRecursively(dependency);
+		for (QueryTask subTask : task.getSubTasks()) {
+			markCancelRecursively(subTask);
 		}
 
 		markCancel(task);
@@ -211,11 +208,12 @@ public class QueryTaskScheduler implements Runnable {
 	private class QueryTaskTracer extends QueryTask implements QueryTaskListener {
 
 		private AtomicBoolean closed = new AtomicBoolean();
+
 		@Override
 		public void run() {
 			if (!closed.compareAndSet(false, true))
 				return;
-			
+
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: all query [{}] tasks are completed", query.getId());
 
