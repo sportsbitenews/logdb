@@ -30,6 +30,8 @@ import org.araqne.logdb.QueryResultSet;
 import org.araqne.logdb.QueryService;
 import org.araqne.logdb.RunMode;
 import org.araqne.logdb.Session;
+import org.araqne.logdb.SubQueryCommand;
+import org.araqne.logdb.query.command.Join;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,31 +42,37 @@ public class QueryHelper {
 	private QueryHelper() {
 	}
 
-	public static void setJoinAndUnionDependencies(List<QueryCommand> commands) {
-		List<QueryCommand> joinCmds = new ArrayList<QueryCommand>();
-		List<QueryCommand> unionCmds = new ArrayList<QueryCommand>();
+	public static void setJoinDependencies(Query query) {
+		List<Join> joinCmds = new ArrayList<Join>();
 
-		for (QueryCommand cmd : commands) {
-			if (cmd.getName().equals("join"))
-				joinCmds.add(cmd);
-
-			if (cmd.getName().equals("union"))
-				unionCmds.add(cmd);
+		for (QueryCommand cmd : query.getCommands()) {
+			if (cmd.getName().equals("join")) {
+//				query.addDependency(((Join) cmd).getSubQuery());
+				joinCmds.add((Join) cmd);
+			}
 		}
 
-		for (QueryCommand cmd : commands) {
+		for (QueryCommand cmd : query.getCommands()) {
 			if (cmd.isDriver() && cmd.getMainTask() != null) {
-				for (QueryCommand join : joinCmds) {
+				for (Join join : joinCmds) {
 					cmd.getDependency().addDependency(join.getMainTask());
+					if (cmd instanceof SubQueryCommand) {
+						Query subQuery = ((SubQueryCommand) cmd).getSubQuery();
+						addQueryDependencyRecursively(subQuery, join.getSubQuery());
+					}
 					logger.debug("cmd [{}] now depends on task [{}]", cmd.getMainTask().getID(), join.getMainTask().getID());
 				}
 			}
+		}
+	}
 
-			if (cmd.isDriver() && cmd.getMainTask() != null) {
-				for (QueryCommand union : unionCmds) {
-					union.getDependency().addDependency(cmd.getMainTask());
-					logger.debug("cmd [{}] now depends on task [{}]", union.getMainTask().getID(), cmd.getMainTask().getID());
-				}
+	private static void addQueryDependencyRecursively(Query query, Query joinQuery) {
+		query.addDependency(joinQuery);
+
+		for (QueryCommand cmd : query.getCommands()) {
+			if (cmd instanceof SubQueryCommand) {
+				Query subQuery = ((SubQueryCommand) cmd).getSubQuery();
+				addQueryDependencyRecursively(subQuery, joinQuery);
 			}
 		}
 	}
@@ -127,8 +135,8 @@ public class QueryHelper {
 		// @since 2.2.17
 		if (q.getCause() != null) {
 			m.put("error_code", GENERAL_QUERY_FAILURE_CODE);
-			m.put("error_detail", q.getCause().getMessage() != null ? q.getCause().getMessage() : q.getCause().getClass()
-					.getName());
+			m.put("error_detail",
+					q.getCause().getMessage() != null ? q.getCause().getMessage() : q.getCause().getClass().getName());
 		}
 
 		return m;

@@ -18,6 +18,7 @@ package org.araqne.logdb;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -36,23 +37,47 @@ public abstract class QueryTask implements Runnable {
 		INIT, RUNNING, FINALIZING, COMPLETED, CANCELED
 	}
 
+	private CountDownLatch latch;
+
 	private TaskStatus status = TaskStatus.INIT;
 	private Throwable failure;
 	private QueryTask parentTask;
 	private CopyOnWriteArraySet<QueryTask> subTasks = new CopyOnWriteArraySet<QueryTask>();
 	private CopyOnWriteArraySet<QueryTask> dependencies = new CopyOnWriteArraySet<QueryTask>();
 	private CopyOnWriteArraySet<QueryTaskListener> listeners = new CopyOnWriteArraySet<QueryTaskListener>();
-	
+
 	private static AtomicLong l = new AtomicLong(1);
-	
+
 	private long id = l.incrementAndGet();
+
+	private Object statusLock = new Object();
 
 	public TaskStatus getStatus() {
 		return status;
 	}
 
+	public void await() {
+		if(this.latch != null)
+			try {
+				this.latch.await();
+			} catch (InterruptedException e) {
+			}
+	}
+
+	public void done() {
+		if (latch != null)
+			latch.countDown();
+	}
+
 	public void setStatus(TaskStatus status) {
-		this.status = status;
+		synchronized (statusLock) {
+			if (this.status.ordinal() >= status.ordinal())
+				return;
+
+			if (status == TaskStatus.RUNNING)
+				latch = new CountDownLatch(1);
+			this.status = status;
+		}
 	}
 
 	public Throwable getFailure() {
@@ -88,9 +113,13 @@ public abstract class QueryTask implements Runnable {
 		subTasks.remove(task);
 	}
 
+	public boolean isStopped() {
+		return (this.status == TaskStatus.CANCELED || this.status == TaskStatus.COMPLETED);
+	}
+
 	public boolean isRunnable() {
 		for (QueryTask t : dependencies)
-			if (t.getStatus() != TaskStatus.COMPLETED && t.getStatus() != TaskStatus.CANCELED)
+			if (!t.isStopped())
 				return false;
 
 		return status == TaskStatus.INIT;

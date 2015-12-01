@@ -13,13 +13,13 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.SubQueryCommand;
 import org.araqne.logdb.SubQueryTask;
-import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.command.Sort.SortField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Join extends QueryCommand {
+public class Join extends QueryCommand implements SubQueryCommand {
 	public enum JoinType {
 		Inner, Left, Right, Full
 	}
@@ -57,6 +57,16 @@ public class Join extends QueryCommand {
 	@Override
 	public String getName() {
 		return "join";
+	}
+
+	@Override
+	public boolean isReducer() {
+		return true;
+	}
+
+	@Override
+	public Query getSubQuery() {
+		return subQuery;
 	}
 
 	@Override
@@ -151,10 +161,6 @@ public class Join extends QueryCommand {
 
 	public SortField[] getSortFields() {
 		return sortFields;
-	}
-
-	public Query getSubQuery() {
-		return subQuery;
 	}
 
 	@Override

@@ -13,8 +13,29 @@ public class SubQueryTask extends QueryTask {
 	}
 
 	@Override
+	public boolean isRunnable() {
+		if (!subQuery.isRunnable())
+			return false;
+
+		return super.isRunnable();
+	}
+
+	@Override
 	public void run() {
 		subQuery.run();
 		subQuery.awaitFinish();
+	}
+
+	@Override
+	public synchronized void setStatus(TaskStatus status) {
+		if (status == TaskStatus.CANCELED)
+			subQuery.cancel(QueryStopReason.Interrupted);
+
+		super.setStatus(status);
+	}
+
+	@Override
+	public String toString() {
+		return "subquery task: " + subQuery.toString();
 	}
 }

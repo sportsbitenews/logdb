@@ -68,7 +68,7 @@ public class Proc extends QueryCommand implements FieldOrdering {
 
 		List<QueryCommand> procCommands = parserService.parseCommands(procCtx, procedure.getQueryString());
 		this.subQuery = new DefaultQuery(procCtx, procedure.getQueryString(), procCommands, new StreamResultFactory(procPipe));
-		QueryHelper.setJoinAndUnionDependencies(subQuery.getCommands());
+		QueryHelper.setJoinDependencies(subQuery);
 
 		for (QueryCommand cmd : subQuery.getCommands()) {
 			if (cmd.getMainTask() != null) {
