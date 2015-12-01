@@ -23,6 +23,7 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
+import org.araqne.logdb.query.expr.BatchExpression;
 import org.araqne.logdb.query.expr.Expression;
 
 public class Search extends QueryCommand implements ThreadSafe {
@@ -95,34 +96,65 @@ public class Search extends QueryCommand implements ThreadSafe {
 
 		if (rowBatch.selectedInUse) {
 			int n = 0;
-			for (int i = 0; i < rowBatch.size; i++) {
-				int p = rowBatch.selected[i];
-				Row row = rowBatch.rows[p];
+			if (expr instanceof BatchExpression) {
+				Object[] values = ((BatchExpression) expr).eval(rowBatch.rebuild());
+				for (int i = 0; i < rowBatch.size; i++) {
+					int p = rowBatch.selected[i];
+					Object o = values[i];
+					if (o instanceof Boolean)
+						ret = (Boolean) o;
+					else
+						ret = o != null;
 
-				Object o = expr.eval(row);
-				if (o instanceof Boolean)
-					ret = (Boolean) o;
-				else
-					ret = o != null;
+					if (ret)
+						rowBatch.selected[n++] = p;
+				}
+			} else {
+				for (int i = 0; i < rowBatch.size; i++) {
+					int p = rowBatch.selected[i];
+					Row row = rowBatch.rows[p];
 
-				if (ret)
-					rowBatch.selected[n++] = p;
+					Object o = expr.eval(row);
+					if (o instanceof Boolean)
+						ret = (Boolean) o;
+					else
+						ret = o != null;
+
+					if (ret)
+						rowBatch.selected[n++] = p;
+				}
 			}
 
 			rowBatch.size = n;
 		} else {
 			int n = 0;
 			rowBatch.selected = new int[rowBatch.size];
-			for (int i = 0; i < rowBatch.size; i++) {
-				Row row = rowBatch.rows[i];
-				Object o = expr.eval(row);
-				if (o instanceof Boolean)
-					ret = (Boolean) o;
-				else
-					ret = o != null;
 
-				if (ret)
-					rowBatch.selected[n++] = i;
+			if (expr instanceof BatchExpression) {
+				Object[] values = ((BatchExpression) expr).eval(rowBatch);
+
+				for (int i = 0; i < rowBatch.size; i++) {
+					Object o = values[i];
+					if (o instanceof Boolean)
+						ret = (Boolean) o;
+					else
+						ret = o != null;
+
+					if (ret)
+						rowBatch.selected[n++] = i;
+				}
+			} else {
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row row = rowBatch.rows[i];
+					Object o = expr.eval(row);
+					if (o instanceof Boolean)
+						ret = (Boolean) o;
+					else
+						ret = o != null;
+
+					if (ret)
+						rowBatch.selected[n++] = i;
+				}
 			}
 
 			rowBatch.size = n;

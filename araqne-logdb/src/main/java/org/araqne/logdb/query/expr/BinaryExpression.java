@@ -15,7 +15,9 @@
  */
 package org.araqne.logdb.query.expr;
 
-public abstract class BinaryExpression implements Expression {
+import org.araqne.logdb.RowBatch;
+
+public abstract class BinaryExpression implements BatchExpression {
 	protected final Expression lhs;
 	protected final Expression rhs;
 
@@ -23,12 +25,48 @@ public abstract class BinaryExpression implements Expression {
 		this.lhs = lhs;
 		this.rhs = rhs;
 	}
-	
+
 	public Expression getLhs() {
 		return lhs;
 	}
-	
+
 	public Expression getRhs() {
 		return rhs;
 	}
+
+	@Override
+	public Object[] eval(RowBatch rowBatch) {
+		Object[] ret = new Object[rowBatch.size];
+		Object[] leftValues = null;
+		Object[] rightValues = null;
+
+		if (lhs instanceof BatchExpression) {
+			leftValues = ((BatchExpression) lhs).eval(rowBatch);
+		}
+
+		if (rhs instanceof BatchExpression) {
+			rightValues = ((BatchExpression) rhs).eval(rowBatch);
+		}
+
+		for (int i = 0; i < rowBatch.size; i++) {
+			Object leftValue = null;
+			Object rightValue = null;
+
+			if (leftValues == null || leftValues.length < i)
+				leftValue = lhs.eval(rowBatch.rows[i]);
+			else
+				leftValue = leftValues[i];
+
+			if (rightValues == null || rightValues.length < i)
+				rightValue = rhs.eval(rowBatch.rows[i]);
+			else
+				rightValue = rightValues[i];
+
+			ret[i] = calculate(leftValue, rightValue);
+		}
+
+		return ret;
+	}
+
+	abstract protected Object calculate(Object leftValue, Object rightValue);
 }

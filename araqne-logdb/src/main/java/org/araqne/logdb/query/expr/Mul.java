@@ -29,6 +29,11 @@ public class Mul extends BinaryExpression {
 	}
 
 	@Override
+	protected Object calculate(Object leftValue, Object rightValue) {
+		return NumberUtil.mul(leftValue, rightValue);
+	}
+
+	@Override
 	public String toString() {
 		return "(" + lhs + " * " + rhs + ")";
 	}

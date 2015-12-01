@@ -18,32 +18,52 @@ package org.araqne.logdb.query.expr;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 
 public class Assign extends BinaryExpression {
 	private final String field;
+
 	public Assign(Expression lhs, Expression rhs) {
 		super(lhs, rhs);
 		if (!(lhs instanceof EvalField)) {
 			throw new QueryParseException("20101", -1);
 		}
-		
+
 		this.field = lhs.toString();
 	}
-	
+
 	@Override
 	public Object eval(Row map) {
 		return rhs.eval(map);
 	}
 
 	@Override
+	public Object[] eval(RowBatch rowBatch) {
+		if (rhs instanceof BatchExpression) {
+			return ((BatchExpression) rhs).eval(rowBatch);
+		} else {
+			Object[] ret = new Object[rowBatch.size];
+			for (int i = 0; i < rowBatch.size; i++) {
+				ret[i] = rhs.eval(rowBatch.rows[i]);
+			}
+			return ret;
+		}
+	}
+
+	@Override
+	protected Object calculate(Object leftValue, Object rightValue) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public String toString() {
 		return "(" + lhs + " = " + rhs + ")";
 	}
-	
+
 	public String getField() {
 		return field;
 	}
-	
+
 	public Expression getValueExpression() {
 		return super.rhs;
 	}

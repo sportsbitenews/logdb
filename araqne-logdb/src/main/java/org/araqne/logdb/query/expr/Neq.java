@@ -15,14 +15,13 @@
  */
 package org.araqne.logdb.query.expr;
 
-import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.Row;
 import org.araqne.logdb.query.expr.In.StringMatcher;
 
 public class Neq extends BinaryExpression {
 	private ObjectComparator cmp = new ObjectComparator();
 	private StringMatcher matcher;
-	
 
 	public Neq(Expression lhs, Expression rhs) {
 		super(lhs, rhs);
@@ -48,6 +47,14 @@ public class Neq extends BinaryExpression {
 
 			return cmp.compare(l, r) != 0;
 		}
+	}
+
+	@Override
+	protected Object calculate(Object leftValue, Object rightValue) {
+		if (leftValue == null || rightValue == null)
+			return false;
+		else
+			return cmp.compare(leftValue, rightValue) != 0;
 	}
 
 	@Override

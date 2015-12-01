@@ -29,7 +29,13 @@ public class Div extends BinaryExpression {
 	}
 
 	@Override
+	protected Object calculate(Object leftValue, Object rightValue) {
+		return NumberUtil.div(leftValue, rightValue);
+	}
+
+	@Override
 	public String toString() {
 		return "(" + lhs + " / " + rhs + ")";
 	}
+
 }

@@ -15,8 +15,8 @@
  */
 package org.araqne.logdb.query.expr;
 
-import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
+import org.araqne.logdb.Row;
 
 public class Lt extends BinaryExpression {
 	private ObjectComparator cmp = new ObjectComparator();
@@ -37,7 +37,13 @@ public class Lt extends BinaryExpression {
 	}
 
 	@Override
+	protected Object calculate(Object leftValue, Object rightValue) {
+		return cmp.compare(leftValue, rightValue) < 0;
+	}
+
+	@Override
 	public String toString() {
 		return "(" + lhs + " < " + rhs + ")";
 	}
+
 }

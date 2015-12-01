@@ -24,6 +24,7 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
 import org.araqne.logdb.query.expr.Assign;
+import org.araqne.logdb.query.expr.BatchExpression;
 import org.araqne.logdb.query.expr.Comma;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -35,7 +36,7 @@ public class Eval extends QueryCommand implements ThreadSafe {
 	public Eval(Expression expr) {
 		this(expr, 0);
 	}
-	
+
 	public Eval(Expression expr, int length) {
 		if (expr instanceof Comma) {
 			Comma ce = Comma.class.cast(expr);
@@ -44,18 +45,18 @@ public class Eval extends QueryCommand implements ThreadSafe {
 			this.exprs = new ArrayList<Expression>();
 			exprs.add(expr);
 		}
-		
+
 		for (Expression exp : exprs) {
 			if (!(exp instanceof Assign)) {
 				throw new QueryParseException("20100", COMMAND.length() + 1, length - 1, null);
 			}
 		}
 	}
-	
+
 	public Expression getExpression(int idx) {
 		return exprs.get(idx);
 	}
-	
+
 	public List<Expression> getExpressions() {
 		return exprs;
 	}
@@ -68,13 +69,13 @@ public class Eval extends QueryCommand implements ThreadSafe {
 	public Object update(Row m, Expression expr) {
 		if (!(expr instanceof Assign))
 			return expr.eval(m);
-		
+
 		Assign ae = Assign.class.cast(expr);
 		Object ret = update(m, ae.getValueExpression());
 		m.put(ae.getField(), ret);
 		return ret;
 	}
-	
+
 	@Override
 	public void onPush(Row m) {
 		for (Expression expr : exprs) {
@@ -85,24 +86,38 @@ public class Eval extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
-		if (rowBatch.selectedInUse) {
-			for (int i = 0; i < rowBatch.size; i++) {
-				int p = rowBatch.selected[i];
-				Row row = rowBatch.rows[p];
-				for (Expression expr : exprs) {
-					update(row, expr);
+		for (Expression expr : exprs) {
+			update(rowBatch, expr);
+		}
+		pushPipe(rowBatch);
+	}
+
+	public Object[] update(RowBatch rowBatch, Expression expr) {
+		if (!(expr instanceof Assign)) {
+			if (expr instanceof BatchExpression) {
+				if (rowBatch.selectedInUse)
+					return ((BatchExpression) expr).eval(rowBatch.rebuild());
+				else
+					return ((BatchExpression) expr).eval(rowBatch);
+			} else {
+				Object[] ret = new Object[rowBatch.size];
+				for (int i = 0; i < rowBatch.size; i++) {
+					int p = (rowBatch.selectedInUse) ? rowBatch.selected[i] : i;
+					Row row = rowBatch.rows[p];
+					ret[i] = expr.eval(row);
 				}
-			}
-		} else {
-			for (int i = 0; i < rowBatch.size; i++) {
-				Row row = rowBatch.rows[i];
-				for (Expression expr : exprs) {
-					update(row, expr);
-				}
+				return ret;
 			}
 		}
 
-		pushPipe(rowBatch);
+		Assign ae = Assign.class.cast(expr);
+		Object[] ret = update(rowBatch, ae.getValueExpression());
+		for (int i = 0; i < rowBatch.size; i++) {
+			Row row = rowBatch.rows[i];
+			row.put(ae.getField(), ret[i]);
+		}
+
+		return ret;
 	}
 
 	@Override
@@ -118,15 +133,15 @@ public class Eval extends QueryCommand implements ThreadSafe {
 			return "eval " + a.getField() + "=" + a.getValueExpression();
 		} else {
 			StringBuilder sb = new StringBuilder("eval ");
-		boolean first = true;
-		for (Expression expr : exprs) {
-			if (!first)
-				sb.append(", ");
-			sb.append(expr);
-			if (first)
-				first = false;
-		}
-		return sb.toString();
+			boolean first = true;
+			for (Expression expr : exprs) {
+				if (!first)
+					sb.append(", ");
+				sb.append(expr);
+				if (first)
+					first = false;
+			}
+			return sb.toString();
 		}
 	}
 }

@@ -50,7 +50,16 @@ public class Eq extends BinaryExpression {
 	}
 
 	@Override
+	protected Object calculate(Object leftValue, Object rightValue) {
+		if (leftValue == null || rightValue == null)
+			return false;
+		else
+			return cmp.compare(leftValue, rightValue) == 0;
+	}
+
+	@Override
 	public String toString() {
 		return "(" + lhs + " == " + rhs + ")";
 	}
+
 }
