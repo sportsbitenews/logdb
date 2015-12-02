@@ -5,12 +5,14 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
+import org.araqne.logdb.query.expr.BatchExpression;
 import org.araqne.logdb.query.expr.Expression;
 
-public class EvtCtxGetVarFunction implements Expression {
+public class EvtCtxGetVarFunction implements BatchExpression {
 	private Expression topicExpr;
 	private Expression keyExpr;
 	private Expression varNameExpr;
@@ -33,9 +35,7 @@ public class EvtCtxGetVarFunction implements Expression {
 
 	}
 
-	@Override
-	public Object eval(Row row) {
-		EventContext ctx = EvtCtxGetFunction.findContext(storage, topicExpr, keyExpr, hostExpr, row);
+	private Object getContextVariable(EventContext ctx, Row row) {
 		if (ctx == null)
 			return null;
 
@@ -44,6 +44,24 @@ public class EvtCtxGetVarFunction implements Expression {
 			return null;
 
 		return ctx.getVariable(arg3.toString());
+	}
+
+	@Override
+	public Object eval(Row row) {
+		EventContext ctx = EvtCtxGetFunction.findContext(storage, topicExpr, keyExpr, hostExpr, row);
+		return getContextVariable(ctx, row);
+	}
+
+	@Override
+	public Object[] eval(RowBatch rowBatch) {
+		Object[] ret = new Object[rowBatch.size];
+		EventContext[] ctxs = EvtCtxGetFunction.findContexts(storage, topicExpr, keyExpr, hostExpr, rowBatch);
+
+		for (int i = 0; i < rowBatch.size; i++) {
+			ret[i] = getContextVariable(ctxs[i], rowBatch.rows[i]);
+		}
+
+		return ret;
 	}
 
 	@Override

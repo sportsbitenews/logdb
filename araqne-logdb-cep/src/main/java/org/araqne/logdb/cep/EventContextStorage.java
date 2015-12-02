@@ -17,6 +17,7 @@ package org.araqne.logdb.cep;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface EventContextStorage {
@@ -51,11 +52,13 @@ public interface EventContextStorage {
 
 	void removeContexts(List<EventKey> contexts, EventCause removal);
 
-	List<EventContext> getContexts(Set<EventKey> key);
+	EventContext[] getContexts(List<EventKey> keys);
 
 	void storeContext(EventContext ctx);
 
 	void storeContexts(List<EventContext> contexts);
-	
-	void addContextVariable(EventKey evtKey, String key, Object value);
+
+	boolean addContextVariable(EventKey evtKey, String key, Object value);
+
+	Object[] addContextVariables(List<Map<String, Object>> map);
 }

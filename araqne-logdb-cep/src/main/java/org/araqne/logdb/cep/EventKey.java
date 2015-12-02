@@ -28,6 +28,7 @@ public class EventKey {
 		this.topic = topic;
 		this.key = key;
 		this.host = host;
+
 		if (host != null)
 			this.hashCode = topic.hashCode() ^ key.hashCode() ^ host.hashCode();
 		else

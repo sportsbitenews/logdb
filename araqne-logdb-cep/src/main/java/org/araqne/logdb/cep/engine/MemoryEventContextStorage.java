@@ -15,10 +15,10 @@
  */
 package org.araqne.logdb.cep.engine;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -113,7 +113,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	public Iterator<EventKey> getContextKeys(String topic) {
 		if (topic == null)
 			return new HashSet<EventKey>(contexts.keySet()).iterator();
-		
+
 		HashSet<EventKey> keys = new HashSet<EventKey>();
 
 		for (EventKey key : contexts.keySet()) {
@@ -159,7 +159,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 			generateEvent(ctx, EventCause.CREATE);
 
 		} else {
-			if (ctx.getRows().size() > 1)
+			if (ctx.getRows().size() > 0)
 				oldCtx.addRow(ctx.getRows().get(0));
 			oldCtx.getCounter().incrementAndGet();
 			oldCtx.setTimeoutTime(ctx.getTimeoutTime());
@@ -167,12 +167,13 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public void addContextVariable(EventKey evtKey, String key, Object value) {
+	public boolean addContextVariable(EventKey evtKey, String key, Object value) {
 		EventContext ctx = getContext(evtKey);
 		if (ctx == null)
-			return;
+			return false;
 
 		ctx.setVariable(key, value);
+		return true;
 	}
 
 	@Override
@@ -321,12 +322,35 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	}
 
 	@Override
-	public List<EventContext> getContexts(Set<EventKey> keys) {
-		List<EventContext> contexts = new ArrayList<EventContext>();
-		for (EventKey key : keys) {
-			contexts.add(getContext(key));
+	public EventContext[] getContexts(List<EventKey> keys) {
+		EventContext[] contexts = new EventContext[keys.size()];
+
+		for (int i = 0; i < keys.size(); i++) {
+			if (keys.get(i) != null)
+				contexts[i] = getContext(keys.get(i));
 		}
+
 		return contexts;
+	}
+
+	@Override
+	public Object[] addContextVariables(List<Map<String, Object>> contexts) {
+		Object[] ret = new Object[contexts.size()];
+
+		for (int i = 0; i < contexts.size(); i++) {
+			Map<String, Object> map = contexts.get(i);
+			if (map == null) {
+				ret[i] = false;
+				continue;
+			}
+
+			EventKey evtKey = (EventKey) map.get("evtkey");
+			String key = (String) map.get("key");
+			Object value = map.get("value");
+			ret[i] = addContextVariable(evtKey, key, value);
+		}
+
+		return ret;
 	}
 
 	private class MemEventClockCallback implements EventClockCallback {
@@ -336,4 +360,5 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 			removeContext(value.getKey(), expire);
 		}
 	}
+
 }

@@ -7,13 +7,15 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
+import org.araqne.logdb.query.expr.BatchExpression;
 import org.araqne.logdb.query.expr.Expression;
 
-public class EvtCtxGetFunction implements Expression {
+public class EvtCtxGetFunction implements BatchExpression {
 	private Expression topicExpr;
 	private Expression keyExpr;
 	private Expression fieldExpr;
@@ -64,6 +66,22 @@ public class EvtCtxGetFunction implements Expression {
 	@Override
 	public Object eval(Row row) {
 		EventContext ctx = EvtCtxGetFunction.findContext(storage, topicExpr, keyExpr, hostExpr, row);
+		return getFieldType(ctx);
+	}
+
+	@Override
+	public Object[] eval(RowBatch rowBatch) {
+		Object[] ret = new Object[rowBatch.size];
+		EventContext[] contexts = EvtCtxGetFunction.findContexts(storage, topicExpr, keyExpr, hostExpr, rowBatch);
+
+		for (int i = 0; i < contexts.length; i++) {
+			ret[i] = getFieldType(contexts[i]);
+		}
+
+		return ret;
+	}
+
+	private Object getFieldType(EventContext ctx) {
 		if (ctx == null)
 			return null;
 
@@ -88,7 +106,6 @@ public class EvtCtxGetFunction implements Expression {
 
 			return l;
 		}
-
 		return null;
 	}
 
@@ -99,6 +116,24 @@ public class EvtCtxGetFunction implements Expression {
 
 	public static EventContext findContext(EventContextStorage storage, Expression topicExpr, Expression keyExpr,
 			Expression hostExpr, Row row) {
+		EventKey key = buildEventKey(topicExpr, keyExpr, hostExpr, row);
+		if (key == null)
+			return null;
+
+		return storage.getContext(key);
+	}
+
+	public static EventContext[] findContexts(EventContextStorage storage, Expression topicExpr, Expression keyExpr,
+			Expression hostExpr, RowBatch rowBatch) {
+		List<EventKey> keys = new ArrayList<EventKey>(rowBatch.size);
+		for (int i = 0; i < rowBatch.size; i++) {
+			keys.add(i, buildEventKey(topicExpr, keyExpr, hostExpr, rowBatch.rows[i]));
+		}
+
+		return storage.getContexts(keys);
+	}
+
+	private static EventKey buildEventKey(Expression topicExpr, Expression keyExpr, Expression hostExpr, Row row) {
 		Object arg1 = topicExpr.eval(row);
 		Object arg2 = keyExpr.eval(row);
 
@@ -115,6 +150,6 @@ public class EvtCtxGetFunction implements Expression {
 				host = arg3.toString();
 		}
 
-		return storage.getContext(new EventKey(topic, key, host));
+		return new EventKey(topic, key, host);
 	}
 }
