@@ -151,6 +151,17 @@ public class FunctionRegistryImpl implements FunctionRegistry {
 			define("datepart", DatePart.class);
 			define("xpath", Xpath.class);
 			define("daterange", DateRange.class);
+			define("log", Log.class);
+			define("log10", Log10.class);
+			define("pow", Pow.class);
+			define("sqrt", Sqrt.class);
+			define("exp", Exp.class);
+			define("sin", Sin.class);
+			define("cos", Cos.class);
+			define("tan", Tan.class);
+			define("asin", Asin.class);
+			define("acos", Acos.class);
+			define("atan", Atan.class);
 		}
 
 		private void define(String name, Class<?> clazz) {
