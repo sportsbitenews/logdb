@@ -42,6 +42,7 @@ public class DataBlockV3 {
 	final int FIXED_DATA_HEADER_SIZE = BLOCK_LENGTH + BLOCK_VERSION + BLOCK_FLAG + MIN_TIME + MAX_TIME + MIN_ID + MAX_ID
 			+ ORIGINAL_SIZE + COMPRESS_SIZE + LENGTH_BLOCK_LENGTH;
 
+	long blockLength;
 	byte version;
 	byte flag;
 	long minTime;
@@ -79,7 +80,11 @@ public class DataBlockV3 {
 				StorageInputStream dataStream = params.dataStream;
 				synchronized (dataStream) {
 					dataStream.seek(dataFp);
-					length = dataStream.readInt();
+					blockLength = length = dataStream.readInt();
+					
+					if (length < 0 || length - 4 > params.dataStream.available())
+						throw new IllegalStateException(
+								String.format("invalid length: %d", length));
 
 					blockToCache = ByteBuffer.allocate(length - 4);
 					dataStream.readBestEffort(blockToCache);
@@ -159,7 +164,7 @@ public class DataBlockV3 {
 			}
 		} catch (Throwable t) {
 			throw new IllegalStateException(
-					"exception on " + params.dataPath.getAbsolutePath() + " : block length - " + Integer.toString(length)
+					"exception on " + params.dataPath.getAbsolutePath() + " : block pos - " + params.indexHeader.dataFp + ", block length - " + Integer.toString(length)
 							+ ", pos - " + Integer.toString(pos) + ", compressedSize - " + Integer.toString(compressedSize),
 					t);
 		}
@@ -254,6 +259,10 @@ public class DataBlockV3 {
 
 	public byte[] getCompressedBuffer() {
 		return compressedBuffer;
+	}
+	
+	public long getBlockLength() {
+		return blockLength;
 	}
 
 	public String getDataHash() {

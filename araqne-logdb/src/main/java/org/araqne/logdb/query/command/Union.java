@@ -15,11 +15,16 @@
  */
 package org.araqne.logdb.query.command;
 
+import java.util.List;
+
+import org.araqne.logdb.BypassResultFactory;
+import org.araqne.logdb.DefaultQuery;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
-import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryTask;
-import org.araqne.logdb.impl.QueryHelper;
+import org.araqne.logdb.SubQueryCommand;
+import org.araqne.logdb.SubQueryTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,18 +32,22 @@ import org.slf4j.LoggerFactory;
  * @since 2.2.13
  * @author xeraph
  */
-public class Union extends QueryCommand {
+public class Union extends QueryCommand implements SubQueryCommand {
 	private final Logger slog = LoggerFactory.getLogger(Union.class);
+
+	private String subQueryString;
 	private Query subQuery;
+	private SubQueryTask subQueryTask;
 
-	// depend and wait outer commands
-	private Trigger triggerTask = new Trigger();
+	public Union(QueryContext context, List<QueryCommand> commands) {
+		this.subQueryString = buildQueryString(commands);
+		this.subQuery = new DefaultQuery(context, subQueryString, commands, new BypassResultFactory(this));
+		this.subQueryTask = new SubQueryTask(subQuery);
+	}
 
-	// post-query handler
-	private SubQueryTask subQueryTask = new SubQueryTask();
-
-	public Union() {
-		subQueryTask.addSubTask(triggerTask);
+	@Override
+	public boolean isDriver() {
+		return true;
 	}
 
 	@Override
@@ -47,23 +56,8 @@ public class Union extends QueryCommand {
 	}
 
 	@Override
-	public QueryTask getDependency() {
-		return triggerTask;
-	}
-
-	public void setSubQuery(Query subQuery) {
-		this.subQuery = subQuery;
-
-		QueryHelper.setJoinAndUnionDependencies(subQuery.getCommands());
-
-		// subquery post runner -> sub commands -> trigger -> outer commands
-		for (QueryCommand cmd : subQuery.getCommands()) {
-			if (cmd.getMainTask() != null) {
-				subQueryTask.addDependency(cmd.getMainTask());
-				cmd.getMainTask().addDependency(triggerTask);
-				subQueryTask.addSubTask(cmd.getMainTask());
-			}
-		}
+	public Query getSubQuery() {
+		return subQuery;
 	}
 
 	@Override
@@ -72,38 +66,18 @@ public class Union extends QueryCommand {
 	}
 
 	@Override
-	public void onStart() {
-		subQuery.preRun();
-	}
-
-	@Override
-	public void onClose(QueryStopReason reason) {
-		try {
-			subQuery.cancel(reason);
-		} catch (Throwable t) {
-			slog.error("araqne logdb: cannot stop union subquery [" + subQuery.getQueryString() + "]", t);
-		}
-	}
-
-	@Override
 	public String toString() {
 		return "union [ " + subQuery.getQueryString() + " ]";
 	}
 
-	private class Trigger extends QueryTask {
-		@Override
-		public void run() {
-			slog.debug("araqne logdb: union subquery started (dependency resolved), main query [{}] sub query [{}]",
-					query.getId(), subQuery.getId());
+	public static String buildQueryString(List<QueryCommand> commands) {
+		StringBuilder sb = new StringBuilder();
+		int i = 0;
+		for (QueryCommand cmd : commands) {
+			if (i++ != 0)
+				sb.append(" | ");
+			sb.append(cmd.toString());
 		}
-	}
-
-	private class SubQueryTask extends QueryTask {
-
-		@Override
-		public void run() {
-			slog.debug("araqne logdb: union subquery end, main query [{}] sub query [{}]", query.getId(), subQuery.getId());
-			subQuery.postRun();
-		}
+		return sb.toString();
 	}
 }

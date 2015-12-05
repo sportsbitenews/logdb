@@ -26,7 +26,9 @@ import java.util.List;
 import org.araqne.api.ScriptContext;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.RunMode;
+import org.araqne.logdb.SubQueryCommand;
 
 /**
  * @since 0.14.0
@@ -34,7 +36,7 @@ import org.araqne.logdb.RunMode;
  */
 public class QueryPrintHelper {
 	public static void printQueries(ScriptContext context, Collection<Query> qs, String queryFilter) {
-		String header = "Log Queries";
+		String header = "Queries";
 		if (queryFilter != null)
 			header += " (filter by \"" + queryFilter + "\")";
 
@@ -79,31 +81,51 @@ public class QueryPrintHelper {
 
 			String runMode = q.getRunMode() == RunMode.BACKGROUND ? " (bg)" : "";
 			String lastStatus = q.getCommands().get(q.getCommands().size() - 1).getStatus().toString();
-			context.println(String.format("[%d:%s:%s%s%s] %s => %d", q.getId(), lastStatus, loginName, when, runMode,
-					queryString, count));
+			context.println(String.format("[%d:%s:%s%s%s] %s => %d", q.getId(), lastStatus, loginName, when, runMode, queryString,
+					count));
 		}
 	}
 
 	public static String getQueryStatus(Query query) {
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-		String when = " \t/ not started yet";
+		String when = " / not started yet";
 		if (query.isStarted()) {
-			long sec = System.currentTimeMillis() - query.getStartTime();
-			when = String.format(" \t/ %s, %d seconds ago", sdf.format(new Date(query.getStartTime())), sec / 1000);
+			String s = "Running";
+			long elapsed = System.currentTimeMillis() - query.getStartTime();
+			if (query.isFinished()) {
+				s = "Finished";
+				elapsed = query.getFinishTime() - query.getStartTime();
+			}
+			when = String.format(" / %s (%d ms)", s, elapsed);
 		}
 
+		int mainQueryId = query.getId();
 		String loginName = query.getContext().getSession().getLoginName();
-		String status = String.format("[%d:%s] %s%s\n", query.getId(), loginName, query.getQueryString(), when);
+		String status = String.format("[%d:%s] %s%s\n", mainQueryId, loginName, query.getQueryString(), when);
 
-		int i = 0;
+		status += appendQueryStatus(getMainQuery(query.getContext(), mainQueryId), mainQueryId);
+
 		for (Query q : query.getContext().getQueries()) {
-			if (i++ != 0)
-				status += "Sub Query #" + q.getId() + "\n";
-
-			status += getCommandStatuses(q.getCommands(), 2);
+			if (q.getId() != mainQueryId)
+				status += appendQueryStatus(q, mainQueryId);
 		}
 
 		return status;
+	}
+
+	private static String appendQueryStatus(Query query, int mainQueryId) {
+		String status = "";
+		if (query.getId() != mainQueryId)
+			status += "Sub Query #" + query.getId() + "\n";
+
+		status += getCommandStatuses(query.getCommands(), 2);
+		return status;
+	}
+
+	private static Query getMainQuery(QueryContext context, int queryId) {
+		for (Query q : context.getQueries())
+			if (q.getId() == queryId)
+				return q;
+		return null;
 	}
 
 	private static String getCommandStatuses(List<QueryCommand> commands, int indent) {
@@ -113,10 +135,13 @@ public class QueryPrintHelper {
 				status += tab(indent) + "Command [" + cmd.getName() + "]\n";
 				status += getCommandStatuses(cmd.getNestedCommands(), indent + 2);
 			} else {
-				String taskId = cmd.getMainTask() != null ? 
-						String.format("%d: ", cmd.getMainTask().getID()) : "";
-				status += String.format(tab(indent) + "[%s] %s%s \t/ passed %d data to next query\n", cmd.getStatus(),
-						taskId, cmd.toString(), cmd.getOutputCount());
+				String subQueryStatus = "";
+				if (cmd instanceof SubQueryCommand)
+					subQueryStatus = "/ Sub Query #" + ((SubQueryCommand) cmd).getSubQuery().getId() + " ";
+
+				String taskId = cmd.getMainTask() != null ? String.format("%d: ", cmd.getMainTask().getID()) : "";
+				status += String.format(tab(indent) + "[%s] %s%s %s/ passed %d tuples\n", cmd.getStatus(), taskId, cmd.toString(),
+						subQueryStatus, cmd.getOutputCount());
 			}
 		}
 		return status;
