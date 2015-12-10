@@ -27,7 +27,13 @@ public class Gte extends BinaryExpression {
 
 	@Override
 	public Object eval(Row map) {
-		return cmp.compare(lhs.eval(map), rhs.eval(map)) >= 0;
+		Object o1 = lhs.eval(map);
+		Object o2 = rhs.eval(map);
+		
+		if (o1 == null || o2 == null)
+			return null;
+		
+		return cmp.compare(o1, o2) >= 0;
 	}
 
 	@Override

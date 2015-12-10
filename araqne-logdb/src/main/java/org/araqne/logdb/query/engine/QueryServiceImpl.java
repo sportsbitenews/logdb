@@ -113,7 +113,6 @@ import org.araqne.logdb.query.parser.TableParser;
 import org.araqne.logdb.query.parser.TextFileParser;
 import org.araqne.logdb.query.parser.TimechartParser;
 import org.araqne.logdb.query.parser.ToJsonParser;
-import org.araqne.logdb.query.parser.TransactionParser;
 import org.araqne.logdb.query.parser.UnionParser;
 import org.araqne.logdb.query.parser.ZipFileParser;
 import org.araqne.logstorage.Log;
@@ -123,7 +122,6 @@ import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableNotFoundException;
 import org.araqne.logstorage.TableSchema;
-import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -185,7 +183,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	@Requires
 	private ProcedureRegistry procedureRegistry;
 
-	private BundleContext bc;
 	private ConcurrentMap<Integer, Query> queries;
 
 	private CopyOnWriteArraySet<QueryEventListener> callbacks;
@@ -197,8 +194,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	private boolean allowQueryPurge = false;
 	private boolean useBom = false;
 
-	public QueryServiceImpl(BundleContext bc) {
-		this.bc = bc;
+	public QueryServiceImpl() {
 		this.queries = new ConcurrentHashMap<Integer, Query>();
 		this.callbacks = new CopyOnWriteArraySet<QueryEventListener>();
 		this.planners = new CopyOnWriteArrayList<QueryPlanner>();
@@ -392,7 +388,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
-		QueryHelper.setJoinAndUnionDependencies(query.getCommands());
+		QueryHelper.setJoinDependencies(query);
 
 		new Thread(query, "Query " + id).start();
 

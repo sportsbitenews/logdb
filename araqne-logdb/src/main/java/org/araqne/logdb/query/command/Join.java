@@ -13,12 +13,13 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
-import org.araqne.logdb.impl.QueryHelper;
+import org.araqne.logdb.SubQueryCommand;
+import org.araqne.logdb.SubQueryTask;
 import org.araqne.logdb.query.command.Sort.SortField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Join extends QueryCommand {
+public class Join extends QueryCommand implements SubQueryCommand {
 	public enum JoinType {
 		Inner, Left, Right, Full
 	}
@@ -34,9 +35,10 @@ public class Join extends QueryCommand {
 	private SortField[] sortFields;
 
 	private Query subQuery;
+	private SubQueryTask subQueryTask;
 
 	// tasks
-	private SubQueryTask subQueryTask = new SubQueryTask();
+	private PostSubQueryTask postSubQueryTask = new PostSubQueryTask();
 
 	private SortMergeJoiner sortMergeJoiner;
 
@@ -46,6 +48,7 @@ public class Join extends QueryCommand {
 		this.joinKeys = new JoinKeys(new Object[joinKeyCount]);
 		this.sortFields = sortFields;
 		this.subQuery = subQuery;
+		this.subQueryTask = new SubQueryTask(subQuery);
 		this.sortMergeJoiner = new SortMergeJoiner(joinType, sortFields, new SortMergeJoinerCallback(this));
 
 		logger.debug("araqne logdb: join subquery created [{}:{}]", subQuery.getId(), subQuery.getQueryString());
@@ -57,17 +60,19 @@ public class Join extends QueryCommand {
 	}
 
 	@Override
+	public boolean isReducer() {
+		return true;
+	}
+
+	@Override
+	public Query getSubQuery() {
+		return subQuery;
+	}
+
+	@Override
 	public void onStart() {
-		QueryHelper.setJoinAndUnionDependencies(subQuery.getCommands());
-
-		for (QueryCommand cmd : subQuery.getCommands()) {
-			if (cmd.getMainTask() != null) {
-				subQueryTask.addDependency(cmd.getMainTask());
-				subQueryTask.addSubTask(cmd.getMainTask());
-			}
-		}
-
-		subQuery.preRun();
+		postSubQueryTask.addDependency(subQueryTask);
+		postSubQueryTask.addSubTask(subQueryTask);
 	}
 
 	@Override
@@ -147,7 +152,7 @@ public class Join extends QueryCommand {
 
 	@Override
 	public QueryTask getMainTask() {
-		return subQueryTask;
+		return postSubQueryTask;
 	}
 
 	public JoinType getType() {
@@ -156,10 +161,6 @@ public class Join extends QueryCommand {
 
 	public SortField[] getSortFields() {
 		return sortFields;
-	}
-
-	public Query getSubQuery() {
-		return subQuery;
 	}
 
 	@Override
@@ -172,7 +173,7 @@ public class Join extends QueryCommand {
 	}
 
 	// bulid hash table or sort
-	private class SubQueryTask extends QueryTask {
+	private class PostSubQueryTask extends QueryTask {
 		private final int HASH_JOIN_THRESHOLD = Integer.parseInt(System.getProperty("araqne.hashjointhreshold", "100000"));
 
 		@Override
@@ -181,13 +182,9 @@ public class Join extends QueryCommand {
 
 			QueryResultSet rs = null;
 			try {
-				subQuery.postRun();
-
 				rs = subQuery.getResultSet();
 
-				logger.debug(
-						"araqne logdb: join fetch subquery result of query [{}:{}]", query.getId(),
-						query.getQueryString());
+				logger.debug("araqne logdb: join fetch subquery result of query [{}:{}]", query.getId(), query.getQueryString());
 
 				if (rs.size() <= HASH_JOIN_THRESHOLD && (joinType == JoinType.Inner || joinType == JoinType.Left))
 					buildHashJoinTable(rs);

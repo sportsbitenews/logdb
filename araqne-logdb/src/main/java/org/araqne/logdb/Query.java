@@ -53,7 +53,7 @@ public interface Query extends Runnable {
 	void stop();
 
 	/**
-	 * signal query stop 
+	 * signal query stop
 	 */
 	void cancel(QueryStopReason reason);
 
@@ -126,4 +126,16 @@ public interface Query extends Runnable {
 	 * @since 2.4.60
 	 */
 	List<String> getFieldOrder();
+
+	void awaitFinish();
+
+	/**
+	 * @since 3.0.2
+	 */
+	boolean isRunnable();
+
+	/**
+	 * @since 3.0.2
+	 */
+	void addDependency(Query query);
 }

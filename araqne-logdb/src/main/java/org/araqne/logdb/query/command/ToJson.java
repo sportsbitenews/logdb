@@ -22,14 +22,15 @@ import java.util.Map;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 import org.json.JSONConverter;
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ToJson extends QueryCommand {
+public class ToJson extends QueryCommand implements ThreadSafe {
 	private final Logger logger = LoggerFactory.getLogger(ToJson.class.getName());
-	private List<String> fields;
+	private final List<String> fields;
 	private final String output;
 	private final boolean hasFields;
 

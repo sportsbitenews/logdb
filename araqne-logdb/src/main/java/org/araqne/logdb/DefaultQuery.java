@@ -16,6 +16,7 @@
 package org.araqne.logdb;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -56,6 +57,9 @@ public class DefaultQuery implements Query {
 	private List<String> fieldOrder;
 	private AtomicBoolean closed = new AtomicBoolean();
 	private CountDownLatch stopLatch = new CountDownLatch(1);
+
+	private Query parent;
+	private List<Query> dependencies = new ArrayList<Query>();
 
 	public DefaultQuery(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory) {
 		this.context = context;
@@ -207,6 +211,14 @@ public class DefaultQuery implements Query {
 	}
 
 	@Override
+	public void awaitFinish() {
+		try {
+			stopLatch.await();
+		} catch (InterruptedException e) {
+		}
+	}
+
+	@Override
 	public long getFinishTime() {
 		return scheduler.getFinishTime();
 	}
@@ -269,7 +281,7 @@ public class DefaultQuery implements Query {
 				stopReason = reason;
 
 			// cancel tasks
-			scheduler.stop();
+			scheduler.cancel();
 			return;
 		}
 
@@ -407,6 +419,20 @@ public class DefaultQuery implements Query {
 	@Override
 	public List<String> getFieldOrder() {
 		return fieldOrder;
+	}
+
+	@Override
+	public boolean isRunnable() {
+		for (Query q : dependencies)
+			if (!q.isFinished())
+				return false;
+
+		return true;
+	}
+
+	@Override
+	public void addDependency(Query query) {
+		dependencies.add(query);
 	}
 
 	@Override
