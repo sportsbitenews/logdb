@@ -24,8 +24,14 @@ public class Sub extends BinaryExpression {
 	}
 
 	@Override
-	public Object eval(Row map) {
-		return NumberUtil.sub(lhs.eval(map), rhs.eval(map));
+	public Object eval(Row row) {
+		Object o1 = lhs.eval(row);
+		Object o2 = rhs.eval(row);
+		
+		if (o1 == null || o2 == null)
+			return null;
+		
+		return NumberUtil.sub(o1, o2);
 	}
 
 	@Override
