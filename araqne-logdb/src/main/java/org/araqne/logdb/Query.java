@@ -77,7 +77,8 @@ public interface Query extends Runnable {
 	/**
 	 * elapsed time between start and eof
 	 * 
-	 * @return the elapsed time in milliseconds, or return null if query is not started yet
+	 * @return the elapsed time in milliseconds, or return null if query is not
+	 *         started yet
 	 */
 	@Deprecated
 	Long getElapsedTime();
@@ -86,8 +87,6 @@ public interface Query extends Runnable {
 	 * @return current loaded result count or null if query is not started
 	 * @throws IOException
 	 */
-	void openResult();
-
 	Long getResultCount() throws IOException;
 
 	QueryResult getResult();
@@ -122,7 +121,8 @@ public interface Query extends Runnable {
 	long getNextStamp();
 
 	/**
-	 * @return the field order only if 'fields' or 'proc' command is used, otherwise null
+	 * @return the field order only if 'fields' or 'proc' command is used,
+	 *         otherwise null
 	 * @since 2.4.60
 	 */
 	List<String> getFieldOrder();
@@ -139,4 +139,3 @@ public interface Query extends Runnable {
 	 */
 	void addDependency(Query query);
 }
-
