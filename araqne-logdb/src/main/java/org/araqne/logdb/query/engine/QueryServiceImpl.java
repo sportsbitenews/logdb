@@ -390,6 +390,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 		QueryHelper.setJoinDependencies(query);
 
+		query.openResult();
 		new Thread(query, "Query " + id).start();
 
 		HashMap<String, Object> m = new HashMap<String, Object>();

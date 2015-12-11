@@ -71,6 +71,8 @@ public class Join extends QueryCommand implements SubQueryCommand {
 
 	@Override
 	public void onStart() {
+		subQuery.openResult();
+
 		postSubQueryTask.addDependency(subQueryTask);
 		postSubQueryTask.addSubTask(subQueryTask);
 	}

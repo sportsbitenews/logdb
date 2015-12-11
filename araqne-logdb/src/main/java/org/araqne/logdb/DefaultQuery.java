@@ -42,6 +42,7 @@ public class DefaultQuery implements Query {
 	private List<QueryCommand> commands;
 	private Date lastStarted;
 	private QueryResult result;
+	private QueryResultFactory resultFactory;
 
 	private QueryStopReason stopReason;
 	private Throwable cause;
@@ -77,8 +78,7 @@ public class DefaultQuery implements Query {
 			cmd.setQuery(this);
 		}
 
-		if (resultFactory != null)
-			openResult(resultFactory);
+		this.resultFactory = resultFactory;
 
 		// sub query is built in reversed order
 		if (context != null)
@@ -86,7 +86,13 @@ public class DefaultQuery implements Query {
 
 	}
 
-	private void openResult(QueryResultFactory resultFactory) {
+	public void openResult() {
+		if (resultFactory == null)
+			throw new IllegalStateException("query [id " + id + "]'s result factory is null");
+
+		if (result != null)
+			throw new IllegalStateException("query [id " + id + "]'s result is already openned");
+
 		try {
 			if (resultTracer.isDebugEnabled()) {
 				String currentLogin = null;

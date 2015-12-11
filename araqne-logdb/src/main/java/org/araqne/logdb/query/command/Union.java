@@ -22,6 +22,7 @@ import org.araqne.logdb.DefaultQuery;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.SubQueryCommand;
 import org.araqne.logdb.SubQueryTask;
@@ -43,6 +44,17 @@ public class Union extends QueryCommand implements SubQueryCommand {
 		this.subQueryString = buildQueryString(commands);
 		this.subQuery = new DefaultQuery(context, subQueryString, commands, new BypassResultFactory(this));
 		this.subQueryTask = new SubQueryTask(subQuery);
+	}
+
+	@Override
+	public void onStart() {
+		subQuery.openResult();
+		subQuery.preRun();
+	}
+
+	@Override
+	public void onClose(QueryStopReason reason) {
+		subQuery.purge();
 	}
 
 	@Override
