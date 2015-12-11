@@ -39,6 +39,7 @@ public class QueryContext {
 	public QueryContext(Session session, QueryContext parent) {
 		this(session);
 		this.parent = parent;
+		this.constants.putAll((parent.getConstants()));
 	}
 
 	public Query getMainQuery() {
