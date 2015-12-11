@@ -109,10 +109,8 @@ public class JoinParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("no-subquery", -1, "join query has no subquery");
 
 		String subQueryString = SubQueryTerm.class.cast(sqExpr).getSubQuery();
-
-		QueryContext subQueryContext = new QueryContext(context.getSession(), context);
 		List<QueryCommand> subCommands = parserService.parseCommands(context, subQueryString);
-		Query subQuery = new DefaultQuery(subQueryContext, subQueryString, subCommands, resultFactory);
+		Query subQuery = new DefaultQuery(context, subQueryString, subCommands, resultFactory);
 		return new Join(joinType, sortFieldArray, subQuery);
 	}
 

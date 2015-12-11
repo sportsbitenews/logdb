@@ -59,7 +59,7 @@ public class Proc extends QueryCommand implements FieldOrdering {
 		procTask.addSubTask(triggerTask);
 
 		session = accountService.newSession(procedure.getOwner());
-		QueryContext procCtx = new QueryContext(session, this.getQuery().getContext());
+		QueryContext procCtx = new QueryContext(session);
 		for (String key : procParams.keySet()) {
 			Object value = procParams.get(key);
 			Map<String, Object> constants = procCtx.getConstants();
