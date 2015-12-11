@@ -250,6 +250,11 @@ public class LogQueryPlugin {
 		if (query.isStarted())
 			throw new MsgbusException("logdb", "already running");
 
+		org.araqne.logdb.Session dbSession = getDbSession(req);
+
+		// start query
+		service.startQuery(dbSession, query.getId());
+
 		// set query and timeline callback
 		QueryResultCallback qc = new MsgbusQueryResultCallback(query, orgDomain, streaming, compression, streamFlushSize,
 				streamFlushInterval);
@@ -259,11 +264,6 @@ public class LogQueryPlugin {
 
 		QueryStatusCallback qs = new MsgbusStatusCallback(orgDomain);
 		query.getCallbacks().getStatusCallbacks().add(qs);
-
-		org.araqne.logdb.Session dbSession = getDbSession(req);
-
-		// start query
-		service.startQuery(dbSession, query.getId());
 	}
 
 	@MsgbusMethod
