@@ -1,6 +1,8 @@
 package org.araqne.logstorage;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.araqne.log.api.LogParserBuilder;
 
@@ -15,10 +17,11 @@ public class TableScanRequest {
 	private boolean useSerialScan;
 	private boolean isAsc;
 	private boolean syncFirst = false;
-	
+	private List<String> fields;
+
 	public TableScanRequest() {
 	}
-	
+
 	public TableScanRequest(String tableName, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback callback) {
 		this.tableName = tableName;
 		this.minId = minId;
@@ -26,7 +29,7 @@ public class TableScanRequest {
 		this.parserBuilder = builder;
 		this.callback = callback;
 	}
-	
+
 	public TableScanRequest(String tableName, Date from, Date to, LogParserBuilder builder, LogTraverseCallback callback) {
 		this.tableName = tableName;
 		this.from = from;
@@ -34,8 +37,9 @@ public class TableScanRequest {
 		this.parserBuilder = builder;
 		this.callback = callback;
 	}
-	
-	public TableScanRequest(String tableName, Date from, Date to, long minId, long maxId, LogParserBuilder builder, LogTraverseCallback callback) {
+
+	public TableScanRequest(String tableName, Date from, Date to, long minId, long maxId, LogParserBuilder builder,
+			LogTraverseCallback callback) {
 		this.tableName = tableName;
 		this.from = from;
 		this.to = to;
@@ -44,7 +48,7 @@ public class TableScanRequest {
 		this.parserBuilder = builder;
 		this.callback = callback;
 	}
-	
+
 	public TableScanRequest clone() {
 		TableScanRequest cloned = new TableScanRequest();
 		cloned.tableName = tableName;
@@ -56,6 +60,10 @@ public class TableScanRequest {
 		cloned.callback = callback;
 		cloned.useSerialScan = useSerialScan;
 		cloned.isAsc = isAsc;
+
+		if (fields != null)
+			cloned.fields = new ArrayList<String>(fields);
+		
 		return cloned;
 	}
 
@@ -130,12 +138,20 @@ public class TableScanRequest {
 	public void setAsc(boolean isAsc) {
 		this.isAsc = isAsc;
 	}
-	
+
 	public boolean syncFirst() {
 		return syncFirst;
 	}
-	
+
 	public void setSyncFirst(boolean syncFirst) {
 		this.syncFirst = syncFirst;
+	}
+
+	public List<String> getFields() {
+		return fields;
+	}
+
+	public void setFields(List<String> fields) {
+		this.fields = fields;
 	}
 }

@@ -103,7 +103,7 @@ public class TableParser extends AbstractQueryCommandParser {
 			throw new QueryParseException("10600", -1, -1, null);
 
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order", "window", "raw", "eachtable"),
+				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order", "window", "raw", "eachtable", "fields"),
 				getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		String tableTokens = commandString.substring(r.next);
@@ -185,6 +185,9 @@ public class TableParser extends AbstractQueryCommandParser {
 		params.setWindow(window);
 		params.setEachTable(eachTable);
 		params.setRaw(CommandOptions.parseBoolean(options.get("raw")));
+		
+		if (options.get("fields") != null)
+			params.setFields(Arrays.asList(options.get("fields").split(",")));
 
 		if (params.isRaw()) {
 			if (context.getSession() == null || !context.getSession().isAdmin())

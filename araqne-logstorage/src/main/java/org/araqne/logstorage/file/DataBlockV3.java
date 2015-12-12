@@ -85,10 +85,17 @@ public class DataBlockV3 {
 					if (length < 0 || length - 4 > params.dataStream.available())
 						throw new IllegalStateException(String.format("invalid length: %d", length));
 
-					blockToCache = ByteBuffer.allocate(length - 4);
-					dataStream.readBestEffort(blockToCache);
+					if (dataStream.isMapSupported()) {
+						blockToCache = dataStream.map(length - 4);
+					} else {
+						blockToCache = ByteBuffer.allocate(length - 4);
+						dataStream.readBestEffort(blockToCache);
+					}
 				}
-				blockToCache.flip();
+
+				if (!dataStream.isMapSupported())
+					blockToCache.flip();
+
 				// potentionally buffer underflow
 				if (blockToCache.remaining() != length - 4) {
 					logger.warn("disk read underflow: expected: {}, read: {}", length - 4, blockToCache.remaining());
@@ -157,8 +164,9 @@ public class DataBlockV3 {
 			dataBuffer = null;
 			compressedBuffer = null;
 
+			boolean compressed = (flag & 0x20) == 0;
 			pos = block.position();
-			if (compressionMethod != null) {
+			if (compressed && compressionMethod != null) {
 				compressedBuffer = new byte[compressedSize];
 				block.get(compressedBuffer);
 			} else {
@@ -175,7 +183,7 @@ public class DataBlockV3 {
 	public boolean isFixed() {
 		return (flag & 0x40) == 0x40;
 	}
-	
+
 	public boolean isColumnar() {
 		return (flag & 0x10) == 0x10;
 	}
