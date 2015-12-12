@@ -27,4 +27,5 @@ public class DataBlockV3Params {
 	public String digest;
 	public byte[] cipherKey;
 	public byte[] digestKey;
+	public boolean columnar;
 }

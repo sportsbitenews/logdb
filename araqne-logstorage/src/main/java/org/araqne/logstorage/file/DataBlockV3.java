@@ -81,10 +81,9 @@ public class DataBlockV3 {
 				synchronized (dataStream) {
 					dataStream.seek(dataFp);
 					blockLength = length = dataStream.readInt();
-					
+
 					if (length < 0 || length - 4 > params.dataStream.available())
-						throw new IllegalStateException(
-								String.format("invalid length: %d", length));
+						throw new IllegalStateException(String.format("invalid length: %d", length));
 
 					blockToCache = ByteBuffer.allocate(length - 4);
 					dataStream.readBestEffort(blockToCache);
@@ -120,27 +119,31 @@ public class DataBlockV3 {
 			}
 
 			int lengthBlockSize = bb.getInt();
-			byte[] lengthBytes = new byte[lengthBlockSize];
-			block.get(lengthBytes);
 
-			int logCount = (int) (maxId - minId + 1);
-			logOffsets = new int[logCount];
+			// for row-oriented layout
+			if (lengthBlockSize > 0) {
+				byte[] lengthBytes = new byte[lengthBlockSize];
+				block.get(lengthBytes);
 
-			int bufpos = 0;
-			int acc = 0;
-			for (int i = 0; i < logCount; i++) {
-				logOffsets[i] = acc;
+				int logCount = (int) (maxId - minId + 1);
+				logOffsets = new int[logCount];
 
-				// read number (manual inlining)
-				long n = 0;
-				byte b;
-				do {
-					n <<= 7;
-					b = lengthBytes[bufpos++];
-					n |= b & 0x7f;
-				} while ((b & 0x80) != 0);
+				int bufpos = 0;
+				int acc = 0;
+				for (int i = 0; i < logCount; i++) {
+					logOffsets[i] = acc;
 
-				acc += n;
+					// read number (manual inlining)
+					long n = 0;
+					byte b;
+					do {
+						n <<= 7;
+						b = lengthBytes[bufpos++];
+						n |= b & 0x7f;
+					} while ((b & 0x80) != 0);
+
+					acc += n;
+				}
 			}
 
 			// cipher extension
@@ -163,15 +166,18 @@ public class DataBlockV3 {
 				block.get(dataBuffer.array(), 0, originalSize);
 			}
 		} catch (Throwable t) {
-			throw new IllegalStateException(
-					"exception on " + params.dataPath.getAbsolutePath() + " : block pos - " + params.indexHeader.dataFp + ", block length - " + Integer.toString(length)
-							+ ", pos - " + Integer.toString(pos) + ", compressedSize - " + Integer.toString(compressedSize),
-					t);
+			throw new IllegalStateException("exception on " + params.dataPath.getAbsolutePath() + " : block pos - "
+					+ params.indexHeader.dataFp + ", block length - " + Integer.toString(length) + ", pos - "
+					+ Integer.toString(pos) + ", compressedSize - " + Integer.toString(compressedSize), t);
 		}
 	}
 
 	public boolean isFixed() {
 		return (flag & 0x40) == 0x40;
+	}
+	
+	public boolean isColumnar() {
+		return (flag & 0x10) == 0x10;
 	}
 
 	public void uncompress() throws IOException {
@@ -260,7 +266,7 @@ public class DataBlockV3 {
 	public byte[] getCompressedBuffer() {
 		return compressedBuffer;
 	}
-	
+
 	public long getBlockLength() {
 		return blockLength;
 	}
