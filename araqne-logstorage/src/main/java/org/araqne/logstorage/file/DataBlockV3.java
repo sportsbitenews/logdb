@@ -204,7 +204,7 @@ public class DataBlockV3 {
 		}
 	}
 
-	private Compression newCompression() {
+	public Compression newCompression() {
 		if (compressionMethod.equals("lz4"))
 			return new Lz4Compression();
 		if (compressionMethod.equals("lz4hc"))
