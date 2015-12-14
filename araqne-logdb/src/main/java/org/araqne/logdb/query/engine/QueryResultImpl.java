@@ -205,9 +205,10 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 	@Override
 	public void syncWriter() throws IOException {
 		synchronized (writerLock) {
-			if(writer != null)
+			if(writer != null) {
 				writer.flush();
 				writer.sync();
+			}
 		}
 	}
 
