@@ -28,11 +28,14 @@ public interface QueryResult extends RowPipe {
 
 	void closeWriter();
 
+	void openWriter() throws IOException;
+	
 	void purge();
 
 	boolean isStreaming();
 
 	void setStreaming(boolean streaming);
+
 
 	QueryResultSet getResultSet() throws IOException;
 

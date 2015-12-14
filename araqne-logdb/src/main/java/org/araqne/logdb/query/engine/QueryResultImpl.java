@@ -52,8 +52,8 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 	private AtomicLong flushed = new AtomicLong();
 
 	/**
-	 * do NOT directly lock on log file writer. input should be serialized at
-	 * caller side. inner block-able caller run policy can cause deadlock.
+	 * do NOT directly lock on log file writer. input should be serialized at caller side. inner block-able
+	 * caller run policy can cause deadlock.
 	 */
 	private Object writerLock = new Object();
 
@@ -78,8 +78,6 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 	public QueryResultImpl(QueryResultConfig config, QueryResultStorage resultStorage) throws IOException {
 		this.config = config;
 		this.resultStorage = resultStorage;
-		writer = resultStorage.createWriter(config);
-		writer.getCallbackSet().get(LogFlushCallback.class).add(this);
 	}
 
 	@Override
@@ -207,8 +205,10 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 	@Override
 	public void syncWriter() throws IOException {
 		synchronized (writerLock) {
-			writer.flush();
-			writer.sync();
+			if(writer != null) {
+				writer.flush();
+				writer.sync();
+			}
 		}
 	}
 
@@ -221,7 +221,8 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 
 		try {
 			synchronized (writerLock) {
-				writer.close();
+				if (writer != null)
+					writer.close();
 			}
 		} catch (IOException e) {
 		}
@@ -251,13 +252,15 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 		// delete files
 		synchronized (writerLock) {
 			try {
-				writer.close();
+				if (writer != null)
+					writer.close();
 			} catch (IOException e) {
 				int queryId = config.getQuery().getId();
 				logger.warn("araqne logdb: cannot close query [" + queryId + "] result writer", e);
 			}
-			
-			writer.purge();
+
+			if (writer != null)
+				writer.purge();
 		}
 	}
 
@@ -353,5 +356,11 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 
 	@Override
 	public void onFlushException(LogFlushCallbackArgs arg, Throwable t) {
+	}
+
+	@Override
+	public void openWriter() throws IOException {
+		writer = resultStorage.createWriter(config);
+		writer.getCallbackSet().get(LogFlushCallback.class).add(this);
 	}
 }

@@ -77,8 +77,7 @@ public class DefaultQuery implements Query {
 			cmd.setQuery(this);
 		}
 
-		if (resultFactory != null)
-			openResult(resultFactory);
+		createResult(resultFactory);
 
 		// sub query is built in reversed order
 		if (context != null)
@@ -86,7 +85,13 @@ public class DefaultQuery implements Query {
 
 	}
 
-	private void openResult(QueryResultFactory resultFactory) {
+	public void createResult(QueryResultFactory resultFactory) {
+		if (resultFactory == null)
+			throw new IllegalStateException("query [id " + id + "]'s result factory is null");
+
+		if (result != null)
+			throw new IllegalStateException("query [id " + id + "]'s result is already openned");
+
 		try {
 			if (resultTracer.isDebugEnabled()) {
 				String currentLogin = null;
@@ -121,12 +126,18 @@ public class DefaultQuery implements Query {
 			last = cmd;
 		}
 
-		commands.get(commands.size() - 1).setOutput(result);
-		logger.trace("araqne logdb: run query => {}", queryString);
-		for (QueryCommand command : commands) {
-			command.setStatus(Status.Waiting);
-			command.tryStart();
-			command.setStatus(Status.Running);
+		try {
+			this.getResult().openWriter();
+
+			commands.get(commands.size() - 1).setOutput(result);
+			logger.trace("araqne logdb: run query => {}", queryString);
+			for (QueryCommand command : commands) {
+				command.setStatus(Status.Waiting);
+				command.tryStart();
+				command.setStatus(Status.Running);
+			}
+		} catch (IOException e) {
+			throw new IllegalStateException("can not open result file", e);
 		}
 	}
 
