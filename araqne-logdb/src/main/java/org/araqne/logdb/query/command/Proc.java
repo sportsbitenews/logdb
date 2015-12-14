@@ -16,7 +16,6 @@
 package org.araqne.logdb.query.command;
 
 import java.util.List;
-import java.util.Map;
 
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.DefaultQuery;
@@ -25,7 +24,6 @@ import org.araqne.logdb.Procedure;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.Row;
@@ -40,43 +38,29 @@ import org.slf4j.LoggerFactory;
 public class Proc extends QueryCommand implements FieldOrdering {
 	private final Logger slog = LoggerFactory.getLogger(Proc.class);
 
-	private ProcPipe procPipe = new ProcPipe();
-	private ProcTask procTask = new ProcTask();
+	private Procedure procedure;
+
+	private ProcTask procTask;
 	private Query subQuery;
 	private String commandString;
 
 	private AccountService accountService;
+
 	private Session session;
 
+	QueryContext procCtx;
+	List<QueryCommand> procCommands;
 	// depend and wait outer commands
 	private Trigger triggerTask = new Trigger();
 
-	public Proc(Procedure procedure, Map<String, Object> procParams, String commandString, QueryParserService parserService,
-			AccountService accountService) {
-		this.accountService = accountService;
+	public Proc(Procedure procedure, String commandString, AccountService accountService, QueryContext procCtx,
+			List<QueryCommand> procCommands) {
+		this.procedure = procedure;
 		this.commandString = commandString;
+		this.accountService = accountService;
 
-		procTask.addSubTask(triggerTask);
-
-		session = accountService.newSession(procedure.getOwner());
-		QueryContext procCtx = new QueryContext(session);
-		for (String key : procParams.keySet()) {
-			Object value = procParams.get(key);
-			Map<String, Object> constants = procCtx.getConstants();
-			constants.put(key, value);
-		}
-
-		List<QueryCommand> procCommands = parserService.parseCommands(procCtx, procedure.getQueryString());
-		this.subQuery = new DefaultQuery(procCtx, procedure.getQueryString(), procCommands, new StreamResultFactory(procPipe));
-		QueryHelper.setJoinDependencies(subQuery);
-
-		for (QueryCommand cmd : subQuery.getCommands()) {
-			if (cmd.getMainTask() != null) {
-				procTask.addDependency(cmd.getMainTask());
-				cmd.getMainTask().addDependency(triggerTask);
-				procTask.addSubTask(cmd.getMainTask());
-			}
-		}
+		this.procCtx = procCtx;
+		this.procCommands = procCommands;
 	}
 
 	@Override
@@ -86,7 +70,10 @@ public class Proc extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public List<String> getFieldOrder() {
-		return subQuery.getFieldOrder();
+		if (subQuery != null)
+			return subQuery.getFieldOrder();
+
+		return null;
 	}
 
 	@Override
@@ -96,6 +83,23 @@ public class Proc extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public void onStart() {
+		this.subQuery = new DefaultQuery(procCtx, procedure.getQueryString(), procCommands, new StreamResultFactory(new ProcPipe()));
+
+		session = accountService.newSession(procedure.getOwner());
+
+		this.procTask = new ProcTask();
+		procTask.addSubTask(triggerTask);
+
+		QueryHelper.setJoinDependencies(subQuery);
+
+		for (QueryCommand cmd : subQuery.getCommands()) {
+			if (cmd.getMainTask() != null) {
+				procTask.addDependency(cmd.getMainTask());
+				cmd.getMainTask().addDependency(triggerTask);
+				procTask.addSubTask(cmd.getMainTask());
+			}
+		}
+
 		subQuery.preRun();
 	}
 

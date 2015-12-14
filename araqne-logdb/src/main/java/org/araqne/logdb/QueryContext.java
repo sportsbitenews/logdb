@@ -25,7 +25,7 @@ public class QueryContext {
 	private Session session;
 	private QueryContext parent;
 	private ParserContext parserContext = new ParserContext();
-	private Map<String, Object> constants = Collections.synchronizedMap(new HashMap<String, Object>());
+	private Map<String, Object> constants;
 
 	/**
 	 * includes main and dynamic sub queries
@@ -33,12 +33,16 @@ public class QueryContext {
 	private List<Query> queries = new CopyOnWriteArrayList<Query>();
 
 	public QueryContext(Session session) {
-		this.session = session;
+		this(session, null);
 	}
 
 	public QueryContext(Session session, QueryContext parent) {
-		this(session);
+		this.session = session;
 		this.parent = parent;
+
+		constants = Collections.synchronizedMap(new HashMap<String, Object>());
+		if (parent != null)
+			this.constants.putAll((parent.getConstants()));
 	}
 
 	public Query getMainQuery() {
