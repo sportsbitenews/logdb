@@ -48,9 +48,8 @@ public class UnionParser extends AbstractQueryCommandParser {
 		int b = commandString.indexOf('[');
 		int e = commandString.lastIndexOf(']');
 
-		QueryContext subQueryContext = new QueryContext(context.getSession(), context);
 		String subQueryString = commandString.substring(b + 1, e).trim();
-		List<QueryCommand> commands = queryParserService.parseCommands(subQueryContext, subQueryString);
+		List<QueryCommand> commands = queryParserService.parseCommands(context, subQueryString);
 		return new Union(context, commands);
 	}
 }
