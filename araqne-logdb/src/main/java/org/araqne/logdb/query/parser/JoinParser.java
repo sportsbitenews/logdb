@@ -111,7 +111,7 @@ public class JoinParser extends AbstractQueryCommandParser {
 		String subQueryString = SubQueryTerm.class.cast(sqExpr).getSubQuery();
 
 		QueryContext subQueryContext = new QueryContext(context.getSession(), context);
-		List<QueryCommand> subCommands = parserService.parseCommands(subQueryContext, subQueryString);
+		List<QueryCommand> subCommands = parserService.parseCommands(context, subQueryString);
 		Query subQuery = new DefaultQuery(subQueryContext, subQueryString, subCommands, resultFactory);
 		return new Join(joinType, sortFieldArray, subQuery);
 	}
