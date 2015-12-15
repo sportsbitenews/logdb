@@ -69,4 +69,8 @@ public class BypassResult implements QueryResult {
 	public Set<QueryResultCallback> getResultCallbacks() {
 		return null;
 	}
+
+	@Override
+	public void openWriter() throws IOException {
+	}
 }
