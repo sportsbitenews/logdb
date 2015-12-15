@@ -23,6 +23,7 @@ import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.Row;
 
 public class SystemCommand extends DriverQueryCommand implements FieldOrdering {
@@ -32,7 +33,6 @@ public class SystemCommand extends DriverQueryCommand implements FieldOrdering {
 	private String args;
 	private MetadataService metadataService;
 	private MetadataCallbackWriter metadataWriter;
-	private boolean completed;
 
 	public SystemCommand(String commandName, QueryContext context, String objectType, String args, MetadataService metadataService) {
 		this.commandName = commandName;
@@ -57,21 +57,16 @@ public class SystemCommand extends DriverQueryCommand implements FieldOrdering {
 			if (e.getMessage() == null || !e.getMessage().contains("result writer is already closed"))
 				throw e;
 		}
-		completed = true;
 	}
 
 	@Override
 	public void onClose(QueryStopReason reason) {
-		if (!completed)
-			metadataWriter.cancelled = true;
 	}
 
 	private class MetadataCallbackWriter implements MetadataCallback {
-		private boolean cancelled;
-
 		@Override
 		public boolean isCancelled() {
-			return cancelled;
+			return task.getStatus() == TaskStatus.CANCELED;
 		}
 
 		@Override
