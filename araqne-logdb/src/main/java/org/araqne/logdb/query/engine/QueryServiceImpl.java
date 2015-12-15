@@ -388,8 +388,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		if (session != null && !query.isAccessible(session))
 			throw new IllegalArgumentException("invalid log query id: " + id);
 
-		QueryHelper.setJoinDependencies(query);
-
 		new Thread(query, "Query " + id).start();
 
 		HashMap<String, Object> m = new HashMap<String, Object>();

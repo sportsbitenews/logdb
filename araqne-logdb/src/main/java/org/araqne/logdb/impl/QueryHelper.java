@@ -61,7 +61,7 @@ public class QueryHelper {
 					Join join = joinIndex.join;
 					if (joinIndex.index < i)
 						continue;
-					
+
 					cmd.getDependency().addDependency(join.getMainTask());
 					if (cmd instanceof MultiSubQueryCommand) {
 						for (Query subQuery : ((MultiSubQueryCommand) cmd).getSubQueries()) {
@@ -74,15 +74,15 @@ public class QueryHelper {
 					logger.debug("cmd [{}] now depends on task [{}]", cmd.getMainTask().getID(), join.getMainTask().getID());
 				}
 			}
-			
+
 			i++;
 		}
 	}
-	
+
 	private static class JoinIndex {
 		Join join;
 		int index;
-		
+
 		public JoinIndex(Join join, int index) {
 			this.join = join;
 			this.index = index;
@@ -93,7 +93,11 @@ public class QueryHelper {
 		query.addDependency(joinQuery);
 
 		for (QueryCommand cmd : query.getCommands()) {
-			if (cmd instanceof SubQueryCommand) {
+			if (cmd instanceof MultiSubQueryCommand) {
+				for (Query subQuery : ((MultiSubQueryCommand) cmd).getSubQueries()) {
+					addQueryDependencyRecursively(subQuery, joinQuery);
+				}
+			} else if (cmd instanceof SubQueryCommand) {
 				Query subQuery = ((SubQueryCommand) cmd).getSubQuery();
 				addQueryDependencyRecursively(subQuery, joinQuery);
 			}
