@@ -142,7 +142,9 @@ public class ProcParser extends AbstractQueryCommandParser {
 		try {
 			session = accountService.newSession(procedure.getOwner());
 
-			procCtx = new QueryContext(session, context);
+			procCtx = new QueryContext(session);
+			procCtx.getConstants().putAll(context.getConstants());
+			
 			for (String key : procParams.keySet()) {
 				Object value = procParams.get(key);
 				Map<String, Object> constants = procCtx.getConstants();
