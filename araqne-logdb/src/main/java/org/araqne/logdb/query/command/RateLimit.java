@@ -13,7 +13,7 @@ import org.araqne.logdb.ThreadSafe;
 public class RateLimit extends QueryCommand implements ThreadSafe {
 
 	private TickService tickService;
-	private CounterReset reset = new CounterReset();
+	private CounterReset reset;
 	private AtomicLong counter = new AtomicLong();
 	private int limit;
 	private boolean splitRowBatch;
@@ -69,12 +69,14 @@ public class RateLimit extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onStart() {
+		reset = new CounterReset();
 		tickService.addTimer(reset);
 	}
 
 	@Override
 	public void onClose(QueryStopReason reason) {
-		tickService.removeTimer(reset);
+		if (reset != null)
+			tickService.removeTimer(reset);
 	}
 
 	@Override
