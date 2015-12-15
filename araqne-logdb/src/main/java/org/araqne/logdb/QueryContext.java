@@ -30,7 +30,7 @@ public class QueryContext {
 	/**
 	 * includes main and dynamic sub queries
 	 */
-	private List<Query> queries = new CopyOnWriteArrayList<Query>();
+	private List<Query> queries;
 
 	public QueryContext(Session session) {
 		this(session, null);
@@ -40,9 +40,13 @@ public class QueryContext {
 		this.session = session;
 		this.parent = parent;
 
-		constants = Collections.synchronizedMap(new HashMap<String, Object>());
-		if (parent != null)
+		this.queries = new CopyOnWriteArrayList<Query>();
+		this.constants = Collections.synchronizedMap(new HashMap<String, Object>());
+
+		if (parent != null) {
+			this.queries = parent.getQueries();
 			this.constants.putAll((parent.getConstants()));
+		}
 	}
 
 	public Query getMainQuery() {
