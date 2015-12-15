@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.QueryCommand.Status;
+import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.engine.QueryTaskScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,6 +119,8 @@ public class DefaultQuery implements Query {
 	}
 
 	public void preRun() {
+		QueryHelper.setJoinDependencies(this);
+
 		// connect all pipe
 		QueryCommand last = null;
 		for (QueryCommand cmd : commands) {

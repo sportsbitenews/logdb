@@ -30,17 +30,21 @@ import java.util.Set;
 import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.Account;
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.DefaultQuery;
 import org.araqne.logdb.FunctionFactory;
 import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.Procedure;
 import org.araqne.logdb.ProcedureParameter;
 import org.araqne.logdb.ProcedureRegistry;
+import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.Session;
+import org.araqne.logdb.StreamResultFactory;
 import org.araqne.logdb.query.command.Proc;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -129,7 +133,30 @@ public class ProcParser extends AbstractQueryCommandParser {
 			procParams.put(v.getKey(), param);
 		}
 
-		return new Proc(procedure, procParams, commandString, parserService, accountService);
+		// Constructor must not allocate resource.
+		// The onStart will allocate it.
+		// Need to close session to keep this contract.
+		Session session = null;
+		QueryContext procCtx = null;
+		List<QueryCommand> procCommands = null;
+		try {
+			session = accountService.newSession(procedure.getOwner());
+
+			procCtx = new QueryContext(session);
+			procCtx.getConstants().putAll(context.getConstants());
+			
+			for (String key : procParams.keySet()) {
+				Object value = procParams.get(key);
+				Map<String, Object> constants = procCtx.getConstants();
+				constants.put(key, value);
+			}
+
+			procCommands = parserService.parseCommands(procCtx, procedure.getQueryString());
+		} finally {
+			accountService.logout(session);
+		}
+
+		return new Proc(procedure, commandString, accountService, procCtx, procCommands);
 	}
 
 	private boolean isGranted(QueryContext context, Procedure p) {

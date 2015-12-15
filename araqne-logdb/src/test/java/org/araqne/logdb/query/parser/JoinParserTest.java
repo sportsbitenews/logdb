@@ -1,13 +1,20 @@
 package org.araqne.logdb.query.parser;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.araqne.logdb.QueryCommand;
+import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryResultFactory;
@@ -21,6 +28,9 @@ import org.araqne.storage.api.StorageManager;
 import org.araqne.storage.api.URIResolver;
 import org.araqne.storage.localfile.LocalFilePath;
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class JoinParserTest {
 	static {
@@ -58,10 +68,11 @@ public class JoinParserTest {
 
 		JoinParser parser = new JoinParser(p, resultFactory);
 		parser.setQueryParserService(p);
-		
+
 		{
 			String joinCommand = "join ip, port [ table users ]";
-			Join join = (Join) parser.parse(null, joinCommand);
+			QueryContext context = new QueryContext(null);
+			Join join = (Join) parser.parse(context, joinCommand);
 			assertEquals(JoinType.Inner, join.getType());
 			assertEquals(2, join.getSortFields().length);
 			assertEquals("ip", join.getSortFields()[0].getName());
@@ -74,7 +85,8 @@ public class JoinParserTest {
 
 		{
 			String joinCommand = "join +ip, port [ table users ]";
-			Join join = (Join) parser.parse(null, joinCommand);
+			QueryContext context = new QueryContext(null);
+			Join join = (Join) parser.parse(context, joinCommand);
 			assertEquals(JoinType.Inner, join.getType());
 			assertEquals(2, join.getSortFields().length);
 			assertEquals("ip", join.getSortFields()[0].getName());
@@ -87,7 +99,8 @@ public class JoinParserTest {
 
 		{
 			String joinCommand = "join +ip, +port [ table users ]";
-			Join join = (Join) parser.parse(null, joinCommand);
+			QueryContext context = new QueryContext(null);
+			Join join = (Join) parser.parse(context, joinCommand);
 			assertEquals(JoinType.Inner, join.getType());
 			assertEquals(2, join.getSortFields().length);
 			assertEquals("ip", join.getSortFields()[0].getName());
@@ -100,7 +113,8 @@ public class JoinParserTest {
 
 		{
 			String joinCommand = "join ip, +port [ table users ]";
-			Join join = (Join) parser.parse(null, joinCommand);
+			QueryContext context = new QueryContext(null);
+			Join join = (Join) parser.parse(context, joinCommand);
 			assertEquals(JoinType.Inner, join.getType());
 			assertEquals(2, join.getSortFields().length);
 			assertEquals("ip", join.getSortFields()[0].getName());
@@ -113,7 +127,8 @@ public class JoinParserTest {
 
 		{
 			String joinCommand = "join ip, +port, seq [ table users ]";
-			Join join = (Join) parser.parse(null, joinCommand);
+			QueryContext context = new QueryContext(null);
+			Join join = (Join) parser.parse(context, joinCommand);
 			assertEquals(JoinType.Inner, join.getType());
 			assertEquals(3, join.getSortFields().length);
 			assertEquals("ip", join.getSortFields()[0].getName());
@@ -128,7 +143,8 @@ public class JoinParserTest {
 
 		{
 			String joinCommand = "join ip, +port, -seq [ table users ]";
-			Join join = (Join) parser.parse(null, joinCommand);
+			QueryContext context = new QueryContext(null);
+			Join join = (Join) parser.parse(context, joinCommand);
 			assertEquals(JoinType.Inner, join.getType());
 			assertEquals(3, join.getSortFields().length);
 			assertEquals("ip", join.getSortFields()[0].getName());
@@ -143,7 +159,8 @@ public class JoinParserTest {
 
 		{
 			String joinCommand = "join -ip, -port, seq [ table users ]";
-			Join join = (Join) parser.parse(null, joinCommand);
+			QueryContext context = new QueryContext(null);
+			Join join = (Join) parser.parse(context, joinCommand);
 			assertEquals(JoinType.Inner, join.getType());
 			assertEquals(3, join.getSortFields().length);
 			assertEquals("ip", join.getSortFields()[0].getName());
@@ -167,8 +184,9 @@ public class JoinParserTest {
 
 		JoinParser parser = new JoinParser(p, resultFactory);
 		parser.setQueryParserService(p);
-		
-		Join join = (Join) parser.parse(null, joinCommand);
+
+		QueryContext context = new QueryContext(null);
+		Join join = (Join) parser.parse(context, joinCommand);
 		assertEquals(JoinType.Inner, join.getType());
 		assertEquals(1, join.getSortFields().length);
 		assertEquals("ip", join.getSortFields()[0].getName());
@@ -186,16 +204,17 @@ public class JoinParserTest {
 
 		JoinParser parser = new JoinParser(p, resultFactory);
 		parser.setQueryParserService(p);
-		
+
 		try {
 			String joinCommand = "join _id string([table iis])";
 			@SuppressWarnings("unused")
-			Join join = (Join) parser.parse(null, joinCommand);
+			QueryContext context = new QueryContext(null);
+			Join join = (Join) parser.parse(context, joinCommand);
 			fail();
 		} catch (QueryParseException e) {
 		}
 	}
-	
+
 	@Test
 	public void testLeftJoinType() {
 		QueryParserService p = prepareMockQueryParser();
@@ -205,7 +224,8 @@ public class JoinParserTest {
 		resultFactory.start();
 		JoinParser parser = new JoinParser(p, resultFactory);
 		parser.setQueryParserService(p);
-		Join join = (Join) parser.parse(null, "join type=left ip [ table users ]");
+		QueryContext context = new QueryContext(null);
+		Join join = (Join) parser.parse(context, "join type=left ip [ table users ]");
 
 		assertEquals(JoinType.Left, join.getType());
 		assertEquals(1, join.getSortFields().length);
@@ -217,13 +237,23 @@ public class JoinParserTest {
 
 	private QueryParserService prepareMockQueryParser() {
 		QueryParserService p = mock(QueryParserService.class);
-		TableParams params = new TableParams();
-		params.setTableSpecs(Arrays.<TableSpec> asList(new WildcardTableSpec("users")));
-		QueryCommand table = new Table(params);
+		when(p.parseCommands(any(QueryContext.class), eq("table users"))).then(new QueryParserServiceAnswer());
 
-		ArrayList<QueryCommand> commands = new ArrayList<QueryCommand>();
-		commands.add(table);
-		when(p.parseCommands(null, "table users")).thenReturn(commands);
 		return p;
+	}
+
+	private class QueryParserServiceAnswer implements Answer<List<QueryCommand>> {
+
+		@Override
+		public List<QueryCommand> answer(InvocationOnMock invocation) throws Throwable {
+			TableParams params = new TableParams();
+			params.setTableSpecs(Arrays.<TableSpec> asList(new WildcardTableSpec("users")));
+			QueryCommand table = new Table(params);
+
+			ArrayList<QueryCommand> commands = new ArrayList<QueryCommand>();
+			commands.add(table);
+
+			return commands;
+		}
 	}
 }
