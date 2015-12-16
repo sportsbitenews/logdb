@@ -26,6 +26,11 @@ import org.araqne.logdb.query.command.Prev;
 
 public class PrevParser extends AbstractQueryCommandParser {
 
+	public PrevParser() {
+		setDescriptions("Assign previous field value to `prev_FIELD` field.", "`prev_필드이름`으로 이전 행의 필드 값을 할당합니다.");
+		setUsages("prev total", "prev total");
+	}
+
 	@Override
 	public String getCommandName() {
 		return "prev";
