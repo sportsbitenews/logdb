@@ -24,6 +24,10 @@ public class SubQueryTask extends QueryTask {
 	public void run() {
 		subQuery.run();
 		subQuery.awaitFinish();
+
+		if (subQuery.isCancelled()) {
+			subQuery.getContext().getMainQuery().cancel(subQuery.getCause());
+		}
 	}
 
 	@Override
