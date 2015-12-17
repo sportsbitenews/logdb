@@ -31,6 +31,8 @@ import org.araqne.logdb.ProcedureRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.QueryPlanner;
+import org.araqne.logdb.QueryService;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.Proc;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
@@ -50,7 +52,7 @@ public class ProcParserTest {
 
 	@Test
 	public void testError11000() {
-		ProcParser p = new ProcParser(null, queryParserService, null);
+		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock());
 		p.setQueryParserService(queryParserService); 
 		String query = "proc undefined()";	
 
@@ -70,7 +72,7 @@ public class ProcParserTest {
 
 	@Test
 	public void testError11001(){
-		ProcParser p = new ProcParser(null, queryParserService, null);
+		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock());
 		p.setQueryParserService(queryParserService); 
 		String query = "proc tables(\"log\", 1.1)";	
 
@@ -90,7 +92,7 @@ public class ProcParserTest {
 
 	@Test
 	public void testError11002(){
-		ProcParser p = new ProcParser(null, queryParserService, null);
+		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock());
 		p.setQueryParserService(queryParserService); 
 		String query = "proc tables(\"log\", 1)";	
 
@@ -111,7 +113,7 @@ public class ProcParserTest {
 
 	@Test
 	public void testError11003(){
-		ProcParser p = new ProcParser(null, queryParserService, null);
+		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock());
 		p.setQueryParserService(queryParserService); 
 		String query = "proc tables(\"log\", 1, 2)";	
 
@@ -152,9 +154,17 @@ public class ProcParserTest {
 		if(isAccount) 
 			when(mockAccount.getAccount(null)).thenReturn(new Account());
 
-		ProcParser parser = new ProcParser(mockAccount,  null , mockParserRegistry);
+		ProcParser parser = new ProcParser(mockAccount,  null , mockParserRegistry, creatQueryServiceMock());
 		parser.setQueryParserService(queryParserService);
 		Proc proc = (Proc) parser.parse(new QueryContext(null), query);
 		return proc;
 	}
+	
+	private QueryService creatQueryServiceMock() {
+		QueryService mock = mock(QueryService.class);
+		when(mock.getPlanners()).thenReturn(new ArrayList<QueryPlanner>());
+		
+		return mock;
+	}
+	
 }
