@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.araqne.api.ScriptContext;
+import org.araqne.logdb.MultiSubQueryCommand;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
@@ -136,8 +137,21 @@ public class QueryPrintHelper {
 				status += getCommandStatuses(cmd.getNestedCommands(), indent + 2);
 			} else {
 				String subQueryStatus = "";
-				if (cmd instanceof SubQueryCommand)
-					subQueryStatus = "/ Sub Query #" + ((SubQueryCommand) cmd).getSubQuery().getId() + " ";
+				
+				if (cmd instanceof MultiSubQueryCommand) {
+					List<Query> subQueries = ((MultiSubQueryCommand) cmd).getSubQueries();
+					if (subQueries != null) {
+						for (Query subQuery : subQueries) {
+							subQueryStatus += "/ Sub Query #" + subQuery.getId() + " ";	
+						}
+					}
+				} else if (cmd instanceof SubQueryCommand) {
+					// some command has optional sub query, and getSubQuery()
+					// can return null
+					Query subQuery = ((SubQueryCommand) cmd).getSubQuery();
+					if (subQuery != null)
+						subQueryStatus = "/ Sub Query #" + subQuery.getId() + " ";
+				}
 
 				String taskId = cmd.getMainTask() != null ? String.format("%d: ", cmd.getMainTask().getID()) : "";
 				status += String.format(tab(indent) + "[%s] %s%s %s/ passed %d tuples\n", cmd.getStatus(), taskId, cmd.toString(),
