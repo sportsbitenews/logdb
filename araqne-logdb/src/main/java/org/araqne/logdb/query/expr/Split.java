@@ -34,7 +34,11 @@ public class Split extends FunctionExpression {
 
 		this.target = exprs.get(0);
 		try {
-			this.delimiters = exprs.get(1).eval(null).toString();
+			Object arg2 = exprs.get(1).eval(null);
+			if (arg2 == null)
+				throw new QueryParseException("90772", -1, -1, null);
+			
+			this.delimiters = arg2.toString();
 			this.next = delimiters.length();
 
 			if (next == 0)
