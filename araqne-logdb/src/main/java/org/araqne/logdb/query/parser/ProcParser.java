@@ -156,7 +156,7 @@ public class ProcParser extends AbstractQueryCommandParser {
 			accountService.logout(session);
 		}
 
-		return new Proc(procedure, commandString, accountService, procCtx, procCommands);
+		return new Proc(procedure, commandString, accountService, context, procCtx, procCommands);
 	}
 
 	private boolean isGranted(QueryContext context, Procedure p) {

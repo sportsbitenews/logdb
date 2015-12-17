@@ -44,14 +44,14 @@ public class Proc extends QueryCommand implements FieldOrdering, SubQueryCommand
 	private AccountService accountService;
 	private Session session;
 
-	public Proc(Procedure procedure, String commandString, AccountService accountService, QueryContext procCtx,
-			List<QueryCommand> procCommands) {
+	public Proc(Procedure procedure, String commandString, AccountService accountService, QueryContext mainCtx,
+			QueryContext procCtx, List<QueryCommand> procCommands) {
 		this.procedure = procedure;
 		this.commandString = commandString;
 		this.accountService = accountService;
 
 		this.subQuery = new DefaultQuery(procCtx, procedure.getQueryString(), procCommands, new BypassResultFactory(this));
-		this.subQueryTask = new SubQueryTask(subQuery);
+		this.subQueryTask = new SubQueryTask(subQuery, mainCtx);
 	}
 
 	@Override

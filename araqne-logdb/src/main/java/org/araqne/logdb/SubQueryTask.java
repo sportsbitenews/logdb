@@ -3,9 +3,17 @@ package org.araqne.logdb;
 public class SubQueryTask extends QueryTask {
 
 	private Query subQuery;
+	private QueryContext mainContext;
 
 	public SubQueryTask(Query subQuery) {
 		this.subQuery = subQuery;
+	}
+
+	public SubQueryTask(Query subQuery, QueryContext mainContext) {
+		// procedure should not expose sub query, however sub query error should
+		// be propagated.
+		this.subQuery = subQuery;
+		this.mainContext = mainContext;
 	}
 
 	public Query getSubQuery() {
@@ -26,7 +34,11 @@ public class SubQueryTask extends QueryTask {
 		subQuery.awaitFinish();
 
 		if (subQuery.isCancelled()) {
-			subQuery.getContext().getMainQuery().cancel(subQuery.getCause());
+			if (mainContext != null)
+				mainContext.getMainQuery().cancel(subQuery.getCause());
+			else
+				subQuery.getContext().getMainQuery().cancel(subQuery.getCause());
+
 		}
 	}
 
