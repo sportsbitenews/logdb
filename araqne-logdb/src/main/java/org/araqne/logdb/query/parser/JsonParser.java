@@ -57,6 +57,9 @@ public class JsonParser extends AbstractQueryCommandParser {
 
 		List<Row> logs = new ArrayList<Row>();
 		try {
+			if (json.trim().isEmpty())
+				throw new QueryParseException("10201", -1);
+			
 			JSONTokener tokenizer = new JSONTokener(new StringReader(json));
 			Object value = tokenizer.nextValue();
 
