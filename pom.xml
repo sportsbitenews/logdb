@@ -8,12 +8,29 @@
 	<name>Araqne LogDB POM</name>
 	<packaging>pom</packaging>
 
+	<profiles>
+		<profile>
+			<id>release</id>
+			<repositories>
+				<repository>
+					<id>araqne</id>
+					<name>Araqne Maven Repository</name>
+					<layout>default</layout>
+					<url>http://mvnrepo.hq.eediom.net/release</url>
+					<snapshots>
+						<enabled>true</enabled>
+					</snapshots>
+				</repository>
+			</repositories>
+		</profile>
+	</profiles>
+
 	<repositories>
 		<repository>
 			<id>araqne</id>
 			<name>Araqne Maven Repository</name>
 			<layout>default</layout>
-			<url>http://staging.araqne.org/</url>
+			<url>http://mvnrepo.hq.eediom.net/unstable</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
