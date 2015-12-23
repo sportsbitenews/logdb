@@ -38,12 +38,16 @@ public class CsvFileParser extends AbstractQueryCommandParser {
 		long limit = 0;
 		if (options.containsKey("limit"))
 			limit = Integer.valueOf(options.get("limit"));
+		
+		String cs = "utf-8";
+		if (options.containsKey("cs"))
+			cs = options.get("cs");
 
 		File f = new File(filePath);
 		if (!f.exists() || !f.canRead())
 			throw new QueryParseException("csv-file-not-found", -1);
 
-		return new CsvFile(filePath, offset, limit);
+		return new CsvFile(filePath, offset, limit, cs);
 	}
 
 }
