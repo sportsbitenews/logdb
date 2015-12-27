@@ -34,6 +34,7 @@ import org.araqne.logdb.QueryStatusCallback;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFlushCallback;
 import org.araqne.logstorage.LogFlushCallbackArgs;
@@ -185,6 +186,11 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 	}
 
 	@Override
+	public void onVectorizedRowBatch(VectorizedRowBatch vrowBatch) {
+		onRowBatch(vrowBatch.toRowBatch());
+	}
+
+	@Override
 	public QueryResultSet getResultSet() throws IOException {
 		if (purged) {
 			String msg = "query [" + config.getQuery().getId() + "] result file is already purged";
@@ -207,8 +213,10 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 	@Override
 	public void syncWriter() throws IOException {
 		synchronized (writerLock) {
-			writer.flush();
-			writer.sync();
+			if (writer != null) {
+				writer.flush();
+				writer.sync();
+			}
 		}
 	}
 

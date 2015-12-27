@@ -15,9 +15,11 @@
  */
 package org.araqne.logdb.query.expr;
 
+import org.araqne.logdb.FieldValues;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class EvalField implements Expression {
+public class EvalField implements Expression, VectorizedExpression {
 	private String fieldName;
 
 	public EvalField(String fieldName) {
@@ -27,6 +29,11 @@ public class EvalField implements Expression {
 	@Override
 	public Object eval(Row map) {
 		return map.get(fieldName);
+	}
+
+	@Override
+	public FieldValues evalVector(VectorizedRowBatch vrowBatch) {
+		return vrowBatch.fieldValues.get(fieldName);
 	}
 
 	@Override

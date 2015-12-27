@@ -59,6 +59,17 @@ public class StreamResult implements QueryResult {
 	}
 
 	@Override
+	public void onVectorizedRowBatch(VectorizedRowBatch vrowBatch) {
+		for (RowPipe pipe : pipes) {
+			try {
+				pipe.onVectorizedRowBatch(vrowBatch);
+			} catch (Throwable t) {
+				slog.error("araqne logdb: cannot pass stream result", t);
+			}
+		}
+	}
+
+	@Override
 	public Date getEofDate() {
 		return null;
 	}

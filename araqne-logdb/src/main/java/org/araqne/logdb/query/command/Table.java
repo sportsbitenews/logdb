@@ -37,6 +37,7 @@ import org.araqne.logdb.AccountService;
 import org.araqne.logdb.DefaultLogParserBuilder;
 import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.FieldOrdering;
+import org.araqne.logdb.FieldValues;
 import org.araqne.logdb.Permission;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
@@ -44,6 +45,7 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
 import org.araqne.logdb.TimeSpan;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.parser.TableSpec;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogCallback;
@@ -184,7 +186,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 					if (isSuppressedBugAlert)
 						builder.suppressBugAlert();
 				}
-				
+
 				if (params.eachTable)
 					sink = new ResultSink(Table.this, params.offset, params.limit, params.ordered);
 
@@ -216,7 +218,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 	public List<TableSpec> getTableSpecs() {
 		return params.tableNames;
 	}
-	
+
 	public TableParams getTableParams() {
 		return new ReadOnlyTableParams(params);
 	}
@@ -288,11 +290,11 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 	public Date getTo() {
 		return params.to;
 	}
-	
+
 	public boolean getEachTable() {
 		return params.eachTable;
 	}
-	
+
 	public boolean isAsc() {
 		return params.isAsc();
 	}
@@ -353,6 +355,53 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 				sinkLog.debug("araqne logdb: table {} push [{}] rows", self.getTableSpecs(), logs.size());
 			}
 
+			if (self.params.vectorize)
+				pushVectorizedRowBatch(logs);
+			else
+				pushRowBatch(logs);
+		}
+
+		private void pushVectorizedRowBatch(List<Log> logs) {
+			int size = logs.size();
+			Map<Object, FieldValues> fieldValues = new HashMap<Object, FieldValues>();
+
+			int i = 0;
+			for (Log log : logs) {
+				for (String key : log.getData().keySet()) {
+					Object v = log.getData().get(key);
+
+					// TODO: flatten nested map
+					FieldValues values = fieldValues.get(key);
+					if (values == null) {
+						values = new FieldValues(size);
+						fieldValues.put(key, values);
+					}
+
+					if (v instanceof Long) {
+						if (values.longs == null)
+							values.longs = new long[size];
+
+						values.longs[i] = (Long) v;
+						values.types[i] = 1;
+					} else {
+						if (values.objs == null)
+							values.objs = new Object[size];
+
+						values.objs[i] = v;
+						values.types[i] = 3;
+					}
+				}
+
+				i++;
+			}
+
+			VectorizedRowBatch vrowBatch = new VectorizedRowBatch();
+			vrowBatch.size = size;
+			vrowBatch.fieldValues = fieldValues;
+			self.pushPipe(vrowBatch);
+		}
+
+		private void pushRowBatch(List<Log> logs) {
 			RowBatch batch = new RowBatch();
 			batch.size = logs.size();
 			batch.rows = new Row[batch.size];
@@ -398,11 +447,11 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 				}
 				__lastId = logs.get(logs.size() - 1).getId();
 			}
-			
+
 			return logs;
 		}
 	}
-	
+
 	public static class ReadOnlyTableParams extends TableParams {
 		public ReadOnlyTableParams(TableParams params) {
 			super(params);
@@ -465,10 +514,11 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 		private String parserName;
 		private boolean raw;
 		private boolean eachTable;
+		private boolean vectorize;
 
 		public TableParams() {
 		}
-		
+
 		public TableParams(TableParams other) {
 			this.tableNames = other.tableNames;
 			this.offset = other.offset;
@@ -481,6 +531,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 			this.parserName = other.parserName;
 			this.raw = other.raw;
 			this.eachTable = other.eachTable;
+			this.vectorize = vectorize;
 		}
 
 		public List<TableSpec> getTableSpecs() {
@@ -570,6 +621,14 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 		public boolean isEachTable() {
 			return this.eachTable;
 		}
+
+		public boolean isVectorize() {
+			return vectorize;
+		}
+
+		public void setVectorize(boolean vectorize) {
+			this.vectorize = vectorize;
+		}
 	}
 
 	@Override
@@ -597,7 +656,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 		if (params.isAsc())
 			s += " order=asc";
-		
+
 		if (params.isEachTable())
 			s += " eachtable=t";
 

@@ -128,6 +128,11 @@ public abstract class QueryCommand {
 		}
 	}
 
+	// default adapter for row-batch processing
+	public void onPush(VectorizedRowBatch vrowBatch) {
+		onPush(vrowBatch.toRowBatch());
+	}
+
 	protected final void pushPipe(Row row) {
 		Lock lock = rwLock.readLock();
 		try {
@@ -162,6 +167,27 @@ public abstract class QueryCommand {
 				} else {
 					synchronized (output) {
 						output.onRowBatch(rowBatch);
+					}
+				}
+			}
+		} finally {
+			lock.unlock();
+		}
+
+	}
+
+	protected final void pushPipe(VectorizedRowBatch vrowBatch) {
+		Lock lock = rwLock.readLock();
+		try {
+			lock.lock();
+
+			outputCount += vrowBatch.size;
+			if (output != null) {
+				if (output.isThreadSafe()) {
+					output.onVectorizedRowBatch(vrowBatch);
+				} else {
+					synchronized (output) {
+						output.onVectorizedRowBatch(vrowBatch);
 					}
 				}
 			}
