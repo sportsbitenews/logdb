@@ -28,6 +28,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -1038,6 +1039,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 		private volatile boolean doStop = false;
 		private volatile boolean isStopped = true;
 		private volatile boolean flushAll = false;
+		
+		private AtomicInteger othersWaiting = new AtomicInteger(0);
 
 		public WriterSweeper(int checkInterval, int maxIdleTime, int flushInterval) {
 			this.checkInterval = checkInterval;
@@ -1068,7 +1071,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 							break;
 
 						synchronized (this) {
-							this.wait(checkInterval);
+							if (othersWaiting.get() == 0)
+								this.wait(checkInterval);
 						}
 						sweep();
 					} catch (InterruptedException e) {
@@ -1129,6 +1133,14 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 					onlineWriters.remove(key);
 				}
 			}
+		}
+
+		public void releaseWaiting() {
+			othersWaiting.decrementAndGet();
+		}
+
+		public void acquireWaiting() {
+			othersWaiting.incrementAndGet();
 		}
 	}
 
@@ -1495,9 +1507,6 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				monitors.put(key, monitor);
 			}
 		}
-		synchronized (writerSweeper) {
-			writerSweeper.notifyAll();
-		}
 		for (Map.Entry<OnlineWriterKey, CountDownLatch> e : monitors.entrySet()) {
 			waitForClose(e.getKey(), e.getValue());
 		}
@@ -1509,6 +1518,10 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 
 	private void waitForClose(OnlineWriterKey key, CountDownLatch monitor) {
 		try {
+			writerSweeper.acquireWaiting();
+			synchronized (writerSweeper) {
+				writerSweeper.notifyAll();
+			}
 			if (writerSweeperThread.isAlive()) {
 				boolean closed = monitor.await(1, TimeUnit.MINUTES);
 				if (!closed) {
@@ -1530,6 +1543,8 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			OnlineWriter o = onlineWriters.get(key);
 			if (o != null)
 				o.close();
+		} finally {
+			writerSweeper.releaseWaiting();
 		}
 	}
 
