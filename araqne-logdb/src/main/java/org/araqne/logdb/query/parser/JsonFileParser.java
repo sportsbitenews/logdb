@@ -65,6 +65,7 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 		String filePath = commandString.substring(r.next).trim();
+		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
 
 		try {
 			boolean overlay = false;
