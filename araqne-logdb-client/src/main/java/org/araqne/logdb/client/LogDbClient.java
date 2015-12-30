@@ -2671,7 +2671,8 @@ public class LogDbClient implements TrapListener, Closeable {
 						r.setDone(new SocketException("closed"));
 						break;
 					}
-					r.l.await(50, TimeUnit.MILLISECONDS);
+					if (r.l.await(50, TimeUnit.MILLISECONDS))
+						break;
 				}
 			} finally {
 				wCalls.remove(r, r);
