@@ -179,6 +179,7 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 	}
 
 	private class PingTask extends TimerTask {
+		
 
 		@Override
 		public void run() {
@@ -188,7 +189,8 @@ public class WebSocketSession extends AbstractLogDbSession implements WebSocketL
 			try {
 				synchronized (sendLock) {
 					// send msgbus ping
-					websocket.send("ping");
+					websocket.sendPing();
+					// websocket.send("ping");
 				}
 			} catch (Throwable t) {
 				// ignore ping fail
