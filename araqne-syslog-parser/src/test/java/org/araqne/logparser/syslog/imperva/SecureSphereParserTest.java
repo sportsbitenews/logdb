@@ -26,4 +26,23 @@ public class SecureSphereParserTest {
 		assertEquals(m.get("dst_ip"), "5.6.7.8");
 		assertEquals(m.get("dst_port"), "80");
 	}
+
+	@Test
+	public void test2() {
+		String line = "SecureSphere|632886|2015-12-22 07:44:03.0|Parameter Read Only Violation in m.hoho.kr/approvalcontent.aspx|Informative|1.2.3.4|43102|5.6.7.8|80|None|1|m.jw-group.co.kr|/approval/approvalcontent.aspx";
+		Map<String, Object> log = new HashMap<String, Object>();
+		log.put("line", line);
+
+		SecureSphereParser p = new SecureSphereParser();
+		Map<String, Object> m = p.parse(log);
+
+		assertEquals(m.get("device"), "SecureSphere");
+		assertEquals(m.get("id"), "632886");
+		assertEquals(m.get("detect_time"), "2015-12-22 07:44:03.0");
+		assertEquals(m.get("risk"), "Informative");
+		assertEquals(m.get("src_ip"), "1.2.3.4");
+		assertEquals(m.get("src_port"), "43102");
+		assertEquals(m.get("dst_ip"), "5.6.7.8");
+		assertEquals(m.get("dst_port"), "80");
+	}
 }
