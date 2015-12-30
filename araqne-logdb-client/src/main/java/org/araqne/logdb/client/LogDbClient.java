@@ -2650,7 +2650,7 @@ public class LogDbClient implements TrapListener, Closeable {
 						return true;
 					}
 					
-					if (r.l.await(1, TimeUnit.MILLISECONDS))
+					if (r.l.await(50, TimeUnit.MILLISECONDS))
 						return true;
 					
 					if (System.currentTimeMillis() >= end)
@@ -2671,7 +2671,7 @@ public class LogDbClient implements TrapListener, Closeable {
 						r.setDone(new SocketException("closed"));
 						break;
 					}
-					r.l.await(1, TimeUnit.MILLISECONDS);
+					r.l.await(50, TimeUnit.MILLISECONDS);
 				}
 			} finally {
 				wCalls.remove(r, r);
