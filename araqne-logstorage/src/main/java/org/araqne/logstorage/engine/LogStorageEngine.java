@@ -690,8 +690,14 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				String dayText = null;
 				try {
 					// evict online buffer and close
-					OnlineWriter writer =
-							onlineWriters.remove(new OnlineWriterKey(tableName, day, schema.getId()));
+					OnlineWriterKey key = new OnlineWriterKey(tableName, day, schema.getId());
+
+					// purge lastId
+					AtomicLong lastId = lastIds.get(key);
+					if (lastId != null)
+						lastIds.remove(key, lastId);
+					
+					OnlineWriter writer = onlineWriters.remove(key);
 					if (writer != null)
 						writer.close();
 	
@@ -935,9 +941,12 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 	}
 
 	private AtomicLong getLastKey(OnlineWriterKey key) {
+		/* formatter:off
 		if (!lastIds.containsKey(key))
 			lastIds.putIfAbsent(key, new AtomicLong(-1));
 		return lastIds.get(key);
+		*/// formatter:on
+		return new AtomicLong(-1);
 	}
 
 	@Override
