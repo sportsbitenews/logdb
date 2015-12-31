@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.FunctionRegistry;
@@ -34,8 +35,7 @@ import org.araqne.logdb.query.parser.CommandOptions;
 import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.araqne.logstorage.LogTableRegistry;
-
-
+import org.araqne.logstorage.TableWildcardMatcher;
 
 public class MetadataQueryStringParser {
 
@@ -68,55 +68,45 @@ public class MetadataQueryStringParser {
 		String fromToken = optionTokens.get("from");
 		if (fromToken != null) {
 			from = df.parse(fromToken, new ParsePosition(0));
-			if (from == null){
+			if (from == null) {
 				throw new QueryParseException("95030", -1, -1, null);
-			//	throw new QueryParseException("invalid-from", -1);
+				// throw new QueryParseException("invalid-from", -1);
 			}
 		}
 
 		String toToken = optionTokens.get("to");
 		if (toToken != null) {
 			to = df.parse(toToken, new ParsePosition(0));
-			if (to == null){
+			if (to == null) {
 				throw new QueryParseException("95031", -1, -1, null);
-			//	throw new QueryParseException("invalid-to", -1);
+				// throw new QueryParseException("invalid-to", -1);
 			}
 		}
 
-		if (to != null && from != null && to.before(from)){
-			Map<String, String> params = new HashMap<String, String> ();
-			params.put("date",  fromToken);
+		if (to != null && from != null && to.before(from)) {
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("date", fromToken);
 			throw new QueryParseException("95032", -1, -1, params);
-		//	throw new QueryParseException("invalid-date-range", -1);
+			// throw new QueryParseException("invalid-date-range", -1);
 		}
 
 		int next = r.next;
 		token = token.substring(next).trim();
 
-		HashSet<String> tableFilter = null;
-		String[] argTableNames = null;
-		if (!token.isEmpty()) {
-			tableFilter = new HashSet<String>();
-			argTableNames = token.split(",");
-
-			for (int i = 0; i < argTableNames.length; i++)
-				tableFilter.add(argTableNames[i].trim());
-		}
+		Set<String> filteredTableNames = null;
+		if (!token.isEmpty())
+			filteredTableNames = TableWildcardMatcher.apply(new HashSet<String>(tableRegistry.getTableNames()), token);
+		else
+			filteredTableNames = new HashSet<String>(tableRegistry.getTableNames());
 
 		List<String> tableNames = new ArrayList<String>();
-
 		if (context.getSession().isAdmin()) {
-			for (String tableName : tableRegistry.getTableNames()) {
-				if (tableFilter != null && !tableFilter.contains(tableName))
-					continue;
-
-				tableNames.add(tableName);
-			}
+			tableNames.addAll(filteredTableNames);
 		} else {
 			List<Privilege> privileges = accountService.getPrivileges(context.getSession(), context.getSession().getLoginName());
 			for (Privilege p : privileges) {
 				if (p.getPermissions().size() > 0 && tableRegistry.exists(p.getTableName())) {
-					if (tableFilter != null && !tableFilter.contains(p.getTableName()))
+					if (!filteredTableNames.contains(p.getTableName()))
 						continue;
 
 					tableNames.add(p.getTableName());
