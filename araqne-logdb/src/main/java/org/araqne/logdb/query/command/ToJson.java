@@ -106,7 +106,7 @@ public class ToJson extends QueryCommand implements ThreadSafe {
 	@Override
 	public String toString() {
 		String s = "";
-		if (output.equals("_json"))
+		if (!output.equals("_json"))
 			s += " output=" + output;
 
 		return "tojson" + s;
