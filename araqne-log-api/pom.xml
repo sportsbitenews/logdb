@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>org.araqne</groupId>
 	<artifactId>araqne-log-api</artifactId>
-	<version>4.0.0-SNAPSHOT</version>
+	<version>4.0.1-SNAPSHOT</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log API</name>
 	<build>
