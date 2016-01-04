@@ -16,72 +16,52 @@
 package org.araqne.logdb.query.command;
 
 import java.util.List;
-import java.util.Map;
 
 import org.araqne.logdb.AccountService;
+import org.araqne.logdb.BypassResultFactory;
 import org.araqne.logdb.DefaultQuery;
 import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.Procedure;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
-import org.araqne.logdb.Row;
-import org.araqne.logdb.RowBatch;
-import org.araqne.logdb.RowPipe;
 import org.araqne.logdb.Session;
-import org.araqne.logdb.StreamResultFactory;
-import org.araqne.logdb.impl.QueryHelper;
+import org.araqne.logdb.SubQueryCommand;
+import org.araqne.logdb.SubQueryTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Proc extends QueryCommand implements FieldOrdering {
+public class Proc extends QueryCommand implements FieldOrdering, SubQueryCommand {
 	private final Logger slog = LoggerFactory.getLogger(Proc.class);
 
-	private ProcPipe procPipe = new ProcPipe();
-	private ProcTask procTask = new ProcTask();
-	private Query subQuery;
-	private String commandString;
+	private Procedure procedure;
 
+	private Query subQuery;
+	private SubQueryTask subQueryTask;
+	private String commandString;
 	private AccountService accountService;
 	private Session session;
 
-	// depend and wait outer commands
-	private Trigger triggerTask = new Trigger();
-
-	public Proc(Procedure procedure, Map<String, Object> procParams, String commandString, QueryParserService parserService,
-			AccountService accountService) {
-		this.accountService = accountService;
+	public Proc(Procedure procedure, String commandString, AccountService accountService, QueryContext mainCtx,
+			QueryContext procCtx, List<QueryCommand> procCommands) {
+		this.procedure = procedure;
 		this.commandString = commandString;
+		this.accountService = accountService;
 
-		procTask.addSubTask(triggerTask);
-
-		session = accountService.newSession(procedure.getOwner());
-		QueryContext procCtx = new QueryContext(session);
-		for (String key : procParams.keySet()) {
-			Object value = procParams.get(key);
-			Map<String, Object> constants = procCtx.getConstants();
-			constants.put(key, value);
-		}
-
-		List<QueryCommand> procCommands = parserService.parseCommands(procCtx, procedure.getQueryString());
-		this.subQuery = new DefaultQuery(procCtx, procedure.getQueryString(), procCommands, new StreamResultFactory(procPipe));
-		QueryHelper.setJoinDependencies(subQuery);
-
-		for (QueryCommand cmd : subQuery.getCommands()) {
-			if (cmd.getMainTask() != null) {
-				procTask.addDependency(cmd.getMainTask());
-				cmd.getMainTask().addDependency(triggerTask);
-				procTask.addSubTask(cmd.getMainTask());
-			}
-		}
+		this.subQuery = new DefaultQuery(procCtx, procedure.getQueryString(), procCommands, new BypassResultFactory(this));
+		this.subQueryTask = new SubQueryTask(subQuery, mainCtx);
 	}
 
 	@Override
 	public String getName() {
 		return "proc";
+	}
+
+	@Override
+	public Query getSubQuery() {
+		return subQuery;
 	}
 
 	@Override
@@ -96,7 +76,7 @@ public class Proc extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public void onStart() {
-		subQuery.preRun();
+		session = accountService.newSession(procedure.getOwner());
 	}
 
 	@Override
@@ -113,51 +93,11 @@ public class Proc extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public QueryTask getMainTask() {
-		return procTask;
-	}
-
-	@Override
-	public QueryTask getDependency() {
-		return triggerTask;
-	}
-
-	private class ProcPipe implements RowPipe {
-
-		@Override
-		public boolean isThreadSafe() {
-			return false;
-		}
-
-		@Override
-		public void onRow(Row row) {
-			pushPipe(row);
-		}
-
-		@Override
-		public void onRowBatch(RowBatch rowBatch) {
-			pushPipe(rowBatch);
-		}
-
+		return subQueryTask;
 	}
 
 	@Override
 	public String toString() {
 		return commandString;
-	}
-
-	private class Trigger extends QueryTask {
-		@Override
-		public void run() {
-			slog.debug("araqne logdb: proc subquery started (dependency resolved), main query [{}] sub query [{}]",
-					query.getId(), subQuery.getId());
-		}
-	}
-
-	private class ProcTask extends QueryTask {
-		@Override
-		public void run() {
-			slog.debug("araqne logdb: proc subquery end, main query [{}] sub query [{}]", query.getId(), subQuery.getId());
-			subQuery.postRun();
-		}
 	}
 }

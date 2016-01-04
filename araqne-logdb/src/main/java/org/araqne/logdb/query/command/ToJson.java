@@ -39,12 +39,12 @@ public class ToJson extends QueryCommand implements ThreadSafe {
 		this.output = output;
 		this.hasFields = !fields.isEmpty();
 	}
-	
+
 	@Override
 	public String getName() {
 		return "tojson";
 	}
-	
+
 	private Row jsonify(Row m) throws JSONException {
 		String line = null;
 		if (!hasFields) {
@@ -58,11 +58,11 @@ public class ToJson extends QueryCommand implements ThreadSafe {
 
 			line = JSONConverter.jsonize(json);
 		}
-		
+
 		m.put(output, line);
 		return m;
 	}
-	
+
 	@Override
 	public void onPush(Row m) {
 		try {
@@ -70,13 +70,13 @@ public class ToJson extends QueryCommand implements ThreadSafe {
 		} catch (Throwable t) {
 			if (logger.isDebugEnabled())
 				logger.debug("araqne logdb: cannot convert to json", t);
-			
+
 			getQuery().cancel(t);
 		}
-		
+
 		pushPipe(m);
 	}
-	
+
 	@Override
 	public void onPush(RowBatch rowBatch) {
 		try {
@@ -88,8 +88,8 @@ public class ToJson extends QueryCommand implements ThreadSafe {
 					jsonify(m);
 				}
 			} else {
-			    for (int i = 0; i < rowBatch.size; i++) {
-			        Row m = rowBatch.rows[i];
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row m = rowBatch.rows[i];
 					jsonify(m);
 				}
 			}
@@ -103,4 +103,12 @@ public class ToJson extends QueryCommand implements ThreadSafe {
 		pushPipe(rowBatch);
 	}
 
+	@Override
+	public String toString() {
+		String s = "";
+		if (!output.equals("_json"))
+			s += " output=" + output;
+
+		return "tojson" + s;
+	}
 }

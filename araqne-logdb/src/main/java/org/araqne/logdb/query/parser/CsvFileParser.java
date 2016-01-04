@@ -30,6 +30,7 @@ public class CsvFileParser extends AbstractQueryCommandParser {
 				getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		String filePath = commandString.substring(r.next).trim();
+		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
 
 		long offset = 0;
 		if (options.containsKey("offset"))

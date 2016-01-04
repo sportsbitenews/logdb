@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logstorage-exporter</artifactId>
-	<version>0.3.0-SNAPSHOT</version>
+	<version>0.2.0</version>
 	<packaging>bundle</packaging>
 	<name>Araqne LogStorage Exprter</name>
 	<build>

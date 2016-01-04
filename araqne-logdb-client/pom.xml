@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logdb-client</artifactId>
-	<version>1.3.0-SNAPSHOT</version>
+	<version>1.2.2</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log DB Client</name>
 	<organization>
@@ -118,7 +118,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-websocket</artifactId>
-			<version>0.2.0</version>
+			<version>0.2.3-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>

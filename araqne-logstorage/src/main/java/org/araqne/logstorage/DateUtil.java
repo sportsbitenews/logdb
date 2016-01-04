@@ -53,6 +53,14 @@ public class DateUtil {
 
 	static ConcurrentHashMap<Long, Date> dayStarts = new ConcurrentHashMap<Long, Date>();
 
+	public static Date addDay(Date day, int amount) {
+		if (amount >= 0) {
+			return getDay(new Date(day.getTime() + 86400000L * amount + 43200000L));
+		} else {
+			return getDay(new Date(day.getTime() + 86400000L * (amount + 1) - 43200000L));
+		}
+	}
+
 	public static Date getDay(Date date) {
 		if (date == null)
 			return null;

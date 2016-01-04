@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logdb-crawler</artifactId>
-	<version>1.1.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<packaging>bundle</packaging>
 	<name>Araqne LogDB Crawler</name>
 	<build>
@@ -69,7 +69,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logdb</artifactId>
-			<version>3.2.3-SNAPSHOT</version>
+			<version>3.2.5-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>

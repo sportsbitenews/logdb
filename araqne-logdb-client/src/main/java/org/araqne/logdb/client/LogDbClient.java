@@ -17,6 +17,7 @@ package org.araqne.logdb.client;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.ParsePosition;
@@ -2637,9 +2638,24 @@ public class LogDbClient implements TrapListener, Closeable {
 
 		public boolean await(QueuedRows r, long timeout, TimeUnit unit) throws InterruptedException {
 			try {
+				long start = System.currentTimeMillis();
+				long end = start + TimeUnit.MILLISECONDS.convert(timeout, unit);
+				
 				wCalls.put(r, r);
 				signal();
-				return r.l.await(timeout, unit);
+				
+				while (true) {
+					if (!running) {
+						r.setDone(new SocketException("closed"));
+						return true;
+					}
+					
+					if (r.l.await(50, TimeUnit.MILLISECONDS))
+						return true;
+					
+					if (System.currentTimeMillis() >= end)
+						return false;
+				}
 			} finally {
 				wCalls.remove(r, r);
 			}
@@ -2649,7 +2665,15 @@ public class LogDbClient implements TrapListener, Closeable {
 			try {
 				wCalls.put(r, r);
 				signal();
-				r.l.await();
+				
+				while (true) {
+					if (!running) {
+						r.setDone(new SocketException("closed"));
+						break;
+					}
+					if (r.l.await(50, TimeUnit.MILLISECONDS))
+						break;
+				}
 			} finally {
 				wCalls.remove(r, r);
 			}

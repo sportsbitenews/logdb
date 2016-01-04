@@ -16,6 +16,7 @@
 package org.araqne.logdb.crawler.query;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
@@ -123,6 +124,8 @@ public class WgetQueryCommand extends DriverQueryCommand {
 				fetchUrl(row, url, true);
 
 			pushPipe(row);
+		} catch (FileNotFoundException e) {
+			throw new IllegalStateException("404 not found: " + e.getMessage());
 		} catch (Throwable t) {
 			slog.debug("araqne logdb crawler: wget failed - " + url, t);
 			throw new IllegalStateException("wget: " + t.getMessage());
@@ -183,7 +186,7 @@ public class WgetQueryCommand extends DriverQueryCommand {
 				if (total >= WGET_MAX_SIZE) {
 					if (throwException)
 						throw new IllegalStateException("Too large HTTP response, exceeds max size " + WGET_MAX_SIZE);
-					
+
 					row.put("_wget_error", "exceeds-max-size");
 					return;
 				}

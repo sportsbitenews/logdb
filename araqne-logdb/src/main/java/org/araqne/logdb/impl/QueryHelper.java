@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.FieldOrdering;
+import org.araqne.logdb.MultiSubQueryCommand;
 import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryResultSet;
@@ -43,26 +44,48 @@ public class QueryHelper {
 	}
 
 	public static void setJoinDependencies(Query query) {
-		List<Join> joinCmds = new ArrayList<Join>();
+		List<JoinIndex> joinCmds = new ArrayList<JoinIndex>();
 
+		int i = 0;
 		for (QueryCommand cmd : query.getCommands()) {
 			if (cmd.getName().equals("join")) {
-//				query.addDependency(((Join) cmd).getSubQuery());
-				joinCmds.add((Join) cmd);
+				joinCmds.add(new JoinIndex((Join) cmd, i));
 			}
+			i++;
 		}
 
+		i = 0;
 		for (QueryCommand cmd : query.getCommands()) {
 			if (cmd.isDriver() && cmd.getMainTask() != null) {
-				for (Join join : joinCmds) {
+				for (JoinIndex joinIndex : joinCmds) {
+					Join join = joinIndex.join;
+					if (joinIndex.index < i)
+						continue;
+
 					cmd.getDependency().addDependency(join.getMainTask());
-					if (cmd instanceof SubQueryCommand) {
+					if (cmd instanceof MultiSubQueryCommand) {
+						for (Query subQuery : ((MultiSubQueryCommand) cmd).getSubQueries()) {
+							addQueryDependencyRecursively(subQuery, join.getSubQuery());
+						}
+					} else if (cmd instanceof SubQueryCommand) {
 						Query subQuery = ((SubQueryCommand) cmd).getSubQuery();
 						addQueryDependencyRecursively(subQuery, join.getSubQuery());
 					}
 					logger.debug("cmd [{}] now depends on task [{}]", cmd.getMainTask().getID(), join.getMainTask().getID());
 				}
 			}
+
+			i++;
+		}
+	}
+
+	private static class JoinIndex {
+		Join join;
+		int index;
+
+		public JoinIndex(Join join, int index) {
+			this.join = join;
+			this.index = index;
 		}
 	}
 
@@ -70,7 +93,11 @@ public class QueryHelper {
 		query.addDependency(joinQuery);
 
 		for (QueryCommand cmd : query.getCommands()) {
-			if (cmd instanceof SubQueryCommand) {
+			if (cmd instanceof MultiSubQueryCommand) {
+				for (Query subQuery : ((MultiSubQueryCommand) cmd).getSubQueries()) {
+					addQueryDependencyRecursively(subQuery, joinQuery);
+				}
+			} else if (cmd instanceof SubQueryCommand) {
 				Query subQuery = ((SubQueryCommand) cmd).getSubQuery();
 				addQueryDependencyRecursively(subQuery, joinQuery);
 			}

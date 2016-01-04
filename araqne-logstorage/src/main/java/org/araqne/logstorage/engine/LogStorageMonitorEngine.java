@@ -39,6 +39,7 @@ import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogStorageMonitor;
 import org.araqne.logstorage.LogStorageStatus;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.logstorage.TableLockedException;
 import org.araqne.storage.api.FilePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -215,8 +216,13 @@ public class LogStorageMonitorEngine implements LogStorageMonitor {
 
 		// purge tables
 		Date logBaseline = storage.getPurgeBaseline(tableName);
-		if (logBaseline != null)
-			storage.purge(tableName, null, logBaseline);
+		if (logBaseline != null) {
+			try {
+				storage.purge(tableName, null, logBaseline);
+			} catch (TableLockedException e) {
+				logger.debug("purge skipped: table is locked by {}", e.getMessage());
+			}
+		}
 	}
 
 	private void checkDiskLack() {
