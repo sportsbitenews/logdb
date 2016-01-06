@@ -280,8 +280,14 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 			c.remove();
 
 		TableLock tLock = tableRegistry.getExclusiveTableLock(tableName, "engine", "dropTable");
+		UUID lockedUUID = null;
 		try {
-			tLock.lock();
+			lockedUUID = tLock.tryLock();
+			if (lockedUUID == null) {
+				LockStatus ls = tableRegistry.getTableLockStatus(tableName);
+				throw new TableLockedException(ls.toString());
+			}
+			
 			// drop table metadata
 			tableRegistry.dropTable(tableName);
 
@@ -316,7 +322,7 @@ public class LogStorageEngine implements LogStorage, TableEventListener, LogFile
 				tableDir.delete();
 			}
 		} finally {
-			if (tLock != null)
+			if (tLock != null && lockedUUID != null)
 				tLock.unlock();
 		}
 	}
