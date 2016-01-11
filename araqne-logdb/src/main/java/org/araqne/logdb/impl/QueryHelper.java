@@ -159,11 +159,13 @@ public class QueryHelper {
 		m.put("sub_queries", subQueries);
 		m.put("stamp", q.getNextStamp());
 
+		Map<String, Object> constants = q.getContext().getConstants();
+		m.put("is_scheduled_query", constants.containsKey("scheduled_query_guid"));
+
 		// @since 2.2.17
 		if (q.getCause() != null) {
 			m.put("error_code", GENERAL_QUERY_FAILURE_CODE);
-			m.put("error_detail",
-					q.getCause().getMessage() != null ? q.getCause().getMessage() : q.getCause().getClass().getName());
+			m.put("error_detail", q.getCause().getMessage() != null ? q.getCause().getMessage() : q.getCause().getClass().getName());
 		}
 
 		return m;
