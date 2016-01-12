@@ -17,6 +17,7 @@ package org.araqne.logdb.metadata;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,9 @@ import org.araqne.logdb.Privilege;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.SecurityGroup;
+import org.araqne.logdb.query.parser.CommandOptions;
+import org.araqne.logdb.query.parser.ParseResult;
+import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.araqne.logstorage.LockKey;
 import org.araqne.logstorage.LockStatus;
 import org.araqne.logstorage.LogFileService;
@@ -46,8 +50,8 @@ import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableConfig;
-import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.logstorage.TableSchema;
+import org.araqne.storage.api.FilePath;
 
 @Component(name = "logdb-table-metadata")
 public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
@@ -88,23 +92,30 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 
 	@Override
 	public void verify(QueryContext context, String queryString) {
-		MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, functionRegistry, queryString);
+		QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("verbose"), functionRegistry);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
-		TableScanOption opt = MetadataQueryStringParser.getTableNames(context, tableRegistry, accountService, functionRegistry,
-				queryString);
-		List<String> targetTables = opt.getTableNames();
+		ParseResult r = QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("verbose"), functionRegistry);
+		Map<String, String> options = (Map<String, String>) r.value;
+
+		boolean verbose = CommandOptions.parseBoolean(options.get("verbose"));
+
+		int next = r.next;
+		queryString = queryString.substring(next).trim();
+		List<String> targetTables = MetadataQueryStringParser.getFilteredTableNames(context.getSession(), tableRegistry,
+				accountService, queryString);
 
 		for (String tableName : tableRegistry.getTableNames()) {
 			if (targetTables.contains(tableName))
 				if (accountService.checkPermission(context.getSession(), tableName, Permission.READ))
-					writeTableInfo(context, tableName, callback);
+					writeTableInfo(context, tableName, verbose, callback);
 		}
 	}
 
-	private void writeTableInfo(QueryContext context, String tableName, MetadataCallback callback) {
+	private void writeTableInfo(QueryContext context, String tableName, boolean verbose, MetadataCallback callback) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("table", tableName);
 		TableSchema s = tableRegistry.getTableSchema(tableName);
@@ -183,7 +194,32 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 		}
 		m.put("security_groups", groups);
 
+		if (verbose)
+			setDetail(tableName, m);
+
 		callback.onPush(new Row(m));
+	}
+
+	private void setDetail(String tableName, Map<String, Object> m) {
+		List<Date> logDates = new ArrayList<Date>(storage.getLogDates(tableName));
+		if (logDates.size() > 0) {
+			m.put("min_day", logDates.get(logDates.size() - 1));
+			m.put("max_day", logDates.get(0));
+		}
+
+		FilePath dir = storage.getTableDirectory(tableName);
+		m.put("disk_usage", getConsumption(dir));
+	}
+
+	private long getConsumption(FilePath dir) {
+		long total = 0;
+		FilePath[] files = dir.listFiles();
+		if (files == null)
+			return 0;
+
+		for (FilePath f : files)
+			total += f.length();
+		return total;
 	}
 
 	private Map<String, Object> marshal(LogFileService lfs, StorageConfig storageConfig) {

@@ -31,6 +31,7 @@ import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.Privilege;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Session;
 import org.araqne.logdb.query.parser.CommandOptions;
 import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
@@ -93,6 +94,19 @@ public class MetadataQueryStringParser {
 		int next = r.next;
 		token = token.substring(next).trim();
 
+		List<String> tableNames = getFilteredTableNames(context.getSession(), tableRegistry, accountService, token);
+
+		TableScanOption opt = new TableScanOption();
+		opt.setTableNames(tableNames);
+		opt.setFrom(from);
+		opt.setTo(to);
+		opt.setDiskOnly(CommandOptions.parseBoolean((String) optionTokens.get("diskonly")));
+
+		return opt;
+	}
+
+	public static List<String> getFilteredTableNames(Session session, LogTableRegistry tableRegistry,
+			AccountService accountService, String token) {
 		Set<String> filteredTableNames = null;
 		if (!token.isEmpty())
 			filteredTableNames = TableWildcardMatcher.apply(new HashSet<String>(tableRegistry.getTableNames()), token);
@@ -100,10 +114,10 @@ public class MetadataQueryStringParser {
 			filteredTableNames = new HashSet<String>(tableRegistry.getTableNames());
 
 		List<String> tableNames = new ArrayList<String>();
-		if (context.getSession().isAdmin()) {
+		if (session.isAdmin()) {
 			tableNames.addAll(filteredTableNames);
 		} else {
-			List<Privilege> privileges = accountService.getPrivileges(context.getSession(), context.getSession().getLoginName());
+			List<Privilege> privileges = accountService.getPrivileges(session, session.getLoginName());
 			for (Privilege p : privileges) {
 				if (p.getPermissions().size() > 0 && tableRegistry.exists(p.getTableName())) {
 					if (!filteredTableNames.contains(p.getTableName()))
@@ -113,13 +127,6 @@ public class MetadataQueryStringParser {
 				}
 			}
 		}
-
-		TableScanOption opt = new TableScanOption();
-		opt.setTableNames(tableNames);
-		opt.setFrom(from);
-		opt.setTo(to);
-		opt.setDiskOnly(CommandOptions.parseBoolean((String) optionTokens.get("diskonly")));
-
-		return opt;
+		return tableNames;
 	}
 }
