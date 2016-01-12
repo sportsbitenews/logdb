@@ -15,15 +15,19 @@
  */
 package org.araqne.logdb.query.parser;
 
-import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.logdb.AbstractQueryCommandParser;
+import org.araqne.logdb.FilePathHelper;
+import org.araqne.logdb.LocalFilePathHelper;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
+import org.araqne.logdb.QueryParseException;
 
 public class ZipFileParser extends AbstractQueryCommandParser {
 	private LogParserFactoryRegistry parserFactoryRegistry;
@@ -37,6 +41,7 @@ public class ZipFileParser extends AbstractQueryCommandParser {
 
 		setOptions("offset", OPTIONAL, "Skip output count", "건너뛸 레코드 갯수");
 		setOptions("limit", OPTIONAL, "Max output count", "가져올 최대 레코드 갯수");
+		setOptions("file_tag", OPTIONAL, "Field name for filename tagging", "파일명을 태깅할 필드 이름");
 	}
 
 	@Override
@@ -45,13 +50,21 @@ public class ZipFileParser extends AbstractQueryCommandParser {
 	}
 
 	@Override
-	public QueryCommand parse(QueryContext context, String commandString) {
-		try {
-			QueryTokens tokens = QueryTokenizer.tokenize(commandString);
-			Map<String, String> options = tokens.options();
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("14000", new QueryErrorMessage("invalid-zipfile-path", "[file]이 존재하지 않거나 읽을수 없습니다."));
+		m.put("14001", new QueryErrorMessage("invalid-parentfile-path", "[file]의 상위 디렉토리가 존재하지 않거나 읽을 수 없습니다."));
+		return m;
+	}
 
-			String filePath = tokens.reverseArg(1);
-			String entryPath = tokens.lastArg();
+	@Override
+	public QueryCommand parse(QueryContext context, String commandString) {
+		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
+		Map<String, String> options = tokens.options();
+
+		String filePath = tokens.reverseArg(1);
+		String entryPath = tokens.lastArg();
+		try {
 
 			int offset = 0;
 			if (options.containsKey("offset"))
@@ -61,12 +74,9 @@ public class ZipFileParser extends AbstractQueryCommandParser {
 			if (options.containsKey("limit"))
 				limit = Integer.valueOf(options.get("limit"));
 
-			File file = new File(filePath);
-			if (!file.exists())
-				throw new IllegalStateException("zipfile [" + file.getAbsolutePath() + "] not found");
-
-			if (!file.canRead())
-				throw new IllegalStateException("cannot read zipfile [" + file.getAbsolutePath() + "], check read permission");
+			String fileTag = null;
+			if (options.containsKey("file_tag"))
+				fileTag = options.get("file_tag");
 
 			String parserName = options.get("parser");
 			LogParser parser = null;
@@ -78,7 +88,22 @@ public class ZipFileParser extends AbstractQueryCommandParser {
 				parser = factory.createParser(options);
 			}
 
-			return new org.araqne.logdb.query.command.ZipFile(filePath, entryPath, parser, offset, limit);
+			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
+
+			return new org.araqne.logdb.query.command.ZipFile(pathHelper.getMatchedFilePaths(), filePath, entryPath, parser,
+					offset, limit, fileTag);
+		} catch (IllegalStateException e) {
+			String msg = e.getMessage();
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("file", filePath);
+			int offsetS = QueryTokenizer.findKeyword(commandString, filePath, getCommandName().length());
+			String type = null;
+			if (msg.equals("file-not-found"))
+				type = "14000";
+			else
+				type = "14001";
+
+			throw new QueryParseException(type, offsetS, offsetS + filePath.length() - 1, params);
 		} catch (Throwable t) {
 			throw new RuntimeException("cannot create zipfile source", t);
 		}

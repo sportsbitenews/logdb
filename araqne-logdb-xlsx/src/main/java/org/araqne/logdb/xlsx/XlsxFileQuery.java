@@ -31,23 +31,26 @@ import org.xml.sax.SAXException;
 
 public class XlsxFileQuery extends DriverQueryCommand {
 	private DummyLogger dummyLogger = new DummyLogger();
-	private File file;
+	private List<String> filePaths;
 	private String path;
 	private String sheetNameFilter;
 	private long offset;
 	private long limit;
 	private long skip;
+	private String fileTag;
 
 	private XlsxExtractor currentExtractor;
 	private volatile boolean cancelled;
 
-	public XlsxFileQuery(String path, String sheetNameFilter, long offset, long limit, long skip) {
+	public XlsxFileQuery(List<String> filePaths, String path, String sheetNameFilter, long offset, long limit, long skip,
+			String fileTag) {
+		this.filePaths = filePaths;
 		this.path = path;
 		this.sheetNameFilter = sheetNameFilter;
-		this.file = new File(path);
 		this.offset = offset;
 		this.limit = limit;
 		this.skip = skip;
+		this.fileTag = fileTag;
 	}
 
 	@Override
@@ -57,6 +60,12 @@ public class XlsxFileQuery extends DriverQueryCommand {
 
 	@Override
 	public void run() {
+		for (String filePath : filePaths)
+			readXlsxFile(filePath);
+	}
+
+	private void readXlsxFile(String filePath) {
+		File file = new File(filePath);
 		List<String> sheetNames;
 		try {
 			sheetNames = XlsxExtractor.getSheetNames(file);
@@ -76,7 +85,7 @@ public class XlsxFileQuery extends DriverQueryCommand {
 				if (sheetNameFilter != null && !sheetNameFilter.equals(sheetName))
 					continue;
 
-				Pipe pipe = new Pipe(sheetName);
+				Pipe pipe = new Pipe(sheetName, filePath);
 				currentExtractor = new XlsxExtractor(file, sheetName, dummyLogger, pipe, nextOffset, nextLimit, skip);
 				currentExtractor.run();
 
@@ -105,15 +114,20 @@ public class XlsxFileQuery extends DriverQueryCommand {
 
 	private class Pipe implements LogPipe {
 		private String sheetName;
+		private String filePath;
 
-		public Pipe(String sheetName) {
+		public Pipe(String sheetName, String filePath) {
 			this.sheetName = sheetName;
+			this.filePath = filePath;
 		}
 
 		@Override
 		public void onLog(Logger logger, Log log) {
 			Row row = new Row(log.getParams());
 			row.put("_sheet", sheetName);
+
+			if (fileTag != null)
+				row.put(fileTag, filePath);
 			pushPipe(row);
 		}
 
@@ -140,6 +154,10 @@ public class XlsxFileQuery extends DriverQueryCommand {
 		if (skip > 0)
 			skipOpt = " skip=" + skip;
 
-		return "xlsxfile" + sheetOpt + offsetOpt + limitOpt + skipOpt + " " + path;
+		String fileTagOpt = "";
+		if (fileTag != null)
+			fileTagOpt = " file_tag=" + fileTag;
+
+		return "xlsxfile" + sheetOpt + offsetOpt + limitOpt + skipOpt + fileTagOpt + " " + path;
 	}
 }

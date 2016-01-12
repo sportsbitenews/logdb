@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
@@ -35,20 +36,25 @@ import org.slf4j.LoggerFactory;
 
 public class JsonFile extends DriverQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(JsonFile.class.getName());
+	private List<String> filePaths;
 	private String filePath;
 	private LogParser parser;
 	private String parseTarget;
 	private long offset;
 	private long limit;
 	private boolean overlay;
+	private String fileTag;
 
-	public JsonFile(String filePath, LogParser parser, String parseTarget, boolean overlay, long offset, long limit) {
+	public JsonFile(List<String> filePaths, String filePath, LogParser parser, String parseTarget, boolean overlay, long offset,
+			long limit, String fileTag) {
+		this.filePaths = filePaths;
 		this.filePath = filePath;
 		this.parser = parser;
 		this.parseTarget = parseTarget;
 		this.overlay = overlay;
 		this.offset = offset;
 		this.limit = limit;
+		this.fileTag = fileTag;
 
 		if (this.parseTarget == null) {
 			this.parseTarget = "line";
@@ -64,6 +70,11 @@ public class JsonFile extends DriverQueryCommand {
 	public void run() {
 		status = Status.Running;
 
+		for (String filePath : filePaths)
+			readJsonFile(filePath);
+	}
+
+	private void readJsonFile(String filePath) {
 		FileInputStream is = null;
 		BufferedReader br = null;
 		try {
@@ -99,6 +110,9 @@ public class JsonFile extends DriverQueryCommand {
 					}
 
 					if (i >= offset) {
+						if (fileTag != null)
+							m.put(fileTag, filePath);
+
 						pushPipe(new Row(m));
 						count++;
 					}
@@ -126,6 +140,10 @@ public class JsonFile extends DriverQueryCommand {
 		if (limit != 0)
 			limitOpt = " limit" + limit;
 
-		return "jsonfile" + offsetOpt + limitOpt + " " + filePath;
+		String fileTagOpt = "";
+		if (fileTag != null)
+			fileTagOpt = " file_tag=" + fileTag;
+
+		return "jsonfile" + offsetOpt + limitOpt + fileTagOpt + " " + filePath;
 	}
 }

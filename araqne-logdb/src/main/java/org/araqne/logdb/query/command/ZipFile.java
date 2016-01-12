@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 
@@ -33,18 +34,23 @@ import org.slf4j.LoggerFactory;
 
 public class ZipFile extends DriverQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(TextFile.class.getName());
+	private List<String> filePaths;
 	private String filePath;
 	private String entryPath;
 	private LogParser parser;
 	private int offset;
 	private int limit;
+	private String fileTag;
 
-	public ZipFile(String filePath, String entryPath, LogParser parser, int offset, int limit) {
+	public ZipFile(List<String> filePaths, String filePath, String entryPath, LogParser parser, int offset, int limit,
+			String fileTag) {
+		this.filePaths = filePaths;
 		this.filePath = filePath;
 		this.entryPath = entryPath;
 		this.parser = parser;
 		this.offset = offset;
 		this.limit = limit;
+		this.fileTag = fileTag;
 	}
 
 	@Override
@@ -56,6 +62,11 @@ public class ZipFile extends DriverQueryCommand {
 	public void run() {
 		status = Status.Running;
 
+		for (String filePath : filePaths)
+			readZipFile(filePath);
+	}
+
+	private void readZipFile(String filePath) {
 		java.util.zip.ZipFile zipFile = null;
 		BufferedReader br = null;
 		InputStream is = null;
@@ -90,7 +101,10 @@ public class ZipFile extends DriverQueryCommand {
 				}
 
 				if (i >= offset) {
-					pushPipe(new Row(parsed != null ? parsed : m));
+					Row r = new Row(parsed != null ? parsed : m);
+					if (fileTag != null)
+						r.put(fileTag, filePath);
+					pushPipe(r);
 					count++;
 				}
 				i++;
@@ -118,6 +132,10 @@ public class ZipFile extends DriverQueryCommand {
 		if (limit > 0)
 			limitOpt = " limit=" + limit;
 
-		return "zipfile" + offsetOpt + limitOpt + " " + filePath + " " + entryPath;
+		String fileTagOpt = "";
+		if (fileTag != null)
+			fileTagOpt = " file_tag=" + fileTag;
+
+		return "zipfile" + offsetOpt + limitOpt + fileTagOpt + " " + filePath + " " + entryPath;
 	}
 }
