@@ -39,6 +39,7 @@ import org.araqne.api.Script;
 import org.araqne.api.ScriptArgument;
 import org.araqne.api.ScriptContext;
 import org.araqne.api.ScriptUsage;
+import org.araqne.api.SystemProperty;
 import org.araqne.confdb.ConfigService;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.log.api.WildcardMatcher;
@@ -558,6 +559,12 @@ public class LogStorageScript implements Script {
 	@ScriptUsage(description = "drop log table", arguments = { @ScriptArgument(name = "name", type = "string", description = "log table name") })
 	public void dropTable(String[] args) {
 		try {
+			Collection<Date> dates = storage.getLogDates(args[0]);
+			if (SystemProperty.isEnabled("cc_compliant") && !dates.isEmpty()) {
+				context.println("cannot drop the table");
+				return;
+			}
+
 			storage.dropTable(args[0]);
 			context.println("table dropped");
 		} catch (Exception e) {
@@ -1199,6 +1206,11 @@ public class LogStorageScript implements Script {
 			@ScriptArgument(name = "from", type = "string", description = "yyyyMMdd"),
 			@ScriptArgument(name = "to", type = "string", description = "yyyyMMdd") })
 	public void purge(String[] args) throws ParseException {
+		if (SystemProperty.isEnabled("cc_compliant") ){
+			context.println("cannot purge the table");
+			return;
+		}
+		
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 		String receivedTableName = args[0];
 		Date fromDay = df.parse(args[1]);

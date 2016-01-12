@@ -169,7 +169,10 @@ public class LogTableRegistryImpl implements LogTableRegistry {
 
 	@Override
 	public List<String> getTableNames() {
-		return new ArrayList<String>(tableIDs.keySet());
+		List<String> l = new ArrayList<String>();
+		for (TableSchema s : tableSchemas.values())
+			l.add(s.getName());
+		return l;
 	}
 
 	@Override

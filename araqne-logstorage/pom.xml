@@ -35,7 +35,7 @@
 							org.araqne.logstorage.script
 						</Private-Package>
 						<Import-Package>
-							org.araqne.log.api;version="3.0.0",
+							org.araqne.log.api;version="3.0.5",
 							org.araqne.msgbus;resolution:=optional,
 							org.araqne.msgbus.handler;resolution:=optional,
 							org.araqne.codec;version=2.2.0,

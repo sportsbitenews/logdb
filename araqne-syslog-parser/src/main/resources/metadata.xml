@@ -20,4 +20,5 @@
 	<instance component="swg-parser-factory" />
 	<instance component="counteract-log-parser-factory" />
 	<instance component="protection-engine-log-parser-factory" />
+	<instance component="secure-sphere-parser-factory" />
 </ipojo>

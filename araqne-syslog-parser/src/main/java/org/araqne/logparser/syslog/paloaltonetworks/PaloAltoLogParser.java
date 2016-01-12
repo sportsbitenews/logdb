@@ -52,14 +52,21 @@ public class PaloAltoLogParser extends V1LogParser {
 		List<String> l = new ArrayList<String>();
 
 		int offset = 0;
-
+		String logType = "";
 		while (true) {
 			int pos = line.indexOf(',', offset);
 			if (pos < 0) {
 				l.add(line.substring(offset));
 				break;
 			}
-			if (line.substring(offset).startsWith("\"")) {
+
+			if (l.size() == 4)
+				logType = l.get(3);
+			if (l.size() == 31 && logType.equals("THREAT")) {
+				int e = line.indexOf(",(", offset);
+				if (e > 0)
+					pos = e;
+			} else if (line.substring(offset).startsWith("\"")) {
 				// recalculate pos
 				int endQuotePos = line.indexOf("\"", offset + 1);
 				pos = line.indexOf(',', endQuotePos);
