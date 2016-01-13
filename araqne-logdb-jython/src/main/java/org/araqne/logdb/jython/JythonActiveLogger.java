@@ -21,6 +21,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.api.DateFormat;
+import org.araqne.codec.EncodingRule;
 import org.araqne.log.api.LastState;
 import org.araqne.log.api.Log;
 import org.araqne.log.api.LogPipe;
@@ -32,6 +33,7 @@ import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.LoggerStartReason;
 import org.araqne.log.api.LoggerStatus;
 import org.araqne.log.api.LoggerStopReason;
+import org.araqne.log.api.SimpleLog;
 import org.araqne.log.api.TimeRange;
 
 public abstract class JythonActiveLogger implements Logger, Runnable {
@@ -59,6 +61,8 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	private volatile Date lastLogDate;
 	private AtomicLong logCounter = new AtomicLong();
 	private AtomicLong dropCounter = new AtomicLong();
+	private AtomicLong logVolume = new AtomicLong();
+	private AtomicLong dropVolume = new AtomicLong();
 
 	public abstract void init(LoggerSpecification spec);
 
@@ -202,6 +206,16 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 	}
 
 	@Override
+	public long getDropVolume() {
+		return dropVolume.get();
+	}
+
+	@Override
+	public long getLogVolume() {
+		return logVolume.get();
+	}
+
+	@Override
 	public void start(LoggerStartReason reason) {
 		throw new UnsupportedOperationException("this is active logger, start with interval");
 	}
@@ -291,9 +305,11 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		if (stopped)
 			return;
 
+		long volume = getDataLength(log);
 		// update last log date
 		lastLogDate = log.getDate();
 		logCounter.incrementAndGet();
+		logVolume.addAndGet(volume);
 
 		// transform
 		if (transformer != null) {
@@ -302,6 +318,7 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 
 		if (log == null) {
 			dropCounter.incrementAndGet();
+			dropVolume.addAndGet(volume);
 			return;
 		}
 
@@ -315,6 +332,19 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 				else
 					this.log.warn("araqne logdb jython: log pipe should not throw exception", e);
 			}
+
+		}
+	}
+
+	private long getDataLength(Log log) {
+		if (log instanceof SimpleLog) {
+			SimpleLog sl = (SimpleLog) log;
+			if (sl.getDataLength() == 0)
+				return EncodingRule.lengthOfMap(log.getParams());
+			else
+				return sl.getDataLength();
+		} else {
+			return EncodingRule.lengthOfMap(log.getParams());
 		}
 	}
 
@@ -352,6 +382,8 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		s.setProperties(getStates());
 		s.setEnabled(isEnabled());
 		s.setRunning(isRunning());
+		s.setLogVolume(getLogVolume());
+		s.setDropVolume(getDropVolume());
 
 		getFactory().getLastStateService().setState(s);
 
@@ -379,6 +411,8 @@ public abstract class JythonActiveLogger implements Logger, Runnable {
 		s.setProperties(getStates());
 		s.setEnabled(false);
 		s.setRunning(isRunning());
+		s.setLogVolume(getLogVolume());
+		s.setDropVolume(getDropVolume());
 
 		getFactory().getLastStateService().setState(s);
 

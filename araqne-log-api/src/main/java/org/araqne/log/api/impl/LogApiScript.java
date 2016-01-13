@@ -93,7 +93,8 @@ public class LogApiScript implements Script {
 	/**
 	 * @since 2.6.0
 	 */
-	@ScriptUsage(description = "print last log of loggers", arguments = { @ScriptArgument(name = "name filter", type = "string", description = "name filter", optional = true) })
+	@ScriptUsage(description = "print last log of loggers", arguments = {
+			@ScriptArgument(name = "name filter", type = "string", description = "name filter", optional = true) })
 	public void lastLogs(String[] args) {
 		String filter = null;
 		if (args.length > 0)
@@ -148,13 +149,15 @@ public class LogApiScript implements Script {
 		context.println("created");
 	}
 
-	@ScriptUsage(description = "remove parser profile", arguments = { @ScriptArgument(name = "profile name", type = "string", description = "profile name") })
+	@ScriptUsage(description = "remove parser profile", arguments = {
+			@ScriptArgument(name = "profile name", type = "string", description = "profile name") })
 	public void removeParser(String[] args) {
 		parserRegistry.removeProfile(args[0]);
 		context.println("removed");
 	}
 
-	@ScriptUsage(description = "print transformer profiles", arguments = { @ScriptArgument(name = "name", type = "string", description = "filter by name", optional = true) })
+	@ScriptUsage(description = "print transformer profiles", arguments = {
+			@ScriptArgument(name = "name", type = "string", description = "filter by name", optional = true) })
 	public void transformers(String[] args) {
 		String filter = null;
 		String filtered = "";
@@ -201,7 +204,8 @@ public class LogApiScript implements Script {
 		context.println("created");
 	}
 
-	@ScriptUsage(description = "remove transformer profile", arguments = { @ScriptArgument(name = "profile name", type = "string", description = "profile name") })
+	@ScriptUsage(description = "remove transformer profile", arguments = {
+			@ScriptArgument(name = "profile name", type = "string", description = "profile name") })
 	public void removeTransformer(String[] args) {
 		transformerRegistry.removeProfile(args[0]);
 		context.println("removed");
@@ -260,13 +264,13 @@ public class LogApiScript implements Script {
 		Collections.sort(filteredList);
 
 		if (verbOpt != null) {
-			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerFactoryListItem>(filteredList, Arrays.asList("fullName", "displayName",
-							"description"), Arrays.asList("l!factory name", "l!display name", "l!description"))));
+			context.println(ASCIITable.getInstance()
+					.getTable(new CollectionASCIITableAware<LoggerFactoryListItem>(filteredList,
+							Arrays.asList("fullName", "displayName", "description"),
+							Arrays.asList("l!factory name", "l!display name", "l!description"))));
 		} else {
-			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerFactoryListItem>(filteredList, Arrays.asList("fullName", "displayName"),
-							Arrays.asList("l!factory name", "l!display name"))));
+			context.println(ASCIITable.getInstance().getTable(new CollectionASCIITableAware<LoggerFactoryListItem>(filteredList,
+					Arrays.asList("fullName", "displayName"), Arrays.asList("l!factory name", "l!display name"))));
 		}
 	}
 
@@ -315,6 +319,14 @@ public class LogApiScript implements Script {
 
 		public long getDropCount() {
 			return logger.getDropCount();
+		}
+
+		public long getLogVolume() {
+			return logger.getLogVolume();
+		}
+
+		public long getDropVolume() {
+			return logger.getDropVolume();
 		}
 
 		public Date getLastStartDate() {
@@ -385,22 +397,26 @@ public class LogApiScript implements Script {
 				context.println(logger.toString());
 			}
 		} else if (verbOpt != null)
-			context.println(ASCIITable.getInstance()
-					.getTable(
-							new CollectionASCIITableAware<LoggerListItem>(filteredList, new PropertyColumn("fullName", "l!name"),
-									new PropertyColumn("factoryFullName", "l!factory"), new PropertyColumn("status", "l!status"),
-									new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
-									new PropertyColumn("dropCount", "drop"), new PropertyColumn("lastStartDate", "l!last start"),
-									new PropertyColumn("lastRunDate", "l!last run"), new PropertyColumn("lastLogDate",
-											"l!last log"), new PropertyColumn("stopReason", "stop reason"), new PropertyColumn(
-											"temporaryFailure", "l!error"))));
+			context.println(
+					ASCIITable.getInstance()
+							.getTable(new CollectionASCIITableAware<LoggerListItem>(filteredList,
+									new PropertyColumn("fullName", "l!name"), new PropertyColumn("factoryFullName", "l!factory"),
+									new PropertyColumn("status", "l!status"), new PropertyColumn("interval", "intvl.(ms)"),
+									new PropertyColumn("logCount", "log count"), new PropertyColumn("dropCount", "drop count"),
+									new PropertyColumn("logVolume", "log volume"), new PropertyColumn("dropVolume",
+											"drop volume"),
+									new PropertyColumn("lastStartDate", "l!last start"),
+									new PropertyColumn("lastRunDate", "l!last run"),
+									new PropertyColumn("lastLogDate", "l!last log"),
+									new PropertyColumn("stopReason", "stop reason"),
+									new PropertyColumn("temporaryFailure", "l!error"))));
 		else
-			context.println(ASCIITable.getInstance().getTable(
-					new CollectionASCIITableAware<LoggerListItem>(filteredList, new PropertyColumn("fullName", "l!name"),
-							new PropertyColumn("factoryName", "l!factory"), new PropertyColumn("status", "l!status"),
-							new PropertyColumn("interval", "intvl.(ms)"), new PropertyColumn("logCount", "log count"),
-							new PropertyColumn("lastLogDate", "l!last log"), new PropertyColumn("stopReason", "stop reason"),
-							new PropertyColumn("temporaryFailure", "l!error"))));
+			context.println(ASCIITable.getInstance()
+					.getTable(new CollectionASCIITableAware<LoggerListItem>(filteredList,
+							new PropertyColumn("fullName", "l!name"), new PropertyColumn("factoryName", "l!factory"),
+							new PropertyColumn("status", "l!status"), new PropertyColumn("interval", "intvl.(ms)"),
+							new PropertyColumn("logCount", "log count"), new PropertyColumn("lastLogDate", "l!last log"),
+							new PropertyColumn("stopReason", "stop reason"), new PropertyColumn("temporaryFailure", "l!error"))));
 
 	}
 
@@ -416,7 +432,8 @@ public class LogApiScript implements Script {
 		return m.find();
 	}
 
-	@ScriptUsage(description = "print logger configuration", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "logger fullname", autocompletion = LoggerAutoCompleter.class) })
+	@ScriptUsage(description = "print logger configuration", arguments = {
+			@ScriptArgument(name = "logger fullname", type = "string", description = "logger fullname", autocompletion = LoggerAutoCompleter.class) })
 	public void logger(String[] args) {
 		String fullName = args[0];
 		context.println("Logger [" + fullName + "]");
@@ -440,6 +457,8 @@ public class LogApiScript implements Script {
 		context.println(" * Last Run: " + lastRunDate);
 		context.println(" * Log Count: " + logger.getLogCount());
 		context.println(" * Drop Count: " + logger.getDropCount());
+		context.println(" * Log Volume: " + logger.getLogVolume());
+		context.println(" * Drop Volume: " + logger.getDropVolume());
 
 		context.println("");
 
@@ -458,7 +477,8 @@ public class LogApiScript implements Script {
 		context.println();
 	}
 
-	@ScriptUsage(description = "print log parser factories", arguments = { @ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
+	@ScriptUsage(description = "print log parser factories", arguments = {
+			@ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
 	public void parserFactories(String[] args) {
 		String filter = null;
 		String filtered = "";
@@ -477,7 +497,8 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "print log transformer factories", arguments = { @ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
+	@ScriptUsage(description = "print log transformer factories", arguments = {
+			@ScriptArgument(name = "name filter", type = "string", description = "filter by factory name", optional = true) })
 	public void transformerFactories(String[] args) {
 		String filter = null;
 		String filtered = "";
@@ -496,7 +517,8 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "trace logger output", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "logger fullname", autocompletion = LoggerAutoCompleter.class) })
+	@ScriptUsage(description = "trace logger output", arguments = {
+			@ScriptArgument(name = "logger name", type = "string", description = "logger fullname", autocompletion = LoggerAutoCompleter.class) })
 	public void trace(String[] args) {
 		Logger logger = loggerRegistry.getLogger(args[0]);
 		if (logger == null) {
@@ -769,7 +791,8 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "update logger config", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname", autocompletion = LoggerAutoCompleter.class) })
+	@ScriptUsage(description = "update logger config", arguments = {
+			@ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname", autocompletion = LoggerAutoCompleter.class) })
 	public void updateLogger(String[] args) {
 		try {
 			String loggerFullName = args[0];
@@ -801,7 +824,8 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "remove logger", arguments = { @ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname", autocompletion = LoggerAutoCompleter.class) })
+	@ScriptUsage(description = "remove logger", arguments = {
+			@ScriptArgument(name = "logger fullname", type = "string", description = "the logger fullname", autocompletion = LoggerAutoCompleter.class) })
 	public void removeLogger(String[] args) {
 		try {
 			String fullName = args[0];
@@ -905,7 +929,8 @@ public class LogApiScript implements Script {
 		}
 	}
 
-	@ScriptUsage(description = "reset logger state", arguments = { @ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format", autocompletion = LoggerAutoCompleter.class) })
+	@ScriptUsage(description = "reset logger state", arguments = {
+			@ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format", autocompletion = LoggerAutoCompleter.class) })
 	public void resetState(String[] args) {
 		Logger logger = loggerRegistry.getLogger(args[0]);
 		if (logger == null) {
@@ -917,7 +942,8 @@ public class LogApiScript implements Script {
 		context.println("reset completed");
 	}
 
-	@ScriptUsage(description = "print logger dependencies", arguments = { @org.araqne.api.ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format", autocompletion = LoggerAutoCompleter.class) })
+	@ScriptUsage(description = "print logger dependencies", arguments = {
+			@org.araqne.api.ScriptArgument(name = "logger name", type = "string", description = "namespace\\name format", autocompletion = LoggerAutoCompleter.class) })
 	public void dependencies(String[] args) {
 		String fullName = args[0];
 

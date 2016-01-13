@@ -98,7 +98,7 @@ public class LogDbClient implements TrapListener, Closeable {
 
 	private StreamingResultEncoder streamingEncoder;
 	private Semaphore inputThrottler = new Semaphore(MAX_THROTTLE_PERMIT);
-//	private int counter = 0;
+	// private int counter = 0;
 
 	private int insertBatchSize = 3500;
 
@@ -657,7 +657,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	private Map<String, Object> buildSecurityGroupRequest(SecurityGroupInfo group) {
 		checkNotNull("name", group.getName());
 		checkNotNull("guid", group.getGuid());
-		
+
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("guid", group.getGuid());
 		m.put("name", group.getName());
@@ -1128,10 +1128,10 @@ public class LogDbClient implements TrapListener, Closeable {
 		List<Map<String, Object>> engines = (List<Map<String, Object>>) resp.get("engines");
 		for (Map<String, Object> engine : engines) {
 			String name = (String) engine.get("type");
-			List<StorageEngineConfigSpec> primaryConfigSpecs = parseStorageConfigSpecs((List<Object>) engine
-					.get("primary_config_specs"));
-			List<StorageEngineConfigSpec> replicaConfigSpecs = parseStorageConfigSpecs((List<Object>) engine
-					.get("replica_config_specs"));
+			List<StorageEngineConfigSpec> primaryConfigSpecs = parseStorageConfigSpecs(
+					(List<Object>) engine.get("primary_config_specs"));
+			List<StorageEngineConfigSpec> replicaConfigSpecs = parseStorageConfigSpecs(
+					(List<Object>) engine.get("replica_config_specs"));
 
 			l.add(new StorageEngineInfo(name, primaryConfigSpecs, replicaConfigSpecs));
 		}
@@ -1726,6 +1726,10 @@ public class LogDbClient implements TrapListener, Closeable {
 		lo.setLastRunAt(parseDate((String) m.get("last_run")));
 		lo.setLastLogAt(parseDate((String) m.get("last_log")));
 		lo.setLogCount(Long.valueOf(m.get("log_count").toString()));
+		if (m.get("log_volume") != null)
+			lo.setLogVolume(Long.valueOf(m.get("log_volume").toString()));
+		if (m.get("drop_volume") != null)
+			lo.setDropVolume(Long.valueOf(m.get("drop_volume").toString()));
 
 		Object dropCount = m.get("drop_count");
 		if (dropCount != null)
@@ -1900,8 +1904,8 @@ public class LogDbClient implements TrapListener, Closeable {
 			if (q.getErrorCode() != null)
 				errorMsg = String.format(", error LOGPRESSO-%05d [%s]", q.getErrorCode(), q.getErrorDetail());
 
-			throw new IllegalStateException("query cancelled, id [" + q.getId() + "] query string [" + queryString + "]"
-					+ errorMsg);
+			throw new IllegalStateException(
+					"query cancelled, id [" + q.getId() + "] query string [" + queryString + "]" + errorMsg);
 		}
 
 		long total = q.getLoadedCount();
@@ -2542,7 +2546,7 @@ public class LogDbClient implements TrapListener, Closeable {
 				flusher.get().start();
 			}
 		}
-		
+
 		boolean acResult = inputThrottler.tryAcquire(rows.size());
 		if (!acResult) {
 			flusher.get().signal();
@@ -2563,7 +2567,7 @@ public class LogDbClient implements TrapListener, Closeable {
 			QueuedRows qr = new QueuedRows(rows, flusher.get());
 			flushBuffers.get(tableName).add(qr);
 			ret = qr;
-//			counter += rows.size();
+			// counter += rows.size();
 		}
 		// count over -> flush
 		if (inputThrottler.availablePermits() <= MAX_THROTTLE_PERMIT * 0.8) {
@@ -2642,19 +2646,19 @@ public class LogDbClient implements TrapListener, Closeable {
 			try {
 				long start = System.currentTimeMillis();
 				long end = start + TimeUnit.MILLISECONDS.convert(timeout, unit);
-				
+
 				wCalls.put(r, r);
 				signal();
-				
+
 				while (true) {
 					if (!running) {
 						r.setDone(new SocketException("closed"));
 						return true;
 					}
-					
+
 					if (r.l.await(50, TimeUnit.MILLISECONDS))
 						return true;
-					
+
 					if (System.currentTimeMillis() >= end)
 						return false;
 				}
@@ -2667,7 +2671,7 @@ public class LogDbClient implements TrapListener, Closeable {
 			try {
 				wCalls.put(r, r);
 				signal();
-				
+
 				while (true) {
 					if (!running) {
 						r.setDone(new SocketException("closed"));
@@ -2697,13 +2701,13 @@ public class LogDbClient implements TrapListener, Closeable {
 				} catch (InterruptedException e) {
 				}
 			}
-			// give one more chance to flush  
+			// give one more chance to flush
 			flushInternal();
 		}
 
 		void shutdown() {
 			running = false;
-			synchronized(this) {
+			synchronized (this) {
 				this.notifyAll();
 			}
 			while (!flushBuffers.isEmpty()) {
@@ -2729,7 +2733,7 @@ public class LogDbClient implements TrapListener, Closeable {
 	 */
 	public void flush() {
 	}
-	
+
 	private void flushInternal() {
 		if (inputThrottler.availablePermits() == MAX_THROTTLE_PERMIT)
 			return;
@@ -2741,7 +2745,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		}
 		int counter = 0;
 		for (Map.Entry<String, List<QueuedRows>> entry : binsMap.entrySet()) {
-			for (QueuedRows rows: entry.getValue()) {
+			for (QueuedRows rows : entry.getValue()) {
 				counter += rows.getRows().size();
 			}
 		}
@@ -2755,17 +2759,17 @@ public class LogDbClient implements TrapListener, Closeable {
 				while (it.hasNext()) {
 					List<Object> l = new ArrayList<Object>(items.size());
 					List<QueuedRows> currItems = new ArrayList<QueuedRows>();
-					
+
 					while (it.hasNext()) {
 						QueuedRows rows = it.next();
-						for (Row row: rows.getRows()) {
+						for (Row row : rows.getRows()) {
 							l.add(row.map());
 						}
 						currItems.add(rows);
 						if (l.size() >= insertBatchSize)
 							break;
 					}
-					
+
 					List<Map<String, Object>> bins = streamingEncoder.encode(l, false);
 					Map<String, Object> params = new HashMap<String, Object>();
 					params.put("table", entry.getKey());
