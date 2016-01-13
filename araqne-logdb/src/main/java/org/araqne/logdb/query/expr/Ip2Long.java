@@ -48,15 +48,14 @@ public class Ip2Long extends FunctionExpression {
 		return ToLong.convert(addr.getAddress());
 	}
 
-	public static Long convert(String ip) {
+	public static Long convert(String s, int begin, int end) {
 		int numCount = 0;
 		int digitCount = 0;
 		int[] numbers = new int[4];
 		int[] digits = new int[3];
-		int len = ip.length();
 
-		for (int i = 0; i < len; i++) {
-			char c = ip.charAt(i);
+		for (int i = begin; i < end; i++) {
+			char c = s.charAt(i);
 			if (c == '.') {
 				int num = 0;
 				switch (digitCount) {
@@ -120,5 +119,9 @@ public class Ip2Long extends FunctionExpression {
 			result |= part;
 		}
 		return result;
+	}
+	
+	public static Long convert(String ip) {
+		return convert(ip, 0, ip.length());
 	}
 }
