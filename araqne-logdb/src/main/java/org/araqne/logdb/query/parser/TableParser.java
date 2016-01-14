@@ -552,7 +552,7 @@ public class TableParser extends AbstractQueryCommandParser {
 			}
 		} else {
 			WildcardTableSpec wspec = new WildcardTableSpec(spec.toString());
-			if (!wspec.hasWildcard()) {
+			if (!(wspec.hasWildcard() || wspec.isOptional())) {
 				List<StorageObjectName> sonList = wspec.match(tableRegistry);
 				StorageObjectName son = sonList.get(0);
 
