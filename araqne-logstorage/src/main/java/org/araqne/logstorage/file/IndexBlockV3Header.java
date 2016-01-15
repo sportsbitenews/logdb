@@ -118,7 +118,7 @@ public class IndexBlockV3Header extends IndexBlock<IndexBlockV3Header>{
 	}
 
 	@Override
-	public long getDataBlockLen() {
+	public Long getDataBlockLen() {
 		return dataBlockLen;
 	}
 

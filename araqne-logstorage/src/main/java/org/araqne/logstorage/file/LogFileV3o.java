@@ -181,7 +181,7 @@ public class LogFileV3o extends FilePair<IndexBlockV3Header, LogFileV3o.RawDataB
 
 	@Override
 	public RawDataBlock getRawDataBlock(IndexBlockV3Header indexBlock) throws IOException {
-		ByteBuffer dataBuffer = ByteBuffer.allocate((int) indexBlock.getDataBlockLen());
+		ByteBuffer dataBuffer = ByteBuffer.allocate((int) indexBlock.getDataBlockLen().intValue());
 		StorageInputStream stream = getDataStream();
 		stream.seek(indexBlock.getPosOnData());
 		stream.readFully(dataBuffer.array());

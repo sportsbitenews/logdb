@@ -26,7 +26,7 @@ public abstract class IndexBlock<Derived extends IndexBlock<Derived>> {
 
 	public abstract Derived unserialize(int blockId, ByteBuffer buf);
 
-	public abstract long getDataBlockLen();
+	public abstract Long getDataBlockLen();
 
 	public abstract Derived newReservedBlock();
 	

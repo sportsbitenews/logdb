@@ -78,18 +78,38 @@ public class DataBlockV3 {
 			if (block == null) {
 				ByteBuffer blockToCache = null;
 				StorageInputStream dataStream = params.dataStream;
+				Long dataBlockLen = params.indexHeader.getDataBlockLen();
 				synchronized (dataStream) {
-					dataStream.seek(dataFp);
-					blockLength = length = dataStream.readInt();
-					
-					if (length < 0 || length - 4 > params.dataStream.available())
-						throw new IllegalStateException(
-								String.format("invalid length: %d", length));
+					if (dataBlockLen == null) {
+						dataStream.seek(dataFp);
+						blockLength = length = dataStream.readInt();
+						
+						if (length < 0 || length - 4 > params.dataStream.available())
+							throw new IllegalStateException(
+									String.format("invalid length: %d", length));
+	
+						blockToCache = ByteBuffer.allocate(length - 4);
+						dataStream.readBestEffort(blockToCache);
+						blockToCache.flip();
+					} else {
+						dataStream.seek(dataFp);
+						
+						// accelleration by skipping reading dataLength from dataBlock  
+						ByteBuffer dataBlockBuf = ByteBuffer.allocate(dataBlockLen.intValue());
+						dataStream.readBestEffort(dataBlockBuf);
 
-					blockToCache = ByteBuffer.allocate(length - 4);
-					dataStream.readBestEffort(blockToCache);
+						dataBlockBuf.flip();
+						
+						length = dataBlockBuf.getInt();
+						
+						if (length < 0 || length - 4 > dataBlockBuf.remaining())
+							throw new IllegalStateException(
+									String.format("invalid length: %d", length));
+						
+						blockToCache = ByteBuffer.wrap(dataBlockBuf.array(), 
+								dataBlockBuf.position(), dataBlockBuf.remaining());
+					}
 				}
-				blockToCache.flip();
 				// potentionally buffer underflow
 				if (blockToCache.remaining() != length - 4) {
 					logger.warn("disk read underflow: expected: {}, read: {}", length - 4, blockToCache.remaining());

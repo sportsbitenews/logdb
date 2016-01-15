@@ -662,7 +662,7 @@ public class LogFileV3oTest {
 					// reserve block
 					indexBlock.newReservedBlock().serialize(ios);
 
-					byte[] b = new byte[(int) indexBlock.getDataBlockLen()];
+					byte[] b = new byte[(int) indexBlock.getDataBlockLen().intValue()];
 					dos.write(b);
 				}
 				i++;
