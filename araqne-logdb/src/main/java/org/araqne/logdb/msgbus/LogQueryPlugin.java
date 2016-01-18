@@ -165,10 +165,10 @@ public class LogQueryPlugin {
 		String queryString = req.getString("query");
 		try {
 			org.araqne.logdb.Session dbSession = getDbSession(req);
-			if (req.get("source") != null)
-				dbSession.setProperty("araqne_logdb_query_source", req.getString("source"));
-
 			QueryContext context = new QueryContext(dbSession);
+			if (req.get("source") != null) {
+				context.getConstants().put("araqne_logdb_query_source", req.getString("source"));
+			}
 
 			// supported since araqne-logdb-client 1.0.7
 			String queryContextEncoded = req.getString("context");
@@ -586,8 +586,8 @@ public class LogQueryPlugin {
 					// @since 2.2.17
 					if (query.getCause() != null) {
 						m.put("error_code", GENERAL_QUERY_FAILURE_CODE);
-						m.put("error_detail", query.getCause().getMessage() != null ? query.getCause().getMessage()
-								: query.getCause().getClass().getName());
+						m.put("error_detail", query.getCause().getMessage() != null ? query.getCause().getMessage() : query
+								.getCause().getClass().getName());
 					}
 
 					pushApi.push(orgDomain, "logdb-query-" + query.getId(), m);

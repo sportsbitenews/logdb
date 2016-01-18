@@ -39,10 +39,10 @@ public class DummyLogger implements Logger {
 
 	private LoggerStatus status;
 	private Map<String, String> configs;
-	
+
 	public DummyLogger() {
 	}
-	
+
 	public DummyLogger(Map<String, String> configs) {
 		this.configs = configs;
 	}
@@ -289,5 +289,15 @@ public class DummyLogger implements Logger {
 
 	@Override
 	public void removeUnresolvedLogger(String fullName) {
+	}
+
+	@Override
+	public long getDropVolume() {
+		return 0;
+	}
+
+	@Override
+	public long getLogVolume() {
+		return 0;
 	}
 }

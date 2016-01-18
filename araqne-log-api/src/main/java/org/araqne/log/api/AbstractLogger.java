@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.api.DateFormat;
+import org.araqne.codec.EncodingRule;
 
 public abstract class AbstractLogger implements Logger, Runnable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(AbstractLogger.class.getName());
@@ -57,7 +58,9 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	private volatile Date lastWriteDate;
 	private volatile Log lastLog;
 	private AtomicLong logCounter;
+	private AtomicLong logVolumes;
 	private AtomicLong dropCounter;
+	private AtomicLong dropVolumes;
 
 	private Set<LoggerEventListener> eventListeners;
 	private LogTransformer transformer;
@@ -203,6 +206,16 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	@Override
 	public long getDropCount() {
 		return dropCounter.get();
+	}
+
+	@Override
+	public long getDropVolume() {
+		return dropVolumes.get();
+	}
+
+	@Override
+	public long getLogVolume() {
+		return logVolumes.get();
 	}
 
 	@Override
@@ -371,7 +384,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			invokeStopCallback(reason);
 			stopped = true;
 			status = LoggerStatus.Stopped;
-			this.pending = ((reason == LoggerStopReason.TRANSFORMER_DEPENDENCY) || (reason == LoggerStopReason.LOGGER_DEPENDENCY));
+			this.pending = ((reason == LoggerStopReason.TRANSFORMER_DEPENDENCY)
+					|| (reason == LoggerStopReason.LOGGER_DEPENDENCY));
 		} else
 			stop(reason, INFINITE);
 	}
@@ -545,16 +559,21 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		int addCount = 0;
 		int dropCount = 0;
+		long logVolume = 0;
+		long dropVolume = 0;
 
 		for (int i = 0; i < logs.length; i++) {
 			Log log = logs[i];
 			if (log == null)
 				continue;
 
+			long volume = getDataLength(log);
+
 			// update last log date
 			lastLogDate = log.getDate();
 			lastLog = log;
 			addCount++;
+			logVolume += volume;
 
 			// transform
 			if (transformer != null)
@@ -565,6 +584,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 			// transform may return null to filter log
 			if (log == null) {
 				dropCount++;
+				dropVolume += volume;
 				continue;
 			}
 		}
@@ -574,6 +594,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		logCounter.addAndGet(addCount);
 		dropCounter.addAndGet(dropCount);
+		logVolumes.addAndGet(logVolume);
+		dropVolumes.addAndGet(dropVolume);
 
 		// notify all
 		for (LogPipe pipe : pipes) {
@@ -602,15 +624,30 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		}
 	}
 
+	private long getDataLength(Log log) {
+		if (log instanceof SimpleLog) {
+			SimpleLog sl = (SimpleLog) log;
+			if (sl.getDataLength() == 0)
+				return EncodingRule.lengthOfMap(log.getParams());
+			else
+				return sl.getDataLength();
+		} else {
+			return EncodingRule.lengthOfMap(log.getParams());
+		}
+	}
+
 	protected void write(Log log) {
 		// call method to support overriding (ex. base remote logger)
 		if (!isRunning())
 			return;
 
+		long volume = getDataLength(log);
+
 		// update last log date
 		lastLogDate = log.getDate();
 		lastLog = log;
 		logCounter.incrementAndGet();
+		logVolumes.addAndGet(volume);
 
 		// transform
 		if (transformer != null)
@@ -619,13 +656,18 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		// transform may return null to filter log
 		if (log == null) {
 			dropCounter.incrementAndGet();
+			dropVolumes.addAndGet(volume);
 			return;
 		}
 
 		lastWriteDate = new Date();
 
 		// notify all
-		for (LogPipe pipe : pipes) {
+		for (
+
+		LogPipe pipe : pipes)
+
+		{
 			try {
 				pipe.onLog(this, log);
 			} catch (LoggerStopException e) {
@@ -644,6 +686,7 @@ public abstract class AbstractLogger implements Logger, Runnable {
 					this.slog.warn("araqne-log-api: log pipe should not throw exception", e);
 			}
 		}
+
 	}
 
 	@Override
@@ -732,6 +775,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 		s.setLogCount(logCounter.get());
 		s.setDropCount(dropCounter.get());
+		s.setLogVolume(logVolumes.get());
+		s.setDropVolume(dropVolumes.get());
 		s.setLastLogDate(lastLogDate);
 		s.setPending(pending);
 		s.setEnabled(enabled);
@@ -746,6 +791,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 	public void resetStates() {
 		logCounter.set(0);
 		dropCounter.set(0);
+		logVolumes.set(0);
+		dropVolumes.set(0);
 		lastLogDate = null;
 		setStates(new HashMap<String, Object>());
 
@@ -762,6 +809,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		LastState state = lss.getState(fullName);
 		long lastLogCount = 0;
 		long lastDropCount = 0;
+		long lastLogVolume = 0;
+		long lastDropVolume = 0;
 
 		if (state != null) {
 			this.interval = state.getInterval();
@@ -772,10 +821,14 @@ public abstract class AbstractLogger implements Logger, Runnable {
 
 			lastLogCount = state.getLogCount();
 			lastDropCount = state.getDropCount();
+			lastLogVolume = state.getLogVolume();
+			lastDropVolume = state.getDropVolume();
 			lastLogDate = state.getLastLogDate();
 		}
 		this.logCounter = new AtomicLong(lastLogCount);
 		this.dropCounter = new AtomicLong(lastDropCount);
+		this.logVolumes = new AtomicLong(lastLogVolume);
+		this.dropVolumes = new AtomicLong(lastDropVolume);
 		this.lastLogDate = lastLogDate;
 	}
 
@@ -881,7 +934,8 @@ public abstract class AbstractLogger implements Logger, Runnable {
 		else
 			status += " (interval=" + interval + "ms)";
 
-		return String.format("name=%s, factory=%s, status=%s, log count=%d, last start=%s, last run=%s, last log=%s",
-				getFullName(), factoryFullName, status, getLogCount(), start, run, log);
+		return String.format(
+				"name=%s, factory=%s, status=%s, log count=%d, log volume=%d, last start=%s, last run=%s, last log=%s",
+				getFullName(), factoryFullName, status, getLogCount(), getLogVolume(), start, run, log);
 	}
 }
