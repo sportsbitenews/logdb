@@ -1,5 +1,6 @@
 package org.araqne.logdb.query.command;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
@@ -12,21 +13,18 @@ import org.araqne.logdb.Row;
 import au.com.bytecode.opencsv.CSVReader;
 
 public class CsvFile extends DriverQueryCommand {
-
 	private List<String> filePaths;
 	private String filePath;
 	private long offset;
 	private long limit;
 	private final String cs;
-	private String fileTag;
 
-	public CsvFile(List<String> filePaths, String filePath, long offset, long limit, String cs, String fileTag) {
+	public CsvFile(List<String> filePaths, String filePath, long offset, long limit, String cs) {
 		this.filePaths = filePaths;
 		this.filePath = filePath;
 		this.offset = offset;
 		this.limit = limit;
 		this.cs = cs;
-		this.fileTag = fileTag;
 	}
 
 	@Override
@@ -48,7 +46,8 @@ public class CsvFile extends DriverQueryCommand {
 		long count = 0;
 
 		try {
-			is = new FileInputStream(filePath);
+			File f = new File(filePath);
+			is = new FileInputStream(f);
 			reader = new CSVReader(new InputStreamReader(is, cs), ',', '\"', '\0');
 			String[] headers = reader.readNext();
 			int headerCount = headers.length;
@@ -78,8 +77,7 @@ public class CsvFile extends DriverQueryCommand {
 					}
 				}
 
-				if (fileTag != null)
-					m.put(fileTag, filePath);
+				m.put("_file", f.getName());
 
 				pushPipe(new Row(m));
 				count++;
@@ -106,9 +104,6 @@ public class CsvFile extends DriverQueryCommand {
 
 		if (!cs.equals("utf-8"))
 			s += " cs=" + cs;
-
-		if (fileTag != null)
-			s += " file_tag=" + fileTag;
 
 		s += " " + filePath;
 		return s;

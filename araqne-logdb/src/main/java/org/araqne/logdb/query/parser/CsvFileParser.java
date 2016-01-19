@@ -19,7 +19,6 @@ public class CsvFileParser extends AbstractQueryCommandParser {
 		setDescriptions("Read CSV file.", "CSV 파일에서 데이터를 조회합니다.");
 		setOptions("offset", OPTIONAL, "Skip input count", "건너뛸 레코드 갯수");
 		setOptions("limit", OPTIONAL, "Max output count", "가져올 최대 레코드 갯수");
-		setOptions("file_tag", OPTIONAL, "Field name for filename tagging", "파일명을 태깅할 필드 이름");
 	}
 
 	@Override
@@ -56,14 +55,10 @@ public class CsvFileParser extends AbstractQueryCommandParser {
 		if (options.containsKey("cs"))
 			cs = options.get("cs");
 
-		String fileTag = null;
-		if (options.containsKey("file_tag"))
-			fileTag = options.get("file_tag");
-
 		try {
 			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
 
-			return new CsvFile(pathHelper.getMatchedFilePaths(), filePath, offset, limit, cs, fileTag);
+			return new CsvFile(pathHelper.getMatchedFilePaths(), filePath, offset, limit, cs);
 		} catch (IllegalStateException e) {
 			String msg = e.getMessage();
 			Map<String, String> params = new HashMap<String, String>();

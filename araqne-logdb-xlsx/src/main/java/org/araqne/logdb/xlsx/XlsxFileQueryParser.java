@@ -89,13 +89,9 @@ public class XlsxFileQueryParser extends AbstractQueryCommandParser {
 
 			String sheet = options.get("sheet");
 
-			String fileTag = null;
-			if (options.containsKey("file_tag"))
-				fileTag = options.get("file_tag");
-
 			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
 
-			return new XlsxFileQuery(pathHelper.getMatchedFilePaths(), filePath, sheet, offset, limit, skip, fileTag);
+			return new XlsxFileQuery(pathHelper.getMatchedFilePaths(), filePath, sheet, offset, limit, skip);
 		} catch (IllegalStateException e) {
 			String msg = e.getMessage();
 			Map<String, String> params = new HashMap<String, String>();

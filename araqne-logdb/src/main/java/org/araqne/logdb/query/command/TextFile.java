@@ -49,13 +49,12 @@ public class TextFile extends DriverQueryCommand {
 	private String dateFormat;
 	private String datePattern;
 	private String charset;
-	private String fileTag;
 	private long currentOffset;
 	private long pushCount;
 	private DummyLogger dummyLogger = new DummyLogger();
 
 	public TextFile(List<String> filePaths, String filePath, LogParser parser, long offset, long limit, String beginRegex,
-			String endRegex, String dateFormat, String datePattern, String charset, String fileTag) {
+			String endRegex, String dateFormat, String datePattern, String charset) {
 		this.filePaths = filePaths;
 		this.filePath = filePath;
 		this.parser = parser;
@@ -66,9 +65,8 @@ public class TextFile extends DriverQueryCommand {
 		this.dateFormat = dateFormat;
 		this.datePattern = datePattern;
 		this.charset = charset;
-		this.fileTag = fileTag;
-		currentOffset = 0;
-		pushCount = 0;
+		this.currentOffset = 0;
+		this.pushCount = 0;
 	}
 
 	@Override
@@ -112,8 +110,7 @@ public class TextFile extends DriverQueryCommand {
 
 			if (currentOffset >= offset) {
 				Row r = new Row(parsed != null ? parsed : row.map());
-				if (fileTag != null)
-					r.map().put(fileTag, filePath);
+				r.put("_file", filePath);
 				pushPipe(r);
 				pushCount++;
 			}
@@ -135,8 +132,7 @@ public class TextFile extends DriverQueryCommand {
 
 				if (currentOffset >= offset) {
 					Row r = new Row(parsed != null ? parsed : row.map());
-					if (fileTag != null)
-						r.map().put(fileTag, filePath);
+					r.put("_file", filePath);
 					pushPipe(r);
 					pushCount++;
 				}
@@ -177,8 +173,9 @@ public class TextFile extends DriverQueryCommand {
 			FileInputStream is = null;
 			BufferedReader br = null;
 			try {
-				RowPipe pipe = new RowPipe(filePath);
-				is = new FileInputStream(new File(filePath));
+				File f = new File(filePath);
+				RowPipe pipe = new RowPipe(f.getName());
+				is = new FileInputStream(f);
 
 				MultilineLogExtractor extractor = new MultilineLogExtractor(dummyLogger, pipe);
 				if (beginRegex != null)
@@ -229,11 +226,8 @@ public class TextFile extends DriverQueryCommand {
 		String csOpt = "";
 		if (charset != null)
 			csOpt = " cs=" + charset;
-		String fileTagOpt = "";
-		if (fileTag != null)
-			fileTagOpt = " file_tag=" + fileTag;
 
-		return "textfile" + offsetOpt + limitOpt + brexOpt + erexOpt + dfOpt + dpOpt + csOpt + fileTagOpt + " " + filePath;
+		return "textfile" + offsetOpt + limitOpt + brexOpt + erexOpt + dfOpt + dpOpt + csOpt + " " + filePath;
 	}
 
 	private String quote(String s) {

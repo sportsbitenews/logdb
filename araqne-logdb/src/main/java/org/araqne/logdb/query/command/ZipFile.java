@@ -40,17 +40,14 @@ public class ZipFile extends DriverQueryCommand {
 	private LogParser parser;
 	private int offset;
 	private int limit;
-	private String fileTag;
 
-	public ZipFile(List<String> filePaths, String filePath, String entryPath, LogParser parser, int offset, int limit,
-			String fileTag) {
+	public ZipFile(List<String> filePaths, String filePath, String entryPath, LogParser parser, int offset, int limit) {
 		this.filePaths = filePaths;
 		this.filePath = filePath;
 		this.entryPath = entryPath;
 		this.parser = parser;
 		this.offset = offset;
 		this.limit = limit;
-		this.fileTag = fileTag;
 	}
 
 	@Override
@@ -71,7 +68,8 @@ public class ZipFile extends DriverQueryCommand {
 		BufferedReader br = null;
 		InputStream is = null;
 		try {
-			zipFile = new java.util.zip.ZipFile(new File(filePath));
+			File f = new File(filePath);
+			zipFile = new java.util.zip.ZipFile(f);
 			logger.debug("araqne logdb: zipfile path: {}, zip entry: {}", filePath, entryPath);
 
 			ZipEntry entry = zipFile.getEntry(entryPath);
@@ -102,8 +100,7 @@ public class ZipFile extends DriverQueryCommand {
 
 				if (i >= offset) {
 					Row r = new Row(parsed != null ? parsed : m);
-					if (fileTag != null)
-						r.put(fileTag, filePath);
+					r.put("_file", f.getName());
 					pushPipe(r);
 					count++;
 				}
@@ -132,10 +129,6 @@ public class ZipFile extends DriverQueryCommand {
 		if (limit > 0)
 			limitOpt = " limit=" + limit;
 
-		String fileTagOpt = "";
-		if (fileTag != null)
-			fileTagOpt = " file_tag=" + fileTag;
-
-		return "zipfile" + offsetOpt + limitOpt + fileTagOpt + " " + filePath + " " + entryPath;
+		return "zipfile" + offsetOpt + limitOpt + " " + filePath + " " + entryPath;
 	}
 }

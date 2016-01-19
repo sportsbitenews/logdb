@@ -45,7 +45,6 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 		setOptions("parser", false, "Parse tuple using parser.", "JSON 파싱 후, 별도의 파서를 추가로 적용하려면 파서 이름을 입력합니다.");
 		setOptions("overlay", false, "Use `overlay=t` option if you want to override parsed fields on original data.",
 				"파서를 추가로 적용하는 경우, 원본 데이터를 그대로 유지하면서 파싱된 키/값을 덮어쓰려면 overlay 옵션의 값을 t로 지정합니다. 만약 overlay를 t로 지정하지 않고 parser를 적용하면, 원본 대신 파싱된 키/값만 출력됩니다.");
-		setOptions("file_tag", OPTIONAL, "Field name for filename tagging", "파일명을 태깅할 필드 이름");
 	}
 
 	@Override
@@ -85,10 +84,6 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 				overlay = o.equals("t") || o.equals("1") || o.equals("true");
 			}
 
-			String fileTag = null;
-			if (options.containsKey("file_tag"))
-				fileTag = options.get("file_tag");
-
 			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
 
 			String parserName = options.get("parser");
@@ -103,7 +98,7 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 
 			String parseTarget = options.get("parsetarget");
 
-			return new JsonFile(pathHelper.getMatchedFilePaths(), filePath, parser, parseTarget, overlay, offset, limit, fileTag);
+			return new JsonFile(pathHelper.getMatchedFilePaths(), filePath, parser, parseTarget, overlay, offset, limit);
 		} catch (IllegalStateException e) {
 			String msg = e.getMessage();
 			Map<String, String> params = new HashMap<String, String>();

@@ -43,10 +43,9 @@ public class JsonFile extends DriverQueryCommand {
 	private long offset;
 	private long limit;
 	private boolean overlay;
-	private String fileTag;
 
 	public JsonFile(List<String> filePaths, String filePath, LogParser parser, String parseTarget, boolean overlay, long offset,
-			long limit, String fileTag) {
+			long limit) {
 		this.filePaths = filePaths;
 		this.filePath = filePath;
 		this.parser = parser;
@@ -54,7 +53,6 @@ public class JsonFile extends DriverQueryCommand {
 		this.overlay = overlay;
 		this.offset = offset;
 		this.limit = limit;
-		this.fileTag = fileTag;
 
 		if (this.parseTarget == null) {
 			this.parseTarget = "line";
@@ -79,7 +77,8 @@ public class JsonFile extends DriverQueryCommand {
 		BufferedReader br = null;
 		try {
 			Charset utf8 = Charset.forName("utf-8");
-			is = new FileInputStream(new File(filePath));
+			File f = new File(filePath);
+			is = new FileInputStream(f);
 			br = new BufferedReader(new InputStreamReader(new BufferedInputStream(is), utf8));
 
 			int i = 0;
@@ -110,8 +109,7 @@ public class JsonFile extends DriverQueryCommand {
 					}
 
 					if (i >= offset) {
-						if (fileTag != null)
-							m.put(fileTag, filePath);
+						m.put("_file", f.getName());
 
 						pushPipe(new Row(m));
 						count++;
@@ -140,10 +138,6 @@ public class JsonFile extends DriverQueryCommand {
 		if (limit != 0)
 			limitOpt = " limit" + limit;
 
-		String fileTagOpt = "";
-		if (fileTag != null)
-			fileTagOpt = " file_tag=" + fileTag;
-
-		return "jsonfile" + offsetOpt + limitOpt + fileTagOpt + " " + filePath;
+		return "jsonfile" + offsetOpt + limitOpt + " " + filePath;
 	}
 }

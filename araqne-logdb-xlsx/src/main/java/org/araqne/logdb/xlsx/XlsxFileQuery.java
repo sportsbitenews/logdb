@@ -37,20 +37,17 @@ public class XlsxFileQuery extends DriverQueryCommand {
 	private long offset;
 	private long limit;
 	private long skip;
-	private String fileTag;
 
 	private XlsxExtractor currentExtractor;
 	private volatile boolean cancelled;
 
-	public XlsxFileQuery(List<String> filePaths, String path, String sheetNameFilter, long offset, long limit, long skip,
-			String fileTag) {
+	public XlsxFileQuery(List<String> filePaths, String path, String sheetNameFilter, long offset, long limit, long skip) {
 		this.filePaths = filePaths;
 		this.path = path;
 		this.sheetNameFilter = sheetNameFilter;
 		this.offset = offset;
 		this.limit = limit;
 		this.skip = skip;
-		this.fileTag = fileTag;
 	}
 
 	@Override
@@ -85,7 +82,7 @@ public class XlsxFileQuery extends DriverQueryCommand {
 				if (sheetNameFilter != null && !sheetNameFilter.equals(sheetName))
 					continue;
 
-				Pipe pipe = new Pipe(sheetName, filePath);
+				Pipe pipe = new Pipe(sheetName, file.getName());
 				currentExtractor = new XlsxExtractor(file, sheetName, dummyLogger, pipe, nextOffset, nextLimit, skip);
 				currentExtractor.run();
 
@@ -125,9 +122,7 @@ public class XlsxFileQuery extends DriverQueryCommand {
 		public void onLog(Logger logger, Log log) {
 			Row row = new Row(log.getParams());
 			row.put("_sheet", sheetName);
-
-			if (fileTag != null)
-				row.put(fileTag, filePath);
+			row.put("_file", filePath);
 			pushPipe(row);
 		}
 
@@ -154,10 +149,6 @@ public class XlsxFileQuery extends DriverQueryCommand {
 		if (skip > 0)
 			skipOpt = " skip=" + skip;
 
-		String fileTagOpt = "";
-		if (fileTag != null)
-			fileTagOpt = " file_tag=" + fileTag;
-
-		return "xlsxfile" + sheetOpt + offsetOpt + limitOpt + skipOpt + fileTagOpt + " " + path;
+		return "xlsxfile" + sheetOpt + offsetOpt + limitOpt + skipOpt + " " + path;
 	}
 }

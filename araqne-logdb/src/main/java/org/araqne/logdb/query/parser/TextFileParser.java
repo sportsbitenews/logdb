@@ -58,8 +58,6 @@ public class TextFileParser extends AbstractQueryCommandParser {
 						+ "If not specified, _time will be current timestamp.",
 				"_time 필드 추출에 필요한 타임스탬프 포맷을 입력합니다. 예를 들어, yyyy-MM-dd HH:mm:ss.SSS 와 같이 입력할 수 있습니다. 미지정 시 _time 필드 값이 데이터 로딩 시점의 시각으로 결정됩니다.");
 		setOptions("cs", OPTIONAL, "Encoding of text file. Default is 'utf-8'.", "텍스트 파일의 인코딩을 지정합니다. 미지정 시 기본값은 utf-8입니다.");
-		setOptions("file_tag", OPTIONAL, "Field name for filename tagging", "파일명을 태깅할 필드 이름");
-
 	}
 
 	@Override
@@ -113,10 +111,6 @@ public class TextFileParser extends AbstractQueryCommandParser {
 			if (options.containsKey("cs"))
 				cs = options.get("cs");
 
-			String fileTag = null;
-			if (options.containsKey("file_tag"))
-				fileTag = options.get("file_tag");
-
 			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
 
 			String parserName = options.get("parser");
@@ -129,8 +123,7 @@ public class TextFileParser extends AbstractQueryCommandParser {
 				parser = factory.createParser(options);
 			}
 
-			return new TextFile(pathHelper.getMatchedFilePaths(), filePath, parser, offset, limit, brex, erex, df, dp, cs,
-					fileTag);
+			return new TextFile(pathHelper.getMatchedFilePaths(), filePath, parser, offset, limit, brex, erex, df, dp, cs);
 		} catch (IllegalStateException e) {
 			String msg = e.getMessage();
 			Map<String, String> params = new HashMap<String, String>();
