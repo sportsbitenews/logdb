@@ -397,6 +397,11 @@ public class TableParser extends AbstractQueryCommandParser {
 		public String getTable() {
 			return pattern.getTable();
 		}
+		
+		@Override
+		public void setTable(String tableName) {
+			pattern.setTable(tableName);
+		}
 
 		public String toString() {
 			StringBuilder sb = new StringBuilder();
@@ -547,7 +552,7 @@ public class TableParser extends AbstractQueryCommandParser {
 			}
 		} else {
 			WildcardTableSpec wspec = new WildcardTableSpec(spec.toString());
-			if (!wspec.hasWildcard()) {
+			if (!(wspec.hasWildcard() || wspec.isOptional())) {
 				List<StorageObjectName> sonList = wspec.match(tableRegistry);
 				StorageObjectName son = sonList.get(0);
 

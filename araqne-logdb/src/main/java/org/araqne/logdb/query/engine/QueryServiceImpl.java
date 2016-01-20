@@ -343,6 +343,10 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		List<QueryCommand> commands = null;
 		try {
 			commands = queryParserService.parseCommands(context, queryString);
+
+			for (QueryPlanner planner : planners)
+				commands = planner.plan(context, commands);
+
 		} catch (QueryParseException e) {
 			// write log(query execution failed)
 			HashMap<String, Object> m = new HashMap<String, Object>();
@@ -362,9 +366,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 			throw e;
 		}
-
-		for (QueryPlanner planner : planners)
-			commands = planner.plan(context, commands);
 
 		Query query = new DefaultQuery(context, queryString, commands, resultFactory);
 
