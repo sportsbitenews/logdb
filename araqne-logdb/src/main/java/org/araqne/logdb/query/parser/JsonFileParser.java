@@ -15,7 +15,6 @@
  */
 package org.araqne.logdb.query.parser;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +23,8 @@ import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.logdb.AbstractQueryCommandParser;
+import org.araqne.logdb.FilePathHelper;
+import org.araqne.logdb.LocalFilePathHelper;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryErrorMessage;
@@ -55,6 +56,7 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
 		m.put("10900", new QueryErrorMessage("invalid-jsonfile-path", "[file]이 존재하지 않거나 읽을수 없습니다"));
+		m.put("10901", new QueryErrorMessage("invalid-parentfile-path", "[file]의 상위 디렉토리가 존재하지 않거나 읽을 수 없습니다."));
 		return m;
 	}
 
@@ -82,14 +84,7 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 				overlay = o.equals("t") || o.equals("1") || o.equals("true");
 			}
 
-			File f = new File(filePath);
-			if (!f.exists() || !f.canRead()) {
-				// throw new QueryParseException("invalid-jsonfile-path", -1);
-				Map<String, String> params = new HashMap<String, String>();
-				params.put("file", filePath);
-				int offsetS = QueryTokenizer.findKeyword(commandString, filePath, r.next);
-				throw new QueryParseException("10900", offsetS, offsetS + filePath.length() - 1, params);
-			}
+			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
 
 			String parserName = options.get("parser");
 			LogParser parser = null;
@@ -103,9 +98,19 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 
 			String parseTarget = options.get("parsetarget");
 
-			return new JsonFile(filePath, parser, parseTarget, overlay, offset, limit);
-		} catch (QueryParseException t) {
-			throw t;
+			return new JsonFile(pathHelper.getMatchedFilePaths(), filePath, parser, parseTarget, overlay, offset, limit);
+		} catch (IllegalStateException e) {
+			String msg = e.getMessage();
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("file", filePath);
+			int offsetS = QueryTokenizer.findKeyword(commandString, filePath, getCommandName().length());
+			String type = null;
+			if (msg.equals("file-not-found"))
+				type = "10900";
+			else
+				type = "10901";
+
+			throw new QueryParseException(type, offsetS, offsetS + filePath.length() - 1, params);
 		} catch (Throwable t) {
 			throw new RuntimeException("cannot create jsonfile source", t);
 		}

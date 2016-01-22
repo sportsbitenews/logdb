@@ -50,6 +50,9 @@ public class LoggerInfo {
 	private long dropCount;
 	private long updateCount;
 
+	private long logVolume;
+	private long dropVolume;
+
 	private Map<String, String> configs = new HashMap<String, String>();
 	private Map<String, Object> states = new HashMap<String, Object>();
 
@@ -361,6 +364,15 @@ public class LoggerInfo {
 	}
 
 	/**
+	 * 수집한 누적 로그 볼륨을 반환합니다.
+	 * 
+	 * @return 누적 로그 수집 건수
+	 */
+	public long getLogVolume() {
+		return logVolume;
+	}
+
+	/**
 	 * 수집한 누적 로그 건수를 설정합니다.
 	 * 
 	 * @param logCount
@@ -368,6 +380,16 @@ public class LoggerInfo {
 	 */
 	public void setLogCount(long logCount) {
 		this.logCount = logCount;
+	}
+
+	/**
+	 * 수집한 누적 로그 볼륨을 설정합니다.
+	 * 
+	 * @param logCount
+	 *            로그 수집 건수 (누적)
+	 */
+	public void setLogVolume(long logVolume) {
+		this.logVolume = logVolume;
 	}
 
 	/**
@@ -387,6 +409,25 @@ public class LoggerInfo {
 	 */
 	public void setDropCount(long dropCount) {
 		this.dropCount = dropCount;
+	}
+
+	/**
+	 * 버린 누적 로그 볼륨을 반환합니다.
+	 * 
+	 * @return 버린 로그 건수 (누적)
+	 */
+	public long getDropVolume() {
+		return dropVolume;
+	}
+
+	/**
+	 * 버린 로그 볼륨을 설정합니다.
+	 * 
+	 * @param dropCount
+	 *            버린 로그 건수 (누적)
+	 */
+	public void setDropVolume(long dropVolume) {
+		this.dropVolume = dropVolume;
 	}
 
 	/**
@@ -427,7 +468,8 @@ public class LoggerInfo {
 		if (states != null && states.size() > 0)
 			details += ", states=" + states;
 
-		return String.format("name=%s, factory=%s, status=%s, log count=%d, last start=%s, last run=%s, last log=%s" + details,
-				getFullName(), factoryName, status, getLogCount(), start, run, log);
+		return String.format(
+				"name=%s, factory=%s, status=%s, log count=%d, log volume=%d, last start=%s, last run=%s, last log=%s" + details,
+				getFullName(), factoryName, status, getLogCount(), getLogVolume(), start, run, log);
 	}
 }

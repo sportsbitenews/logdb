@@ -16,6 +16,7 @@
 package org.araqne.logdb.xlsx;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.felix.ipojo.annotations.Component;
@@ -23,8 +24,11 @@ import org.apache.felix.ipojo.annotations.Invalidate;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.logdb.AbstractQueryCommandParser;
+import org.araqne.logdb.FilePathHelper;
+import org.araqne.logdb.LocalFilePathHelper;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.query.parser.ExpressionParser;
@@ -54,6 +58,14 @@ public class XlsxFileQueryParser extends AbstractQueryCommandParser {
 	}
 
 	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("13000", new QueryErrorMessage("invalid-xlsxfile-path", "[file]이 존재하지 않거나 읽을수 없습니다."));
+		m.put("13001", new QueryErrorMessage("invalid-parentfile-path", "[file]의 상위 디렉토리가 존재하지 않거나 읽을 수 없습니다."));
+		return m;
+	}
+
+	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
 		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>(),
 				getFunctionRegistry());
@@ -77,7 +89,21 @@ public class XlsxFileQueryParser extends AbstractQueryCommandParser {
 
 			String sheet = options.get("sheet");
 
-			return new XlsxFileQuery(filePath, sheet, offset, limit, skip);
+			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
+
+			return new XlsxFileQuery(pathHelper.getMatchedFilePaths(), filePath, sheet, offset, limit, skip);
+		} catch (IllegalStateException e) {
+			String msg = e.getMessage();
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("file", filePath);
+			int offsetS = QueryTokenizer.findKeyword(commandString, filePath, getCommandName().length());
+			String type = null;
+			if (msg.equals("file-not-found"))
+				type = "13000";
+			else
+				type = "13001";
+
+			throw new QueryParseException(type, offsetS, offsetS + filePath.length() - 1, params);
 		} catch (QueryParseException t) {
 			throw t;
 		} catch (Throwable t) {

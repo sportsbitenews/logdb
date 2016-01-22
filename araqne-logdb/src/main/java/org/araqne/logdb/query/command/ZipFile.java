@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 
@@ -33,13 +34,15 @@ import org.slf4j.LoggerFactory;
 
 public class ZipFile extends DriverQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(TextFile.class.getName());
+	private List<String> filePaths;
 	private String filePath;
 	private String entryPath;
 	private LogParser parser;
 	private int offset;
 	private int limit;
 
-	public ZipFile(String filePath, String entryPath, LogParser parser, int offset, int limit) {
+	public ZipFile(List<String> filePaths, String filePath, String entryPath, LogParser parser, int offset, int limit) {
+		this.filePaths = filePaths;
 		this.filePath = filePath;
 		this.entryPath = entryPath;
 		this.parser = parser;
@@ -56,11 +59,17 @@ public class ZipFile extends DriverQueryCommand {
 	public void run() {
 		status = Status.Running;
 
+		for (String filePath : filePaths)
+			readZipFile(filePath);
+	}
+
+	private void readZipFile(String filePath) {
 		java.util.zip.ZipFile zipFile = null;
 		BufferedReader br = null;
 		InputStream is = null;
 		try {
-			zipFile = new java.util.zip.ZipFile(new File(filePath));
+			File f = new File(filePath);
+			zipFile = new java.util.zip.ZipFile(f);
 			logger.debug("araqne logdb: zipfile path: {}, zip entry: {}", filePath, entryPath);
 
 			ZipEntry entry = zipFile.getEntry(entryPath);
@@ -90,7 +99,9 @@ public class ZipFile extends DriverQueryCommand {
 				}
 
 				if (i >= offset) {
-					pushPipe(new Row(parsed != null ? parsed : m));
+					Row r = new Row(parsed != null ? parsed : m);
+					r.put("_file", f.getName());
+					pushPipe(r);
 					count++;
 				}
 				i++;

@@ -52,6 +52,8 @@ public class LastState {
 	private boolean isPending;
 	private long logCount;
 	private long dropCount;
+	private long logVolume;
+	private long dropVolume;
 	private Date lastLogDate;
 
 	/***
@@ -77,6 +79,9 @@ public class LastState {
 		clone.setLastLogDate(old.getLastLogDate());
 		clone.setUpdateCount(old.getUpdateCount());
 		clone.setProperties((Map<String, Object>) deepCopy(old.getProperties()));
+		clone.setLogVolume(old.getLogVolume());
+		clone.setDropVolume(old.getDropVolume());
+
 		return clone;
 	}
 
@@ -197,6 +202,22 @@ public class LastState {
 		this.properties = properties;
 	}
 
+	public long getLogVolume() {
+		return logVolume;
+	}
+
+	public void setLogVolume(long logVolume) {
+		this.logVolume = logVolume;
+	}
+
+	public long getDropVolume() {
+		return dropVolume;
+	}
+
+	public void setDropVolume(long dropVolume) {
+		this.dropVolume = dropVolume;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -226,6 +247,10 @@ public class LastState {
 			return false;
 		LastState other = (LastState) obj;
 		if (dropCount != other.dropCount)
+			return false;
+		if (logVolume != other.logVolume)
+			return false;
+		if (dropVolume != other.dropVolume)
 			return false;
 		if (endTime == null) {
 			if (other.endTime != null)

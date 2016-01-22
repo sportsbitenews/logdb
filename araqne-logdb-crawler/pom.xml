@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logdb-crawler</artifactId>
-	<version>1.0.0</version>
+	<version>1.2.1-SNAPSHOT</version>
 	<packaging>bundle</packaging>
 	<name>Araqne LogDB Crawler</name>
 	<build>
@@ -69,12 +69,12 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logdb</artifactId>
-			<version>3.2.5-SNAPSHOT</version>
+			<version>3.2.7-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>4.0.1-SNAPSHOT</version>
+			<version>3.10.3-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jsoup</groupId>

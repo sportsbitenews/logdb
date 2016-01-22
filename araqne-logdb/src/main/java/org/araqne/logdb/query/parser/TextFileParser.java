@@ -15,7 +15,6 @@
  */
 package org.araqne.logdb.query.parser;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +23,8 @@ import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserFactory;
 import org.araqne.log.api.LogParserFactoryRegistry;
 import org.araqne.logdb.AbstractQueryCommandParser;
+import org.araqne.logdb.FilePathHelper;
+import org.araqne.logdb.LocalFilePathHelper;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryErrorMessage;
@@ -57,7 +58,6 @@ public class TextFileParser extends AbstractQueryCommandParser {
 						+ "If not specified, _time will be current timestamp.",
 				"_time 필드 추출에 필요한 타임스탬프 포맷을 입력합니다. 예를 들어, yyyy-MM-dd HH:mm:ss.SSS 와 같이 입력할 수 있습니다. 미지정 시 _time 필드 값이 데이터 로딩 시점의 시각으로 결정됩니다.");
 		setOptions("cs", OPTIONAL, "Encoding of text file. Default is 'utf-8'.", "텍스트 파일의 인코딩을 지정합니다. 미지정 시 기본값은 utf-8입니다.");
-
 	}
 
 	@Override
@@ -69,6 +69,7 @@ public class TextFileParser extends AbstractQueryCommandParser {
 	public Map<String, QueryErrorMessage> getErrorMessages() {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
 		m.put("10700", new QueryErrorMessage("invalid-textfile-path", "[file]이 존재하지 않거나 읽을수 없습니다."));
+		m.put("10701", new QueryErrorMessage("invalid-parentfile-path", "[file]의 상위 디렉토리가 존재하지 않거나 읽을 수 없습니다."));
 		return m;
 	}
 
@@ -110,14 +111,7 @@ public class TextFileParser extends AbstractQueryCommandParser {
 			if (options.containsKey("cs"))
 				cs = options.get("cs");
 
-			File f = new File(filePath);
-			if (!f.exists() || !f.canRead()) {
-				// throw new QueryParseException("invalid-textfile-path", -1);
-				Map<String, String> params = new HashMap<String, String>();
-				params.put("file", filePath);
-				int offsetS = QueryTokenizer.findKeyword(commandString, filePath, getCommandName().length());
-				throw new QueryParseException("10700", offsetS, offsetS + filePath.length() - 1, params);
-			}
+			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
 
 			String parserName = options.get("parser");
 			LogParser parser = null;
@@ -129,9 +123,19 @@ public class TextFileParser extends AbstractQueryCommandParser {
 				parser = factory.createParser(options);
 			}
 
-			return new TextFile(filePath, parser, offset, limit, brex, erex, df, dp, cs);
-		} catch (QueryParseException t) {
-			throw t;
+			return new TextFile(pathHelper.getMatchedFilePaths(), filePath, parser, offset, limit, brex, erex, df, dp, cs);
+		} catch (IllegalStateException e) {
+			String msg = e.getMessage();
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("file", filePath);
+			int offsetS = QueryTokenizer.findKeyword(commandString, filePath, getCommandName().length());
+			String type = null;
+			if (msg.equals("file-not-found"))
+				type = "10700";
+			else
+				type = "10701";
+
+			throw new QueryParseException(type, offsetS, offsetS + filePath.length() - 1, params);
 		} catch (Throwable t) {
 			throw new RuntimeException("cannot create textfile source", t);
 		}
