@@ -31,6 +31,7 @@ public class CsvFileParser extends AbstractQueryCommandParser {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
 		m.put("10800", new QueryErrorMessage("invalid-csvfile-path", "[file]이 존재하지 않거나 읽을수 없습니다."));
 		m.put("10801", new QueryErrorMessage("invalid-parentfile-path", "[file]의 상위 디렉토리가 존재하지 않거나 읽을 수 없습니다."));
+		m.put("10802", new QueryErrorMessage("missing-field", "파일경로을 입력하십시오."));
 		return m;
 	}
 
@@ -42,6 +43,9 @@ public class CsvFileParser extends AbstractQueryCommandParser {
 		Map<String, String> options = (Map<String, String>) r.value;
 		String filePath = commandString.substring(r.next).trim();
 		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
+
+		if (filePath.trim().isEmpty())
+			throw new QueryParseException("10802", commandString.trim().length() - 1, commandString.trim().length() - 1, null);
 
 		long offset = 0;
 		if (options.containsKey("offset"))

@@ -33,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ZipFile extends DriverQueryCommand {
-	private final Logger logger = LoggerFactory.getLogger(TextFile.class.getName());
+	private final Logger slog = LoggerFactory.getLogger(ZipFile.class.getName());
 	private List<String> filePaths;
 	private String filePath;
 	private String entryPath;
@@ -70,7 +70,7 @@ public class ZipFile extends DriverQueryCommand {
 		try {
 			File f = new File(filePath);
 			zipFile = new java.util.zip.ZipFile(f);
-			logger.debug("araqne logdb: zipfile path: {}, zip entry: {}", filePath, entryPath);
+			slog.debug("araqne logdb: zipfile path: {}, zip entry: {}", filePath, entryPath);
 
 			ZipEntry entry = zipFile.getEntry(entryPath);
 			if (entry == null)
@@ -107,7 +107,7 @@ public class ZipFile extends DriverQueryCommand {
 				i++;
 			}
 		} catch (Throwable t) {
-			logger.error("araqne logdb: zipfile error", t);
+			slog.error("araqne logdb: zipfile error", t);
 		} finally {
 			IoHelper.close(br);
 			IoHelper.close(is);

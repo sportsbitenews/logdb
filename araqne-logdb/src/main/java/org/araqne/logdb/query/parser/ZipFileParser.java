@@ -15,6 +15,7 @@
  */
 package org.araqne.logdb.query.parser;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,16 +54,27 @@ public class ZipFileParser extends AbstractQueryCommandParser {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
 		m.put("14000", new QueryErrorMessage("invalid-zipfile-path", "[file]이 존재하지 않거나 읽을수 없습니다."));
 		m.put("14001", new QueryErrorMessage("invalid-parentfile-path", "[file]의 상위 디렉토리가 존재하지 않거나 읽을 수 없습니다."));
+		m.put("10402", new QueryErrorMessage("missing-field", "파일경로 또는 엔트리 경로를 입력하십시오."));
 		return m;
 	}
 
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
-		QueryTokens tokens = QueryTokenizer.tokenize(commandString);
-		Map<String, String> options = tokens.options();
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), new ArrayList<String>(),
+				getFunctionRegistry());
+		@SuppressWarnings("unchecked")
+		Map<String, String> options = (Map<String, String>) r.value;
+		QueryTokens tokens = QueryTokenizer.tokenize(commandString.substring(r.next).trim());
+
+		if (tokens.size() < 2)
+			throw new QueryParseException("10402", commandString.trim().length() - 1, commandString.trim().length() - 1, null);
 
 		String filePath = tokens.reverseArg(1);
 		String entryPath = tokens.lastArg();
+
+		if (filePath.trim().isEmpty() || entryPath.trim().isEmpty())
+			throw new QueryParseException("10402", commandString.trim().length() - 1, commandString.trim().length() - 1, null);
+
 		try {
 
 			int offset = 0;
