@@ -373,8 +373,9 @@ public class Console {
 		queryString = sb.toString();
 
 		long begin = System.nanoTime();
-		Query lq = queryService.createQuery(session, queryString);
-		lq.getContext().getConstants().put("araqne_logdb_query_source", "console");
+		QueryContext ctx = new QueryContext(session);
+		ctx.getConstants().put("araqne_logdb_query_source", "console");
+		Query lq = queryService.createQuery(ctx, queryString);
 		queryService.startQuery(session, lq.getId());
 
 		do {
@@ -422,8 +423,9 @@ public class Console {
 	}
 
 	private void createQuery(String queryString) {
-		Query q = queryService.createQuery(session, queryString);
-		q.getContext().getConstants().put("araqne_logdb_query_source", "console");
+		QueryContext ctx = new QueryContext(session);
+		ctx.getConstants().put("araqne_logdb_query_source", "console");
+		Query q = queryService.createQuery(ctx, queryString);
 		context.println("created query " + q.getId());
 	}
 
