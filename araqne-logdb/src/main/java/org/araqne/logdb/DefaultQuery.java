@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.QueryCommand.Status;
+import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.engine.QueryTaskScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +43,6 @@ public class DefaultQuery implements Query {
 	private List<QueryCommand> commands;
 	private Date lastStarted;
 	private QueryResult result;
-	private QueryResultFactory resultFactory;
 
 	private QueryStopReason stopReason;
 	private Throwable cause;
@@ -78,7 +78,7 @@ public class DefaultQuery implements Query {
 			cmd.setQuery(this);
 		}
 
-		this.resultFactory = resultFactory;
+		createResult(resultFactory);
 
 		// sub query is built in reversed order
 		if (context != null)
@@ -86,7 +86,7 @@ public class DefaultQuery implements Query {
 
 	}
 
-	public void openResult() {
+	public void createResult(QueryResultFactory resultFactory) {
 		if (resultFactory == null)
 			throw new IllegalStateException("query [id " + id + "]'s result factory is null");
 
@@ -119,6 +119,8 @@ public class DefaultQuery implements Query {
 	}
 
 	public void preRun() {
+		QueryHelper.setJoinDependencies(this);
+
 		// connect all pipe
 		QueryCommand last = null;
 		for (QueryCommand cmd : commands) {
@@ -127,12 +129,18 @@ public class DefaultQuery implements Query {
 			last = cmd;
 		}
 
-		commands.get(commands.size() - 1).setOutput(result);
-		logger.trace("araqne logdb: run query => {}", queryString);
-		for (QueryCommand command : commands) {
-			command.setStatus(Status.Waiting);
-			command.tryStart();
-			command.setStatus(Status.Running);
+		try {
+			this.getResult().openWriter();
+
+			commands.get(commands.size() - 1).setOutput(result);
+			logger.trace("araqne logdb: run query => {}", queryString);
+			for (QueryCommand command : commands) {
+				command.setStatus(Status.Waiting);
+				command.tryStart();
+				command.setStatus(Status.Running);
+			}
+		} catch (IOException e) {
+			throw new IllegalStateException("can not open result file", e);
 		}
 	}
 

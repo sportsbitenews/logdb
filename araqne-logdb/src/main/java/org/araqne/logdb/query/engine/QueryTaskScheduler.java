@@ -99,8 +99,13 @@ public class QueryTaskScheduler implements Runnable {
 	}
 
 	public void cancel() {
-		for (QueryTask dependency : tracer.getDependencies()) {
-			markCancelRecursively(dependency);
+		// query can be cancelled at preRun(), tracer don't have any link.
+		// tracer itself should be started even if query is cancelled.
+		for (QueryCommand cmd : pipeline) {
+			QueryTask mainTask = cmd.getMainTask();
+			if (mainTask != null) {
+				markCancelRecursively(mainTask);
+			}
 		}
 	}
 

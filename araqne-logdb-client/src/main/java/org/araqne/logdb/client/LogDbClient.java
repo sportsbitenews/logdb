@@ -17,6 +17,7 @@ package org.araqne.logdb.client;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.ParsePosition;
@@ -2154,6 +2155,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		query.setSaveResult((Boolean) m.get("use_save_result"));
 		query.setUseAlert((Boolean) m.get("use_alert"));
 		query.setSkipWhileRunning((Boolean) m.get("skip_while_running"));
+		query.setBootstrapQuery((Boolean) m.get("bootstrap_query"));
 		query.setAlertQuery((String) m.get("alert_query"));
 		query.setSuppressInterval((Integer) m.get("suppress_interval"));
 		query.setMailProfile((String) m.get("mail_profile"));
@@ -2196,6 +2198,7 @@ public class LogDbClient implements TrapListener, Closeable {
 		params.put("use_alert", query.isUseAlert());
 		params.put("alert_query", query.getAlertQuery());
 		params.put("skip_while_running", query.isSkipWhileRunning());
+		params.put("bootstrap_query", query.isBootstrapQuery());
 		params.put("suppress_interval", query.getSuppressInterval());
 		params.put("mail_profile", query.getMailProfile());
 		params.put("mail_from", query.getMailFrom());
@@ -2637,9 +2640,24 @@ public class LogDbClient implements TrapListener, Closeable {
 
 		public boolean await(QueuedRows r, long timeout, TimeUnit unit) throws InterruptedException {
 			try {
+				long start = System.currentTimeMillis();
+				long end = start + TimeUnit.MILLISECONDS.convert(timeout, unit);
+				
 				wCalls.put(r, r);
 				signal();
-				return r.l.await(timeout, unit);
+				
+				while (true) {
+					if (!running) {
+						r.setDone(new SocketException("closed"));
+						return true;
+					}
+					
+					if (r.l.await(50, TimeUnit.MILLISECONDS))
+						return true;
+					
+					if (System.currentTimeMillis() >= end)
+						return false;
+				}
 			} finally {
 				wCalls.remove(r, r);
 			}
@@ -2649,7 +2667,15 @@ public class LogDbClient implements TrapListener, Closeable {
 			try {
 				wCalls.put(r, r);
 				signal();
-				r.l.await();
+				
+				while (true) {
+					if (!running) {
+						r.setDone(new SocketException("closed"));
+						break;
+					}
+					if (r.l.await(50, TimeUnit.MILLISECONDS))
+						break;
+				}
 			} finally {
 				wCalls.remove(r, r);
 			}

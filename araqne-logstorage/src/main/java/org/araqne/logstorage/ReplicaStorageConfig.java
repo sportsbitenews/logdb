@@ -16,7 +16,7 @@ public class ReplicaStorageConfig implements Cloneable {
 	}
 
 	public static ReplicaStorageConfig copy(ReplicaStorageConfig conf) {
-		return new ReplicaStorageConfig(conf.tableName(), conf.mode, conf.remoteNode(), conf.remoteName()); 
+		return new ReplicaStorageConfig(conf.localName(), conf.mode, conf.remoteNode(), conf.remoteName()); 
 	}
 
 
@@ -25,7 +25,7 @@ public class ReplicaStorageConfig implements Cloneable {
 	String remoteName;
 	ReplicationMode mode;
 	
-	public String tableName() {
+	public String localName() {
 		return tableName;
 	}
 	

@@ -28,6 +28,8 @@ public class GzipDirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 	public String getDisplayGroup(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "로컬";
+		if(locale != null && locale.equals(Locale.CHINESE))
+			return "本地";
 		return "Local";
 	}
 

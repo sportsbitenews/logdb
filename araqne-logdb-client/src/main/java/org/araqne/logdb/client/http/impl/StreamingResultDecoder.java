@@ -111,8 +111,7 @@ public class StreamingResultDecoder {
 						rows[i] = row;
 					}
 
-					if (item != null)
-						row.put(key, item);
+					row.put(key, item);
 
 					i++;
 				}

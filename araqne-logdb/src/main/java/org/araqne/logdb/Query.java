@@ -86,8 +86,6 @@ public interface Query extends Runnable {
 	 * @return current loaded result count or null if query is not started
 	 * @throws IOException
 	 */
-	void openResult();
-
 	Long getResultCount() throws IOException;
 
 	QueryResult getResult();

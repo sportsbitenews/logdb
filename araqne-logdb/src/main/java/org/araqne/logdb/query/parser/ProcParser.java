@@ -40,7 +40,10 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.QueryPlanner;
+import org.araqne.logdb.QueryService;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.Session;
 import org.araqne.logdb.query.command.Proc;
 import org.araqne.logdb.query.expr.Expression;
 
@@ -49,11 +52,14 @@ public class ProcParser extends AbstractQueryCommandParser {
 	private AccountService accountService;
 	private QueryParserService parserService;
 	private ProcedureRegistry procedureRegistry;
+	private QueryService queryService;
 
-	public ProcParser(AccountService accountService, QueryParserService parserService, ProcedureRegistry procedureRegistry) {
+	public ProcParser(AccountService accountService, QueryParserService parserService, ProcedureRegistry procedureRegistry, QueryService queryService) {
 		this.accountService = accountService;
 		this.parserService = parserService;
 		this.procedureRegistry = procedureRegistry;
+		this.queryService = queryService;
+		
 		setDescriptions(
 				"Execute procedure. Procedure arguments are used as query parameter. This command requires procedure owner or granted permission.",
 				"사용자 정의 프로시저를 실행합니다. 프로시저 매개변수 형식에 맞추어 인자를 넘겨주면, 인자가 쿼리 매개변수로 설정된 후 미리 정의된 쿼리가 실행됩니다. 프로시저의 소유자 혹은 권한을 부여받은 사용자가 프로시저의 소유자 권한으로 쿼리를 실행합니다.");
@@ -129,7 +135,34 @@ public class ProcParser extends AbstractQueryCommandParser {
 			procParams.put(v.getKey(), param);
 		}
 
-		return new Proc(procedure, procParams, commandString, parserService, accountService);
+		// Constructor must not allocate resource.
+		// The onStart will allocate it.
+		// Need to close session to keep this contract.
+		Session session = null;
+		QueryContext procCtx = null;
+		List<QueryCommand> procCommands = null;
+		try {
+			session = accountService.newSession(procedure.getOwner());
+
+			procCtx = new QueryContext(session);
+			procCtx.getConstants().putAll(context.getConstants());
+			
+			for (String key : procParams.keySet()) {
+				Object value = procParams.get(key);
+				Map<String, Object> constants = procCtx.getConstants();
+				constants.put(key, value);
+			}
+
+			procCommands = parserService.parseCommands(procCtx, procedure.getQueryString());
+		} finally {
+			accountService.logout(session);
+		}
+		
+		for(QueryPlanner planner : queryService.getPlanners()) {
+			procCommands = planner.plan(procCtx, procCommands);
+		}
+
+		return new Proc(procedure, commandString, accountService, context, procCtx, procCommands);
 	}
 
 	private boolean isGranted(QueryContext context, Procedure p) {

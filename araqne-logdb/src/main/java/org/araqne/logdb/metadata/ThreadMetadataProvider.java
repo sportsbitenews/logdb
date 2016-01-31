@@ -113,6 +113,10 @@ public class ThreadMetadataProvider implements MetadataProvider, FieldOrdering {
 		for (Thread t: threads) {
 			if (t == null || !t.isAlive())
 				continue;
+			
+			if (callback.isCancelled())
+				break;
+			
 			Map<String, Object> m = new HashMap<String, Object>();
 			m.put("tid", t.getId());
 			m.put("name", t.getName());
@@ -129,6 +133,9 @@ public class ThreadMetadataProvider implements MetadataProvider, FieldOrdering {
 		for (ThreadInfo t : bean.getThreadInfo(tids, true, true)) {
 			if (t == null)
 				continue;
+			
+			if (callback.isCancelled())
+				break;
 
 			Map<String, Object> m = new HashMap<String, Object>();
 			m.put("tid", t.getThreadId());

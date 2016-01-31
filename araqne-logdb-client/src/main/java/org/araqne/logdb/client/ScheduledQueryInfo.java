@@ -36,6 +36,7 @@ public class ScheduledQueryInfo {
 	private boolean useAlert;
 	private String alertQuery;
 	private boolean skipWhileRunning = true;
+	private boolean bootstrapQuery = false;
 
 	private int suppressInterval;
 	private String mailProfile;
@@ -215,6 +216,25 @@ public class ScheduledQueryInfo {
 	 */
 	public void setSkipWhileRunning(boolean skipWhileRunning) {
 		this.skipWhileRunning = skipWhileRunning;
+	}
+
+	/**
+	 * 부팅시 예약 쿼리를 실행할지 여부를 반환합니다.
+	 *
+	 * @return 부팅시 예약 쿼리 실행 여부
+	 */
+	public boolean isBootstrapQuery() {
+		return bootstrapQuery;
+	}
+
+	/**
+	 * 부팅시 예약 쿼리를 실행할지 여부를 설정합니다. true인 경우엔 부팅시 예약 쿼리가 실행이 됩니다.
+	 *
+	 * @param bootstrapQuery
+	 *            부팅시 예약 쿼리 실행 여부
+	 */
+	public void setBootstrapQuery(boolean bootstrapQuery) {
+		this.bootstrapQuery = bootstrapQuery;
 	}
 
 	/**

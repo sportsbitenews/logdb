@@ -27,6 +27,7 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.query.parser.ExpressionParser;
 import org.araqne.logdb.query.parser.ParseResult;
 import org.araqne.logdb.query.parser.QueryTokenizer;
 
@@ -59,6 +60,7 @@ public class XlsxFileQueryParser extends AbstractQueryCommandParser {
 		@SuppressWarnings("unchecked")
 		Map<String, String> options = (Map<String, String>) r.value;
 		String filePath = commandString.substring(r.next).trim();
+		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
 
 		try {
 			long skip = 0;

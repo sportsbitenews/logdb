@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logstorage</artifactId>
-	<version>3.2.0</version>
+	<version>3.4.0</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log Storage</name>
 	<build>
@@ -35,7 +35,7 @@
 							org.araqne.logstorage.script
 						</Private-Package>
 						<Import-Package>
-							org.araqne.log.api;version="3.0.0",
+							org.araqne.log.api;version="3.0.5",
 							org.araqne.msgbus;resolution:=optional,
 							org.araqne.msgbus.handler;resolution:=optional,
 							org.araqne.codec;version=2.2.0,
@@ -109,7 +109,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.8.0</version>
+			<version>3.10.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jcraft</groupId>
@@ -118,7 +118,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-storage</artifactId>
-			<version>1.0.0</version>
+			<version>1.4.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.xerial.snappy</groupId>

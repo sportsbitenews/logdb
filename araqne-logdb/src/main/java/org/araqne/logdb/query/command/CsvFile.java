@@ -15,11 +15,13 @@ public class CsvFile extends DriverQueryCommand {
 	private String filePath;
 	private long offset;
 	private long limit;
+	private final String cs;
 
-	public CsvFile(String filePath, long offset, long limit) {
+	public CsvFile(String filePath, long offset, long limit, String cs) {
 		this.filePath = filePath;
 		this.offset = offset;
 		this.limit = limit;
+		this.cs = cs;
 	}
 
 	@Override
@@ -37,7 +39,7 @@ public class CsvFile extends DriverQueryCommand {
 
 		try {
 			is = new FileInputStream(filePath);
-			reader = new CSVReader(new InputStreamReader(is, "utf-8"), ',', '\"', '\0');
+			reader = new CSVReader(new InputStreamReader(is, cs), ',', '\"', '\0');
 			String[] headers = reader.readNext();
 			int headerCount = headers.length;
 			while (true) {
@@ -88,6 +90,9 @@ public class CsvFile extends DriverQueryCommand {
 
 		if (limit > 0)
 			s += " limit=" + limit;
+		
+		if (!cs.equals("utf-8"))
+			s += " cs=" + cs;
 
 		s += " " + filePath;
 		return s;

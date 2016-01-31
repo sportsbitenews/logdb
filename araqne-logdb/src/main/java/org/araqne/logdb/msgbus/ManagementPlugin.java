@@ -34,6 +34,7 @@ import java.util.Map;
 import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Requires;
 import org.araqne.api.PrimitiveConverter;
+import org.araqne.api.SystemProperty;
 import org.araqne.confdb.Config;
 import org.araqne.confdb.ConfigCollection;
 import org.araqne.confdb.ConfigDatabase;
@@ -985,7 +986,7 @@ public class ManagementPlugin {
 				var = "5";
 
 			if (key.equals("disk_lack_action") && var == null)
-				var = "StopLogging";
+				var = "RemoveOldLog";
 
 			vars.put(key, var);
 		}
@@ -1026,8 +1027,12 @@ public class ManagementPlugin {
 		if (diskLackAction != null) {
 			if ((!diskLackAction.equals("StopLogging") && !diskLackAction.equals("RemoveOldLog")))
 				throw new MsgbusException("logdb", "invalid-disk-lack-action");
-			else
-				m.put("disk_lack_action", diskLackAction);
+			else {
+				if(SystemProperty.isEnabled("cc_compliant"))
+					m.put("disk_lack_action", "RemoveOldLog");
+				else
+					m.put("disk_lack_action", diskLackAction);
+			}
 		}
 
 		if (c != null) {
