@@ -315,6 +315,7 @@ public class QueryParserServiceImpl implements QueryParserService {
 		/* Unsupported Command Type */
 		add("92000", "unsupported-command", "지원하지 않는 명령어: [command]");
 		add("92001", "unauthorized-table", "[nodeName]:[tableName] 테이블 읽기 권한이 없습니다.");
+		add("92002", "node-not-exist", "[nodeName]이 존재하지 않습니다.");
 	}
 
 	private void add(String code, String en, String ko) {
