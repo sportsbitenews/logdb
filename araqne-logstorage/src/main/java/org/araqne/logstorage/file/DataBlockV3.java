@@ -170,7 +170,7 @@ public class DataBlockV3 {
 				compressedBuffer = new byte[compressedSize];
 				block.get(compressedBuffer);
 			} else {
-				dataBuffer = block.duplicate();
+				dataBuffer = block.slice();
 			}
 		} catch (Throwable t) {
 			throw new IllegalStateException("exception on " + params.dataPath.getAbsolutePath() + " : block pos - "
@@ -267,7 +267,7 @@ public class DataBlockV3 {
 	}
 
 	public ByteBuffer getDataBuffer() {
-		return dataBuffer;
+		return dataBuffer.duplicate();
 	}
 
 	public byte[] getCompressedBuffer() {
