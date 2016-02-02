@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.araqne.api.SystemProperty;
 import org.araqne.logdb.FieldOrdering;
@@ -46,37 +45,37 @@ public class Stats extends QueryCommand implements FieldOrdering {
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
 	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
 
-	private final List<AggregationField> fields;
-	private final List<String> clauses;
+	private final AggregationField[] fields;
+	private final String[] clauses;
 	private final int clauseCount;
 	private final boolean useClause;
-	private final List<Object> EMPTY_KEY;
+	private final KeyHolder EMPTY_KEY;
 	private static final boolean discardNullGroup;
 
 	// clone template
 	private AggregationFunction[] funcs;
-	private ArrayList<String> fieldOrder;
+	private List<String> fieldOrder;
 
 	private ParallelMergeSorter sorter;
-	private ConcurrentMap<List<Object>, AggregationFunction[]> buffer;
-	private int inputCount;;
+	private Map<KeyHolder, AggregationFunction[]> buffer;
+	private int inputCount;
 
 	static {
 		discardNullGroup = SystemProperty.isEnabled("araqne.logdb.discard_null_group");
 	}
 
-	public Stats(List<AggregationField> fields, List<String> clause) {
-		this.EMPTY_KEY = new ArrayList<Object>(0);
+	public Stats(AggregationField[] fields, String[] clause) {
+		this.EMPTY_KEY = new KeyHolder(0);
 		this.clauses = clause;
-		this.clauseCount = clauses.size();
+		this.clauseCount = clauses.length;
 		this.useClause = clauseCount > 0;
 		this.fields = fields;
-		this.funcs = new AggregationFunction[fields.size()];
-		this.fieldOrder = new ArrayList<String>(clauses);
+		this.funcs = new AggregationFunction[fields.length];
+		this.fieldOrder = new ArrayList<String>(Arrays.asList(clauses));
 
 		// prepare template functions
-		for (int i = 0; i < fields.size(); i++) {
-			AggregationField f = fields.get(i);
+		for (int i = 0; i < fields.length; i++) {
+			AggregationField f = fields[i];
 			this.funcs[i] = f.getFunction();
 			this.fieldOrder.add(f.getName());
 		}
@@ -93,11 +92,11 @@ public class Stats extends QueryCommand implements FieldOrdering {
 	}
 
 	public List<AggregationField> getAggregationFields() {
-		return fields;
+		return Arrays.asList(fields);
 	}
 
 	public List<String> getClauses() {
-		return clauses;
+		return Arrays.asList(clauses);
 	}
 
 	@Override
@@ -112,7 +111,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
 		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
 
-		this.buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
+		this.buffer = new ConcurrentHashMap<KeyHolder, AggregationFunction[]>();
 
 		for (AggregationFunction f : funcs)
 			f.clean();
@@ -120,25 +119,24 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
-		List<Object> keys = EMPTY_KEY;
+		KeyHolder keys = EMPTY_KEY;
 
 		if (useClause)
-			keys = new ArrayList<Object>(clauseCount);
+			keys = new KeyHolder(clauseCount);
 
 		if (rowBatch.selectedInUse) {
 			for (int index = 0; index < rowBatch.size; index++) {
-				keys.clear();
 				Row row = rowBatch.rows[rowBatch.selected[index]];
 				if (useClause) {
 					boolean isNullGroup = false;
-					for (String clause : clauses) {
-						Object keyValue = row.get(clause);
+					for (int i = 0; i < clauseCount; i++) {
+						Object keyValue = row.get(clauses[i]);
 						if (discardNullGroup && keyValue == null) {
 							isNullGroup = true;
 							break;
 						}
 
-						keys.add(keyValue);
+						keys.keys[i] = keyValue;
 					}
 
 					if (isNullGroup)
@@ -153,7 +151,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 					for (int i = 0; i < fs.length; i++)
 						fs[i] = funcs[i].clone();
 
-					buffer.put(new ArrayList<Object>(keys), fs);
+					buffer.put(keys.clone(), fs);
 				}
 
 				for (AggregationFunction f : fs)
@@ -163,16 +161,15 @@ public class Stats extends QueryCommand implements FieldOrdering {
 			for (int i = 0; i < rowBatch.size; i++) {
 				Row m = rowBatch.rows[i];
 				if (useClause) {
-					keys.clear();
 					boolean isNullGroup = false;
-					for (String clause : clauses) {
-						Object keyValue = m.get(clause);
+					for (int d = 0; d < clauseCount; d++) {
+						Object keyValue = m.get(clauses[d]);
 						if (discardNullGroup && keyValue == null) {
 							isNullGroup = true;
 							break;
 						}
 
-						keys.add(keyValue);
+						keys.keys[d] = keyValue;
 					}
 
 					if (isNullGroup)
@@ -187,7 +184,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 					for (int j = 0; j < fs.length; j++)
 						fs[j] = funcs[j].clone();
 
-					buffer.put(new ArrayList<Object>(keys), fs);
+					buffer.put(keys.clone(), fs);
 				}
 
 				for (AggregationFunction f : fs)
@@ -206,16 +203,16 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public void onPush(Row m) {
-		List<Object> keys = EMPTY_KEY;
+		KeyHolder keys = EMPTY_KEY;
 		if (clauseCount > 0) {
-			keys = new ArrayList<Object>(clauseCount);
+			keys = new KeyHolder(clauseCount);
 
-			for (String clause : clauses) {
-				Object keyValue = m.get(clause);
+			for (int i = 0; i < clauseCount; i++) {
+				Object keyValue = m.get(clauses[i]);
 				if (discardNullGroup && keyValue == null)
 					return;
 
-				keys.add(keyValue);
+				keys.keys[i] = keyValue;
 			}
 		}
 
@@ -247,14 +244,14 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		if (logger.isDebugEnabled())
 			logger.debug("araqne logdb: flushing stats buffer, [{}] keys", buffer.keySet().size());
 
-		for (List<Object> keys : buffer.keySet()) {
+		for (KeyHolder keys : buffer.keySet()) {
 			AggregationFunction[] fs = buffer.get(keys);
 			Object[] l = new Object[fs.length];
 			int i = 0;
 			for (AggregationFunction f : fs)
 				l[i++] = f.serialize();
 
-			sorter.add(new Item(keys.toArray(), l));
+			sorter.add(new Item(keys.keys, l));
 		}
 
 		buffer.clear();
@@ -290,7 +287,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 			flush();
 
 			// reclaim buffer (GC support)
-			buffer = new ConcurrentHashMap<List<Object>, AggregationFunction[]>();
+			buffer = new ConcurrentHashMap<KeyHolder, AggregationFunction[]>();
 
 			// sort
 			it = sorter.sort();
@@ -344,7 +341,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 				pass(fs, lastKeys);
 
 			// write result for empty data set (only for no group clause)
-			if (inputCount == 0 && clauses.size() == 0) {
+			if (inputCount == 0 && clauseCount == 0) {
 				// write initial function values
 				pass(funcs, null);
 			}
@@ -370,11 +367,11 @@ public class Stats extends QueryCommand implements FieldOrdering {
 	private void pass(AggregationFunction[] fs, Object[] keys) {
 		Map<String, Object> m = new HashMap<String, Object>();
 
-		for (int i = 0; i < clauses.size(); i++)
-			m.put(clauses.get(i), keys[i]);
+		for (int i = 0; i < clauseCount; i++)
+			m.put(clauses[i], keys[i]);
 
 		for (int i = 0; i < funcs.length; i++)
-			m.put(fields.get(i).getName(), fs[i].eval());
+			m.put(fields[i].getName(), fs[i].eval());
 
 		pushPipe(new Row(m));
 	}
@@ -399,7 +396,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		}
 
 		String clause = "";
-		if (!clauses.isEmpty()) {
+		if (clauseCount > 0) {
 			clause = " by";
 			i = 0;
 			for (String c : clauses) {
@@ -412,4 +409,33 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		return "stats" + aggregation + clause;
 	}
 
+	private static class KeyHolder {
+		public final Object[] keys;
+
+		public KeyHolder(int count) {
+			this.keys = new Object[count];
+		}
+
+		@Override
+		public int hashCode() {
+			return Arrays.hashCode(keys);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			KeyHolder other = (KeyHolder) obj;
+			return Arrays.equals(keys, other.keys);
+		}
+
+		public KeyHolder clone() {
+			KeyHolder h = new KeyHolder(keys.length);
+			for (int i = 0; i < keys.length; i++)
+				h.keys[i] = keys[i];
+			return h;
+		}
+	}
 }

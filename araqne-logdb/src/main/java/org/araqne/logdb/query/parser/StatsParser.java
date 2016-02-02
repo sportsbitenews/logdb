@@ -90,7 +90,7 @@ public class StatsParser extends AbstractQueryCommandParser {
 			// throw new QueryParseException("missing-stats-function", -1);
 			throw new QueryParseException("21700", COMMAND.length() + 1, commandString.length() - 1, null);
 
-		return new Stats(fields, pr.clauses);
+		return new Stats(fields.toArray(new AggregationField[0]), pr.clauses.toArray(new String[0]));
 	}
 
 	public SyntaxParseResult parseSyntax(QueryContext context, String commandString) {
