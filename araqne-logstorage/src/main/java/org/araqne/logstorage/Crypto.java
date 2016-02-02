@@ -24,8 +24,6 @@ public class Crypto {
 
 	public static byte[] encrypt(byte[] input, int limit, String cipher, byte[] cipherKey, byte[] iv) throws Exception {
 		Cipher c = Cipher.getInstance(cipher);
-		new Random().nextBytes(iv);
-
 		SecretKeySpec keySpec = new SecretKeySpec(cipherKey, cipher.split("[/-]")[0]);
 		IvParameterSpec ivSpec = new IvParameterSpec(iv);
 		c.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
