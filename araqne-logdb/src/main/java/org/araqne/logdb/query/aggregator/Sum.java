@@ -18,17 +18,21 @@ package org.araqne.logdb.query.aggregator;
 import java.util.List;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.command.NumberUtil;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.VectorizedExpression;
 
-public class Sum implements AggregationFunction {
+public class Sum implements VectorizedAggregationFunction {
 	protected List<Expression> exprs;
 	protected Number sum = 0L;
 	private Expression expr;
+	private final boolean vectorized;
 
 	public Sum(List<Expression> exprs) {
 		this.exprs = exprs;
 		this.expr = exprs.get(0);
+		this.vectorized = expr instanceof VectorizedExpression;
 	}
 
 	@Override
@@ -48,6 +52,18 @@ public class Sum implements AggregationFunction {
 			return;
 
 		sum = NumberUtil.add(sum, obj);
+	}
+
+	@Override
+	public void applyOne(VectorizedRowBatch vbatch, int index) {
+		Object value = null;
+		if (vectorized) {
+			value = ((VectorizedExpression) expr).evalOne(vbatch, index);
+		} else {
+			value = expr.eval(vbatch.row(index));
+		}
+
+		sum = NumberUtil.add(sum, value);
 	}
 
 	@Override

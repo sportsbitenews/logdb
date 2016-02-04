@@ -34,6 +34,7 @@ import org.araqne.logdb.QueryStatusCallback;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogFlushCallback;
 import org.araqne.logstorage.LogFlushCallbackArgs;
@@ -180,6 +181,12 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 			}
 			throw new IllegalStateException(e);
 		}
+	}
+	
+	@Override
+	public void onVectorizedRowBatch(VectorizedRowBatch vbatch) {
+		// TODO write query result
+		
 	}
 
 	@Override

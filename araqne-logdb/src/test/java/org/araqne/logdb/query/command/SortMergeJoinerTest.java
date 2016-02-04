@@ -14,6 +14,7 @@ import java.util.Set;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.RowPipe;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.command.Join.JoinType;
 import org.araqne.logdb.query.command.Sort.SortField;
 import org.araqne.logdb.query.parser.JsonParser;
@@ -729,6 +730,11 @@ public class SortMergeJoinerTest {
 				}
 			}
 
+		}
+
+		@Override
+		public void onVectorizedRowBatch(VectorizedRowBatch vbatch) {
+			// TODO Auto-generated method stub
 		}
 
 		public List<Row> getRows() {

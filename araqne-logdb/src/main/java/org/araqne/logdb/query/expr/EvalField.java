@@ -16,8 +16,9 @@
 package org.araqne.logdb.query.expr;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class EvalField implements Expression {
+public class EvalField implements VectorizedExpression {
 	private String fieldName;
 
 	public EvalField(String fieldName) {
@@ -27,6 +28,32 @@ public class EvalField implements Expression {
 	@Override
 	public Object eval(Row map) {
 		return map.get(fieldName);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object[] data = (Object[]) vbatch.data.get(fieldName);
+		if (data == null)
+			return null;
+
+		return data[i];
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] data = (Object[]) vbatch.data.get(fieldName);
+		Object[] values = new Object[vbatch.size];
+		if (data == null)
+			return values;
+
+		if (!vbatch.selectedInUse) {
+			return data;
+		}
+
+		for (int i = 0; i < vbatch.size; i++) {
+			values[i] = data[vbatch.selected[i]];
+		}
+		return values;
 	}
 
 	@Override

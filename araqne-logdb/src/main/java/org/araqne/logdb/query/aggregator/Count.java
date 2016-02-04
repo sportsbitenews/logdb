@@ -19,21 +19,26 @@ import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.VectorizedExpression;
 
-public class Count implements AggregationFunction {
+public class Count implements VectorizedAggregationFunction {
 	private final List<Expression> exprs;
 	private Expression expr;
 	private long result = 0;
+	private final boolean vectorized;
 
 	public Count(List<Expression> exprs) {
 		if (exprs.size() > 1)
-		//	throw new QueryParseException("invalid-count-args", -1);
+			// throw new QueryParseException("invalid-count-args", -1);
 			throw new QueryParseException("91010", -1, -1, null);
 
 		this.exprs = exprs;
 		if (exprs.size() == 1)
 			this.expr = exprs.get(0);
+
+		vectorized = expr instanceof VectorizedExpression;
 	}
 
 	@Override
@@ -52,6 +57,23 @@ public class Count implements AggregationFunction {
 			result++;
 		else if (expr.eval(map) != null)
 			result++;
+	}
+
+	@Override
+	public void applyOne(VectorizedRowBatch vbatch, int index) {
+		if (expr == null)
+			result++;
+		else {
+			Object value = null;
+			if (vectorized) {
+				value = ((VectorizedExpression) expr).evalOne(vbatch, index);
+			} else {
+				value = expr.eval(vbatch.row(index));
+			}
+
+			if (value != null)
+				result++;
+		}
 	}
 
 	@Override

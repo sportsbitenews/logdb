@@ -22,7 +22,7 @@ public abstract class LogTraverseCallback {
 	public enum BlockSkipReason {
 		Reserved, Fixed
 	}
-	
+
 	private final Sink sink;
 	private Throwable failure;
 
@@ -40,6 +40,11 @@ public abstract class LogTraverseCallback {
 
 	public boolean isOrdered() {
 		return sink.isOrdered();
+	}
+
+	public void writeLogs(LogVectors logs) {
+		// TODO: convert to list 
+		sink.write(logs);
 	}
 
 	public void writeLogs(List<Log> logs) {
@@ -61,10 +66,15 @@ public abstract class LogTraverseCallback {
 
 	abstract protected List<Log> filter(List<Log> logs);
 
+	public interface VectorizedSink {
+		void processLogs(LogVectors logs);
+	}
+
 	public static abstract class Sink {
 		private final long offset;
 		private final long limit;
 		private final boolean ordered;
+		private final boolean vectorized;
 
 		/** guarded by this */
 		private long curr;
@@ -75,8 +85,12 @@ public abstract class LogTraverseCallback {
 			this(offset, limit, true);
 		}
 
-		/** if ordered can be false, processLogs() and onBlockSkipped() should be thread-safe. */
+		/**
+		 * if ordered can be false, processLogs() and onBlockSkipped() should be
+		 * thread-safe.
+		 */
 		public Sink(long offset, long limit, boolean order) {
+			this.vectorized = this instanceof VectorizedSink;
 			this.offset = offset;
 			this.limit = limit;
 			this.ordered = order;
@@ -93,10 +107,18 @@ public abstract class LogTraverseCallback {
 			return ordered;
 		}
 
-		/** 
+		public boolean write(LogVectors logs) {
+			// TODO: support offset and limit
+			if (vectorized) {
+				((VectorizedSink) (this)).processLogs(logs);
+			}
+
+			return !isEof();
+		}
+
+		/**
 		 * @param logs
-		 * @return true when it is not closed
-		 *         false when it is closed 
+		 * @return true when it is not closed false when it is closed
 		 */
 		public boolean write(List<Log> logs) {
 			if (logs.isEmpty())
@@ -111,7 +133,7 @@ public abstract class LogTraverseCallback {
 			synchronized (this) {
 				if (eof)
 					return false;
-				
+
 				start = curr;
 				end = curr += cnt;
 
@@ -137,13 +159,15 @@ public abstract class LogTraverseCallback {
 			return !isEof();
 		}
 
-		/** this method should be thread-safe if it is used in not-ordered case. */
+		/**
+		 * this method should be thread-safe if it is used in not-ordered case.
+		 */
 		protected abstract void processLogs(List<Log> logs);
-		
+
 		protected void onBlockSkipped(BlockSkipReason reason, long firstId, int logCount) {
 		}
 	}
-	
+
 	public void onBlockSkipped(BlockSkipReason reason, long firstId, int logCount) {
 		sink.onBlockSkipped(reason, firstId, logCount);
 	}

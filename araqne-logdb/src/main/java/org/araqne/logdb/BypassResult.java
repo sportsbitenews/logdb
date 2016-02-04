@@ -30,6 +30,11 @@ public class BypassResult implements QueryResult {
 	}
 
 	@Override
+	public void onVectorizedRowBatch(VectorizedRowBatch vbatch) {
+		pipe.onVectorizedRowBatch(vbatch);
+	}
+
+	@Override
 	public Date getEofDate() {
 		return null;
 	}

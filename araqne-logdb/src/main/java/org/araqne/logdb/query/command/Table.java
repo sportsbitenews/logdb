@@ -44,6 +44,7 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
 import org.araqne.logdb.TimeSpan;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.parser.TableSpec;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogCallback;
@@ -52,6 +53,8 @@ import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.LogTraverseCallback;
 import org.araqne.logstorage.TableScanRequest;
 import org.araqne.logstorage.WrongTimeTypeException;
+import org.araqne.logstorage.LogTraverseCallback.VectorizedSink;
+import org.araqne.logstorage.LogVectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -339,13 +342,23 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 		return false;
 	}
 
-	private static class ResultSink extends LogTraverseCallback.Sink {
+	private static class ResultSink extends LogTraverseCallback.Sink implements VectorizedSink {
 		private final Logger sinkLog = LoggerFactory.getLogger(ResultSink.class);
 		private final Table self;
 
 		public ResultSink(Table self, long offset, long limit, boolean ordered) {
 			super(offset, limit, ordered);
 			this.self = self;
+		}
+
+		@Override
+		public void processLogs(LogVectors logs) {
+			VectorizedRowBatch vbatch = new VectorizedRowBatch();
+			vbatch.size = logs.size;
+			vbatch.selected = logs.selected;
+			vbatch.selectedInUse = logs.selectedInUse;
+			vbatch.data = logs.data;
+			self.pushPipe(vbatch);
 		}
 
 		@Override

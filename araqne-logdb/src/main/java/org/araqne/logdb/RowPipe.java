@@ -21,4 +21,6 @@ public interface RowPipe {
 	void onRow(Row row);
 
 	void onRowBatch(RowBatch rowBatch);
+	
+	void onVectorizedRowBatch(VectorizedRowBatch vbatch);
 }

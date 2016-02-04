@@ -25,6 +25,7 @@ import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.aggregator.*;
+import org.araqne.logdb.query.expr.ArrayAggregationFunction;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.Values;
 
@@ -50,6 +51,7 @@ public class AggregationParser {
 		t.put("values", Values.class);
 		t.put("var", Variance.class);
 		t.put("stddev", StdDev.class);
+		t.put("array", ArrayAggregationFunction.class);
 	}
 
 	public static AggregationField parse(QueryContext context, String s,

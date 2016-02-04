@@ -33,8 +33,10 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
+import org.araqne.logdb.query.aggregator.VectorizedAggregationFunction;
 import org.araqne.logdb.sort.CloseableIterator;
 import org.araqne.logdb.sort.Item;
 import org.araqne.logdb.sort.ParallelMergeSorter;
@@ -42,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Stats extends QueryCommand implements FieldOrdering {
+	private static final int FLUSH_SIZE = 50000;
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
 	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
 
@@ -111,10 +114,54 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
 		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
 
-		this.buffer = new ConcurrentHashMap<KeyHolder, AggregationFunction[]>();
+		this.buffer = new HashMap<KeyHolder, AggregationFunction[]>(FLUSH_SIZE);
 
 		for (AggregationFunction f : funcs)
 			f.clean();
+	}
+
+	@Override
+	public void onPush(VectorizedRowBatch vbatch) {
+		KeyHolder keyHolder = EMPTY_KEY;
+		Object[][] clauseValues = null;
+
+		if (useClause) {
+			keyHolder = new KeyHolder(clauseCount);
+
+			clauseValues = new Object[clauseCount][];
+			for (int i = 0; i < clauseCount; i++) {
+				clauseValues[i] = (Object[]) vbatch.data.get(clauses[i]);
+				if (clauseValues[i] == null)
+					clauseValues[i] = new Object[vbatch.size];
+			}
+		}
+
+		Object[] keys = keyHolder.keys;
+		for (int i = 0; i < vbatch.size; i++) {
+			if (useClause) {
+				for (int j = 0; j < clauseCount; j++)
+					keys[j] = clauseValues[j][i];
+			}
+
+			AggregationFunction[] fs = buffer.get(keyHolder);
+			if (fs == null) {
+				fs = new AggregationFunction[funcs.length];
+				for (int j = 0; j < fs.length; j++)
+					fs[j] = funcs[j].clone();
+
+				buffer.put(keyHolder.clone(), fs);
+			}
+
+			for (AggregationFunction f : fs) {
+				if (f instanceof VectorizedAggregationFunction) {
+					((VectorizedAggregationFunction) f).applyOne(vbatch, i);
+				} else {
+					f.apply(vbatch.row(i));
+				}
+			}
+		}
+
+		inputCount += vbatch.size;
 	}
 
 	@Override
@@ -194,7 +241,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 		try {
 			// flush
-			if (buffer.size() > 50000)
+			if (buffer.size() > FLUSH_SIZE)
 				flush();
 		} catch (IOException e) {
 			throw new IllegalStateException("stats failed, query " + query, e);

@@ -38,4 +38,9 @@ public class QueryCommandPipe implements RowPipe {
 	public void onRowBatch(RowBatch rowBatch) {
 		dst.onPush(rowBatch);
 	}
+
+	@Override
+	public void onVectorizedRowBatch(VectorizedRowBatch vbatch) {
+		dst.onPush(vbatch);
+	}
 }
