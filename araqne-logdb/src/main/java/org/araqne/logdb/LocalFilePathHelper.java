@@ -29,7 +29,7 @@ public class LocalFilePathHelper implements FilePathHelper {
 	}
 
 	@Override
-	public List<String> getMatchedFilePaths() {
+	public List<String> getMatchedPaths() {
 		List<String> fs = new ArrayList<String>();
 		NameMatcher m = new NameMatcher(fileName);
 		for (File f : parent.listFiles()) {

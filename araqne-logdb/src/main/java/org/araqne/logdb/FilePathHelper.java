@@ -3,5 +3,5 @@ package org.araqne.logdb;
 import java.util.List;
 
 public interface FilePathHelper {
-	List<String> getMatchedFilePaths();
+	List<String> getMatchedPaths();
 }

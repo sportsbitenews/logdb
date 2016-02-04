@@ -102,7 +102,7 @@ public class JsonFileParser extends AbstractQueryCommandParser {
 
 			String parseTarget = options.get("parsetarget");
 
-			return new JsonFile(pathHelper.getMatchedFilePaths(), filePath, parser, parseTarget, overlay, offset, limit);
+			return new JsonFile(pathHelper.getMatchedPaths(), filePath, parser, parseTarget, overlay, offset, limit);
 		} catch (IllegalStateException e) {
 			String msg = e.getMessage();
 			Map<String, String> params = new HashMap<String, String>();

@@ -127,7 +127,7 @@ public class TextFileParser extends AbstractQueryCommandParser {
 				parser = factory.createParser(options);
 			}
 
-			return new TextFile(pathHelper.getMatchedFilePaths(), filePath, parser, offset, limit, brex, erex, df, dp, cs);
+			return new TextFile(pathHelper.getMatchedPaths(), filePath, parser, offset, limit, brex, erex, df, dp, cs);
 		} catch (IllegalStateException e) {
 			String msg = e.getMessage();
 			Map<String, String> params = new HashMap<String, String>();

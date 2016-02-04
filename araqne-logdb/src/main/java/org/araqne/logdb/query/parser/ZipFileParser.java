@@ -97,7 +97,7 @@ public class ZipFileParser extends AbstractQueryCommandParser {
 
 			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
 
-			return new org.araqne.logdb.query.command.ZipFile(pathHelper.getMatchedFilePaths(), filePath, entryPath, parser,
+			return new org.araqne.logdb.query.command.ZipFile(pathHelper.getMatchedPaths(), filePath, entryPath, parser,
 					offset, limit);
 		} catch (IllegalStateException e) {
 			String msg = e.getMessage();

@@ -91,7 +91,7 @@ public class XlsxFileQueryParser extends AbstractQueryCommandParser {
 
 			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
 
-			return new XlsxFileQuery(pathHelper.getMatchedFilePaths(), filePath, sheet, offset, limit, skip);
+			return new XlsxFileQuery(pathHelper.getMatchedPaths(), filePath, sheet, offset, limit, skip);
 		} catch (IllegalStateException e) {
 			String msg = e.getMessage();
 			Map<String, String> params = new HashMap<String, String>();

@@ -62,7 +62,7 @@ public class CsvFileParser extends AbstractQueryCommandParser {
 		try {
 			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
 
-			return new CsvFile(pathHelper.getMatchedFilePaths(), filePath, offset, limit, cs);
+			return new CsvFile(pathHelper.getMatchedPaths(), filePath, offset, limit, cs);
 		} catch (IllegalStateException e) {
 			String msg = e.getMessage();
 			Map<String, String> params = new HashMap<String, String>();

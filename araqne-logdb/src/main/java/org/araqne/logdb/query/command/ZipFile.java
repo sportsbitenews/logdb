@@ -29,6 +29,7 @@ import java.util.zip.ZipEntry;
 import org.araqne.log.api.LogParser;
 import org.araqne.logdb.DriverQueryCommand;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.ZipEntryPathHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,17 +60,35 @@ public class ZipFile extends DriverQueryCommand {
 	public void run() {
 		status = Status.Running;
 
-		for (String filePath : filePaths)
+		for (String filePath : filePaths) {
+
 			readZipFile(filePath);
+		}
 	}
 
 	private void readZipFile(String filePath) {
 		java.util.zip.ZipFile zipFile = null;
-		BufferedReader br = null;
-		InputStream is = null;
 		try {
 			File f = new File(filePath);
 			zipFile = new java.util.zip.ZipFile(f);
+			ZipEntryPathHelper helper = new ZipEntryPathHelper(zipFile, this.entryPath);
+			for (String entryPath : helper.getMatchedPaths())
+				readZipEntry(filePath, zipFile, f, entryPath);
+		} catch (Throwable t) {
+			slog.error("araqne logdb: zipfile error", t);
+		} finally {
+			try {
+				if (zipFile != null)
+					zipFile.close();
+			} catch (IOException e) {
+			}
+		}
+	}
+
+	private void readZipEntry(String filePath, java.util.zip.ZipFile zipFile, File f, String entryPath) {
+		BufferedReader br = null;
+		InputStream is = null;
+		try {
 			slog.debug("araqne logdb: zipfile path: {}, zip entry: {}", filePath, entryPath);
 
 			ZipEntry entry = zipFile.getEntry(entryPath);
@@ -101,6 +120,7 @@ public class ZipFile extends DriverQueryCommand {
 				if (i >= offset) {
 					Row r = new Row(parsed != null ? parsed : m);
 					r.put("_file", f.getName());
+					r.put("_entry", entry.getName());
 					pushPipe(r);
 					count++;
 				}
@@ -111,11 +131,6 @@ public class ZipFile extends DriverQueryCommand {
 		} finally {
 			IoHelper.close(br);
 			IoHelper.close(is);
-			try {
-				if (zipFile != null)
-					zipFile.close();
-			} catch (IOException e) {
-			}
 		}
 	}
 
