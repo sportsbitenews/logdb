@@ -55,15 +55,15 @@ public class LocalFilePathHelper implements FilePathHelper {
 	}
 
 	private class NameMatcher {
-		private Matcher tableNameMatcher;
+		private Matcher m;
 
 		public NameMatcher(String token) {
-			tableNameMatcher = buildPattern(token).matcher("");
+			m = buildPattern(token).matcher("");
 		}
 
 		public boolean matches(String name) {
-			tableNameMatcher.reset(name);
-			if (!tableNameMatcher.matches())
+			m.reset(name);
+			if (!m.matches())
 				return false;
 
 			return true;

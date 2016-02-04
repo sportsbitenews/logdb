@@ -54,7 +54,7 @@ public class ZipFileParser extends AbstractQueryCommandParser {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
 		m.put("14000", new QueryErrorMessage("invalid-zipfile-path", "[file]이 존재하지 않거나 읽을수 없습니다."));
 		m.put("14001", new QueryErrorMessage("invalid-parentfile-path", "[file]의 상위 디렉토리가 존재하지 않거나 읽을 수 없습니다."));
-		m.put("10402", new QueryErrorMessage("missing-field", "파일경로 또는 엔트리 경로를 입력하십시오."));
+		m.put("10402", new QueryErrorMessage("missing-field", "파일경로와 엔트리 경로를 입력하십시오."));
 		return m;
 	}
 
