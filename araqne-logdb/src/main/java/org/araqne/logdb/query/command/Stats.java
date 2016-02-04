@@ -57,6 +57,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 	// clone template
 	private AggregationFunction[] funcs;
+	private AggregationFunction[] emptyClauseFuncs;
 	private List<String> fieldOrder;
 
 	private ParallelMergeSorter sorter;
@@ -118,6 +119,14 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 		for (AggregationFunction f : funcs)
 			f.clean();
+
+		if (!useClause) {
+			emptyClauseFuncs = new AggregationFunction[funcs.length];
+			for (int i = 0; i < funcs.length; i++)
+				emptyClauseFuncs[i] = funcs[i].clone();
+
+			buffer.put(EMPTY_KEY, emptyClauseFuncs);
+		}
 	}
 
 	@Override
@@ -138,18 +147,21 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 		Object[] keys = keyHolder.keys;
 		for (int i = 0; i < vbatch.size; i++) {
+			AggregationFunction[] fs = null;
 			if (useClause) {
 				for (int j = 0; j < clauseCount; j++)
 					keys[j] = clauseValues[j][i];
-			}
 
-			AggregationFunction[] fs = buffer.get(keyHolder);
-			if (fs == null) {
-				fs = new AggregationFunction[funcs.length];
-				for (int j = 0; j < fs.length; j++)
-					fs[j] = funcs[j].clone();
+				fs = buffer.get(keyHolder);
+				if (fs == null) {
+					fs = new AggregationFunction[funcs.length];
+					for (int j = 0; j < fs.length; j++)
+						fs[j] = funcs[j].clone();
 
-				buffer.put(keyHolder.clone(), fs);
+					buffer.put(keyHolder.clone(), fs);
+				}
+			} else {
+				fs = emptyClauseFuncs;
 			}
 
 			for (AggregationFunction f : fs) {
