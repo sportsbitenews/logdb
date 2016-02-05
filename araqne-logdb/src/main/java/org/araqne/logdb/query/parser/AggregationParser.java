@@ -43,10 +43,6 @@ public class AggregationParser {
 		t.put("last", Last.class);
 		t.put("max", Max.class);
 		t.put("min", Min.class);
-		t.put("per_day", PerDay.class);
-		t.put("per_hour", PerHour.class);
-		t.put("per_minute", PerMinute.class);
-		t.put("per_second", PerSecond.class);
 		t.put("range", Range.class);
 		t.put("values", Values.class);
 		t.put("var", Variance.class);

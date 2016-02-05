@@ -32,7 +32,6 @@ import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.TimeUnit;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
-import org.araqne.logdb.query.aggregator.PerTime;
 import org.araqne.logdb.sort.CloseableIterator;
 import org.araqne.logdb.sort.Item;
 import org.araqne.logdb.sort.ParallelMergeSorter;
@@ -138,10 +137,6 @@ public class Timechart extends QueryCommand {
 			fs = new AggregationFunction[funcs.length];
 			for (int i = 0; i < fs.length; i++) {
 				fs[i] = funcs[i].clone();
-
-				// set span milliseconds for average evaluation per span
-				if (fs[i] instanceof PerTime)
-					((PerTime) fs[i]).setAmount(spanMillis);
 			}
 
 			buffer.put(key, fs);
@@ -187,13 +182,8 @@ public class Timechart extends QueryCommand {
 				AggregationFunction[] fs = buffer.get(key);
 				if (fs == null) {
 					fs = new AggregationFunction[funcs.length];
-					for (int i = 0; i < fs.length; i++) {
+					for (int i = 0; i < fs.length; i++)
 						fs[i] = funcs[i].clone();
-
-						// set span milliseconds for average evaluation per span
-						if (fs[i] instanceof PerTime)
-							((PerTime) fs[i]).setAmount(spanMillis);
-					}
 
 					buffer.put(key, fs);
 				}
@@ -228,10 +218,6 @@ public class Timechart extends QueryCommand {
 					fs = new AggregationFunction[funcs.length];
 					for (int j = 0; j < fs.length; j++) {
 						fs[j] = funcs[j].clone();
-
-						// set span milliseconds for average evaluation per span
-						if (fs[j] instanceof PerTime)
-							((PerTime) fs[j]).setAmount(spanMillis);
 					}
 
 					buffer.put(key, fs);
