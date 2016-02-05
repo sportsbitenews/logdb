@@ -81,6 +81,7 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	private CopyOnWriteArraySet<SessionEventListener> sessionListeners;
 	private CopyOnWriteArraySet<AccountEventListener> accountListeners;
 	private String instanceGuid;
+	private Object updateLock = new Object();
 
 	public AccountServiceImpl() {
 		sessions = new ConcurrentHashMap<String, Session>();
@@ -485,16 +486,19 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 	}
 
 	private void updateAccount(Account account) {
-		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
-		Config c = db.findOne(Account.class, Predicates.field("login_name", account.getLoginName()));
-		if (c != null) {
-			c.setDocument(PrimitiveConverter.serialize(account));
-			c.update();
-		} else {
-			db.add(account);
-		}
+		synchronized (updateLock) {
+			ConfigDatabase db = conf.ensureDatabase(DB_NAME);
+			Config c = db.findOne(Account.class, Predicates.field("login_name", account.getLoginName()));
+			if (c != null) {
+				c.setDocument(PrimitiveConverter.serialize(account));
+				c.update();
+			} else {
+				db.add(account);
+				logger.info("araqne-logdb: update account [{}]", account.getLoginName());
+			}
 
-		localAccounts.put(account.getLoginName(), account);
+			localAccounts.put(account.getLoginName(), account);
+		}
 	}
 
 	@Override
@@ -825,8 +829,8 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 			ConfigDatabase db = conf.ensureDatabase("araqne-logdb");
 			Config c = db.findOne(SecurityGroup.class, Predicates.field("guid", guid));
 			if (c != null)
-				db.remove(c, false, "araqne-logdb", "removed security group [guid: " + old.getGuid() + ", name: " + old.getName()
-						+ "]");
+				db.remove(c, false, "araqne-logdb",
+						"removed security group [guid: " + old.getGuid() + ", name: " + old.getName() + "]");
 		}
 
 		// invoke callbacks
