@@ -19,13 +19,16 @@ import java.util.List;
 
 import org.araqne.logdb.Row;
 import org.araqne.logdb.VectorizedRowBatch;
-import org.araqne.logdb.query.command.NumberUtil;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.VectorizedExpression;
 
 public class Sum implements VectorizedAggregationFunction {
 	protected List<Expression> exprs;
-	protected Number sum = 0L;
+
+	private boolean isNull = true;
+	private long sum1 = 0;
+	private double sum2 = 0;
+
 	private Expression expr;
 	private final boolean vectorized;
 
@@ -48,56 +51,82 @@ public class Sum implements VectorizedAggregationFunction {
 	@Override
 	public void apply(Row map) {
 		Object obj = expr.eval(map);
-		if (obj == null || !(obj instanceof Number))
-			return;
 
-		sum = NumberUtil.add(sum, obj);
+		if (obj instanceof Long || obj instanceof Integer || obj instanceof Short) {
+			sum1 += ((Number) obj).longValue();
+			isNull = false;
+		}
+
+		if (obj instanceof Double || obj instanceof Float) {
+			sum2 += ((Number) obj).doubleValue();
+			isNull = false;
+		}
 	}
 
 	@Override
 	public void applyOne(VectorizedRowBatch vbatch, int index) {
-		Object value = null;
+		Object obj = null;
 		if (vectorized) {
-			value = ((VectorizedExpression) expr).evalOne(vbatch, index);
+			obj = ((VectorizedExpression) expr).evalOne(vbatch, index);
 		} else {
-			value = expr.eval(vbatch.row(index));
+			obj = expr.eval(vbatch.row(index));
 		}
 
-		sum = NumberUtil.add(sum, value);
+		if (obj instanceof Long || obj instanceof Integer || obj instanceof Short) {
+			sum1 += ((Number) obj).longValue();
+			isNull = false;
+		}
+
+		if (obj instanceof Double || obj instanceof Float) {
+			sum2 += ((Number) obj).doubleValue();
+			isNull = false;
+		}
 	}
 
 	@Override
 	public Object eval() {
-		return sum;
+		if (isNull)
+			return null;
+		return sum1 + sum2;
 	}
 
 	@Override
 	public void merge(AggregationFunction func) {
 		Sum other = (Sum) func;
-		this.sum = NumberUtil.add(sum, other.sum);
+		this.isNull = isNull && other.isNull;
+		this.sum1 = sum1 + other.sum1;
+		this.sum2 = sum2 + other.sum2;
 	}
 
 	@Override
 	public void deserialize(Object[] values) {
-		this.sum = (Number) values[0];
+		this.isNull = (Boolean) values[0];
+		this.sum1 = (Long) values[1];
+		this.sum2 = (Double) values[2];
 	}
 
 	@Override
 	public Object[] serialize() {
-		Object[] l = new Object[1];
-		l[0] = sum;
+		Object[] l = new Object[3];
+		l[0] = isNull;
+		l[1] = sum1;
+		l[2] = sum2;
 		return l;
 	}
 
 	@Override
 	public void clean() {
-		sum = null;
+		isNull = true;
+		sum1 = 0;
+		sum2 = 0;
 	}
 
 	@Override
 	public AggregationFunction clone() {
 		Sum s = new Sum(this.exprs);
-		s.sum = this.sum;
+		s.isNull = this.isNull;
+		s.sum1 = this.sum1;
+		s.sum2 = this.sum2;
 		return s;
 	}
 
