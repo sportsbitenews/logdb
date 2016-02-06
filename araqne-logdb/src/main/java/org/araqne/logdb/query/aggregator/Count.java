@@ -60,7 +60,7 @@ public class Count implements VectorizedAggregationFunction {
 	}
 
 	@Override
-	public void applyOne(VectorizedRowBatch vbatch, int index) {
+	public void apply(VectorizedRowBatch vbatch, int index) {
 		if (expr == null)
 			result++;
 		else {

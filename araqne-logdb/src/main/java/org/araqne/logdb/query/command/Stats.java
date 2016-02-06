@@ -166,7 +166,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 			for (AggregationFunction f : fs) {
 				if (f instanceof VectorizedAggregationFunction) {
-					((VectorizedAggregationFunction) f).applyOne(vbatch, i);
+					((VectorizedAggregationFunction) f).apply(vbatch, i);
 				} else {
 					f.apply(vbatch.row(i));
 				}
