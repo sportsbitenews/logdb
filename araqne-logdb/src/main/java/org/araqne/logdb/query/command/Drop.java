@@ -19,6 +19,7 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Drop extends QueryCommand implements ThreadSafe {
 	@Override
@@ -32,6 +33,10 @@ public class Drop extends QueryCommand implements ThreadSafe {
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
+	}
+
+	@Override
+	public void onPush(VectorizedRowBatch vbatch) {
 	}
 
 	@Override

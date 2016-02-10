@@ -23,12 +23,15 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.ThreadSafe;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.VectorizedExpression;
 
 public class Search extends QueryCommand implements ThreadSafe {
 	private AtomicLong count = new AtomicLong();
 	private final Long limit;
 	private final Expression expr;
+	private final boolean vectorized;
 
 	// for accurate limit
 	private ReentrantLock lock = new ReentrantLock();
@@ -36,6 +39,7 @@ public class Search extends QueryCommand implements ThreadSafe {
 	public Search(Long limit, Expression expr) {
 		this.limit = limit;
 		this.expr = expr;
+		this.vectorized = expr instanceof VectorizedExpression;
 	}
 
 	@Override
@@ -49,6 +53,146 @@ public class Search extends QueryCommand implements ThreadSafe {
 
 	public Expression getExpression() {
 		return expr;
+	}
+
+	@Override
+	public void onPush(VectorizedRowBatch vbatch) {
+		if (expr == null) {
+			// always bypass
+			if (limit == null) {
+				pushPipe(vbatch);
+				count.addAndGet(vbatch.size);
+				return;
+			}
+
+			lock.lock();
+			try {
+				// bypass until reach the limit
+				if (vbatch.size + count.get() <= limit) {
+					pushPipe(vbatch);
+					count.addAndGet(vbatch.size);
+					return;
+				}
+
+				int more = (int) (limit - count.get());
+
+				if (vbatch.selectedInUse) {
+					vbatch.size = more;
+				} else {
+					vbatch.selected = new int[more];
+					vbatch.selectedInUse = true;
+					vbatch.size = more;
+					for (int i = 0; i < more; i++)
+						vbatch.selected[i] = i;
+				}
+
+				pushPipe(vbatch);
+				count.addAndGet(more);
+				getQuery().cancel(QueryStopReason.PartialFetch);
+			} finally {
+				lock.unlock();
+			}
+			return;
+		}
+
+		Object[] values = null;
+		boolean[] retArray = null;
+		if (vectorized) {
+			values = ((VectorizedExpression) expr).eval(vbatch);
+			retArray = new boolean[vbatch.size];
+			for (int i = 0; i < vbatch.size; i++) {
+				Object o = values[i];
+				if (o instanceof Boolean)
+					retArray[i] = (Boolean) o;
+				else
+					retArray[i] = o != null;
+			}
+
+			int n = 0;
+			if (vbatch.selectedInUse) {
+				for (int i = 0; i < vbatch.size; i++) {
+					int p = vbatch.selected[i];
+					if (retArray[i])
+						vbatch.selected[n++] = p;
+				}
+			} else {
+				vbatch.selectedInUse = true;
+				vbatch.selected = new int[vbatch.size];
+				for (int i = 0; i < vbatch.size; i++) {
+					if (retArray[i])
+						vbatch.selected[n++] = i;
+				}
+			}
+			vbatch.size = n;
+		} else {
+			// TODO: vectorize all expressions and remove this block.
+			boolean ret;
+			if (vbatch.selectedInUse) {
+				int n = 0;
+				for (int i = 0; i < vbatch.size; i++) {
+					int p = vbatch.selected[i];
+					Row row = vbatch.row(p);
+
+					Object o = expr.eval(row);
+					if (o instanceof Boolean)
+						ret = (Boolean) o;
+					else
+						ret = o != null;
+
+					if (ret)
+						vbatch.selected[n++] = p;
+				}
+
+				vbatch.size = n;
+			} else {
+				int n = 0;
+				vbatch.selected = new int[vbatch.size];
+				for (int i = 0; i < vbatch.size; i++) {
+					Row row = vbatch.row(i);
+					Object o = expr.eval(row);
+					if (o instanceof Boolean)
+						ret = (Boolean) o;
+					else
+						ret = o != null;
+
+					if (ret)
+						vbatch.selected[n++] = i;
+				}
+
+				vbatch.size = n;
+				vbatch.selectedInUse = true;
+			}
+		}
+		
+		if (vbatch.size == 0)
+			return;
+
+		// apply limit
+		if (limit == null) {
+			pushPipe(vbatch);
+			count.addAndGet(vbatch.size);
+			return;
+		}
+
+		lock.lock();
+		try {
+			if (vbatch.size + count.get() <= limit) {
+				pushPipe(vbatch);
+				count.addAndGet(vbatch.size);
+				return;
+			}
+
+			int more = (int) (limit - count.get());
+			if (more > 0) {
+				vbatch.size = more;
+				pushPipe(vbatch);
+				count.addAndGet(more);
+			}
+			
+			getQuery().cancel(QueryStopReason.PartialFetch);
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	@Override

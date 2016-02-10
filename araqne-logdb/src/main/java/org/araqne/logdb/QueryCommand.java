@@ -127,11 +127,12 @@ public abstract class QueryCommand {
 			}
 		}
 	}
-	
-	// TODO: default adapter for old per-rowbatch processing
+
+	// default adapter for old per-rowbatch processing
 	public void onPush(VectorizedRowBatch vbatch) {
+		onPush(vbatch.toRowBatch());
 	}
-	
+
 	protected final void pushPipe(Row row) {
 		Lock lock = rwLock.readLock();
 		try {
@@ -173,7 +174,7 @@ public abstract class QueryCommand {
 			lock.unlock();
 		}
 	}
-	
+
 	protected final void pushPipe(VectorizedRowBatch vbatch) {
 		Lock lock = rwLock.readLock();
 		try {

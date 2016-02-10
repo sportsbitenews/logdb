@@ -43,7 +43,7 @@ public abstract class LogTraverseCallback {
 	}
 
 	public void writeLogs(LogVectors logs) {
-		// TODO: convert to list 
+		// TODO: convert to list
 		sink.write(logs);
 	}
 
@@ -108,8 +108,48 @@ public abstract class LogTraverseCallback {
 		}
 
 		public boolean write(LogVectors logs) {
-			// TODO: support offset and limit
-			if (vectorized) {
+			int processEnd = logs.size;
+			long start = -1;
+			long end = -1;
+			synchronized (this) {
+				if (eof)
+					return false;
+
+				start = curr;
+				end = curr += logs.size;
+
+				if (limit > 0 && end >= offset + limit) {
+					processEnd = (int) (offset + limit - start);
+					eof = true;
+				}
+			}
+
+			if (offset > 0 && end <= offset)
+				return true;
+
+			int processBegin = 0;
+			if (offset > 0 && start <= offset) {
+				processBegin = (int) (offset - start);
+			}
+
+			if (processBegin == 0 && processEnd == logs.size) {
+				if (vectorized) 
+				((VectorizedSink) (this)).processLogs(logs);
+				else
+					processLogs(logs.toLogList());
+				
+			} else {
+				int selectedSize = processEnd - processBegin;
+				int[] selected = new int[selectedSize];
+				int index = 0;
+				for (int i = processBegin; i < processEnd; i++) {
+					selected[index++] = i;
+				}
+
+				logs.selectedInUse = true;
+				logs.selected = selected;
+				logs.size = selectedSize;
+
 				((VectorizedSink) (this)).processLogs(logs);
 			}
 

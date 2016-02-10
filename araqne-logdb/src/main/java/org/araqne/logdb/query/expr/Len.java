@@ -20,13 +20,55 @@ import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class Len extends FunctionExpression {
+public class Len extends FunctionExpression implements VectorizedExpression {
 	private Expression valueExpr;
 
 	public Len(QueryContext ctx, List<Expression> exprs) {
 		super("len", exprs, 1);
 		this.valueExpr = exprs.get(0);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object value = vbatch.evalOne(valueExpr, i);
+		if (value == null)
+			return 0;
+		else if (value instanceof List)
+			return ((List<?>) value).size();
+		else if (value instanceof Object[])
+			return ((Object[]) value).length;
+		else if (value instanceof Map)
+			return ((Map<?, ?>) value).size();
+
+		return (value.toString()).length();
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+
+		for (int i = 0; i < vbatch.size; i++) {
+			Object value = values[i];
+			int len = 0;
+			if (value == null)
+				len = 0;
+			else if (value instanceof String)
+				len = ((String) value).length();
+			else if (value instanceof List)
+				len = ((List<?>) value).size();
+			else if (value instanceof Object[])
+				len = ((Object[]) value).length;
+			else if (value instanceof Map)
+				len = ((Map<?, ?>) value).size();
+			else
+				len = (value.toString()).length();
+
+			values[i] = len;
+		}
+
+		return values;
 	}
 
 	@Override

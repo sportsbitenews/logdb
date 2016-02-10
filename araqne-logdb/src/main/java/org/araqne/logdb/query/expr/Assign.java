@@ -18,18 +18,30 @@ package org.araqne.logdb.query.expr;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class Assign extends BinaryExpression {
+public class Assign extends BinaryExpression implements VectorizedExpression {
 	private final String field;
+
 	public Assign(Expression lhs, Expression rhs) {
 		super(lhs, rhs);
 		if (!(lhs instanceof EvalField)) {
 			throw new QueryParseException("20101", -1);
 		}
-		
+
 		this.field = lhs.toString();
 	}
-	
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		return vbatch.evalOne(rhs, i);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		return vbatch.eval(rhs);
+	}
+
 	@Override
 	public Object eval(Row map) {
 		return rhs.eval(map);
@@ -39,11 +51,11 @@ public class Assign extends BinaryExpression {
 	public String toString() {
 		return "(" + lhs + " = " + rhs + ")";
 	}
-	
+
 	public String getField() {
 		return field;
 	}
-	
+
 	public Expression getValueExpression() {
 		return super.rhs;
 	}

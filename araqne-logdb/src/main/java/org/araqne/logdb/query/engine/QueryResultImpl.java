@@ -53,8 +53,8 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 	private AtomicLong flushed = new AtomicLong();
 
 	/**
-	 * do NOT directly lock on log file writer. input should be serialized at caller side. inner block-able
-	 * caller run policy can cause deadlock.
+	 * do NOT directly lock on log file writer. input should be serialized at
+	 * caller side. inner block-able caller run policy can cause deadlock.
 	 */
 	private Object writerLock = new Object();
 
@@ -182,11 +182,10 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 			throw new IllegalStateException(e);
 		}
 	}
-	
+
 	@Override
 	public void onVectorizedRowBatch(VectorizedRowBatch vbatch) {
-		// TODO write query result
-		
+		onRowBatch(vbatch.toRowBatch());
 	}
 
 	@Override
@@ -212,7 +211,7 @@ public class QueryResultImpl implements QueryResult, LogFlushCallback {
 	@Override
 	public void syncWriter() throws IOException {
 		synchronized (writerLock) {
-			if(writer != null) {
+			if (writer != null) {
 				writer.flush();
 				writer.sync();
 			}

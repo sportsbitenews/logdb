@@ -17,9 +17,10 @@ package org.araqne.logdb.query.expr;
 
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.expr.In.StringMatcher;
 
-public class Eq extends BinaryExpression {
+public class Eq extends BinaryExpression implements VectorizedExpression {
 	private ObjectComparator cmp = new ObjectComparator();
 	private StringMatcher matcher;
 
@@ -30,6 +31,39 @@ public class Eq extends BinaryExpression {
 			String needle = (String) rhs.eval(null);
 			matcher = new StringMatcher(needle);
 		}
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object l = vbatch.evalOne(lhs, i);
+		if (l == null)
+			return false;
+
+		if (matcher != null) {
+			return matcher.match(null, l.toString());
+		} else {
+			Object r = vbatch.evalOne(rhs, i);
+			if (r == null)
+				return false;
+
+			return cmp.compare(l, r) == 0;
+		}
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] lArray = vbatch.eval(lhs);
+
+		if (matcher != null)
+			return matcher.match(lArray);
+
+		Object[] rArray = vbatch.eval(rhs);
+		Object[] result = new Object[vbatch.size];
+		for (int i = 0; i < vbatch.size; i++) {
+			result[i] = rArray[i] != null && cmp.compare(lArray[i], rArray[i]) == 0;
+		}
+
+		return result;
 	}
 
 	@Override

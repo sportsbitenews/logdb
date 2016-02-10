@@ -67,7 +67,60 @@ public class In extends FunctionExpression {
 			}
 		}
 
-		public boolean match(Row log, Object o) {
+		public Object[] match(Object[] values) {
+			Object[] result = new Object[values.length];
+			switch (matchMethod) {
+			case EQUALS: {
+				for (int i = 0; i < values.length; i++) {
+					Object o = values[i];
+					if (o instanceof String) {
+						result[i] = ((String) o).equals(term);
+					}
+				}
+				return result;
+			}
+			case STARTSWITH: {
+				for (int i = 0; i < values.length; i++) {
+					Object o = values[i];
+					if (o instanceof String) {
+						result[i] = ((String) o).startsWith(term);
+					}
+				}
+				return result;
+			}
+			case ENDSWITH: {
+				for (int i = 0; i < values.length; i++) {
+					Object o = values[i];
+					if (o instanceof String) {
+						result[i] = ((String) o).endsWith(term);
+					}
+				}
+				return result;
+			}
+			case CONTAINS: {
+				for (int i = 0; i < values.length; i++) {
+					Object o = values[i];
+					if (o instanceof String) {
+						result[i] = ((String) o).contains(term);
+					}
+				}
+				return result;
+			}
+			case PATTERN: {
+				for (int i = 0; i < values.length; i++) {
+					Object o = values[i];
+					if (o instanceof String) {
+						result[i] = matcher.reset((String) o).matches();
+					}
+				}
+				return result;
+			}
+			default:
+				throw new IllegalStateException("bad match method: " + matchMethod.toString());
+			}
+		}
+
+		public boolean match(Row row, Object o) {
 			if (o instanceof CharSequence) {
 				String token = o.toString();
 				switch (matchMethod) {

@@ -146,29 +146,60 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		}
 
 		Object[] keys = keyHolder.keys;
-		for (int i = 0; i < vbatch.size; i++) {
-			AggregationFunction[] fs = null;
-			if (useClause) {
-				for (int j = 0; j < clauseCount; j++)
-					keys[j] = clauseValues[j][i];
 
-				fs = buffer.get(keyHolder);
-				if (fs == null) {
-					fs = new AggregationFunction[funcs.length];
-					for (int j = 0; j < fs.length; j++)
-						fs[j] = funcs[j].clone();
+		if (vbatch.selectedInUse) {
+			for (int i = 0; i < vbatch.size; i++) {
+				int p = vbatch.selected[i];
+				AggregationFunction[] fs = null;
+				if (useClause) {
+					for (int j = 0; j < clauseCount; j++)
+						keys[j] = clauseValues[j][p];
 
-					buffer.put(keyHolder.clone(), fs);
-				}
-			} else {
-				fs = emptyClauseFuncs;
-			}
+					fs = buffer.get(keyHolder);
+					if (fs == null) {
+						fs = new AggregationFunction[funcs.length];
+						for (int j = 0; j < fs.length; j++)
+							fs[j] = funcs[j].clone();
 
-			for (AggregationFunction f : fs) {
-				if (f instanceof VectorizedAggregationFunction) {
-					((VectorizedAggregationFunction) f).apply(vbatch, i);
+						buffer.put(keyHolder.clone(), fs);
+					}
 				} else {
-					f.apply(vbatch.row(i));
+					fs = emptyClauseFuncs;
+				}
+
+				for (AggregationFunction f : fs) {
+					if (f instanceof VectorizedAggregationFunction) {
+						((VectorizedAggregationFunction) f).apply(vbatch, p);
+					} else {
+						f.apply(vbatch.row(p));
+					}
+				}
+			}
+		} else {
+			for (int i = 0; i < vbatch.size; i++) {
+				AggregationFunction[] fs = null;
+				if (useClause) {
+					for (int j = 0; j < clauseCount; j++)
+						keys[j] = clauseValues[j][i];
+
+					fs = buffer.get(keyHolder);
+					if (fs == null) {
+						fs = new AggregationFunction[funcs.length];
+						for (int j = 0; j < fs.length; j++)
+							fs[j] = funcs[j].clone();
+
+						buffer.put(keyHolder.clone(), fs);
+					}
+				} else {
+					fs = emptyClauseFuncs;
+				}
+
+				for (AggregationFunction f : fs) {
+					if (f instanceof VectorizedAggregationFunction) {
+						((VectorizedAggregationFunction) f).apply(vbatch, i);
+					} else {
+						f.apply(vbatch.row(i));
+					}
 				}
 			}
 		}
