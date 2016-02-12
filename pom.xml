@@ -280,5 +280,6 @@
 		<module>araqne-logdb-jxpath</module>
 		<module>araqne-logapi-http</module>
 		<module>araqne-logdb-xlsx</module>
+		<module>araqne-logdb-slack</module>
 	</modules>
 </project>
