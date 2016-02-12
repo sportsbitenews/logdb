@@ -62,6 +62,7 @@ public class XlsxFileQueryParser extends AbstractQueryCommandParser {
 		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
 		m.put("13000", new QueryErrorMessage("invalid-xlsxfile-path", "[file]이 존재하지 않거나 읽을수 없습니다."));
 		m.put("13001", new QueryErrorMessage("invalid-parentfile-path", "[file]의 상위 디렉토리가 존재하지 않거나 읽을 수 없습니다."));
+		m.put("13002", new QueryErrorMessage("missing-field", "파일경로을 입력하십시오."));
 		return m;
 	}
 
@@ -73,6 +74,9 @@ public class XlsxFileQueryParser extends AbstractQueryCommandParser {
 		Map<String, String> options = (Map<String, String>) r.value;
 		String filePath = commandString.substring(r.next).trim();
 		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
+
+		if (filePath.trim().isEmpty())
+			throw new QueryParseException("10702", commandString.trim().length() - 1, commandString.trim().length() - 1, null);
 
 		try {
 			long skip = 0;
