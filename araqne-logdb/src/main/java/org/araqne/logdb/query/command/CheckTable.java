@@ -36,6 +36,9 @@ import org.araqne.logstorage.file.LogBlockCursor;
 import org.araqne.logstorage.file.LogFileReader;
 import org.araqne.logstorage.file.LogFileServiceV2;
 import org.araqne.storage.api.FilePath;
+import org.araqne.storage.crypto.LogCryptoException;
+import org.araqne.storage.crypto.LogCryptoService;
+import org.araqne.storage.crypto.MacBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,8 +58,10 @@ public class CheckTable extends QueryCommand {
 	private LogStorage storage;
 	private LogFileServiceRegistry fileServiceRegistry;
 
+	private LogCryptoService cryptoService;
+
 	public CheckTable(Set<String> tableNames, Date from, Date to, boolean trace, String tableToken,
-			LogTableRegistry tableRegistry, LogStorage storage, LogFileServiceRegistry fileSerivceRegistry) {
+			LogTableRegistry tableRegistry, LogStorage storage, LogFileServiceRegistry fileSerivceRegistry, LogCryptoService cryptoService) {
 		this.tableNames = tableNames;
 		this.from = from;
 		this.to = to;
@@ -65,6 +70,7 @@ public class CheckTable extends QueryCommand {
 		this.tableRegistry = tableRegistry;
 		this.storage = storage;
 		this.fileServiceRegistry = fileSerivceRegistry;
+		this.cryptoService = cryptoService;
 	}
 
 	@Override
@@ -104,7 +110,7 @@ public class CheckTable extends QueryCommand {
 		String type = schema.getPrimaryStorage().getType();
 
 		FilePath dir = storage.getTableDirectory(tableName);
-
+		
 		for (Date day : storage.getLogDates(tableName)) {
 			if (getStatus() == Status.End)
 				break;
@@ -144,10 +150,12 @@ public class CheckTable extends QueryCommand {
 
 					String digest = (String) data.get("digest");
 					byte[] digestKey = (byte[]) data.get("digest_key");
+					MacBuilder mb = cryptoService.newMacBuilder(digest, digestKey);
+
 					byte[] hash = null;
 					try {
 						if (d != null)
-							hash = Crypto.digest(d, d.length, digest, digestKey);
+							hash = mb.digest(d, 0, d.length);
 					} catch (Exception e) {
 					}
 
@@ -177,6 +185,14 @@ public class CheckTable extends QueryCommand {
 				m.put("msg", "corrupted");
 				pushPipe(new Row(m));
 				logger.trace("araqne logdb: cannot read block metadata", e);
+			} catch (LogCryptoException e) {
+				Map<String, Object> m = new HashMap<String, Object>();
+				m.put("table", tableName);
+				m.put("day", day);
+				m.put("last_block_id", lastValidBlockId);
+				m.put("msg", "digest-calc-failure");
+				pushPipe(new Row(m));
+				logger.trace("araqne logdb: cannot calculate block digest", e);
 			} finally {
 				if (cursor != null) {
 					try {

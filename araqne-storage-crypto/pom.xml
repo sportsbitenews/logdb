@@ -8,10 +8,11 @@
 		<groupId>org.araqne</groupId>
 		<version>1.0.0</version>
 	</parent>
-	<artifactId>araqne-storage</artifactId>
-	<version>1.5.0</version>
+	<groupId>org.araqne</groupId>
+	<artifactId>araqne-storage-crypto</artifactId>
+	<version>1.0.0</version>
 	<packaging>bundle</packaging>
-	<name>Araqne Storage</name>
+	<name>Araqne Storage Crypto</name>
 	<build>
 		<plugins>
 			<plugin>
@@ -20,19 +21,14 @@
 				<extensions>true</extensions>
 				<configuration>
 					<instructions>
-						<Bundle-SymbolicName>org.araqne.storage
+						<Bundle-SymbolicName>org.araqne.storage.crypto
 						</Bundle-SymbolicName>
 						<Export-Package>
-							org.araqne.storage;version=${project.version},
-							org.araqne.storage.api;version=${project.version},
-							org.araqne.storage.localfile;version=${project.version},
-							org.araqne.storage.filepair;version=${project.version}
-							org.araqne.storage.crypto;version=${project.version}
+							org.araqne.storage.crypto;version=${project.version},
 						</Export-Package>
 						<Import-Package>
-							org.osgi.framework;version="1.4.0",
-							org.osgi.util.tracker;version="1.4.0",
-							*</Import-Package>
+							*
+						</Import-Package>
 					</instructions>
 				</configuration>
 			</plugin>
@@ -47,6 +43,10 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>pl.project13.maven</groupId>
+				<artifactId>git-commit-id-plugin</artifactId>
+			</plugin>
 		</plugins>
 	</build>
 	<dependencies>
@@ -54,6 +54,10 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.felix</groupId>
@@ -64,15 +68,15 @@
 			<artifactId>org.apache.felix.ipojo.annotations
 			</artifactId>
 		</dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>1.5.6</version>
-            <scope>test</scope>
-        </dependency>
+		<dependency>
+			<groupId>org.araqne</groupId>
+			<artifactId>araqne-api</artifactId>
+			<version>3.0.5</version>
+		</dependency>
+		<dependency>
+			<groupId>org.araqne</groupId>
+			<artifactId>araqne-storage</artifactId>
+			<version>1.5.0</version>
+		</dependency>
 	</dependencies>
 </project>

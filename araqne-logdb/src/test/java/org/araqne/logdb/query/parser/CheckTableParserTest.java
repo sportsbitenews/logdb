@@ -1,11 +1,8 @@
 package org.araqne.logdb.query.parser;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+
+import static org.mockito.Mockito.*;
 
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -18,6 +15,7 @@ import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.CheckTable;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.storage.crypto.impl.JavaLogCryptoService;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -139,7 +137,7 @@ public class CheckTableParserTest {
 		LogTableRegistry tableRegistry = mock(LogTableRegistry.class);
 		when(tableRegistry.getTableNames()).thenReturn(Arrays.asList("secure_log", "secure_event", "text_log"));
 
-		CheckTableParser parser = new CheckTableParser(tableRegistry, null, null);
+		CheckTableParser parser = new CheckTableParser(tableRegistry, null, null, new JavaLogCryptoService());
 		parser.setQueryParserService(queryParserService);
 		
 		CheckTable c = (CheckTable) parser.parse(getContext(), query);
