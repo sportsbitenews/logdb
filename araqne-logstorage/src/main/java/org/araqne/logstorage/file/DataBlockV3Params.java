@@ -17,14 +17,11 @@ package org.araqne.logstorage.file;
 
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
+import org.araqne.storage.crypto.BlockCipher;
 
 public class DataBlockV3Params {
 	public IndexBlockV3Header indexHeader;
 	public StorageInputStream dataStream;
 	public FilePath dataPath;
 	public String compressionMethod;
-	public String cipher;
-	public String digest;
-	public byte[] cipherKey;
-	public byte[] digestKey;
 }

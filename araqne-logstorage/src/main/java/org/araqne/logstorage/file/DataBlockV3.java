@@ -23,6 +23,8 @@ import java.security.NoSuchAlgorithmException;
 
 import org.araqne.logstorage.Crypto;
 import org.araqne.storage.api.StorageInputStream;
+import org.araqne.storage.crypto.BlockCipher;
+import org.araqne.storage.crypto.LogCryptoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -174,11 +176,11 @@ public class DataBlockV3 {
 		return (flag & 0x40) == 0x40;
 	}
 
-	public void uncompress() throws IOException {
+	public void uncompress(BlockCipher cipher) throws IOException {
 		if (dataBuffer == null && compressedBuffer != null) {
-			if (params.cipher != null) {
+			if (cipher != null) {
 				try {
-					compressedBuffer = Crypto.decrypt(compressedBuffer, params.cipher, params.cipherKey, iv);
+					compressedBuffer = cipher.decrypt(iv, compressedBuffer);
 				} catch (Throwable t) {
 					throw new IOException("cannot decrypt block", t);
 				}

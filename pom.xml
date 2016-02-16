@@ -281,5 +281,6 @@
 		<module>araqne-logapi-http</module>
 		<module>araqne-logdb-xlsx</module>
 		<module>araqne-logdb-slack</module>
+		<module>araqne-storage-crypto</module>
 	</modules>
 </project>
