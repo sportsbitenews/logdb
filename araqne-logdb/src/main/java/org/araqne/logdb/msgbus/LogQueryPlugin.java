@@ -16,6 +16,7 @@
 package org.araqne.logdb.msgbus;
 
 import java.io.ByteArrayOutputStream;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -167,7 +168,7 @@ public class LogQueryPlugin {
 			org.araqne.logdb.Session dbSession = getDbSession(req);
 			QueryContext context = new QueryContext(dbSession);
 			if (req.get("source") != null) {
-				context.getConstants().put("araqne_logdb_query_source", req.getString("source"));
+				context.setSource(req.getString("source"));
 			}
 
 			// supported since araqne-logdb-client 1.0.7

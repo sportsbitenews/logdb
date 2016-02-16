@@ -33,7 +33,7 @@ public class ShortQuery {
 
 		try {
 			QueryContext ctx = new QueryContext(session);
-			ctx.getConstants().put("araqne_logdb_query_source", "java-client");
+			ctx.setSource("java-client");
 			q = queryService.createQuery(ctx, query);
 			queryService.startQuery(session, q.getId());
 
