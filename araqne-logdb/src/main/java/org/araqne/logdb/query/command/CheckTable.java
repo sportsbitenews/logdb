@@ -190,7 +190,7 @@ public class CheckTable extends QueryCommand {
 				m.put("table", tableName);
 				m.put("day", day);
 				m.put("last_block_id", lastValidBlockId);
-				m.put("msg", "digest-calc-failure");
+				m.put("msg", "corrupted");
 				pushPipe(new Row(m));
 				logger.trace("araqne logdb: cannot calculate block digest", e);
 			} finally {

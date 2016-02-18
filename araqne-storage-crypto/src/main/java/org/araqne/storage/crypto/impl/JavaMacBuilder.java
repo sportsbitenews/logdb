@@ -17,6 +17,9 @@ public class JavaMacBuilder implements MacBuilder {
 	private SecretKeySpec digestKeySpec;
 
 	public JavaMacBuilder(String algorithm, byte[] digestKey) throws LogCryptoException {
+		if (algorithm == null || digestKey == null)
+			throw new LogCryptoException("null hmac algorithm or key");
+		
 		this.algorithm = algorithm;
 		this.digestKey = digestKey;
 		
