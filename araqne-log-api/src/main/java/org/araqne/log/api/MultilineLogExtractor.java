@@ -50,6 +50,7 @@ public class MultilineLogExtractor {
 	private Matcher endMatcher;
 	private Matcher dateMatcher;
 	private SimpleDateFormat dateFormat;
+	private boolean eofFlush = false;;
 	private LogPipe pipe;
 
 	// XXX
@@ -106,6 +107,10 @@ public class MultilineLogExtractor {
 		String newlogEndRegex = configs.get("newlog_end_designator");
 		if (newlogEndRegex != null)
 			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
+
+		String eofFlush = configs.get("eof_flush");
+		if (eofFlush != null)
+			extractor.setEofFlush(Boolean.parseBoolean(eofFlush));
 
 		return extractor;
 	}
@@ -172,6 +177,14 @@ public class MultilineLogExtractor {
 		}
 	}
 
+	public boolean isEofFlush() {
+		return eofFlush;
+	}
+
+	public void setEofFlush(boolean eofFlush) {
+		this.eofFlush = eofFlush;
+	}
+
 	public void extract(InputStream is, AtomicLong lastPosition) throws IOException {
 		extract(is, lastPosition, null);
 	}
@@ -211,6 +224,15 @@ public class MultilineLogExtractor {
 
 			// temp should be matched later (line regex test)
 			temp.write(b, next, len - next);
+		}
+
+		if (eofFlush && temp.size() > 0) {
+			String line = new String(temp.toByteArray(), charset);
+			Map<String, Object> m = new HashMap<String, Object>();
+			m.put("line", line);
+			SimpleLog log = new SimpleLog(parseDate(line, dateFromFileName), logger == null ? null : logger.getFullName(), m);
+
+			pipe.onLog(logger, log);
 		}
 	}
 
