@@ -187,6 +187,7 @@ public class TextFile extends DriverQueryCommand {
 				if (dateFormat != null)
 					extractor.setDateFormat(new SimpleDateFormat(dateFormat));
 				extractor.setCharset(Charset.forName(charset).name());
+				extractor.setEofFlush(true);
 				extractor.extract(is, new AtomicLong());
 			} catch (LimitReachedException e) {
 				// ignore
