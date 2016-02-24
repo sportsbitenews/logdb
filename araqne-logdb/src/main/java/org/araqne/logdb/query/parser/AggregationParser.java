@@ -53,6 +53,9 @@ public class AggregationParser {
 		t.put("varReducer", Variance.VarReducer.class);
 		t.put("stddev", StdDev.class);
 		t.put("stddevReducer", StdDev.StdDevReducer.class);
+		t.put("covar", Covariance.class);
+		t.put("covarMapper", Covariance.CovarianceMapper.class);
+		t.put("covarReducer", Covariance.CovarianceReducer.class);
 	}
 
 	public static AggregationField parse(QueryContext context, String s,
