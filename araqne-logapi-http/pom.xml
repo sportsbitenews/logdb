@@ -68,7 +68,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-api</artifactId>
-			<version>3.0.5</version>
+			<version>3.0.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
@@ -83,7 +83,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-httpd</artifactId>
-			<version>1.4.10</version>
+			<version>1.4.12</version>
 		</dependency>
 	</dependencies>
 </project>
