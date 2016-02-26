@@ -19,7 +19,7 @@ public class LogKeyFileReader {
 			if (keyPath.exists() && keyPath.length() > 0) {
 				CryptoParams params = new CryptoParams();
 				byte[] b = readAllBytes(keyPath);
-				b = Crypto.decrypt(b, getPrivateKey(keystore, password));
+				b = Crypto._decrypt(b, getPrivateKey(keystore, password));
 
 				String line = new String(b);
 				String[] tokens = line.split(",");

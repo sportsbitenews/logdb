@@ -10,19 +10,19 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class Crypto {
-	public static byte[] encrypt(byte[] b, PublicKey publicKey) throws Exception {
+	public static byte[] _encrypt(byte[] b, PublicKey publicKey) throws Exception {
 		Cipher rsa = Cipher.getInstance("RSA");
 		rsa.init(Cipher.ENCRYPT_MODE, publicKey);
 		return rsa.doFinal(b);
 	}
 
-	public static byte[] decrypt(byte[] b, PrivateKey privateKey) throws Exception {
+	public static byte[] _decrypt(byte[] b, PrivateKey privateKey) throws Exception {
 		Cipher rsa = Cipher.getInstance("RSA");
 		rsa.init(Cipher.DECRYPT_MODE, privateKey);
 		return rsa.doFinal(b);
 	}
 
-	public static byte[] encrypt(byte[] input, int limit, String cipher, byte[] cipherKey, byte[] iv) throws Exception {
+	public static byte[] _encrypt(byte[] input, int limit, String cipher, byte[] cipherKey, byte[] iv) throws Exception {
 		Cipher c = Cipher.getInstance(cipher);
 		new Random().nextBytes(iv);
 
@@ -32,7 +32,7 @@ public class Crypto {
 		return c.doFinal(input, 0, limit);
 	}
 
-	public static byte[] decrypt(byte[] input, String cipher, byte[] cipherKey, byte[] iv) throws Exception {
+	public static byte[] _decrypt(byte[] input, String cipher, byte[] cipherKey, byte[] iv) throws Exception {
 		Cipher decrypt = Cipher.getInstance(cipher);
 		SecretKeySpec keySpec = new SecretKeySpec(cipherKey, cipher.split("[/-]")[0]);
 		IvParameterSpec ivSpec = new IvParameterSpec(iv);
@@ -41,7 +41,7 @@ public class Crypto {
 		return decrypt.doFinal(input);
 	}
 
-	public static byte[] digest(byte[] input, int limit, String digest, byte[] digestKey) throws Exception {
+	public static byte[] _digest(byte[] input, int limit, String digest, byte[] digestKey) throws Exception {
 		Mac hmac = Mac.getInstance(digest);
 		hmac.init(new SecretKeySpec(digestKey, digest));
 		hmac.update(input, 0, limit);
