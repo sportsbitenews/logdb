@@ -50,7 +50,7 @@ public interface Logger {
 	Log getLastLog();
 
 	LoggerStopReason getStopReason();
-	
+
 	/**
 	 * @since 3.6.0
 	 */
@@ -62,6 +62,15 @@ public interface Logger {
 	long getDropCount();
 
 	long getLogCount();
+
+	/**
+	 * TODO
+	 * 
+	 * @since ???
+	 */
+	long getDropVolume();
+
+	long getLogVolume();
 
 	/**
 	 * state update count

@@ -15,7 +15,9 @@
  */
 package org.araqne.logdb.metadata;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,12 +29,18 @@ import org.apache.felix.ipojo.annotations.Validate;
 import org.araqne.log.api.FieldDefinition;
 import org.araqne.logdb.AccountService;
 import org.araqne.logdb.FieldOrdering;
+import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.MetadataCallback;
 import org.araqne.logdb.MetadataProvider;
 import org.araqne.logdb.MetadataService;
 import org.araqne.logdb.Permission;
+import org.araqne.logdb.Privilege;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.SecurityGroup;
+import org.araqne.logdb.query.parser.CommandOptions;
+import org.araqne.logdb.query.parser.ParseResult;
+import org.araqne.logdb.query.parser.QueryTokenizer;
 import org.araqne.logstorage.LockKey;
 import org.araqne.logstorage.LockStatus;
 import org.araqne.logstorage.LogFileService;
@@ -42,8 +50,8 @@ import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableConfig;
-import org.araqne.logstorage.TableConfigSpec;
 import org.araqne.logstorage.TableSchema;
+import org.araqne.storage.api.FilePath;
 
 @Component(name = "logdb-table-metadata")
 public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
@@ -63,6 +71,9 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 	@Requires
 	private MetadataService metadataService;
 
+	@Requires
+	private FunctionRegistry functionRegistry;
+
 	@Validate
 	public void start() {
 		metadataService.addProvider(this);
@@ -81,48 +92,41 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 
 	@Override
 	public void verify(QueryContext context, String queryString) {
+		QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("verbose"), functionRegistry);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void query(QueryContext context, String queryString, MetadataCallback callback) {
+		ParseResult r = QueryTokenizer.parseOptions(context, queryString, 0, Arrays.asList("verbose"), functionRegistry);
+		Map<String, String> options = (Map<String, String>) r.value;
+
+		boolean verbose = CommandOptions.parseBoolean(options.get("verbose"));
+
+		int next = r.next;
+		queryString = queryString.substring(next).trim();
+		List<String> targetTables = MetadataQueryStringParser.getFilteredTableNames(context.getSession(), tableRegistry,
+				accountService, queryString);
+
 		for (String tableName : tableRegistry.getTableNames()) {
-			if (accountService.checkPermission(context.getSession(), tableName, Permission.READ))
-				writeTableInfo(tableName, callback);
+			if (targetTables.contains(tableName))
+				if (accountService.checkPermission(context.getSession(), tableName, Permission.READ))
+					writeTableInfo(context, tableName, verbose, callback);
 		}
 	}
 
-	private void writeTableInfo(String tableName, MetadataCallback callback) {
+	private void writeTableInfo(QueryContext context, String tableName, boolean verbose, MetadataCallback callback) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("table", tableName);
 		TableSchema s = tableRegistry.getTableSchema(tableName);
 
-		// primary storage
 		StorageConfig primaryStorage = s.getPrimaryStorage();
 		LogFileService lfs = lfsRegistry.getLogFileService(primaryStorage.getType());
-		for (TableConfigSpec spec : lfs.getConfigSpecs()) {
-			String config = null;
-			TableConfig c = primaryStorage.getConfig(spec.getKey());
-			if (c != null && c.getValues().size() > 1)
-				config = c.getValues().toString();
-			else if (c != null)
-				config = c.getValue();
-			m.put(spec.getKey(), config);
-		}
 
+		// primary storage
+		m.put("primary_configs", marshal(lfs, s.getPrimaryStorage()));
 		// replica storage
-		StorageConfig replicaStorage = s.getReplicaStorage();
-		if (replicaStorage != null) {
-			for (TableConfigSpec spec : lfs.getReplicaConfigSpecs()) {
-				TableConfig c = replicaStorage.getConfig(spec.getKey());
-				String config = null;
-				if (c != null && c.getValues().size() > 1)
-					config = c.getValues().toString();
-				else if (c != null)
-					config = c.getValue();
-
-				m.put(spec.getKey(), config);
-			}
-		}
+		m.put("replica_configs", marshal(lfs, s.getReplicaStorage()));
 
 		// field definitions
 		List<FieldDefinition> fields = s.getFieldDefinitions();
@@ -150,15 +154,95 @@ public class TableMetadataProvider implements MetadataProvider, FieldOrdering {
 		m.put("data_path", storage.getTableDirectory(tableName).getAbsolutePath());
 
 		LockStatus status = storage.lockStatus(new LockKey("script", tableName, null));
+		m.put("is_locked", status.isLocked());
 		if (status.isLocked()) {
 			m.put("lock_owner", status.getOwner());
 			m.put("lock_purpose", status.getPurposes().toArray(new String[0]));
 			m.put("lock_reentcnt", status.getReentrantCount());
 		} else {
 			m.put("lock_owner", null);
+			m.put("lock_purpose", null);
+			m.put("lock_reentcnt", null);
 		}
 
+		List<Object> privileges = new ArrayList<Object>();
+		for (Privilege p : accountService.getPrivileges(context.getSession(), null)) {
+			if (!p.getTableName().equals(tableName))
+				continue;
+
+			Map<String, Object> privilege = new HashMap<String, Object>();
+			privilege.put("login_name", p.getLoginName());
+			List<String> permissions = new ArrayList<String>();
+			for (Permission permission : p.getPermissions())
+				permissions.add(permission.toString());
+			privilege.put("permissions", permissions);
+			privileges.add(privilege);
+		}
+		m.put("privileges", privileges);
+
+		List<Map<String, Object>> groups = new ArrayList<Map<String, Object>>();
+		for (SecurityGroup sg : accountService.getSecurityGroups()) {
+			if (sg.getReadableTables().contains(tableName)) {
+				Map<String, Object> group = new HashMap<String, Object>();
+				group.put("guid", sg.getGuid());
+				group.put("name", sg.getName());
+				group.put("description", sg.getDescription());
+				group.put("created", sg.getCreated());
+				group.put("updated", sg.getUpdated());
+				groups.add(group);
+			}
+		}
+		m.put("security_groups", groups);
+
+		if (verbose)
+			setDetail(tableName, m);
+
 		callback.onPush(new Row(m));
+	}
+
+	private void setDetail(String tableName, Map<String, Object> m) {
+		List<Date> logDates = new ArrayList<Date>(storage.getLogDates(tableName));
+		if (logDates.size() > 0) {
+			m.put("min_day", logDates.get(logDates.size() - 1));
+			m.put("max_day", logDates.get(0));
+		}
+
+		FilePath dir = storage.getTableDirectory(tableName);
+		m.put("disk_usage", getConsumption(dir));
+	}
+
+	private long getConsumption(FilePath dir) {
+		long total = 0;
+		FilePath[] files = dir.listFiles();
+		if (files == null)
+			return 0;
+
+		for (FilePath f : files)
+			total += f.length();
+		return total;
+	}
+
+	private Map<String, Object> marshal(LogFileService lfs, StorageConfig storageConfig) {
+		if (storageConfig == null)
+			return null;
+
+		Map<String, Object> m = new HashMap<String, Object>();
+		m.put("type", storageConfig.getType());
+		m.put("base_path", storageConfig.getBasePath());
+
+		Map<String, String> configs = new HashMap<String, String>();
+		for (TableConfig c : storageConfig.getConfigs()) {
+			String value = null;
+			if (c != null && c.getValues().size() > 1)
+				value = c.getValues().toString();
+			else if (c != null)
+				value = c.getValue();
+			configs.put(c.getKey(), value);
+		}
+
+		m.put("configs", configs);
+
+		return m;
 	}
 
 	@Override

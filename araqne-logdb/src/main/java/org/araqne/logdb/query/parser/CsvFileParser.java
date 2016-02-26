@@ -1,12 +1,15 @@
 package org.araqne.logdb.query.parser;
 
-import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.araqne.logdb.AbstractQueryCommandParser;
+import org.araqne.logdb.FilePathHelper;
+import org.araqne.logdb.LocalFilePathHelper;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
+import org.araqne.logdb.QueryErrorMessage;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.command.CsvFile;
 
@@ -23,6 +26,15 @@ public class CsvFileParser extends AbstractQueryCommandParser {
 		return "csvfile";
 	}
 
+	@Override
+	public Map<String, QueryErrorMessage> getErrorMessages() {
+		Map<String, QueryErrorMessage> m = new HashMap<String, QueryErrorMessage>();
+		m.put("10800", new QueryErrorMessage("invalid-csvfile-path", "[file]이 존재하지 않거나 읽을수 없습니다."));
+		m.put("10801", new QueryErrorMessage("invalid-parentfile-path", "[file]의 상위 디렉토리가 존재하지 않거나 읽을 수 없습니다."));
+		m.put("10802", new QueryErrorMessage("missing-field", "파일경로을 입력하십시오."));
+		return m;
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public QueryCommand parse(QueryContext context, String commandString) {
@@ -32,6 +44,9 @@ public class CsvFileParser extends AbstractQueryCommandParser {
 		String filePath = commandString.substring(r.next).trim();
 		filePath = ExpressionParser.evalContextReference(context, filePath, getFunctionRegistry());
 
+		if (filePath.trim().isEmpty())
+			throw new QueryParseException("10802", commandString.trim().length() - 1, commandString.trim().length() - 1, null);
+
 		long offset = 0;
 		if (options.containsKey("offset"))
 			offset = Integer.valueOf(options.get("offset"));
@@ -39,16 +54,28 @@ public class CsvFileParser extends AbstractQueryCommandParser {
 		long limit = 0;
 		if (options.containsKey("limit"))
 			limit = Integer.valueOf(options.get("limit"));
-		
+
 		String cs = "utf-8";
 		if (options.containsKey("cs"))
 			cs = options.get("cs");
 
-		File f = new File(filePath);
-		if (!f.exists() || !f.canRead())
-			throw new QueryParseException("csv-file-not-found", -1);
+		try {
+			FilePathHelper pathHelper = new LocalFilePathHelper(filePath);
 
-		return new CsvFile(filePath, offset, limit, cs);
+			return new CsvFile(pathHelper.getMatchedPaths(), filePath, offset, limit, cs);
+		} catch (IllegalStateException e) {
+			String msg = e.getMessage();
+			Map<String, String> params = new HashMap<String, String>();
+			params.put("file", filePath);
+			int offsetS = QueryTokenizer.findKeyword(commandString, filePath, getCommandName().length());
+			String type = null;
+			if (msg.equals("file-not-found"))
+				type = "10800";
+			else
+				type = "10801";
+
+			throw new QueryParseException(type, offsetS, offsetS + filePath.length() - 1, params);
+		}
 	}
 
 }

@@ -86,6 +86,9 @@ public class Marshaler {
 		m.put("drop_count", logger.getDropCount());
 		m.put("update_count", logger.getUpdateCount());
 
+		m.put("log_volume", logger.getLogVolume());
+		m.put("drop_volume", logger.getDropVolume());
+
 		Throwable t = logger.getTemporaryFailure();
 		String failure = null;
 		if (t != null)

@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-storage</artifactId>
-	<version>1.6.0</version>
+	<version>1.6.2</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Storage</name>
 	<build>
@@ -27,7 +27,6 @@
 							org.araqne.storage.api;version=${project.version},
 							org.araqne.storage.localfile;version=${project.version},
 							org.araqne.storage.filepair;version=${project.version}
-							org.araqne.storage.crypto;version=${project.version}
 						</Export-Package>
 						<Import-Package>
 							org.osgi.framework;version="1.4.0",

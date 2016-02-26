@@ -76,6 +76,8 @@ public class LoggerMetadataProvider implements MetadataProvider, FieldOrdering {
 				m.put("interval", logger.getInterval());
 				m.put("log_count", logger.getLogCount());
 				m.put("drop_count", logger.getDropCount());
+				m.put("log_volume", logger.getLogVolume());
+				m.put("drop_volume", logger.getDropVolume());
 				m.put("last_start_at", logger.getLastStartDate());
 				m.put("last_run_at", logger.getLastRunDate());
 				m.put("last_log_at", logger.getLastLogDate());

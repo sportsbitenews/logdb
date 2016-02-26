@@ -35,15 +35,6 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
-		<repository>
-			<id>staging</id>
-			<name>Araqne Maven Repository</name>
-			<layout>default</layout>
-			<url>http://staging.araqne.org/</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
 	</repositories>
 
 	<licenses>
@@ -201,7 +192,7 @@
 						<execution>
 							<goals>
 								<goal>revision</goal>
-							</goals>
+							 </goals>
 						</execution>
 					</executions>
 
@@ -281,7 +272,7 @@
 		<module>araqne-logstorage-exporter</module>
 		<module>araqne-logdb-groovy</module>
 		<module>araqne-logdb-cep</module>
-		<!--<module>araqne-logdb-mongo</module> -->
+		<!--<module>araqne-logdb-mongo</module>-->
 		<module>araqne-logdb-crawler</module>
 		<module>araqne-logapi-nio</module>
 		<module>araqne-logdb-jms</module>
@@ -289,7 +280,6 @@
 		<module>araqne-logdb-jxpath</module>
 		<module>araqne-logapi-http</module>
 		<module>araqne-logdb-xlsx</module>
-		<module>araqne-logdb-slack</module>
-		<module>araqne-storage-crypto</module>
+		<module>araqne-rss</module>
 	</modules>
 </project>

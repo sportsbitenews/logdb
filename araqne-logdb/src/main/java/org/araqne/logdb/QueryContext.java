@@ -26,6 +26,7 @@ public class QueryContext {
 	private QueryContext parent;
 	private ParserContext parserContext = new ParserContext();
 	private Map<String, Object> constants;
+	private String source;
 
 	/**
 	 * includes main and dynamic sub queries
@@ -46,6 +47,7 @@ public class QueryContext {
 		if (parent != null) {
 			this.queries = parent.getQueries();
 			this.constants.putAll((parent.getConstants()));
+			this.source = parent.getSource();
 		}
 	}
 
@@ -70,6 +72,14 @@ public class QueryContext {
 
 	public Map<String, Object> getConstants() {
 		return constants;
+	}
+
+	public String getSource() {
+		return source;
+	}
+
+	public void setSource(String source) {
+		this.source = source;
 	}
 
 	public List<Query> getQueries() {
