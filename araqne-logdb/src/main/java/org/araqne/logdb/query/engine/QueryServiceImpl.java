@@ -122,6 +122,7 @@ import org.araqne.logstorage.LogTableRegistry;
 import org.araqne.logstorage.StorageConfig;
 import org.araqne.logstorage.TableNotFoundException;
 import org.araqne.logstorage.TableSchema;
+import org.araqne.storage.crypto.LogCryptoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -183,6 +184,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 	@Requires
 	private ProcedureRegistry procedureRegistry;
 
+	@Requires
+	private LogCryptoService cryptoService;
+
 	private ConcurrentMap<Integer, Query> queries;
 
 	private CopyOnWriteArraySet<QueryEventListener> callbacks;
@@ -193,6 +197,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	private boolean allowQueryPurge = false;
 	private boolean useBom = false;
+
 
 	public QueryServiceImpl() {
 		this.queries = new ConcurrentHashMap<Integer, Query>();
@@ -241,7 +246,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new OutputTxtParser(tickService));
 		parsers.add(new SystemCommandParser("logdb", metadataService)); // deprecated
 		parsers.add(new SystemCommandParser("system", metadataService));
-		parsers.add(new CheckTableParser(tableRegistry, storage, fileServiceRegistry));
+		parsers.add(new CheckTableParser(tableRegistry, storage, fileServiceRegistry, cryptoService));
 		parsers.add(new JoinParser(queryParserService, resultFactory));
 		parsers.add(new UnionParser(queryParserService));
 		parsers.add(new ImportParser(tableRegistry, storage));
