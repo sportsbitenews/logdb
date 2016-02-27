@@ -23,9 +23,5 @@ public class DataBlockV3Params {
 	public StorageInputStream dataStream;
 	public FilePath dataPath;
 	public String compressionMethod;
-	public String cipher;
-	public String digest;
-	public byte[] cipherKey;
-	public byte[] digestKey;
 	public boolean columnar;
 }

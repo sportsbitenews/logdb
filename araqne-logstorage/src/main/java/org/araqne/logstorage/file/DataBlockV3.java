@@ -21,8 +21,8 @@ import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import org.araqne.logstorage.Crypto;
 import org.araqne.storage.api.StorageInputStream;
+import org.araqne.storage.crypto.BlockCipher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -187,11 +187,11 @@ public class DataBlockV3 {
 		return (flag & 0x10) == 0x10;
 	}
 
-	public void uncompress() throws IOException {
+	public void uncompress(BlockCipher cipher) throws IOException {
 		if (dataBuffer == null && compressedBuffer != null) {
-			if (params.cipher != null) {
+			if (cipher != null) {
 				try {
-					compressedBuffer = Crypto.decrypt(compressedBuffer, params.cipher, params.cipherKey, iv);
+					compressedBuffer = cipher.decrypt(iv, compressedBuffer);
 				} catch (Throwable t) {
 					throw new IOException("cannot decrypt block", t);
 				}

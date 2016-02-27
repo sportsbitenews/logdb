@@ -14,12 +14,14 @@ import java.util.List;
 import org.araqne.log.api.LogParser;
 import org.araqne.log.api.LogParserBugException;
 import org.araqne.log.api.LogParserBuilder;
+import org.araqne.logstorage.Crypto;
 import org.araqne.logstorage.Log;
 import org.araqne.logstorage.LogMarshaler;
 import org.araqne.logstorage.LogTraverseCallback;
 import org.araqne.logstorage.TableScanRequest;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
+import org.araqne.storage.crypto.LogCryptoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +45,7 @@ public class LogFileReaderV3o extends LogFileReader {
 	private String tableName;
 
 	private Date day;
+	private LogCryptoService cryptoService;
 
 	public LogFileReaderV3o(LogReaderConfigV3o c) throws IOException, InvalidLogFileHeaderException {
 		// this.cache = c.cache;
@@ -52,6 +55,7 @@ public class LogFileReaderV3o extends LogFileReader {
 			this.tableName = c.tableName;
 			this.indexPath = c.indexPath;
 			this.dataPath = c.dataPath;
+			this.cryptoService = c.cryptoService;
 
 			loadIndexFile();
 			loadDataFile();
@@ -351,7 +355,8 @@ public class LogFileReaderV3o extends LogFileReader {
 
 			synchronized (block) {
 				// if block is compressed, uncompress block
-				block.uncompress();
+				// 2016.02.12. v3o will not support encrypted block.
+				block.uncompress(null);
 
 				for (long id : ids) {
 					ByteBuffer dataBuffer = block.getDataBuffer();
@@ -436,7 +441,8 @@ public class LogFileReaderV3o extends LogFileReader {
 		Date date = null;
 		byte[] b = null;
 		synchronized (block) {
-			block.uncompress();
+			// 2016.02.12. v3o will not support encrypted block.
+			block.uncompress(null);
 
 			ByteBuffer dataBuffer  = block.getDataBuffer();
 			dataBuffer.position(block.getLogOffset((int) (id - block.getMinId())));
@@ -728,7 +734,8 @@ public class LogFileReaderV3o extends LogFileReader {
 				try {
 					synchronized (block) {
 						// if block is compressed, uncompress block
-						block.uncompress();
+						// 2016.02.12. v3o will not support encrypted block. 
+						block.uncompress(null);
 
 						ByteBuffer currentDataBuffer = block.getDataBuffer();
 
