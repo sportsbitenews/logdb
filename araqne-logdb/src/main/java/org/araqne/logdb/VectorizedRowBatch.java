@@ -1,6 +1,8 @@
 package org.araqne.logdb;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.logdb.query.expr.Expression;
@@ -18,6 +20,38 @@ public class VectorizedRowBatch {
 		} else {
 			return size;
 		}
+	}
+
+	public VectorizedRowBatch copy() {
+		VectorizedRowBatch c = new VectorizedRowBatch();
+		c.size = size;
+		if (selectedInUse) {
+			c.selected = Arrays.copyOf(selected, size);
+			c.selectedInUse = true;
+		}
+
+		c.data = new HashMap<String, Object>();
+		for (String key : data.keySet()) {
+			Object[] array = (Object[]) data.get(key);
+			c.data.put(key, deepCopy(array));
+		}
+		return c;
+	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private Object[] deepCopy(Object[] array) {
+		Object[] c = new Object[array.length];
+		for (int i = 0; i < array.length; i++) {
+			Object o = array[i];
+			if (o instanceof Map) {
+				o = Row.clone((Map) o);
+			} else if (o instanceof List) {
+				o = Row.clone((List) o);
+			}
+			c[i] = o;
+		}
+
+		return c;
 	}
 
 	public Object[] eval(Expression expr) {
