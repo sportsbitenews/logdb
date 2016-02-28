@@ -117,7 +117,7 @@ public class DataBlockV3 {
 			compressedSize = bb.getInt();
 
 			// check fixed block
-			if (isFixed()) {
+			if (isBroken()) {
 				if ((originalSize & 0x80000000) != 0x80000000) {
 					logger.warn("logpresso logstorage: data block has been fixed. please check [{} : {}]",
 							params.dataPath.getAbsolutePath(), params.indexHeader.toString());
@@ -179,7 +179,7 @@ public class DataBlockV3 {
 		}
 	}
 
-	public boolean isFixed() {
+	public boolean isBroken() {
 		return (flag & 0x40) == 0x40;
 	}
 

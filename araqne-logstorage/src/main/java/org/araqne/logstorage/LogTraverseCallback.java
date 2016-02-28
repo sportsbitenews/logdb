@@ -20,7 +20,7 @@ import java.util.List;
 
 public abstract class LogTraverseCallback {
 	public enum BlockSkipReason {
-		Reserved, Fixed
+		Reserved, Broken
 	}
 
 	private final Sink sink;

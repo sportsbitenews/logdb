@@ -1007,7 +1007,7 @@ public class LogStorageScript implements Script {
 		protected void onBlockSkipped(BlockSkipReason reason, long firstId, int logCount) {
 			if (reason.equals(BlockSkipReason.Reserved))
 				rsvCnt += logCount;
-			else if (reason.equals(BlockSkipReason.Fixed))
+			else if (reason.equals(BlockSkipReason.Broken))
 				fixCnt += logCount;
 		}
 

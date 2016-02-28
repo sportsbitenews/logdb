@@ -161,7 +161,7 @@ public class LogFileReaderV3o extends LogFileReader {
 			cachedBlock = new DataBlockV3(p);
 		}
 
-		if (cachedBlock.isFixed())
+		if (cachedBlock.isBroken())
 			return null;
 
 		// use local cache
