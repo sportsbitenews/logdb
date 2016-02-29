@@ -299,7 +299,7 @@ public class LogDatFileReaderImpl implements LogDatFileReader {
 	private ByteBuffer uncompress(LogBlock block) throws IOException {
 		if (crypto != null) {
 			try {
-				block.setLogData(Crypto.decrypt(block.getLogData(), crypto.getCipher(), crypto.getCipherKey(), block.getIv()));
+				block.setLogData(Crypto._decrypt(block.getLogData(), crypto.getCipher(), crypto.getCipherKey(), block.getIv()));
 			} catch (Throwable t) {
 				throw new IOException("cannot decrypt block", t);
 			}
