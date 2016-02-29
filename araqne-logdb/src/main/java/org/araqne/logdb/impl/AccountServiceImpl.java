@@ -101,6 +101,8 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 
 		ConfigDatabase db = conf.ensureDatabase(DB_NAME);
 
+		removeDuplicateAccounts(db);
+
 		// load accounts
 		for (Account account : db.findAll(Account.class).getDocuments(Account.class)) {
 			localAccounts.put(account.getLoginName(), account);
@@ -129,6 +131,41 @@ public class AccountServiceImpl implements AccountService, TableEventListener {
 		}
 
 		instanceGuid = UUID.randomUUID().toString();
+	}
+
+	private void removeDuplicateAccounts(ConfigDatabase db) {
+		ConfigIterator it = null;
+		List<Config> targets = new ArrayList<Config>();
+		try {
+			it = db.findAll(Account.class);
+			Set<String> loginNames = new HashSet<String>();
+			while (it.hasNext()) {
+				Config c = it.next();
+				String loginName = c.getDocument(Account.class).getLoginName();
+				if (loginNames.contains(loginName))
+					targets.add(c);
+				else
+					loginNames.add(loginName);
+			}
+		} finally {
+			if (it != null)
+				it.close();
+		}
+
+		if (targets.isEmpty())
+			return;
+
+		ConfigTransaction xact = null;
+		try {
+			xact = db.beginTransaction();
+			for (Config c : targets)
+				db.remove(xact, c, false);
+
+			xact.commit("araqne-logdb", "remove duplicate accounts");
+		} catch (Throwable t) {
+			if (xact != null)
+				xact.rollback();
+		}
 	}
 
 	@Invalidate

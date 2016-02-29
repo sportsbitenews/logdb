@@ -18,6 +18,7 @@ package org.araqne.logstorage.file;
 import java.util.Date;
 
 import org.araqne.storage.api.FilePath;
+import org.araqne.storage.crypto.LogCryptoService;
 
 public class LogReaderConfigV3o {
 	public String tableName;
@@ -25,4 +26,5 @@ public class LogReaderConfigV3o {
 	public FilePath dataPath;
 	public boolean checkIntegrity;
 	public Date day;
+	public LogCryptoService cryptoService;
 }

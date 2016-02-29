@@ -20,16 +20,19 @@ import org.araqne.logdb.query.command.CheckTable;
 import org.araqne.logstorage.LogFileServiceRegistry;
 import org.araqne.logstorage.LogStorage;
 import org.araqne.logstorage.LogTableRegistry;
+import org.araqne.storage.crypto.LogCryptoService;
 
 public class CheckTableParser extends AbstractQueryCommandParser {
 	private LogTableRegistry tableRegistry;
 	private LogStorage storage;
 	private LogFileServiceRegistry fileServiceRegistry;
+	private LogCryptoService cryptoService;
 
-	public CheckTableParser(LogTableRegistry tableRegistry, LogStorage storage, LogFileServiceRegistry fileServiceRegistry) {
+	public CheckTableParser(LogTableRegistry tableRegistry, LogStorage storage, LogFileServiceRegistry fileServiceRegistry, LogCryptoService cryptoService) {
 		this.tableRegistry = tableRegistry;
 		this.storage = storage;
 		this.fileServiceRegistry = fileServiceRegistry;
+		this.cryptoService = cryptoService;
 
 		setDescriptions(
 				"Check data integrity of table. This command will verify tables which has crypto profile with digest algorithm. You can specify wildcard for table name. This command requires administrator privilege.",
@@ -96,7 +99,7 @@ public class CheckTableParser extends AbstractQueryCommandParser {
 		String tableToken = commandString.substring(r.next).trim();
 
 		Set<String> tableNames = getFilteredTableNames(tableToken);
-		return new CheckTable(tableNames, from, to, trace, tableToken, tableRegistry, storage, fileServiceRegistry);
+		return new CheckTable(tableNames, from, to, trace, tableToken, tableRegistry, storage, fileServiceRegistry, cryptoService);
 	}
 
 	private Set<String> getFilteredTableNames(String t) {

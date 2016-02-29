@@ -32,6 +32,11 @@ import org.araqne.logstorage.LogCryptoProfile;
 import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageInputStream;
 import org.araqne.storage.api.StorageUtil;
+import org.araqne.storage.crypto.BlockCipher;
+import org.araqne.storage.crypto.LogCryptoException;
+import org.araqne.storage.crypto.LogCryptoService;
+import org.araqne.storage.crypto.MacBuilder;
+import org.araqne.storage.crypto.PkiCipher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +64,10 @@ public class LogFileV3Reader implements Closeable {
 	private String compressionMethod;
 	
 	private int currentBlockIndex;
+
+	private BlockCipher blockCipher;
+
+	private MacBuilder macBuilder;
 
 	// TODO refine this interface
 	public static class LogBlockV3 {
@@ -142,7 +151,8 @@ public class LogFileV3Reader implements Closeable {
 		}
 	}
 
-	public LogFileV3Reader(FilePath indexPath, FilePath dataPath, FilePath keyPath, LogCryptoProfile crypto) throws IOException {
+	public LogFileV3Reader(FilePath indexPath, FilePath dataPath, FilePath keyPath, LogCryptoProfile crypto,
+			LogCryptoService cryptoService) throws IOException, LogCryptoException {
 		this.indexPath = indexPath;
 		this.dataPath = dataPath;
 		this.keyPath = keyPath;
@@ -150,7 +160,7 @@ public class LogFileV3Reader implements Closeable {
 
 		loadIndexFile();
 		loadDataFile();
-		loadKeyFile();
+		loadKeyFile(cryptoService);
 	}
 	
 	public int getBlockCount() {
@@ -299,13 +309,15 @@ public class LogFileV3Reader implements Closeable {
 			compressionMethod = null;
 	}
 
-	private void loadKeyFile() throws IOException {
+	private void loadKeyFile(LogCryptoService cryptoService) throws IOException, LogCryptoException {
 		if (crypto == null || keyPath == null || !keyPath.exists())
 			return;
 
 		byte[] b = readAllBytes(keyPath);
 		try {
-			b = Crypto.decrypt(b, crypto.getPrivateKey());
+			PkiCipher c = cryptoService.newPkiCipher(crypto.getPublicKey(), crypto.getPrivateKey());
+			
+			b = c.decrypt(b);
 		} catch (Exception e) {
 			throw new IOException("cannot decrypt key file", e);
 		}
@@ -327,6 +339,13 @@ public class LogFileV3Reader implements Closeable {
 
 		if (!tokens[4].isEmpty())
 			digestKey = Base64.decode(tokens[4]);
+		
+		if (cipher != null)
+			blockCipher = cryptoService.newBlockCipher(cipher, cipherKey);
+		
+		if (digest != null)
+			macBuilder = cryptoService.newMacBuilder(digest, digestKey);
+		
 	}
 	
 	private DataBlockV3 loadDataBlock(IndexBlockV3Header h) throws IOException {
@@ -335,10 +354,6 @@ public class LogFileV3Reader implements Closeable {
 		p.dataStream = dataStream;
 		p.dataPath = dataPath;
 		p.compressionMethod = compressionMethod;
-		p.cipher = cipher;
-		p.cipherKey = cipherKey;
-		p.digest = digest;
-		p.digestKey = digestKey;
 		DataBlockV3 b = new DataBlockV3(p);
 		return b;
 	}
