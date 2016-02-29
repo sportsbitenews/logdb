@@ -132,13 +132,7 @@ public abstract class LogTraverseCallback {
 				processBegin = (int) (offset - start);
 			}
 
-			if (processBegin == 0 && processEnd == logs.size) {
-				if (vectorized) 
-				((VectorizedSink) (this)).processLogs(logs);
-				else
-					processLogs(logs.toLogList());
-				
-			} else {
+			if (processBegin != 0 || processEnd != logs.size) {
 				int selectedSize = processEnd - processBegin;
 				int[] selected = new int[selectedSize];
 				int index = 0;
@@ -149,9 +143,12 @@ public abstract class LogTraverseCallback {
 				logs.selectedInUse = true;
 				logs.selected = selected;
 				logs.size = selectedSize;
-
-				((VectorizedSink) (this)).processLogs(logs);
 			}
+
+			if (vectorized)
+				((VectorizedSink) (this)).processLogs(logs);
+			else
+				processLogs(logs.toLogList());
 
 			return !isEof();
 		}
