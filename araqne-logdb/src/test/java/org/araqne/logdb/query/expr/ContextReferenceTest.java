@@ -27,7 +27,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
@@ -36,9 +38,9 @@ import org.junit.Test;
 public class ContextReferenceTest {
 
 	@Test
-	public void testContextReference(){
+	public void testContextReference() {
 		ContextReference r = $("EDM");
-		assertEquals(r.eval(null), "eediom");
+		assertEquals(r.eval((Row) null), "eediom");
 	}
 
 	@Test
@@ -57,8 +59,8 @@ public class ContextReferenceTest {
 	@Test
 	public void testContextReferenceNull2() {
 		try {
-		 $();
-		 fail();
+			$();
+			fail();
 		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
 				System.out.println(e.getMessage());
@@ -66,19 +68,19 @@ public class ContextReferenceTest {
 			assertEquals("90610", e.getType());
 		}
 	}
-	
-	private ContextReference $(){
+
+	private ContextReference $() {
 		return new ContextReference(QueryContext(), new ArrayList<Expression>());
 	}
-	
-	private ContextReference $(String s){
+
+	private ContextReference $(String s) {
 		return new ContextReference(QueryContext(), expr(s));
 	}
 
-	private List<Expression> expr(String... number){
+	private List<Expression> expr(String... number) {
 		List<Expression> expr = new ArrayList<Expression>();
 
-		for(String n : number )
+		for (String n : number)
 			expr.add(new StringConstant(n));
 
 		return expr;

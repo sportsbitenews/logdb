@@ -56,7 +56,7 @@ public class Left extends FunctionExpression {
 			if (!(o instanceof Number))
 				return null;
 
-			length = Integer.parseInt(new NumberConstant((Number) o).eval(null).toString());
+			length = Integer.parseInt(new NumberConstant((Number) o).eval((Row) null).toString());
 			if (length < 0)
 				return null;
 		}

@@ -15,10 +15,13 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.Arrays;
+
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class StringConstant implements Expression {
+public class StringConstant implements VectorizedExpression {
 
 	private String str;
 
@@ -29,6 +32,18 @@ public class StringConstant implements Expression {
 	@Override
 	public Object eval(Row map) {
 		return str;
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		return str;
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] o = new Object[vbatch.size];
+		Arrays.fill(o, str);
+		return o;
 	}
 
 	public String getConstant() {

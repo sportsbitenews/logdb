@@ -22,15 +22,20 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class ToString extends FunctionExpression {
+public class ToString extends FunctionExpression implements VectorizedExpression {
 	private Expression valueExpr;
+	private VectorizedExpression vvalueExpr;
 	private String format;
 
 	public ToString(QueryContext ctx, List<Expression> exprs) {
 		super("string", exprs, 1);
-		
+
 		this.valueExpr = exprs.get(0);
+		if (valueExpr instanceof VectorizedExpression)
+			vvalueExpr = (VectorizedExpression) valueExpr;
+
 		if (exprs.size() > 1) {
 			this.format = (String) exprs.get(1).eval(null);
 		}
@@ -49,5 +54,47 @@ public class ToString extends FunctionExpression {
 			return ((InetAddress) value).getHostAddress();
 
 		return value.toString();
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		if (vvalueExpr != null) {
+			Object value = vvalueExpr.evalOne(vbatch, i);
+			if (value == null)
+				return null;
+
+			if (value instanceof Date)
+				return new SimpleDateFormat(format).format(value);
+
+			if (value instanceof InetAddress)
+				return ((InetAddress) value).getHostAddress();
+
+			return value.toString();
+		} else {
+			return eval(vbatch.row(i));
+		}
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+
+		SimpleDateFormat df = null;
+		if (format != null)
+			df = new SimpleDateFormat(format);
+
+		for (int i = 0; i < values.length; i++) {
+			Object o = values[i];
+			if (o == null)
+				continue;
+
+			if (o instanceof Date)
+				o = df.format(o);
+			else if (o instanceof InetAddress)
+				o = ((InetAddress) o).getHostAddress();
+
+			values[i] = o.toString();
+		}
+		return values;
 	}
 }

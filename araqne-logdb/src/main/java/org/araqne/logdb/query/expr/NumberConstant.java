@@ -15,9 +15,12 @@
  */
 package org.araqne.logdb.query.expr;
 
-import org.araqne.logdb.Row;
+import java.util.Arrays;
 
-public class NumberConstant implements Expression {
+import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
+
+public class NumberConstant implements VectorizedExpression {
 
 	private Number number;
 
@@ -28,6 +31,18 @@ public class NumberConstant implements Expression {
 	@Override
 	public Object eval(Row map) {
 		return number;
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		return number;
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] o = new Object[vbatch.size];
+		Arrays.fill(o, number);
+		return o;
 	}
 
 	@Override

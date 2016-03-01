@@ -92,8 +92,7 @@ public class VectorizedRowBatch {
 				for (int i = 0; i < size; i++) {
 					int p = selected[i];
 					Object val = array[p];
-					if (val != null)
-						rows[i].put(key, val);
+					rows[i].put(key, val);
 				}
 			}
 		} else {
@@ -101,8 +100,7 @@ public class VectorizedRowBatch {
 				Object[] array = (Object[]) data.get(key);
 				for (int i = 0; i < size; i++) {
 					Object val = array[i];
-					if (val != null)
-						rows[i].put(key, val);
+					rows[i].put(key, val);
 				}
 			}
 		}
@@ -115,9 +113,6 @@ public class VectorizedRowBatch {
 
 	// converter
 	public Row row(int i) {
-		if (i >= size)
-			return null;
-
 		Map<String, Object> m = new HashMap<String, Object>();
 		for (String key : data.keySet()) {
 			Object value = ((Object[]) data.get(key))[i];

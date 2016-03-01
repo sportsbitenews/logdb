@@ -16,11 +16,13 @@
 package org.araqne.logdb.query.expr;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class And implements Expression {
+public class And implements VectorizedExpression {
 	List<Expression> operands;
 
 	/** this constructor can modify lhs's operands. */
@@ -31,7 +33,7 @@ public class And implements Expression {
 			operands = new ArrayList<Expression>(2);
 			operands.add(lhs);
 		}
-		
+
 		if (rhs instanceof And) {
 			operands.addAll(And.class.cast(rhs).operands);
 		} else {
@@ -51,8 +53,46 @@ public class And implements Expression {
 					return false;
 			}
 		}
-		
+
 		return true;
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		boolean result = true;
+		for (Expression expr : operands) {
+			Object o = vbatch.evalOne(expr, i);
+			if (o instanceof Boolean)
+				result = (Boolean) o;
+			else
+				result = o != null;
+
+			if (!result)
+				break;
+		}
+
+		return result;
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] matches = new Object[vbatch.size];
+		Arrays.fill(matches, Boolean.TRUE);
+		for (Expression e : operands) {
+			Object[] array = vbatch.eval(e);
+			for (int i = 0; i < array.length; i++) {
+				if (matches[i] == Boolean.FALSE)
+					continue;
+
+				Object o = array[i];
+				if (o instanceof Boolean)
+					matches[i] = (Boolean) o;
+				else
+					matches[i] = o != null;
+			}
+		}
+
+		return matches;
 	}
 
 	@Override
@@ -68,7 +108,7 @@ public class And implements Expression {
 			}
 			sb.append(e);
 		}
-		
+
 		sb.append(")");
 		return sb.toString();
 	}

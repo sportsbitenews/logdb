@@ -26,8 +26,9 @@ import org.araqne.logdb.QueryContext;
 
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class In extends FunctionExpression {
+public class In extends FunctionExpression implements VectorizedExpression {
 	private static abstract class FieldMatcher {
 		public abstract boolean match(Row log, Object o);
 	}
@@ -196,6 +197,33 @@ public class In extends FunctionExpression {
 			} else
 				matchers.add(new GenericMatcher(expr));
 		}
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(field);
+		int len = values.length;
+		Object[] matches = new Object[len];
+
+		for (int i = 0; i < len; i++) {
+			matches[i] = Boolean.FALSE;
+			Object o = values[i];
+			if (o == null)
+				continue;
+
+			if (exactTerms.contains(o))
+				matches[i] = Boolean.TRUE;
+
+			// TODO: add wild and generic matchers
+		}
+
+		return matches;
 	}
 
 	@Override
