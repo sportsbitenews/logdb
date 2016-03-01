@@ -85,15 +85,15 @@ public class DataBlockV3 {
 					if (length < 0 || length - 4 > params.dataStream.available())
 						throw new IllegalStateException(String.format("invalid length: %d", length));
 
-					if (dataStream.isMapSupported()) {
-						blockToCache = dataStream.map(length - 4);
-					} else {
+//					if (dataStream.isMapSupported()) {
+//						blockToCache = dataStream.map(length - 4);
+//					} else {
 						blockToCache = ByteBuffer.allocate(length - 4);
 						dataStream.readBestEffort(blockToCache);
-					}
+//					}
 				}
 
-				if (!dataStream.isMapSupported())
+//				if (!dataStream.isMapSupported())
 					blockToCache.flip();
 
 				// potentionally buffer underflow
