@@ -204,6 +204,14 @@ public class Stats extends QueryCommand implements FieldOrdering {
 			}
 		}
 
+		try {
+			// flush
+			if (buffer.size() >= FLUSH_SIZE)
+				flush();
+		} catch (IOException e) {
+			throw new IllegalStateException("stats failed, query " + query, e);
+		}
+
 		inputCount += vbatch.size;
 	}
 
@@ -284,7 +292,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 		try {
 			// flush
-			if (buffer.size() > FLUSH_SIZE)
+			if (buffer.size() >= FLUSH_SIZE)
 				flush();
 		} catch (IOException e) {
 			throw new IllegalStateException("stats failed, query " + query, e);
