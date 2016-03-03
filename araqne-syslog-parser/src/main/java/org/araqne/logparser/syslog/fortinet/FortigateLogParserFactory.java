@@ -17,6 +17,7 @@ package org.araqne.logparser.syslog.fortinet;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -31,6 +32,19 @@ public class FortigateLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getName() {
 		return "fortigate";
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "네트워크 보안";
+		else
+			return "Network Security";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
@@ -54,7 +68,7 @@ public class FortigateLogParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "WELF 형식으로 된 포티게이트 로그를 파싱합니다.";
-		if(locale != null && locale.equals(Locale.CHINESE))
+		if (locale != null && locale.equals(Locale.CHINESE))
 			return "用于解析WELF格式的FortiGate日志。";
 		return "Parse Fortigate logs.";
 	}

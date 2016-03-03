@@ -1,5 +1,7 @@
 package org.araqne.logparser.krsyslog.citrix;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -15,6 +17,19 @@ public class NetScalerMpxParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getName() {
 		return "netscaler-mpx";
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "시스템";
+		else
+			return "System";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override

@@ -18,6 +18,7 @@ package org.araqne.logparser.syslog.hp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -39,6 +40,19 @@ public class TippingPointSmsLogParserFactory implements LogParserFactory {
 	@Override
 	public String getName() {
 		return "tippingpoint-sms";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "네트워크 보안";
+		else
+			return "Network Security";
 	}
 
 	@Override

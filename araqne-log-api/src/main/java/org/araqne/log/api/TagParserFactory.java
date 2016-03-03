@@ -18,6 +18,7 @@ package org.araqne.log.api;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -31,6 +32,19 @@ public class TagParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getName() {
 		return "tag";
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "일반";
+		else
+			return "General";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
 
 	@Override
@@ -67,9 +81,9 @@ public class TagParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption tags = new StringConfigType("tags", t("Tag list", "태그 목록", "タグリスト", "标记列表"), t(
-				"Comma separated key=value tags", "쉼표로 구분된 키=값 형태의 태그 목록", 
-				"コンマで区分されているキー＝バリュー形のタグリスト", "以逗号分隔的键=值格式的标记列表"), true);
+		LoggerConfigOption tags = new StringConfigType("tags", t("Tag list", "태그 목록", "タグリスト", "标记列表"),
+				t("Comma separated key=value tags", "쉼표로 구분된 키=값 형태의 태그 목록", "コンマで区分されているキー＝バリュー形のタグリスト", "以逗号分隔的键=值格式的标记列表"),
+				true);
 		return Arrays.asList(tags);
 	}
 

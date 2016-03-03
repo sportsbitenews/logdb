@@ -40,6 +40,19 @@ public class ChainParserFactory extends AbstractLogParserFactory {
 	}
 
 	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "일반";
+		else
+			return "General";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
+	}
+
+	@Override
 	public Collection<Locale> getDisplayNameLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
@@ -73,8 +86,8 @@ public class ChainParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption parsers = new StringConfigType("parsers", t("Parser names", "파서 이름 목록", "パーサー名リスト", "接卸器名称列表"), t(
-				"Comma separated parser names", "쉼표로 구분된 파서 이름 목록", "読点で分けているパーサー名リスト", "以逗号分隔的解析器名称列表"), true);
+		LoggerConfigOption parsers = new StringConfigType("parsers", t("Parser names", "파서 이름 목록", "パーサー名リスト", "接卸器名称列表"),
+				t("Comma separated parser names", "쉼표로 구분된 파서 이름 목록", "読点で分けているパーサー名リスト", "以逗号分隔的解析器名称列表"), true);
 		return Arrays.asList(parsers);
 	}
 

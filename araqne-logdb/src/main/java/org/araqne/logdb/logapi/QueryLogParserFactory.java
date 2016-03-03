@@ -48,6 +48,19 @@ public class QueryLogParserFactory implements LogParserFactory {
 	}
 
 	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "일반";
+		else
+			return "General";
+	}
+
+	@Override
 	public Collection<Locale> getDisplayNameLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
@@ -79,8 +92,8 @@ public class QueryLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption query = new StringConfigType("query", t("Query string", "쿼리", "查询字符串"), t("Query string for log parsing",
-				"로그 파싱에 사용할 쿼리", "用于日志解析的查询字符串"), true);
+		LoggerConfigOption query = new StringConfigType("query", t("Query string", "쿼리", "查询字符串"),
+				t("Query string for log parsing", "로그 파싱에 사용할 쿼리", "用于日志解析的查询字符串"), true);
 		return Arrays.asList(query);
 	}
 

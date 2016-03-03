@@ -17,6 +17,7 @@ package org.araqne.logparser.syslog.airtight;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -34,6 +35,19 @@ public class SpectraGuardLogParserFactory extends AbstractLogParserFactory {
 	}
 
 	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "네트워크 보안";
+		else
+			return "Network Security";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
+
+	@Override
 	public Collection<Locale> getDisplayNameLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
@@ -41,9 +55,9 @@ public class SpectraGuardLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
-			return "스펙트라가드 엔터프라이즈";	
+			return "스펙트라가드 엔터프라이즈";
 		if (locale != null && locale.equals(Locale.CHINESE))
-			return "SpectraGuard";	
+			return "SpectraGuard";
 		return "SpectraGuard Enterprise";
 	}
 

@@ -18,6 +18,7 @@ package org.araqne.log.api;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -34,6 +35,19 @@ public class FieldMappingParserFactory extends AbstractLogParserFactory {
 	}
 
 	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "일반";
+		else
+			return "General";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
+	}
+
+	@Override
 	public Collection<Locale> getDisplayNameLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.JAPANESE, Locale.CHINESE);
 	}
@@ -44,7 +58,7 @@ public class FieldMappingParserFactory extends AbstractLogParserFactory {
 			return "필드 이름 변경";
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "フィルド名変更";
-		if(locale != null && locale.equals(Locale.CHINESE))
+		if (locale != null && locale.equals(Locale.CHINESE))
 			return "修改字段名称";
 		return "Field mapper";
 	}
@@ -60,15 +74,17 @@ public class FieldMappingParserFactory extends AbstractLogParserFactory {
 			return "필드 이름을 변경합니다.";
 		if (locale != null && locale.equals(Locale.JAPANESE))
 			return "フィルドの名前を変更します。";
-		if(locale != null && locale.equals(Locale.CHINESE))
+		if (locale != null && locale.equals(Locale.CHINESE))
 			return "修改字段名称。";
 		return "Replace original field name by specified name.";
 	}
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption mappings = new StringConfigType("mappings", t("Field mappings", "필드 이름 변환 목록", "フィルド名変更リスト", "字段名称转换列表"), t(
-				"Comma separated from=to field mappings", "쉼표로 구분되는 원본필드=변경필드 이름 목록", "コンマで区分される元＝変更フィルド名リスト", "格式：原始字段名称1=变更字段名称1,原始字段名称2=变更字段名称2,…"), true);
+		LoggerConfigOption mappings = new StringConfigType("mappings",
+				t("Field mappings", "필드 이름 변환 목록", "フィルド名変更リスト", "字段名称转换列表"), t("Comma separated from=to field mappings",
+						"쉼표로 구분되는 원본필드=변경필드 이름 목록", "コンマで区分される元＝変更フィルド名リスト", "格式：原始字段名称1=变更字段名称1,原始字段名称2=变更字段名称2,…"),
+				true);
 		return Arrays.asList(mappings);
 	}
 

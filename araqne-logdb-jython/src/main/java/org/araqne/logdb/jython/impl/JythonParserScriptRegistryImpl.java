@@ -18,6 +18,7 @@ package org.araqne.logdb.jython.impl;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -87,6 +88,16 @@ public class JythonParserScriptRegistryImpl implements JythonParserScriptRegistr
 	}
 
 	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.CHINESE);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		return "General";
+	}
+
+	@Override
 	public Collection<Locale> getDisplayNameLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.CHINESE);
 	}
@@ -96,8 +107,7 @@ public class JythonParserScriptRegistryImpl implements JythonParserScriptRegistr
 		if (locale != null && locale.equals(Locale.CHINESE))
 			return "jython脚本解析器";
 		return "jython parser";
-		
-		
+
 	}
 
 	@Override

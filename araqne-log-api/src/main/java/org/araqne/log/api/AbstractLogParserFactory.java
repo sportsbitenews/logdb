@@ -18,6 +18,7 @@ package org.araqne.log.api;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -29,12 +30,22 @@ public abstract class AbstractLogParserFactory implements LogParserFactory {
 
 	@Override
 	public Collection<Locale> getDisplayNameLocales() {
-		return Arrays.asList(Locale.ENGLISH);
+		return getLocales();
 	}
 
 	@Override
 	public Collection<Locale> getDescriptionLocales() {
+		return getLocales();
+	}
+
+	@Override
+	public List<Locale> getLocales() {
 		return Arrays.asList(Locale.ENGLISH);
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		return null;
 	}
 
 	@Override

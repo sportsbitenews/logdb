@@ -18,6 +18,7 @@ package org.araqne.logdb.groovy.impl;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -43,10 +44,23 @@ public class GroovyParserFactory extends AbstractLogParserFactory {
 	}
 
 	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "일반";
+		else
+			return "General";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
+	}
+
+	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "그루비";
-		if(locale != null && locale.equals(Locale.CHINESE))
+		if (locale != null && locale.equals(Locale.CHINESE))
 			return "Groovy脚本解析器";
 		return "Groovy";
 	}
@@ -60,7 +74,7 @@ public class GroovyParserFactory extends AbstractLogParserFactory {
 	public String getDescription(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
 			return "그루비 파서 스크립트";
-		if(locale != null && locale.equals(Locale.CHINESE))
+		if (locale != null && locale.equals(Locale.CHINESE))
 			return "通过Groovy脚本实现解析器。";
 		return "Groovy parser script";
 	}
@@ -72,8 +86,8 @@ public class GroovyParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption scriptName = new StringConfigType("script_name", t("Script Name", "스크립트 이름", "脚本名称"), t(
-				"Script file name except .groovy extension", ".groovy 확장자를 제외한 스크립트 파일 이름", "除.groovy扩展名之外的脚本文件名"), true);
+		LoggerConfigOption scriptName = new StringConfigType("script_name", t("Script Name", "스크립트 이름", "脚本名称"),
+				t("Script file name except .groovy extension", ".groovy 확장자를 제외한 스크립트 파일 이름", "除.groovy扩展名之外的脚本文件名"), true);
 		return Arrays.asList(scriptName);
 	}
 

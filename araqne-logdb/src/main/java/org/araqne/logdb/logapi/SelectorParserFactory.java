@@ -37,13 +37,26 @@ public class SelectorParserFactory extends AbstractLogParserFactory {
 	private static PredicatesConfigType spec;
 
 	static {
-		spec = new PredicatesConfigType("predicates", t("Predicates", "파서 선택 조건식"), t("Select parser using boolean expression",
-				"불린 표현식을 평가하여 파싱에 사용할 파서를 선택합니다."), true);
+		spec = new PredicatesConfigType("predicates", t("Predicates", "파서 선택 조건식"),
+				t("Select parser using boolean expression", "불린 표현식을 평가하여 파싱에 사용할 파서를 선택합니다."), true);
 	}
 
 	@Override
 	public String getName() {
 		return "selector";
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "일반";
+		else
+			return "General";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override
@@ -99,7 +112,7 @@ public class SelectorParserFactory extends AbstractLogParserFactory {
 			String query = String.format("if(%s, \"%s\", null)", p.getCondition(), parserName);
 			Expression expr = ExpressionParser.parse(new QueryContext(null), query, functionRegistry);
 			exprs.add(expr);
-			
+
 			if (parsers.get(parserName) == null) {
 				LogParser parser = logParserRegistry.newParser(parserName);
 				parsers.put(parserName, parser);

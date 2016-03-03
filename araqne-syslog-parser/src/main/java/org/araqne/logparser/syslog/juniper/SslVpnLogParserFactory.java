@@ -17,6 +17,7 @@ package org.araqne.logparser.syslog.juniper;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -24,7 +25,6 @@ import org.apache.felix.ipojo.annotations.Component;
 import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
-
 
 /**
  * @author kyun
@@ -36,6 +36,19 @@ public class SslVpnLogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getName() {
 		return "juniper-sslvpn";
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "네트워크 보안";
+		else
+			return "Network Security";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE);
 	}
 
 	@Override

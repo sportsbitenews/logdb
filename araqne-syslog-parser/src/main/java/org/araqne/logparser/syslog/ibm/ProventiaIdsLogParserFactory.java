@@ -17,6 +17,7 @@ package org.araqne.logparser.syslog.ibm;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -25,7 +26,6 @@ import org.apache.felix.ipojo.annotations.Provides;
 import org.araqne.log.api.AbstractLogParserFactory;
 import org.araqne.log.api.LogParser;
 
-
 /**
  * @author kyun
  */
@@ -33,10 +33,22 @@ import org.araqne.log.api.LogParser;
 @Provides
 public class ProventiaIdsLogParserFactory extends AbstractLogParserFactory {
 
-
 	@Override
 	public String getName() {
 		return "proventia";
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "네트워크 보안";
+		else
+			return "Network Security";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
@@ -48,7 +60,7 @@ public class ProventiaIdsLogParserFactory extends AbstractLogParserFactory {
 	public Collection<Locale> getDescriptionLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
-	
+
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))

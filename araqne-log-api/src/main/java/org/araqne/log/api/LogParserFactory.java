@@ -16,16 +16,19 @@
 package org.araqne.log.api;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public interface LogParserFactory {
 	String getName();
 
+	@Deprecated
 	Collection<Locale> getDisplayNameLocales();
 
 	String getDisplayName(Locale locale);
 
+	@Deprecated
 	Collection<Locale> getDescriptionLocales();
 
 	String getDescription(Locale locale);
@@ -33,4 +36,8 @@ public interface LogParserFactory {
 	Collection<LoggerConfigOption> getConfigOptions();
 
 	LogParser createParser(Map<String, String> configs);
+
+	List<Locale> getLocales();
+
+	String getDisplayGroup(Locale locale);
 }

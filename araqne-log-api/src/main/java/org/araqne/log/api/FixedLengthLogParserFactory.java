@@ -29,6 +29,19 @@ public class FixedLengthLogParserFactory extends AbstractLogParserFactory {
 	}
 
 	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "일반";
+		else
+			return "General";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
+	}
+
+	@Override
 	public Collection<Locale> getDescriptionLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
@@ -49,8 +62,8 @@ public class FixedLengthLogParserFactory extends AbstractLogParserFactory {
 		options.add(new StringConfigType("column_length", t("Field lengths", "필드 길이 목록"),
 				t("Comma separated field lengths", "필드 별 길이"), false));
 
-		options.add(new StringConfigType("target_field", t("Target field", "대상 필드"),
-				t("Target field name", "파싱할 대상 필드 이름"), false));
+		options.add(
+				new StringConfigType("target_field", t("Target field", "대상 필드"), t("Target field name", "파싱할 대상 필드 이름"), false));
 
 		options.add(new StringConfigType("include_target", t("Include target", "원본 값 포함 여부"),
 				t("Return also target field (true or false)", "고정 길이로 파싱된 결과 외에 원본 필드 값도 포함할지 설정합니다. true 혹은 false"), false));

@@ -18,6 +18,7 @@ package org.araqne.logparser.krsyslog.secui;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -41,6 +42,19 @@ public class Mf2LogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public String getName() {
 		return "mf2";
+	}
+
+	@Override
+	public String getDisplayGroup(Locale locale) {
+		if (locale == Locale.KOREAN)
+			return "네트워크 보안";
+		else
+			return "Network Security";
+	}
+
+	@Override
+	public List<Locale> getLocales() {
+		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN);
 	}
 
 	@Override
@@ -69,8 +83,7 @@ public class Mf2LogParserFactory extends AbstractLogParserFactory {
 
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
-		LoggerConfigOption mode = new StringConfigType("mode", t("Format", "로그 포맷"),
-				t("CSV or TSV", "CSV, TSV 중 하나"), true);
+		LoggerConfigOption mode = new StringConfigType("mode", t("Format", "로그 포맷"), t("CSV or TSV", "CSV, TSV 중 하나"), true);
 		return Arrays.asList(mode);
 	}
 
@@ -84,7 +97,7 @@ public class Mf2LogParserFactory extends AbstractLogParserFactory {
 	@Override
 	public LogParser createParser(Map<String, String> config) {
 		String s = config.get("mode");
-		
+
 		Mode mode = Mode.CSV;
 		if (s.equalsIgnoreCase("tsv"))
 			mode = Mode.TSV;
