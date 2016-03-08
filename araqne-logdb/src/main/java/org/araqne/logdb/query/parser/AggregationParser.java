@@ -25,6 +25,7 @@ import org.araqne.logdb.FunctionRegistry;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.query.aggregator.*;
+import org.araqne.logdb.query.aggregator.CorrelationCoefficient.CorrelationCoefficientReducer;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.Values;
 
@@ -49,13 +50,16 @@ public class AggregationParser {
 		t.put("range", Range.class);
 		t.put("values", Values.class);
 		t.put("var", Variance.class);
-		t.put("varMapper", Variance.VarMapper.class);
-		t.put("varReducer", Variance.VarReducer.class);
+		t.put("varMapper", Variance.VarianceMapper.class);
+		t.put("varReducer", Variance.VarianceReducer.class);
 		t.put("stddev", StdDev.class);
 		t.put("stddevReducer", StdDev.StdDevReducer.class);
 		t.put("covar", Covariance.class);
 		t.put("covarMapper", Covariance.CovarianceMapper.class);
 		t.put("covarReducer", Covariance.CovarianceReducer.class);
+		t.put("correl", CorrelationCoefficient.class);
+		t.put("correlMapper", CorrelationCoefficient.CorrelationCoefficientMapper.class);
+		t.put("correlReducer", CorrelationCoefficient.CorrelationCoefficientReducer.class);
 	}
 
 	public static AggregationField parse(QueryContext context, String s,
