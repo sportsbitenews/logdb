@@ -116,20 +116,20 @@ public class Variance extends AbstractAggregationFunction {
 
 	@Override
 	public AggregationFunction mapper(List<Expression> exprs) {
-		return new VarMapper(exprs);
+		return new VarianceMapper(exprs);
 	}
 
 	@Override
 	public AggregationFunction reducer(List<Expression> exprs) {
-		return new VarReducer(exprs);
+		return new VarianceReducer(exprs);
 	}
 
-	public static class VarMapper extends AbstractAggregationFunction {
+	public static class VarianceMapper extends AbstractAggregationFunction {
 		private Double m;
 		private Double s2;
 		private int c;
 
-		public VarMapper(List<Expression> exprs) {
+		public VarianceMapper(List<Expression> exprs) {
 			super(exprs);
 		}
 
@@ -183,14 +183,14 @@ public class Variance extends AbstractAggregationFunction {
 		@Override
 		public void merge(AggregationFunction func) {
 			// d should not be null here (do not allow null merge set)
-			VarMapper other = (VarMapper) func;
+			VarianceMapper other = (VarianceMapper) func;
 			if (this.s2 == null) {
 				this.s2 = other.s2;
 				this.m = other.m;
 				this.c = other.c;
 			} else {
-				VarMapper v1 = this;
-				VarMapper v2 = other;
+				VarianceMapper v1 = this;
+				VarianceMapper v2 = other;
 				// method 1: trivial method
 				// double nm = (v1.m * v1.c + v2.m * v2.c) / (v1.c + v2.c);
 				// double nv =
@@ -234,7 +234,7 @@ public class Variance extends AbstractAggregationFunction {
 
 		@Override
 		public AggregationFunction clone() {
-			VarMapper f = new VarMapper(exprs);
+			VarianceMapper f = new VarianceMapper(exprs);
 			f.m = m;
 			f.s2 = s2;
 			f.c = c;
@@ -242,12 +242,12 @@ public class Variance extends AbstractAggregationFunction {
 		}
 	}
 
-	public static class VarReducer extends AbstractAggregationFunction {
+	public static class VarianceReducer extends AbstractAggregationFunction {
 		private Double m;
 		private Double s2;
 		private int c;
 
-		public VarReducer(List<Expression> exprs) {
+		public VarianceReducer(List<Expression> exprs) {
 			super(exprs);
 		}
 
@@ -296,14 +296,14 @@ public class Variance extends AbstractAggregationFunction {
 
 		@Override
 		public void merge(AggregationFunction func) {
-			VarReducer other = (VarReducer) func;
+			VarianceReducer other = (VarianceReducer) func;
 			if (this.s2 == null) {
 				this.s2 = other.s2;
 				this.m = other.m;
 				this.c = other.c;
 			} else {
-				VarReducer v1 = this;
-				VarReducer v2 = other;
+				VarianceReducer v1 = this;
+				VarianceReducer v2 = other;
 				// method 2: http://www.emathzone.com/tutorials/basic-statistics/combined-variance.html
 				double nm = (v1.m * v1.c + v2.m * v2.c) / (v1.c + v2.c);
 				double nv =
@@ -340,7 +340,7 @@ public class Variance extends AbstractAggregationFunction {
 
 		@Override
 		public AggregationFunction clone() {
-			VarReducer result = new VarReducer(super.exprs);
+			VarianceReducer result = new VarianceReducer(super.exprs);
 			result.m = this.m;
 			result.s2 = this.s2;
 			result.c = this.c;

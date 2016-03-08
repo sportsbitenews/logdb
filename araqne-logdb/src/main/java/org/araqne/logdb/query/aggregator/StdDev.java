@@ -3,8 +3,8 @@ package org.araqne.logdb.query.aggregator;
 import java.util.List;
 
 import org.araqne.logdb.Row;
-import org.araqne.logdb.query.aggregator.Variance.VarMapper;
-import org.araqne.logdb.query.aggregator.Variance.VarReducer;
+import org.araqne.logdb.query.aggregator.Variance.VarianceMapper;
+import org.araqne.logdb.query.aggregator.Variance.VarianceReducer;
 import org.araqne.logdb.query.expr.Expression;
 
 public class StdDev extends AbstractAggregationFunction {
@@ -54,6 +54,9 @@ public class StdDev extends AbstractAggregationFunction {
 
 	@Override
 	public Object[] serialize() {
+		if (var == null)
+			var = new Variance(exprs);
+
 		return var.serialize();
 	}
 
@@ -85,7 +88,7 @@ public class StdDev extends AbstractAggregationFunction {
 	}
 
 	public AggregationFunction mapper(List<Expression> exprs) {
-		return new VarMapper(exprs);
+		return new VarianceMapper(exprs);
 	}
 
 	public AggregationFunction reducer(List<Expression> exprs) {
@@ -93,14 +96,14 @@ public class StdDev extends AbstractAggregationFunction {
 	}
 
 	public static class StdDevReducer extends AbstractAggregationFunction {
-		VarReducer varReducer;
+		VarianceReducer varReducer;
 
 		public StdDevReducer(List<Expression> exprs) {
 			super(exprs);
-			varReducer = new VarReducer(exprs);
+			varReducer = new VarianceReducer(exprs);
 		}
 
-		public StdDevReducer(List<Expression> exprs, VarReducer varReducer) {
+		public StdDevReducer(List<Expression> exprs, VarianceReducer varReducer) {
 			super(exprs);
 			this.varReducer = varReducer;
 		}
@@ -151,7 +154,7 @@ public class StdDev extends AbstractAggregationFunction {
 
 		@Override
 		public AggregationFunction clone() {
-			StdDevReducer result = new StdDevReducer(exprs, (VarReducer) varReducer.clone());
+			StdDevReducer result = new StdDevReducer(exprs, (VarianceReducer) varReducer.clone());
 			return result;
 		}
 
