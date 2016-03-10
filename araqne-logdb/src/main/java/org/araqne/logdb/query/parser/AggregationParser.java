@@ -60,6 +60,9 @@ public class AggregationParser {
 		t.put("correl", CorrelationCoefficient.class);
 		t.put("correlMapper", CorrelationCoefficient.CorrelationCoefficientMapper.class);
 		t.put("correlReducer", CorrelationCoefficient.CorrelationCoefficientReducer.class);
+		t.put("slope", Slope.class);
+		t.put("slopeMapper", Slope.SlopeMapper.class);
+		t.put("slopeReducer", Slope.SlopeReducer.class);
 	}
 
 	public static AggregationField parse(QueryContext context, String s,
