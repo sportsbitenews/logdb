@@ -24,6 +24,7 @@ import org.araqne.log.api.LoggerFactory;
 import org.araqne.log.api.LoggerSpecification;
 import org.araqne.log.api.MultilineLogExtractor;
 import org.araqne.log.api.Reconfigurable;
+import org.araqne.log.api.ScanPeriodMatcher;
 
 public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(NaiveRecursiveDirectoryWatchLogger.class);
@@ -32,7 +33,10 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 	private Pattern dirPathPattern;
 	private boolean recursive;
 	private String fileTag;
+	private String pathTag;
+	private int scanDays;
 	private MultilineLogExtractor extractor;
+	private ScanPeriodMatcher scanPeriodMatcher;
 
 	private Receiver receiver = new Receiver();
 
@@ -75,6 +79,33 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
 
 		// optional
+		String scanDaysString = getConfigs().get("scan_days");
+		if (scanDaysString != null) {
+			try {
+				this.scanDays = Integer.parseInt(scanDaysString);
+				if (scanDays < 0)
+					logger.warn("araqne logapi nio: logger [" + getFullName()
+							+ "] has invalid scan days [{}], config will be ignored.", scanDaysString);
+			} catch (NumberFormatException e) {
+				logger.warn(
+						"araqne logapi nio: logger [" + getFullName() + "] has invalid scan days [{}], config will be ignored.",
+						scanDaysString);
+			}
+		}
+
+		// optional
+		String pathDateFormatString = getConfigs().get("path_date_format");
+		if (pathDateFormatString != null) {
+			try {
+				SimpleDateFormat df = new SimpleDateFormat(pathDateFormatString, new Locale(dateLocale));
+				this.scanPeriodMatcher = new ScanPeriodMatcher(df, timeZone, this.scanDays);
+			} catch (Throwable t) {
+				logger.warn("araqne logapi nio: logger [" + getFullName() + "] has invalid path date format ["
+						+ pathDateFormatString + "], locale [" + dateLocale + "], timezone [" + timeZone + "]", t);
+			}
+		}
+
+		// optional
 		String newlogRegex = getConfigs().get("newlog_designator");
 		if (newlogRegex != null)
 			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
@@ -95,6 +126,9 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 		// optional
 		this.fileTag = getConfigs().get("file_tag");
 
+		// optional
+		this.pathTag = getConfigs().get("path_tag");
+
 		extractor.setCharset(charset);
 	}
 
@@ -105,11 +139,13 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 		if (files == null)
 			return;
 
+		CommonHelper helper = new CommonHelper(dirPathPattern, fileNamePattern, scanPeriodMatcher);
 		Collections.sort(files);
 		try {
 			for (File f : files)
 				processFile(f, lastPositions);
 		} finally {
+			helper.removeOutdatedStates(lastPositions);
 			setStates(LastPositionHelper.serialize(lastPositions));
 		}
 	}
@@ -118,6 +154,12 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 		FileInputStream is = null;
 
 		try {
+			String dateFromPath = getDateFromPath(f);
+			if (dateFromPath != null && scanPeriodMatcher != null) {
+				if (!scanPeriodMatcher.matches(System.currentTimeMillis(), dateFromPath))
+					return;
+			}
+
 			String path = f.getAbsolutePath();
 			long offset = 0;
 			if (lastPositions.containsKey(path)) {
@@ -132,13 +174,14 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 				return;
 
 			receiver.filename = file.getName();
+			receiver.path = file.getAbsolutePath();
 			is = new FileInputStream(file);
 			is.skip(offset);
 
-			extractor.extract(is, lastPosition, getDateString(f));
+			extractor.extract(is, lastPosition, dateFromPath);
 
-			logger.debug("araqne-logapi-nio: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
-					offset, lastPosition.get() });
+			logger.debug("araqne-logapi-nio: updating file [{}] old position [{}] new last position [{}]",
+					new Object[] { path, offset, lastPosition.get() });
 			LastPosition inform = lastPositions.get(path);
 			if (inform == null) {
 				inform = new LastPosition(path);
@@ -157,7 +200,7 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 		}
 	}
 
-	private String getDateString(File f) {
+	private String getDateFromPath(File f) {
 		StringBuffer sb = new StringBuffer(f.getAbsolutePath().length());
 		String dirPath = f.getParentFile().getAbsolutePath();
 		if (dirPathPattern != null) {
@@ -220,11 +263,16 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 
 	private class Receiver extends AbstractLogPipe {
 		private String filename;
+		private String path;
 
 		@Override
 		public void onLog(Logger logger, Log log) {
 			if (fileTag != null)
 				log.getParams().put(fileTag, filename);
+
+			if (pathTag != null)
+				log.getParams().put(pathTag, path);
+
 			write(log);
 		}
 
@@ -235,6 +283,12 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 					log.getParams().put(fileTag, filename);
 				}
 			}
+
+			if (pathTag != null) {
+				for (Log log : logs)
+					log.getParams().put(pathTag, path);
+			}
+
 			writeBatch(logs);
 		}
 	}

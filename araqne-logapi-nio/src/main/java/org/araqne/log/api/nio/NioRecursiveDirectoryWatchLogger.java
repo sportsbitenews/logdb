@@ -36,7 +36,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.araqne.log.api.AbstractLogPipe;
@@ -52,6 +51,7 @@ import org.araqne.log.api.LoggerStatus;
 import org.araqne.log.api.LoggerStopReason;
 import org.araqne.log.api.MultilineLogExtractor;
 import org.araqne.log.api.Reconfigurable;
+import org.araqne.log.api.ScanPeriodMatcher;
 
 public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(NioRecursiveDirectoryWatchLogger.class.getName());
@@ -63,6 +63,8 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	private Pattern dirPathPattern;
 	private boolean recursive;
 	private String fileTag;
+	private String pathTag;
+	private int scanDays;
 
 	private Receiver receiver = new Receiver();
 
@@ -72,6 +74,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	private ChangeDetector detector;
 
 	private MultilineLogExtractor extractor;
+	private ScanPeriodMatcher scanPeriodMatcher;
 
 	private boolean walkTreeRequired = true;
 	private boolean walkForceStopped = false;
@@ -147,6 +150,32 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
 
 		// optional
+		String scanDaysString = getConfigs().get("scan_days");
+		if (scanDaysString != null) {
+			try {
+				this.scanDays = Integer.parseInt(scanDaysString);
+				if (scanDays < 0)
+					slog.warn("araqne logapi nio: logger [" + getFullName()
+							+ "] has invalid scan days [{}], config will be ignored.", scanDaysString);
+			} catch (NumberFormatException e) {
+				slog.warn("araqne logapi nio: logger [" + getFullName() + "] has invalid scan days [{}], config will be ignored.",
+						scanDaysString);
+			}
+		}
+
+		// optional
+		String pathDateFormatString = getConfigs().get("path_date_format");
+		if (pathDateFormatString != null) {
+			try {
+				SimpleDateFormat df = new SimpleDateFormat(pathDateFormatString, new Locale(dateLocale));
+				this.scanPeriodMatcher = new ScanPeriodMatcher(df, timeZone, this.scanDays);
+			} catch (Throwable t) {
+				slog.warn("araqne logapi nio: logger [" + getFullName() + "] has invalid path date format ["
+						+ pathDateFormatString + "], locale [" + dateLocale + "], timezone [" + timeZone + "]", t);
+			}
+		}
+
+		// optional
 		String newlogRegex = getConfigs().get("newlog_designator");
 		if (newlogRegex != null)
 			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
@@ -166,6 +195,9 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 		// optional
 		this.fileTag = getConfigs().get("file_tag");
+
+		// optional
+		this.pathTag = getConfigs().get("path_tag");
 
 		extractor.setCharset(charset);
 	}
@@ -211,8 +243,13 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 			}
 		}
 
+		CommonHelper helper = new CommonHelper(dirPathPattern, fileNamePattern, scanPeriodMatcher);
 		Map<String, LastPosition> lastPositions = null;
 		try {
+			// avoid unnecessary processing
+			if (scanPeriodMatcher != null)
+				lastPositions = LastPositionHelper.deserialize(getStates());
+
 			List<File> changedFiles = new ArrayList<File>(detector.getChangedFiles());
 			List<File> deletedFiles = new ArrayList<File>(detector.getDeletedFiles());
 
@@ -224,7 +261,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 			Collections.sort(changedFiles);
 			for (File f : changedFiles) {
-				processFile(lastPositions, f);
+				processFile(lastPositions, f, helper);
 			}
 
 			Collections.sort(deletedFiles);
@@ -232,6 +269,8 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 				markDeletedFile(lastPositions, f);
 			}
 		} finally {
+			helper.removeOutdatedStates(lastPositions);
+
 			if (lastPositions != null && modifiedStates)
 				setStates(LastPositionHelper.serialize(lastPositions));
 			else
@@ -264,7 +303,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		}
 	}
 
-	protected void processFile(Map<String, LastPosition> lastPositions, File file) {
+	protected void processFile(Map<String, LastPosition> lastPositions, File file, CommonHelper helper) {
 		if (!file.canRead()) {
 			slog.debug("araqne-api-nio: cannot read file [{}], logger [{}]", file.getAbsolutePath(), getFullName());
 			return;
@@ -273,7 +312,12 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		String path = file.getAbsolutePath();
 		FileInputStream is = null;
 		try {
-			String dateFromFileName = getDateString(file);
+			String dateFromPath = helper.getDateString(file);
+
+			if (dateFromPath != null && scanPeriodMatcher != null) {
+				if (!scanPeriodMatcher.matches(System.currentTimeMillis(), dateFromPath))
+					return;
+			}
 
 			// skip previous read part
 			long offset = 0;
@@ -290,13 +334,14 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 
 			AtomicLong lastPosition = new AtomicLong(offset);
 			receiver.filename = file.getName();
+			receiver.path = file.getAbsolutePath();
 			is = new FileInputStream(file);
 			is.skip(offset);
 
-			extractor.extract(is, lastPosition, dateFromFileName);
+			extractor.extract(is, lastPosition, dateFromPath);
 
-			slog.debug("araqne-logapi-nio: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
-					offset, lastPosition.get() });
+			slog.debug("araqne-logapi-nio: updating file [{}] old position [{}] new last position [{}]",
+					new Object[] { path, offset, lastPosition.get() });
 			LastPosition inform = lastPositions.get(path);
 			if (inform == null) {
 				inform = new LastPosition(path);
@@ -318,52 +363,33 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		}
 	}
 
-	private String getDateString(File f) {
-		StringBuilder sb = new StringBuilder(f.getAbsolutePath().length());
-		String dirPath = f.getParentFile().getAbsolutePath();
-		if (dirPathPattern != null) {
-			Matcher dirNameDateMatcher = dirPathPattern.matcher(dirPath);
-			while (dirNameDateMatcher.find()) {
-				int dirNameGroupCount = dirNameDateMatcher.groupCount();
-				if (dirNameGroupCount > 0) {
-					for (int i = 1; i <= dirNameGroupCount; ++i) {
-						sb.append(dirNameDateMatcher.group(i));
-					}
-				}
-			}
-		}
-
-		String fileName = f.getName();
-		Matcher fileNameDateMatcher = fileNamePattern.matcher(fileName);
-		while (fileNameDateMatcher.find()) {
-			int fileNameGroupCount = fileNameDateMatcher.groupCount();
-			if (fileNameGroupCount > 0) {
-				for (int i = 1; i <= fileNameGroupCount; ++i) {
-					sb.append(fileNameDateMatcher.group(i));
-				}
-			}
-		}
-		String date = sb.toString();
-		return date.isEmpty() ? null : date;
-	}
-
 	private class Receiver extends AbstractLogPipe {
 		private String filename;
+		private String path;
 
 		@Override
 		public void onLog(Logger logger, Log log) {
 			if (fileTag != null)
 				log.getParams().put(fileTag, filename);
+
+			if (pathTag != null)
+				log.getParams().put(pathTag, path);
+
 			write(log);
 		}
 
 		@Override
 		public void onLogBatch(Logger logger, Log[] logs) {
 			if (fileTag != null) {
-				for (Log log : logs) {
+				for (Log log : logs)
 					log.getParams().put(fileTag, filename);
-				}
 			}
+
+			if (pathTag != null) {
+				for (Log log : logs)
+					log.getParams().put(pathTag, path);
+			}
+
 			writeBatch(logs);
 		}
 	}
@@ -371,10 +397,12 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 	private class InitialRunner implements FileVisitor<Path> {
 		private Path root;
 		private Map<String, LastPosition> lastPositions;
+		private CommonHelper helper;
 
 		public InitialRunner(Path root, Map<String, LastPosition> lastPositions) {
 			this.root = root;
 			this.lastPositions = lastPositions;
+			this.helper = new CommonHelper(dirPathPattern, fileNamePattern, scanPeriodMatcher);
 		}
 
 		@Override
@@ -414,7 +442,7 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 			}
 
 			if (fileNamePattern.matcher(f.getName()).matches())
-				processFile(lastPositions, f);
+				processFile(lastPositions, f, helper);
 			return FileVisitResult.CONTINUE;
 		}
 
