@@ -44,4 +44,17 @@ public class AggregationField {
 			return function.toString();
 		return function + " as " + name;
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+
+		if (!(obj instanceof AggregationField))
+			return false;
+
+		AggregationField other = (AggregationField) obj;
+		return (name == null ? other.name == null : name.equals(other.name)) &&
+				(function == null ? other.function == null : function.equals(other.function));
+	}
 }

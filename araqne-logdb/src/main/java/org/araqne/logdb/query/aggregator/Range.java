@@ -21,24 +21,17 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.NumberUtil;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Range implements AggregationFunction {
-	private List<Expression> exprs;
-
+public class Range extends AbstractAggregationFunction {
 	private Number min;
 	private Number max;
 
 	public Range(List<Expression> exprs) {
-		this.exprs = exprs;
+		super(exprs);
 	}
 
 	@Override
 	public String getName() {
 		return "range";
-	}
-
-	@Override
-	public List<Expression> getArguments() {
-		return exprs;
 	}
 
 	@Override

@@ -38,4 +38,11 @@ public interface AggregationFunction {
 	void clean();
 
 	AggregationFunction clone();
+
+	// True if and only if a mapper and a reducer exist.
+	boolean canBeDistributed();
+
+	AggregationFunction mapper(List<Expression> exprs);
+
+	AggregationFunction reducer(List<Expression> exprs);
 }

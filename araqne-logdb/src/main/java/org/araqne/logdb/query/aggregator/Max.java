@@ -21,23 +21,17 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Max implements AggregationFunction {
-	private List<Expression> exprs;
+public class Max extends AbstractAggregationFunction {
 	private ObjectComparator comp = new ObjectComparator();
 	private Object max;
 
 	public Max(List<Expression> exprs) {
-		this.exprs = exprs;
+		super(exprs);
 	}
 
 	@Override
 	public String getName() {
 		return "max";
-	}
-
-	@Override
-	public List<Expression> getArguments() {
-		return exprs;
 	}
 
 	@Override
@@ -100,5 +94,20 @@ public class Max implements AggregationFunction {
 	@Override
 	public String toString() {
 		return "max(" + exprs.get(0) + ")";
+	}
+
+	@Override
+	public boolean canBeDistributed() {
+		return true;
+	}
+
+	@Override
+	public AggregationFunction mapper(List<Expression> exprs) {
+		return new Max(exprs);
+	}
+
+	@Override
+	public AggregationFunction reducer(List<Expression> exprs) {
+		return new Max(exprs);
 	}
 }

@@ -49,7 +49,10 @@ public class AggregationParser {
 		t.put("range", Range.class);
 		t.put("values", Values.class);
 		t.put("var", Variance.class);
+		t.put("varMapper", Variance.VarMapper.class);
+		t.put("varReducer", Variance.VarReducer.class);
 		t.put("stddev", StdDev.class);
+		t.put("stddevReducer", StdDev.StdDevReducer.class);
 	}
 
 	public static AggregationField parse(QueryContext context, String s,
