@@ -15,7 +15,7 @@ public class Covariance extends AbstractAggregationFunction {
 
 	public Covariance(List<Expression> exprs) {
 		super(exprs);
-		n = 1;
+		n = 0;
 	}
 
 	@Override
@@ -134,7 +134,7 @@ public class Covariance extends AbstractAggregationFunction {
 
 		public CovarianceMapper(List<Expression> exprs) {
 			super(exprs);
-			n = 1;
+			n = 0;
 		}
 
 		@Override
@@ -185,9 +185,9 @@ public class Covariance extends AbstractAggregationFunction {
 			} else {
 				this.coMoment = this.coMoment + other.coMoment + (this.mean1 - other.mean1) * (this.mean2 - other.mean2) * this.n * other.n
 						/ (this.n + other.n);
-				this.n = this.n + other.n;
 				this.mean1 = (this.mean1 * this.n + other.mean1 * other.n) / (this.n + other.n);
 				this.mean2 = (this.mean2 * this.n + other.mean2 * other.n) / (this.n + other.n);
+				this.n = this.n + other.n;
 			}
 		}
 
@@ -268,9 +268,9 @@ public class Covariance extends AbstractAggregationFunction {
 			} else {
 				this.coMoment = this.coMoment + coMoment + (this.mean1 - mean1) * (this.mean2 - mean2) * this.n * n
 						/ (this.n + n);
-				this.n = this.n + n;
 				this.mean1 = (this.mean1 * this.n + mean1 * n) / (this.n + n);
 				this.mean2 = (this.mean2 * this.n + mean2 * n) / (this.n + n);
+				this.n = this.n + n;
 			}
 		}
 
