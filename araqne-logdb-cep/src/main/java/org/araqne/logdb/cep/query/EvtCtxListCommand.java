@@ -40,7 +40,6 @@ public class EvtCtxListCommand extends DriverQueryCommand implements FieldOrderi
 	public void run() {
 		EventContextStorage storage = eventContextService.getDefaultStorage();
 		Iterator<EventKey> eventKeyItr = storage.getContextKeys(topicFilter);
-
 		Set<EventKey> keys = new HashSet<EventKey>();
 		int i = 0;
 		while (eventKeyItr.hasNext()) {
@@ -58,7 +57,6 @@ public class EvtCtxListCommand extends DriverQueryCommand implements FieldOrderi
 	}
 
 	private void pushEventContexts(List<EventContext> events) {
-
 		for (EventContext ctx : events) {
 			if (ctx == null)
 				continue;

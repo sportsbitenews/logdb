@@ -16,11 +16,13 @@
 package org.araqne.logdb.cep;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -174,4 +176,95 @@ public class EventContext implements EventClockItem {
 		this.listeners = listeners;
 	}
 
+	public EventContext clone() {
+		EventContext context =  new EventContext(key, created, expireTime, timeoutTime.get(), maxRows);
+		context.counter.set(counter.get());
+
+		for(Row row : rows) 
+			context.addRow(row);
+		
+		for(Entry<String, Object> entry : getVariables().entrySet()) 
+			context.setVariable(entry.getKey(), entry.getValue());
+		
+		return context;
+	}
+	
+	@Override
+	public int hashCode() {
+		return key.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+
+		// must be same class
+		if (getClass() != obj.getClass())
+			return false;
+
+		// topic and key is always not null
+		EventContext other = (EventContext) obj;
+
+		// if (host == null) {
+		// if (other.host != null)
+		// return false;
+		// return key.equals(other.key) && topic.equals(other.topic);
+		// }
+		
+//		if(counter.get() == other.getCounter().get()) {
+//			System.out.println("counter equals" + counter.get());
+//		} else 
+//			System.out.println(counter + " " + other.getCounter());
+//		
+//		if(variables.equals(other.getVariables()))
+//			System.out.println("variables equals " + variables);
+		
+
+//		List<Row> otherRows = other.getRows();
+//		for(int i = 0; i < rows.size(); i++) {
+//			if(rows.get(i).equals(otherRows.get(i))) {
+//			} 
+//		}
+//		if(Arrays.deepEquals(rows.toArray(), other.getRows().toArray()))
+//			System.out.println("dd row equals" + rows);
+//		
+//		
+//		if(equalRowLists(rows, other.getRows())) 
+//			System.out.println("row equals" + rows);
+//		else 
+//			System.out.println(rows + "   " + other.getRows());
+
+		return key.equals(other.getKey()) 
+				&& created == other.getCreated() 
+				&& expireTime == other.getExpireTime()
+				&& timeoutTime.get() == other.getTimeoutTime()
+				&& maxRows == other.getMaxRows()
+				&& counter.get() == other.getCounter().get()
+			//	&& rows.equals(other.getRows())
+				&& variables.equals(other.getVariables());
+	}
+	
+	public  boolean equalRowLists(List<Row> one, List<Row> two){     
+	    if (one == null && two == null){
+	        return true;
+	    }
+
+	    if((one == null && two != null) 
+	      || one != null && two == null
+	      || one.size() != two.size()){
+	        return false;
+	    }
+
+	    //to avoid messing the order of the lists we will use a copy
+	    //as noted in comments by A. R. S.
+	//    one = new ArrayList<Row>(one); 
+	 //   two = new ArrayList<Row>(two);   
+
+	    //Collections.sort(one);
+	    //Collections.sort(two);      
+	    return one.equals(two);
+	}
 }

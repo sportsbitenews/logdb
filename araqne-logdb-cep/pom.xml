@@ -27,7 +27,8 @@
 							org.araqne.logdb.cep.query,
 							org.araqne.logdb.cep.engine,
 							org.araqne.logdb.cep.script,
-							org.araqne.logdb.cep.logger
+							org.araqne.logdb.cep.logger,
+							org.araqne.logdb.cep.offheap.*
 						</Private-Package>
 						<Import-Package>
 							org.araqne.log.api;version="3.4.0",
