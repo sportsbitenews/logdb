@@ -1,8 +1,8 @@
 package org.araqne.logstorage;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.araqne.log.api.LogParserBuilder;
 
@@ -17,7 +17,7 @@ public class TableScanRequest {
 	private boolean useSerialScan;
 	private boolean isAsc;
 	private boolean syncFirst = false;
-	private List<String> fields;
+	private Set<String> fields;
 
 	public TableScanRequest() {
 	}
@@ -62,7 +62,7 @@ public class TableScanRequest {
 		cloned.isAsc = isAsc;
 
 		if (fields != null)
-			cloned.fields = new ArrayList<String>(fields);
+			cloned.fields = new HashSet<String>(fields);
 		
 		return cloned;
 	}
@@ -147,11 +147,11 @@ public class TableScanRequest {
 		this.syncFirst = syncFirst;
 	}
 
-	public List<String> getFields() {
+	public Set<String> getFields() {
 		return fields;
 	}
 
-	public void setFields(List<String> fields) {
+	public void setFields(Set<String> fields) {
 		this.fields = fields;
 	}
 }

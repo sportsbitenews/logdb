@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 import java.util.List;
 import java.util.Map;
 
@@ -194,7 +195,8 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 				LogTraverseCallbackImpl callback = new LogTraverseCallbackImpl(sink);
 				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder, callback);
 				req.setAsc(params.isAsc());
-				req.setFields(params.getFields());
+				req.setFields(params.getFieldSet());
+
 				storage.search(req);
 				if (callback.isFailed())
 					throw new IllegalStateException(callback.getFailure());
@@ -590,6 +592,25 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 			return fields;
 		}
 
+		public Set<String> getFieldSet() {
+			if (fields == null)
+				return null;
+			return new HashSet<String>(fields);
+		}
+		
+		public String getQuotedFields() {
+			if (fields == null)
+				return "\"\"";
+			
+			StringBuilder sb = new StringBuilder();
+			sb.append("\"");
+			for (String f : fields) {
+				sb.append(f.replaceAll("\\\"", "\\\\\""));
+			}
+			sb.append("\"");
+			return sb.toString();
+		}
+
 		public void setFields(List<String> fields) {
 			this.fields = fields;
 		}
@@ -598,6 +619,9 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 	@Override
 	public String toString() {
 		String s = "table";
+		
+		if (params.getFields() != null)
+			s += " fields=" + params.getQuotedFields();
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
 		if (params.getFrom() != null)

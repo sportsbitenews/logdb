@@ -102,9 +102,8 @@ public class TableParser extends AbstractQueryCommandParser {
 			// throw new QueryParseException("archive-not-opened", -1);
 			throw new QueryParseException("10600", -1, -1, null);
 
-		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(),
-				Arrays.asList("from", "to", "offset", "limit", "duration", "parser", "order", "window", "raw", "eachtable", "fields"),
-				getFunctionRegistry());
+		ParseResult r = QueryTokenizer.parseOptions(context, commandString, getCommandName().length(), Arrays.asList("from", "to",
+				"offset", "limit", "duration", "parser", "order", "window", "raw", "eachtable", "fields"), getFunctionRegistry());
 		Map<String, String> options = (Map<String, String>) r.value;
 		String tableTokens = commandString.substring(r.next);
 		List<TableSpec> tableNames = parseTableNames(context, tableTokens);
@@ -185,9 +184,17 @@ public class TableParser extends AbstractQueryCommandParser {
 		params.setWindow(window);
 		params.setEachTable(eachTable);
 		params.setRaw(CommandOptions.parseBoolean(options.get("raw")));
-		
-		if (options.get("fields") != null)
-			params.setFields(Arrays.asList(options.get("fields").split(",")));
+
+		// preserve field ordering
+		if (options.get("fields") != null) {
+			List<String> fields = new ArrayList<String>();
+			for (String s : options.get("fields").split(",")) {
+				s = s.trim();
+				if (!s.isEmpty())
+					fields.add(s);
+			}
+			params.setFields(fields);
+		}
 
 		if (params.isRaw()) {
 			if (context.getSession() == null || !context.getSession().isAdmin())
