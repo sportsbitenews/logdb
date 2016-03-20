@@ -21,6 +21,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.araqne.codec.FastEncodingRule;
@@ -79,25 +80,38 @@ class RunOutput {
 		}
 	}
 
+	public void write(List<Item> items) throws IOException {
+		if (run.cached != null)
+			run.cached.addAll(items);
+		else {
+			for (Item o : items)
+				writeEntry(o);
+		}
+	}
+
 	public void write(Item o) throws IOException {
 		if (run.cached != null)
 			run.cached.add(o);
 		else {
-			ByteBuffer buf = enc.encode(o, SortCodec.instance);
-			int len = buf.remaining();
-
-			if (!noIndexWrite) {
-				IoHelper.encodeLong(longbuf, dataOffset);
-				indexBos.write(longbuf);
-			}
-
-			IoHelper.encodeInt(intbuf, len);
-			dataBos.write(intbuf);
-			dataBos.write(buf.array(), 0, len);
-			buf.clear();
-
-			dataOffset += 4 + len;
+			writeEntry(o);
 		}
+	}
+
+	private void writeEntry(Item o) throws IOException {
+		ByteBuffer buf = enc.encode(o, SortCodec.instance);
+		int len = buf.remaining();
+
+		if (!noIndexWrite) {
+			IoHelper.encodeLong(longbuf, dataOffset);
+			indexBos.write(longbuf);
+		}
+
+		IoHelper.encodeInt(intbuf, len);
+		dataBos.write(intbuf);
+		dataBos.write(buf.array(), 0, len);
+		buf.clear();
+
+		dataOffset += 4 + len;
 	}
 
 	public Run finish() {

@@ -434,7 +434,7 @@ public class ParallelMergeSorter {
 
 		logger.debug("araqne logdb: begin {}way merge, {}", runs.size(), runs);
 		ArrayList<RunInput> inputs = new ArrayList<RunInput>();
-		PriorityQueue<RunItem> q = new PriorityQueue<RunItem>(runs.size(), new RunItemComparater());
+		PriorityQueue<RunInput> q = new PriorityQueue<RunInput>(runs.size(), new RunItemComparater());
 		RunOutput r3 = null;
 		try {
 			int total = 0;
@@ -451,16 +451,16 @@ public class ParallelMergeSorter {
 				for (RunInput input : inputs) {
 					if (input.loaded == null && input.hasNext()) {
 						input.loaded = input.next();
-						q.add(new RunItem(input, input.loaded));
+						q.add(input);
 					}
 				}
 
-				RunItem item = q.poll();
-				if (item == null)
+				RunInput next = q.poll();
+				if (next == null)
 					break;
 
-				r3.write(item.item);
-				item.runInput.loaded = null;
+				r3.write(next.loaded);
+				next.loaded = null;
 			}
 		} finally {
 			for (RunInput input : inputs)
@@ -474,23 +474,13 @@ public class ParallelMergeSorter {
 		return null;
 	}
 
-	private class RunItemComparater implements Comparator<RunItem> {
+	private class RunItemComparater implements Comparator<RunInput> {
 
 		@Override
-		public int compare(RunItem o1, RunItem o2) {
-			return comparator.compare(o1.item, o2.item);
+		public int compare(RunInput o1, RunInput o2) {
+			return comparator.compare(o1.loaded, o2.loaded);
 		}
 
-	}
-
-	private static class RunItem {
-		private RunInput runInput;
-		private Item item;
-
-		public RunItem(RunInput runInput, Item item) {
-			this.runInput = runInput;
-			this.item = item;
-		}
 	}
 
 	private class PartitionMergeTask implements Comparable<PartitionMergeTask> {
