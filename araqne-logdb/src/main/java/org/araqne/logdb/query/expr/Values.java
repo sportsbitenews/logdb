@@ -22,6 +22,7 @@ import java.util.TreeSet;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.query.aggregator.AbstractAggregationFunction;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,10 +32,9 @@ import org.slf4j.LoggerFactory;
  * @author xeraph
  * 
  */
-public class Values implements AggregationFunction {
+public class Values extends AbstractAggregationFunction {
 	private static int VALUES_CAPACITY = 100;
 
-	private final List<Expression> exprs;
 	private final Expression arg;
 	private TreeSet<Object> set;
 
@@ -51,11 +51,11 @@ public class Values implements AggregationFunction {
 	}
 
 	public Values(List<Expression> exprs) {
+		super(exprs);
 		if (exprs.isEmpty())
 			// throw new QueryParseException("missing-values-arg", -1);
 			throw new QueryParseException("90870", -1, -1, null);
 
-		this.exprs = exprs;
 		this.arg = exprs.get(0);
 		this.set = new TreeSet<Object>(new ObjectComparator());
 	}
@@ -63,11 +63,6 @@ public class Values implements AggregationFunction {
 	@Override
 	public String getName() {
 		return "values";
-	}
-
-	@Override
-	public List<Expression> getArguments() {
-		return exprs;
 	}
 
 	@Override

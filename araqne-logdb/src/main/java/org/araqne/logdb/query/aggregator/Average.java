@@ -21,23 +21,17 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.NumberUtil;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Average implements AggregationFunction {
-	private List<Expression> exprs;
+public class Average extends AbstractAggregationFunction {
 	private Double d;
 	private int count;
 
 	public Average(List<Expression> exprs) {
-		this.exprs = exprs;
+		super(exprs);
 	}
 
 	@Override
 	public String getName() {
 		return "avg";
-	}
-
-	@Override
-	public List<Expression> getArguments() {
-		return exprs;
 	}
 
 	@Override

@@ -21,24 +21,19 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Count implements AggregationFunction {
-	private final List<Expression> exprs;
+public class Count extends AbstractAggregationFunction {
 	private Expression expr;
 	private long result = 0;
 
 	public Count(List<Expression> exprs) {
+		super(exprs);
+
 		if (exprs.size() > 1)
-		//	throw new QueryParseException("invalid-count-args", -1);
+			// throw new QueryParseException("invalid-count-args", -1);
 			throw new QueryParseException("91010", -1, -1, null);
 
-		this.exprs = exprs;
 		if (exprs.size() == 1)
 			this.expr = exprs.get(0);
-	}
-
-	@Override
-	public List<Expression> getArguments() {
-		return exprs;
 	}
 
 	@Override
@@ -96,4 +91,18 @@ public class Count implements AggregationFunction {
 		return "count(" + expr + ")";
 	}
 
+	@Override
+	public boolean canBeDistributed() {
+		return true;
+	}
+
+	@Override
+	public AggregationFunction mapper(List<Expression> exprs) {
+		return new Count(exprs);
+	}
+
+	@Override
+	public AggregationFunction reducer(List<Expression> exprs) {
+		return new Sum(exprs);
+	}
 }
