@@ -15,7 +15,9 @@
  */
 package org.araqne.logdb.sort;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 
@@ -53,13 +55,16 @@ class RunInputRandomAccess {
 
 		dataRaf.seek(pos);
 		int len = dataRaf.readInt();
-		
+
 		byte[] b = IoHelper.ensureBuffer(reuseBuffer, len);
 		int readBytes = dataRaf.read(b, 0, len);
 		if (readBytes != len)
 			throw new IOException("insufficient merge data block, expected=" + len + ", actual=" + readBytes);
 
-		return (Item) EncodingRule.decode(ByteBuffer.wrap(b, 0, len), SortCodec.instance);
+		InputStream is = new ByteArrayInputStream(b);
+		Object key = StreamEncodingRule.decode(is);
+		Object value = StreamEncodingRule.decode(is);
+		return new Item(key, value);
 	}
 
 	public void close() {

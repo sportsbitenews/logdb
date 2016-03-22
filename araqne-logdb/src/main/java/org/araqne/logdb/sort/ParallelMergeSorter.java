@@ -18,6 +18,7 @@ package org.araqne.logdb.sort;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -46,7 +47,8 @@ public class ParallelMergeSorter {
 	private final int runLength;
 	private Queue<Run> runs = new LinkedBlockingDeque<Run>();
 	private Queue<PartitionMergeTask> merges = new LinkedBlockingQueue<PartitionMergeTask>();
-	private LinkedList<Item> buffer;
+	private Item[] buffer;
+	private int bufferSize;
 	private Comparator<Item> comparator;
 	private AtomicInteger runIndexer;
 	private volatile int flushTaskCount;
@@ -60,6 +62,23 @@ public class ParallelMergeSorter {
 	// end of input stream, do not allow add()
 	private volatile boolean eos;
 
+	private static final int PARTITION_COUNT;
+
+	static {
+		int count = 32;
+		try {
+			String s = System.getProperty("araqne.logdb.sort_partitions");
+			if (s != null) {
+				count = Integer.parseInt(s);
+				Logger logger = LoggerFactory.getLogger(ParallelMergeSorter.class);
+				logger.info("araqne logdb: use {} sort partitions", count);
+			}
+		} catch (Throwable t) {
+		}
+
+		PARTITION_COUNT = count;
+	}
+
 	public ParallelMergeSorter(Comparator<Item> comparator) {
 		this(comparator, DEFAULT_RUN_LENGTH, DEFAULT_CACHE_SIZE);
 	}
@@ -71,10 +90,10 @@ public class ParallelMergeSorter {
 	public ParallelMergeSorter(Comparator<Item> comparator, int runLength, int memoryRunCount) {
 		this.runLength = runLength;
 		this.comparator = comparator;
-		this.buffer = new LinkedList<Item>();
+		this.buffer = new Item[runLength];
 		this.runIndexer = new AtomicInteger();
-		this.executor = new ThreadPoolExecutor(8, 8, 10, TimeUnit.SECONDS, new LimitedQueue<Runnable>(8), new NamedThreadFactory(
-				"Sort Worker"), new CallerRunsPolicy());
+		this.executor = new ThreadPoolExecutor(8, 8, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(8),
+				new NamedThreadFactory("Sort Worker"), new CallerRunsPolicy());
 
 		this.cacheCount = new AtomicInteger(memoryRunCount);
 	}
@@ -86,53 +105,30 @@ public class ParallelMergeSorter {
 		this.tag = tag;
 	}
 
-	public class LimitedQueue<E> extends ArrayBlockingQueue<E> {
-		private static final long serialVersionUID = 1L;
-
-		public LimitedQueue(int maxSize) {
-			super(maxSize);
-		}
-
-		@Override
-		public boolean offer(E e) {
-			// turn offer() and add() into a blocking calls (unless interrupted)
-			try {
-				put(e);
-				return true;
-			} catch (InterruptedException ie) {
-				Thread.currentThread().interrupt();
-			}
-			return false;
-		}
-	}
-
 	public void add(Item item) throws IOException {
 		if (eos)
 			throw new IllegalStateException("sort ended");
 
-		buffer.add(item);
-		if (buffer.size() >= runLength)
-			flushRun();
-	}
-
-	public void addAll(List<? extends Item> items) throws IOException {
-		if (eos)
-			throw new IllegalStateException("sort ended");
-
-		buffer.addAll(items);
-		if (buffer.size() >= runLength)
+		buffer[bufferSize++] = item;
+		if (bufferSize >= runLength)
 			flushRun();
 	}
 
 	private void flushRun() throws IOException, FileNotFoundException {
-		LinkedList<Item> buffered = buffer;
-		if (buffered.isEmpty())
+		Item[] buffered = buffer;
+		if (bufferSize == 0)
 			return;
 
-		buffer = new LinkedList<Item>();
+		buffer = new Item[runLength];
 		synchronized (flushDoneSignal) {
 			flushTaskCount++;
 		}
+
+		if (bufferSize < buffered.length)
+			buffered = Arrays.copyOfRange(buffered, 0, bufferSize);
+
+		bufferSize = 0;
+
 		executor.submit(new FlushWorker(buffered));
 	}
 
@@ -208,14 +204,13 @@ public class ParallelMergeSorter {
 			sortedRuns.add(new SortedRunImpl(run));
 
 		try {
-			int partitionCount = getProperPartitionCount();
-			List<Partition> partitions = partitioner.partition(partitionCount, sortedRuns);
+			List<Partition> partitions = partitioner.partition(PARTITION_COUNT, sortedRuns);
 
 			// run should be purged at caller if partitioning is failed
 			runs.clear();
 
 			long elapsed = new Date().getTime() - begin;
-			logger.trace("araqne logdb: [{}] partitioning completed in {}ms", partitionCount, elapsed);
+			logger.trace("araqne logdb: [{}] partitioning completed in {}ms", PARTITION_COUNT, elapsed);
 			return partitions;
 
 		} catch (RuntimeException e) {
@@ -229,15 +224,6 @@ public class ParallelMergeSorter {
 				}
 			}
 		}
-	}
-
-	private static int getProperPartitionCount() {
-		int processors = Runtime.getRuntime().availableProcessors();
-		int count = 2;
-		while (count < processors)
-			count <<= 1;
-
-		return count;
 	}
 
 	private static class SortedRunImpl implements SortedRun {
@@ -337,9 +323,9 @@ public class ParallelMergeSorter {
 	}
 
 	private class FlushWorker implements Runnable {
-		private LinkedList<Item> buffered;
+		private Item[] buffered;
 
-		public FlushWorker(LinkedList<Item> list) {
+		public FlushWorker(Item[] list) {
 			buffered = list;
 		}
 
@@ -361,13 +347,12 @@ public class ParallelMergeSorter {
 			if (canceled)
 				return;
 
-			Collections.sort(buffered, comparator);
+			Arrays.sort(buffered, comparator);
 
 			int id = runIndexer.incrementAndGet();
-			RunOutput out = new RunOutput(id, buffered.size(), cacheCount, tag);
+			RunOutput out = new RunOutput(id, buffered.length, cacheCount, tag);
 			try {
-				for (Item o : buffered)
-					out.write(o);
+				out.write(buffered);
 			} finally {
 				Run run = out.finish();
 				runs.add(run);
@@ -419,7 +404,7 @@ public class ParallelMergeSorter {
 
 		List<RunInput> iters = new ArrayList<RunInput>();
 		for (Run run : finalRuns)
-			iters.add(new RunInput(run, cacheCount));
+			iters.add(new RunInput(run, cacheCount, true));
 
 		return new MultiRunIterator(iters);
 	}
@@ -434,28 +419,37 @@ public class ParallelMergeSorter {
 
 		logger.debug("araqne logdb: begin {}way merge, {}", runs.size(), runs);
 		ArrayList<RunInput> inputs = new ArrayList<RunInput>();
-		PriorityQueue<RunInput> q = new PriorityQueue<RunInput>(runs.size(), new RunItemComparater());
+		PriorityQueue<RunInput> q = new PriorityQueue<RunInput>(runs.size(), new RunInputComparater(comparator));
 		RunOutput r3 = null;
 		try {
 			int total = 0;
 			for (Run r : runs) {
-				inputs.add(new RunInput(r, cacheCount));
+				inputs.add(new RunInput(r, cacheCount, false));
 				total += r.length;
 			}
 
 			int id = runIndexer.incrementAndGet();
 			r3 = new RunOutput(id, total, cacheCount, true, tag);
 
+			RunInput next = null;
 			while (!canceled) {
 				// load next inputs
-				for (RunInput input : inputs) {
-					if (input.loaded == null && input.hasNext()) {
-						input.loaded = input.next();
-						q.add(input);
+				if (next == null) {
+					// enqueue head items
+					for (RunInput input : inputs) {
+						if (input.loaded == null && input.hasNext()) {
+							input.loaded = input.next();
+							q.add(input);
+						}
+					}
+				} else {
+					if (next.hasNext()) {
+						next.loaded = next.next();
+						q.add(next);
 					}
 				}
 
-				RunInput next = q.poll();
+				next = q.poll();
 				if (next == null)
 					break;
 
@@ -474,7 +468,13 @@ public class ParallelMergeSorter {
 		return null;
 	}
 
-	private class RunItemComparater implements Comparator<RunInput> {
+	private static class RunInputComparater implements Comparator<RunInput> {
+
+		private final Comparator<Item> comparator;
+
+		public RunInputComparater(Comparator<Item> comparator) {
+			this.comparator = comparator;
+		}
 
 		@Override
 		public int compare(RunInput o1, RunInput o2) {

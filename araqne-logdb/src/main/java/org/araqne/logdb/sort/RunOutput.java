@@ -16,12 +16,13 @@
 package org.araqne.logdb.sort;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.araqne.codec.FastEncodingRule;
@@ -42,6 +43,7 @@ class RunOutput {
 	private long dataOffset;
 	private boolean noIndexWrite;
 	private FastEncodingRule enc = new FastEncodingRule();
+	private ByteArrayOutputStream temp = new ByteArrayOutputStream();
 
 	public RunOutput(int id, int length, AtomicInteger cacheCount, String tag) throws IOException {
 		this(id, length, cacheCount, false, tag);
@@ -80,9 +82,9 @@ class RunOutput {
 		}
 	}
 
-	public void write(List<Item> items) throws IOException {
+	public void write(Item[] items) throws IOException {
 		if (run.cached != null)
-			run.cached.addAll(items);
+			run.cached.addAll(Arrays.asList(items));
 		else {
 			for (Item o : items)
 				writeEntry(o);
@@ -98,20 +100,28 @@ class RunOutput {
 	}
 
 	private void writeEntry(Item o) throws IOException {
-		ByteBuffer buf = enc.encode(o, SortCodec.instance);
-		int len = buf.remaining();
-
 		if (!noIndexWrite) {
 			IoHelper.encodeLong(longbuf, dataOffset);
 			indexBos.write(longbuf);
 		}
 
-		IoHelper.encodeInt(intbuf, len);
-		dataBos.write(intbuf);
-		dataBos.write(buf.array(), 0, len);
-		buf.clear();
+		int length = 0;
+		if (o.buf == null) {
+			StreamEncodingRule.encode(temp, o.key);
+			StreamEncodingRule.encode(temp, o.value);
+			length = temp.size();
+			IoHelper.encodeInt(intbuf, length);
+			dataBos.write(intbuf);
+			dataBos.write(temp.toByteArray());
+		} else {
+			length = o.bufSize;
+			IoHelper.encodeInt(intbuf, length);
+			dataBos.write(intbuf);
+			dataBos.write(o.buf, 0, length);
+		}
 
-		dataOffset += 4 + len;
+		dataOffset += 4 + length;
+		temp.reset();
 	}
 
 	public Run finish() {

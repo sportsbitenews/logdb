@@ -138,7 +138,7 @@ public class BoxPlot extends QueryCommand {
 
 			while (it.hasNext()) {
 				Item item = it.next();
-				Object[] values = (Object[]) item.getKey();
+				Object[] values = (Object[]) item.key;
 				Object value = values[clauseCount];
 				if (value == null)
 					continue;
@@ -220,7 +220,7 @@ public class BoxPlot extends QueryCommand {
 
 		@Override
 		public int compare(Item o1, Item o2) {
-			return cmp.compare(o1.getKey(), o2.getKey());
+			return cmp.compare(o1.key, o2.key);
 		}
 
 	}

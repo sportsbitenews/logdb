@@ -298,7 +298,7 @@ public class Timechart extends QueryCommand {
 			Item item = it.next();
 
 			// timechart key (truncated time & key value)
-			Object[] itemKeys = (Object[]) item.getKey();
+			Object[] itemKeys = (Object[]) item.key;
 			Date time = (Date) itemKeys[0];
 			String keyFieldValue = (String) itemKeys[1];
 
@@ -403,7 +403,7 @@ public class Timechart extends QueryCommand {
 	}
 
 	private AggregationFunction loadFunction(Item item, int i) {
-		Object[] l = (Object[]) ((Object[]) item.getValue())[i];
+		Object[] l = (Object[]) ((Object[]) item.value)[i];
 		AggregationFunction f2 = funcs[i].clone();
 		f2.deserialize(l);
 		return f2;
@@ -423,7 +423,7 @@ public class Timechart extends QueryCommand {
 			if (o2null)
 				return -1;
 
-			return cmp.compare(o1.getKey(), o2.getKey());
+			return cmp.compare(o1.key, o2.key);
 		}
 	}
 

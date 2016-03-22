@@ -24,67 +24,69 @@ import java.util.Map;
 import org.araqne.logdb.query.command.NumberUtil;
 
 public class ObjectComparator implements Comparator<Object> {
-	private static enum typeGroup {
+	private static enum TypeGroup {
 		NULL, BOOLEAN, NUM, DATE, IPV4, IPV6, STRING, ARRAY, MAP, BLOB, ELSE
 	};
 
 	@Override
 	public int compare(Object o1, Object o2) {
-		typeGroup o1TypeGroup = getTypeGroup(o1);
-		typeGroup o2TypeGroup = getTypeGroup(o2);
+		TypeGroup o1TypeGroup = getTypeGroup(o1);
+		TypeGroup o2TypeGroup = getTypeGroup(o2);
 
 		int cmpResult = o1TypeGroup.compareTo(o2TypeGroup);
 		if (cmpResult == 0) {
-			if (o1TypeGroup == typeGroup.NULL)
+			switch (o1TypeGroup) {
+			case NULL:
 				return 0;
-			else if (o1TypeGroup == typeGroup.NUM)
-				return compareNum(o1, o2);
-			else if (o1TypeGroup == typeGroup.STRING)
+			case NUM:
+				return compareNum((Number) o1, (Number) o2);
+			case STRING:
 				return compareString(o1, o2);
-			else if (o1TypeGroup == typeGroup.ARRAY)
+			case ARRAY:
 				return compareArray(o1, o2);
-			else if (o1TypeGroup == typeGroup.IPV4)
+			case IPV4:
 				return compareIpv4(o1, o2);
-			else if (o1TypeGroup == typeGroup.BOOLEAN)
+			case BOOLEAN:
 				return compareBool(o1, o2);
-			else if (o1TypeGroup == typeGroup.DATE)
+			case DATE:
 				return compareDate(o1, o2);
-			else if (o1TypeGroup == typeGroup.IPV6)
+			case IPV6:
 				return compareIpv6(o1, o2);
-			else if (o1TypeGroup == typeGroup.MAP)
+			case MAP:
 				return compareMap(o1, o2);
-			else if (o1TypeGroup == typeGroup.BLOB)
+			case BLOB:
 				return compareBlob(o1, o2);
-			else
+			default:
 				return compareElse(o1, o2);
+			}
 		} else {
 			return cmpResult;
 		}
 	}
 
-	private typeGroup getTypeGroup(Object o1) {
-		if (o1 == null)
-			return typeGroup.NULL;
-		else if (o1 instanceof Long || o1 instanceof Integer || o1 instanceof Short || o1 instanceof Double || o1 instanceof Float)
-			return typeGroup.NUM;
-		else if (o1 instanceof String)
-			return typeGroup.STRING;
-		else if (o1 instanceof Object[])
-			return typeGroup.ARRAY;
-		else if (o1 instanceof Inet4Address)
-			return typeGroup.IPV4;
-		else if (o1 instanceof Boolean)
-			return typeGroup.BOOLEAN;
-		else if (o1 instanceof Date)
-			return typeGroup.DATE;
-		else if (o1 instanceof Inet6Address)
-			return typeGroup.IPV6;
-		else if (o1 instanceof Map)
-			return typeGroup.MAP;
-		else if (o1 instanceof byte[])
-			return typeGroup.BLOB;
+	private TypeGroup getTypeGroup(Object o) {
+		if (o == null)
+			return TypeGroup.NULL;
+		else if (o instanceof Number)
+			return TypeGroup.NUM;
+		else if (o instanceof String)
+			return TypeGroup.STRING;
+		else if (o instanceof Object[])
+			return TypeGroup.ARRAY;
+		else if (o instanceof Inet4Address)
+			return TypeGroup.IPV4;
+		else if (o instanceof Boolean)
+			return TypeGroup.BOOLEAN;
+		else if (o instanceof Date)
+			return TypeGroup.DATE;
+		else if (o instanceof Inet6Address)
+			return TypeGroup.IPV6;
+		else if (o instanceof Map)
+			return TypeGroup.MAP;
+		else if (o instanceof byte[])
+			return TypeGroup.BLOB;
 		else
-			return typeGroup.ELSE;
+			return TypeGroup.ELSE;
 
 	}
 
@@ -180,61 +182,19 @@ public class ObjectComparator implements Comparator<Object> {
 	private int compareBool(Object o1, Object o2) {
 		Boolean bool1 = (Boolean) o1;
 		Boolean bool2 = (Boolean) o2;
-
 		return bool1.compareTo(bool2);
 	}
 
-	private int compareNum(Object o1, Object o2) {
+	private int compareNum(Number o1, Number o2) {
 		if (!NumberUtil.isFloat(o1) && !NumberUtil.isFloat(o2)) {
-			long lhs = 0;
-			if (o1 instanceof Long)
-				lhs = (Long) o1;
-			else if (o1 instanceof Integer)
-				lhs = (Integer) o1;
-			else if (o1 instanceof Short)
-				lhs = (Short) o1;
-
-			long rhs = 0;
-			if (o2 instanceof Long)
-				rhs = (Long) o2;
-			else if (o2 instanceof Integer)
-				rhs = (Integer) o2;
-			else if (o2 instanceof Short)
-				rhs = (Short) o2;
-
-			if (lhs == rhs) {
-				return 0;
-			} else {
-				return lhs < rhs ? -1 : 1;
-			}
+			long x = o1.longValue();
+			long y = o2.longValue();
+			return (x < y) ? -1 : ((x == y) ? 0 : 1);
 		} else {
-			double lhs = 0;
-			if (o1 instanceof Double)
-				lhs = (Double) o1;
-			else if (o1 instanceof Integer)
-				lhs = (Integer) o1;
-			else if (o1 instanceof Long)
-				lhs = (Long) o1;
-			else if (o1 instanceof Short)
-				lhs = (Short) o1;
-			else if (o1 instanceof Float)
-				lhs = (Float) o1;
-
-			double rhs = 0;
-			if (o2 instanceof Double)
-				rhs = (Double) o2;
-			else if (o2 instanceof Integer)
-				rhs = (Integer) o2;
-			else if (o2 instanceof Long)
-				rhs = (Long) o2;
-			else if (o2 instanceof Short)
-				rhs = (Short) o2;
-			else if (o2 instanceof Float)
-				rhs = (Float) o2;
-
-			return Double.compare(lhs, rhs);
+			double x = o1.doubleValue();
+			double y = o2.doubleValue();
+			return Double.compare(x, y);
 		}
-
 	}
 
 	private int compareDate(Object o1, Object o2) {

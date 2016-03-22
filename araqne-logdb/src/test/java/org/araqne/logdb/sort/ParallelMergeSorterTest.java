@@ -20,7 +20,7 @@ public class ParallelMergeSorterTest {
 
 		@Override
 		public int compare(Item o1, Item o2) {
-			return cmp.compare(o1.getKey(), o2.getKey());
+			return cmp.compare(o1.key, o2.key);
 		}
 	}
 }

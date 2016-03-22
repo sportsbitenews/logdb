@@ -13,8 +13,8 @@ public class ParallelMergeSorterDebugging {
 	public static class ItemComparer implements Comparator<Item> {
 		@Override
 		public int compare(Item o1, Item o2) {
-			String os1 = (String) o1.getKey();
-			String os2 = (String) o2.getKey();
+			String os1 = (String) o1.key;
+			String os2 = (String) o2.key;
 			return os1.compareTo(os2);
 		}
 	}
@@ -35,7 +35,7 @@ public class ParallelMergeSorterDebugging {
 		int resultCnt = 0;
 		String last = null;
 		while (sorted.hasNext()) {
-			String current = (String) sorted.next().getKey();
+			String current = (String) sorted.next().key;
 			
 			if (last != null) {
 				if (last.compareTo(current) > 0)

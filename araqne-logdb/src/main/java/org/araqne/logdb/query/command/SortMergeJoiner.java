@@ -240,7 +240,7 @@ public class SortMergeJoiner {
 
 	private boolean containNull(Item item) {
 		@SuppressWarnings("unchecked")
-		Map<String, Object> m1 = (Map<String, Object>) item.getKey();
+		Map<String, Object> m1 = (Map<String, Object>) item.key;
 
 		for (SortField field : sortFields) {
 			if (m1.get(field.getName()) == null) {
@@ -254,8 +254,8 @@ public class SortMergeJoiner {
 	@SuppressWarnings("unchecked")
 	private void pushMergedItem(Item rItem, List<Item> sItems) {
 		for (Item sItem : sItems) {
-			Map<String, Object> rLog = new HashMap<String, Object>((Map<String, Object>) rItem.getKey());
-			Map<String, Object> sLog = (Map<String, Object>) sItem.getKey();
+			Map<String, Object> rLog = new HashMap<String, Object>((Map<String, Object>) rItem.key);
+			Map<String, Object> sLog = (Map<String, Object>) sItem.key;
 
 			rLog.putAll(sLog);
 			listener.onPushPipe(new Row(rLog));
@@ -264,7 +264,7 @@ public class SortMergeJoiner {
 
 	@SuppressWarnings("unchecked")
 	private void pushMergedItem(Item rItem) {
-		Map<String, Object> rLog = new HashMap<String, Object>((Map<String, Object>) rItem.getKey());
+		Map<String, Object> rLog = new HashMap<String, Object>((Map<String, Object>) rItem.key);
 		listener.onPushPipe(new Row(rLog));
 	}
 
@@ -279,8 +279,8 @@ public class SortMergeJoiner {
 		@SuppressWarnings("unchecked")
 		@Override
 		public int compare(Item o1, Item o2) {
-			Map<String, Object> m1 = (Map<String, Object>) o1.getKey();
-			Map<String, Object> m2 = (Map<String, Object>) o2.getKey();
+			Map<String, Object> m1 = (Map<String, Object>) o1.key;
+			Map<String, Object> m2 = (Map<String, Object>) o2.key;
 
 			for (SortField field : sortFields) {
 				Object v1 = m1.get(field.getName());

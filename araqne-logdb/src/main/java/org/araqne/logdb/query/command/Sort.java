@@ -183,7 +183,7 @@ public class Sort extends QueryCommand {
 			Iterator<Item> it = top.getTopEntries();
 			while (it.hasNext()) {
 				Item item = it.next();
-				pushPipe(new Row((Map<String, Object>) item.getKey()));
+				pushPipe(new Row((Map<String, Object>) item.key));
 			}
 
 			// support sorter cache GC when query processing is ended
@@ -222,7 +222,7 @@ public class Sort extends QueryCommand {
 
 					while (it.hasNext()) {
 						Object o = it.next();
-						Object[] partitionSortKey = (Object[]) ((Item) o).getKey();
+						Object[] partitionSortKey = (Object[]) ((Item) o).key;
 
 						if (currentPK == null || !compareTwoPartitionKeys(currentPK, partitionSortKey)) {
 							currentCount = 0;
@@ -230,7 +230,7 @@ public class Sort extends QueryCommand {
 						}
 
 						if (currentCount++ < count) {
-							Map<String, Object> value = (Map<String, Object>) ((Item) o).getValue();
+							Map<String, Object> value = (Map<String, Object>) ((Item) o).value;
 							int i = 0;
 							for (SortField field : compareFields) {
 								value.put(field.getName(), partitionSortKey[i++]);
@@ -244,7 +244,7 @@ public class Sort extends QueryCommand {
 						if (--count < 0)
 							break;
 
-						Map<String, Object> value = (Map<String, Object>) ((Item) o).getKey();
+						Map<String, Object> value = (Map<String, Object>) ((Item) o).key;
 						pushPipe(new Row(value));
 					}
 				}
@@ -329,8 +329,8 @@ public class Sort extends QueryCommand {
 		@SuppressWarnings("unchecked")
 		@Override
 		public int compare(Item o1, Item o2) {
-			Map<String, Object> m1 = (Map<String, Object>) o1.getKey();
-			Map<String, Object> m2 = (Map<String, Object>) o2.getKey();
+			Map<String, Object> m1 = (Map<String, Object>) o1.key;
+			Map<String, Object> m2 = (Map<String, Object>) o2.key;
 
 			for (SortField field : compareFields) {
 				Object v1 = m1.get(field.name);
@@ -368,8 +368,8 @@ public class Sort extends QueryCommand {
 
 		@Override
 		public int compare(Item o1, Item o2) {
-			Object[] m1 = (Object[]) o1.getKey();
-			Object[] m2 = (Object[]) o2.getKey();
+			Object[] m1 = (Object[]) o1.key;
+			Object[] m2 = (Object[]) o2.key;
 
 			int i = 0;
 			for (SortField field : compareFields) {

@@ -17,20 +17,20 @@ package org.araqne.logdb.sort;
 
 public class Item {
 	// sort key
-	private Object key;
-	private Object value;
+	public Object key;
+	public Object value;
+	public byte[] buf;
+	public int bufSize;
 
 	public Item(Object key, Object value) {
 		this.key = key;
 		this.value = value;
 	}
 
-	public Object getKey() {
-		return key;
-	}
-
-	public Object getValue() {
-		return value;
+	public Item(Object key, byte[] buf, int bufSize) {
+		this.key = key;
+		this.buf = buf;
+		this.bufSize = bufSize;
 	}
 
 	@Override

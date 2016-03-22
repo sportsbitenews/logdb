@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.araqne.api.SystemProperty;
@@ -44,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Stats extends QueryCommand implements FieldOrdering {
+	private static final int OUTPUT_FLUSH_THRESHOLD = 2000;
 	private static final int FLUSH_SIZE = 50000;
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
 	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
@@ -63,6 +65,11 @@ public class Stats extends QueryCommand implements FieldOrdering {
 	private ParallelMergeSorter sorter;
 	private Map<KeyHolder, AggregationFunction[]> buffer;
 	private int inputCount;
+
+	// output vectorization
+	private int outputCount;
+	private Object[][] keyVector;
+	private Object[][] valVector;
 
 	static {
 		discardNullGroup = SystemProperty.isEnabled("araqne.logdb.discard_null_group");
@@ -106,7 +113,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 	@Override
 	public void onStart() {
 		inputCount = 0;
-		sorter = new ParallelMergeSorter(new ItemComparer());
+		sorter = new ParallelMergeSorter(new ItemComparer(), FLUSH_SIZE);
 
 		int queryId = 0;
 		if (getQuery() != null)
@@ -342,8 +349,9 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		if (logger.isDebugEnabled())
 			logger.debug("araqne logdb: flushing stats buffer, [{}] keys", buffer.keySet().size());
 
-		for (KeyHolder keys : buffer.keySet()) {
-			AggregationFunction[] fs = buffer.get(keys);
+		for (Entry<KeyHolder, AggregationFunction[]> e : buffer.entrySet()) {
+			KeyHolder keys = e.getKey();
+			AggregationFunction[] fs = e.getValue();
 			Object[] l = new Object[fs.length];
 			int i = 0;
 			for (AggregationFunction f : fs)
@@ -390,6 +398,9 @@ public class Stats extends QueryCommand implements FieldOrdering {
 			// sort
 			it = sorter.sort();
 
+			int outputCount = 0;
+			flushOutput();
+
 			Object[] lastKeys = null;
 			AggregationFunction[] fs = null;
 			Item item = null;
@@ -399,10 +410,10 @@ public class Stats extends QueryCommand implements FieldOrdering {
 				count++;
 
 				// first record or need to change merge set?
-				if (lastKeys == null || !Arrays.equals(lastKeys, (Object[]) item.getKey())) {
+				if (lastKeys == null || !Arrays.equals(lastKeys, (Object[]) item.key)) {
 					if (compareLogger.isDebugEnabled() && lastKeys != null)
 						compareLogger.debug("araqne logdb: stats key compare [{}] != [{}]", lastKeys[0],
-								((Object[]) item.getKey())[0]);
+								((Object[]) item.key)[0]);
 
 					// finalize last record (only if changing set)
 					if (fs != null) {
@@ -412,7 +423,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 					// load new record
 					fs = new AggregationFunction[funcs.length];
 					int i = 0;
-					Object[] rawFuncs = (Object[]) item.getValue();
+					Object[] rawFuncs = (Object[]) item.value;
 					for (Object rawFunc : rawFuncs) {
 						Object[] l = (Object[]) rawFunc;
 						AggregationFunction f = funcs[i].clone();
@@ -423,7 +434,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 					// merge
 					int i = 0;
 					for (AggregationFunction f : fs) {
-						Object[] l = (Object[]) ((Object[]) item.getValue())[i];
+						Object[] l = (Object[]) ((Object[]) item.value)[i];
 						AggregationFunction f2 = funcs[i].clone();
 						f2.deserialize(l);
 						f.merge(f2);
@@ -431,18 +442,21 @@ public class Stats extends QueryCommand implements FieldOrdering {
 					}
 				}
 
-				lastKeys = (Object[]) item.getKey();
+				lastKeys = (Object[]) item.key;
 			}
 
 			// write last merge set
-			if (item != null)
+			if (item != null) {
 				pass(fs, lastKeys);
+			}
 
 			// write result for empty data set (only for no group clause)
 			if (inputCount == 0 && clauseCount == 0) {
 				// write initial function values
 				pass(funcs, null);
 			}
+
+			flushOutput();
 
 			logger.debug("araqne logdb: sorted stats input [{}]", count);
 		} catch (Throwable t) {
@@ -463,15 +477,43 @@ public class Stats extends QueryCommand implements FieldOrdering {
 	}
 
 	private void pass(AggregationFunction[] fs, Object[] keys) {
-		Map<String, Object> m = new HashMap<String, Object>();
+		for (int i = 0; i < clauseCount; i++) {
+			keyVector[i][outputCount] = keys[i];
+		}
 
+		for (int i = 0; i < funcs.length; i++) {
+			valVector[i][outputCount] = fs[i].eval();
+		}
+
+		outputCount++;
+		if (outputCount == OUTPUT_FLUSH_THRESHOLD)
+			flushOutput();
+	}
+
+	private void flushOutput() {
+		if (outputCount > 0) {
+			Map<String, Object> m = new HashMap<String, Object>();
+			VectorizedRowBatch vbatch = new VectorizedRowBatch();
+			vbatch.size = outputCount;
+			vbatch.data = m;
+
+			for (int i = 0; i < clauseCount; i++)
+				m.put(clauses[i], keyVector[i]);
+
+			for (int i = 0; i < funcs.length; i++)
+				m.put(fields[i].getName(), valVector[i]);
+
+			pushPipe(vbatch);
+		}
+
+		outputCount = 0;
+		keyVector = new Object[clauseCount][];
 		for (int i = 0; i < clauseCount; i++)
-			m.put(clauses[i], keys[i]);
+			keyVector[i] = new Object[OUTPUT_FLUSH_THRESHOLD];
 
+		valVector = new Object[funcs.length][];
 		for (int i = 0; i < funcs.length; i++)
-			m.put(fields[i].getName(), fs[i].eval());
-
-		pushPipe(new Row(m));
+			valVector[i] = new Object[OUTPUT_FLUSH_THRESHOLD];
 	}
 
 	private static class ItemComparer implements Comparator<Item> {
@@ -479,7 +521,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 		@Override
 		public int compare(Item o1, Item o2) {
-			return cmp.compare(o1.getKey(), o2.getKey());
+			return cmp.compare(o1.key, o2.key);
 		}
 	}
 

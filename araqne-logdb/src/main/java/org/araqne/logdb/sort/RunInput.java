@@ -16,9 +16,11 @@
 package org.araqne.logdb.sort;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
@@ -49,10 +51,12 @@ class RunInput {
 	private byte[] intbuf = new byte[4];
 	private int loadCount;
 	private AtomicInteger cacheCount;
+	private final boolean decodeValue;
 
-	public RunInput(Run run, AtomicInteger cacheCount) throws IOException {
+	public RunInput(Run run, AtomicInteger cacheCount, boolean decodeValue) throws IOException {
 		this.run = run;
 		this.cacheCount = cacheCount;
+		this.decodeValue = decodeValue;
 
 		if (run.cached != null) {
 			cachedIt = run.cached.iterator();
@@ -93,6 +97,14 @@ class RunInput {
 		if (cachedIt != null) {
 			if (cachedIt.hasNext()) {
 				prefetch = cachedIt.next();
+				if (prefetch.buf != null) {
+					try {
+						InputStream is = new ByteArrayInputStream(prefetch.buf);
+						StreamEncodingRule.decode(is);
+						prefetch.value = StreamEncodingRule.decode(is);
+					} catch (IOException e) {
+					}
+				}
 				return true;
 			} else
 				return false;
@@ -102,11 +114,20 @@ class RunInput {
 			int readBytes = IoHelper.ensureRead(bis, intbuf, 4);
 			if (readBytes == 4) {
 				int len = IoHelper.decodeInt(intbuf);
-				byte[] buf = IoHelper.ensureBuffer(reuseBuffer.get(), len);
-				
+				byte[] buf = new byte[len];
+
 				readBytes = IoHelper.ensureRead(bis, buf, len);
-				if (readBytes == len)
-					prefetch = (Item) EncodingRule.decode(ByteBuffer.wrap(buf, 0, len), SortCodec.instance);
+				if (readBytes == len) {
+					InputStream is = new ByteArrayInputStream(buf);
+					Object key = StreamEncodingRule.decode(is);
+					Object value = null;
+					if (decodeValue) {
+						value = StreamEncodingRule.decode(is);
+						prefetch = new Item(key, value);
+					} else {
+						prefetch = new Item(key, buf, len);
+					}
+				}
 			}
 		} catch (IOException e) {
 			logger.error("araqne logdb: cannot read run", e);
