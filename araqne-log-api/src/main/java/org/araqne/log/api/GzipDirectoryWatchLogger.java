@@ -66,7 +66,8 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 		}
 	}
 
-	protected void processFile(Map<String, LastPosition> lastPositions, String path, boolean isDeleteFile, Pattern fileNamePattern) {
+	protected void processFile(Map<String, LastPosition> lastPositions, String path, boolean isDeleteFile,
+			Pattern fileNamePattern) {
 		LastPosition position = new LastPosition(path);
 		FileInputStream fis = null;
 		GZIPInputStream gis = null;
@@ -89,7 +90,8 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 			fis = new FileInputStream(file);
 			gis = new GZIPInputStream(fis);
 
-			Receiver receiver = new Receiver(position, getConfigs().get("file_tag"), file.getName());
+			Receiver receiver = new Receiver(position, getConfigs().get("file_tag"), file.getName(), getConfigs().get("path_tag"),
+					file.getAbsolutePath());
 			MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
 
 			String dateFromFileName = getDateFromFileName(path, fileNamePattern);
@@ -138,17 +140,24 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 		private LastPosition position;
 		private String fileTag;
 		private String fileName;
+		private String pathTag;
+		private String filePath;
 
-		public Receiver(LastPosition position, String fileTag, String fileName) {
+		public Receiver(LastPosition position, String fileTag, String fileName, String pathTag, String filePath) {
 			this.position = position;
 			this.fileTag = fileTag;
 			this.fileName = fileName;
+			this.pathTag = pathTag;
+			this.filePath = filePath;
 		}
 
 		@Override
 		public void onLog(Logger logger, Log log) {
 			if (fileTag != null)
 				log.getParams().put(fileTag, fileName);
+
+			if (pathTag != null)
+				log.getParams().put(fileTag, filePath);
 
 			if (position.getPosition() < offset)
 				write(log);
@@ -163,6 +172,12 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 			if (fileTag != null) {
 				for (Log log : logs) {
 					log.getParams().put(fileTag, fileName);
+				}
+			}
+
+			if (pathTag != null) {
+				for (Log log : logs) {
+					log.getParams().put(fileTag, filePath);
 				}
 			}
 

@@ -140,12 +140,13 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 			is = new FileInputStream(file);
 			is.skip(offset);
 
-			Receiver receiver = new Receiver(getConfigs().get("file_tag"), file.getName());
+			Receiver receiver = new Receiver(getConfigs().get("file_tag"), file.getName(), getConfigs().get("path_tag"),
+					file.getAbsolutePath());
 			MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
 			extractor.extract(is, lastPosition, dateFromFileName);
 
-			slog.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]", new Object[] { path,
-					offset, lastPosition.get() });
+			slog.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]",
+					new Object[] { path, offset, lastPosition.get() });
 			LastPosition inform = lastPositions.get(path);
 			if (inform == null) {
 				inform = new LastPosition(path);
@@ -174,16 +175,23 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 	private class Receiver extends AbstractLogPipe {
 		private String fileTag;
 		private String fileName;
+		private String pathTag;
+		private String filePath;
 
-		public Receiver(String fileTag, String fileName) {
+		public Receiver(String fileTag, String fileName, String pathTag, String filePath) {
 			this.fileTag = fileTag;
 			this.fileName = fileName;
+			this.pathTag = pathTag;
+			this.filePath = filePath;
 		}
 
 		@Override
 		public void onLog(Logger logger, Log log) {
 			if (fileTag != null)
 				log.getParams().put(fileTag, fileName);
+
+			if (pathTag != null)
+				log.getParams().put(fileTag, filePath);
 			write(log);
 		}
 
@@ -192,6 +200,12 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 			if (fileTag != null) {
 				for (Log log : logs) {
 					log.getParams().put(fileTag, fileName);
+				}
+			}
+
+			if (pathTag != null) {
+				for (Log log : logs) {
+					log.getParams().put(fileTag, filePath);
 				}
 			}
 			writeBatch(logs);
