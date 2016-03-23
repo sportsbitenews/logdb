@@ -27,8 +27,12 @@ import org.araqne.logdb.cep.offheap.timeout.OffHeapEventListener;
 import org.araqne.logdb.cep.offheap.timeout.OffHeapMapClock;
 import org.araqne.logdb.cep.offheap.timeout.TimeoutItem;
 import org.araqne.logdb.cep.offheap.timeout.TimeoutQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OffHeapHashMap<K, V> implements OffHeapMap<K, V> {
+	private final Logger slog = LoggerFactory.getLogger(OffHeapHashMap.class);
+
 	private StorageEngine<K, V> engine;
 	private OffHeapMapClock<K, V> realClock;
 	private ConcurrentHashMap<String, OffHeapMapClock<K, V>> logClocks = new ConcurrentHashMap<String, OffHeapMapClock<K, V>>();;
@@ -57,38 +61,81 @@ public class OffHeapHashMap<K, V> implements OffHeapMap<K, V> {
 	}
 
 	@Override
-	public V put(K key, V value) {
-		return put(key, value, null, 0L);
+	public void put(K key, V value) {
+		put(key, value, null, 0L, 0L);
 	}
 
 	@Override
-	public V get(Object key) {
-		Entry<K, V> entry = getEntry(key);
-		return null == entry ? null : entry.getValue();
-	}
-
-	private Entry<K, V> getEntry(Object key) {
+	public void put(K key, V value, String host, long expireTime, long timeoutTime) {
 		int hash = hash(key);
-		for (Entry<K, V> e = engine.get(hash); e != null; e = engine.next(e)) {
-			if (e.equalsKey(key)) {
-				return e;
+		long address = engine.findAddress(hash, key);
+
+		if (address == 0L) { // 처음 입력
+			long time = getMinValue(expireTime, timeoutTime);
+
+			if (slog.isDebugEnabled())
+				slog.debug("araqne logdb cep: put in offheap storage - key [{}], value [{}], time [{}]", new Object[] {
+						key, value, time });
+
+			address = engine.add(hash, key, value, time);
+			if (time > 0) {
+				OffHeapMapClock<K, V> clock = ensureEventClock(host);
+				if (time == expireTime) {
+					clock.addExpireTime(new TimeoutItem(time, address));
+
+					if (slog.isDebugEnabled())
+						slog.debug("araqne logdb cep: queue expire time - key [{}], time [{}], host [{}]",
+								new Object[] { key, time, host });
+				}
+				if (time == timeoutTime) {
+					clock.addTimeoutTime(new TimeoutItem(time, address));
+
+					if (slog.isDebugEnabled())
+						slog.debug("araqne logdb cep: queue timeout time - key [{}], time [{}],  host [{}]",
+								new Object[] { key, time, host });
+				}
+			}
+		} else { // 업데이트
+			if (slog.isDebugEnabled())
+				slog.debug("araqne logdb cep: updated value in offheap storage - key [{}], value [{}], time [{}]",
+						new Object[] { key, value, timeoutTime });
+
+			engine.replace(hash, address, value, timeoutTime);
+			if (timeoutTime > 0) {
+				OffHeapMapClock<K, V> clock = ensureEventClock(host);
+				clock.addTimeoutTime(new TimeoutItem(timeoutTime, address));
+
+				if (slog.isDebugEnabled())
+					slog.debug("araqne logdb cep: set timeout time - key [{}], time [{}], host [{}]", new Object[] {
+							key, timeoutTime, host });
 			}
 		}
-		return null;
+	}
+
+	/**
+	 * @return a smaller number larger than 0.
+	 */
+	private long getMinValue(long a, long b) {
+		long min = Math.min(a, b);
+
+		if (min > 0)
+			return min;
+		else
+			return Math.max(a, b);
 	}
 
 	@Override
-	public V remove(Object key) {
-		int hash = hash(key);
-		Entry<K, V> prev = null;
-		for (Entry<K, V> e = engine.get(hash); e != null; e = engine.next(e)) {
-			if (e.equalsKey(key)) {
-				engine.remove(e, prev);
-				return e.getValue();
-			}
-			prev = e;
-		}
-		return null;
+	public V get(K key) {
+		long address = engine.findAddress(hash(key), key);
+		if (address == 0L)
+			return null;
+
+		return engine.getValue(address);
+	}
+
+	@Override
+	public boolean remove(K key) {
+		return engine.remove(hash(key), key);
 	}
 
 	@Override
@@ -99,6 +146,12 @@ public class OffHeapHashMap<K, V> implements OffHeapMap<K, V> {
 	@Override
 	public void clear() {
 		// TODO clock쪽도
+
+		Iterator<K> itr = engine.getKeys();
+		while (itr.hasNext()) {
+			K key = itr.next();
+			remove(key);
+		}
 		engine.clear();
 	}
 
@@ -106,69 +159,16 @@ public class OffHeapHashMap<K, V> implements OffHeapMap<K, V> {
 	public void close() {
 		// TODO clock 등 다시 확인
 		try {
+
+			Iterator<K> itr = engine.getKeys();
+			while (itr.hasNext()) {
+				K key = itr.next();
+				remove(key);
+			}
+
 			engine.close();
 		} catch (Exception e) {
 		}
-	}
-
-	// ------------------E - X - P - I - R - E ---------------------//
-	@Override
-	public V put(K key, V value, String host, long expireTime) {
-		Entry<K, V> prev = null;
-		long address = 0L;
-		V oldValue = null;
-		int hash = hash(key);
-		for (Entry<K, V> e = engine.get(hash); e != null; e = engine.next(e)) {
-			if (e.equalsKey(key)) {
-				if (expireTime > e.getTimeoutTime()) {
-					e.setTimeoutTime(expireTime);
-					OffHeapMapClock<K, V> clock = ensureEventClock(host);
-					clock.addTimeoutTime(new TimeoutItem(expireTime, address));
-				}
-
-				oldValue = e.getValue();
-				address = engine.update(e, prev, value);
-				hash = e.getHash();
-				break;
-				// return oldValue;
-			}
-			prev = e;
-		}
-		
-		if (address == 0L)
-			address = engine.add(hash, key, value, expireTime);
-
-		if (expireTime > 0) {
-			OffHeapMapClock<K, V> clock = ensureEventClock(host);
-			clock.addExpireTime(new TimeoutItem(expireTime, address));
-			// addExpireQueue(address, host, expireTime);
-		}
-		return oldValue;
-	}
-
-	@Override
-	public void timeout(K key, String host, long timeoutTime) {
-		long address = 0L;
-		Entry<K, V> prev = null;
-		int hash = hash(key);
-		for (Entry<K, V> e = engine.get(hash); e != null; e = engine.next(e)) {
-			if (e.equalsKey(key)) {
-				address = engine.updateTime(e, prev, timeoutTime);
-				break;
-			}
-			prev = e;
-		}
-
-		if (address == 0L)
-			throw new IllegalArgumentException("key error");
-
-		OffHeapMapClock<K, V> clock = ensureEventClock(host);
-		clock.addTimeoutTime(new TimeoutItem(timeoutTime, address));
-		// Entry<K, V> entry = engine.load(address);
-		// System.out.println("timeout 제대로 업데이트 됐는지 확인 " + entry );
-		// System.out.println("actual " + entry.getTimeoutTime() + ", expected "
-		// + timeoutTime);
-		// return address;
 	}
 
 	private OffHeapMapClock<K, V> ensureEventClock(String host) {
@@ -195,16 +195,6 @@ public class OffHeapHashMap<K, V> implements OffHeapMap<K, V> {
 	public void setTime(String host, long now) {
 		OffHeapMapClock<K, V> clock = ensureEventClock(host);
 		clock.setTime(now, false);
-		//
-		// while (true) {
-		// // expire time
-		// TimeoutItem item = clock.timeoutQueue().peek();
-		// if (item == null || item.getTime() > time) {
-		// break;
-		// } else {
-		// engine.evict(clock.timeoutQueue().remove());
-		// }
-		// }
 	}
 
 	@Override
@@ -217,10 +207,10 @@ public class OffHeapHashMap<K, V> implements OffHeapMap<K, V> {
 		List<V> list = new ArrayList<V>(queue.size());
 		for (int i = 0; i < queue.size(); i++) {
 			long address = queue.get(i).getAddress();
-			Entry<K, V> entry = engine.load(address);
+			Entry<K, V> entry = engine.getEntry(address);
 			if (entry != null)
 				list.add(entry.getValue());
-			// else TODO error log 
+			// else TODO error log
 		}
 		return list;
 	}
@@ -235,10 +225,10 @@ public class OffHeapHashMap<K, V> implements OffHeapMap<K, V> {
 		List<V> list = new ArrayList<V>(queue.size());
 		for (int i = 0; i < queue.size(); i++) {
 			long address = queue.get(i).getAddress();
-			Entry<K, V> entry = engine.load(address);
+			Entry<K, V> entry = engine.getEntry(address);
 			if (entry != null)
 				list.add(entry.getValue());
-			// else TODO error log 
+			// else TODO error log
 		}
 		return list;
 	}
@@ -341,3 +331,88 @@ public class OffHeapHashMap<K, V> implements OffHeapMap<K, V> {
 // }
 // }
 // }
+
+// return oldValue;
+// Entry<K, V> e = engine.getEntry(key, hash);
+// if (e != null) {
+// if (expireTime > e.getTimeoutTime()) {
+// e.setTimeoutTime(expireTime);
+// OffHeapMapClock<K, V> clock = ensureEventClock(host);
+// clock.addTimeoutTime(new TimeoutItem(expireTime, address));
+// }
+//
+// oldValue = e.getValue();
+// address = engine.update(e, prev, value);
+// hash = e.getHash();
+// }
+//
+// /* expire? timeout?
+// * 1. 최초 입력되었을 때 time = expire, timeout중 작은값을 time으로 설정
+// * 2. 다시 입력되었을 때 time out 이 0일때 기존 timeout 값보다 클때만 변경할것!
+// */
+//
+// // key만 비교하면 되는데 entry 통째로 비교함..
+// // for (Entry<K, V> e = engine.get(hash); e != null; e =
+// engine.next(e))
+// // {
+// // if (e.equalsKey(key)) {
+// //
+// // // return oldValue;
+// // }
+// // prev = e;
+// // }
+// //
+// if (address == 0L)
+// address = engine.add(hash, key, value, expireTime);
+//
+// if (expireTime > 0) {
+// OffHeapMapClock<K, V> clock = ensureEventClock(host);
+// clock.addExpireTime(new TimeoutItem(expireTime, address));
+// // addExpireQueue(address, host, expireTime);
+// }
+// return oldValue;
+
+// ------------------E - X - P - I - R - E ---------------------//
+// @Override
+// public void timeout(K key, String host, long timeoutTime) {
+// long address = 0L;
+// Entry<K, V> prev = null;
+// int hash = hash(key);
+// for (Entry<K, V> e = engine.get(hash); e != null; e = engine.next(e)) {
+// if (e.equalsKey(key)) {
+// address = engine.updateTime(e, prev, timeoutTime);
+// break;
+// }
+// prev = e;
+// }
+//
+// if (address == 0L)
+// throw new IllegalArgumentException("key error");
+//
+// OffHeapMapClock<K, V> clock = ensureEventClock(host);
+// clock.addTimeoutTime(new TimeoutItem(timeoutTime, address));
+// // Entry<K, V> entry = engine.load(address);
+// // System.out.println("timeout 제대로 업데이트 됐는지 확인 " + entry );
+// // System.out.println("actual " + entry.getTimeoutTime() + ", expected "
+// // + timeoutTime);
+// // return address;
+// }
+//
+// long address = engine.findAddress(hash(key), key);
+// if(address == 0L)
+// return false;
+//
+// engine.remove(hash(key), address);
+// return true;
+// int hash = hash(key);
+// Entry<K, V> prev = null;
+//
+// for (Entry<K, V> e = engine.get(hash); e != null; e = engine.next(e))
+// {
+// if (e.equalsKey(key)) {
+// engine.remove(e, prev);
+// return e.getValue();
+// }
+// prev = e;
+// }
+// return null;

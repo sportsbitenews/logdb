@@ -36,7 +36,7 @@ public class ConcurrentOffHeapHashMapTest {
 		for (int i = 0; i < 100000; i++) {
 			EventKey key = new EventKey("topic" + i, "key", "host");
 			EventContext value = new EventContext(key, 0L, 0L, 0L, 10);
-			map.put(key, value, "test", 1000);
+			map.put(key, value, "test", 1000, 2000);
 		}
 
 		long s = System.currentTimeMillis();
@@ -52,22 +52,22 @@ public class ConcurrentOffHeapHashMapTest {
 		map.close();
 	}
 
-	//@Test
-	public void entryEncodeTest() {
-		long s = System.currentTimeMillis();
-		int size = 1000000;
-		for (int i = 0; i < size; i++) {
-			Entry<String, String> e = new Entry<String, String>("a", "b", 0, 0, 0, 0);
-			//Entry.lengthOf(Entry.marshal(e,  Serialize.STRING, Serialize.STRING));
-			//Entry.sizeOf(keyLength, valueLength)
-			Entry.decode(Entry.encode(e, Serialize.STRING, Serialize.STRING), Serialize.STRING, Serialize.STRING, 0L);
-			//Entry.decodeEntry(Entry.encodeEntry(e, Serialize.STRING, Serialize.STRING), Serialize.STRING,
-				//	Serialize.STRING, 0L);
-		}
-		
-		long e = System.currentTimeMillis() - s;
-		System.out.println("put :" + e + "ms, " + size * 1000L / e + "tps");
-	}
+//	//@Test
+//	public void entryEncodeTest() {
+//		long s = System.currentTimeMillis();
+//		int size = 1000000;
+//		for (int i = 0; i < size; i++) {
+//			Entry<String, String> e = new Entry<String, String>("a", "b", 0, 0, 0, 0);
+//			//Entry.lengthOf(Entry.marshal(e,  Serialize.STRING, Serialize.STRING));
+//			//Entry.sizeOf(keyLength, valueLength)
+//			Entry.decode(Entry.encode(e, Serialize.STRING, Serialize.STRING), Serialize.STRING, Serialize.STRING, 0L);
+//			//Entry.decodeEntry(Entry.encodeEntry(e, Serialize.STRING, Serialize.STRING), Serialize.STRING,
+//				//	Serialize.STRING, 0L);
+//		}
+//		
+//		long e = System.currentTimeMillis() - s;
+//		System.out.println("put :" + e + "ms, " + size * 1000L / e + "tps");
+//	}
 
 	//@Test
 	public void evnetTest() {
@@ -405,31 +405,19 @@ public class ConcurrentOffHeapHashMapTest {
 			return -1;
 		}
 
-//		@Override
-//		public byte[] serialize(People value) {
-//			return value.name.getBytes();
-//		}
-//
-//		@Override
-//		public People deserialize(byte[] in, int s, int e) {
-//			return new People(new String(in, s, e));
-//		}
+		@Override
+		public byte[] serialize(People value) {
+			return value.name.getBytes();
+		}
+
+		@Override
+		public People deserialize(byte[] in) {
+			return new People(new String(in));
+		}
 
 		@Override
 		public boolean equals(Object o) {
 			return name.equals(((People) o).name);
-		}
-
-		@Override
-		public People deserialize(ByteBuffer bb) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public ByteBuffer serialize(People value) {
-			// TODO Auto-generated method stub
-			return null;
 		}
 	}
 
@@ -454,26 +442,14 @@ public class ConcurrentOffHeapHashMapTest {
 			return -1;
 		}
 
-//		@Override
-//		public byte[] serialize(Pc value) {
-//			return value.id.getBytes();
-//		}
-//
-//		@Override
-//		public Pc deserialize(byte[] in, int s, int e) {
-//			return new Pc(new String(in, s, e));
-//		}
-
 		@Override
-		public Pc deserialize(ByteBuffer bb) {
-			// TODO Auto-generated method stub
-			return null;
+		public byte[] serialize(Pc value) {
+			return value.id.getBytes();
 		}
 
 		@Override
-		public ByteBuffer serialize(Pc value) {
-			// TODO Auto-generated method stub
-			return null;
+		public Pc deserialize(byte[] in) {
+			return new Pc(new String(in));
 		}
 	}
 

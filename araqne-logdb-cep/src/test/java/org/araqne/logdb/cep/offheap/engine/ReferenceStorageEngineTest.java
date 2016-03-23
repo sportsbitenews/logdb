@@ -1,7 +1,6 @@
 package org.araqne.logdb.cep.offheap.engine;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.util.Date;
@@ -19,7 +18,7 @@ public class ReferenceStorageEngineTest {
 
 	@Before
 	public void onStart() {
-		engine = new ReferenceStorageEngine<String, String>(Serialize.STRING, Serialize.STRING); // *
+		engine = new ReferenceStorageEngine<String, String>(128, 128, Serialize.STRING, Serialize.STRING); // *
 	}
 
 	@After
@@ -27,214 +26,143 @@ public class ReferenceStorageEngineTest {
 		engine.close();
 	}
 
+	/*
+	 * test method : add(), getValue(), getEntry();
+	 */
 	@Test
-	public void getTest() {
-		engine.add(0, "0", "");
-		engine.add(1, "1", "a");
-		engine.add(2, "2", "b");
-		engine.add(3, "3", "c");
-		engine.add(4, "4", "d");
-		engine.add(5, "5", "e");
-		engine.add(16777215, "last", "Z");
+	public void getValueTest() {
+		String key = "ADD_TEST_KEY";
+		String value = "ADD_TEST_VALUE";
+		int hash = key.hashCode();
+		long time = new Date().getTime();
 
-		Entry<String, String> entry = engine.get(0);
-		assertEquals("0", entry.getKey());
-		assertEquals("", entry.getValue());
+		long address = engine.add(hash, key, value, time);
+		assertEquals(value, engine.getValue(address));
 
-		entry = engine.get(1);
-		assertEquals("1", entry.getKey());
-		assertEquals("a", entry.getValue());
+		Entry<String, String> entry = engine.getEntry(address);
+		assertEquals(key, entry.getKey());
+		assertEquals(value, entry.getValue());
+		assertEquals(hash, entry.getHash());
+		assertEquals(0, entry.getNext());
+		assertEquals(time, entry.getTimeoutTime());
 
-		entry = engine.get(2);
-		assertEquals("2", entry.getKey());
-		assertEquals("b", entry.getValue());
+		engine.remove(hash, key);
 
-		entry = engine.get(3);
-		assertEquals("3", entry.getKey());
-		assertEquals("c", entry.getValue());
+		String key2 = "ADD_TEST_KEY_2";
+		long address2 = engine.add(hash, key2, value, time);
 
-		entry = engine.get(4);
-		assertEquals("4", entry.getKey());
-		assertEquals("d", entry.getValue());
+		String key3 = "ADD_TEST_KEY_3";
+		long address3 = engine.add(hash, key3, value, time);
 
-		entry = engine.get(5);
-		assertEquals("5", entry.getKey());
-		assertEquals("e", entry.getValue());
+		entry = engine.getEntry(address3);
+		assertEquals(key3, entry.getKey());
+		assertEquals(address2, entry.getNext());
 
-		entry = engine.get(16777215);
-		assertEquals("last", entry.getKey());
-		assertEquals("Z", entry.getValue());
+		engine.remove(hash, key2);
+		engine.remove(hash, key3);
 	}
 
+	/*
+	 * test method : findAddress
+	 */
 	@Test
-	public void nextTest() {
-		engine.add(1125125133, "test0", "테스트0");
-		engine.add(1125125133, "test1", "테스트1");
-		engine.add(1125125133, "test2", "테스트2");
-		engine.add(1125125133, "test3", "테스트3");
-		engine.add(1125125133, "test4", "테스트4");
-		engine.add(1125125133, "test5", "테스트5");
-		engine.add(1125125133, "test6", "테스트6");
-		engine.add(1125125133, "test7", "테스트7");
-		engine.add(1125125133, "test8", "테스트8");
-		engine.add(1125125133, "test9", "테스트9");
+	public void findAddressTest() {
+		String key = "FINDADDRESS_TEST_KEY";
+		String value = "FINDADDRESS_TEST_VALUE";
+		int hash = key.hashCode();
 
-		Entry<String, String> entry = engine.get(1125125133);
-		assertEquals("test9", entry.getKey());
-		assertEquals("테스트9", entry.getValue());
+		long address1 = engine.add(hash, key, value);
+		long address = engine.findAddress(hash, key);
 
-		entry = engine.next(entry);
-		assertEquals("test8", entry.getKey());
-		assertEquals("테스트8", entry.getValue());
-
-		entry = engine.next(entry);
-		assertEquals("test7", entry.getKey());
-		assertEquals("테스트7", entry.getValue());
-
-		entry = engine.next(entry);
-		assertEquals("test6", entry.getKey());
-		assertEquals("테스트6", entry.getValue());
-
-		entry = engine.next(entry);
-		assertEquals("test5", entry.getKey());
-		assertEquals("테스트5", entry.getValue());
-
-		entry = engine.next(entry);
-		assertEquals("test4", entry.getKey());
-		assertEquals("테스트4", entry.getValue());
-
-		entry = engine.next(entry);
-		assertEquals("test3", entry.getKey());
-		assertEquals("테스트3", entry.getValue());
-
-		entry = engine.next(entry);
-		assertEquals("test2", entry.getKey());
-		assertEquals("테스트2", entry.getValue());
-
-		entry = engine.next(entry);
-		assertEquals("test1", entry.getKey());
-		assertEquals("테스트1", entry.getValue());
-
-		entry = engine.next(entry);
-		assertEquals("test0", entry.getKey());
-		assertEquals("테스트0", entry.getValue());
-
-		entry = engine.next(entry);
-		assertNull(entry);
+		assertEquals(address1, address);
+		engine.remove(hash, key);
 	}
 
+	/*
+	 * test method : remove()
+	 */
 	@Test
 	public void removeTest() {
-		// 1
-		engine.add(100001, "abcd", "1234");
-		Entry<String, String> entry = engine.get(100001);
-		assertEquals("abcd", entry.getKey());
-		assertEquals("1234", entry.getValue());
+		String key = "REMOVE_TEST_KEY";
+		String value = "REMOVE_TEST_VALUE";
+		int hash = key.hashCode();
 
-		engine.remove(entry, null);
-		entry = engine.get(100001);
-		assertNull(entry);
+		engine.add(hash, key, value);
+		assertEquals(true, engine.remove(hash, key));
+		assertEquals(0L, engine.findAddress(hash, key));
 
-		// 2
-		engine.add(100002, "2", "5678");
-		engine.add(100002, "1", "1234");
+		long time = new Date().getTime();
 
-		Entry<String, String> entry1 = engine.get(100002);
-		assertEquals("1", entry1.getKey());
-		assertEquals("1234", entry1.getValue());
+		String key2 = "REMOVE_TEST_KEY_2";
+		long address2 = engine.add(hash, key2, value, time);
+		String key3 = "REMOVE_TEST_KEY_3";
+		long address3 = engine.add(hash, key3, value, time);
 
-		Entry<String, String> entry2 = engine.next(entry1);
-		assertEquals("2", entry2.getKey());
-		assertEquals("5678", entry2.getValue());
+		Entry<String, String> entry = engine.getEntry(address3);
+		assertEquals(address2, entry.getNext());
 
-		engine.remove(entry2, entry1);
-		entry1 = engine.get(100002);
-		assertEquals("1", entry1.getKey());
-		assertEquals("1234", entry1.getValue());
+		assertEquals(true, engine.remove(hash, key2));
+		assertEquals(0L, engine.findAddress(hash, key2));
 
-		entry2 = engine.next(entry1);
-		assertNull(entry2);
-
-		engine.add(100002, "2", "5678");
-		entry1 = engine.get(100002);
-		assertEquals("2", entry1.getKey());
-		assertEquals("5678", entry1.getValue());
-
-		entry2 = engine.next(entry1);
-		assertEquals("1", entry2.getKey());
-		assertEquals("1234", entry2.getValue());
-
-		engine.remove(entry1, null);
-		entry1 = engine.get(100002);
-		assertEquals("1", entry1.getKey());
-		assertEquals("1234", entry1.getValue());
-
-		entry2 = engine.next(entry1);
-		assertNull(entry2);
-
-		engine.remove(entry1, null);
-		entry1 = engine.get(100002);
-		assertNull(entry1);
-
-		// 3
-		engine.add(100003, "3", "c");
-		engine.add(100003, "2", "b");
-		engine.add(100003, "1", "a");
-
-		entry1 = engine.get(100003);
-		assertEquals("1", entry1.getKey());
-		assertEquals("a", entry1.getValue());
-
-		entry2 = engine.next(entry1);
-		assertEquals("2", entry2.getKey());
-		assertEquals("b", entry2.getValue());
-
-		Entry<String, String> entry3 = engine.next(entry2);
-		assertEquals("3", entry3.getKey());
-		assertEquals("c", entry3.getValue());
-
-		engine.remove(entry2, entry1);
-		entry1 = engine.get(100003);
-		assertEquals("1", entry1.getKey());
-		assertEquals("a", entry1.getValue());
-
-		entry2 = engine.next(entry1);
-		assertEquals("3", entry2.getKey());
-		assertEquals("c", entry2.getValue());
-
-		entry3 = engine.next(entry2);
-		assertNull(entry3);
+		entry = engine.getEntry(address3);
+		assertEquals(0L, entry.getNext());
+		assertEquals(true, engine.remove(hash, key3));
+		assertEquals(0L, engine.findAddress(hash, key3));
 	}
 
+	/*
+	 * test method : replace()
+	 */
 	@Test
-	public void updateTest() {
-		engine.add(999, "abcd", "1234");
-		Entry<String, String> entry = engine.get(999);
-		assertEquals("abcd", entry.getKey());
-		assertEquals("1234", entry.getValue());
+	public void replaceTest() {
+		String key = "REPLACE_TEST_KEY";
+		String value = "REPLACE_TEST_VALUE";
+		int hash = key.hashCode();
+		long time = 0L;
 
-		engine.update(entry, null, "5678");
+		long address = engine.add(hash, key, value, time);
 
-		entry = engine.get(999);
-		assertEquals("abcd", entry.getKey());
-		assertEquals("5678", entry.getValue());
+		String newValue = "REPLACE_NEW_TEST_VALUE";
+		long newTime = new Date().getTime();
+		long newAddress = engine.replace(hash, address, newValue, newTime);
+
+		Entry<String, String> entry = engine.getEntry(newAddress);
+		assertEquals(newValue, entry.getValue());
+		assertEquals(newTime, entry.getTimeoutTime());
+
+		String newLongValue = "REPLACE_NEW_LONG_TEST_VALUE_REPLACE_NEW_LONG_TEST_VALUE_REPLACE_NEW_LONG_TEST_VALUE_REPLACE_NEW_LONG_TEST_VALUE";
+		long newTime2 = new Date().getTime() + 1234;
+		long newAddress2 = engine.replace(hash, address, newLongValue, newTime2);
+
+		entry = engine.getEntry(newAddress2);
+		assertEquals(newLongValue, entry.getValue());
+		assertEquals(newTime2, entry.getTimeoutTime());
+		assertEquals(256, entry.getMaxSize());
+		assertEquals(true, engine.remove(hash, key));
 	}
 
+	/*
+	 * test method : evict()
+	 */
 	@Test
-	public void clearTest() {
-		engine.add(111, "!", "1");
-		Entry<String, String> entry = engine.get(111);
-		assertEquals("!", entry.getKey());
-		assertEquals("1", entry.getValue());
+	public void evictTest() {
+		String key = "EVICT_TEST_KEY";
+		String value = "EVICT_TEST_VALUE";
+		int hash = key.hashCode();
+		long time = new Date().getTime();
 
-		engine.clear();
-		entry = engine.get(111);
-		assertNull(entry);
+		long address = engine.add(hash, key, value, time);
+		assertEquals(address, engine.findAddress(hash, key));
+		engine.evict(new TimeoutItem(time, address));
+		assertEquals(0, engine.findAddress(hash, key));
 	}
 
+	/*
+	 * test method : getKeys()
+	 */
 	@Test
 	public void keySetTest() {
-		String[] keys = { "0", "1", "2", "3", "4", "5", "6", "last" };
+		String[] keys = { "0", "1", "2", "3", "4", "5", "6" };
 
 		engine.add(0, keys[0], "");
 		engine.add(1, keys[3], "a");
@@ -243,46 +171,110 @@ public class ReferenceStorageEngineTest {
 		engine.add(4, keys[5], "d");
 		engine.add(4, keys[4], "e");
 		engine.add(5, keys[6], "f");
-		engine.add(16777215, keys[7], "Z");
 
 		Iterator<String> keyItr = engine.getKeys();
 		int i = 0;
 		while (keyItr.hasNext()) {
-			assertEquals(keys[i++], keyItr.next());
+			String key = keyItr.next();
+			assertEquals(keys[i++], key);
 		}
-		engine.clear();
+
+		engine.remove(0, keys[0]);
+		engine.remove(1, keys[3]);
+		engine.remove(1, keys[2]);
+		engine.remove(1, keys[1]);
+		engine.remove(4, keys[5]);
+		engine.remove(4, keys[4]);
+		engine.remove(5, keys[6]);
 	}
 
-	@Test
-	public void loadTest() {
-		int index = 125491;
-
-		long address = engine.add(index, "key", "value");
-		Entry<String, String> e1 = engine.get(index);
-		Entry<String, String> e2 = engine.load(address);
-		String key = engine.loadKey(address);
-		String value = engine.loadValue(address);
-
-		assertEquals("key", e1.getKey());
-		assertEquals("key", e2.getKey());
-		assertEquals("key", key);
-
-		assertEquals("value", e1.getValue());
-		assertEquals("value", e2.getValue());
-		assertEquals("value", value);
-	}
-	
-	@Test
-	public void addExpireTest() {
-		long timeout =  new Date().getTime();
-	
-		long address = engine.add(62415, "Key", "Value", timeout);
-		Entry<String, String> entry = engine.get(62415);
-		assertEquals(timeout, entry.getTimeoutTime());
-		
-		engine.evict(new TimeoutItem(timeout, address));
-		Entry<String, String> entry2 = engine.get(62415);
-		assertNull(entry2);
-	}
+	// // 3
+	// engine.add(100003, "3", "c");
+	// engine.add(100003, "2", "b");
+	// engine.add(100003, "1", "a");
+	//
+	// entry1 = engine.get(100003);
+	// assertEquals("1", entry1.getKey());
+	// assertEquals("a", entry1.getValue());
+	//
+	// entry2 = engine.getNext(entry1);
+	// assertEquals("2", entry2.getKey());
+	// assertEquals("b", entry2.getValue());
+	//
+	// Entry<String, String> entry3 = engine.getNext(entry2);
+	// assertEquals("3", entry3.getKey());
+	// assertEquals("c", entry3.getValue());
+	//
+	// engine.remove(entry2, entry1);
+	// entry1 = engine.get(100003);
+	// assertEquals("1", entry1.getKey());
+	// assertEquals("a", entry1.getValue());
+	//
+	// entry2 = engine.getNext(entry1);
+	// assertEquals("3", entry2.getKey());
+	// assertEquals("c", entry2.getValue());
+	//
+	// entry3 = engine.getNext(entry2);
+	// assertNull(entry3);
+	// }
+	//
+	// @Test
+	// public void updateTest() {
+	// engine.add(999, "abcd", "1234");
+	// Entry<String, String> entry = engine.get(999);
+	// assertEquals("abcd", entry.getKey());
+	// assertEquals("1234", entry.getValue());
+	//
+	// engine.update(entry, null, "5678");
+	//
+	// entry = engine.get(999);
+	// assertEquals("abcd", entry.getKey());
+	// assertEquals("5678", entry.getValue());
+	// }
+	//
+	// @Test
+	// public void clearTest() {
+	// engine.add(111, "!", "1");
+	// Entry<String, String> entry = engine.get(111);
+	// assertEquals("!", entry.getKey());
+	// assertEquals("1", entry.getValue());
+	//
+	// engine.clear();
+	// entry = engine.get(111);
+	// assertNull(entry);
+	// }
+	//
+	//
+	// @Test
+	// public void loadTest() {
+	// int index = 125491;
+	//
+	// long address = engine.add(index, "key", "value");
+	// Entry<String, String> e1 = engine.get(index);
+	// Entry<String, String> e2 = engine.getEntry(address);
+	// String key = engine.loadKey(address);
+	// String value = engine.loadValue(address);
+	//
+	// assertEquals("key", e1.getKey());
+	// assertEquals("key", e2.getKey());
+	// assertEquals("key", key);
+	//
+	// assertEquals("value", e1.getValue());
+	// assertEquals("value", e2.getValue());
+	// assertEquals("value", value);
+	// }
+	//
+	// @Test
+	// public void addExpireTest() {
+	// long timeout = new Date().getTime();
+	//
+	// long address = engine.add(62415, "Key", "Value", timeout);
+	// Entry<String, String> entry = engine.get(62415);
+	// assertEquals(timeout, entry.getTimeoutTime());
+	//
+	// engine.evict(new TimeoutItem(timeout, address));
+	// Entry<String, String> entry2 = engine.get(62415);
+	// assertNull(entry2);
+	// }
 
 }

@@ -47,8 +47,8 @@ public class ConcurrentOffHeapHashMap<K, V> implements OffHeapConcurrency<K, V> 
 		return segments[mod];
 	}
 
-	public V putIfAbsent(K key, V value, String host, long timeout) {
-		return segmentFor(key).putIfAbsent(key, value, host, timeout);
+	public V putIfAbsent(K key, V value, String host, long expireTime, long timeoutTime) {
+		return segmentFor(key).putIfAbsent(key, value, host, expireTime, timeoutTime);
 	}
 
 	@Override
@@ -56,42 +56,33 @@ public class ConcurrentOffHeapHashMap<K, V> implements OffHeapConcurrency<K, V> 
 		return segmentFor(key).putIfAbsent(key, value);
 	}
 
-	// public void lock(K key) {
-	// segmentFor(key).lock();
-	// }
-	//
-	// public void unlock(K key) {
-	// segmentFor(key).unlock();
-	// }
-
 	public boolean replace(K key, V oldValue, V newValue) {
 		Segment<K, V> s = segmentFor(key);
 		return s != null && s.replace(key, oldValue, newValue);
 	}
 
-	public boolean replace(K key, V oldValue, V newValue, String host, long timeout) {
+	public boolean replace(K key, V oldValue, V newValue, String host, long timeoutTime) {
 		Segment<K, V> s = segmentFor(key);
-		return s != null && s.replace(key, oldValue, newValue, host, timeout);
+		return s != null && s.replace(key, oldValue, newValue, host, timeoutTime);
 	}
 
-	public V put(K key, V value, String host, long time) {
+	public void put(K key, V value, String host, long expireTime, long timeoutTime) {
 		if (key == null)
 			new IllegalArgumentException("key is null");
 
-		return segmentFor(key).put(key, value, host, time);
+		segmentFor(key).put(key, value, host, expireTime, timeoutTime);
 	}
 
 	@Override
-	public V put(K key, V value) {
+	public void put(K key, V value) {
 		if (key == null)
 			new IllegalArgumentException("key is null");
 
-		return segmentFor(key).put(key, value);
-		// TODO : segment 확장?
+		segmentFor(key).put(key, value);
 	}
 
 	@Override
-	public V get(Object key) {
+	public V get(K key) {
 		if (key == null)
 			return null;
 
@@ -99,7 +90,7 @@ public class ConcurrentOffHeapHashMap<K, V> implements OffHeapConcurrency<K, V> 
 	}
 
 	@Override
-	public V remove(Object key) {
+	public boolean remove(K key) {
 		return segmentFor(key).remove(key);
 	}
 
@@ -195,11 +186,6 @@ public class ConcurrentOffHeapHashMap<K, V> implements OffHeapConcurrency<K, V> 
 	}
 
 	@Override
-	public void timeout(K key, String host, long timeoutTime) {
-		segmentFor(key).timeout(key, host, timeoutTime);
-	}
-
-	@Override
 	public void setTime(String host, long now) {
 		for (Segment<K, V> segment : segments) {
 			segment.setTime(host, now);
@@ -237,5 +223,4 @@ public class ConcurrentOffHeapHashMap<K, V> implements OffHeapConcurrency<K, V> 
 			segment.clearClock();
 		}
 	}
-
 }

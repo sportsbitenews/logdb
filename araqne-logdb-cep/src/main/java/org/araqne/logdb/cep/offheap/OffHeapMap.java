@@ -7,12 +7,11 @@ import java.util.Set;
 import org.araqne.logdb.cep.offheap.timeout.OffHeapEventListener;
 
 public interface OffHeapMap<K, V> {
-	/* map */
-	V put(K key, V value);
+	void put(K key, V value);
 
-	V get(Object key);
+	V get(K key);
 
-	V remove(Object key);
+	boolean remove(K key);
 
 	Iterator<K> getKeys();
 
@@ -20,10 +19,7 @@ public interface OffHeapMap<K, V> {
 
 	void close();
 
-	/* expire */
-	V put(K key, V value, String host, long exprireTime);
-
-	void timeout(K key, String host, long timeoutTime);
+	void put(K key, V value, String host, long exprireTime, long timeoutTime);
 
 	void setTime(String host, long time);
 
@@ -35,9 +31,9 @@ public interface OffHeapMap<K, V> {
 
 	List<V> expireQueue(String host);
 
-	void addListener(OffHeapEventListener<K,V> listener);
+	void addListener(OffHeapEventListener<K, V> listener);
 
-	void removeListener(OffHeapEventListener<K,V> listener);
+	void removeListener(OffHeapEventListener<K, V> listener);
 
 	void clearClock();
 }

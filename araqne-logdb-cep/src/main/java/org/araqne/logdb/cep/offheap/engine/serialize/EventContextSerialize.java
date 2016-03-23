@@ -14,35 +14,19 @@ import org.araqne.logdb.cep.EventContext;
 import org.araqne.logdb.cep.EventKey;
 
 public class EventContextSerialize implements Serialize<EventContext> {
-	// public static String delimiter = "-^-";
 	private FastEncodingRule enc = new FastEncodingRule();
 	private EventKeySerialize keySerializer = new EventKeySerialize();
 
-	// @Override
-	// public byte[] serialize(EventContext value) {
-	// Map<String, Object> map = marshal(value);
-	// ByteBuffer bb = ByteBuffer.allocate(EncodingRule.lengthOf(map));
-	// EncodingRule.encode(bb, map);
-	// return bb.array();
-	// }
-
 	@Override
-	public ByteBuffer serialize(EventContext value) {
+	public byte[] serialize(EventContext value) {
 		Object[] array = marshal(value);
-		return enc.encode(array);
+		return enc.encode(array).array();
 	}
 
 	@Override
-	public EventContext deserialize(ByteBuffer bb) {
-		return parse(EncodingRule.decodeArray(bb));
+	public EventContext deserialize(byte[] in) {
+		return parse(EncodingRule.decodeArray(ByteBuffer.wrap(in)));
 	}
-
-	// @SuppressWarnings("unchecked")
-	// @Override
-	// public EventContext deserialize(byte[] in, int offset, int length) {
-	// return parse((Map<String, Object>)
-	// EncodingRule.decode(ByteBuffer.wrap(in)));
-	// }
 
 	@Override
 	public int size() {
@@ -51,7 +35,7 @@ public class EventContextSerialize implements Serialize<EventContext> {
 
 	public Object[] marshal(EventContext ctx) {
 		Object[] array = new Object[8];
-		array[0] = keySerializer.serialize(ctx.getKey()).array();
+		array[0] = keySerializer.serialize(ctx.getKey());
 		array[1] = ctx.getCreated();
 		array[2] = ctx.getExpireTime();
 		array[3] = ctx.getTimeoutTime();
@@ -64,7 +48,7 @@ public class EventContextSerialize implements Serialize<EventContext> {
 
 	@SuppressWarnings("unchecked")
 	public EventContext parse(Object[] array) {
-		EventKey key = keySerializer.deserialize(ByteBuffer.wrap((byte[])array[0]));
+		EventKey key = keySerializer.deserialize((byte[]) array[0]);
 		Long created = (Long) array[1];
 		Long expireTime = (Long) array[2];
 		Long timeoutTime = (Long) array[3];
@@ -72,9 +56,8 @@ public class EventContextSerialize implements Serialize<EventContext> {
 		List<Row> rows = parseRows((Object[]) array[5]);
 		HashMap<String, Object> variables = (HashMap<String, Object>) array[6];
 		Integer count = (Integer) array[7];
-		
-		EventContext cxt = new EventContext(key, created, expireTime, timeoutTime, maxRows);
 
+		EventContext cxt = new EventContext(key, created, expireTime, timeoutTime, maxRows);
 		for (Row row : rows)
 			cxt.addRow(row);
 
@@ -88,88 +71,8 @@ public class EventContextSerialize implements Serialize<EventContext> {
 		return cxt;
 	}
 
-	// public Map<String, Object> marshal(EventContext ctx) {
-	// HashMap<String, Object> m = new HashMap<String, Object>();
-	// m.put("key", marshal(ctx.getKey()));
-	// m.put("created", ctx.getCreated());
-	// m.put("expireTime", ctx.getExpireTime());
-	// m.put("timeoutTime", ctx.getTimeoutTime());
-	// m.put("maxRows", ctx.getMaxRows());
-	// m.put("rows", format(ctx.getRows()));
-	// m.put("variables", ctx.getVariables());
-	// m.put("count", ctx.getCounter().get());
-	// return m;
-	// }
-
-	// @SuppressWarnings("unchecked")
-	// public EventContext parse(Map<String, Object> m) {
-	// EventKey key = parse((String) m.get("key"));
-	// Long created = (Long) m.get("created");
-	// Long expireTime = (Long) m.get("expireTime");
-	// Long timeoutTime = (Long) m.get("timeoutTime");
-	// Integer maxRows = (Integer) m.get("maxRows");
-	//
-	// List<Row> rows = parseRows((Object[]) m.get("rows"));
-	// HashMap<String, Object> variables = (HashMap<String, Object>)
-	// m.get("variables");
-	// Integer count = (Integer) m.get("count");
-	// EventContext cxt = new EventContext(key, created, expireTime,
-	// timeoutTime, maxRows);// ,
-	// // host);
-	// for (Row row : rows)
-	// cxt.addRow(row);
-	//
-	// if (count != null)
-	// cxt.getCounter().addAndGet(count);
-	//
-	// if (variables != null)
-	// for (String s : variables.keySet())
-	// cxt.setVariable(s, variables.get(s));
-	//
-	// return cxt;
-	// }
-
-//	public String marshal(EventKey key) {
-//		StringBuffer sb = new StringBuffer();
-//		sb.append(key.getTopic());
-//		sb.append(delimiter);
-//		sb.append(key.getKey());
-//		sb.append(delimiter);
-//		if (key.getHost() != null)
-//			sb.append(key.getHost());
-//		return sb.toString();
-//	}
-//
-//	public EventKey parse(String line) {
-//		String[] parsed = new String[3];
-//
-//		int i = 0;
-//		int last = 0;
-//		while (true) {
-//			int p = line.indexOf(delimiter, last);
-//			String token = null;
-//			if (p >= 0)
-//				token = line.substring(last, p);
-//			else
-//				token = line.substring(last);
-//
-//			if (token.isEmpty())
-//				token = null;
-//
-//			parsed[i] = token;
-//			if (p < 0)
-//				break;
-//
-//			last = p + delimiter.length();
-//			i++;
-//		}
-//		EventKey evtkey = new EventKey(parsed[0], parsed[1], parsed[2]);
-//		return evtkey;
-//	}
-
 	private List<Map<String, Object>> format(List<Row> rows) {
 		List<Map<String, Object>> rowMaps = new ArrayList<Map<String, Object>>();
-
 		for (Row row : rows) {
 			rowMaps.add(row.map());
 		}
@@ -184,5 +87,5 @@ public class EventContextSerialize implements Serialize<EventContext> {
 		}
 		return rows;
 	}
-
+	
 }

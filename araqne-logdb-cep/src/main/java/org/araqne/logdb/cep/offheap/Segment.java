@@ -32,24 +32,16 @@ public class Segment<K, V> extends OffHeapHashMap<K, V> {
 		super(storage);
 	}
 
-	// public void lock() {
-	// write.lock();
-	// }
-	//
-	// public void unlock() {
-	// write.unlock();
-	// }
-
-	public V put(K key, V value) {
+	public void put(K key, V value) {
 		write.lock();
 		try {
-			return super.put(key, value);
+			super.put(key, value);
 		} finally {
 			write.unlock();
 		}
 	}
 
-	public V get(Object key) {
+	public V get(K key) {
 		read.lock();
 		try {
 			return super.get(key);
@@ -58,7 +50,7 @@ public class Segment<K, V> extends OffHeapHashMap<K, V> {
 		}
 	}
 
-	public V remove(Object key) {
+	public boolean remove(K key) {
 		write.lock();
 		try {
 			return super.remove(key);
@@ -95,19 +87,10 @@ public class Segment<K, V> extends OffHeapHashMap<K, V> {
 		}
 	}
 
-	public V put(K key, V value, String host, long expireTime) {
+	public void put(K key, V value, String host, long expireTime, long updateTime) {
 		write.lock();
 		try {
-			return super.put(key, value, host, expireTime);
-		} finally {
-			write.unlock();
-		}
-	}
-
-	public void timeout(K key, String host, long timeoutTime) {
-		write.lock();
-		try {
-			super.timeout(key, host, timeoutTime);
+			super.put(key, value, host, expireTime, updateTime);
 		} finally {
 			write.unlock();
 		}
@@ -136,12 +119,12 @@ public class Segment<K, V> extends OffHeapHashMap<K, V> {
 		return replaced;
 	}
 
-	public boolean replace(K key, V oldValue, V newValue, String host, long timeout) {
+	public boolean replace(K key, V oldValue, V newValue, String host, long timeoutTime) {
 		write.lock();
 		boolean replaced = false;
 		try {
 			if (oldValue.equals(super.get(key))) {
-				super.put(key, newValue, host, timeout);
+				super.put(key, newValue, host, 0L, timeoutTime);
 				replaced = true;
 			}
 		} finally {
@@ -166,15 +149,16 @@ public class Segment<K, V> extends OffHeapHashMap<K, V> {
 		}
 	}
 
-	public V putIfAbsent(K key, V value, String host, long timeout) {
+	public V putIfAbsent(K key, V value, String host, long expireTime, long timeoutTime) {
 		write.lock();
 		try {
 			if (key == null || value == null) {
 				throw new NullPointerException();
 			}
+			// TODO key is null method 추가
 			V existing = super.get(key);
 			if (existing == null) {
-				super.put(key, value, host, timeout);
+				super.put(key, value, host, expireTime, timeoutTime);
 			}
 			return existing;
 		} finally {

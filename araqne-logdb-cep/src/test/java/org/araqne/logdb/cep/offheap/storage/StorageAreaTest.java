@@ -2,23 +2,45 @@ package org.araqne.logdb.cep.offheap.storage;
 
 import static org.junit.Assert.assertEquals;
 
-import org.araqne.logdb.cep.offheap.engine.serialize.Serialize;
 import org.junit.Assert;
 import org.junit.Test;
 
+import sun.misc.Unsafe;
+
+@SuppressWarnings("restriction")
 public class StorageAreaTest {
+
+//	@Test
+//	public void allocateTest() {
+//		Unsafe unsafe1 = UnsafeByteArrayStorageArea.getUnsafe();
+//		Unsafe unsafe2 = UnsafeByteArrayStorageArea.getUnsafe();
+//
+//
+//		long address = unsafe1.allocateMemory(100);
+//		
+//		unsafe1.putInt(address, 1234);
+//		System.out.println(unsafe1.getInt(address));
+//		
+//		
+//		System.out.println(unsafe2.getInt(address));
+//		
+//		unsafe2.freeMemory(address);
+//		System.out.println(unsafe1.getInt(address));
+//	}
+
+	
 	
 	@Test
 	public void byteArrayTest() {
 		UnsafeByteArrayStorageArea storageArea = new UnsafeByteArrayStorageArea(50);
-		
-		storageArea.setValue(0, "test".getBytes());
-		storageArea.setValue(10,"한글".getBytes());
-		storageArea.setValue(20,"!@#$".getBytes());
 
-		Assert.assertArrayEquals("test".getBytes(),  storageArea.getValue(0));
-		Assert.assertArrayEquals("한글".getBytes(),  storageArea.getValue(10));
-		Assert.assertArrayEquals("!@#$".getBytes(),  storageArea.getValue(20));
+		storageArea.setValue(0, "test".getBytes());
+		storageArea.setValue(10, "한글".getBytes());
+		storageArea.setValue(20, "!@#$".getBytes());
+
+		Assert.assertArrayEquals("test".getBytes(), storageArea.getValue(0));
+		Assert.assertArrayEquals("한글".getBytes(), storageArea.getValue(10));
+		Assert.assertArrayEquals("!@#$".getBytes(), storageArea.getValue(20));
 
 		storageArea.close();
 	}

@@ -53,7 +53,6 @@ import org.slf4j.LoggerFactory;
 @Component(name = "offheap-event-ctx-storage")
 public class OffHeapEventContextStorage implements EventContextStorage, EventContextListener {
 	private final Logger slog = LoggerFactory.getLogger(OffHeapEventContextStorage.class);
-	// private static final int INITIAL_CAPACITY = 11;
 
 	@Requires
 	private EventContextService eventContextService;
@@ -61,22 +60,10 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 	@Requires
 	private TickService tickService;
 
-	// private ConcurrentHashMap<String, ConcurrentOffHeapHashMap<EventKey,
-	// EventContext>> contextsMap;
-	// private EventClock<EventContext> clock;
-
-	// topic to subscribers
 	private ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>> subscribers;
-
-	// log tick host to aging context mappings
-	// private ConcurrentHashMap<String, EventClock<EventContext>> logClocks;
-	// private EventClock<EventContext> realClock;
-
-	private ConcurrentOffHeapHashMap<EventKey, EventContext> contexts;// Map;
+	private ConcurrentOffHeapHashMap<EventKey, EventContext> contexts;
 	private RealClockTask realClockTask = new RealClockTask();
 	private CepListener listener = new CepListener();
-
-	// private OffheapEventClock clocks = new OffheapEventClock();
 
 	@Override
 	public String getName() {
@@ -86,7 +73,7 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 	@Validate
 	public void start() {
 		StorageEngineFactory<EventKey, EventContext> factory = new ReferenceStorageEngineFactory<EventKey, EventContext>(
-				1024 * 1024 * 16, Integer.MAX_VALUE >> 5, new EventKeySerialize(), new EventContextSerialize());
+				1024 * 1024 * 16, 512, new EventKeySerialize(), new EventContextSerialize());
 		contexts = new ConcurrentOffHeapHashMap<EventKey, EventContext>(factory);
 		contexts.addListener(listener);
 		subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
@@ -116,12 +103,7 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 		while (true) {
 			EventContext oldCtx = contexts.get(ctx.getKey());
 			if (oldCtx == null) { /* 신규 추가 */
-				if (contexts.putIfAbsent(ctx.getKey(), ctx, ctx.getHost(),
-						getMinValue(ctx.getTimeoutTime(), ctx.getExpireTime())) == null) {
-					if (ctx.getTimeoutTime() > 0
-							&& getMinValue(ctx.getTimeoutTime(), ctx.getExpireTime()) == ctx.getTimeoutTime()) {
-						contexts.timeout(ctx.getKey(), ctx.getHost(), ctx.getTimeoutTime());
-					}
+				if (contexts.putIfAbsent(ctx.getKey(), ctx, ctx.getHost(), ctx.getExpireTime(), ctx.getTimeoutTime()) == null) {
 					generateEvent(ctx, EventCause.CREATE);
 					break;
 				}
@@ -137,18 +119,6 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 				}
 			}
 		}
-	}
-
-	/**
-	 * @return a smaller number larger than 0.
-	 */
-	private long getMinValue(long a, long b) {
-		long min = Math.min(a, b);
-
-		if (min > 0)
-			return min;
-		else
-			return Math.max(a, b);
 	}
 
 	@Override
@@ -203,7 +173,7 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 	public void removeContext(EventKey key, EventCause cause) {
 		EventContext ctx = contexts.get(key);
 
-		if (contexts.remove(key) != null) {
+		if (contexts.remove(key)) {
 			generateEvent(ctx, cause);
 		}
 	}
@@ -230,8 +200,6 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 		while (itr.hasNext()) {
 			EventKey key = itr.next();
 			removeContext(key, EventCause.REMOVAL);
-			// if (topic == null || key.getTopic().equals(topic)) {
-			// }
 		}
 	}
 
@@ -274,19 +242,7 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 
 	@Override
 	public void onUpdateTimeout(EventContext ctx) {
-		// update real clock queue
-		contexts.timeout(ctx.getKey(), ctx.getHost(), ctx.getTimeoutTime());
-		// // if (ctx.getHost() == null) {
-		// // realClock.updateTimeout(ctx);
-		// // return;
-		// // }
-		//
-		// // update per-host case only
-		// // EventClock<EventContext> clock = ensureClock(logClocks,
-		// // ctx.getHost(), ctx.getCreated());
-		// // if (clock == null)
-		// // return;
-		// // clock.updateTimeout(ctx);
+		// timeout 관련 동작은 map 내부에서 처리함
 	}
 
 	@Override
@@ -429,188 +385,3 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 		}
 	}
 }
-
-// private class MemEventClockCallback implements EventClockCallback {
-//
-// @Override
-// public void onRemove(EventClockItem value, EventCause expire) {
-// removeContext(value.getKey(), expire);
-// }
-// }
-
-// private ConcurrentOffHeapHashMap<EventKey, EventContext>
-// ensureContexts(String host) {
-// ConcurrentOffHeapHashMap<EventKey, EventContext> contexts = null;
-// contexts = contextsMap.get(host);
-// if (contexts == null) {
-// StorageEngine<EventKey, EventContext> storage = new
-// ReferenceStorageEngine<EventKey, EventContext>(
-// new EventKeySerialize(), new EventContextSerialize());
-// contexts = new ConcurrentOffHeapHashMap<EventKey, EventContext>(storage);
-// ConcurrentOffHeapHashMap<EventKey, EventContext> old =
-// contextsMap.putIfAbsent(host, contexts);
-// if (old != null)
-// return old;
-// return contexts;
-// } else {
-// return contexts;
-// }
-// }
-
-// private EventClock<EventContext> ensureClock(ConcurrentHashMap<String,
-// EventClock<EventContext>> clocks, String host,
-// long time) {
-// EventClock<EventContext> clock = null;
-// clock = clocks.get(host);
-// if (clock == null) {
-// clock = new EventClock<EventContext>(new MemEventClockCallback(), host,
-// time, INITIAL_CAPACITY);
-// EventClock<EventContext> old = clocks.putIfAbsent(host, clock);
-// if (old != null)
-// return old;
-// return clock;
-// } else {
-// return clock;
-// }
-// }
-
-// private StorageEngine<K, V> engine;
-// private AtomicLong lastTime = new AtomicLong();
-// private String host;
-// private TimeoutQueue timeoutQueue;
-// private Un_ExpireQueue expireQueue;
-//
-// private final TimeoutComparator timeoutComparator = new
-// TimeoutComparator();
-// private final ExpireComparator expireComparator = new
-// ExpireComparator();
-// private final TimeoutUnitComparator comparator = new
-// TimeoutUnitComparator();
-//
-// public OffHeapEventClock(StorageEngine<K, V> engine,
-// EventClockCallback callback, String host, long lastTime,
-// int initialCapacity) {
-// super(callback, host, lastTime, initialCapacity);
-// this.engine = engine;
-// this.host = host;
-// this.lastTime = new AtomicLong(lastTime);
-// }
-//
-// public OffHeapEventClock(StorageEngine<K, V> engine, String host,
-// long lastTime) {
-// this(engine, null, host, lastTime, INITIAL_CAPACITY);
-// }
-//
-// public OffHeapEventClock(StorageEngine<K, V> engine, String host) {
-// this(engine, null, host, new Date().getTime(), INITIAL_CAPACITY);
-// }
-//
-// // thread unsafe -> 상위 단계인 offheapmap에서 lock
-// public void addExpireTime(TimeoutItem item) {
-// expireQueue.add(item);
-// }
-//
-// // thread unsafe -> 상위 단계인 offheapmap에서 lock
-// public void addTimeoutTime(TimeoutItem item) {
-// timeoutQueue.add(item);
-// }
-//
-// public TimeoutQueue timeoutQueue() {
-// return timeoutQueue;
-// }
-//
-// public Un_ExpireQueue expireQueue() {
-// return expireQueue;
-// }
-//
-// @Override
-// public String getHost() {
-// return host;
-// }
-//
-// @Override
-// public Date getTime() {
-// return new Date(lastTime.get());
-// }
-//
-// @Override
-// public List<K> getTimeoutContexts() {
-// List<K> l = new ArrayList<K>();
-// Collections.sort(l, comparator);
-// return l;
-// }
-//
-// @Override
-// public List<K> getExpireContexts() {
-// List<K> l = new ArrayList<K>(expireQueue.size());
-//
-// for (int i = 0; i < expireQueue.size(); i++) {
-// TimeoutItem item = expireQueue.get(i);
-// K key = engine.loadKey(item.getAddress());
-// l.add(key);
-// }
-//
-// Collections.sort(l, comparator);
-// return l;
-// }
-//
-// @Override
-// public int getTimeoutQueueLength() {
-// return getTimeoutContexts().size();
-// }
-//
-// @Override
-// public int getExpireQueueLength() {
-// return getExpireContexts().size();
-// }
-//
-// @Override
-// public void setTime(long now, boolean force) {
-// throw new UnsupportedOperationException();
-// }
-//
-// @Override
-// public void add(K item) {
-// throw new UnsupportedOperationException();
-// }
-//
-// @Override
-// public void updateTimeout(K item) {
-// throw new UnsupportedOperationException();
-// }
-//
-// @Override
-// public void remove(K item) {
-// throw new UnsupportedOperationException();
-// }
-//
-// @Override
-// public String toString() {
-// SimpleDateFormat df = new
-// SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-// return host + " (timeout: " + getTimeoutQueueLength() + ", expire: "
-// + getExpireQueueLength() + ") => "
-// + df.format(new Date(lastTime.get()));
-// }
-//
-// private class ExpireComparator implements Comparator<K> {
-//
-// @Override
-// public int compare(K o1, K o2) {
-// return 0;
-// }
-//
-// }
-//
-// private class TimeoutUnitComparator implements
-// Comparator<TimeoutItem> {
-// @Override
-// public int compare(TimeoutItem o1, TimeoutItem o2) {
-// long t1 = o1.getDate();
-// long t2 = o2.getDate();
-//
-// if (t1 == t2)
-// return 0;
-// return t1 < t2 ? -1 : 1;
-//
-//

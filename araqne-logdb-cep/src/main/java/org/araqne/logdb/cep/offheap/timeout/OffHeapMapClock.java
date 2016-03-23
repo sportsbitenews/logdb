@@ -1,10 +1,8 @@
 package org.araqne.logdb.cep.offheap.timeout;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.cep.offheap.engine.StorageEngine;
@@ -121,31 +119,31 @@ public class OffHeapMapClock<K, V> {
 	// }
 
 	// XXX 필요한지 다시 확인
-	public List<K> getTimeoutContexts() {
-		List<K> l = new ArrayList<K>(timeoutQueue.size());
-		for (int i = 0; i < timeoutQueue.size(); i++) {
-			TimeoutItem item = timeoutQueue.get(i);
-			K key = engine.loadKey(item.getAddress());
-			l.add(key);
-		}
-
-		// Collections.sort(l, comparator);
-		return l;
-	}
+//	public List<K> getTimeoutContexts() {
+//		List<K> l = new ArrayList<K>(timeoutQueue.size());
+//		for (int i = 0; i < timeoutQueue.size(); i++) {
+//			TimeoutItem item = timeoutQueue.get(i);
+//			K key = engine.loadKey(item.getAddress());
+//			l.add(key);
+//		}
+//
+//		// Collections.sort(l, comparator);
+//		return l;
+//	}
 
 	// XXX 필요한지 다시 확인
-	public List<K> getExpireContexts() {
-		List<K> l = new ArrayList<K>(expireQueue.size());
-
-		for (int i = 0; i < expireQueue.size(); i++) {
-			TimeoutItem item = expireQueue.get(i);
-			K key = engine.loadKey(item.getAddress());
-			l.add(key);
-		}
-
-		// Collections.sort(l, comparator);
-		return l;
-	}
+//	public List<K> getExpireContexts() {
+//		List<K> l = new ArrayList<K>(expireQueue.size());
+//
+//		for (int i = 0; i < expireQueue.size(); i++) {
+//			TimeoutItem item = expireQueue.get(i);
+//			K key = engine.loadKey(item.getAddress());
+//			l.add(key);
+//		}
+//
+//		// Collections.sort(l, comparator);
+//		return l;
+//	}
 
 	// @Override
 	// public int getTimeoutQueueLength() {

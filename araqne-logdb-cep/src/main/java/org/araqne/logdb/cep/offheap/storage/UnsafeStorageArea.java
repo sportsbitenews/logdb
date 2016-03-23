@@ -1,7 +1,6 @@
 package org.araqne.logdb.cep.offheap.storage;
 
 import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
 
 import org.araqne.logdb.cep.offheap.engine.serialize.Serialize;
 
@@ -29,12 +28,12 @@ public class UnsafeStorageArea<T> extends AbsractUnsafeStorageArea<T>{
 		for (int i = 0; i < valueSize; i++) {
 			ret[i] = storage.getByte(index(index) + i);
 		}
-		return serialize.deserialize(ByteBuffer.wrap(ret));//, 0, valueSize);
+		return serialize.deserialize(ret);//, 0, valueSize);
 	}
 
 	@Override
 	public void setValue(int index, T v) {
-		byte[] value = serialize.serialize(v).array();
+		byte[] value = serialize.serialize(v);
 
 		if (value.length != valueSize)
 			throw new IllegalArgumentException("wrong size value");
@@ -47,7 +46,7 @@ public class UnsafeStorageArea<T> extends AbsractUnsafeStorageArea<T>{
 	 @Override
 	 public void remove(int index) {
 		 byte[] b = new byte[valueSize];
-		 T def = serialize.deserialize(ByteBuffer.wrap(b));//, 0, valueSize);
+		 T def = serialize.deserialize(b);//, 0, valueSize);
 		 setValue(0, def);
 	 }
 
