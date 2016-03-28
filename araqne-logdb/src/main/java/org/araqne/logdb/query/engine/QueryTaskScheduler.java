@@ -172,7 +172,14 @@ public class QueryTaskScheduler implements Runnable {
 
 			task.setStatus(TaskStatus.RUNNING);
 			QueryTaskRunner taskRunner = new QueryTaskRunner(this, task);
-			threadPool.execute(taskRunner, taskRunner.getThreadName());
+			if (threadPool != null) {
+				threadPool.execute(taskRunner, taskRunner.getThreadName());
+			} else {
+				// support unit test
+				QueryTaskRunner runner = new QueryTaskRunner(this, task);
+				Thread t = new Thread(runner, runner.getThreadName());
+				t.start();
+			}
 		} else {
 			if (logger.isDebugEnabled()) {
 				StringBuilder sb = new StringBuilder();
