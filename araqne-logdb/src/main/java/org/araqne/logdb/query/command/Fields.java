@@ -15,7 +15,9 @@
  */
 package org.araqne.logdb.query.command;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.araqne.logdb.FieldOrdering;
 import org.araqne.logdb.QueryCommand;
@@ -23,6 +25,8 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
 import org.araqne.logdb.ThreadSafe;
+import org.araqne.logdb.VectorizedRowBatch;
+import org.araqne.logstorage.LogVector;
 
 public class Fields extends QueryCommand implements ThreadSafe, FieldOrdering {
 	private final List<String> fields;
@@ -40,6 +44,22 @@ public class Fields extends QueryCommand implements ThreadSafe, FieldOrdering {
 	@Override
 	public String getName() {
 		return "fields";
+	}
+
+	@Override
+	public void onPush(VectorizedRowBatch vbatch) {
+		if (selector) {
+			Map<String, LogVector> m = new HashMap<String, LogVector>();
+			for (String field : fields)
+				m.put(field, vbatch.data.get(field));
+			
+			vbatch.data = m;
+		} else {
+			for (String field : fields)
+				vbatch.data.remove(field);
+		}
+
+		pushPipe(vbatch);
 	}
 
 	@Override

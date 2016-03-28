@@ -27,6 +27,7 @@ import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.expr.Assign;
 import org.araqne.logdb.query.expr.Comma;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logstorage.ObjectVector;
 
 public class Eval extends QueryCommand implements ThreadSafe {
 	private static final String COMMAND = "eval";
@@ -82,7 +83,7 @@ public class Eval extends QueryCommand implements ThreadSafe {
 				}
 
 				String field = ((Assign) expr).getField();
-				vbatch.data.put(field, values);
+				vbatch.data.put(field, new ObjectVector(values));
 			}
 		}
 

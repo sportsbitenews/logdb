@@ -7,12 +7,13 @@ import java.util.Map;
 
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.VectorizedExpression;
+import org.araqne.logstorage.LogVector;
 
 public class VectorizedRowBatch {
 	public boolean selectedInUse;
 	public int[] selected;
 	public int size;
-	public Map<String, Object> data;
+	public Map<String, LogVector> data;
 
 	public int getMaxSize() {
 		if (selectedInUse) {
@@ -30,10 +31,9 @@ public class VectorizedRowBatch {
 			c.selectedInUse = true;
 		}
 
-		c.data = new HashMap<String, Object>();
+		c.data = new HashMap<String, LogVector>();
 		for (String key : data.keySet()) {
-			Object[] array = (Object[]) data.get(key);
-			c.data.put(key, deepCopy(array));
+			c.data.put(key, data.get(key));
 		}
 		return c;
 	}
@@ -88,7 +88,7 @@ public class VectorizedRowBatch {
 
 		if (selectedInUse) {
 			for (String key : data.keySet()) {
-				Object[] array = (Object[]) data.get(key);
+				Object[] array = data.get(key).getArray();
 				for (int i = 0; i < size; i++) {
 					int p = selected[i];
 					Object val = array[p];
@@ -97,7 +97,7 @@ public class VectorizedRowBatch {
 			}
 		} else {
 			for (String key : data.keySet()) {
-				Object[] array = (Object[]) data.get(key);
+				Object[] array = data.get(key).getArray();
 				for (int i = 0; i < size; i++) {
 					Object val = array[i];
 					rows[i].put(key, val);
@@ -115,7 +115,8 @@ public class VectorizedRowBatch {
 	public Row row(int i) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		for (String key : data.keySet()) {
-			Object value = ((Object[]) data.get(key))[i];
+			LogVector vec = data.get(key);
+			Object value = (vec.getArray())[i];
 			if (value != null)
 				m.put(key, value);
 		}

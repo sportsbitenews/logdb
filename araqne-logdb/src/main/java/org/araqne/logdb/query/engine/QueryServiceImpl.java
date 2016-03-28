@@ -65,6 +65,7 @@ import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
+import org.araqne.logdb.query.command.Table;
 import org.araqne.logdb.query.parser.BoxPlotParser;
 import org.araqne.logdb.query.parser.BypassParser;
 import org.araqne.logdb.query.parser.CheckTableParser;
@@ -178,7 +179,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	@Requires
 	private QueryResultFactory resultFactory;
-	
+
 	@Requires
 	private QueryThreadPoolService queryThreadPool;
 
@@ -201,7 +202,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	private boolean allowQueryPurge = false;
 	private boolean useBom = false;
-
 
 	public QueryServiceImpl() {
 		this.queries = new ConcurrentHashMap<Integer, Query>();
@@ -375,6 +375,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		for (QueryPlanner planner : planners)
 			commands = planner.plan(context, commands);
 
+		optimizeTableScan(commands);
+
 		Query query = new DefaultQuery(context, queryString, commands, resultFactory, queryThreadPool);
 
 		queries.put(query.getId(), query);
@@ -382,6 +384,23 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		invokeCallbacks(query, QueryStatus.CREATED);
 
 		return query;
+	}
+
+	private void optimizeTableScan(List<QueryCommand> commands) {
+		Table table = null;
+		boolean found = false;
+		for (QueryCommand c : commands) {
+			if (c.getName().equals("table"))
+				table = (Table) c;
+
+			if (c.getName().equals("stats")) {
+				found = true;
+				break;
+			}
+		}
+
+		if (found)
+			table.setParallel(true);
 	}
 
 	@Override

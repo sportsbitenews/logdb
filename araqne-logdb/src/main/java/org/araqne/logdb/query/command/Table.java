@@ -303,6 +303,10 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 	public boolean isAsc() {
 		return params.isAsc();
 	}
+	
+	public void setParallel(boolean parallel) {
+		params.ordered = !parallel;
+	}
 
 	@Override
 	public void onClose(QueryStopReason reason) {

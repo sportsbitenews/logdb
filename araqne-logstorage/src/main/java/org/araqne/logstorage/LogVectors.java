@@ -14,7 +14,7 @@ public class LogVectors {
 	public int[] selected;
 	public Date[] dateVector;
 	public long[] idVector;
-	public Map<String, Object> data;
+	public Map<String, LogVector> data;
 
 	public List<Log> toLogList() {
 		Log[] logs = new Log[size];
@@ -35,7 +35,8 @@ public class LogVectors {
 
 		if (selectedInUse) {
 			for (String key : data.keySet()) {
-				Object[] array = (Object[]) data.get(key);
+				LogVector vec = data.get(key);
+				Object[] array = vec.getArray(); 
 				for (int i = 0; i < size; i++) {
 					int p = selected[i];
 					Object val = array[p];
@@ -45,7 +46,8 @@ public class LogVectors {
 			}
 		} else {
 			for (String key : data.keySet()) {
-				Object[] array = (Object[]) data.get(key);
+				LogVector vec = data.get(key);
+				Object[] array = vec.getArray();
 				for (int i = 0; i < size; i++) {
 					Object val = array[i];
 					if (val != null)

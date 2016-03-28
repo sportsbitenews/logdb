@@ -46,6 +46,8 @@ import org.araqne.logdb.sort.CloseableIterator;
 import org.araqne.logdb.sort.Item;
 import org.araqne.logdb.sort.ItemChunk;
 import org.araqne.logdb.sort.ParallelMergeSorter;
+import org.araqne.logstorage.LogVector;
+import org.araqne.logstorage.ObjectVector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,8 +158,10 @@ public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 
 			clauseValues = new Object[clauseCount][];
 			for (int i = 0; i < clauseCount; i++) {
-				clauseValues[i] = (Object[]) vbatch.data.get(clauses[i]);
-				if (clauseValues[i] == null)
+				LogVector vec = vbatch.data.get(clauses[i]);
+				if (vec != null)
+					clauseValues[i] = vec.getArray();
+				else
 					clauseValues[i] = new Object[vbatch.size];
 			}
 		}
@@ -500,16 +504,16 @@ public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 
 	private void flushOutput() {
 		if (outputCount > 0) {
-			Map<String, Object> m = new HashMap<String, Object>();
+			Map<String, LogVector> m = new HashMap<String, LogVector>();
 			VectorizedRowBatch vbatch = new VectorizedRowBatch();
 			vbatch.size = outputCount;
 			vbatch.data = m;
 
 			for (int i = 0; i < clauseCount; i++)
-				m.put(clauses[i], keyVector[i]);
+				m.put(clauses[i], new ObjectVector(keyVector[i]));
 
 			for (int i = 0; i < funcs.length; i++)
-				m.put(fields[i].getName(), valVector[i]);
+				m.put(fields[i].getName(), new ObjectVector(valVector[i]));
 
 			pushPipe(vbatch);
 		}
