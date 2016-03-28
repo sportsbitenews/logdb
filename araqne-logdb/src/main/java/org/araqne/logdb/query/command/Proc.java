@@ -27,6 +27,7 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.QueryThreadPoolService;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SubQueryCommand;
 import org.araqne.logdb.SubQueryTask;
@@ -45,12 +46,12 @@ public class Proc extends QueryCommand implements FieldOrdering, SubQueryCommand
 	private Session session;
 
 	public Proc(Procedure procedure, String commandString, AccountService accountService, QueryContext mainCtx,
-			QueryContext procCtx, List<QueryCommand> procCommands) {
+			QueryContext procCtx, List<QueryCommand> procCommands, QueryThreadPoolService queryThreadPool) {
 		this.procedure = procedure;
 		this.commandString = commandString;
 		this.accountService = accountService;
 
-		this.subQuery = new DefaultQuery(procCtx, procedure.getQueryString(), procCommands, new BypassResultFactory(this));
+		this.subQuery = new DefaultQuery(procCtx, procedure.getQueryString(), procCommands, new BypassResultFactory(this), queryThreadPool);
 		this.subQueryTask = new SubQueryTask(subQuery, mainCtx);
 	}
 

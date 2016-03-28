@@ -20,17 +20,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.araqne.codec.FastEncodingRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class RunOutput {
-	private static final int WRITE_BUFFER_SIZE = 1024 * 1024 * 8;
+	private static final int WRITE_BUFFER_SIZE = 1024 * 1024;
 	private final Logger logger = LoggerFactory.getLogger(RunOutput.class);
 	public BufferedOutputStream dataBos;
 
@@ -42,7 +40,6 @@ class RunOutput {
 	private byte[] longbuf = new byte[8];
 	private long dataOffset;
 	private boolean noIndexWrite;
-	private FastEncodingRule enc = new FastEncodingRule();
 	private ByteArrayOutputStream temp = new ByteArrayOutputStream();
 
 	public RunOutput(int id, int length, AtomicInteger cacheCount, String tag) throws IOException {

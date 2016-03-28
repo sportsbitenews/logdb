@@ -21,6 +21,7 @@ import org.araqne.logdb.AbstractQueryCommandParser;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParserService;
+import org.araqne.logdb.QueryThreadPoolService;
 import org.araqne.logdb.query.command.Union;
 
 /**
@@ -31,6 +32,7 @@ import org.araqne.logdb.query.command.Union;
 public class UnionParser extends AbstractQueryCommandParser {
 
 	private QueryParserService queryParserService;
+	private QueryThreadPoolService queryThreadPool;
 
 	public UnionParser(QueryParserService queryParserService) {
 		this.queryParserService = queryParserService;
@@ -51,6 +53,6 @@ public class UnionParser extends AbstractQueryCommandParser {
 		QueryContext subQueryContext = new QueryContext(context.getSession(), context);
 		String subQueryString = commandString.substring(b + 1, e).trim();
 		List<QueryCommand> commands = queryParserService.parseCommands(subQueryContext, subQueryString);
-		return new Union(context, commands);
+		return new Union(context, commands, queryThreadPool);
 	}
 }

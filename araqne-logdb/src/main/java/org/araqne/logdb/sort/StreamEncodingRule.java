@@ -79,11 +79,11 @@ public class StreamEncodingRule {
 		} else if (value instanceof Map<?, ?>) {
 			encodeMap(os, (Map<String, Object>) value);
 		} else if (value instanceof List<?>) {
-			encodeArray(os, (List<?>) value);
+			encodeList(os, (List<?>) value);
 		} else if (value.getClass().isArray()) {
 			Class<?> c = value.getClass().getComponentType();
 			if (c == Object.class) {
-				encodeArray(os, Arrays.asList((Object[]) value));
+				encodeArray(os, (Object[]) value);
 			} else if (c == byte.class) {
 				encodeBlob(os, (byte[]) value);
 			} else if (c == int.class) {
@@ -470,7 +470,24 @@ public class StreamEncodingRule {
 		return m;
 	}
 
-	public static void encodeArray(OutputStream os, List<?> array) throws IOException {
+	public static void encodeArray(OutputStream os, Object[] array) throws IOException {
+		os.write(SARRAY_TYPE);
+
+		int length = array.length;
+		encodeLength(os, length);
+
+		for (Object obj : array) {
+			if (obj instanceof String) {
+				byte[] b = ((String) obj).getBytes("utf-8");
+				os.write(STRING_TYPE);
+				encodeLength(os, b.length);
+				os.write(b);
+			} else
+				encode(os, obj);
+		}
+	}
+
+	public static void encodeList(OutputStream os, List<?> array) throws IOException {
 		os.write(SARRAY_TYPE);
 
 		int length = array.size();
@@ -514,7 +531,7 @@ public class StreamEncodingRule {
 	public static void encodeArray(OutputStream os, double[] array) throws IOException {
 		os.write(SARRAY_TYPE);
 		encodeLength(os, array.length);
-		
+
 		for (double i : array)
 			encodeDouble(os, i);
 	}
@@ -522,7 +539,7 @@ public class StreamEncodingRule {
 	public static void encodeArray(OutputStream os, float[] array) throws IOException {
 		os.write(SARRAY_TYPE);
 		encodeLength(os, array.length);
-		
+
 		for (float i : array)
 			encodeFloat(os, i);
 	}
@@ -530,13 +547,9 @@ public class StreamEncodingRule {
 	public static void encodeArray(OutputStream os, boolean[] array) throws IOException {
 		os.write(ARRAY_TYPE);
 		encodeLength(os, array.length);
-		
+
 		for (boolean i : array)
 			encodeBoolean(os, i);
-	}
-
-	public static void encodeArray(OutputStream os, Object[] array) throws IOException {
-		encodeArray(os, Arrays.asList(array));
 	}
 
 	private static Object[] decodeArray(InputStream is) throws IOException {

@@ -4,10 +4,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,6 +18,7 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryResultFactory;
+import org.araqne.logdb.impl.QueryThreadPoolServiceImpl;
 import org.araqne.logdb.query.command.Join;
 import org.araqne.logdb.query.command.Join.JoinType;
 import org.araqne.logdb.query.command.Table;
@@ -27,8 +28,9 @@ import org.araqne.storage.api.FilePath;
 import org.araqne.storage.api.StorageManager;
 import org.araqne.storage.api.URIResolver;
 import org.araqne.storage.localfile.LocalFilePath;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.ArgumentMatcher;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -59,6 +61,19 @@ public class JoinParserTest {
 
 	}
 
+	private static QueryThreadPoolServiceImpl queryThreadPool;
+
+	@BeforeClass
+	public static void setup() {
+		queryThreadPool = new QueryThreadPoolServiceImpl();
+		queryThreadPool.start();
+	}
+
+	@AfterClass
+	public static void teardown() {
+		queryThreadPool.stop();
+	}
+
 	@Test
 	public void testFieldListParse() {
 		QueryParserService p = prepareMockQueryParser();
@@ -66,7 +81,7 @@ public class JoinParserTest {
 		QueryResultFactory resultFactory = new QueryResultFactoryImpl(storageManager);
 		resultFactory.start();
 
-		JoinParser parser = new JoinParser(p, resultFactory);
+		JoinParser parser = new JoinParser(p, resultFactory, queryThreadPool);
 		parser.setQueryParserService(p);
 
 		{
@@ -182,7 +197,7 @@ public class JoinParserTest {
 		QueryResultFactory resultFactory = new QueryResultFactoryImpl(storageManager);
 		resultFactory.start();
 
-		JoinParser parser = new JoinParser(p, resultFactory);
+		JoinParser parser = new JoinParser(p, resultFactory, queryThreadPool);
 		parser.setQueryParserService(p);
 
 		QueryContext context = new QueryContext(null);
@@ -202,14 +217,13 @@ public class JoinParserTest {
 		QueryResultFactory resultFactory = new QueryResultFactoryImpl(storageManager);
 		resultFactory.start();
 
-		JoinParser parser = new JoinParser(p, resultFactory);
+		JoinParser parser = new JoinParser(p, resultFactory, queryThreadPool);
 		parser.setQueryParserService(p);
 
 		try {
 			String joinCommand = "join _id string([table iis])";
-			@SuppressWarnings("unused")
 			QueryContext context = new QueryContext(null);
-			Join join = (Join) parser.parse(context, joinCommand);
+			parser.parse(context, joinCommand);
 			fail();
 		} catch (QueryParseException e) {
 		}
@@ -222,7 +236,7 @@ public class JoinParserTest {
 		StorageManager storageManager = new LocalStorageManager();
 		QueryResultFactory resultFactory = new QueryResultFactoryImpl(storageManager);
 		resultFactory.start();
-		JoinParser parser = new JoinParser(p, resultFactory);
+		JoinParser parser = new JoinParser(p, resultFactory, queryThreadPool);
 		parser.setQueryParserService(p);
 		QueryContext context = new QueryContext(null);
 		Join join = (Join) parser.parse(context, "join type=left ip [ table users ]");

@@ -43,6 +43,7 @@ public class DefaultQuery implements Query {
 	private List<QueryCommand> commands;
 	private Date lastStarted;
 	private QueryResult result;
+	private QueryThreadPoolService threadPool;
 
 	private QueryStopReason stopReason;
 	private Throwable cause;
@@ -62,11 +63,13 @@ public class DefaultQuery implements Query {
 	private Query parent;
 	private List<Query> dependencies = new ArrayList<Query>();
 
-	public DefaultQuery(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory) {
+	public DefaultQuery(QueryContext context, String queryString, List<QueryCommand> commands, QueryResultFactory resultFactory,
+			QueryThreadPoolService threadPool) {
 		this.context = context;
 		this.queryString = queryString;
 		this.commands = commands;
-		this.scheduler = new QueryTaskScheduler(this, commands);
+		this.threadPool = threadPool;
+		this.scheduler = new QueryTaskScheduler(this, commands, threadPool);
 
 		for (QueryCommand cmd : commands) {
 			if (cmd instanceof FieldOrdering) {

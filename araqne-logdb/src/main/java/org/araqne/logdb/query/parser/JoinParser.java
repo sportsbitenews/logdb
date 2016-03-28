@@ -14,6 +14,7 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryResultFactory;
+import org.araqne.logdb.QueryThreadPoolService;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.Join;
 import org.araqne.logdb.query.command.Join.JoinType;
@@ -27,10 +28,12 @@ public class JoinParser extends AbstractQueryCommandParser {
 
 	private QueryParserService parserService;
 	private QueryResultFactory resultFactory;
+	private QueryThreadPoolService queryThreadPool;
 
-	public JoinParser(QueryParserService parserService, QueryResultFactory resultFactory) {
+	public JoinParser(QueryParserService parserService, QueryResultFactory resultFactory, QueryThreadPoolService queryThreadPool) {
 		this.parserService = parserService;
 		this.resultFactory = resultFactory;
+		this.queryThreadPool = queryThreadPool;
 
 		setDescriptions("Join sub query result set. You should use `streamjoin` instead of `join` in stream query.",
 				"서브 쿼리 결과 집합을 조인합니다. 스트림 쿼리에서는 join 명령어가 지원되지 않으므로, 이후에 설명할 streamjoin 명령어를 사용해야 합니다.");
@@ -112,7 +115,7 @@ public class JoinParser extends AbstractQueryCommandParser {
 
 		QueryContext subQueryContext = new QueryContext(context.getSession(), context);
 		List<QueryCommand> subCommands = parserService.parseCommands(subQueryContext, subQueryString);
-		Query subQuery = new DefaultQuery(subQueryContext, subQueryString, subCommands, resultFactory);
+		Query subQuery = new DefaultQuery(subQueryContext, subQueryString, subCommands, resultFactory, queryThreadPool);
 		return new Join(joinType, sortFieldArray, subQuery);
 	}
 

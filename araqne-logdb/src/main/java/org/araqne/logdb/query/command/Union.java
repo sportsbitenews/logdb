@@ -23,6 +23,7 @@ import org.araqne.logdb.Query;
 import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryTask;
+import org.araqne.logdb.QueryThreadPoolService;
 import org.araqne.logdb.SubQueryCommand;
 import org.araqne.logdb.SubQueryTask;
 import org.slf4j.Logger;
@@ -39,9 +40,9 @@ public class Union extends QueryCommand implements SubQueryCommand {
 	private Query subQuery;
 	private SubQueryTask subQueryTask;
 
-	public Union(QueryContext context, List<QueryCommand> commands) {
+	public Union(QueryContext context, List<QueryCommand> commands, QueryThreadPoolService queryThreadPool) {
 		this.subQueryString = buildQueryString(commands);
-		this.subQuery = new DefaultQuery(context, subQueryString, commands, new BypassResultFactory(this));
+		this.subQuery = new DefaultQuery(context, subQueryString, commands, new BypassResultFactory(this), queryThreadPool);
 		this.subQueryTask = new SubQueryTask(subQuery);
 	}
 

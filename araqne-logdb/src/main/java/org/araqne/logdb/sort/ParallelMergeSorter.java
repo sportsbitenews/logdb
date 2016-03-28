@@ -26,13 +26,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -92,8 +92,8 @@ public class ParallelMergeSorter {
 		this.comparator = comparator;
 		this.buffer = new Item[runLength];
 		this.runIndexer = new AtomicInteger();
-		this.executor = new ThreadPoolExecutor(8, 8, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(8),
-				new NamedThreadFactory("Sort Worker"), new CallerRunsPolicy());
+		this.executor = new ThreadPoolExecutor(2, 8, 10, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(),
+				new NamedThreadFactory("Sort Worker"));
 
 		this.cacheCount = new AtomicInteger(memoryRunCount);
 	}
@@ -114,6 +114,14 @@ public class ParallelMergeSorter {
 			flushRun();
 	}
 
+	public void add(ItemChunk chunk) throws IOException {
+		synchronized (flushDoneSignal) {
+			flushTaskCount++;
+		}
+
+		submitTask(new FlushWorker(chunk));
+	}
+
 	private void flushRun() throws IOException, FileNotFoundException {
 		Item[] buffered = buffer;
 		if (bufferSize == 0)
@@ -129,7 +137,20 @@ public class ParallelMergeSorter {
 
 		bufferSize = 0;
 
-		executor.submit(new FlushWorker(buffered));
+		submitTask(new FlushWorker(buffered));
+	}
+
+	private void submitTask(Runnable r) {
+		do {
+			try {
+				executor.submit(r);
+				break;
+			} catch (RejectedExecutionException e) {
+				Thread.yield();
+				if (canceled)
+					break;
+			}
+		} while (true);
 	}
 
 	public CloseableIterator sort() throws IOException {
@@ -170,6 +191,14 @@ public class ParallelMergeSorter {
 	public void cancel() throws IOException {
 		eos = true;
 		canceled = true;
+
+		if (mergeLatch == null) {
+			waitFlushDone();
+			purgeAll();
+			executor.shutdown();
+			return;
+		}
+
 		sort().close();
 	}
 
@@ -181,19 +210,7 @@ public class ParallelMergeSorter {
 		buffer = null;
 		logger.trace("flush finished.");
 
-		// wait flush done
-		while (true) {
-			synchronized (flushDoneSignal) {
-				if (flushTaskCount == 0)
-					break;
-
-				try {
-					flushDoneSignal.wait();
-				} catch (InterruptedException e) {
-				}
-				logger.debug("araqne logdb: remaining runs {}, task count: {}", runs.size(), flushTaskCount);
-			}
-		}
+		waitFlushDone();
 
 		// partition
 		logger.trace("araqne logdb: start partitioning");
@@ -222,6 +239,22 @@ public class ParallelMergeSorter {
 				} catch (Throwable t) {
 					logger.debug("araqne logdb: cannot close sort run", t);
 				}
+			}
+		}
+	}
+
+	private void waitFlushDone() {
+		// wait flush done
+		while (true) {
+			synchronized (flushDoneSignal) {
+				if (flushTaskCount == 0)
+					break;
+
+				try {
+					flushDoneSignal.wait();
+				} catch (InterruptedException e) {
+				}
+				logger.debug("araqne logdb: remaining runs {}, task count: {}", runs.size(), flushTaskCount);
 			}
 		}
 	}
@@ -291,7 +324,7 @@ public class ParallelMergeSorter {
 		mergeLatch = new CountDownLatch(tasks.size());
 		for (PartitionMergeTask task : tasks) {
 			merges.add(task);
-			executor.submit(new MergeWorker(task));
+			submitTask(new MergeWorker(task));
 		}
 
 		// wait partition merge
@@ -323,7 +356,12 @@ public class ParallelMergeSorter {
 	}
 
 	private class FlushWorker implements Runnable {
+		private ItemChunk chunk;
 		private Item[] buffered;
+
+		public FlushWorker(ItemChunk chunk) {
+			this.chunk = chunk;
+		}
 
 		public FlushWorker(Item[] list) {
 			buffered = list;
@@ -346,6 +384,13 @@ public class ParallelMergeSorter {
 		private void doFlush() throws IOException {
 			if (canceled)
 				return;
+
+			if (chunk != null) {
+				buffered = chunk.getItems();
+
+				// help fast GC
+				chunk = null;
+			}
 
 			Arrays.sort(buffered, comparator);
 

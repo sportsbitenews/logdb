@@ -22,25 +22,16 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.araqne.codec.EncodingRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class RunInput {
 	private static final int READ_BUFFER_SIZE = 1024 * 128;
 	private final Logger logger = LoggerFactory.getLogger(RunInput.class);
-	private ThreadLocal<byte[]> reuseBuffer = new ThreadLocal<byte[]>() {
-		@Override
-		protected byte[] initialValue() {
-			return new byte[640 * 1024];
-		}
-	};
-
 	private Run run;
 	public Iterator<Item> cachedIt;
 	public BufferedInputStream bis;

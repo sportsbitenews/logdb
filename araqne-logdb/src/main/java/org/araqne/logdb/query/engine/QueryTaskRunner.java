@@ -26,20 +26,25 @@ import org.araqne.logdb.QueryTaskListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryTaskRunner extends Thread {
+public class QueryTaskRunner implements Runnable {
 	private static AtomicLong idCounter = new AtomicLong(1);
 	private final Logger logger = LoggerFactory.getLogger(QueryTaskRunner.class);
 	private QueryTaskScheduler scheduler;
 	private QueryTask task;
 	private int queryId;
+	private String threadName;
 
 	public QueryTaskRunner(QueryTaskScheduler scheduler, QueryTask task) {
 		this.scheduler = scheduler;
 		this.task = task;
 		this.queryId = scheduler.getQuery().getId();
-		setName("Query Task #" + idCounter.incrementAndGet() + " for query " + queryId);
+		this.threadName = "Query Task #" + idCounter.incrementAndGet() + " for query " + queryId;
 	}
 
+	public String getThreadName() {
+		return threadName;
+	}
+	
 	@Override
 	public void run() {
 		try {

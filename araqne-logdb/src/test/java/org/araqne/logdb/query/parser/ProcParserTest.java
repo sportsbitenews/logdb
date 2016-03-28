@@ -34,33 +34,43 @@ import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryPlanner;
 import org.araqne.logdb.QueryService;
 import org.araqne.logdb.impl.FunctionRegistryImpl;
+import org.araqne.logdb.impl.QueryThreadPoolServiceImpl;
 import org.araqne.logdb.query.command.Proc;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 public class ProcParserTest {
-	private QueryParserService queryParserService;
+	private static QueryParserService queryParserService;
+	private static QueryThreadPoolServiceImpl queryThreadPool;
 
-	@Before
-	public void setup() {
+	@BeforeClass
+	public static void setup() {
 		QueryParserServiceImpl p = new QueryParserServiceImpl();
 		p.setFunctionRegistry(new FunctionRegistryImpl());
 		queryParserService = p;
+
+		queryThreadPool = new QueryThreadPoolServiceImpl();
+		queryThreadPool.start();
+	}
+
+	@AfterClass
+	public static void teardown() {
+		queryThreadPool.stop();
 	}
 
 	@Test
 	public void testError11000() {
-		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock());
-		p.setQueryParserService(queryParserService); 
-		String query = "proc undefined()";	
+		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock(), queryThreadPool);
+		p.setQueryParserService(queryParserService);
+		String query = "proc undefined()";
 
 		try {
 			parse(query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -71,16 +81,16 @@ public class ProcParserTest {
 	}
 
 	@Test
-	public void testError11001(){
-		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock());
-		p.setQueryParserService(queryParserService); 
-		String query = "proc tables(\"log\", 1.1)";	
+	public void testError11001() {
+		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock(), queryThreadPool);
+		p.setQueryParserService(queryParserService);
+		String query = "proc tables(\"log\", 1.1)";
 
 		try {
 			parse(query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -91,16 +101,16 @@ public class ProcParserTest {
 	}
 
 	@Test
-	public void testError11002(){
-		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock());
-		p.setQueryParserService(queryParserService); 
-		String query = "proc tables(\"log\", 1)";	
+	public void testError11002() {
+		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock(), queryThreadPool);
+		p.setQueryParserService(queryParserService);
+		String query = "proc tables(\"log\", 1)";
 
 		try {
 			parse(query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -110,18 +120,17 @@ public class ProcParserTest {
 		}
 	}
 
-
 	@Test
-	public void testError11003(){
-		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock());
-		p.setQueryParserService(queryParserService); 
-		String query = "proc tables(\"log\", 1, 2)";	
+	public void testError11003() {
+		ProcParser p = new ProcParser(null, queryParserService, null, creatQueryServiceMock(), queryThreadPool);
+		p.setQueryParserService(queryParserService);
+		String query = "proc tables(\"log\", 1, 2)";
 
 		try {
 			parse(query, true);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
@@ -131,7 +140,7 @@ public class ProcParserTest {
 		}
 	}
 
-	private Proc parse(String query){
+	private Proc parse(String query) {
 		return parse(query, false);
 	}
 
@@ -151,20 +160,20 @@ public class ProcParserTest {
 		when(mockParserRegistry.getProcedure("tables")).thenReturn(mockProcedure);
 		when(mockProcedure.getParameters()).thenReturn(list);
 		when(mockProcedure.getName()).thenReturn("tables");
-		if(isAccount) 
+		if (isAccount)
 			when(mockAccount.getAccount(null)).thenReturn(new Account());
 
-		ProcParser parser = new ProcParser(mockAccount,  null , mockParserRegistry, creatQueryServiceMock());
+		ProcParser parser = new ProcParser(mockAccount, null, mockParserRegistry, creatQueryServiceMock(), queryThreadPool);
 		parser.setQueryParserService(queryParserService);
 		Proc proc = (Proc) parser.parse(new QueryContext(null), query);
 		return proc;
 	}
-	
+
 	private QueryService creatQueryServiceMock() {
 		QueryService mock = mock(QueryService.class);
 		when(mock.getPlanners()).thenReturn(new ArrayList<QueryPlanner>());
-		
+
 		return mock;
 	}
-	
+
 }

@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.araqne.api.SystemProperty;
 import org.araqne.logdb.FieldOrdering;
@@ -34,17 +37,19 @@ import org.araqne.logdb.QueryCommand;
 import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.ThreadSafe;
 import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.aggregator.AggregationField;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
 import org.araqne.logdb.query.aggregator.VectorizedAggregationFunction;
 import org.araqne.logdb.sort.CloseableIterator;
 import org.araqne.logdb.sort.Item;
+import org.araqne.logdb.sort.ItemChunk;
 import org.araqne.logdb.sort.ParallelMergeSorter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Stats extends QueryCommand implements FieldOrdering {
+public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 	private static final int OUTPUT_FLUSH_THRESHOLD = 2000;
 	private static final int FLUSH_SIZE = 50000;
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
@@ -63,13 +68,15 @@ public class Stats extends QueryCommand implements FieldOrdering {
 	private List<String> fieldOrder;
 
 	private ParallelMergeSorter sorter;
-	private Map<KeyHolder, AggregationFunction[]> buffer;
-	private int inputCount;
+	private ConcurrentHashMap<KeyHolder, AggregationFunction[]> buffer;
+	private AtomicLong inputCount = new AtomicLong();
 
 	// output vectorization
 	private int outputCount;
 	private Object[][] keyVector;
 	private Object[][] valVector;
+
+	private FlushWorker flushWorker;
 
 	static {
 		discardNullGroup = SystemProperty.isEnabled("araqne.logdb.discard_null_group");
@@ -112,7 +119,6 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public void onStart() {
-		inputCount = 0;
 		sorter = new ParallelMergeSorter(new ItemComparer(), FLUSH_SIZE);
 
 		int queryId = 0;
@@ -122,7 +128,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd_HHmmss");
 		sorter.setTag("_" + queryId + "_" + df.format(new Date()) + "_");
 
-		this.buffer = new HashMap<KeyHolder, AggregationFunction[]>(FLUSH_SIZE);
+		this.buffer = new ConcurrentHashMap<KeyHolder, AggregationFunction[]>(FLUSH_SIZE);
 
 		for (AggregationFunction f : funcs)
 			f.clean();
@@ -134,10 +140,14 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 			buffer.put(EMPTY_KEY, emptyClauseFuncs);
 		}
+
+		flushWorker = new FlushWorker();
+		flushWorker.start();
 	}
 
 	@Override
 	public void onPush(VectorizedRowBatch vbatch) {
+		int newKeyCount = 0;
 		KeyHolder keyHolder = EMPTY_KEY;
 		Object[][] clauseValues = null;
 
@@ -154,175 +164,189 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 		Object[] keys = keyHolder.keys;
 
-		if (vbatch.selectedInUse) {
-			for (int i = 0; i < vbatch.size; i++) {
-				int p = vbatch.selected[i];
-				AggregationFunction[] fs = null;
-				if (useClause) {
-					for (int j = 0; j < clauseCount; j++)
-						keys[j] = clauseValues[j][p];
-
-					fs = buffer.get(keyHolder);
-					if (fs == null) {
-						fs = new AggregationFunction[funcs.length];
-						for (int j = 0; j < fs.length; j++)
-							fs[j] = funcs[j].clone();
-
-						buffer.put(keyHolder.clone(), fs);
-					}
-				} else {
-					fs = emptyClauseFuncs;
-				}
-
-				for (AggregationFunction f : fs) {
-					if (f instanceof VectorizedAggregationFunction) {
-						((VectorizedAggregationFunction) f).apply(vbatch, p);
-					} else {
-						f.apply(vbatch.row(p));
-					}
-				}
-			}
-		} else {
-			for (int i = 0; i < vbatch.size; i++) {
-				AggregationFunction[] fs = null;
-				if (useClause) {
-					for (int j = 0; j < clauseCount; j++)
-						keys[j] = clauseValues[j][i];
-
-					fs = buffer.get(keyHolder);
-					if (fs == null) {
-						fs = new AggregationFunction[funcs.length];
-						for (int j = 0; j < fs.length; j++)
-							fs[j] = funcs[j].clone();
-
-						buffer.put(keyHolder.clone(), fs);
-					}
-				} else {
-					fs = emptyClauseFuncs;
-				}
-
-				for (AggregationFunction f : fs) {
-					if (f instanceof VectorizedAggregationFunction) {
-						((VectorizedAggregationFunction) f).apply(vbatch, i);
-					} else {
-						f.apply(vbatch.row(i));
-					}
-				}
-			}
-		}
-
+		flushWorker.rwLock.readLock().lock();
 		try {
-			// flush
-			if (buffer.size() >= FLUSH_SIZE)
-				flush();
-		} catch (IOException e) {
-			throw new IllegalStateException("stats failed, query " + query, e);
+			if (vbatch.selectedInUse) {
+				for (int i = 0; i < vbatch.size; i++) {
+					int p = vbatch.selected[i];
+					AggregationFunction[] fs = null;
+					if (useClause) {
+						for (int j = 0; j < clauseCount; j++)
+							keys[j] = clauseValues[j][p];
+
+						fs = buffer.get(keyHolder);
+						if (fs == null) {
+							fs = new AggregationFunction[funcs.length];
+							for (int j = 0; j < fs.length; j++)
+								fs[j] = funcs[j].clone();
+
+							AggregationFunction[] oldFs = buffer.putIfAbsent(keyHolder.clone(), fs);
+							if (oldFs != null)
+								fs = oldFs;
+							else
+								newKeyCount++;
+						}
+					} else {
+						fs = emptyClauseFuncs;
+					}
+
+					for (AggregationFunction f : fs) {
+						if (f instanceof VectorizedAggregationFunction) {
+							((VectorizedAggregationFunction) f).apply(vbatch, p);
+						} else {
+							f.apply(vbatch.row(p));
+						}
+					}
+				}
+			} else {
+				for (int i = 0; i < vbatch.size; i++) {
+					AggregationFunction[] fs = null;
+					if (useClause) {
+						for (int j = 0; j < clauseCount; j++)
+							keys[j] = clauseValues[j][i];
+
+						fs = buffer.get(keyHolder);
+						if (fs == null) {
+							fs = new AggregationFunction[funcs.length];
+							for (int j = 0; j < fs.length; j++)
+								fs[j] = funcs[j].clone();
+
+							AggregationFunction[] oldFs = buffer.putIfAbsent(keyHolder.clone(), fs);
+							if (oldFs != null)
+								fs = oldFs;
+							else
+								newKeyCount++;
+						}
+					} else {
+						fs = emptyClauseFuncs;
+					}
+
+					for (AggregationFunction f : fs) {
+						if (f instanceof VectorizedAggregationFunction) {
+							((VectorizedAggregationFunction) f).apply(vbatch, i);
+						} else {
+							f.apply(vbatch.row(i));
+						}
+					}
+				}
+			}
+		} finally {
+			flushWorker.rwLock.readLock().unlock();
 		}
 
-		inputCount += vbatch.size;
+		flushWorker.countNewKey(newKeyCount);
+		inputCount.addAndGet(vbatch.size);
 	}
 
 	@Override
 	public void onPush(RowBatch rowBatch) {
+		int newKeyCount = 0;
 		KeyHolder keys = EMPTY_KEY;
 
 		if (useClause)
 			keys = new KeyHolder(clauseCount);
 
-		if (rowBatch.selectedInUse) {
-			for (int index = 0; index < rowBatch.size; index++) {
-				Row row = rowBatch.rows[rowBatch.selected[index]];
-				if (useClause) {
-					boolean isNullGroup = false;
-					for (int i = 0; i < clauseCount; i++) {
-						Object keyValue = row.get(clauses[i]);
-						if (discardNullGroup && keyValue == null) {
-							isNullGroup = true;
-							break;
-						}
+		inputCount.addAndGet(rowBatch.size);
 
-						keys.keys[i] = keyValue;
-					}
-
-					if (isNullGroup)
-						continue;
-				}
-
-				inputCount++;
-
-				AggregationFunction[] fs = buffer.get(keys);
-				if (fs == null) {
-					fs = new AggregationFunction[funcs.length];
-					for (int i = 0; i < fs.length; i++)
-						fs[i] = funcs[i].clone();
-
-					buffer.put(keys.clone(), fs);
-				}
-
-				for (AggregationFunction f : fs)
-					f.apply(row);
-			}
-		} else {
-			for (int i = 0; i < rowBatch.size; i++) {
-				Row m = rowBatch.rows[i];
-				if (useClause) {
-					boolean isNullGroup = false;
-					for (int d = 0; d < clauseCount; d++) {
-						Object keyValue = m.get(clauses[d]);
-						if (discardNullGroup && keyValue == null) {
-							isNullGroup = true;
-							break;
-						}
-
-						keys.keys[d] = keyValue;
-					}
-
-					if (isNullGroup)
-						continue;
-				}
-
-				inputCount++;
-
-				AggregationFunction[] fs = buffer.get(keys);
-				if (fs == null) {
-					fs = new AggregationFunction[funcs.length];
-					for (int j = 0; j < fs.length; j++)
-						fs[j] = funcs[j].clone();
-
-					buffer.put(keys.clone(), fs);
-				}
-
-				for (AggregationFunction f : fs)
-					f.apply(m);
-			}
-		}
-
+		flushWorker.rwLock.readLock().lock();
 		try {
-			// flush
-			if (buffer.size() >= FLUSH_SIZE)
-				flush();
-		} catch (IOException e) {
-			throw new IllegalStateException("stats failed, query " + query, e);
+			if (rowBatch.selectedInUse) {
+				for (int index = 0; index < rowBatch.size; index++) {
+					Row row = rowBatch.rows[rowBatch.selected[index]];
+					if (useClause) {
+						boolean isNullGroup = false;
+						for (int i = 0; i < clauseCount; i++) {
+							Object keyValue = row.get(clauses[i]);
+							if (discardNullGroup && keyValue == null) {
+								isNullGroup = true;
+								break;
+							}
+
+							keys.keys[i] = keyValue;
+						}
+
+						if (isNullGroup)
+							continue;
+					}
+
+					AggregationFunction[] fs = buffer.get(keys);
+					if (fs == null) {
+						fs = new AggregationFunction[funcs.length];
+						for (int i = 0; i < fs.length; i++)
+							fs[i] = funcs[i].clone();
+
+						AggregationFunction[] oldFs = buffer.putIfAbsent(keys.clone(), fs);
+						if (oldFs != null)
+							fs = oldFs;
+						else
+							newKeyCount++;
+					}
+
+					for (AggregationFunction f : fs)
+						f.apply(row);
+				}
+			} else {
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row m = rowBatch.rows[i];
+					if (useClause) {
+						boolean isNullGroup = false;
+						for (int d = 0; d < clauseCount; d++) {
+							Object keyValue = m.get(clauses[d]);
+							if (discardNullGroup && keyValue == null) {
+								isNullGroup = true;
+								break;
+							}
+
+							keys.keys[d] = keyValue;
+						}
+
+						if (isNullGroup)
+							continue;
+					}
+
+					AggregationFunction[] fs = buffer.get(keys);
+					if (fs == null) {
+						fs = new AggregationFunction[funcs.length];
+						for (int j = 0; j < fs.length; j++)
+							fs[j] = funcs[j].clone();
+
+						AggregationFunction[] oldFs = buffer.putIfAbsent(keys.clone(), fs);
+						if (oldFs != null)
+							fs = oldFs;
+						else
+							newKeyCount++;
+					}
+
+					for (AggregationFunction f : fs)
+						f.apply(m);
+				}
+			}
+		} finally {
+			flushWorker.rwLock.readLock().unlock();
 		}
+
+		flushWorker.countNewKey(newKeyCount);
 	}
 
 	@Override
 	public void onPush(Row m) {
-		KeyHolder keys = EMPTY_KEY;
-		if (clauseCount > 0) {
-			keys = new KeyHolder(clauseCount);
-
-			for (int i = 0; i < clauseCount; i++) {
-				Object keyValue = m.get(clauses[i]);
-				if (discardNullGroup && keyValue == null)
-					return;
-
-				keys.keys[i] = keyValue;
-			}
-		}
-
+		int newKeyCount = 0;
+		flushWorker.rwLock.readLock().lock();
 		try {
-			inputCount++;
+			KeyHolder keys = EMPTY_KEY;
+			if (clauseCount > 0) {
+				keys = new KeyHolder(clauseCount);
+
+				for (int i = 0; i < clauseCount; i++) {
+					Object keyValue = m.get(clauses[i]);
+					if (discardNullGroup && keyValue == null)
+						return;
+
+					keys.keys[i] = keyValue;
+				}
+			}
+
+			inputCount.incrementAndGet();
 
 			AggregationFunction[] fs = buffer.get(keys);
 			if (fs == null) {
@@ -330,37 +354,20 @@ public class Stats extends QueryCommand implements FieldOrdering {
 				for (int i = 0; i < fs.length; i++)
 					fs[i] = funcs[i].clone();
 
-				buffer.put(keys, fs);
+				AggregationFunction[] oldFs = buffer.putIfAbsent(keys, fs);
+				if (oldFs != null)
+					fs = oldFs;
+				else
+					newKeyCount++;
 			}
 
 			for (AggregationFunction f : fs)
 				f.apply(m);
-
-			// flush
-			if (buffer.size() > 50000)
-				flush();
-
-		} catch (IOException e) {
-			throw new IllegalStateException("stats failed, query " + query, e);
-		}
-	}
-
-	private void flush() throws IOException {
-		if (logger.isDebugEnabled())
-			logger.debug("araqne logdb: flushing stats buffer, [{}] keys", buffer.keySet().size());
-
-		for (Entry<KeyHolder, AggregationFunction[]> e : buffer.entrySet()) {
-			KeyHolder keys = e.getKey();
-			AggregationFunction[] fs = e.getValue();
-			Object[] l = new Object[fs.length];
-			int i = 0;
-			for (AggregationFunction f : fs)
-				l[i++] = f.serialize();
-
-			sorter.add(new Item(keys.keys, l));
+		} finally {
+			flushWorker.rwLock.readLock().unlock();
 		}
 
-		buffer.clear();
+		flushWorker.countNewKey(newKeyCount);
 	}
 
 	@Override
@@ -370,6 +377,9 @@ public class Stats extends QueryCommand implements FieldOrdering {
 
 	@Override
 	public void onClose(QueryStopReason reason) {
+		if (flushWorker != null)
+			flushWorker.closed = true;
+
 		// command is not started
 		if (sorter == null)
 			return;
@@ -390,7 +400,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 		CloseableIterator it = null;
 		try {
 			// last flush
-			flush();
+			flushWorker.join();
 
 			// reclaim buffer (GC support)
 			buffer = new ConcurrentHashMap<KeyHolder, AggregationFunction[]>();
@@ -398,7 +408,6 @@ public class Stats extends QueryCommand implements FieldOrdering {
 			// sort
 			it = sorter.sort();
 
-			int outputCount = 0;
 			flushOutput();
 
 			Object[] lastKeys = null;
@@ -451,7 +460,7 @@ public class Stats extends QueryCommand implements FieldOrdering {
 			}
 
 			// write result for empty data set (only for no group clause)
-			if (inputCount == 0 && clauseCount == 0) {
+			if (inputCount.get() == 0 && clauseCount == 0) {
 				// write initial function values
 				pass(funcs, null);
 			}
@@ -576,6 +585,94 @@ public class Stats extends QueryCommand implements FieldOrdering {
 			for (int i = 0; i < keys.length; i++)
 				h.keys[i] = keys[i];
 			return h;
+		}
+	}
+
+	private class FlushWorker extends Thread {
+		private Semaphore semaphore = new Semaphore(FLUSH_SIZE, true);
+		private ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+		private volatile boolean closed;
+
+		public void countNewKey(int count) {
+			do {
+				try {
+					semaphore.acquire(count);
+					break;
+				} catch (InterruptedException e) {
+				}
+			} while (!closed);
+		}
+
+		@Override
+		public void run() {
+			try {
+				setName("Stats Flush Worker for query #" + getQuery().getId());
+				while (!closed) {
+					try {
+						if (buffer.size() >= FLUSH_SIZE)
+							flush();
+						else
+							Thread.yield();
+					} catch (IOException e) {
+						logger.error("araqne logdb: query [" + query.getId() + "] stats flush failed", e);
+					}
+				}
+			} finally {
+				try {
+					flush();
+				} catch (IOException e) {
+					logger.error("araqne logdb: query [" + query.getId() + "] stats flush failed", e);
+				}
+
+				logger.debug("araqne logdb: query [" + query.getId() + "] stats flush worker exit");
+			}
+		}
+
+		private void flush() throws IOException {
+			Map<KeyHolder, AggregationFunction[]> flushBuffer = null;
+			try {
+				rwLock.writeLock().lock();
+				flushBuffer = buffer;
+				buffer = new ConcurrentHashMap<KeyHolder, AggregationFunction[]>();
+			} finally {
+				rwLock.writeLock().unlock();
+			}
+
+			int keyCount = flushBuffer.size();
+			if (logger.isDebugEnabled())
+				logger.debug("araqne logdb: flushing stats buffer, [{}] keys", keyCount);
+
+			if (keyCount > 0) {
+				sorter.add(new ItemConverter(flushBuffer));
+				semaphore.release(keyCount);
+			}
+		}
+	}
+
+	private static class ItemConverter implements ItemChunk {
+
+		private Map<KeyHolder, AggregationFunction[]> map;
+
+		public ItemConverter(Map<KeyHolder, AggregationFunction[]> map) {
+			this.map = map;
+		}
+
+		@Override
+		public Item[] getItems() {
+			Item[] items = new Item[map.size()];
+			int index = 0;
+			for (Entry<KeyHolder, AggregationFunction[]> e : map.entrySet()) {
+				KeyHolder keys = e.getKey();
+				AggregationFunction[] fs = e.getValue();
+				Object[] l = new Object[fs.length];
+				int i = 0;
+				for (AggregationFunction f : fs)
+					l[i++] = f.serialize();
+
+				items[index++] = new Item(keys.keys, l);
+			}
+
+			return items;
 		}
 	}
 }

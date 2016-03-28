@@ -194,6 +194,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 				LogTraverseCallbackImpl callback = new LogTraverseCallbackImpl(sink);
 				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder, callback);
+				req.setThreadCount(Runtime.getRuntime().availableProcessors());
 				req.setAsc(params.isAsc());
 				req.setFields(params.getFieldSet());
 

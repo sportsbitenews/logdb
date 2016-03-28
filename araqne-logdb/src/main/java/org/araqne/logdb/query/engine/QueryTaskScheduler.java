@@ -17,7 +17,6 @@ package org.araqne.logdb.query.engine;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -31,6 +30,7 @@ import org.araqne.logdb.QueryTask;
 import org.araqne.logdb.QueryTask.TaskStatus;
 import org.araqne.logdb.QueryTaskEvent;
 import org.araqne.logdb.QueryTaskListener;
+import org.araqne.logdb.QueryThreadPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +46,7 @@ public class QueryTaskScheduler implements Runnable {
 	private long finishTime;
 
 	private Query query;
+	private QueryThreadPoolService threadPool;
 
 	// logical query command pipe
 	private List<QueryCommand> pipeline = new ArrayList<QueryCommand>();
@@ -55,9 +56,10 @@ public class QueryTaskScheduler implements Runnable {
 
 	private ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 
-	public QueryTaskScheduler(Query query, List<QueryCommand> pipeline) {
+	public QueryTaskScheduler(Query query, List<QueryCommand> pipeline, QueryThreadPoolService threadPool) {
 		this.query = query;
 		this.pipeline = pipeline;
+		this.threadPool = threadPool;
 	}
 
 	public Query getQuery() {
@@ -169,7 +171,8 @@ public class QueryTaskScheduler implements Runnable {
 						new Object[] { query.getId(), task.getID(), task });
 
 			task.setStatus(TaskStatus.RUNNING);
-			new QueryTaskRunner(this, task).start();
+			QueryTaskRunner taskRunner = new QueryTaskRunner(this, task);
+			threadPool.execute(taskRunner, taskRunner.getThreadName());
 		} else {
 			if (logger.isDebugEnabled()) {
 				StringBuilder sb = new StringBuilder();

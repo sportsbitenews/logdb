@@ -42,6 +42,7 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.QueryParserService;
 import org.araqne.logdb.QueryPlanner;
 import org.araqne.logdb.QueryService;
+import org.araqne.logdb.QueryThreadPoolService;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.query.command.Proc;
@@ -53,12 +54,14 @@ public class ProcParser extends AbstractQueryCommandParser {
 	private QueryParserService parserService;
 	private ProcedureRegistry procedureRegistry;
 	private QueryService queryService;
+	private QueryThreadPoolService queryThreadPool;
 
-	public ProcParser(AccountService accountService, QueryParserService parserService, ProcedureRegistry procedureRegistry, QueryService queryService) {
+	public ProcParser(AccountService accountService, QueryParserService parserService, ProcedureRegistry procedureRegistry, QueryService queryService, QueryThreadPoolService queryThreadPool) {
 		this.accountService = accountService;
 		this.parserService = parserService;
 		this.procedureRegistry = procedureRegistry;
 		this.queryService = queryService;
+		this.queryThreadPool = queryThreadPool;
 		
 		setDescriptions(
 				"Execute procedure. Procedure arguments are used as query parameter. This command requires procedure owner or granted permission.",
@@ -162,7 +165,7 @@ public class ProcParser extends AbstractQueryCommandParser {
 			procCommands = planner.plan(procCtx, procCommands);
 		}
 
-		return new Proc(procedure, commandString, accountService, context, procCtx, procCommands);
+		return new Proc(procedure, commandString, accountService, context, procCtx, procCommands, queryThreadPool);
 	}
 
 	private boolean isGranted(QueryContext context, Procedure p) {

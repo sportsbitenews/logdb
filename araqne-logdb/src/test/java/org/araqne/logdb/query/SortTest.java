@@ -10,7 +10,7 @@ import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.sort.Item;
 import org.araqne.logdb.sort.ParallelMergeSorter;
 
-//@Ignore
+@Ignore
 public class SortTest {
 	public static void main(String[] args) throws Exception {
 		new SortTest().run();

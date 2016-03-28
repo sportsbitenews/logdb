@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
@@ -26,7 +27,7 @@ import org.araqne.logdb.query.expr.VectorizedExpression;
 public class Count implements VectorizedAggregationFunction {
 	private final List<Expression> exprs;
 	private Expression expr;
-	private long result = 0;
+	private AtomicLong result = new AtomicLong();
 	private final boolean vectorized;
 
 	public Count(List<Expression> exprs) {
@@ -54,15 +55,15 @@ public class Count implements VectorizedAggregationFunction {
 	@Override
 	public void apply(Row map) {
 		if (expr == null)
-			result++;
+			result.incrementAndGet();
 		else if (expr.eval(map) != null)
-			result++;
+			result.incrementAndGet();
 	}
 
 	@Override
 	public void apply(VectorizedRowBatch vbatch, int index) {
 		if (expr == null)
-			result++;
+			result.incrementAndGet();
 		else {
 			Object value = null;
 			if (vectorized) {
@@ -72,42 +73,42 @@ public class Count implements VectorizedAggregationFunction {
 			}
 
 			if (value != null)
-				result++;
+				result.incrementAndGet();
 		}
 	}
 
 	@Override
 	public Object eval() {
-		return result;
+		return result.get();
 	}
 
 	@Override
 	public void clean() {
-		result = 0;
+		result.set(0);
 	}
 
 	@Override
 	public AggregationFunction clone() {
 		Count c = new Count(exprs);
-		c.result = result;
+		c.result = new AtomicLong(result.get());
 		return c;
 	}
 
 	@Override
 	public void merge(AggregationFunction func) {
 		Count c = (Count) func;
-		this.result += c.result;
+		this.result.addAndGet(c.result.get());
 	}
 
 	@Override
 	public void deserialize(Object[] values) {
-		result = (Long) values[0];
+		result.set((Long) values[0]);
 	}
 
 	@Override
 	public Object[] serialize() {
 		Object[] l = new Object[1];
-		l[0] = result;
+		l[0] = result.get();
 		return l;
 	}
 

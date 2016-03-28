@@ -15,6 +15,7 @@ public class TableScanRequest {
 	private LogParserBuilder parserBuilder;
 	private LogTraverseCallback callback;
 	private boolean useSerialScan;
+	private int threadCount;
 	private boolean isAsc;
 	private boolean syncFirst = false;
 	private Set<String> fields;
@@ -58,6 +59,7 @@ public class TableScanRequest {
 		cloned.maxId = maxId;
 		cloned.parserBuilder = parserBuilder;
 		cloned.callback = callback;
+		cloned.threadCount = threadCount;
 		cloned.useSerialScan = useSerialScan;
 		cloned.isAsc = isAsc;
 
@@ -129,6 +131,14 @@ public class TableScanRequest {
 
 	public void setUseSerialScan(boolean useSerialScan) {
 		this.useSerialScan = useSerialScan;
+	}
+
+	public int getThreadCount() {
+		return threadCount;
+	}
+
+	public void setThreadCount(int threadCount) {
+		this.threadCount = threadCount;
 	}
 
 	public boolean isAsc() {

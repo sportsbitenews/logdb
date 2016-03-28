@@ -60,11 +60,11 @@ import org.araqne.logdb.QueryService;
 import org.araqne.logdb.QueryStatus;
 import org.araqne.logdb.QueryStatusCallback;
 import org.araqne.logdb.QueryStopReason;
+import org.araqne.logdb.QueryThreadPoolService;
 import org.araqne.logdb.RunMode;
 import org.araqne.logdb.SavedResultManager;
 import org.araqne.logdb.Session;
 import org.araqne.logdb.SessionEventListener;
-import org.araqne.logdb.impl.QueryHelper;
 import org.araqne.logdb.query.parser.BoxPlotParser;
 import org.araqne.logdb.query.parser.BypassParser;
 import org.araqne.logdb.query.parser.CheckTableParser;
@@ -178,6 +178,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 	@Requires
 	private QueryResultFactory resultFactory;
+	
+	@Requires
+	private QueryThreadPoolService queryThreadPool;
 
 	@Requires
 	private FunctionRegistry functionRegistry;
@@ -248,7 +251,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new SystemCommandParser("logdb", metadataService)); // deprecated
 		parsers.add(new SystemCommandParser("system", metadataService));
 		parsers.add(new CheckTableParser(tableRegistry, storage, fileServiceRegistry, cryptoService));
-		parsers.add(new JoinParser(queryParserService, resultFactory));
+		parsers.add(new JoinParser(queryParserService, resultFactory, queryThreadPool));
 		parsers.add(new UnionParser(queryParserService));
 		parsers.add(new ImportParser(tableRegistry, storage));
 		parsers.add(new ParseParser(parserRegistry));
@@ -258,7 +261,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		parsers.add(new ConfdbParser(conf));
 		parsers.add(new InsertParser(tableRegistry, storage));
 		parsers.add(new ParseCsvParser());
-		parsers.add(new ProcParser(accountService, queryParserService, procedureRegistry, this));
+		parsers.add(new ProcParser(accountService, queryParserService, procedureRegistry, this, queryThreadPool));
 		parsers.add(new RateLimitParser(tickService));
 		parsers.add(new MemLookupParser(lookupRegistry));
 		parsers.add(new BypassParser());
@@ -372,7 +375,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		for (QueryPlanner planner : planners)
 			commands = planner.plan(context, commands);
 
-		Query query = new DefaultQuery(context, queryString, commands, resultFactory);
+		Query query = new DefaultQuery(context, queryString, commands, resultFactory, queryThreadPool);
 
 		queries.put(query.getId(), query);
 		query.getCallbacks().getStatusCallbacks().add(new EofReceiver());

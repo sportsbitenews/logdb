@@ -18,6 +18,7 @@ package org.araqne.logdb;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -31,7 +32,7 @@ public abstract class QueryCommand {
 	private boolean cancelled = false;
 
 	protected RowPipe output;
-	private long outputCount;
+	private AtomicLong outputCount = new AtomicLong();
 	protected volatile Status status = Status.Waiting;
 	private AtomicBoolean closeCalled = new AtomicBoolean();
 	private ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
@@ -45,7 +46,7 @@ public abstract class QueryCommand {
 	}
 
 	public long getOutputCount() {
-		return outputCount;
+		return outputCount.get();
 	}
 
 	public Status getStatus() {
@@ -138,7 +139,7 @@ public abstract class QueryCommand {
 		try {
 			lock.lock();
 
-			outputCount++;
+			outputCount.incrementAndGet();
 
 			if (output != null) {
 				if (output.isThreadSafe()) {
@@ -160,7 +161,7 @@ public abstract class QueryCommand {
 		try {
 			lock.lock();
 
-			outputCount += rowBatch.size;
+			outputCount.addAndGet(rowBatch.size);
 			if (output != null) {
 				if (output.isThreadSafe()) {
 					output.onRowBatch(rowBatch);
@@ -180,7 +181,7 @@ public abstract class QueryCommand {
 		try {
 			lock.lock();
 
-			outputCount += vbatch.size;
+			outputCount.addAndGet(vbatch.size);
 			if (output != null) {
 				if (output.isThreadSafe()) {
 					output.onVectorizedRowBatch(vbatch);
