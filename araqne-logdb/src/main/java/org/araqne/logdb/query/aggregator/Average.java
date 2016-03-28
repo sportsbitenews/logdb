@@ -89,7 +89,7 @@ public class Average implements AggregationFunction {
 	}
 
 	@Override
-	public Object[] serialize() {
+	public Object serialize() {
 		Object[] l = new Object[2];
 		l[0] = d;
 		l[1] = count;
@@ -97,7 +97,8 @@ public class Average implements AggregationFunction {
 	}
 
 	@Override
-	public void deserialize(Object[] values) {
+	public void deserialize(Object value) {
+		Object[] values = (Object[]) value;
 		this.d = (Double) values[0];
 		this.count = (Integer) values[1];
 	}

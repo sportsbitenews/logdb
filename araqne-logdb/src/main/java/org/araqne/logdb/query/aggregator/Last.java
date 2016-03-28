@@ -71,15 +71,13 @@ public class Last implements AggregationFunction {
 	}
 
 	@Override
-	public Object[] serialize() {
-		Object[] l = new Object[1];
-		l[0] = last;
-		return l;
+	public Object serialize() {
+		return last;
 	}
 
 	@Override
-	public void deserialize(Object[] values) {
-		last = values[0];
+	public void deserialize(Object value) {
+		last = value;
 	}
 
 	@Override

@@ -31,9 +31,9 @@ public interface AggregationFunction {
 
 	void merge(AggregationFunction func);
 
-	Object[] serialize();
+	Object serialize();
 
-	void deserialize(Object[] values);
+	void deserialize(Object value);
 
 	void clean();
 

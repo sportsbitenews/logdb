@@ -66,7 +66,7 @@ public class Variance implements AggregationFunction {
 	}
 
 	@Override
-	public Object[] serialize() {
+	public Object serialize() {
 		Object[] l = new Object[3];
 		l[0] = m;
 		l[1] = s2;
@@ -75,7 +75,8 @@ public class Variance implements AggregationFunction {
 	}
 
 	@Override
-	public void deserialize(Object[] values) {
+	public void deserialize(Object value) {
+		Object[] values = (Object[]) value;
 		this.m = (Double) values[0];
 		this.s2 = (Double) values[1];
 		this.c = (Integer) values[2];
@@ -95,14 +96,15 @@ public class Variance implements AggregationFunction {
 			// method 1: trivial method
 			// double nm = (v1.m * v1.c + v2.m * v2.c) / (v1.c + v2.c);
 			// double nv =
-			// ((v1.s2 + v1.m * v1.m) * v1.c + (v2.s2 + v2.m * v2.m) * v2.c) / (v1.c + v2.c) - newMean * newMean;
+			// ((v1.s2 + v1.m * v1.m) * v1.c + (v2.s2 + v2.m * v2.m) * v2.c) /
+			// (v1.c + v2.c) - newMean * newMean;
 			// double ns2 = nv * (v1.c + v2.c);
 			//
-			// method 2: http://www.emathzone.com/tutorials/basic-statistics/combined-variance.html
+			// method 2:
+			// http://www.emathzone.com/tutorials/basic-statistics/combined-variance.html
 			double nm = (v1.m * v1.c + v2.m * v2.c) / (v1.c + v2.c);
-			double nv =
-					(v1.c * (v1.s2 / v1.c + Math.pow(v1.m - nm, 2)) + v2.c * (v2.s2 / v2.c + Math.pow(v2.m - nm, 2)))
-							/ (v1.c + v2.c);
+			double nv = (v1.c * (v1.s2 / v1.c + Math.pow(v1.m - nm, 2)) + v2.c * (v2.s2 / v2.c + Math.pow(v2.m - nm, 2)))
+					/ (v1.c + v2.c);
 			this.c = v1.c + v2.c;
 			this.m = nm;
 			this.s2 = nv * this.c;

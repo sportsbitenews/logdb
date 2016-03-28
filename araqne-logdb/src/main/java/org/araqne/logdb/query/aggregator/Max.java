@@ -80,15 +80,13 @@ public class Max implements AggregationFunction {
 	}
 
 	@Override
-	public Object[] serialize() {
-		Object[] l = new Object[1];
-		l[0] = max;
-		return l;
+	public Object serialize() {
+		return max;
 	}
 
 	@Override
-	public void deserialize(Object[] values) {
-		this.max = values[0];
+	public void deserialize(Object value) {
+		this.max = value;
 	}
 
 	@Override

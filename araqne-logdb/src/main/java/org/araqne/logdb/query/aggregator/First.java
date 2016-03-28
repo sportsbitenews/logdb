@@ -84,15 +84,13 @@ public class First implements AggregationFunction {
 	}
 
 	@Override
-	public Object[] serialize() {
-		Object[] l = new Object[1];
-		l[0] = first;
-		return l;
+	public Object serialize() {
+		return first;
 	}
 
 	@Override
-	public void deserialize(Object[] values) {
-		first = values[0];
+	public void deserialize(Object value) {
+		first = value;
 	}
 
 	@Override

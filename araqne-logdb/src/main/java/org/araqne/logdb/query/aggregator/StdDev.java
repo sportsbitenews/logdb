@@ -57,12 +57,13 @@ public class StdDev implements AggregationFunction {
 	}
 
 	@Override
-	public Object[] serialize() {
+	public Object serialize() {
 		return var.serialize();
 	}
 
 	@Override
-	public void deserialize(Object[] values) {
+	public void deserialize(Object value) {
+		Object[] values = (Object[]) value;
 		if (var == null)
 			var = new Variance(exprs);
 		var.deserialize(values);

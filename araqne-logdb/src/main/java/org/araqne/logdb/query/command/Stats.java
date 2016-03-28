@@ -434,16 +434,15 @@ public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 					int i = 0;
 					Object[] rawFuncs = (Object[]) item.value;
 					for (Object rawFunc : rawFuncs) {
-						Object[] l = (Object[]) rawFunc;
 						AggregationFunction f = funcs[i].clone();
-						f.deserialize(l);
+						f.deserialize(rawFunc);
 						fs[i++] = f;
 					}
 				} else {
 					// merge
 					int i = 0;
 					for (AggregationFunction f : fs) {
-						Object[] l = (Object[]) ((Object[]) item.value)[i];
+						Object l = ((Object[]) item.value)[i];
 						AggregationFunction f2 = funcs[i].clone();
 						f2.deserialize(l);
 						f.merge(f2);

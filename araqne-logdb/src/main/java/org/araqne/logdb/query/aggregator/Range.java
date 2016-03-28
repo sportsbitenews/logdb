@@ -98,7 +98,8 @@ public class Range implements AggregationFunction {
 	}
 
 	@Override
-	public void deserialize(Object[] values) {
+	public void deserialize(Object value) {
+		Object[] values = (Object[]) value;
 		min = (Number) values[0];
 		max = (Number) values[1];
 	}

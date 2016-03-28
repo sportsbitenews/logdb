@@ -101,15 +101,13 @@ public class Count implements VectorizedAggregationFunction {
 	}
 
 	@Override
-	public void deserialize(Object[] values) {
-		result.set((Long) values[0]);
+	public Object serialize() {
+		return result.get();
 	}
 
 	@Override
-	public Object[] serialize() {
-		Object[] l = new Object[1];
-		l[0] = result.get();
-		return l;
+	public void deserialize(Object value) {
+		result.set((Long) value);
 	}
 
 	@Override

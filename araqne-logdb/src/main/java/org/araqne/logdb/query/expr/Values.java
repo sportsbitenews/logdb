@@ -97,7 +97,7 @@ public class Values implements AggregationFunction {
 	}
 
 	@Override
-	public Object[] serialize() {
+	public Object serialize() {
 		Object[] l = new Object[set.size()];
 		int i = 0;
 		for (Object o : set)
@@ -107,8 +107,8 @@ public class Values implements AggregationFunction {
 	}
 
 	@Override
-	public void deserialize(Object[] values) {
-		for (Object v : values)
+	public void deserialize(Object value) {
+		for (Object v : (Object[]) value)
 			set.add(v);
 	}
 

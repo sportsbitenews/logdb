@@ -107,21 +107,22 @@ public class Sum implements VectorizedAggregationFunction {
 	}
 
 	@Override
-	public void deserialize(Object[] values) {
-		int signal = (Integer) values[0];
-		this.isLongNull = (signal & 2) != 0;
-		this.isDoubleNull = (signal & 1) != 0;
-		this.sum1 = (Long) values[1];
-		this.sum2 = (Double) values[2];
-	}
-
-	@Override
-	public Object[] serialize() {
+	public Object serialize() {
 		Object[] l = new Object[3];
 		l[0] = (isLongNull ? 2 : 0) | (isDoubleNull ? 1 : 0);
 		l[1] = sum1;
 		l[2] = sum2;
 		return l;
+	}
+
+	@Override
+	public void deserialize(Object value) {
+		Object[] values = (Object[]) value;
+		int signal = (Integer) values[0];
+		this.isLongNull = (signal & 2) != 0;
+		this.isDoubleNull = (signal & 1) != 0;
+		this.sum1 = (Long) values[1];
+		this.sum2 = (Double) values[2];
 	}
 
 	@Override

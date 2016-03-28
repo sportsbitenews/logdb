@@ -80,15 +80,13 @@ public class Min implements AggregationFunction {
 	}
 
 	@Override
-	public Object[] serialize() {
-		Object[] l = new Object[1];
-		l[0] = min;
-		return l;
+	public Object serialize() {
+		return min;
 	}
 
 	@Override
-	public void deserialize(Object[] values) {
-		this.min = values[0];
+	public void deserialize(Object value) {
+		this.min = value;
 	}
 
 	@Override

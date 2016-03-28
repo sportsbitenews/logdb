@@ -403,9 +403,8 @@ public class Timechart extends QueryCommand {
 	}
 
 	private AggregationFunction loadFunction(Item item, int i) {
-		Object[] l = (Object[]) ((Object[]) item.value)[i];
 		AggregationFunction f2 = funcs[i].clone();
-		f2.deserialize(l);
+		f2.deserialize(((Object[]) item.value)[i]);
 		return f2;
 	}
 
