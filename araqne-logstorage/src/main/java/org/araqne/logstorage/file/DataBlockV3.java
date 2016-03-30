@@ -30,7 +30,7 @@ public class DataBlockV3 {
 	private Logger logger = LoggerFactory.getLogger("log-file-reader-v3-data-block");
 
 	final int BLOCK_LENGTH = 4;
-	final int BLOCK_VERSION = 1;
+	final int VERSION_LENGTH = 1;
 	final int BLOCK_FLAG = 1;
 	final int MIN_TIME = 8;
 	final int MAX_TIME = 8;
@@ -39,8 +39,10 @@ public class DataBlockV3 {
 	final int ORIGINAL_SIZE = 4;
 	final int COMPRESS_SIZE = 4;
 	final int LENGTH_BLOCK_LENGTH = 4;
-	final int FIXED_DATA_HEADER_SIZE = BLOCK_LENGTH + BLOCK_VERSION + BLOCK_FLAG + MIN_TIME + MAX_TIME + MIN_ID + MAX_ID
+	final int FIXED_DATA_HEADER_SIZE = BLOCK_LENGTH + VERSION_LENGTH + BLOCK_FLAG + MIN_TIME + MAX_TIME + MIN_ID + MAX_ID
 			+ ORIGINAL_SIZE + COMPRESS_SIZE + LENGTH_BLOCK_LENGTH;
+	
+	public static final byte VERSION = 4;
 
 	int blockLength;
 	byte version;
@@ -155,8 +157,14 @@ public class DataBlockV3 {
 
 			// cipher extension
 			if ((flag & 0x80) == 0x80) {
-				iv = new byte[16];
+				if (version == VERSION) {
+					byte ivlen = block.get();
+					iv = new byte[ivlen];
+				} else {
+					iv = new byte[16];
+				}
 				signature = new byte[32];
+
 				block.get(iv);
 				block.get(signature);
 			}
