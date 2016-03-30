@@ -12,6 +12,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +30,8 @@ public class Decrypt extends FunctionExpression {
 		super("decrypt", exprs);
 
 		if (exprs.size() < 3)
-//			throw new QueryParseException("insufficient-decrypt-args", -1);
-			throw new QueryParseException("90650", -1, -1  , null);
+			// throw new QueryParseException("insufficient-decrypt-args", -1);
+			throw new QueryParseException("90650", -1, -1, null);
 
 		algorithm = exprs.get(0).eval(null).toString();
 		int p = algorithm.indexOf("/");
@@ -45,12 +46,41 @@ public class Decrypt extends FunctionExpression {
 		try {
 			cipher = Cipher.getInstance(algorithm);
 		} catch (Throwable t) {
-			Map<String, String> params = new HashMap<String, String> ();
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("algorithm", algorithm);
-			//throw new QueryParseException("invalid-cipher-algorithm", -1, algorithm);
-			throw new QueryParseException("90651", -1, -1  , params);
+			// throw new QueryParseException("invalid-cipher-algorithm", -1,
+			// algorithm);
+			throw new QueryParseException("90651", -1, -1, params);
 
 		}
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object key = vbatch.evalOne(keyExpr, i);
+		Object data = vbatch.evalOne(dataExpr, i);
+		Object iv = null;
+		if (ivExpr != null)
+			iv = vbatch.evalOne(ivExpr, i);
+
+		return decrypt(key, data, iv);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] keyVec = vbatch.eval(keyExpr);
+		Object[] dataVec = vbatch.eval(dataExpr);
+		Object[] ivVec = null;
+		if (ivExpr == null)
+			ivVec = new Object[vbatch.size];
+		else
+			ivVec = vbatch.eval(ivExpr);
+
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++)
+			values[i] = decrypt(keyVec[i], dataVec[i], ivVec[i]);
+
+		return values;
 	}
 
 	@Override
@@ -61,6 +91,10 @@ public class Decrypt extends FunctionExpression {
 		if (ivExpr != null)
 			iv = ivExpr.eval(row);
 
+		return decrypt(key, data, iv);
+	}
+
+	private Object decrypt(Object key, Object data, Object iv) {
 		if (key == null || data == null)
 			return null;
 

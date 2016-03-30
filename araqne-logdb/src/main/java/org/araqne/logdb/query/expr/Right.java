@@ -22,6 +22,7 @@ import java.util.Map;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Right extends FunctionExpression {
 	private Expression valueExpr;
@@ -46,25 +47,58 @@ public class Right extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o1 = vbatch.evalOne(valueExpr, i);
+		Object o2 = null;
+		if (lengthExpr != null)
+			o2 = vbatch.evalOne(lengthExpr, i);
+
+		return right(o1, o2);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] vec1 = vbatch.eval(valueExpr);
+		Object[] vec2 = null;
+		if (lengthExpr != null)
+			vec2 = vbatch.eval(lengthExpr);
+		else
+			vec2 = new Object[vbatch.size];
+
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++)
+			values[i] = right(vec1[i], vec2[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
-		Object value = valueExpr.eval(map);
-		if (value == null)
+		Object o1 = valueExpr.eval(map);
+		Object o2 = null;
+		if (lengthExpr != null)
+			o2 = lengthExpr.eval(map);
+
+		return right(o1, o2);
+	}
+
+	private Object right(Object o1, Object o2) {
+		if (o1 == null)
 			return null;
 
-		if (lengthExpr != null) {
-			Object o = lengthExpr.eval(map);
-			if (!(o instanceof Number))
+		int len = length;
+		if (o2 != null) {
+			if (!(o2 instanceof Number))
 				return null;
 
-			length = Integer.parseInt(new NumberConstant((Number) o).eval((Row) null).toString());
-			if (length < 0)
+			len = ((Number) o2).intValue();
+			if (len < 0)
 				return null;
 		}
 
-		String s = value.toString();
-		if (s.length() < length)
+		String s = o1.toString();
+		if (s.length() < len)
 			return s;
 
-		return s.substring(s.length() - length, s.length());
+		return s.substring(s.length() - len, s.length());
 	}
 }

@@ -20,6 +20,7 @@ import java.util.List;
 import org.araqne.codec.Base64;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * convert binary to base64 string
@@ -36,8 +37,26 @@ public class ToBase64 extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(dataExpr, i);
+		return tobase64(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(dataExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = tobase64(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object o = dataExpr.eval(row);
+		return tobase64(o);
+	}
+
+	private Object tobase64(Object o) {
 		if (o == null)
 			return null;
 

@@ -17,8 +17,9 @@
 package org.araqne.logdb.query.expr;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class NullConstant implements Expression {
+public class NullConstant implements VectorizedExpression {
 
 	public NullConstant() {
 	}
@@ -26,6 +27,16 @@ public class NullConstant implements Expression {
 	@Override
 	public Object eval(Row map) {
 		return null;
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		return null;
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		return new Object[vbatch.size];
 	}
 
 	@Override

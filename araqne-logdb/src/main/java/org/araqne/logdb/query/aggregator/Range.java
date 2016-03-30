@@ -16,19 +16,26 @@
 package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.command.NumberUtil;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.VectorizedExpression;
 
-public class Range implements AggregationFunction {
+public class Range implements VectorizedAggregationFunction {
 	private List<Expression> exprs;
-
-	private Number min;
-	private Number max;
+	private Expression expr;
+	private VectorizedExpression vectorizedExpr;
+	private AtomicReference<Number> min = new AtomicReference<Number>();
+	private AtomicReference<Number> max = new AtomicReference<Number>();
 
 	public Range(List<Expression> exprs) {
 		this.exprs = exprs;
+		this.expr = exprs.get(0);
+		if (expr instanceof VectorizedExpression)
+			this.vectorizedExpr = (VectorizedExpression) expr;
 	}
 
 	@Override
@@ -43,33 +50,49 @@ public class Range implements AggregationFunction {
 
 	@Override
 	public void apply(Row map) {
-		Object obj = exprs.get(0).eval(map);
-		if (obj == null || !(obj instanceof Number))
+		Object obj = expr.eval(map);
+		if (!(obj instanceof Number))
 			return;
 
-		min = NumberUtil.min(min, obj);
-		max = NumberUtil.max(max, obj);
+		setMinMax((Number) obj);
 	}
 
-	public Number getMin() {
-		return min;
+	@Override
+	public void apply(VectorizedRowBatch vbatch, int index) {
+		Object obj = null;
+		if (vectorizedExpr != null) {
+			obj = vectorizedExpr.evalOne(vbatch, index);
+		} else {
+			obj = expr.eval(vbatch.row(index));
+		}
+
+		if (!(obj instanceof Number))
+			return;
+
+		setMinMax((Number) obj);
 	}
 
-	public void setMin(Number min) {
-		this.min = min;
-	}
+	private void setMinMax(Number obj) {
+		boolean success = true;
+		do {
+			Number minVal = min.get();
+			Number newMinVal = NumberUtil.min(minVal, obj);
+			if (minVal == null || !minVal.equals(newMinVal))
+				success = min.compareAndSet(minVal, obj);
+		} while (!success);
 
-	public Number getMax() {
-		return max;
-	}
-
-	public void setMax(Number max) {
-		this.max = max;
+		success = true;
+		do {
+			Number maxVal = max.get();
+			Number newMaxVal = NumberUtil.max(maxVal, obj);
+			if (maxVal == null || !maxVal.equals(newMaxVal))
+				success = max.compareAndSet(maxVal, obj);
+		} while (!success);
 	}
 
 	@Override
 	public Object eval() {
-		if (max == null && min == null)
+		if (max.get() == null && min.get() == null)
 			return null;
 
 		return NumberUtil.sub(max, min);
@@ -77,38 +100,38 @@ public class Range implements AggregationFunction {
 
 	@Override
 	public void clean() {
-		min = null;
-		max = null;
+		min.set(null);
+		max.set(null);
 	}
 
 	@Override
 	public AggregationFunction clone() {
 		Range f = new Range(exprs);
-		f.min = min;
-		f.max = max;
+		f.min.set(min.get());
+		f.max.set(max.get());
 		return f;
 	}
 
 	@Override
 	public Object[] serialize() {
 		Object[] l = new Object[2];
-		l[0] = min;
-		l[1] = max;
+		l[0] = min.get();
+		l[1] = max.get();
 		return l;
 	}
 
 	@Override
 	public void deserialize(Object value) {
 		Object[] values = (Object[]) value;
-		min = (Number) values[0];
-		max = (Number) values[1];
+		min.set((Number) values[0]);
+		max.set((Number) values[1]);
 	}
 
 	@Override
 	public void merge(AggregationFunction func) {
 		Range other = (Range) func;
-		this.min = NumberUtil.min(min, other.min);
-		this.max = NumberUtil.max(max, other.max);
+		this.min.set(NumberUtil.min(min, other.min));
+		this.max.set(NumberUtil.max(max, other.max));
 	}
 
 	@Override

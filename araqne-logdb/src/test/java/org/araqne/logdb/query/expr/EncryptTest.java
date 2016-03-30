@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
@@ -33,13 +35,13 @@ public class EncryptTest {
 	private String algorithm = "AES";
 
 	@Test
-	public void testEncrypt(){
-		assertEquals("helloworld", decrypt(encrypt( "helloworld")));
+	public void testEncrypt() {
+		assertEquals("helloworld", decrypt(encrypt("helloworld")));
 	}
 
 	@Test
-	public void testError90660(){
-		//args size 1
+	public void testError90660() {
+		// args size 1
 		try {
 			new Encrypt(null, expr("AES"));
 			fail();
@@ -50,7 +52,7 @@ public class EncryptTest {
 			assertEquals("90660", e.getType());
 		}
 
-		//args size 2
+		// args size 2
 		try {
 			new Encrypt(null, expr("AES", "KEY"));
 			fail();
@@ -63,7 +65,7 @@ public class EncryptTest {
 	}
 
 	@Test
-	public void testError90661(){
+	public void testError90661() {
 		try {
 			new Encrypt(null, expr("ASE", key, "hello"));
 			fail();
@@ -76,34 +78,36 @@ public class EncryptTest {
 		}
 	}
 
-	private String encrypt(String plain){
-		return  new ToBase64(null, expr(new Encrypt(null, expr(algorithm, frombase64(key), binary(plain))))).eval(null).toString();
+	private String encrypt(String plain) {
+		return new ToBase64(null, expr(new Encrypt(null, expr(algorithm, frombase64(key), binary(plain))))).eval((Row) null)
+				.toString();
 	}
 
-	private String decrypt(String enc){
-		return new Decode(null, expr(new Decrypt(null, expr(algorithm, frombase64(key), frombase64(enc))))).eval(null).toString();
+	private String decrypt(String enc) {
+		return new Decode(null, expr(new Decrypt(null, expr(algorithm, frombase64(key), frombase64(enc))))).eval((Row) null)
+				.toString();
 	}
 
-	private FromBase64 frombase64(String s){
+	private FromBase64 frombase64(String s) {
 		return new FromBase64(null, expr(s));
 	}
 
-	private ToBinary binary(String s){
-		return new ToBinary(null , expr(s));
+	private ToBinary binary(String s) {
+		return new ToBinary(null, expr(s));
 	}
 
-	private List<Expression> expr(Object...object ){
+	private List<Expression> expr(Object... object) {
 		List<Expression> expr = new ArrayList<Expression>();
 
-		for(Object o: object){
-			if(o instanceof Expression)
-				expr.add((Expression)o);
-			else if(o instanceof String)
-				expr.add(new StringConstant((String)o));
-			else if(o instanceof Number)
-				expr.add(new NumberConstant((Number)o));
-			else if(o instanceof Boolean)
-				expr.add(new BooleanConstant((Boolean)o));
+		for (Object o : object) {
+			if (o instanceof Expression)
+				expr.add((Expression) o);
+			else if (o instanceof String)
+				expr.add(new StringConstant((String) o));
+			else if (o instanceof Number)
+				expr.add(new NumberConstant((Number) o));
+			else if (o instanceof Boolean)
+				expr.add(new BooleanConstant((Boolean) o));
 		}
 
 		return expr;

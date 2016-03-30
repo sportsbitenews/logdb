@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.impl.InetAddresses;
 
 /**
@@ -47,12 +48,33 @@ public class Network extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o1 = vbatch.evalOne(valueExpr, i);
+		Object o2 = vbatch.evalOne(maskExpr, i);
+		return network(o1, o2);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] vec1 = vbatch.eval(valueExpr);
+		Object[] vec2 = vbatch.eval(maskExpr);
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++)
+			values[i] = network(vec1[i], vec2[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
 		Object value = valueExpr.eval(map);
+		Object maskValue = maskExpr.eval(map);
+		return network(value, maskValue);
+	}
+
+	private Object network(Object value, Object maskValue) {
 		if (value == null)
 			return null;
 
-		Object maskValue = maskExpr.eval(map);
 		if (maskValue == null)
 			return null;
 

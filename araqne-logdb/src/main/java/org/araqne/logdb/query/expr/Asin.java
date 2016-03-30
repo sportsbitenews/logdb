@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Asin extends FunctionExpression {
 	private Expression valueExpr;
@@ -14,11 +15,29 @@ public class Asin extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return asin(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = asin(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object value = valueExpr.eval(row);
 		if (value == null)
 			return null;
 
+		return asin(value);
+	}
+
+	private Object asin(Object value) {
 		if (value instanceof Number)
 			return Math.asin(((Number) value).doubleValue());
 		else

@@ -16,23 +16,29 @@
 package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.VectorizedExpression;
 
-public class First implements AggregationFunction {
+public class First implements VectorizedAggregationFunction {
 	private List<Expression> exprs;
-	private Object first;
+	private Expression expr;
+	private VectorizedExpression vectorizedExpr;
+	private AtomicReference<Object> first = new AtomicReference<Object>();
 
 	public First(List<Expression> exprs) {
 		if (exprs.size() != 1) {
-			//String note = exprs.size() + " parameters to first function";
-			//throw new QueryParseException("invalid-parameter-count", -1, note);
-			throw new QueryParseException("91020",-1, -1, null);
+			throw new QueryParseException("91020", -1, -1, null);
 		}
 
 		this.exprs = exprs;
+		this.expr = exprs.get(0);
+		if (this.expr instanceof VectorizedExpression)
+			this.vectorizedExpr = (VectorizedExpression) expr;
 	}
 
 	@Override
@@ -47,34 +53,41 @@ public class First implements AggregationFunction {
 
 	@Override
 	public void apply(Row map) {
-		Object obj = exprs.get(0).eval(map);
+		Object obj = expr.eval(map);
+		if (obj == null)
+			return;
 
-		if (first == null && obj != null)
-			first = obj;
+		first.compareAndSet(null, obj);
 	}
 
-	public Object getFirst() {
-		return first;
-	}
+	@Override
+	public void apply(VectorizedRowBatch vbatch, int index) {
+		Object obj = null;
+		if (vectorizedExpr != null)
+			obj = vectorizedExpr.evalOne(vbatch, index);
+		else
+			obj = expr.eval(vbatch.row(index));
 
-	public void setFirst(Object first) {
-		this.first = first;
+		if (obj == null)
+			return;
+
+		first.compareAndSet(null, obj);
 	}
 
 	@Override
 	public Object eval() {
-		return first;
+		return first.get();
 	}
 
 	@Override
 	public void clean() {
-		first = null;
+		first.set(null);
 	}
 
 	@Override
 	public AggregationFunction clone() {
 		First f = new First(exprs);
-		f.first = first;
+		f.first.set(first.get());
 		return f;
 	}
 
@@ -85,12 +98,12 @@ public class First implements AggregationFunction {
 
 	@Override
 	public Object serialize() {
-		return first;
+		return first.get();
 	}
 
 	@Override
 	public void deserialize(Object value) {
-		first = value;
+		first.set(value);
 	}
 
 	@Override

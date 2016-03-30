@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 2.4.11
@@ -33,7 +34,7 @@ public class Decode extends FunctionExpression {
 
 	public Decode(QueryContext ctx, List<Expression> exprs) {
 		super("decode", exprs, 1);
-		
+
 		this.dataExpr = exprs.get(0);
 
 		this.charset = Charset.forName("utf-8");
@@ -42,8 +43,26 @@ public class Decode extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(dataExpr, i);
+		return decode(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(dataExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = decode(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object data = dataExpr.eval(row);
+		return decode(data);
+	}
+
+	private Object decode(Object data) {
 		if (data == null)
 			return null;
 

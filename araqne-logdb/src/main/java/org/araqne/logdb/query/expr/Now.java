@@ -15,29 +15,40 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 1.7.2
  * @author xeraph
  * 
  */
-public class Now implements Expression {
+public class Now extends FunctionExpression {
 
 	public Now(QueryContext ctx, List<Expression> exprs) {
+		super("now", exprs);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		return new Date();
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Date d = new Date();
+		Object[] values = new Object[vbatch.size];
+		Arrays.fill(values, d);
+		return values;
 	}
 
 	@Override
 	public Object eval(Row map) {
 		return new Date();
-	}
-
-	@Override
-	public String toString() {
-		return "now()";
 	}
 }

@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Test;
 /**
  * 
@@ -32,14 +33,14 @@ public class StrJoinTest {
 	@Test
 	public void testStrJoin(){
 		StrJoin srtJoin = new StrJoin(null, expr(",", array(expr(1,2,3,4))));
-		assertEquals("1,2,3,4", srtJoin.eval(null));
+		assertEquals("1,2,3,4", srtJoin.eval((Row) null));
 	}
 	
 	@Test
 	public void testStrJoinNull(){
 		
 		StrJoin strJoin = new StrJoin(null, expr(",", null));
-		assertEquals(null, strJoin.eval(null));
+		assertEquals(null, strJoin.eval((Row) null));
 		
 		//strjoin(",", null) => null
 	}

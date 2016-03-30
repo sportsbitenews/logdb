@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Test;
 /**
  * 
@@ -33,19 +34,19 @@ public class HashTest {
 	@Test
 	public void testHash(){
 		Hash hash = new Hash(null, expr("md5", binary("hello world")));
-		assertEquals("5eb63bbbe01eeed093cb22bb8f5acdc3", byteArrayToHex((byte[])hash.eval(null)));
+		assertEquals("5eb63bbbe01eeed093cb22bb8f5acdc3", byteArrayToHex((byte[])hash.eval((Row) null)));
 		
 		hash = new Hash(null, expr("sha1", binary("hello world")));
-		assertEquals("2aae6c35c94fcfb415dbe95f408b9ce91ee846ed", byteArrayToHex((byte[])hash.eval(null)));
+		assertEquals("2aae6c35c94fcfb415dbe95f408b9ce91ee846ed", byteArrayToHex((byte[])hash.eval((Row) null)));
 	
 		hash = new Hash(null, expr("sha256", binary("hello world")));
-		assertEquals("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9", byteArrayToHex((byte[])hash.eval(null)));
+		assertEquals("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9", byteArrayToHex((byte[])hash.eval((Row) null)));
 		
 		hash = new Hash(null, expr("sha384", binary("hello world")));
-		assertEquals("fdbd8e75a67f29f701a4e040385e2e23986303ea10239211af907fcbb83578b3e417cb71ce646efd0819dd8c088de1bd", byteArrayToHex((byte[])hash.eval(null)));
+		assertEquals("fdbd8e75a67f29f701a4e040385e2e23986303ea10239211af907fcbb83578b3e417cb71ce646efd0819dd8c088de1bd", byteArrayToHex((byte[])hash.eval((Row) null)));
 		
 		hash = new Hash(null, expr("sha512", binary("hello world")));
-		assertEquals("309ecc489c12d6eb4cc40f50c902f2b4d0ed77ee511a7c7a9bcd3ca86d4cd86f989dd35bc5ff499670da34255b45b0cfd830e81f605dcf7dc5542e93ae9cd76f", byteArrayToHex((byte[])hash.eval(null)));
+		assertEquals("309ecc489c12d6eb4cc40f50c902f2b4d0ed77ee511a7c7a9bcd3ca86d4cd86f989dd35bc5ff499670da34255b45b0cfd830e81f605dcf7dc5542e93ae9cd76f", byteArrayToHex((byte[])hash.eval((Row) null)));
 	}
 	
 	@Test

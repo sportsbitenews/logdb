@@ -21,8 +21,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Ignore;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
@@ -32,13 +34,13 @@ public class UrlDecodeTest {
 
 	@Ignore
 	@Test
-	public void testUrlDecode(){
+	public void testUrlDecode() {
 		UrlDecode urldecode = new UrlDecode(null, expr("%EB%A1%9C%EA%B7%B8%EB%B6%84%EC%84%9D"));
-		assertEquals( "로그분석",  urldecode.eval(null));
+		assertEquals("로그분석", urldecode.eval((Row) null));
 	}
-		    
+
 	@Test
-	public void testError90850(){
+	public void testError90850() {
 		try {
 			new UrlDecode(null, expr("test", "euc-kk"));
 			fail();
@@ -50,26 +52,26 @@ public class UrlDecodeTest {
 			assertEquals("euc-kk", e.getParams().get("charset"));
 		}
 	}
-	
+
 	@Test
 	public void testManual() {
 		assertNull(FunctionUtil.parseExpr("urldecode(int(\"invalid\"))").eval(null));
 		assertEquals("로그분석", FunctionUtil.parseExpr("urldecode(\"%B7%CE%B1%D7%BA%D0%BC%AE\", \"EUC-KR\")").eval(null));
 		assertEquals("로그분석", FunctionUtil.parseExpr("urldecode(\"%EB%A1%9C%EA%B7%B8%EB%B6%84%EC%84%9D\")").eval(null));
 	}
-	
-	private List<Expression> expr(Object...object ){
+
+	private List<Expression> expr(Object... object) {
 		List<Expression> expr = new ArrayList<Expression>();
 
-		for(Object o: object){
-			if(o instanceof Expression)
-				expr.add((Expression)o);
-			else if(o instanceof String)
-				expr.add(new StringConstant((String)o));
-			else if(o instanceof Number)
-				expr.add(new NumberConstant((Number)o));
-			else if(o instanceof Boolean)
-				expr.add(new BooleanConstant((Boolean)o));
+		for (Object o : object) {
+			if (o instanceof Expression)
+				expr.add((Expression) o);
+			else if (o instanceof String)
+				expr.add(new StringConstant((String) o));
+			else if (o instanceof Number)
+				expr.add(new NumberConstant((Number) o));
+			else if (o instanceof Boolean)
+				expr.add(new BooleanConstant((Boolean) o));
 		}
 
 		return expr;

@@ -25,24 +25,26 @@ import java.util.Date;
 import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
  *
  */
 public class ToDateTest {
-	private String format =  "yyyy-MM-dd HH:mm:ss";
+	private String format = "yyyy-MM-dd HH:mm:ss";
 	private SimpleDateFormat sdf = new SimpleDateFormat(format);
-	
+
 	@Test
-	public void testToDate() throws ParseException{
+	public void testToDate() throws ParseException {
 		ToDate date = new ToDate(null, expr("2014-09-22 16:38:55", format));
-		assertEquals((Date)sdf.parse("2014-09-22 16:38:55"),(Date) date.eval(null));
+		assertEquals((Date) sdf.parse("2014-09-22 16:38:55"), (Date) date.eval((Row) null));
 	}
-		    		
+
 	@Test
-	public void testError90820(){
+	public void testError90820() {
 		try {
 			new ToDate(null, expr("2014-09-22 16:38:55", "TTTTT"));
 			fail();
@@ -53,19 +55,19 @@ public class ToDateTest {
 			assertEquals("90820", e.getType());
 		}
 	}
-	
-	private List<Expression> expr(Object...object ){
+
+	private List<Expression> expr(Object... object) {
 		List<Expression> expr = new ArrayList<Expression>();
 
-		for(Object o: object){
-			if(o instanceof Expression)
-				expr.add((Expression)o);
-			else if(o instanceof String)
-				expr.add(new StringConstant((String)o));
-			else if(o instanceof Number)
-				expr.add(new NumberConstant((Number)o));
-			else if(o instanceof Boolean)
-				expr.add(new BooleanConstant((Boolean)o));
+		for (Object o : object) {
+			if (o instanceof Expression)
+				expr.add((Expression) o);
+			else if (o instanceof String)
+				expr.add(new StringConstant((String) o));
+			else if (o instanceof Number)
+				expr.add(new NumberConstant((Number) o));
+			else if (o instanceof Boolean)
+				expr.add(new BooleanConstant((Boolean) o));
 		}
 
 		return expr;

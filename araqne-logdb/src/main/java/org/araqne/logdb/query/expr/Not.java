@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Not extends FunctionExpression {
 	private Expression expr;
@@ -29,8 +30,26 @@ public class Not extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(expr, i);
+		return not(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(expr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = not(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
 		Object o = expr.eval(map);
+		return not(o);
+	}
+
+	private Object not(Object o) {
 		if (o == null)
 			return null;
 

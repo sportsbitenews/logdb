@@ -21,6 +21,7 @@ import org.araqne.codec.Base64;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,15 +39,33 @@ public class FromBase64 extends FunctionExpression {
 		super("frombase64", exprs);
 
 		if (exprs.size() < 1)
-		//	throw new QueryParseException("frombase64-arg-missing", -1);
+			// throw new QueryParseException("frombase64-arg-missing", -1);
 			throw new QueryParseException("90680", -1, -1, null);
 
 		this.dataExpr = exprs.get(0);
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(dataExpr, i);
+		return frombase64(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(dataExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = frombase64(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object o = dataExpr.eval(row);
+		return frombase64(o);
+	}
+
+	private Object frombase64(Object o) {
 		if (o == null)
 			return null;
 
@@ -58,5 +77,4 @@ public class FromBase64 extends FunctionExpression {
 			return null;
 		}
 	}
-
 }

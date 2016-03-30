@@ -8,8 +8,9 @@ import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class Typeof extends FunctionExpression {
+public class Typeof extends FunctionExpression implements VectorizedExpression {
 	private Expression expr;
 
 	public Typeof(QueryContext ctx, List<Expression> exprs) {
@@ -18,11 +19,30 @@ public class Typeof extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object value = vbatch.evalOne(expr, i);
+		return getTypeString(value);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(expr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = getTypeString(values[i]);
+
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
 		Object o = expr.eval(map);
 		if (o == null)
 			return null;
 
+		return getTypeString(o);
+	}
+
+	private Object getTypeString(Object o) {
 		if (o instanceof String)
 			return "string";
 		else if (o instanceof Integer)

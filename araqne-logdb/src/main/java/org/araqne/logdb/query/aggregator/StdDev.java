@@ -3,14 +3,18 @@ package org.araqne.logdb.query.aggregator;
 import java.util.List;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.expr.Expression;
 
-public class StdDev implements AggregationFunction {
+public class StdDev implements VectorizedAggregationFunction {
 	private List<Expression> exprs;
-	Variance var;
+	private Expression expr;
+	private Variance var;
 
 	public StdDev(List<Expression> exprs) {
 		this.exprs = exprs;
+		this.expr = exprs.get(0);
+		this.var = new Variance(exprs);
 	}
 
 	@Override
@@ -25,47 +29,53 @@ public class StdDev implements AggregationFunction {
 
 	@Override
 	public void apply(Row map) {
-		Expression expr = exprs.get(0);
 		Object obj = expr.eval(map);
-		if (obj == null || !(obj instanceof Number))
+		if (!(obj instanceof Number))
 			return;
 
-		if (var == null)
-			var = new Variance(exprs);
 		var.apply(map);
 	}
 
 	@Override
+	public void apply(VectorizedRowBatch vbatch, int index) {
+		var.apply(vbatch, index);
+	}
+
+	@Override
 	public Object eval() {
-		if (var == null)
+		Double d = (Double) var.eval();
+		if (d == null)
 			return null;
-		else
-			return Math.sqrt(((Number) var.eval()).doubleValue());
+		return Math.sqrt(d);
 	}
 
 	@Override
 	public void clean() {
-		var = null;
+		var = new Variance(exprs);
 	}
 
 	@Override
 	public AggregationFunction clone() {
 		StdDev f = new StdDev(exprs);
-		if (var != null)
-			f.var = (Variance) var.clone();
+		f.var = (Variance) var.clone();
 		return f;
 	}
 
 	@Override
 	public Object serialize() {
-		return var.serialize();
+		Object[] arr = (Object[]) var.serialize();
+		if ((Integer) arr[2] == 0)
+			return null;
+		return arr;
 	}
 
 	@Override
 	public void deserialize(Object value) {
+		if (value == null)
+			return;
+
 		Object[] values = (Object[]) value;
-		if (var == null)
-			var = new Variance(exprs);
+		var = new Variance(exprs);
 		var.deserialize(values);
 	}
 

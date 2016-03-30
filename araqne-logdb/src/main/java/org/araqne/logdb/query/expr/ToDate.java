@@ -24,6 +24,7 @@ import java.util.Map;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class ToDate extends FunctionExpression {
 
@@ -33,7 +34,7 @@ public class ToDate extends FunctionExpression {
 
 	public ToDate(QueryContext ctx, List<Expression> exprs) {
 		super("date", exprs, 2);
-		
+
 		this.valueExpr = exprs.get(0);
 		locale = Locale.ENGLISH;
 		if (exprs.size() > 2)
@@ -45,16 +46,35 @@ public class ToDate extends FunctionExpression {
 			// for argument validation
 			new SimpleDateFormat(format, locale);
 		} catch (IllegalArgumentException e) {
-	//		throw new QueryParseException("invalid-argument", -1, "invalid date format pattern");
-			Map<String, String> params = new HashMap<String, String> ();
+			// throw new QueryParseException("invalid-argument", -1, "invalid
+			// date format pattern");
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("exception", e.getMessage());
 			throw new QueryParseException("90820", -1, -1, params);
 		}
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return todate(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = todate(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
 		Object value = valueExpr.eval(map);
+		return todate(value);
+	}
+
+	private Object todate(Object value) {
 		if (value == null)
 			return null;
 

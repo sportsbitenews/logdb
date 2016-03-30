@@ -23,39 +23,58 @@ import java.util.Map;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Split extends FunctionExpression {
-	private Expression target;
+	private Expression targetExpr;
 	private final String delimiters;
 	private final int next;
 
 	public Split(QueryContext ctx, List<Expression> exprs) {
 		super("split", exprs, 2);
 
-		this.target = exprs.get(0);
+		this.targetExpr = exprs.get(0);
 		try {
 			Object arg2 = exprs.get(1).eval(null);
 			if (arg2 == null)
 				throw new QueryParseException("90772", -1, -1, null);
-			
+
 			this.delimiters = arg2.toString();
 			this.next = delimiters.length();
 
 			if (next == 0)
-			//	throw new QueryParseException("empty-delimiters", -1);
+				// throw new QueryParseException("empty-delimiters", -1);
 				throw new QueryParseException("90772", -1, -1, null);
-			
+
 		} catch (NullPointerException e) {
-		//	throw new QueryParseException("invalid-delimiters", -1);
-			Map<String, String> params = new HashMap<String, String> ();
+			// throw new QueryParseException("invalid-delimiters", -1);
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("exception", e.getMessage());
 			throw new QueryParseException("90771", -1, -1, params);
 		}
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(targetExpr, i);
+		return split(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(targetExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = split(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
-		Object o = target.eval(row);
+		Object o = targetExpr.eval(row);
+		return split(o);
+	}
+
+	private Object split(Object o) {
 		if (o == null)
 			return null;
 

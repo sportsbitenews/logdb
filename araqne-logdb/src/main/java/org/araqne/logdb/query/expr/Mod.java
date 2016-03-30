@@ -20,6 +20,7 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Mod extends FunctionExpression {
 
@@ -37,10 +38,30 @@ public class Mod extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o1 = vbatch.evalOne(numberExpr, i);
+		Object o2 = vbatch.evalOne(divisorExpr, i);
+		return mod(o1, o2);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] vec1 = vbatch.eval(numberExpr);
+		Object[] vec2 = vbatch.eval(divisorExpr);
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++)
+			values[i] = mod(vec1[i], vec2[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object o1 = numberExpr.eval(row);
 		Object o2 = divisorExpr.eval(row);
+		return mod(o1, o2);
+	}
 
+	private Object mod(Object o1, Object o2) {
 		if (o1 == null || o2 == null)
 			return null;
 

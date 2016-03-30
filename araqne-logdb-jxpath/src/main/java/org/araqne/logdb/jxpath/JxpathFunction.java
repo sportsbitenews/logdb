@@ -23,26 +23,45 @@ import org.apache.commons.jxpath.CompiledExpression;
 import org.apache.commons.jxpath.JXPathContext;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.expr.Expression;
 import org.araqne.logdb.query.expr.FunctionExpression;
 
 public class JxpathFunction extends FunctionExpression {
 
 	private CompiledExpression compiled;
-	private Expression source;
+	private Expression sourceExpr;
 
 	public JxpathFunction(QueryContext ctx, List<Expression> exprs) {
 		super("jxpath", exprs);
 
-		source = exprs.get(0);
+		sourceExpr = exprs.get(0);
 		String path = exprs.get(1).eval(null).toString();
 		compiled = JXPathContext.compile(path);
 	}
 
-	@SuppressWarnings("unchecked")
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(sourceExpr, i);
+		return jxpath(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(sourceExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = jxpath(values[i]);
+		return values;
+	}
+
 	@Override
 	public Object eval(Row row) {
-		Object src = source.eval(row);
+		Object o = sourceExpr.eval(row);
+		return jxpath(o);
+	}
+
+	@SuppressWarnings("unchecked")
+	private Object jxpath(Object src) {
 		List<Object> l = new ArrayList<Object>();
 		Iterator<Object> it = compiled.iterate(JXPathContext.newContext(src));
 		while (it.hasNext()) {

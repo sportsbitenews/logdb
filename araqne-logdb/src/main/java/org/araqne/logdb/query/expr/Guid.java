@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 1.7.5
@@ -27,9 +28,22 @@ import org.araqne.logdb.Row;
  *
  */
 public class Guid extends FunctionExpression {
-	
+
 	public Guid(QueryContext ctx, List<Expression> exprs) {
 		super("guid", exprs);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		return UUID.randomUUID().toString();
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++)
+			values[i] = UUID.randomUUID().toString();
+		return values;
 	}
 
 	@Override

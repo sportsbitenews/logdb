@@ -18,18 +18,31 @@ package org.araqne.logdb.query.expr;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
-import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class Abs implements Expression {
+public class Abs extends FunctionExpression {
 	private Expression expr;
 
 	public Abs(QueryContext ctx, List<Expression> exprs) {
-		if (exprs.size() != 1){
-		//	throw new QueryParseException("invalid-abs-args", -1);
-			throw new QueryParseException("90600", -1, -1, null);
-		}
+		super("abs", exprs, 1);
 		this.expr = exprs.get(0);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(expr, i);
+		if (o == null)
+			return null;
+		return abs(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(expr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = abs(values[i]);
+		return values;
 	}
 
 	@Override
@@ -38,6 +51,10 @@ public class Abs implements Expression {
 		if (o == null)
 			return null;
 
+		return abs(o);
+	}
+
+	private Object abs(Object o) {
 		if (o instanceof Double)
 			return Math.abs((Double) o);
 		else if (o instanceof Integer)
@@ -50,10 +67,5 @@ public class Abs implements Expression {
 			return Math.abs((Short) o);
 
 		return null;
-	}
-
-	@Override
-	public String toString() {
-		return "abs(" + expr + ")";
 	}
 }

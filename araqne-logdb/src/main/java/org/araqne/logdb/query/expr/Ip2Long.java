@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Ip2Long extends FunctionExpression {
 	private Expression valueExpr;
@@ -31,9 +32,26 @@ public class Ip2Long extends FunctionExpression {
 	}
 
 	@Override
-	public Object eval(Row map) {
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return ip2long(o);
+	}
 
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = ip2long(values[i]);
+		return values;
+	}
+
+	@Override
+	public Object eval(Row map) {
 		Object v = valueExpr.eval(map);
+		return ip2long(v);
+	}
+
+	private Object ip2long(Object v) {
 		if (v == null)
 			return null;
 
@@ -120,7 +138,7 @@ public class Ip2Long extends FunctionExpression {
 		}
 		return result;
 	}
-	
+
 	public static Long convert(String ip) {
 		return convert(ip, 0, ip.length());
 	}

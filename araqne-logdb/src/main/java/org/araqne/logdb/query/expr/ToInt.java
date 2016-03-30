@@ -24,6 +24,7 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class ToInt extends FunctionExpression {
 
@@ -47,9 +48,27 @@ public class ToInt extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return toint(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = toint(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
+		Object v = valueExpr.eval(map);
+		return toint(v);
+	}
+
+	private Object toint(Object v) {
 		try {
-			Object v = valueExpr.eval(map);
 			if (v == null)
 				return null;
 

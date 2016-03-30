@@ -20,6 +20,8 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
+import org.araqne.logstorage.LogVector;
 
 /**
  * @since 2.2.12
@@ -32,11 +34,43 @@ public class Field extends FunctionExpression {
 
 	public Field(QueryContext ctx, List<Expression> exprs) {
 		super("field", exprs);
-		
+
 		if (exprs.isEmpty())
-//			throw new QueryParseException("missing-field-name", -1);
+			// throw new QueryParseException("missing-field-name", -1);
 			throw new QueryParseException("90670", -1, -1, null);
 		this.expr = exprs.get(0);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(expr, i);
+		if (o == null)
+			return null;
+
+		LogVector vec = vbatch.data.get(o.toString());
+		if (vec == null)
+			return null;
+
+		return vec.getArray()[i];
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] fieldNames = vbatch.eval(expr);
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++) {
+			Object o = fieldNames[i];
+			if (o == null)
+				continue;
+			
+			LogVector vec = vbatch.data.get(o.toString());
+			if (vec == null)
+				return null;
+
+			values[i] = vec.getArray()[i];
+		}
+
+		return values;
 	}
 
 	@Override

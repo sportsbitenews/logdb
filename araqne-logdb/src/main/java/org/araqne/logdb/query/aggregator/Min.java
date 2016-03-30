@@ -16,18 +16,26 @@
 package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.VectorizedExpression;
 
-public class Min implements AggregationFunction {
+public class Min implements VectorizedAggregationFunction {
 	private List<Expression> exprs;
+	private Expression expr;
+	private VectorizedExpression vectorizedExpr;
 	private ObjectComparator comp = new ObjectComparator();
-	private Object min;
+	private AtomicReference<Object> min = new AtomicReference<Object>();
 
 	public Min(List<Expression> exprs) {
 		this.exprs = exprs;
+		this.expr = exprs.get(0);
+		if (expr instanceof VectorizedExpression)
+			this.vectorizedExpr = (VectorizedExpression) expr;
 	}
 
 	@Override
@@ -42,7 +50,22 @@ public class Min implements AggregationFunction {
 
 	@Override
 	public void apply(Row map) {
-		Object obj = exprs.get(0).eval(map);
+		Object obj = expr.eval(map);
+		if (obj == null)
+			return;
+
+		put(obj);
+	}
+
+	@Override
+	public void apply(VectorizedRowBatch vbatch, int index) {
+		Object obj = null;
+		if (vectorizedExpr != null) {
+			obj = vectorizedExpr.evalOne(vbatch, index);
+		} else {
+			obj = expr.eval(vbatch.row(index));
+		}
+
 		if (obj == null)
 			return;
 
@@ -50,49 +73,45 @@ public class Min implements AggregationFunction {
 	}
 
 	private void put(Object obj) {
-		if (min == null || (comp.compare(min, obj) > 0 && obj != null))
-			min = obj;
-	}
-
-	public Object getMin() {
-		return min;
-	}
-
-	public void setMin(Object min) {
-		this.min = min;
+		boolean success = true;
+		do {
+			Object minVal = min.get();
+			if (minVal == null || (comp.compare(minVal, obj) > 0 && obj != null))
+				success = min.compareAndSet(minVal, obj);
+		} while (!success);
 	}
 
 	@Override
 	public Object eval() {
-		return min;
+		return min.get();
 	}
 
 	@Override
 	public void clean() {
-		min = null;
+		min.set(null);
 	}
 
 	@Override
 	public AggregationFunction clone() {
 		Min f = new Min(exprs);
-		f.min = min;
+		f.min.set(min.get());
 		return f;
 	}
 
 	@Override
 	public Object serialize() {
-		return min;
+		return min.get();
 	}
 
 	@Override
 	public void deserialize(Object value) {
-		this.min = value;
+		this.min.set(value);
 	}
 
 	@Override
 	public void merge(AggregationFunction func) {
 		Min other = (Min) func;
-		put(other.min);
+		put(other.min.get());
 	}
 
 	@Override

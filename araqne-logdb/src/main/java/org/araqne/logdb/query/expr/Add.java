@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.expr;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.command.NumberUtil;
 
 public class Add extends BinaryExpression {
@@ -24,13 +25,38 @@ public class Add extends BinaryExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o1 = vbatch.evalOne(lhs, i);
+		Object o2 = vbatch.evalOne(rhs, i);
+		return add(o1, o2);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] vec1 = vbatch.eval(lhs);
+		Object[] vec2 = vbatch.eval(lhs);
+		Object[] values = new Object[vbatch.size];
+
+		for (int i = 0; i < values.length; i++) {
+			Object o1 = vec1[i];
+			Object o2 = vec2[i];
+			values[i] = add(o1, o2);
+		}
+
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object o1 = lhs.eval(row);
 		Object o2 = rhs.eval(row);
-		
+		return add(o1, o2);
+	}
+
+	private Object add(Object o1, Object o2) {
 		if (o1 == null || o2 == null)
 			return null;
-		
+
 		return NumberUtil.add(o1, o2);
 	}
 

@@ -23,6 +23,8 @@ import java.util.regex.Pattern;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class KvJoin extends FunctionExpression {
 
@@ -34,7 +36,7 @@ public class KvJoin extends FunctionExpression {
 
 	public KvJoin(QueryContext ctx, List<Expression> exprs) {
 		super("kvjoin", exprs, 2);
-		
+
 		kvDelim = exprs.get(0);
 		pairDelim = exprs.get(1);
 
@@ -46,7 +48,28 @@ public class KvJoin extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Row row = vbatch.row(i);
+		return kvjoin(row);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		RowBatch rowBatch = vbatch.toRowBatch();
+		Object[] values = new Object[rowBatch.size];
+		for (int i = 0; i < rowBatch.size; i++)
+			values[i] = kvjoin(rowBatch.rows[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
+		return kvjoin(map);
+	}
+
+	private Object kvjoin(Row map) {
+		Object o1 = pairDelim.eval(map);
+		Object o2 = kvDelim.eval(map);
 		StringBuilder sb = new StringBuilder();
 
 		int i = 0;
@@ -58,10 +81,10 @@ public class KvJoin extends FunctionExpression {
 			}
 
 			if (i++ != 0)
-				sb.append(pairDelim.eval(map));
+				sb.append(o1);
 
 			sb.append(entry.getKey());
-			sb.append(kvDelim.eval(map));
+			sb.append(o2);
 			sb.append(entry.getValue());
 		}
 		return sb.toString();

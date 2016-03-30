@@ -22,6 +22,7 @@ import java.util.Map;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Format extends FunctionExpression {
 	private String format;
@@ -31,8 +32,8 @@ public class Format extends FunctionExpression {
 	public Format(QueryContext ctx, List<Expression> exprs) {
 		super("format", exprs, 2);
 
-		if (!(exprs.get(0) instanceof StringConstant)){
-		//	throw new QueryParseException("invalid-format-string", -1);
+		if (!(exprs.get(0) instanceof StringConstant)) {
+			// throw new QueryParseException("invalid-format-string", -1);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("exp", exprs.get(0).toString());
 			throw new QueryParseException("91030", -1, -1, params);
@@ -44,14 +45,46 @@ public class Format extends FunctionExpression {
 	}
 
 	@Override
-	public Object eval(Row row) {
-		try {
-			Object[] args = new Object[argExprs.size()];
-			int i = 0;
-			for (Expression argExpr : argExprs) {
-				args[i++] = argExpr.eval(row);
-			}
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object[] args = new Object[argCount];
+		int d = 0;
+		for (Expression expr : argExprs)
+			args[d++] = vbatch.evalOne(expr, i);
 
+		return format(args);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[][] vecs = new Object[argCount][];
+		int i = 0;
+		for (Expression expr : argExprs)
+			vecs[i++] = vbatch.eval(expr);
+		
+		Object[] args = new Object[argCount];
+		Object[] values = new Object[vbatch.size];
+		for (i = 0; i < vbatch.size; i++) {
+			for (int j = 0; j < argCount; j++) 
+				args[j] = vecs[j][i];
+			
+			values[i] = format(args);
+		}
+
+		return values;
+	}
+
+	@Override
+	public Object eval(Row row) {
+		Object[] args = new Object[argExprs.size()];
+		int i = 0;
+		for (Expression argExpr : argExprs)
+			args[i++] = argExpr.eval(row);
+
+		return format(args);
+	}
+
+	private Object format(Object[] args) {
+		try {
 			if (argCount == 1 && args[0] != null) {
 				if (args[0] instanceof List) {
 					return String.format(format, ((List<?>) args[0]).toArray());

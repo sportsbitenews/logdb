@@ -19,19 +19,38 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Trim extends FunctionExpression {
 	private Expression expr;
 
 	public Trim(QueryContext ctx, List<Expression> exprs) {
 		super("trim", exprs, 1);
-		
+
 		this.expr = exprs.get(0);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(expr, i);
+		return trim(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(expr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = trim(values[i]);
+		return values;
 	}
 
 	@Override
 	public Object eval(Row map) {
 		Object v = expr.eval(map);
+		return trim(v);
+	}
+
+	private Object trim(Object v) {
 		if (v == null)
 			return null;
 

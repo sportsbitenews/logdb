@@ -20,7 +20,7 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.VectorizedRowBatch;
 
-public class Assign extends BinaryExpression implements VectorizedExpression {
+public class Assign extends BinaryExpression {
 	private final String field;
 
 	public Assign(Expression lhs, Expression rhs) {

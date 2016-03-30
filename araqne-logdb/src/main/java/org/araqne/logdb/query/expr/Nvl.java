@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 2.4.58
@@ -34,12 +35,32 @@ public class Nvl extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o1 = vbatch.evalOne(condExpr, i);
+		if (o1 != null)
+			return o1;
+
+		return vbatch.evalOne(valExpr, i);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] vec1 = vbatch.eval(condExpr);
+		Object[] vec2 = vbatch.eval(valExpr);
+		for (int i = 0; i < vec1.length; i++) {
+			if (vec1[i] == null)
+				vec1[i] = vec2[i];
+		}
+
+		return vec1;
+	}
+
+	@Override
 	public Object eval(Row row) {
-		Object o = condExpr.eval(row);
-		if (o != null)
-			return o;
+		Object o1 = condExpr.eval(row);
+		if (o1 != null)
+			return o1;
 
 		return valExpr.eval(row);
 	}
-
 }

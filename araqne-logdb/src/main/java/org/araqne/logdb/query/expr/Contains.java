@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Contains extends FunctionExpression {
 
@@ -33,12 +34,34 @@ public class Contains extends FunctionExpression {
 		this.needleExpr = exprs.get(1);
 	}
 
-	@SuppressWarnings("unchecked")
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object target = vbatch.evalOne(targetExpr, i);
+		Object needle = vbatch.evalOne(needleExpr, i);
+		return contains(target, needle);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] targets = vbatch.eval(targetExpr);
+		Object[] needles = vbatch.eval(needleExpr);
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < vbatch.size; i++) {
+			values[i] = contains(targets[i], needles[i]);
+		}
+
+		return values;
+	}
+
 	@Override
 	public Object eval(Row row) {
 		Object o1 = targetExpr.eval(row);
 		Object o2 = needleExpr.eval(row);
+		return contains(o1, o2);
+	}
 
+	@SuppressWarnings("unchecked")
+	private Object contains(Object o1, Object o2) {
 		if (o1 == null || o2 == null)
 			return false;
 

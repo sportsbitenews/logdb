@@ -24,14 +24,14 @@ import java.util.Map;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 1.7.2
  * @author xeraph
  * 
  */
-public class DateDiff implements Expression {
-	private final List<Expression> exprs;
+public class DateDiff extends FunctionExpression {
 	private final Expression start;
 	private final Expression end;
 	private final int calField;
@@ -44,11 +44,10 @@ public class DateDiff implements Expression {
 	private static final long SEC_DIV = 1000L;
 
 	public DateDiff(QueryContext ctx, List<Expression> exprs) {
-		this.exprs = exprs;
-
+		super("datediff", exprs);
 		if (exprs.size() != 3)
-//			throw new QueryParseException("invalid-datediff-args", -1);
-			throw new QueryParseException("90630", -1, -1  , null);
+			// throw new QueryParseException("invalid-datediff-args", -1);
+			throw new QueryParseException("90630", -1, -1, null);
 
 		start = exprs.get(0);
 		end = exprs.get(1);
@@ -68,22 +67,41 @@ public class DateDiff implements Expression {
 			calField = Calendar.SECOND;
 		else if (s.equals("msec"))
 			calField = Calendar.MILLISECOND;
-		else{
-		//	throw new QueryParseException("invalid-datediff-unit", -1);
-			Map<String, String> params = new HashMap<String, String> ();
+		else {
+			// throw new QueryParseException("invalid-datediff-unit", -1);
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("field", s);
-			throw new QueryParseException("90631", -1, -1  , params);
+			throw new QueryParseException("90631", -1, -1, params);
 		}
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o1 = vbatch.evalOne(start, i);
+		Object o2 = vbatch.evalOne(end, i);
+		return datediff(o1, o2);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] vec1 = vbatch.eval(start);
+		Object[] vec2 = vbatch.eval(end);
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++)
+			values[i] = datediff(vec1[i], vec2[i]);
+
+		return values;
 	}
 
 	@Override
 	public Object eval(Row map) {
 		Object o1 = start.eval(map);
-		if (o1 == null)
-			return null;
-
 		Object o2 = end.eval(map);
-		if (o2 == null)
+		return datediff(o1, o2);
+	}
+
+	private Object datediff(Object o1, Object o2) {
+		if (o1 == null || o2 == null)
 			return null;
 
 		if (o1 instanceof Date && o2 instanceof Date) {
@@ -110,10 +128,5 @@ public class DateDiff implements Expression {
 		}
 
 		return null;
-	}
-
-	@Override
-	public String toString() {
-		return "datediff(" + start + "," + end + "," + exprs.get(2) + ")";
 	}
 }

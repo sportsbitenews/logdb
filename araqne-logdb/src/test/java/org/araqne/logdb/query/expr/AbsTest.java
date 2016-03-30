@@ -30,6 +30,7 @@ import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.araqne.logdb.query.parser.EvalParser;
 import org.junit.Before;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
@@ -44,13 +45,13 @@ public class AbsTest {
 		p.setFunctionRegistry(new FunctionRegistryImpl());
 		queryParserService = p;
 	}
-	
+
 	@Test
-	public void testAbs(){
+	public void testAbs() {
 		Abs abs = new Abs(null, expr(1));
-		assertEquals(1, abs.eval(null));
+		assertEquals(1, abs.eval((Row) null));
 	}
-	
+
 	@Test
 	public void testAsbByEval() {
 		EvalParser p = new EvalParser();
@@ -63,44 +64,13 @@ public class AbsTest {
 		assertEquals(1, row.get("n"));
 	}
 
-	@Test
-	public void testError90600(){
-		
-		try {
-			 new Abs(null, expr(1, 2, 3));
-			fail();
-		} catch (QueryParseException e) {
-			if (e.isDebugMode()) {
-				System.out.println(e.getMessage());
-			}
-			assertEquals("90600", e.getType());
-		}
-	}
-	
-	@Test
-	public void testError90600ByEval() {
-		EvalParser p = new EvalParser();
-		p.setQueryParserService(queryParserService);
-		
-		try {
-			p.parse(null, "eval n=abs( -1,  2)");
-			fail();
-		} catch (QueryParseException e) {
-			if (e.isDebugMode()) {
-				System.out.println(e.getMessage());
-			}
-			assertEquals("90600", e.getType());
-			assertEquals("n=abs( -1,  2)", e.getParams().get("value"));
-		}
-	}
-
-	private List<Expression> expr(Number... number){
+	private List<Expression> expr(Number... number) {
 		List<Expression> expr = new ArrayList<Expression>();
 
-		for(Number n : number )
+		for (Number n : number)
 			expr.add(new NumberConstant(n));
-		
+
 		return expr;
 	}
-	
+
 }

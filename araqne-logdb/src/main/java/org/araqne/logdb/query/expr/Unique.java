@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 2.4.24
@@ -34,13 +35,31 @@ public class Unique extends FunctionExpression {
 
 	public Unique(QueryContext ctx, List<Expression> exprs) {
 		super("unique", exprs, 1);
-		
+
 		this.arg = exprs.get(0);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(arg, i);
+		return unique(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(arg);
+		for (int i = 0; i < values.length; i++)
+			values[i] = unique(values[i]);
+		return values;
 	}
 
 	@Override
 	public Object eval(Row row) {
 		Object o = arg.eval(row);
+		return unique(o);
+	}
+
+	private Object unique(Object o) {
 		if (o == null)
 			return null;
 

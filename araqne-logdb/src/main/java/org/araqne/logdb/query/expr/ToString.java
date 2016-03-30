@@ -24,7 +24,7 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.VectorizedRowBatch;
 
-public class ToString extends FunctionExpression implements VectorizedExpression {
+public class ToString extends FunctionExpression {
 	private Expression valueExpr;
 	private VectorizedExpression vvalueExpr;
 	private String format;

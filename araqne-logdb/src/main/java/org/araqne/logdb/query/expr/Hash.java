@@ -24,6 +24,7 @@ import java.util.Map;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 2.4.8
@@ -42,17 +43,17 @@ public class Hash extends FunctionExpression {
 	};
 
 	private final String algorithm;
-	private final Expression data;
+	private final Expression dataExpr;
 
 	public Hash(QueryContext ctx, List<Expression> exprs) {
 		super("hash", exprs);
-		
+
 		if (exprs.size() < 1)
-		//	throw new QueryParseException("missing-hash-algorithm", -1);
+			// throw new QueryParseException("missing-hash-algorithm", -1);
 			throw new QueryParseException("90690", -1, -1, null);
 
 		if (exprs.size() < 2)
-		//	throw new QueryParseException("missing-hash-data", -1);
+			// throw new QueryParseException("missing-hash-data", -1);
 			throw new QueryParseException("90691", -1, -1, null);
 
 		String algo = exprs.get(0).eval(null).toString();
@@ -68,13 +69,36 @@ public class Hash extends FunctionExpression {
 		} else if (algo.equalsIgnoreCase("sha512")) {
 			algorithm = "SHA-512";
 		} else {
-			//throw new QueryParseException("unsupported-hash", -1, algo);
+			// throw new QueryParseException("unsupported-hash", -1, algo);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("algorithms", algo);
 			throw new QueryParseException("90692", -1, -1, params);
 		}
 
-		data = exprs.get(1);
+		dataExpr = exprs.get(1);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		MessageDigest md = digests.get();
+		if (md == null)
+			return null;
+
+		Object o = vbatch.evalOne(dataExpr, i);
+		return hash(md, o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		MessageDigest md = digests.get();
+		if (md == null)
+			return null;
+
+		Object[] values = vbatch.eval(dataExpr);
+		for (int i = 0; i < values.length; i++) {
+			values[i] = hash(md, values[i]);
+		}
+		return values;
 	}
 
 	@Override
@@ -83,7 +107,11 @@ public class Hash extends FunctionExpression {
 		if (md == null)
 			return null;
 
-		Object o = data.eval(row);
+		Object o = dataExpr.eval(row);
+		return hash(md, o);
+	}
+
+	private Object hash(MessageDigest md, Object o) {
 		if (o == null)
 			return null;
 

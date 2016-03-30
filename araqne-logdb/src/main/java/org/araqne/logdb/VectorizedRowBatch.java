@@ -97,6 +97,12 @@ public class VectorizedRowBatch {
 			}
 		} else {
 			for (String key : data.keySet()) {
+				LogVector vec = data.get(key);
+				if (vec == null) {
+					@SuppressWarnings("unused")
+					int d = 0;
+				}
+				
 				Object[] array = data.get(key).getArray();
 				for (int i = 0; i < size; i++) {
 					Object val = array[i];

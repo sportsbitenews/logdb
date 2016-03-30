@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Match extends FunctionExpression {
 
@@ -29,15 +30,33 @@ public class Match extends FunctionExpression {
 
 	public Match(QueryContext ctx, List<Expression> exprs) {
 		super("match", exprs, 2);
-		
+
 		this.valueExpr = exprs.get(0);
 		this.pattern = (String) exprs.get(1).eval(null);
 		p = Pattern.compile(pattern);
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return match(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = match(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
 		Object v = valueExpr.eval(map);
+		return match(v);
+	}
+
+	private Object match(Object v) {
 		if (v == null)
 			return false;
 

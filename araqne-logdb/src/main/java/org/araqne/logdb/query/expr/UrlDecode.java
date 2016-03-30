@@ -24,6 +24,7 @@ import java.util.Map;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,7 @@ public class UrlDecode extends FunctionExpression {
 
 	public UrlDecode(QueryContext ctx, List<Expression> exprs) {
 		super("urldecode", exprs, 1);
-		
+
 		this.valueExpr = exprs.get(0);
 		charset = "utf-8";
 		if (exprs.size() > 1)
@@ -50,13 +51,31 @@ public class UrlDecode extends FunctionExpression {
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("charset", charset);
 			throw new QueryParseException("90850", -1, -1, params);
-		//	throw new QueryParseException("invalid-charset", -1);
+			// throw new QueryParseException("invalid-charset", -1);
 		}
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return urldecode(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = urldecode(values[i]);
+		return values;
 	}
 
 	@Override
 	public Object eval(Row map) {
 		Object value = valueExpr.eval(map);
+		return urldecode(value);
+	}
+
+	private Object urldecode(Object value) {
 		if (value == null)
 			return null;
 

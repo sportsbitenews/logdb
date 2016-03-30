@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Epoch extends FunctionExpression {
 
@@ -17,8 +18,26 @@ public class Epoch extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return epoch(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = epoch(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
 		Object value = valueExpr.eval(map);
+		return epoch(value);
+	}
+
+	private Object epoch(Object value) {
 		if (value == null)
 			return null;
 

@@ -20,16 +20,31 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 1.7.8
  * @author xeraph
  * 
  */
-public class Seq implements Expression {
+public class Seq extends FunctionExpression {
 	private AtomicLong index = new AtomicLong(1);
-	
+
 	public Seq(QueryContext ctx, List<Expression> exprs) {
+		super("seq", exprs);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		return index.getAndIncrement();
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++)
+			values[i] = index.getAndIncrement();
+		return values;
 	}
 
 	@Override

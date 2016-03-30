@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Exp extends FunctionExpression {
 	private Expression valueExpr;
@@ -14,8 +15,26 @@ public class Exp extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return exp(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = exp(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object value = valueExpr.eval(row);
+		return exp(value);
+	}
+
+	private Object exp(Object value) {
 		if (value == null)
 			return null;
 

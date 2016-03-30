@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class IndexOf extends FunctionExpression {
 
@@ -28,7 +29,7 @@ public class IndexOf extends FunctionExpression {
 
 	public IndexOf(QueryContext ctx, List<Expression> exprs) {
 		super("indexof", exprs, 2);
-		
+
 		this.targetExpr = exprs.get(0);
 		this.needleExpr = exprs.get(1);
 		if (exprs.size() > 2)
@@ -36,19 +37,53 @@ public class IndexOf extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o1 = vbatch.evalOne(targetExpr, i);
+		Object o2 = vbatch.evalOne(needleExpr, i);
+		Object o3 = null;
+		if (fromIndexExpr != null)
+			o3 = vbatch.evalOne(fromIndexExpr, i);
+
+		return indexof(o1, o2, o3);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] vec1 = vbatch.eval(targetExpr);
+		Object[] vec2 = vbatch.eval(needleExpr);
+		Object[] vec3 = null;
+		if (fromIndexExpr != null)
+			vec3 = vbatch.eval(fromIndexExpr);
+		else
+			vec3 = new Object[vbatch.size];
+
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++)
+			values[i] = indexof(vec1[i], vec2[i], vec3[i]);
+
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object o1 = targetExpr.eval(row);
 		Object o2 = needleExpr.eval(row);
+		Object o3 = null;
+		if (fromIndexExpr != null)
+			o3 = fromIndexExpr.eval(row);
 
+		return indexof(o1, o2, o3);
+	}
+
+	private Object indexof(Object o1, Object o2, Object o3) {
 		if (o1 == null || o2 == null)
 			return null;
 
 		String target = o1.toString();
 		String needle = o2.toString();
 
-		if (fromIndexExpr != null) {
-			Object o3 = fromIndexExpr.eval(row);
-			if (o3 != null && (o3 instanceof Integer) || o3 instanceof Long) {
+		if (o3 != null) {
+			if (o3 instanceof Integer || o3 instanceof Long) {
 				int fromIndex = (Integer) o3;
 				if (fromIndex < 0)
 					fromIndex = 0;

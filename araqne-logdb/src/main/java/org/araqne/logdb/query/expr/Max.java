@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.ObjectComparator;
 
 public class Max extends FunctionExpression {
@@ -27,16 +28,52 @@ public class Max extends FunctionExpression {
 
 	public Max(QueryContext ctx, List<Expression> exprs) {
 		super("max", exprs, 1);
-		
 		this.exprs = exprs;
 	}
 
 	@Override
-	public Object eval(Row map) {
-		Object max = null;
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object[] vec = new Object[exprs.size()];
+		int d = 0;
+		for (Expression expr : exprs)
+			vec[d++] = vbatch.evalOne(expr, i);
 
-		for (Expression expr : exprs) {
-			Object o = expr.eval(map);
+		return max(vec);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[][] vecs = new Object[vbatch.size][];
+		int i = 0;
+		for (Expression expr : exprs)
+			vecs[i++] = vbatch.eval(expr);
+
+		Object[] slot = new Object[exprs.size()];
+		Object[] values = new Object[vbatch.size];
+		for (i = 0; i < values.length; i++) {
+			for (int j = 0; j < exprs.size(); j++)
+				slot[j] = vecs[j][i];
+
+			values[i] = max(slot);
+		}
+
+		return values;
+	}
+
+	@Override
+	public Object eval(Row map) {
+		Object[] vec = new Object[exprs.size()];
+		int i = 0;
+		for (Expression expr : exprs)
+			vec[i++] = expr.eval(map);
+
+		return max(vec);
+	}
+
+	private Object max(Object[] vec) {
+		Object max = null;
+		for (int i = 0; i < vec.length; i++) {
+			Object o = vec[i];
 			if (o == null)
 				continue;
 			if (max == null)

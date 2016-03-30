@@ -16,18 +16,26 @@
 package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.VectorizedExpression;
 
-public class Max implements AggregationFunction {
+public class Max implements VectorizedAggregationFunction {
 	private List<Expression> exprs;
+	private Expression expr;
+	private VectorizedExpression vectorizedExpr;
 	private ObjectComparator comp = new ObjectComparator();
-	private Object max;
+	private AtomicReference<Object> max = new AtomicReference<Object>();
 
 	public Max(List<Expression> exprs) {
 		this.exprs = exprs;
+		this.expr = exprs.get(0);
+		if (expr instanceof VectorizedExpression)
+			this.vectorizedExpr = (VectorizedExpression) expr;
 	}
 
 	@Override
@@ -42,7 +50,22 @@ public class Max implements AggregationFunction {
 
 	@Override
 	public void apply(Row map) {
-		Object obj = exprs.get(0).eval(map);
+		Object obj = expr.eval(map);
+		if (obj == null)
+			return;
+
+		put(obj);
+	}
+
+	@Override
+	public void apply(VectorizedRowBatch vbatch, int index) {
+		Object obj = null;
+		if (vectorizedExpr != null) {
+			obj = vectorizedExpr.evalOne(vbatch, index);
+		} else {
+			obj = expr.eval(vbatch.row(index));
+		}
+
 		if (obj == null)
 			return;
 
@@ -50,49 +73,45 @@ public class Max implements AggregationFunction {
 	}
 
 	private void put(Object obj) {
-		if (max == null || comp.compare(max, obj) < 0)
-			max = obj;
-	}
-
-	public Object getMax() {
-		return max;
-	}
-
-	public void setMax(Object max) {
-		this.max = max;
+		boolean success = true;
+		do {
+			Object maxVal = max.get();
+			if (maxVal == null || comp.compare(maxVal, obj) < 0)
+				success = max.compareAndSet(maxVal, obj);
+		} while (!success);
 	}
 
 	@Override
 	public Object eval() {
-		return max;
+		return max.get();
 	}
 
 	@Override
 	public void clean() {
-		max = null;
+		max.set(null);
 	}
 
 	@Override
 	public AggregationFunction clone() {
 		Max f = new Max(exprs);
-		f.max = max;
+		f.max.set(max.get());
 		return f;
 	}
 
 	@Override
 	public Object serialize() {
-		return max;
+		return max.get();
 	}
 
 	@Override
 	public void deserialize(Object value) {
-		this.max = value;
+		this.max.set(value);
 	}
 
 	@Override
 	public void merge(AggregationFunction func) {
 		Max other = (Max) func;
-		put(other.max);
+		put(other.max.get());
 	}
 
 	@Override

@@ -15,9 +15,12 @@
  */
 package org.araqne.logdb.query.expr;
 
-import org.araqne.logdb.Row;
+import java.util.Arrays;
 
-public class BooleanConstant implements Expression {
+import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
+
+public class BooleanConstant implements VectorizedExpression {
 	private boolean b;
 
 	public BooleanConstant(boolean b) {
@@ -27,6 +30,18 @@ public class BooleanConstant implements Expression {
 	@Override
 	public Object eval(Row map) {
 		return b;
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		return b;
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = new Object[vbatch.size];
+		Arrays.fill(values, b);
+		return values;
 	}
 
 	@Override

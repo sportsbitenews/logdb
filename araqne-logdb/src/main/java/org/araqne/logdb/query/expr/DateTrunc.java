@@ -23,6 +23,7 @@ import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.TimeUnit;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * 
@@ -35,19 +36,36 @@ public class DateTrunc extends FunctionExpression {
 
 	public DateTrunc(QueryContext ctx, List<Expression> exprs) {
 		super("datetrunc", exprs);
-		
-		if (exprs.size() < 2)
-	//		throw new QueryParseException("invalid-datetrunc-args", -1);
-			throw new QueryParseException("90640", -1, -1  , null);
 
+		if (exprs.size() < 2)
+			// throw new QueryParseException("invalid-datetrunc-args", -1);
+			throw new QueryParseException("90640", -1, -1, null);
 
 		this.valueExpr = exprs.get(0);
 		this.span = TimeSpan.parse(exprs.get(1).eval(null).toString());
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return datetrunc(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = datetrunc(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object value = valueExpr.eval(row);
+		return datetrunc(value);
+	}
+
+	private Object datetrunc(Object value) {
 		if (value == null)
 			return null;
 

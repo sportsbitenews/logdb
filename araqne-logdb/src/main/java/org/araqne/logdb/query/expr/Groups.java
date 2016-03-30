@@ -23,24 +23,49 @@ import java.util.regex.Pattern;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Groups extends FunctionExpression {
 	private Expression target;
-	private Matcher matcher;
+	private final Pattern pattern;
+	private ThreadLocal<Matcher> matcherHolder = new ThreadLocal<Matcher>() {
+		@Override
+		protected Matcher initialValue() {
+			return pattern.matcher("");
+		}
+	};
 
 	public Groups(QueryContext ctx, List<Expression> exprs) {
 		super("groups", exprs, 2);
-
 		this.target = exprs.get(0);
-		this.matcher = Pattern.compile(exprs.get(1).eval(null).toString()).matcher("");
+		this.pattern = Pattern.compile(exprs.get(1).eval(null).toString());
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(target, i);
+		return groups(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(target);
+		for (int i = 0; i < values.length; i++)
+			values[i] = groups(values[i]);
+		return values;
 	}
 
 	@Override
 	public Object eval(Row row) {
 		Object o = target.eval(row);
+		return groups(o);
+	}
+
+	private Object groups(Object o) {
 		if (o == null)
 			return null;
 
+		Matcher matcher = matcherHolder.get();
 		matcher.reset(o.toString());
 		ArrayList<String> groups = null;
 		while (matcher.find()) {
@@ -55,8 +80,7 @@ public class Groups extends FunctionExpression {
 	}
 
 	public static void main(String[] args) {
-		String a =
-				"sda               0.01     0.96    0.23    8.32     4.09    70.47     8.72     0.00    0.41   0.23   0.20";
+		String a = "sda               0.01     0.96    0.23    8.32     4.09    70.47     8.72     0.00    0.41   0.23   0.20";
 		String p = "\\s+([0-9\\.]+)";
 		Groups g = new Groups(null, Arrays.<Expression> asList(new EvalField("line"), new StringConstant(p)));
 		Row r = new Row();

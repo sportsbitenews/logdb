@@ -19,15 +19,30 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class IsNotNull extends FunctionExpression {
+public class IsNotNull extends FunctionExpression implements VectorizedExpression {
 
 	private Expression expr;
 
 	public IsNotNull(QueryContext ctx, List<Expression> exprs) {
 		super("isnotnull", exprs, 1);
-		
+
 		this.expr = exprs.get(0);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(expr, i);
+		return o != null;
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(expr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = values[i] != null;
+		return values;
 	}
 
 	@Override

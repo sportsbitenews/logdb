@@ -23,6 +23,7 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.TimeSpan;
 import org.araqne.logdb.TimeUnit;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 2.8.12
@@ -48,9 +49,31 @@ public class DateRange extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o1 = vbatch.evalOne(begin, i);
+		Object o2 = vbatch.evalOne(end, i);
+		return daterange(o1, o2);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] vec1 = vbatch.eval(begin);
+		Object[] vec2 = vbatch.eval(end);
+		Object[] values = new Object[vbatch.size];
+
+		for (int i = 0; i < values.length; i++)
+			values[i] = daterange(vec1[i], vec2[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object o1 = begin.eval(row);
 		Object o2 = end.eval(row);
+		return daterange(o1, o2);
+	}
+
+	private Object daterange(Object o1, Object o2) {
 		if (o1 == null || o2 == null)
 			return null;
 
@@ -64,7 +87,7 @@ public class DateRange extends FunctionExpression {
 		for (long l = begin; l < end; l += millis) {
 			dates.add(new Date(l));
 		}
-		
+
 		return dates;
 	}
 }

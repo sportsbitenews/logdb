@@ -24,26 +24,31 @@ import java.util.Map;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 1.7.2
  * @author xeraph
  * 
  */
-public class DateAdd implements Expression {
-	private List<Expression> exprs;
+public class DateAdd extends FunctionExpression {
 	private Expression field;
-	private Calendar c;
+	private ThreadLocal<Calendar> cal = new ThreadLocal<Calendar>() {
+		@Override
+		protected Calendar initialValue() {
+			return Calendar.getInstance();
+		}
+	};
+
 	private int calField;
 	private int delta;
 
 	// dateadd(field, descriptor, delta)
 	public DateAdd(QueryContext ctx, List<Expression> exprs) {
-		this.exprs = exprs;
-		c = Calendar.getInstance();
+		super("dateadd", exprs);
 		if (exprs.size() != 3)
-	//		throw new QueryParseException("invalid-dateadd-args", -1);
-			throw new QueryParseException("90620" ,  -1, -1, null);
+			// throw new QueryParseException("invalid-dateadd-args", -1);
+			throw new QueryParseException("90620", -1, -1, null);
 
 		field = exprs.get(0);
 
@@ -60,31 +65,51 @@ public class DateAdd implements Expression {
 			calField = Calendar.MINUTE;
 		else if (s.equals("sec"))
 			calField = Calendar.SECOND;
-		else{
-		//	throw new QueryParseException("invalid-dateadd-calendar-field", -1);
+		else {
+			// throw new QueryParseException("invalid-dateadd-calendar-field",
+			// -1);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("field", s);
-			throw new QueryParseException("90621" ,  -1, -1, params);
+			throw new QueryParseException("90621", -1, -1, params);
 		}
 		Object d = exprs.get(2).eval(null);
 		if (d instanceof Integer)
 			delta = (Integer) d;
-		else{
-		//	throw new QueryParseException("invalid-dateadd-delta-type", -1);
+		else {
+			// throw new QueryParseException("invalid-dateadd-delta-type", -1);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("time", d.toString());
-			throw new QueryParseException("90622" ,  -1, -1, params);
+			throw new QueryParseException("90622", -1, -1, params);
 		}
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(field, i);
+		return dateadd(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(field);
+		for (int i = 0; i < values.length; i++)
+			values[i] = dateadd(values[i]);
+		return values;
 	}
 
 	@Override
 	public Object eval(Row map) {
 		Object o = field.eval(map);
+		return dateadd(o);
+	}
+
+	private Object dateadd(Object o) {
 		if (o == null)
 			return null;
 
 		if (o instanceof Date) {
 			Date d = (Date) o;
+			Calendar c = cal.get();
 			c.setTime(d);
 			c.add(calField, delta);
 			return c.getTime();
@@ -92,10 +117,4 @@ public class DateAdd implements Expression {
 
 		return null;
 	}
-
-	@Override
-	public String toString() {
-		return "dateadd(" + field + "," + exprs.get(1) + "," + exprs.get(2) + ")";
-	}
-
 }

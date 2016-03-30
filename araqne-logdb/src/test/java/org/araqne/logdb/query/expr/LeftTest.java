@@ -15,36 +15,37 @@
  */
 package org.araqne.logdb.query.expr;
 
-
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
  *
  */
 public class LeftTest {
-	
+
 	@Test
-	public void testLeft(){
+	public void testLeft() {
 		Left left = new Left(null, expr("0123456789", 4));
-		assertEquals("0123", left.eval(null));
-		
+		assertEquals("0123", left.eval((Row) null));
+
 		left = new Left(null, expr("0123456789", 11));
-		assertEquals("0123456789", left.eval(null));
-		
+		assertEquals("0123456789", left.eval((Row) null));
+
 		left = new Left(null, expr("0123456789", 0));
-		assertEquals("", left.eval(null));
-		
+		assertEquals("", left.eval((Row) null));
+
 		left = new Left(null, expr(1234, 2));
-		assertEquals("12", left.eval(null));
+		assertEquals("12", left.eval((Row) null));
 	}
-	
+
 	@Test
 	public void testManual() {
 		assertEquals("0123", FunctionUtil.parseExpr("left(\"0123456789\", 4)").eval(null));
@@ -54,9 +55,9 @@ public class LeftTest {
 		assertEquals("1.2", FunctionUtil.parseExpr("left(1.23, 3)").eval(null));
 		assertNull(FunctionUtil.parseExpr("left(int(\"invalid\"), 3)").eval(null));
 	}
-	
+
 	@Test
-	public void testError90720(){
+	public void testError90720() {
 		try {
 			new Left(null, expr("01234", -1));
 			fail();
@@ -69,18 +70,18 @@ public class LeftTest {
 		}
 	}
 
-	private List<Expression> expr(Object...object ){
+	private List<Expression> expr(Object... object) {
 		List<Expression> expr = new ArrayList<Expression>();
 
-		for(Object o: object){
-			if(o instanceof Expression)
-				expr.add((Expression)o);
-			else if(o instanceof String)
-				expr.add(new StringConstant((String)o));
-			else if(o instanceof Number)
-				expr.add(new NumberConstant((Number)o));
-			else if(o instanceof Boolean)
-				expr.add(new BooleanConstant((Boolean)o));
+		for (Object o : object) {
+			if (o instanceof Expression)
+				expr.add((Expression) o);
+			else if (o instanceof String)
+				expr.add(new StringConstant((String) o));
+			else if (o instanceof Number)
+				expr.add(new NumberConstant((Number) o));
+			else if (o instanceof Boolean)
+				expr.add(new BooleanConstant((Boolean) o));
 		}
 
 		return expr;

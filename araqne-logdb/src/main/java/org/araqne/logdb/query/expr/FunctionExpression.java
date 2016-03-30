@@ -22,7 +22,7 @@ import java.util.Map;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Strings;
 
-public abstract class FunctionExpression implements Expression {
+public abstract class FunctionExpression implements VectorizedExpression {
 	private final String name;
 	private final Collection<Expression> args;
 	

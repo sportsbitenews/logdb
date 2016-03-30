@@ -20,7 +20,7 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.expr.In.StringMatcher;
 
-public class Eq extends BinaryExpression implements VectorizedExpression {
+public class Eq extends BinaryExpression {
 	private ObjectComparator cmp = new ObjectComparator();
 	private StringMatcher matcher;
 

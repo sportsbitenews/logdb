@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
@@ -32,19 +34,19 @@ import org.junit.Test;
 public class ToBinaryTest {
 
 	@Test
-	public void testBinary(){
+	public void testBinary() {
 		ToBinary binary = new ToBinary(null, expr("0123456789"));
-		assertEquals( "0123456789",  new String((byte [])binary.eval(null)));
+		assertEquals("0123456789", new String((byte[]) binary.eval((Row) null)));
 	}
-	
+
 	@Test
-	public void testCharSet() throws UnsupportedEncodingException{
+	public void testCharSet() throws UnsupportedEncodingException {
 		ToBinary binary = new ToBinary(null, expr("abcd1234", "UTF-8"));
-		assertEquals( "abcd1234",  new String((byte []) binary.eval(null), "UTF-8"));
+		assertEquals("abcd1234", new String((byte[]) binary.eval((Row) null), "UTF-8"));
 	}
-	    
+
 	@Test
-	public void testError90810(){
+	public void testError90810() {
 		try {
 			new ToBinary(null, expr());
 			fail();
@@ -55,9 +57,9 @@ public class ToBinaryTest {
 			assertEquals("99000", e.getType());
 		}
 	}
-	
+
 	@Test
-	public void testError90811(){
+	public void testError90811() {
 		try {
 			new ToBinary(null, expr("01234", "euc-ke"));
 			fail();
@@ -69,19 +71,19 @@ public class ToBinaryTest {
 			assertEquals("euc-ke", e.getParams().get("charset"));
 		}
 	}
-	
-	private List<Expression> expr(Object...object ){
+
+	private List<Expression> expr(Object... object) {
 		List<Expression> expr = new ArrayList<Expression>();
 
-		for(Object o: object){
-			if(o instanceof Expression)
-				expr.add((Expression)o);
-			else if(o instanceof String)
-				expr.add(new StringConstant((String)o));
-			else if(o instanceof Number)
-				expr.add(new NumberConstant((Number)o));
-			else if(o instanceof Boolean)
-				expr.add(new BooleanConstant((Boolean)o));
+		for (Object o : object) {
+			if (o instanceof Expression)
+				expr.add((Expression) o);
+			else if (o instanceof String)
+				expr.add(new StringConstant((String) o));
+			else if (o instanceof Number)
+				expr.add(new NumberConstant((Number) o));
+			else if (o instanceof Boolean)
+				expr.add(new BooleanConstant((Boolean) o));
 		}
 
 		return expr;

@@ -22,6 +22,7 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @author xeraph
@@ -63,8 +64,26 @@ public class DatePart extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return datepart(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = datepart(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object value = valueExpr.eval(row);
+		return datepart(value);
+	}
+
+	private Object datepart(Object value) {
 		if (value == null)
 			return null;
 

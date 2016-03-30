@@ -7,6 +7,7 @@ import java.util.List;
 import org.araqne.api.InetAddresses;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Ip2Int extends FunctionExpression {
 	private Expression valueExpr;
@@ -17,8 +18,27 @@ public class Ip2Int extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return ip2int(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = ip2int(values[i]);
+
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
 		Object v = valueExpr.eval(map);
+		return ip2int(v);
+	}
+
+	private Object ip2int(Object v) {
 		if (v == null)
 			return null;
 
@@ -36,6 +56,5 @@ public class Ip2Int extends FunctionExpression {
 			}
 
 		return ToInt.convert(addr.getAddress());
-
 	}
 }

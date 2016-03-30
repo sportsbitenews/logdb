@@ -12,6 +12,7 @@ import javax.xml.xpath.XPathFactory;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.impl.XmlParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,19 +29,37 @@ public class Xpath extends FunctionExpression {
 
 	public Xpath(QueryContext ctx, List<Expression> exprs) {
 		super("xpath", exprs, 2);
-
 		xmlExpr = exprs.get(0);
 		pathExpr = exprs.get(1);
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o1 = vbatch.evalOne(xmlExpr, i);
+		Object o2 = vbatch.evalOne(pathExpr, i);
+		return xpath(o1, o2);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] vec1 = vbatch.eval(xmlExpr);
+		Object[] vec2 = vbatch.eval(pathExpr);
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++)
+			values[i] = xpath(vec1[i], vec2[i]);
+
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object o1 = xmlExpr.eval(row);
-		if (o1 == null)
-			return null;
-
 		Object o2 = pathExpr.eval(row);
-		if (o2 == null)
+		return xpath(o1, o2);
+	}
+
+	private Object xpath(Object o1, Object o2) {
+		if (o1 == null || o2 == null)
 			return null;
 
 		String xml = o1.toString();

@@ -15,10 +15,12 @@
  */
 package org.araqne.logdb.query.expr;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Whoami extends FunctionExpression {
 	private String loginName;
@@ -30,8 +32,19 @@ public class Whoami extends FunctionExpression {
 	}
 
 	@Override
-	public Object eval(Row row) {
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
 		return loginName;
 	}
 
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = new Object[vbatch.size];
+		Arrays.fill(values, loginName);
+		return values;
+	}
+
+	@Override
+	public Object eval(Row row) {
+		return loginName;
+	}
 }

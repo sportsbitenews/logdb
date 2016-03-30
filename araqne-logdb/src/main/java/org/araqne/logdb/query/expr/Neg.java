@@ -16,8 +16,9 @@
 package org.araqne.logdb.query.expr;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class Neg implements Expression {
+public class Neg implements VectorizedExpression {
 	private Expression expr;
 
 	public Neg(Expression expr) {
@@ -25,8 +26,26 @@ public class Neg implements Expression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(expr, i);
+		return neg(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(expr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = neg(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
 		Object o = expr.eval(map);
+		return neg(o);
+	}
+
+	private Object neg(Object o) {
 		if (o == null)
 			return null;
 

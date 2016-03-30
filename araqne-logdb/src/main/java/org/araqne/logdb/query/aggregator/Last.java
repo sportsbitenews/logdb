@@ -18,14 +18,21 @@ package org.araqne.logdb.query.aggregator;
 import java.util.List;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.expr.Expression;
+import org.araqne.logdb.query.expr.VectorizedExpression;
 
-public class Last implements AggregationFunction {
+public class Last implements VectorizedAggregationFunction {
 	private List<Expression> exprs;
-	private Object last;
+	private Expression expr;
+	private VectorizedExpression vectorizedExpr;
+	private volatile Object last;
 
 	public Last(List<Expression> exprs) {
 		this.exprs = exprs;
+		this.expr = exprs.get(0);
+		if (this.expr instanceof VectorizedExpression)
+			this.vectorizedExpr = (VectorizedExpression) expr;
 	}
 
 	@Override
@@ -45,12 +52,18 @@ public class Last implements AggregationFunction {
 			last = obj;
 	}
 
-	public Object getLast() {
-		return last;
-	}
+	@Override
+	public void apply(VectorizedRowBatch vbatch, int index) {
+		Object obj = null;
+		if (vectorizedExpr != null)
+			obj = vectorizedExpr.evalOne(vbatch, index);
+		else
+			obj = expr.eval(vbatch.row(index));
 
-	public void setLast(Object last) {
-		this.last = last;
+		if (obj == null)
+			return;
+
+		last = obj;
 	}
 
 	@Override

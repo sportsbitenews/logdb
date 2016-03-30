@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 2.4.24
@@ -32,13 +33,31 @@ public class Flatten extends FunctionExpression {
 
 	public Flatten(QueryContext ctx, List<Expression> exprs) {
 		super("flatten", exprs, 1);
-		
 		this.arg = exprs.get(0);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(arg, i);
+		return flatten(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(arg);
+		for (int i = 0; i < values.length; i++)
+			values[i] = flatten(values[i]);
+
+		return values;
 	}
 
 	@Override
 	public Object eval(Row row) {
 		Object o = arg.eval(row);
+		return flatten(o);
+	}
+
+	private Object flatten(Object o) {
 		if (o == null)
 			return null;
 

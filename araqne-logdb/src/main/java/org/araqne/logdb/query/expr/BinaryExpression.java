@@ -15,7 +15,7 @@
  */
 package org.araqne.logdb.query.expr;
 
-public abstract class BinaryExpression implements Expression {
+public abstract class BinaryExpression implements VectorizedExpression {
 	protected final Expression lhs;
 	protected final Expression rhs;
 

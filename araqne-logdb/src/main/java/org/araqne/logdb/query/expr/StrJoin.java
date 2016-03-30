@@ -21,6 +21,7 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 2.2.14
@@ -31,30 +32,48 @@ public class StrJoin extends FunctionExpression {
 	private List<Expression> exprs;
 
 	private String sep;
-	private Expression array;
+	private Expression arrayExpr;
 
 	public StrJoin(QueryContext ctx, List<Expression> exprs) {
 		super("strjoin", exprs, 2);
-		
+
 		this.exprs = exprs;
 
 		if (exprs.size() > 2)
-//			throw new QueryParseException("invalid-strjoin-args", -1);
+			// throw new QueryParseException("invalid-strjoin-args", -1);
 			throw new QueryParseException("90780", -1, -1, null);
-
 
 		Object sepValue = exprs.get(0).eval(null);
 		if (sepValue == null)
-//			throw new QueryParseException("strjoin-require-constant-separator", -1);
+			// throw new
+			// QueryParseException("strjoin-require-constant-separator", -1);
 			throw new QueryParseException("90781", -1, -1, null);
 
 		this.sep = sepValue.toString();
-		this.array = exprs.get(1);
+		this.arrayExpr = exprs.get(1);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(arrayExpr, i);
+		return strjoin(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(arrayExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = strjoin(values[i]);
+		return values;
 	}
 
 	@Override
 	public Object eval(Row row) {
-		Object value = array.eval(row);
+		Object value = arrayExpr.eval(row);
+		return strjoin(value);
+	}
+
+	private Object strjoin(Object value) {
 		if (value == null)
 			return null;
 

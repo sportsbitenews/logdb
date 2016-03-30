@@ -24,6 +24,7 @@ import java.util.Map;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 2.4.8
@@ -36,7 +37,7 @@ public class ToBinary extends FunctionExpression {
 
 	public ToBinary(QueryContext ctx, List<Expression> exprs) {
 		super("tobinary", exprs, 1);
-		
+
 		this.data = exprs.get(0);
 
 		String charsetName = null;
@@ -49,7 +50,8 @@ public class ToBinary extends FunctionExpression {
 		try {
 			this.charset = Charset.forName(charsetName);
 		} catch (UnsupportedCharsetException e) {
-			//throw new QueryParseException("unsupported-charset", -1, charsetName);
+			// throw new QueryParseException("unsupported-charset", -1,
+			// charsetName);
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("charset", charsetName);
 			throw new QueryParseException("90811", -1, -1, params);
@@ -57,8 +59,26 @@ public class ToBinary extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(data, i);
+		return tobinary(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(data);
+		for (int i = 0; i < values.length; i++)
+			values[i] = tobinary(values[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object o = data.eval(row);
+		return tobinary(o);
+	}
+
+	private Object tobinary(Object o) {
 		if (!(o instanceof String))
 			return null;
 

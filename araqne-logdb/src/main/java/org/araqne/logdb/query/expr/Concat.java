@@ -19,13 +19,44 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
-import org.araqne.logdb.Strings;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class Concat implements Expression {
+public class Concat extends FunctionExpression {
 	private List<Expression> exprs;
 
 	public Concat(QueryContext ctx, List<Expression> exprs) {
+		super("concat", exprs);
 		this.exprs = exprs;
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		StringBuilder sb = new StringBuilder();
+		for (Expression expr : exprs)
+			sb.append(vbatch.evalOne(expr, i));
+
+		return sb.toString();
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[][] strings = new Object[vbatch.size][];
+		int i = 0;
+		for (Expression expr : exprs)
+			strings[i++] = vbatch.eval(expr);
+
+		int exprCount = exprs.size();
+		StringBuilder sb = new StringBuilder();
+		Object[] values = new Object[vbatch.size];
+		for (i = 0; i < values.length; i++) {
+			for (int j = 0; j < exprCount; j++)
+				sb.append(strings[j][i]);
+
+			values[i] = sb.toString();
+			sb.setLength(0);
+		}
+
+		return values;
 	}
 
 	@Override
@@ -35,10 +66,5 @@ public class Concat implements Expression {
 			sb.append(expr.eval(map));
 
 		return sb.toString();
-	}
-
-	@Override
-	public String toString() {
-		return "concat(" + Strings.join(exprs, ", ") + ")";
 	}
 }

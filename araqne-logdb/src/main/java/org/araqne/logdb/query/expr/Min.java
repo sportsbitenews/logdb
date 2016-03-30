@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.ObjectComparator;
 
 public class Min extends FunctionExpression {
@@ -31,11 +32,48 @@ public class Min extends FunctionExpression {
 	}
 
 	@Override
-	public Object eval(Row map) {
-		Object min = null;
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object[] vec = new Object[exprs.size()];
+		int d = 0;
+		for (Expression expr : exprs)
+			vec[d++] = vbatch.evalOne(expr, i);
 
-		for (Expression expr : exprs) {
-			Object o = expr.eval(map);
+		return min(vec);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[][] vecs = new Object[vbatch.size][];
+		int i = 0;
+		for (Expression expr : exprs)
+			vecs[i++] = vbatch.eval(expr);
+
+		Object[] slot = new Object[exprs.size()];
+		Object[] values = new Object[vbatch.size];
+		for (i = 0; i < values.length; i++) {
+			for (int j = 0; j < exprs.size(); j++)
+				slot[j] = vecs[j][i];
+			
+			values[i] = min(slot);
+		}
+
+		return values;
+	}
+
+	@Override
+	public Object eval(Row map) {
+		Object[] vec = new Object[exprs.size()];
+		int i = 0;
+		for (Expression expr : exprs)
+			vec[i++] = expr.eval(map);
+
+		return min(vec);
+	}
+
+	private Object min(Object[] vec) {
+		Object min = null;
+		for (int i = 0; i < vec.length; i++) {
+			Object o = vec[i];
 			if (o == null)
 				continue;
 			if (min == null)

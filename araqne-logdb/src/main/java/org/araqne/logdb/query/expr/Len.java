@@ -22,7 +22,7 @@ import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
 import org.araqne.logdb.VectorizedRowBatch;
 
-public class Len extends FunctionExpression implements VectorizedExpression {
+public class Len extends FunctionExpression {
 	private Expression valueExpr;
 
 	public Len(QueryContext ctx, List<Expression> exprs) {
@@ -49,7 +49,7 @@ public class Len extends FunctionExpression implements VectorizedExpression {
 	public Object[] eval(VectorizedRowBatch vbatch) {
 		Object[] values = vbatch.eval(valueExpr);
 
-		for (int i = 0; i < vbatch.size; i++) {
+		for (int i = 0; i < values.length; i++) {
 			Object value = values[i];
 			int len = 0;
 			if (value == null)

@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class ValueOf extends FunctionExpression {
 
@@ -34,10 +35,30 @@ public class ValueOf extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o1 = vbatch.evalOne(compound, i);
+		Object o2 = vbatch.evalOne(key, i);
+		return valueof(o1, o2);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] vec1 = vbatch.eval(compound);
+		Object[] vec2 = vbatch.eval(key);
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++)
+			values[i] = valueof(vec1[i], vec2[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
 		Object c = compound.eval(row);
 		Object k = key.eval(row);
+		return valueof(c, k);
+	}
 
+	private Object valueof(Object c, Object k) {
 		if (c == null || k == null)
 			return null;
 

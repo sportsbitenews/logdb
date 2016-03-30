@@ -23,6 +23,7 @@ import java.util.Random;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 /**
  * @since 2.4.11
@@ -34,28 +35,46 @@ public class Rand extends FunctionExpression {
 
 	public Rand(QueryContext ctx, List<Expression> exprs) {
 		super("rand", exprs, 1);
-		
+
 		Object n = exprs.get(0).eval(null);
-		if (!(n instanceof Integer)){
-	//		throw new QueryParseException("invalid-rand-argument", -1);
-			Map<String, String> params = new HashMap<String, String> ();
+		if (!(n instanceof Integer)) {
+			// throw new QueryParseException("invalid-rand-argument", -1);
+			Map<String, String> params = new HashMap<String, String>();
 			params.put("bound", n + "");
 			throw new QueryParseException("90750", -1, -1, params);
 		}
-		
+
 		this.bound = (Integer) n;
 
-		if (bound <= 0){
-	//		throw new QueryParseException("rand-bound-should-be-positive", -1);
+		if (bound <= 0) {
+			// throw new QueryParseException("rand-bound-should-be-positive",
+			// -1);
 			Map<String, String> params = new HashMap<String, String>();
-			params.put("bound", n  + "");
+			params.put("bound", n + "");
 			throw new QueryParseException("90751", -1, -1, params);
 		}
 		this.rand = new Random();
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		return rand();
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++)
+			values[i] = rand();
+		return values;
+	}
+
+	@Override
 	public Object eval(Row row) {
+		return rand();
+	}
+
+	private Object rand() {
 		return rand.nextInt(bound);
 	}
 }

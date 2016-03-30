@@ -19,9 +19,11 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
+import org.araqne.logdb.VectorizedRowBatch;
 
-public class Case implements Expression {
+public class Case implements VectorizedExpression {
 	private List<Expression> exprs;
 	private Expression defaultExpr;
 
@@ -34,7 +36,26 @@ public class Case implements Expression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Row row = vbatch.row(i);
+		return evalCase(row);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		RowBatch rowBatch = vbatch.toRowBatch();
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < rowBatch.size; i++)
+			values[i] = evalCase(rowBatch.rows[i]);
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
+		return evalCase(map);
+	}
+
+	private Object evalCase(Row map) {
 		for (int i = 0; i < exprs.size();) {
 			Expression cond = exprs.get(i++);
 			Expression value = exprs.get(i++);

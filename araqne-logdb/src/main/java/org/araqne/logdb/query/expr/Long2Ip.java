@@ -20,22 +20,44 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class Long2Ip extends FunctionExpression {
-	private ToIp toIp;
+	private Expression valueExpr;
 
 	public Long2Ip(QueryContext ctx, List<Expression> exprs) {
 		super("long2ip", exprs, 1);
-		toIp = new ToIp(ctx, exprs);
+		this.valueExpr = exprs.get(0);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(valueExpr, i);
+		return long2ip(o);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = long2ip(values[i]);
+		return values;
 	}
 
 	@Override
 	public Object eval(Row map) {
-		Object o = toIp.eval(map);
+		Object o = valueExpr.eval(map);
+		return long2ip(o);
+	}
 
-		if (o != null && o instanceof InetAddress)
-			return ((InetAddress) o).getHostAddress();
-		else
-			return o;
+	private Object long2ip(Object o) {
+		try {
+			InetAddress ip = (InetAddress) ToIp.toip(o);
+			if (ip == null)
+				return null;
+			return ip.getHostAddress();
+		} catch (Throwable t) {
+			return null;
+		}
 	}
 }

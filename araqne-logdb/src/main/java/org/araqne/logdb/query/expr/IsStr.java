@@ -19,22 +19,34 @@ import java.util.List;
 
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class IsStr extends FunctionExpression {
 	private Expression expr;
 
 	public IsStr(QueryContext ctx, List<Expression> exprs) {
 		super("isstr", exprs, 1);
-		
+
 		this.expr = exprs.get(0);
+	}
+
+	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o = vbatch.evalOne(expr, i);
+		return o instanceof String;
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(expr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = values[i] instanceof String;
+		return values;
 	}
 
 	@Override
 	public Object eval(Row map) {
 		Object v = expr.eval(map);
-		if (v == null)
-			return false;
-
 		return v instanceof String;
 	}
 }

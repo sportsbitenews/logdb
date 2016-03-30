@@ -23,6 +23,7 @@ import java.util.List;
 import org.araqne.logdb.QueryContext;
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 
 public class ToLong extends FunctionExpression {
 	private Expression valueExpr;
@@ -45,31 +46,37 @@ public class ToLong extends FunctionExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object value = vbatch.evalOne(valueExpr, i);
+		return getLong(value);
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] values = vbatch.eval(valueExpr);
+		for (int i = 0; i < values.length; i++)
+			values[i] = getLong(values[i]);
+
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
+		Object v = valueExpr.eval(map);
+		if (v == null)
+			return null;
+
+		return getLong(v);
+	}
+
+	private Object getLong(Object v) {
+		if (v instanceof Number) {
+			return ((Number) v).longValue();
+		} else if (v instanceof Inet4Address) {
+			return convert(((InetAddress) v).getAddress());
+		}
+
 		try {
-			Object v = valueExpr.eval(map);
-			if (v == null)
-				return null;
-
-			if (v instanceof Long)
-				return (Long) v;
-
-			if (v instanceof Short)
-				return (long) (Short) v;
-
-			if (v instanceof Integer)
-				return (long) (Integer) v;
-
-			if (v instanceof Double)
-				return ((Double) v).longValue();
-
-			if (v instanceof Float)
-				return ((Float) v).longValue();
-
-			if (v instanceof Inet4Address) {
-				return convert(((InetAddress) v).getAddress());
-			}
-
 			String s = v.toString();
 			if (s.isEmpty())
 				return null;

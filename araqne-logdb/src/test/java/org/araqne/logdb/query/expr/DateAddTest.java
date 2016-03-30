@@ -26,18 +26,20 @@ import java.util.Date;
 import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Before;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
  *
  */
 public class DateAddTest {
-	private String format =  "yyyy-MM-dd HH:mm:ss";
+	private String format = "yyyy-MM-dd HH:mm:ss";
 	private SimpleDateFormat sdf = new SimpleDateFormat(format);
 	private Calendar cal = Calendar.getInstance();
-	private Date date; 
+	private Date date;
 
 	@Before
 	public void setup() throws ParseException {
@@ -45,53 +47,53 @@ public class DateAddTest {
 	}
 
 	@Test
-	public void testDateAdd(){
+	public void testDateAdd() {
 		DateAdd dateAdd = null;
 
-		//day
-		dateAdd = new DateAdd(null, expr(date( sdf.format(date), format) , "day", 1));
+		// day
+		dateAdd = new DateAdd(null, expr(date(sdf.format(date), format), "day", 1));
 		cal.setTime(date);
 		cal.add(Calendar.DAY_OF_MONTH, 1);
-		assertEquals(cal.getTime(), (Date)dateAdd.eval(null));
+		assertEquals(cal.getTime(), (Date) dateAdd.eval((Row) null));
 
-		//mon
-		dateAdd = new DateAdd(null, expr(date( sdf.format(date), format) , "mon", 1));
+		// mon
+		dateAdd = new DateAdd(null, expr(date(sdf.format(date), format), "mon", 1));
 		cal.setTime(date);
 		cal.add(Calendar.MONTH, 1);
-		assertEquals(cal.getTime(), (Date)dateAdd.eval(null));
+		assertEquals(cal.getTime(), (Date) dateAdd.eval((Row) null));
 
-		//year
-		dateAdd = new DateAdd(null, expr(date( sdf.format(date), format) , "year", 1));
+		// year
+		dateAdd = new DateAdd(null, expr(date(sdf.format(date), format), "year", 1));
 		cal.setTime(date);
 		cal.add(Calendar.YEAR, 1);
-		assertEquals(cal.getTime(), (Date)dateAdd.eval(null));
+		assertEquals(cal.getTime(), (Date) dateAdd.eval((Row) null));
 
-		//hour
-		dateAdd = new DateAdd(null, expr(date( sdf.format(date), format) , "hour", 1));
+		// hour
+		dateAdd = new DateAdd(null, expr(date(sdf.format(date), format), "hour", 1));
 		cal.setTime(date);
 		cal.add(Calendar.HOUR_OF_DAY, 1);
-		assertEquals(cal.getTime(), (Date)dateAdd.eval(null));
+		assertEquals(cal.getTime(), (Date) dateAdd.eval((Row) null));
 
-		//min
-		dateAdd = new DateAdd(null, expr(date( sdf.format(date), format) , "min", 1));
+		// min
+		dateAdd = new DateAdd(null, expr(date(sdf.format(date), format), "min", 1));
 		cal.setTime(date);
 		cal.add(Calendar.MINUTE, 1);
-		assertEquals(cal.getTime(), (Date)dateAdd.eval(null));
+		assertEquals(cal.getTime(), (Date) dateAdd.eval((Row) null));
 
-		//sec
-		dateAdd = new DateAdd(null, expr(date( sdf.format(date), format) , "sec", 1));
+		// sec
+		dateAdd = new DateAdd(null, expr(date(sdf.format(date), format), "sec", 1));
 		cal.setTime(date);
 		cal.add(Calendar.SECOND, 1);
-		assertEquals(cal.getTime(), (Date)dateAdd.eval(null));
+		assertEquals(cal.getTime(), (Date) dateAdd.eval((Row) null));
 
 	}
 
 	@Test
-	public void testError90620(){
-		
-		//args size 1
+	public void testError90620() {
+
+		// args size 1
 		try {
-			new DateAdd(null,  expr(date( sdf.format(date), format)));
+			new DateAdd(null, expr(date(sdf.format(date), format)));
 			fail();
 		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
@@ -99,10 +101,10 @@ public class DateAddTest {
 			}
 			assertEquals("90620", e.getType());
 		}
-		
-		//args size 2
+
+		// args size 2
 		try {
-			new DateAdd(null,  expr(date( sdf.format(date), format) , "sec"));
+			new DateAdd(null, expr(date(sdf.format(date), format), "sec"));
 			fail();
 		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
@@ -110,10 +112,10 @@ public class DateAddTest {
 			}
 			assertEquals("90620", e.getType());
 		}
-		
-		//args size 4
+
+		// args size 4
 		try {
-			new DateAdd(null,  expr(date( sdf.format(date), format) , "sec", 1, 2));
+			new DateAdd(null, expr(date(sdf.format(date), format), "sec", 1, 2));
 			fail();
 		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
@@ -123,11 +125,10 @@ public class DateAddTest {
 		}
 	}
 
-
 	@Test
-	public void testError90621(){
+	public void testError90621() {
 		try {
-			new DateAdd(null, expr(date( sdf.format(date), format) , "seconds", 1));
+			new DateAdd(null, expr(date(sdf.format(date), format), "seconds", 1));
 			fail();
 		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
@@ -139,9 +140,9 @@ public class DateAddTest {
 	}
 
 	@Test
-	public void testError90622(){
+	public void testError90622() {
 		try {
-			new DateAdd(null, expr(date( sdf.format(date), format) , "sec", 1.2));
+			new DateAdd(null, expr(date(sdf.format(date), format), "sec", 1.2));
 			fail();
 		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
@@ -150,9 +151,9 @@ public class DateAddTest {
 			assertEquals("90622", e.getType());
 			assertEquals("1.2", e.getParams().get("time"));
 		}
-		
+
 		try {
-			new DateAdd(null, expr(date( sdf.format(date), format) , "sec", "now().sec"));
+			new DateAdd(null, expr(date(sdf.format(date), format), "sec", "now().sec"));
 			fail();
 		} catch (QueryParseException e) {
 			if (e.isDebugMode()) {
@@ -163,7 +164,7 @@ public class DateAddTest {
 		}
 	}
 
-	private ToDate date(String date, String format){
+	private ToDate date(String date, String format) {
 		List<Expression> expr = new ArrayList<Expression>();
 
 		expr.add(new StringConstant(date));
@@ -172,15 +173,15 @@ public class DateAddTest {
 		return new ToDate(null, expr);
 	}
 
-	private List<Expression> expr(ToDate date, Object... object){
+	private List<Expression> expr(ToDate date, Object... object) {
 		List<Expression> expr = new ArrayList<Expression>();
 
 		expr.add(date);
-		for(Object o: object){
-			if(o instanceof String)
-				expr.add(new StringConstant((String)o));
-			else if(o instanceof Number)
-				expr.add(new NumberConstant((Number)o));
+		for (Object o : object) {
+			if (o instanceof String)
+				expr.add(new StringConstant((String) o));
+			else if (o instanceof Number)
+				expr.add(new NumberConstant((Number) o));
 		}
 
 		return expr;

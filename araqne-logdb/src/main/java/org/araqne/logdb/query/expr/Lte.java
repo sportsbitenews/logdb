@@ -16,6 +16,7 @@
 package org.araqne.logdb.query.expr;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.ObjectComparator;
 
 public class Lte extends BinaryExpression {
@@ -26,13 +27,38 @@ public class Lte extends BinaryExpression {
 	}
 
 	@Override
+	public Object evalOne(VectorizedRowBatch vbatch, int i) {
+		Object o1 = vbatch.evalOne(lhs, i);
+		Object o2 = vbatch.evalOne(rhs, i);
+		if (o1 == null || o2 == null)
+			return null;
+
+		return cmp.compare(o1, o2) <= 0;
+	}
+
+	@Override
+	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] vec1 = vbatch.eval(lhs);
+		Object[] vec2 = vbatch.eval(rhs);
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < values.length; i++) {
+			Object o1 = vec1[i];
+			Object o2 = vec2[i];
+			if (o1 != null && o2 == null)
+				values[i] = cmp.compare(o1, o2) <= 0;
+		}
+
+		return values;
+	}
+
+	@Override
 	public Object eval(Row map) {
 		Object o1 = lhs.eval(map);
 		Object o2 = rhs.eval(map);
-		
+
 		if (o1 == null || o2 == null)
 			return null;
-		
+
 		return cmp.compare(o1, o2) <= 0;
 	}
 

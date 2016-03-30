@@ -21,6 +21,7 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.RowPipe;
 import org.araqne.logdb.ThreadSafe;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.nashorn.NashornQueryScript;
 
 public class NashornQueryCommand extends QueryCommand implements ThreadSafe {
@@ -98,6 +99,11 @@ public class NashornQueryCommand extends QueryCommand implements ThreadSafe {
 		@Override
 		public void onRowBatch(RowBatch rowBatch) {
 			pushPipe(rowBatch);
+		}
+
+		@Override
+		public void onVectorizedRowBatch(VectorizedRowBatch vbatch) {
+			pushPipe(vbatch);
 		}
 	}
 }

@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
 
 public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 	private static final int OUTPUT_FLUSH_THRESHOLD = 2000;
-	private static final int FLUSH_SIZE = 50000;
+	private static final int FLUSH_SIZE = 100000;
 	private final Logger logger = LoggerFactory.getLogger(Stats.class);
 	private final Logger compareLogger = LoggerFactory.getLogger("stats-key-compare");
 

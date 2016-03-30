@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
+import org.araqne.logdb.Row;
 import org.junit.Test;
+
 /**
  * 
  * @author kyun
@@ -31,17 +33,17 @@ import org.junit.Test;
 public class RandTest {
 
 	@Test
-	public void testRand(){
-		for(int i = 0 ;i++ < 100;){
+	public void testRand() {
+		for (int i = 0; i++ < 100;) {
 			Rand rand = new Rand(null, expr(10));
-			int output = (Integer)rand.eval(null);
-			if(output < 0 || output >= 10)
+			int output = (Integer) rand.eval((Row) null);
+			if (output < 0 || output >= 10)
 				fail();
 		}
 	}
 
 	@Test
-	public void testError90750(){
+	public void testError90750() {
 		try {
 			new Rand(null, expr("1"));
 			fail();
@@ -55,7 +57,7 @@ public class RandTest {
 	}
 
 	@Test
-	public void testError90751(){
+	public void testError90751() {
 		try {
 			new Rand(null, expr(-1));
 			fail();
@@ -68,18 +70,18 @@ public class RandTest {
 		}
 	}
 
-	private List<Expression> expr(Object...object ){
+	private List<Expression> expr(Object... object) {
 		List<Expression> expr = new ArrayList<Expression>();
 
-		for(Object o: object){
-			if(o instanceof Expression)
-				expr.add((Expression)o);
-			else if(o instanceof String)
-				expr.add(new StringConstant((String)o));
-			else if(o instanceof Number)
-				expr.add(new NumberConstant((Number)o));
-			else if(o instanceof Boolean)
-				expr.add(new BooleanConstant((Boolean)o));
+		for (Object o : object) {
+			if (o instanceof Expression)
+				expr.add((Expression) o);
+			else if (o instanceof String)
+				expr.add(new StringConstant((String) o));
+			else if (o instanceof Number)
+				expr.add(new NumberConstant((Number) o));
+			else if (o instanceof Boolean)
+				expr.add(new BooleanConstant((Boolean) o));
 		}
 
 		return expr;

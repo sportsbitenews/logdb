@@ -20,15 +20,18 @@ import java.util.List;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
+import org.araqne.logdb.VectorizedRowBatch;
 import org.araqne.logdb.query.aggregator.AggregationFunction;
+import org.araqne.logdb.query.aggregator.VectorizedAggregationFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ArrayAggregationFunction implements AggregationFunction {
+public class ArrayAggregationFunction implements VectorizedAggregationFunction {
 	private static int ARRAY_CAPACITY = 100;
 
 	private final List<Expression> exprs;
-	private final Expression arg;
+	private final Expression expr;
+	private VectorizedExpression vectorizedExpr;
 	private List<Object> set;
 
 	static {
@@ -49,7 +52,10 @@ public class ArrayAggregationFunction implements AggregationFunction {
 			throw new QueryParseException("90870", -1, -1, null);
 
 		this.exprs = exprs;
-		this.arg = exprs.get(0);
+		this.expr = exprs.get(0);
+		if (expr instanceof VectorizedExpression)
+			this.vectorizedExpr = (VectorizedExpression) expr;
+
 		this.set = new ArrayList<Object>();
 	}
 
@@ -65,9 +71,33 @@ public class ArrayAggregationFunction implements AggregationFunction {
 
 	@Override
 	public void apply(Row map) {
-		Object obj = arg.eval(map);
-		if (obj != null && set.size() < ARRAY_CAPACITY) {
-			set.add(obj);
+		Object obj = expr.eval(map);
+		if (obj == null)
+			return;
+
+		synchronized (set) {
+			if (set.size() < ARRAY_CAPACITY) {
+				set.add(obj);
+			}
+		}
+	}
+
+	@Override
+	public void apply(VectorizedRowBatch vbatch, int index) {
+		Object obj = null;
+		if (vectorizedExpr != null) {
+			obj = vectorizedExpr.evalOne(vbatch, index);
+		} else {
+			obj = expr.eval(vbatch.row(index));
+		}
+
+		if (obj == null)
+			return;
+
+		synchronized (set) {
+			if (set.size() < ARRAY_CAPACITY) {
+				set.add(obj);
+			}
 		}
 	}
 
@@ -112,6 +142,6 @@ public class ArrayAggregationFunction implements AggregationFunction {
 
 	@Override
 	public String toString() {
-		return "array(" + arg + ")";
+		return "array(" + expr + ")";
 	}
 }

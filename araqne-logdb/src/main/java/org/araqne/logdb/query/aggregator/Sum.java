@@ -16,6 +16,8 @@
 package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.Row;
 import org.araqne.logdb.VectorizedRowBatch;
@@ -25,10 +27,10 @@ import org.araqne.logdb.query.expr.VectorizedExpression;
 public class Sum implements VectorizedAggregationFunction {
 	protected List<Expression> exprs;
 
-	private boolean isLongNull = true;
-	private boolean isDoubleNull = true;
-	private long sum1 = 0;
-	private double sum2 = 0;
+	private AtomicBoolean isLongNull = new AtomicBoolean(true);
+	private AtomicBoolean isDoubleNull = new AtomicBoolean(true);
+	private AtomicLong sum1 = new AtomicLong();
+	private volatile double sum2;
 
 	private Expression expr;
 	private VectorizedExpression vectorizedExpr;
@@ -53,15 +55,17 @@ public class Sum implements VectorizedAggregationFunction {
 	@Override
 	public void apply(Row map) {
 		Object obj = expr.eval(map);
-
-		if (obj instanceof Long || obj instanceof Integer || obj instanceof Short) {
-			sum1 += ((Number) obj).longValue();
-			isLongNull = false;
-		}
+		if (!(obj instanceof Number))
+			return;
 
 		if (obj instanceof Double || obj instanceof Float) {
-			sum2 += ((Number) obj).doubleValue();
-			isDoubleNull = false;
+			synchronized (expr) {
+				sum2 += ((Number) obj).doubleValue();
+			}
+			isDoubleNull.set(false);
+		} else {
+			sum1.addAndGet(((Number) obj).longValue());
+			isLongNull.set(false);
 		}
 	}
 
@@ -74,43 +78,46 @@ public class Sum implements VectorizedAggregationFunction {
 			obj = expr.eval(vbatch.row(index));
 		}
 
-		if (obj instanceof Long || obj instanceof Integer || obj instanceof Short) {
-			sum1 += ((Number) obj).longValue();
-			isLongNull = false;
-		}
+		if (!(obj instanceof Number))
+			return;
 
 		if (obj instanceof Double || obj instanceof Float) {
-			sum2 += ((Number) obj).doubleValue();
-			isDoubleNull = false;
+			synchronized (expr) {
+				sum2 += ((Number) obj).doubleValue();
+			}
+			isDoubleNull.set(false);
+		} else {
+			sum1.addAndGet(((Number) obj).longValue());
+			isLongNull.set(false);
 		}
 	}
 
 	@Override
 	public Object eval() {
-		if (isLongNull && isDoubleNull)
+		if (isLongNull.get() && isDoubleNull.get())
 			return null;
-		else if (isDoubleNull)
-			return sum1;
-		else if (isLongNull)
+		else if (isDoubleNull.get())
+			return sum1.get();
+		else if (isLongNull.get())
 			return sum2;
 		else
-			return sum1 + sum2;
+			return sum1.get() + sum2;
 	}
 
 	@Override
 	public void merge(AggregationFunction func) {
 		Sum other = (Sum) func;
-		this.isLongNull = isLongNull && other.isLongNull;
-		this.isDoubleNull = isDoubleNull && other.isDoubleNull;
-		this.sum1 = sum1 + other.sum1;
-		this.sum2 = sum2 + other.sum2;
+		this.isLongNull.set(isLongNull.get() && other.isLongNull.get());
+		this.isDoubleNull.set(isDoubleNull.get() && other.isDoubleNull.get());
+		this.sum1.set(sum1.get() + other.sum1.get());
+		this.sum2 += other.sum2;
 	}
 
 	@Override
 	public Object serialize() {
 		Object[] l = new Object[3];
-		l[0] = (isLongNull ? 2 : 0) | (isDoubleNull ? 1 : 0);
-		l[1] = sum1;
+		l[0] = (isLongNull.get() ? 2 : 0) | (isDoubleNull.get() ? 1 : 0);
+		l[1] = sum1.get();
 		l[2] = sum2;
 		return l;
 	}
@@ -119,26 +126,26 @@ public class Sum implements VectorizedAggregationFunction {
 	public void deserialize(Object value) {
 		Object[] values = (Object[]) value;
 		int signal = (Integer) values[0];
-		this.isLongNull = (signal & 2) != 0;
-		this.isDoubleNull = (signal & 1) != 0;
-		this.sum1 = (Long) values[1];
+		this.isLongNull.set((signal & 2) != 0);
+		this.isDoubleNull.set((signal & 1) != 0);
+		this.sum1.set((Long) values[1]);
 		this.sum2 = (Double) values[2];
 	}
 
 	@Override
 	public void clean() {
-		isLongNull = true;
-		isDoubleNull = true;
-		sum1 = 0;
+		isLongNull.set(true);
+		isDoubleNull.set(true);
+		sum1.set(0);
 		sum2 = 0;
 	}
 
 	@Override
 	public AggregationFunction clone() {
 		Sum s = new Sum(this.exprs);
-		s.isLongNull = this.isLongNull;
-		s.isDoubleNull = this.isDoubleNull;
-		s.sum1 = this.sum1;
+		s.isLongNull.set(this.isLongNull.get());
+		s.isDoubleNull.set(this.isDoubleNull.get());
+		s.sum1.set(this.sum1.get());
 		s.sum2 = this.sum2;
 		return s;
 	}
@@ -147,5 +154,4 @@ public class Sum implements VectorizedAggregationFunction {
 	public String toString() {
 		return "sum(" + expr + ")";
 	}
-
 }
