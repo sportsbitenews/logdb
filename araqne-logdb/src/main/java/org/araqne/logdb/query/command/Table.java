@@ -194,7 +194,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 
 				LogTraverseCallbackImpl callback = new LogTraverseCallbackImpl(sink);
 				TableScanRequest req = new TableScanRequest(tableName.getTable(), params.from, params.to, builder, callback);
-				req.setThreadCount(Runtime.getRuntime().availableProcessors());
+				req.setThreadCount(getParallelThreadCount());
 				req.setAsc(params.isAsc());
 				req.setFields(params.getFieldSet());
 
@@ -209,6 +209,18 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 		} catch (InterruptedException e) {
 			logger.trace("araqne logdb: query interrupted");
 		}
+	}
+
+	private int getParallelThreadCount() {
+		int cpuCount = Runtime.getRuntime().availableProcessors();
+		String s = System.getProperty("araqne.logdb.scan_threads");
+		if (s != null) {
+			try {
+				cpuCount = Integer.parseInt(s);
+			} catch (NumberFormatException e) {
+			}
+		}
+		return cpuCount;
 	}
 
 	@Deprecated
@@ -303,7 +315,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 	public boolean isAsc() {
 		return params.isAsc();
 	}
-	
+
 	public void setParallel(boolean parallel) {
 		params.ordered = !parallel;
 	}
@@ -602,11 +614,11 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 				return null;
 			return new HashSet<String>(fields);
 		}
-		
+
 		public String getQuotedFields() {
 			if (fields == null)
 				return "\"\"";
-			
+
 			StringBuilder sb = new StringBuilder();
 			sb.append("\"");
 			for (String f : fields) {
@@ -624,7 +636,7 @@ public class Table extends DriverQueryCommand implements FieldOrdering {
 	@Override
 	public String toString() {
 		String s = "table";
-		
+
 		if (params.getFields() != null)
 			s += " fields=" + params.getQuotedFields();
 

@@ -16,7 +16,6 @@
 package org.araqne.logdb.query.aggregator;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.araqne.logdb.QueryParseException;
 import org.araqne.logdb.Row;
@@ -27,7 +26,7 @@ import org.araqne.logdb.query.expr.VectorizedExpression;
 public class Count implements VectorizedAggregationFunction {
 	private final List<Expression> exprs;
 	private Expression expr;
-	private AtomicLong result = new AtomicLong();
+	private ParallelLong result = new ParallelLong(0);
 	private final boolean vectorized;
 
 	public Count(List<Expression> exprs) {
@@ -90,7 +89,7 @@ public class Count implements VectorizedAggregationFunction {
 	@Override
 	public AggregationFunction clone() {
 		Count c = new Count(exprs);
-		c.result = new AtomicLong(result.get());
+		c.result = new ParallelLong(result.get());
 		return c;
 	}
 
