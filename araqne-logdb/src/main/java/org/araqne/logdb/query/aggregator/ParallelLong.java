@@ -7,12 +7,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ParallelLong {
+	private static final int MAX_SLOT_COUNT = 16;
 	static final int SLOT_COUNT;
 	static final Random rng = new Random();
 	final AtomicLong[] cells;
 
 	static {
 		int d = Runtime.getRuntime().availableProcessors();
+		if (d >= MAX_SLOT_COUNT)
+			d = 16;
+		
+		// override default slot count
 		String s = System.getProperty("araqne.logdb.counter_slot");
 		if (s != null) {
 			try {
@@ -36,7 +41,7 @@ public class ParallelLong {
 	public ParallelLong(long initialValue) {
 		cells = new AtomicLong[SLOT_COUNT];
 		for (int i = 0; i < cells.length; i++)
-			cells[i] = new AtomicLong();
+			cells[i] = new AtomicLong(0);
 	}
 
 	public long get() {
