@@ -16,7 +16,7 @@ public class ParallelLong {
 		int d = Runtime.getRuntime().availableProcessors();
 		if (d >= MAX_SLOT_COUNT)
 			d = 16;
-		
+
 		// override default slot count
 		String s = System.getProperty("araqne.logdb.counter_slot");
 		if (s != null) {
@@ -30,13 +30,6 @@ public class ParallelLong {
 
 		SLOT_COUNT = d;
 	}
-
-	private ThreadLocal<Integer> slot = new ThreadLocal<Integer>() {
-		@Override
-		protected Integer initialValue() {
-			return rng.nextInt(SLOT_COUNT);
-		}
-	};
 
 	public ParallelLong(long initialValue) {
 		cells = new AtomicLong[SLOT_COUNT];
@@ -60,11 +53,13 @@ public class ParallelLong {
 
 	// no return, just for compile
 	public void incrementAndGet() {
-		cells[slot.get()].incrementAndGet();
+		int slot = (int) (Thread.currentThread().getId() % SLOT_COUNT);
+		cells[slot].incrementAndGet();
 	}
 
 	// no return, just for compile
 	public void addAndGet(long value) {
-		cells[slot.get()].addAndGet(value);
+		int slot = (int) (Thread.currentThread().getId() % SLOT_COUNT);
+		cells[slot].addAndGet(value);
 	}
 }

@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.araqne.api.SystemProperty;
@@ -615,7 +616,7 @@ public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 						if (buffer.size() >= FLUSH_SIZE)
 							flush();
 						else
-							Thread.yield();
+							LockSupport.parkNanos(1);
 					} catch (IOException e) {
 						logger.error("araqne logdb: query [" + query.getId() + "] stats flush failed", e);
 					}
