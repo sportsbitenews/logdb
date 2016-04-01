@@ -84,7 +84,7 @@ public class In extends FunctionExpression implements VectorizedExpression {
 				for (int i = 0; i < values.length; i++) {
 					Object o = values[i];
 					if (o instanceof String) {
-						result[i] = ((String) o).startsWith(term);
+						result[i] = ((String) o).startsWith(operand);
 					}
 				}
 				return result;
@@ -93,7 +93,7 @@ public class In extends FunctionExpression implements VectorizedExpression {
 				for (int i = 0; i < values.length; i++) {
 					Object o = values[i];
 					if (o instanceof String) {
-						result[i] = ((String) o).endsWith(term);
+						result[i] = ((String) o).endsWith(operand);
 					}
 				}
 				return result;
@@ -102,7 +102,7 @@ public class In extends FunctionExpression implements VectorizedExpression {
 				for (int i = 0; i < values.length; i++) {
 					Object o = values[i];
 					if (o instanceof String) {
-						result[i] = ((String) o).contains(term);
+						result[i] = ((String) o).contains(operand);
 					}
 				}
 				return result;
