@@ -519,10 +519,10 @@ public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 			vbatch.data = m;
 
 			for (int i = 0; i < clauseCount; i++)
-				m.put(clauses[i], new ObjectVector(keyVector[i]));
+				m.put(clauses[i], new ObjectVector(keyVector[i], outputCount));
 
 			for (int i = 0; i < funcs.length; i++)
-				m.put(fields[i].getName(), new ObjectVector(valVector[i]));
+				m.put(fields[i].getName(), new ObjectVector(valVector[i], outputCount));
 
 			pushPipe(vbatch);
 		}
