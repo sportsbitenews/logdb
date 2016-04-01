@@ -169,7 +169,9 @@ public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 
 		Object[] keys = keyHolder.keys;
 
-		flushWorker.rwLock.readLock().lock();
+		if (useClause)
+			flushWorker.rwLock.readLock().lock();
+
 		try {
 			if (vbatch.selectedInUse) {
 				for (int i = 0; i < vbatch.size; i++) {
@@ -236,7 +238,8 @@ public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 				}
 			}
 		} finally {
-			flushWorker.rwLock.readLock().unlock();
+			if (useClause)
+				flushWorker.rwLock.readLock().unlock();
 		}
 
 		flushWorker.countNewKey(newKeyCount);
@@ -248,12 +251,13 @@ public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 		int newKeyCount = 0;
 		KeyHolder keys = EMPTY_KEY;
 
-		if (useClause)
-			keys = new KeyHolder(clauseCount);
-
 		inputCount.addAndGet(rowBatch.size);
 
-		flushWorker.rwLock.readLock().lock();
+		if (useClause) {
+			keys = new KeyHolder(clauseCount);
+			flushWorker.rwLock.readLock().lock();
+		}
+
 		try {
 			if (rowBatch.selectedInUse) {
 				for (int index = 0; index < rowBatch.size; index++) {
@@ -327,16 +331,19 @@ public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 				}
 			}
 		} finally {
-			flushWorker.rwLock.readLock().unlock();
+			if (useClause) {
+				flushWorker.rwLock.readLock().unlock();
+				flushWorker.countNewKey(newKeyCount);
+			}
 		}
-
-		flushWorker.countNewKey(newKeyCount);
 	}
 
 	@Override
 	public void onPush(Row m) {
 		int newKeyCount = 0;
-		flushWorker.rwLock.readLock().lock();
+		if (useClause)
+			flushWorker.rwLock.readLock().lock();
+
 		try {
 			KeyHolder keys = EMPTY_KEY;
 			if (clauseCount > 0) {
@@ -369,10 +376,11 @@ public class Stats extends QueryCommand implements FieldOrdering, ThreadSafe {
 			for (AggregationFunction f : fs)
 				f.apply(m);
 		} finally {
-			flushWorker.rwLock.readLock().unlock();
+			if (useClause) {
+				flushWorker.rwLock.readLock().unlock();
+				flushWorker.countNewKey(newKeyCount);
+			}
 		}
-
-		flushWorker.countNewKey(newKeyCount);
 	}
 
 	@Override
