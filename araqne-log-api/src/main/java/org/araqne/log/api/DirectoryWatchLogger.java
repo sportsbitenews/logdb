@@ -19,20 +19,29 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.araqne.log.api.impl.FileUtils;
 
 public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger slog = org.slf4j.LoggerFactory.getLogger(DirectoryWatchLogger.class.getName());
+
+	private String basePath;
+	private Pattern fileNamePattern;
+	private int scanDays;
+	private ScanPeriodMatcher scanPeriodMatcher;
+	private MultilineLogExtractor extractor;
+
+	private Receiver receiver = new Receiver();
 
 	public DirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
@@ -46,6 +55,8 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 			setStates(LastPositionHelper.serialize(lastPositions));
 			oldLastFile.renameTo(new File(oldLastFile.getAbsolutePath() + ".migrated"));
 		}
+
+		applyConfig();
 	}
 
 	@Override
@@ -54,24 +65,65 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 				|| !oldConfigs.get("filename_pattern").equals(newConfigs.get("filename_pattern"))) {
 			setStates(new HashMap<String, Object>());
 		}
+
+		applyConfig();
+	}
+
+	private void applyConfig() {
+		Map<String, String> configs = getConfigs();
+
+		this.basePath = configs.get("base_path");
+		this.fileNamePattern = Pattern.compile(configs.get("filename_pattern"));
+
+		receiver.fileTag = configs.get("file_tag");
+		receiver.pathTag = configs.get("path_tag");
+
+		this.extractor = MultilineLogExtractor.build(this, receiver);
+
+		// optional
+		String scanDaysString = getConfigs().get("scan_days");
+		if (scanDaysString != null) {
+			try {
+				this.scanDays = Integer.parseInt(scanDaysString);
+				if (scanDays < 0)
+					slog.warn(
+							"araqne log api: logger [" + getFullName() + "] has invalid scan days [{}], config will be ignored.",
+							scanDaysString);
+			} catch (NumberFormatException e) {
+				slog.warn("araqne log api: logger [" + getFullName() + "] has invalid scan days [{}], config will be ignored.",
+						scanDaysString);
+			}
+		}
+
+		// optional
+		String pathDateFormatString = getConfigs().get("path_date_format");
+		if (pathDateFormatString != null) {
+			try {
+				SimpleDateFormat df = new SimpleDateFormat(pathDateFormatString, new Locale(extractor.getDateLocale()));
+				this.scanPeriodMatcher = new ScanPeriodMatcher(df, extractor.getDateFormat().getTimeZone(), this.scanDays);
+			} catch (Throwable t) {
+				slog.warn("araqne log api: logger [" + getFullName() + "] has invalid path date format [" + pathDateFormatString
+						+ "], locale [" + extractor.getDateLocale() + "], timezone ["
+						+ extractor.getDateFormat().getTimeZone().getDisplayName() + "]", t);
+			}
+		}
 	}
 
 	@Override
 	protected void runOnce() {
-		Map<String, String> configs = getConfigs();
-
-		String basePath = configs.get("base_path");
-		Pattern fileNamePattern = Pattern.compile(configs.get("filename_pattern"));
-
 		List<File> logFiles = FileUtils.matches(basePath, fileNamePattern);
 		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
+		CommonHelper helper = new CommonHelper(fileNamePattern, scanPeriodMatcher);
 
-		for (File f : logFiles) {
-			processFile(lastPositions, f, fileNamePattern);
+		try {
+			for (File f : logFiles) {
+				processFile(lastPositions, f, helper);
+			}
+		} finally {
+			helper.removeOutdatedStates(lastPositions);
+			lastPositions = updateLastSeen(lastPositions, logFiles);
+			setStates(LastPositionHelper.serialize(lastPositions));
 		}
-
-		lastPositions = updateLastSeen(lastPositions, logFiles);
-		setStates(LastPositionHelper.serialize(lastPositions));
 	}
 
 	private Map<String, LastPosition> updateLastSeen(Map<String, LastPosition> lastPositions, List<File> logFiles) {
@@ -101,28 +153,23 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 		return updatedLastPositions;
 	}
 
-	protected void processFile(Map<String, LastPosition> lastPositions, File f, Pattern fileNamePattern) {
+	protected void processFile(Map<String, LastPosition> lastPositions, File f, CommonHelper helper) {
 		if (!f.canRead()) {
 			slog.debug("araqne log api: cannot read file [{}], logger [{}]", f.getAbsolutePath(), getFullName());
 			return;
+		}
+
+		String dateFromPath = helper.getDateString(f);
+		if (dateFromPath != null && scanPeriodMatcher != null) {
+			if (!scanPeriodMatcher.matches(System.currentTimeMillis(), dateFromPath))
+				return;
 		}
 
 		FileInputStream is = null;
 		String path = f.getAbsolutePath();
 		try {
 			// get date pattern-matched string from filename
-			String dateFromFileName = null;
-			Matcher fileNameDateMatcher = fileNamePattern.matcher(f.getName());
-			while (fileNameDateMatcher.find()) {
-				int fileNameGroupCount = fileNameDateMatcher.groupCount();
-				if (fileNameGroupCount > 0) {
-					StringBuffer sb = new StringBuffer();
-					for (int i = 1; i <= fileNameGroupCount; ++i) {
-						sb.append(fileNameDateMatcher.group(i));
-					}
-					dateFromFileName = sb.toString();
-				}
-			}
+			String dateFromFileName = helper.getDateString(f);
 
 			// skip previous read part
 			long offset = 0;
@@ -140,9 +187,8 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 			is = new FileInputStream(file);
 			is.skip(offset);
 
-			Receiver receiver = new Receiver(getConfigs().get("file_tag"), file.getName(), getConfigs().get("path_tag"),
-					file.getAbsolutePath());
-			MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
+			receiver.fileName = file.getName();
+			receiver.filePath = file.getAbsolutePath();
 			extractor.extract(is, lastPosition, dateFromFileName);
 
 			slog.debug("araqne log api: updating file [{}] old position [{}] new last position [{}]",
@@ -178,20 +224,13 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 		private String pathTag;
 		private String filePath;
 
-		public Receiver(String fileTag, String fileName, String pathTag, String filePath) {
-			this.fileTag = fileTag;
-			this.fileName = fileName;
-			this.pathTag = pathTag;
-			this.filePath = filePath;
-		}
-
 		@Override
 		public void onLog(Logger logger, Log log) {
 			if (fileTag != null)
 				log.getParams().put(fileTag, fileName);
 
 			if (pathTag != null)
-				log.getParams().put(fileTag, filePath);
+				log.getParams().put(pathTag, filePath);
 			write(log);
 		}
 
@@ -205,7 +244,7 @@ public class DirectoryWatchLogger extends AbstractLogger implements Reconfigurab
 
 			if (pathTag != null) {
 				for (Log log : logs) {
-					log.getParams().put(fileTag, filePath);
+					log.getParams().put(pathTag, filePath);
 				}
 			}
 			writeBatch(logs);

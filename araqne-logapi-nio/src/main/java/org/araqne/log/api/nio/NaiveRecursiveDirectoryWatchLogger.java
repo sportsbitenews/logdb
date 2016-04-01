@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.araqne.log.api.AbstractLogPipe;
 import org.araqne.log.api.AbstractLogger;
+import org.araqne.log.api.CommonHelper;
 import org.araqne.log.api.LastPosition;
 import org.araqne.log.api.LastPositionHelper;
 import org.araqne.log.api.Log;
@@ -60,23 +60,17 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 		if (dirNameRegex != null)
 			dirPathPattern = Pattern.compile(dirNameRegex);
 
-		extractor = new MultilineLogExtractor(this, receiver);
+		extractor = MultilineLogExtractor.build(this, receiver);
 
 		// optional
-		String dateExtractRegex = getConfigs().get("date_pattern");
-		if (dateExtractRegex != null)
-			extractor.setDateMatcher(Pattern.compile(dateExtractRegex).matcher(""));
+		String recursive = getConfigs().get("recursive");
+		this.recursive = ((recursive != null) && (recursive.compareToIgnoreCase("true") == 0));
 
 		// optional
-		String dateLocale = getConfigs().get("date_locale");
-		if (dateLocale == null)
-			dateLocale = "en";
+		this.fileTag = getConfigs().get("file_tag");
 
 		// optional
-		String dateFormatString = getConfigs().get("date_format");
-		String timeZone = getConfigs().get("timezone");
-		if (dateFormatString != null)
-			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
+		this.pathTag = getConfigs().get("path_tag");
 
 		// optional
 		String scanDaysString = getConfigs().get("scan_days");
@@ -97,39 +91,14 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 		String pathDateFormatString = getConfigs().get("path_date_format");
 		if (pathDateFormatString != null) {
 			try {
-				SimpleDateFormat df = new SimpleDateFormat(pathDateFormatString, new Locale(dateLocale));
-				this.scanPeriodMatcher = new ScanPeriodMatcher(df, timeZone, this.scanDays);
+				SimpleDateFormat df = new SimpleDateFormat(pathDateFormatString, new Locale(extractor.getDateLocale()));
+				this.scanPeriodMatcher = new ScanPeriodMatcher(df, extractor.getDateFormat().getTimeZone(), this.scanDays);
 			} catch (Throwable t) {
 				logger.warn("araqne logapi nio: logger [" + getFullName() + "] has invalid path date format ["
-						+ pathDateFormatString + "], locale [" + dateLocale + "], timezone [" + timeZone + "]", t);
+						+ pathDateFormatString + "], locale [" + extractor.getDateLocale() + "], timezone ["
+						+ extractor.getDateFormat().getTimeZone().getDisplayName() + "]", t);
 			}
 		}
-
-		// optional
-		String newlogRegex = getConfigs().get("newlog_designator");
-		if (newlogRegex != null)
-			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
-
-		String newlogEndRegex = getConfigs().get("newlog_end_designator");
-		if (newlogEndRegex != null)
-			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
-
-		// optional
-		String charset = getConfigs().get("charset");
-		if (charset == null)
-			charset = "utf-8";
-
-		// optional
-		String recursive = getConfigs().get("recursive");
-		this.recursive = ((recursive != null) && (recursive.compareToIgnoreCase("true") == 0));
-
-		// optional
-		this.fileTag = getConfigs().get("file_tag");
-
-		// optional
-		this.pathTag = getConfigs().get("path_tag");
-
-		extractor.setCharset(charset);
 	}
 
 	@Override
@@ -143,18 +112,18 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 		Collections.sort(files);
 		try {
 			for (File f : files)
-				processFile(f, lastPositions);
+				processFile(f, lastPositions, helper);
 		} finally {
 			helper.removeOutdatedStates(lastPositions);
 			setStates(LastPositionHelper.serialize(lastPositions));
 		}
 	}
 
-	private void processFile(File f, Map<String, LastPosition> lastPositions) {
+	private void processFile(File f, Map<String, LastPosition> lastPositions, CommonHelper helper) {
 		FileInputStream is = null;
 
 		try {
-			String dateFromPath = getDateFromPath(f);
+			String dateFromPath = helper.getDateString(f);
 			if (dateFromPath != null && scanPeriodMatcher != null) {
 				if (!scanPeriodMatcher.matches(System.currentTimeMillis(), dateFromPath))
 					return;
@@ -198,35 +167,6 @@ public class NaiveRecursiveDirectoryWatchLogger extends AbstractLogger implement
 				}
 			}
 		}
-	}
-
-	private String getDateFromPath(File f) {
-		StringBuffer sb = new StringBuffer(f.getAbsolutePath().length());
-		String dirPath = f.getParentFile().getAbsolutePath();
-		if (dirPathPattern != null) {
-			Matcher dirNameDateMatcher = dirPathPattern.matcher(dirPath);
-			while (dirNameDateMatcher.find()) {
-				int dirNameGroupCount = dirNameDateMatcher.groupCount();
-				if (dirNameGroupCount > 0) {
-					for (int i = 1; i <= dirNameGroupCount; ++i) {
-						sb.append(dirNameDateMatcher.group(i));
-					}
-				}
-			}
-		}
-
-		String fileName = f.getName();
-		Matcher fileNameDateMatcher = fileNamePattern.matcher(fileName);
-		while (fileNameDateMatcher.find()) {
-			int fileNameGroupCount = fileNameDateMatcher.groupCount();
-			if (fileNameGroupCount > 0) {
-				for (int i = 1; i <= fileNameGroupCount; ++i) {
-					sb.append(fileNameDateMatcher.group(i));
-				}
-			}
-		}
-		String date = sb.toString();
-		return date.isEmpty() ? null : date;
 	}
 
 	private List<File> getFiles() {

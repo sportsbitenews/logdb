@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 
 import org.araqne.log.api.AbstractLogPipe;
 import org.araqne.log.api.AbstractLogger;
+import org.araqne.log.api.CommonHelper;
 import org.araqne.log.api.LastPosition;
 import org.araqne.log.api.LastPositionHelper;
 import org.araqne.log.api.Log;
@@ -131,23 +132,17 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		if (dirNameRegex != null)
 			dirPathPattern = Pattern.compile(dirNameRegex);
 
-		extractor = new MultilineLogExtractor(this, receiver);
+		extractor = MultilineLogExtractor.build(this, receiver);
 
 		// optional
-		String dateExtractRegex = getConfigs().get("date_pattern");
-		if (dateExtractRegex != null)
-			extractor.setDateMatcher(Pattern.compile(dateExtractRegex).matcher(""));
+		String recursive = getConfigs().get("recursive");
+		this.recursive = ((recursive != null) && (recursive.compareToIgnoreCase("true") == 0));
 
 		// optional
-		String dateLocale = getConfigs().get("date_locale");
-		if (dateLocale == null)
-			dateLocale = "en";
+		this.fileTag = getConfigs().get("file_tag");
 
 		// optional
-		String dateFormatString = getConfigs().get("date_format");
-		String timeZone = getConfigs().get("timezone");
-		if (dateFormatString != null)
-			extractor.setDateFormat(new SimpleDateFormat(dateFormatString, new Locale(dateLocale)), timeZone);
+		this.pathTag = getConfigs().get("path_tag");
 
 		// optional
 		String scanDaysString = getConfigs().get("scan_days");
@@ -167,39 +162,14 @@ public class NioRecursiveDirectoryWatchLogger extends AbstractLogger implements 
 		String pathDateFormatString = getConfigs().get("path_date_format");
 		if (pathDateFormatString != null) {
 			try {
-				SimpleDateFormat df = new SimpleDateFormat(pathDateFormatString, new Locale(dateLocale));
-				this.scanPeriodMatcher = new ScanPeriodMatcher(df, timeZone, this.scanDays);
+				SimpleDateFormat df = new SimpleDateFormat(pathDateFormatString, new Locale(extractor.getDateLocale()));
+				this.scanPeriodMatcher = new ScanPeriodMatcher(df, extractor.getDateFormat().getTimeZone(), this.scanDays);
 			} catch (Throwable t) {
 				slog.warn("araqne logapi nio: logger [" + getFullName() + "] has invalid path date format ["
-						+ pathDateFormatString + "], locale [" + dateLocale + "], timezone [" + timeZone + "]", t);
+						+ pathDateFormatString + "], locale [" + extractor.getDateLocale() + "], timezone ["
+						+ extractor.getDateFormat().getTimeZone().getDisplayName() + "]", t);
 			}
 		}
-
-		// optional
-		String newlogRegex = getConfigs().get("newlog_designator");
-		if (newlogRegex != null)
-			extractor.setBeginMatcher(Pattern.compile(newlogRegex).matcher(""));
-
-		String newlogEndRegex = getConfigs().get("newlog_end_designator");
-		if (newlogEndRegex != null)
-			extractor.setEndMatcher(Pattern.compile(newlogEndRegex).matcher(""));
-
-		// optional
-		String charset = getConfigs().get("charset");
-		if (charset == null)
-			charset = "utf-8";
-
-		// optional
-		String recursive = getConfigs().get("recursive");
-		this.recursive = ((recursive != null) && (recursive.compareToIgnoreCase("true") == 0));
-
-		// optional
-		this.fileTag = getConfigs().get("file_tag");
-
-		// optional
-		this.pathTag = getConfigs().get("path_tag");
-
-		extractor.setCharset(charset);
 	}
 
 	@Override

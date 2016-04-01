@@ -135,8 +135,23 @@ public class DirectoryWatchLoggerFactory extends AbstractLoggerFactory {
 				t("Field name for path tagging", "경로명을 태깅할 필드 이름", "Field name for path tagging", "Field name for path tagging"),
 				false);
 
+		LoggerConfigOption pathDateFormat = new MutableStringConfigType("path_date_format",
+				t("Path Date Format", "경로 날짜 추출 포맷", "Path Date Format", "Path Date Format"),
+				t("Extract date using regex groups from file path and compare scan period.",
+						"경로에 매칭된 정규표현식 그룹 문자열에서 스캔 기준 날짜를 추출합니다.",
+						"Extract date using regex groups from file path and compare scan period.",
+						"Extract date using regex groups from file path and compare scan period."),
+				false);
+
+		LoggerConfigOption scanDays = new MutableIntegerConfigType("scan_days",
+				t("Scan Days", "모니터링 대상 일수", "Scan Days", "Scan Days"),
+				t("Collect only matching files within the scan period.", "파일 경로에서 날짜를 추출한 후 모니터링 대상 일수 이내에 있는 파일만 수집합니다.",
+						"Collect only matching files within the scan period.",
+						"Collect only matching files within the scan period."),
+				false);
+
 		return Arrays.asList(basePath, fileNamePattern, datePattern, dateFormat, dateLocale, timezone, newlogRegex,
-				newlogEndRegex, charset, fileTag, pathTag);
+				newlogEndRegex, charset, fileTag, pathTag, pathDateFormat, scanDays);
 	}
 
 	private Map<Locale, String> t(String enText, String koText, String jpText, String cnText) {

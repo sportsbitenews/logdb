@@ -1,4 +1,4 @@
-package org.araqne.log.api.nio;
+package org.araqne.log.api;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -7,14 +7,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.araqne.log.api.LastPosition;
-import org.araqne.log.api.ScanPeriodMatcher;
-
 public class CommonHelper {
 
 	private Pattern dirPathPattern;
 	private Pattern fileNamePattern;
 	private ScanPeriodMatcher scanPeriodMatcher;
+
+	public CommonHelper(Pattern fileNamePattern, ScanPeriodMatcher scanPeriodMatcher) {
+		this(null, fileNamePattern, scanPeriodMatcher);
+	}
 
 	public CommonHelper(Pattern dirPathPattern, Pattern fileNamePattern, ScanPeriodMatcher scanPeriodMatcher) {
 		this.dirPathPattern = dirPathPattern;
@@ -44,13 +45,16 @@ public class CommonHelper {
 
 			return true;
 		}
-		
+
 		return false;
 	}
 
 	public String getDateString(File f) {
-		StringBuilder sb = new StringBuilder(f.getAbsolutePath().length());
-		String dirPath = f.getParentFile().getAbsolutePath();
+		return getDateString(f.getParentFile().getAbsolutePath(), f.getName());
+	}
+
+	public String getDateString(String dirPath, String fileName) {
+		StringBuilder sb = new StringBuilder(dirPath.length() + fileName.length());
 		if (dirPathPattern != null) {
 			Matcher dirNameDateMatcher = dirPathPattern.matcher(dirPath);
 			while (dirNameDateMatcher.find()) {
@@ -63,7 +67,6 @@ public class CommonHelper {
 			}
 		}
 
-		String fileName = f.getName();
 		Matcher fileNameDateMatcher = fileNamePattern.matcher(fileName);
 		while (fileNameDateMatcher.find()) {
 			int fileNameGroupCount = fileNameDateMatcher.groupCount();
@@ -76,5 +79,4 @@ public class CommonHelper {
 		String date = sb.toString();
 		return date.isEmpty() ? null : date;
 	}
-
 }

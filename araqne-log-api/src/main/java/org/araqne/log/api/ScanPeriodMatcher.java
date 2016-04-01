@@ -23,28 +23,24 @@ import java.util.TimeZone;
 
 public class ScanPeriodMatcher {
 	private final SimpleDateFormat dateFormat;
-	private final String timeZone;
+	private final TimeZone timeZone;
 	private final int scanDays;
 
 	// assign current year to date
 	private Calendar yearModifier;
 
-	public ScanPeriodMatcher(SimpleDateFormat dateFormat, String timeZone, int scanDays) {
+	public ScanPeriodMatcher(SimpleDateFormat dateFormat, TimeZone timeZone, int scanDays) {
 		this.dateFormat = dateFormat;
 		this.timeZone = timeZone;
 		this.scanDays = scanDays;
 
-		if (timeZone != null) {
-			if (TimeZoneMappings.getTimeZone(timeZone) != null)
-				timeZone = (String) TimeZoneMappings.getTimeZone(timeZone);
-
-			dateFormat.setTimeZone(TimeZone.getTimeZone(timeZone));
-		}
+		if (timeZone != null)
+			dateFormat.setTimeZone(timeZone);
 
 		if (dateFormat != null && !dateFormat.toPattern().contains("yyyy")) {
 			yearModifier = Calendar.getInstance();
 			if (timeZone != null)
-				yearModifier.setTimeZone(TimeZone.getTimeZone(timeZone));
+				yearModifier.setTimeZone(timeZone);
 		}
 	}
 

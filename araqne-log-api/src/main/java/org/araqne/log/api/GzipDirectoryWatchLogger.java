@@ -4,22 +4,34 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfigurable {
 	private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(GzipDirectoryWatchLogger.class);
 
+	private String basePath;
+	private Pattern fileNamePattern;
+	private int scanDays;
+	private ScanPeriodMatcher scanPeriodMatcher;
+	private MultilineLogExtractor extractor;
+	private boolean isDeleteFile;
+
+	private Receiver receiver = new Receiver();
+
 	public GzipDirectoryWatchLogger(LoggerSpecification spec, LoggerFactory factory) {
 		super(spec, factory);
+
+		applyConfig();
 	}
 
 	@Override
@@ -28,22 +40,59 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 				|| !oldConfigs.get("filename_pattern").equals(newConfigs.get("filename_pattern"))) {
 			setStates(new HashMap<String, Object>());
 		}
+		applyConfig();
+	}
+
+	private void applyConfig() {
+		Map<String, String> configs = getConfigs();
+
+		basePath = configs.get("base_path");
+		fileNamePattern = Pattern.compile(configs.get("filename_pattern"));
+
+		isDeleteFile = false;
+		if (configs.containsKey("is_delete"))
+			isDeleteFile = Boolean.parseBoolean(getConfigs().get("is_delete"));
+
+		receiver.fileTag = configs.get("file_tag");
+		receiver.pathTag = configs.get("path_tag");
+
+		this.extractor = MultilineLogExtractor.build(this, receiver);
+
+		// optional
+		String scanDaysString = getConfigs().get("scan_days");
+		if (scanDaysString != null) {
+			try {
+				this.scanDays = Integer.parseInt(scanDaysString);
+				if (scanDays < 0)
+					logger.warn(
+							"araqne log api: logger [" + getFullName() + "] has invalid scan days [{}], config will be ignored.",
+							scanDaysString);
+			} catch (NumberFormatException e) {
+				logger.warn("araqne log api: logger [" + getFullName() + "] has invalid scan days [{}], config will be ignored.",
+						scanDaysString);
+			}
+		}
+
+		// optional
+		String pathDateFormatString = getConfigs().get("path_date_format");
+		if (pathDateFormatString != null) {
+			try {
+				SimpleDateFormat df = new SimpleDateFormat(pathDateFormatString, new Locale(extractor.getDateLocale()));
+				this.scanPeriodMatcher = new ScanPeriodMatcher(df, extractor.getDateFormat().getTimeZone(), this.scanDays);
+			} catch (Throwable t) {
+				logger.warn("araqne log api: logger [" + getFullName() + "] has invalid path date format [" + pathDateFormatString
+						+ "], locale [" + extractor.getDateLocale() + "], timezone ["
+						+ extractor.getDateFormat().getTimeZone().getDisplayName() + "]", t);
+			}
+		}
 	}
 
 	@Override
 	protected void runOnce() {
-		Map<String, String> configs = getConfigs();
-
-		String basePath = configs.get("base_path");
-		Pattern fileNamePattern = Pattern.compile(configs.get("filename_pattern"));
-
-		boolean isDeleteFile = false;
-		if (configs.containsKey("is_delete"))
-			isDeleteFile = Boolean.parseBoolean(getConfigs().get("is_delete"));
-
 		List<String> logFiles = FileUtils.matchFiles(basePath, fileNamePattern);
 		Map<String, LastPosition> lastPositions = LastPositionHelper.deserialize(getStates());
 		removeStatesOfDeletedFiles(lastPositions, logFiles);
+		CommonHelper helper = new CommonHelper(fileNamePattern, scanPeriodMatcher);
 
 		try {
 			for (String path : logFiles) {
@@ -51,9 +100,10 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 				if (status == LoggerStatus.Stopping || status == LoggerStatus.Stopped)
 					break;
 
-				processFile(lastPositions, path, isDeleteFile, fileNamePattern);
+				processFile(lastPositions, path, helper);
 			}
 		} finally {
+			helper.removeOutdatedStates(lastPositions);
 			setStates(LastPositionHelper.serialize(lastPositions));
 		}
 	}
@@ -66,8 +116,7 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 		}
 	}
 
-	protected void processFile(Map<String, LastPosition> lastPositions, String path, boolean isDeleteFile,
-			Pattern fileNamePattern) {
+	protected void processFile(Map<String, LastPosition> lastPositions, String path, CommonHelper helper) {
 		LastPosition position = new LastPosition(path);
 		FileInputStream fis = null;
 		GZIPInputStream gis = null;
@@ -90,11 +139,10 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 			fis = new FileInputStream(file);
 			gis = new GZIPInputStream(fis);
 
-			Receiver receiver = new Receiver(position, getConfigs().get("file_tag"), file.getName(), getConfigs().get("path_tag"),
-					file.getAbsolutePath());
-			MultilineLogExtractor extractor = MultilineLogExtractor.build(this, receiver);
+			receiver.fileName = file.getName();
+			receiver.filePath = file.getAbsolutePath();
 
-			String dateFromFileName = getDateFromFileName(path, fileNamePattern);
+			String dateFromFileName = helper.getDateString(file);
 			extractor.extract(gis, new AtomicLong(), dateFromFileName);
 			position.setPosition(-1);
 		} catch (EOFException e) {
@@ -119,22 +167,6 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 		}
 	}
 
-	private String getDateFromFileName(String path, Pattern fileNamePattern) {
-		String dateFromFileName = null;
-		Matcher fileNameDateMatcher = fileNamePattern.matcher(path);
-		if (fileNameDateMatcher.find()) {
-			int fileNameGroupCount = fileNameDateMatcher.groupCount();
-			if (fileNameGroupCount > 0) {
-				StringBuffer sb = new StringBuffer();
-				for (int i = 1; i <= fileNameGroupCount; ++i) {
-					sb.append(fileNameDateMatcher.group(i));
-				}
-				dateFromFileName = sb.toString();
-			}
-		}
-		return dateFromFileName;
-	}
-
 	private class Receiver extends AbstractLogPipe {
 		private long offset;
 		private LastPosition position;
@@ -143,21 +175,13 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 		private String pathTag;
 		private String filePath;
 
-		public Receiver(LastPosition position, String fileTag, String fileName, String pathTag, String filePath) {
-			this.position = position;
-			this.fileTag = fileTag;
-			this.fileName = fileName;
-			this.pathTag = pathTag;
-			this.filePath = filePath;
-		}
-
 		@Override
 		public void onLog(Logger logger, Log log) {
 			if (fileTag != null)
 				log.getParams().put(fileTag, fileName);
 
 			if (pathTag != null)
-				log.getParams().put(fileTag, filePath);
+				log.getParams().put(pathTag, filePath);
 
 			if (position.getPosition() < offset)
 				write(log);
@@ -177,7 +201,7 @@ public class GzipDirectoryWatchLogger extends AbstractLogger implements Reconfig
 
 			if (pathTag != null) {
 				for (Log log : logs) {
-					log.getParams().put(fileTag, filePath);
+					log.getParams().put(pathTag, filePath);
 				}
 			}
 

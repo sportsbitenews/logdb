@@ -49,6 +49,7 @@ public class MultilineLogExtractor {
 	private Matcher beginMatcher;
 	private Matcher endMatcher;
 	private Matcher dateMatcher;
+	private String dateLocale;
 	private SimpleDateFormat dateFormat;
 	private boolean eofFlush = false;;
 	private LogPipe pipe;
@@ -77,6 +78,7 @@ public class MultilineLogExtractor {
 		String dateLocale = configs.get("date_locale");
 		if (dateLocale == null)
 			dateLocale = "en";
+		extractor.setDateLocale(dateLocale);
 
 		// optional
 		String dateFormatString = configs.get("date_format");
@@ -151,6 +153,14 @@ public class MultilineLogExtractor {
 
 	public void setDateMatcher(Matcher dateMatcher) {
 		this.dateMatcher = dateMatcher;
+	}
+
+	public String getDateLocale() {
+		return dateLocale;
+	}
+
+	public void setDateLocale(String dateLocale) {
+		this.dateLocale = dateLocale;
 	}
 
 	public SimpleDateFormat getDateFormat() {
