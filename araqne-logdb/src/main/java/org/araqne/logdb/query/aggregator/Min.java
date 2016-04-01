@@ -73,11 +73,16 @@ public class Min implements VectorizedAggregationFunction {
 	}
 
 	private void put(Object obj) {
+		if (obj == null)
+			return;
+		
 		boolean success = true;
 		do {
 			Object minVal = min.get();
-			if (minVal == null || (comp.compare(minVal, obj) > 0 && obj != null))
+			if (minVal == null || (comp.compare(minVal, obj) > 0))
 				success = min.compareAndSet(minVal, obj);
+			else
+				break;
 		} while (!success);
 	}
 
