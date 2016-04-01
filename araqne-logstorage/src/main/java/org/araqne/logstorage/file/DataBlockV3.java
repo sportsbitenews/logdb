@@ -42,7 +42,7 @@ public class DataBlockV3 {
 	final int FIXED_DATA_HEADER_SIZE = BLOCK_LENGTH + BLOCK_VERSION + BLOCK_FLAG + MIN_TIME + MAX_TIME + MIN_ID + MAX_ID
 			+ ORIGINAL_SIZE + COMPRESS_SIZE + LENGTH_BLOCK_LENGTH;
 
-	long blockLength;
+	int blockLength;
 	byte version;
 	byte flag;
 	long minTime;
