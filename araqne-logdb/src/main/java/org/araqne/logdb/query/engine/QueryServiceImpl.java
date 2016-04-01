@@ -399,7 +399,7 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			}
 		}
 
-		if (found)
+		if (table != null && found)
 			table.setParallel(true);
 	}
 
