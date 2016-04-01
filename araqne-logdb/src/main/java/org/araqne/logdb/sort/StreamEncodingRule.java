@@ -356,14 +356,14 @@ public class StreamEncodingRule {
 		long l = value.getTime();
 		byte[] b = new byte[9];
 		b[0] = DATE_TYPE;
-		b[1] = (byte) ((l >> 56) & 0xff);
-		b[2] = (byte) ((l >> 48) & 0xff);
-		b[3] = (byte) ((l >> 40) & 0xff);
-		b[4] = (byte) ((l >> 32) & 0xff);
-		b[5] = (byte) ((l >> 24) & 0xff);
-		b[6] = (byte) ((l >> 16) & 0xff);
-		b[7] = (byte) ((l >> 8) & 0xff);
-		b[8] = (byte) (l & 0xff);
+		b[1] = (byte) (l >> 56);
+		b[2] = (byte) (l >> 48);
+		b[3] = (byte) (l >> 40);
+		b[4] = (byte) (l >> 32);
+		b[5] = (byte) (l >> 24);
+		b[6] = (byte) (l >> 16);
+		b[7] = (byte) (l >> 8);
+		b[8] = (byte) l;
 		os.write(b);
 	}
 
@@ -371,14 +371,14 @@ public class StreamEncodingRule {
 		byte[] b = new byte[8];
 		IoHelper.ensureRead(is, b, 8);
 		long l = 0;
-		l |= b[0] << 56;
-		l |= b[0] << 48;
-		l |= b[0] << 40;
-		l |= b[0] << 32;
-		l |= b[0] << 24;
-		l |= b[0] << 16;
-		l |= b[0] << 8;
-		l |= b[0];
+		l |= (b[0] & 0xffl) << 56;
+		l |= (b[1] & 0xffl) << 48;
+		l |= (b[2] & 0xffl) << 40;
+		l |= (b[3] & 0xffl) << 32;
+		l |= (b[4] & 0xffl) << 24;
+		l |= (b[5] & 0xffl) << 16;
+		l |= (b[6] & 0xffl) << 8;
+		l |= (b[7] & 0xffl);
 		return new Date(l);
 	}
 
