@@ -1,9 +1,14 @@
 package org.araqne.logdb.query.parser;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import static org.mockito.Mockito.*;
-
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 
@@ -15,7 +20,11 @@ import org.araqne.logdb.impl.FunctionRegistryImpl;
 import org.araqne.logdb.query.command.CheckTable;
 import org.araqne.logdb.query.engine.QueryParserServiceImpl;
 import org.araqne.logstorage.LogTableRegistry;
-import org.araqne.storage.crypto.impl.JavaLogCryptoService;
+import org.araqne.storage.crypto.BlockCipher;
+import org.araqne.storage.crypto.LogCryptoException;
+import org.araqne.storage.crypto.LogCryptoService;
+import org.araqne.storage.crypto.MacBuilder;
+import org.araqne.storage.crypto.PkiCipher;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -28,7 +37,7 @@ public class CheckTableParserTest {
 		p.setFunctionRegistry(new FunctionRegistryImpl());
 		queryParserService = p;
 	}
-	
+
 	@Test
 	public void checkAll() {
 		String query = "checktable";
@@ -93,43 +102,43 @@ public class CheckTableParserTest {
 		assertTrue(c.getTableNames().contains("secure_event"));
 		assertEquals("20130806", df.format(c.getFrom()));
 		assertEquals("20130808", df.format(c.getTo()));
-		
+
 		assertEquals(query, c.toString());
 	}
-	
+
 	@Test
 	public void testError11101() {
-		String  query = "checktable from=1007 to=20130808 secure_*";
-		
+		String query = "checktable from=1007 to=20130808 secure_*";
+
 		try {
 			parse(query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
 			assertEquals("11101", e.getType());
 			assertEquals(11, e.getStartOffset());
-			assertEquals(19, e.getEndOffset());	
+			assertEquals(19, e.getEndOffset());
 		}
 	}
-	
+
 	@Test
 	public void testError11102() {
-		String  query = "checktable from=20141007 to=2014 secure_*";
-		
+		String query = "checktable from=20141007 to=2014 secure_*";
+
 		try {
 			parse(query);
 			fail();
 		} catch (QueryParseException e) {
-			if(e.isDebugMode()){
+			if (e.isDebugMode()) {
 				System.out.println("query " + query);
 				System.out.println(e.getMessage());
 			}
 			assertEquals("11102", e.getType());
 			assertEquals(25, e.getStartOffset());
-			assertEquals(31, e.getEndOffset());	
+			assertEquals(31, e.getEndOffset());
 		}
 	}
 
@@ -137,9 +146,34 @@ public class CheckTableParserTest {
 		LogTableRegistry tableRegistry = mock(LogTableRegistry.class);
 		when(tableRegistry.getTableNames()).thenReturn(Arrays.asList("secure_log", "secure_event", "text_log"));
 
-		CheckTableParser parser = new CheckTableParser(tableRegistry, null, null, new JavaLogCryptoService());
+		CheckTableParser parser = new CheckTableParser(tableRegistry, null, null, new LogCryptoService() {
+
+			@Override
+			public PkiCipher newPkiCipher(PublicKey publicKey, PrivateKey privateKey) throws LogCryptoException {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public PkiCipher newPkiCipher(PublicKey publicKey) throws LogCryptoException {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public MacBuilder newMacBuilder(String algorithm, byte[] digestKey) throws LogCryptoException {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public BlockCipher newBlockCipher(String algorithm, byte[] cipherKey) throws LogCryptoException {
+				// TODO Auto-generated method stub
+				return null;
+			}
+		});
 		parser.setQueryParserService(queryParserService);
-		
+
 		CheckTable c = (CheckTable) parser.parse(getContext(), query);
 		return c;
 	}

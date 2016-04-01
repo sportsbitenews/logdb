@@ -733,7 +733,11 @@ public class ManagementPlugin {
 	public void dropTable(Request req, Response resp) {
 		ensureAdminSession(req);
 		String tableName = req.getString("table", true);
-		storage.dropTable(tableName);
+		try {
+			storage.dropTable(tableName);
+		} catch(Throwable t) {
+			throw new MsgbusException("logdb", "cannot-drop-locked-table", p("table_name", tableName));
+		}
 	}
 
 	@MsgbusMethod
@@ -741,9 +745,18 @@ public class ManagementPlugin {
 		ensureAdminSession(req);
 		@SuppressWarnings("unchecked")
 		List<String> tableNames = (List<String>) req.get("tables", true);
+		List<String> dropFailedTableNames = new ArrayList<String>();
 
-		for (String name : tableNames)
-			storage.dropTable(name);
+		for (String name : tableNames) {
+			try {
+				storage.dropTable(name);
+			} catch(Throwable t) {
+				dropFailedTableNames.add(name);
+			}
+		}
+
+		if(dropFailedTableNames.size() > 0)
+			throw new MsgbusException("logdb", "cannot-drop-locked-table", p("table_names", dropFailedTableNames));
 	}
 
 	private org.araqne.logdb.Session ensureAdminSession(Request req) {
@@ -1041,5 +1054,11 @@ public class ManagementPlugin {
 		} else {
 			col.add(m);
 		}
+	}
+
+	private Map<String, Object> p(String k, Object v) {
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put(k, v);
+		return params;
 	}
 }

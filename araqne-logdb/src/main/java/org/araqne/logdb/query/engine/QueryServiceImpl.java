@@ -352,14 +352,19 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		List<QueryCommand> commands = null;
 		try {
 			commands = queryParserService.parseCommands(context, queryString);
+
+			for (QueryPlanner planner : planners)
+				commands = planner.plan(context, commands);
+
+			optimizeTableScan(commands);
+
 		} catch (QueryParseException e) {
 			// write log(query execution failed)
 			HashMap<String, Object> m = new HashMap<String, Object>();
 			m.put("state", "parse_failure");
 			if (session != null) {
-				String source = (String) session.getProperty("araqne_logdb_query_source");
-				if (source != null)
-					m.put("source", source);
+				String source = context.getSource();
+				m.put("source", (source != null) ? source : "webconsole");
 				m.put("login_name", session.getLoginName());
 			}
 			m.put("query_string", queryString);
@@ -371,11 +376,6 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 
 			throw e;
 		}
-
-		for (QueryPlanner planner : planners)
-			commands = planner.plan(context, commands);
-
-		optimizeTableScan(commands);
 
 		Query query = new DefaultQuery(context, queryString, commands, resultFactory, queryThreadPool);
 
@@ -422,9 +422,8 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 		HashMap<String, Object> m = new HashMap<String, Object>();
 		m.put("state", "started");
 		if (session != null) {
-			String source = (String) session.getProperty("araqne_logdb_query_source");
-			if (source != null)
-				m.put("source", source);
+			String source = query.getContext().getSource();
+			m.put("source", (source != null) ? source : "webconsole");
 			m.put("login_name", session.getLoginName());
 			m.put("remote_ip", session.getProperty("remote_ip"));
 		} else {
@@ -629,10 +628,9 @@ public class QueryServiceImpl implements QueryService, SessionEventListener {
 			m.put("duration", 0);
 
 		if (session != null) {
+			String source = query.getContext().getSource();
+			m.put("source", (source != null) ? source : "webconsole");
 			m.put("remote_ip", session.getProperty("remote_ip"));
-			String source = (String) session.getProperty("araqne_logdb_query_source");
-			if (source != null)
-				m.put("source", source);
 		}
 	}
 

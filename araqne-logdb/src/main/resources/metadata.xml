@@ -34,4 +34,5 @@
 	<instance component="logdb-procedure-registry" />
 	<instance component="logdb-selector-parser-factory" />
 	<instance component="logdb-command-metadata" />
+	<instance component="logdb-last-log-metadata" />
 </ipojo>

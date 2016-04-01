@@ -266,7 +266,7 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 
 	private boolean setupTransformer(Logger logger) {
 		Map<String, String> config = logger.getConfigs();
-		
+
 		boolean transformerPending = false;
 		LogTransformerRegistry transformerRegistry;
 		if (config.containsKey("transformer")) {
@@ -282,13 +282,11 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 						logger.setTransformer(transformer);
 						transformerPending = false;
 					} catch (LogTransformerNotReadyException e) {
-						slog.debug(
-								"araqne log api: cannot load transformer [" + transformerName + "] for logger ["
-										+ logger.getFullName() + "]", e.getCause());
+						slog.debug("araqne log api: cannot load transformer [" + transformerName + "] for logger ["
+								+ logger.getFullName() + "]", e.getCause());
 					} catch (Throwable t) {
-						slog.warn(
-								"araqne log api: cannot load transformer [" + transformerName + "] for logger ["
-										+ logger.getFullName() + "]", t);
+						slog.warn("araqne log api: cannot load transformer [" + transformerName + "] for logger ["
+								+ logger.getFullName() + "]", t);
 					}
 				}
 			}
@@ -441,6 +439,8 @@ public abstract class AbstractLoggerFactory implements LoggerFactory {
 			s.setProperties(logger.getStates());
 			s.setEnabled(logger.isEnabled());
 			s.setRunning(logger.isRunning());
+			s.setLogVolume(logger.getLogVolume());
+			s.setDropVolume(logger.getDropVolume());
 			return s;
 		}
 	}

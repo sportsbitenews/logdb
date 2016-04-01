@@ -472,6 +472,10 @@ public class CometClient implements TrapListener {
 			lo.setLastRunAt(parseDate((String) m.get("last_run")));
 			lo.setLastLogAt(parseDate((String) m.get("last_log")));
 			lo.setLogCount(Long.valueOf(m.get("log_count").toString()));
+			if (m.get("log_volume") != null)
+				lo.setLogVolume(Long.valueOf(m.get("log_volume").toString()));
+			if (m.get("drop_volume") != null)
+				lo.setDropVolume(Long.valueOf(m.get("drop_volume").toString()));
 
 			loggers.add(lo);
 		}

@@ -39,6 +39,7 @@ import org.araqne.logdb.QueryStopReason;
 import org.araqne.logdb.Row;
 
 public class TextFile extends DriverQueryCommand {
+	private List<String> filePaths;
 	private String filePath;
 	private LogParser parser;
 	private long offset;
@@ -52,8 +53,9 @@ public class TextFile extends DriverQueryCommand {
 	private long pushCount;
 	private DummyLogger dummyLogger = new DummyLogger();
 
-	public TextFile(String filePath, LogParser parser, long offset, long limit, String beginRegex, String endRegex,
-			String dateFormat, String datePattern, String charset) {
+	public TextFile(List<String> filePaths, String filePath, LogParser parser, long offset, long limit, String beginRegex,
+			String endRegex, String dateFormat, String datePattern, String charset) {
+		this.filePaths = filePaths;
 		this.filePath = filePath;
 		this.parser = parser;
 		this.offset = offset;
@@ -63,8 +65,8 @@ public class TextFile extends DriverQueryCommand {
 		this.dateFormat = dateFormat;
 		this.datePattern = datePattern;
 		this.charset = charset;
-		currentOffset = 0;
-		pushCount = 0;
+		this.currentOffset = 0;
+		this.pushCount = 0;
 	}
 
 	@Override
@@ -82,7 +84,10 @@ public class TextFile extends DriverQueryCommand {
 	}
 
 	private class RowPipe implements LogPipe {
-		public RowPipe() {
+		private String filePath;
+
+		public RowPipe(String filePath) {
+			this.filePath = filePath;
 		}
 
 		@Override
@@ -104,7 +109,9 @@ public class TextFile extends DriverQueryCommand {
 			}
 
 			if (currentOffset >= offset) {
-				pushPipe(new Row(parsed != null ? parsed : row.map()));
+				Row r = new Row(parsed != null ? parsed : row.map());
+				r.put("_file", filePath);
+				pushPipe(r);
 				pushCount++;
 			}
 			currentOffset++;
@@ -124,7 +131,9 @@ public class TextFile extends DriverQueryCommand {
 				}
 
 				if (currentOffset >= offset) {
-					pushPipe(new Row(parsed != null ? parsed : row.map()));
+					Row r = new Row(parsed != null ? parsed : row.map());
+					r.put("_file", filePath);
+					pushPipe(r);
 					pushCount++;
 				}
 				currentOffset++;
@@ -160,32 +169,35 @@ public class TextFile extends DriverQueryCommand {
 	public void run() {
 		status = Status.Running;
 
-		FileInputStream is = null;
-		BufferedReader br = null;
-		try {
-			RowPipe pipe = new RowPipe();
-			is = new FileInputStream(new File(filePath));
+		for (String filePath : filePaths) {
+			FileInputStream is = null;
+			BufferedReader br = null;
+			try {
+				File f = new File(filePath);
+				RowPipe pipe = new RowPipe(f.getName());
+				is = new FileInputStream(f);
 
-			MultilineLogExtractor extractor = new MultilineLogExtractor(dummyLogger, pipe);
-			if (beginRegex != null)
-				extractor.setBeginMatcher(Pattern.compile(beginRegex).matcher(""));
-			if (endRegex != null)
-				extractor.setEndMatcher(Pattern.compile(endRegex).matcher(""));
-			if (datePattern != null)
-				extractor.setDateMatcher(Pattern.compile(datePattern).matcher(""));
-			if (dateFormat != null)
-				extractor.setDateFormat(new SimpleDateFormat(dateFormat));
-			extractor.setCharset(Charset.forName(charset).name());
-			extractor.extract(is, new AtomicLong());
-		} catch (LimitReachedException e) {
-			// ignore
-		} catch (QueryResultClosedException e) {
-			// ignore
-		} catch (Throwable t) {
-			throw new IllegalStateException(t);
-		} finally {
-			IoHelper.close(br);
-			IoHelper.close(is);
+				MultilineLogExtractor extractor = new MultilineLogExtractor(dummyLogger, pipe);
+				if (beginRegex != null)
+					extractor.setBeginMatcher(Pattern.compile(beginRegex).matcher(""));
+				if (endRegex != null)
+					extractor.setEndMatcher(Pattern.compile(endRegex).matcher(""));
+				if (datePattern != null)
+					extractor.setDateMatcher(Pattern.compile(datePattern).matcher(""));
+				if (dateFormat != null)
+					extractor.setDateFormat(new SimpleDateFormat(dateFormat));
+				extractor.setCharset(Charset.forName(charset).name());
+				extractor.extract(is, new AtomicLong());
+			} catch (LimitReachedException e) {
+				// ignore
+			} catch (QueryResultClosedException e) {
+				// ignore
+			} catch (Throwable t) {
+				throw new IllegalStateException(t);
+			} finally {
+				IoHelper.close(br);
+				IoHelper.close(is);
+			}
 		}
 	}
 

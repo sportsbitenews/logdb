@@ -27,7 +27,6 @@
 							org.araqne.storage.api;version=${project.version},
 							org.araqne.storage.localfile;version=${project.version},
 							org.araqne.storage.filepair;version=${project.version}
-							org.araqne.storage.crypto;version=${project.version}
 						</Export-Package>
 						<Import-Package>
 							org.osgi.framework;version="1.4.0",

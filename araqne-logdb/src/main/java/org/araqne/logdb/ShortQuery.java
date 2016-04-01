@@ -16,7 +16,6 @@
 package org.araqne.logdb;
 
 import java.io.IOException;
-
 import java.util.List;
 import java.util.Map;
 
@@ -33,8 +32,9 @@ public class ShortQuery {
 		Query q = null;
 
 		try {
-			session.setProperty("araqne_logdb_query_source", "java-client");
-			q = queryService.createQuery(session, query);
+			QueryContext ctx = new QueryContext(session);
+			ctx.setSource("java-client");
+			q = queryService.createQuery(ctx, query);
 			queryService.startQuery(session, q.getId());
 
 			do {

@@ -16,7 +16,7 @@ public class WildcardTableSpec implements TableSpec {
 	boolean optional;
 	Pattern pattern;
 	private String spec;
-	
+
 	public static void main(String[] args) {
 		String specStr = "*";
 		Matcher matcher = qualifierPattern.matcher(specStr);
@@ -28,14 +28,14 @@ public class WildcardTableSpec implements TableSpec {
 			System.out.println("ERROR");
 		}
 	}
-	
+
 	public Object clone() {
 		return new WildcardTableSpec(toString());
 	}
 
 	public WildcardTableSpec(String spec) {
 		this.spec = spec;
-		
+
 		// XXX
 		Matcher m = Pattern.compile("^(?:(`[^`]+`|[\\w\\*]+)\\:|)(`[^`]+`|[^\\.\\?]+)(?:(\\?)|)").matcher(spec);
 		if (m.matches()) {
@@ -56,7 +56,7 @@ public class WildcardTableSpec implements TableSpec {
 				sb.append("?");
 			spec = sb.toString();
 		}
-		
+
 		Matcher matcher = qualifierPattern.matcher(spec);
 		if (matcher.matches()) {
 			namespace = selectNonNull(matcher.group(1), matcher.group(2));
@@ -88,11 +88,11 @@ public class WildcardTableSpec implements TableSpec {
 			return "`" + tableName + "`";
 		}
 	}
-	
+
 	public boolean hasWildcard() {
 		return pattern != null;
 	}
-	
+
 	public boolean isOptional() {
 		return optional;
 	}
@@ -112,14 +112,14 @@ public class WildcardTableSpec implements TableSpec {
 	public String getSpec() {
 		return spec;
 	}
-	
+
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		if (namespace != null) {
 			sb.append(quote(namespace) + ":");
 		}
 		sb.append(quote(table));
-		if (optional) 
+		if (optional)
 			sb.append("?");
 		return sb.toString();
 	}
@@ -130,7 +130,7 @@ public class WildcardTableSpec implements TableSpec {
 			return Arrays.asList(new StorageObjectName(namespace, table, optional));
 		} else {
 			ArrayList<StorageObjectName> result = new ArrayList<StorageObjectName>();
-			for (String tableName: logTableRegistry.getTableNames()) {
+			for (String tableName : logTableRegistry.getTableNames()) {
 				if (pattern.matcher(tableName).matches())
 					result.add(resolveWith(tableName));
 			}
@@ -149,13 +149,17 @@ public class WildcardTableSpec implements TableSpec {
 	}
 
 	@Override
+	public void setTable(String tableName) {
+		this.table = tableName;
+	}
+
+	@Override
 	public void setNamespace(String ns) {
 		this.namespace = ns;
 	}
-	
+
 	@Override
 	public void setOptional(boolean optional) {
 		this.optional = optional;
 	}
 }
-

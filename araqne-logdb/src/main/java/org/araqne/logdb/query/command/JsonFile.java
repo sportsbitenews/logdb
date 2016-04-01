@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Map;
 
 import org.araqne.log.api.LogParser;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 public class JsonFile extends DriverQueryCommand {
 	private final Logger logger = LoggerFactory.getLogger(JsonFile.class.getName());
+	private List<String> filePaths;
 	private String filePath;
 	private LogParser parser;
 	private String parseTarget;
@@ -42,7 +44,9 @@ public class JsonFile extends DriverQueryCommand {
 	private long limit;
 	private boolean overlay;
 
-	public JsonFile(String filePath, LogParser parser, String parseTarget, boolean overlay, long offset, long limit) {
+	public JsonFile(List<String> filePaths, String filePath, LogParser parser, String parseTarget, boolean overlay, long offset,
+			long limit) {
+		this.filePaths = filePaths;
 		this.filePath = filePath;
 		this.parser = parser;
 		this.parseTarget = parseTarget;
@@ -64,11 +68,17 @@ public class JsonFile extends DriverQueryCommand {
 	public void run() {
 		status = Status.Running;
 
+		for (String filePath : filePaths)
+			readJsonFile(filePath);
+	}
+
+	private void readJsonFile(String filePath) {
 		FileInputStream is = null;
 		BufferedReader br = null;
 		try {
 			Charset utf8 = Charset.forName("utf-8");
-			is = new FileInputStream(new File(filePath));
+			File f = new File(filePath);
+			is = new FileInputStream(f);
 			br = new BufferedReader(new InputStreamReader(new BufferedInputStream(is), utf8));
 
 			int i = 0;
@@ -99,6 +109,8 @@ public class JsonFile extends DriverQueryCommand {
 					}
 
 					if (i >= offset) {
+						m.put("_file", f.getName());
+
 						pushPipe(new Row(m));
 						count++;
 					}
