@@ -34,6 +34,7 @@ public abstract class QueryCommand {
 	protected RowPipe output;
 	private AtomicLong outputCount = new AtomicLong();
 	protected volatile Status status = Status.Waiting;
+	private AtomicBoolean startCalled = new AtomicBoolean();
 	private AtomicBoolean closeCalled = new AtomicBoolean();
 	private ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 
@@ -94,7 +95,8 @@ public abstract class QueryCommand {
 
 	public void tryStart() {
 		closeCalled.set(false);
-		onStart();
+		if (startCalled.compareAndSet(false, true))
+			onStart();
 	}
 
 	public void tryClose(QueryStopReason reason) {
