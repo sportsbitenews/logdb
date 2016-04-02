@@ -29,9 +29,10 @@ public class Sqrt extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(valueExpr);
-		for (int i = 0; i < values.length; i++)
-			values[i] = sqrt(values[i]);
+		Object[] args = vbatch.eval(valueExpr);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = sqrt(args[i]);
 		return values;
 	}
 

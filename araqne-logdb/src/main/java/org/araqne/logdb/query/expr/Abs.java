@@ -39,9 +39,10 @@ public class Abs extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
+		Object[] args = vbatch.eval(expr);
 		Object[] values = vbatch.eval(expr);
-		for (int i = 0; i < values.length; i++)
-			values[i] = abs(values[i]);
+		for (int i = 0; i < args.length; i++)
+			values[i] = abs(args[i]);
 		return values;
 	}
 

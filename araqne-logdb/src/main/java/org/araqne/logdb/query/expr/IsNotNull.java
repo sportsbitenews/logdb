@@ -39,9 +39,10 @@ public class IsNotNull extends FunctionExpression implements VectorizedExpressio
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(expr);
-		for (int i = 0; i < values.length; i++)
-			values[i] = values[i] != null;
+		Object[] args = vbatch.eval(expr);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = args[i] != null;
 		return values;
 	}
 

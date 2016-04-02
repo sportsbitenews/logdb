@@ -48,9 +48,10 @@ public class JxpathFunction extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(sourceExpr);
-		for (int i = 0; i < values.length; i++)
-			values[i] = jxpath(values[i]);
+		Object[] args = vbatch.eval(sourceExpr);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = jxpath(args[i]);
 		return values;
 	}
 

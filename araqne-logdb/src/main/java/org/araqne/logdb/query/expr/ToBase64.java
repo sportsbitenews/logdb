@@ -44,9 +44,10 @@ public class ToBase64 extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(dataExpr);
-		for (int i = 0; i < values.length; i++)
-			values[i] = tobase64(values[i]);
+		Object[] args = vbatch.eval(dataExpr);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = tobase64(args[i]);
 		return values;
 	}
 

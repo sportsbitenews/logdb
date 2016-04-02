@@ -44,7 +44,7 @@ public class Lte extends BinaryExpression {
 		for (int i = 0; i < values.length; i++) {
 			Object o1 = vec1[i];
 			Object o2 = vec2[i];
-			if (o1 != null && o2 == null)
+			if (o1 != null && o2 != null)
 				values[i] = cmp.compare(o1, o2) <= 0;
 		}
 

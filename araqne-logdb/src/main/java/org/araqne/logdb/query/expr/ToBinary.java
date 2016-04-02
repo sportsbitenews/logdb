@@ -66,9 +66,10 @@ public class ToBinary extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(data);
-		for (int i = 0; i < values.length; i++)
-			values[i] = tobinary(values[i]);
+		Object[] args = vbatch.eval(data);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = tobinary(args[i]);
 		return values;
 	}
 

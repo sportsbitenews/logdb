@@ -47,10 +47,11 @@ public class Len extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(valueExpr);
+		Object[] args = vbatch.eval(valueExpr);
+		Object[] values = new Object[args.length];
 
-		for (int i = 0; i < values.length; i++) {
-			Object value = values[i];
+		for (int i = 0; i < args.length; i++) {
+			Object value = args[i];
 			int len = 0;
 			if (value == null)
 				len = 0;

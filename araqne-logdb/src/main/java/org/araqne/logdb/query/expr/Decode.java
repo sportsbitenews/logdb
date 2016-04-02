@@ -50,9 +50,10 @@ public class Decode extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(dataExpr);
-		for (int i = 0; i < values.length; i++)
-			values[i] = decode(values[i]);
+		Object[] args = vbatch.eval(dataExpr);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = decode(args[i]);
 		return values;
 	}
 

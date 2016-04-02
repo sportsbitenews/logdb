@@ -67,7 +67,7 @@ public class Neq extends BinaryExpression {
 				Object o1 = vec1[i];
 				Object o2 = vec2[i];
 				if (o1 == null || o2 == null)
-					values[i] = false;
+					values[i] = null;
 				else
 					values[i] = cmp.compare(o1, o2) != 0;
 			}

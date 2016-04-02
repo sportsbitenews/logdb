@@ -33,9 +33,10 @@ public class Neg implements VectorizedExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(expr);
-		for (int i = 0; i < values.length; i++)
-			values[i] = neg(values[i]);
+		Object[] args = vbatch.eval(expr);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = neg(args[i]);
 		return values;
 	}
 

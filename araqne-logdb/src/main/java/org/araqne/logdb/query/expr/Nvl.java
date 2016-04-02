@@ -47,12 +47,15 @@ public class Nvl extends FunctionExpression {
 	public Object[] eval(VectorizedRowBatch vbatch) {
 		Object[] vec1 = vbatch.eval(condExpr);
 		Object[] vec2 = vbatch.eval(valExpr);
-		for (int i = 0; i < vec1.length; i++) {
-			if (vec1[i] == null)
-				vec1[i] = vec2[i];
+		Object[] values = new Object[vbatch.size];
+		for (int i = 0; i < vbatch.size; i++) {
+			if (vec1[i] != null)
+				values[i] = vec1[i];
+			else
+				values[i] = vec2[i];
 		}
 
-		return vec1;
+		return values;
 	}
 
 	@Override

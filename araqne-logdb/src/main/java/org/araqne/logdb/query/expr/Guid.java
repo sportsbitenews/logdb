@@ -40,8 +40,9 @@ public class Guid extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = new Object[vbatch.size];
-		for (int i = 0; i < values.length; i++)
+		Object[] args = new Object[vbatch.size];
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
 			values[i] = UUID.randomUUID().toString();
 		return values;
 	}

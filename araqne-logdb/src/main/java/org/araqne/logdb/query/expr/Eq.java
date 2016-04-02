@@ -44,7 +44,7 @@ public class Eq extends BinaryExpression {
 		} else {
 			Object r = vbatch.evalOne(rhs, i);
 			if (r == null)
-				return false;
+				return null;
 
 			return cmp.compare(l, r) == 0;
 		}
@@ -52,18 +52,23 @@ public class Eq extends BinaryExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] lArray = vbatch.eval(lhs);
+		Object[] vec1 = vbatch.eval(lhs);
 
 		if (matcher != null)
-			return matcher.match(lArray);
+			return matcher.match(vec1);
 
-		Object[] rArray = vbatch.eval(rhs);
-		Object[] result = new Object[vbatch.size];
+		Object[] vec2 = vbatch.eval(rhs);
+		Object[] values = new Object[vbatch.size];
 		for (int i = 0; i < vbatch.size; i++) {
-			result[i] = rArray[i] != null && cmp.compare(lArray[i], rArray[i]) == 0;
+			Object o1 = vec1[i];
+			Object o2 = vec2[i];
+			if (o1 == null || o2 == null)
+				values[i] = null;
+			else
+				values[i] = cmp.compare(vec1[i], vec2[i]) == 0;
 		}
 
-		return result;
+		return values;
 	}
 
 	@Override

@@ -94,9 +94,10 @@ public class Hash extends FunctionExpression {
 		if (md == null)
 			return null;
 
-		Object[] values = vbatch.eval(dataExpr);
-		for (int i = 0; i < values.length; i++) {
-			values[i] = hash(md, values[i]);
+		Object[] args = vbatch.eval(dataExpr);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++) {
+			values[i] = hash(md, args[i]);
 		}
 		return values;
 	}

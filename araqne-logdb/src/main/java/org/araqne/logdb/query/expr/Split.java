@@ -62,9 +62,10 @@ public class Split extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(targetExpr);
-		for (int i = 0; i < values.length; i++)
-			values[i] = split(values[i]);
+		Object[] args = vbatch.eval(targetExpr);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = split(args[i]);
 		return values;
 	}
 

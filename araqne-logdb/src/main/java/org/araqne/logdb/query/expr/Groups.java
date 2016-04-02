@@ -49,9 +49,10 @@ public class Groups extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(target);
-		for (int i = 0; i < values.length; i++)
-			values[i] = groups(values[i]);
+		Object[] args = vbatch.eval(target);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = groups(args[i]);
 		return values;
 	}
 

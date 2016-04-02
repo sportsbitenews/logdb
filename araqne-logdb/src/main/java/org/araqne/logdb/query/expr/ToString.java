@@ -77,14 +77,15 @@ public class ToString extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(valueExpr);
+		Object[] args = vbatch.eval(valueExpr);
+		Object[] values = new Object[args.length];
 
 		SimpleDateFormat df = null;
 		if (format != null)
 			df = new SimpleDateFormat(format);
 
-		for (int i = 0; i < values.length; i++) {
-			Object o = values[i];
+		for (int i = 0; i < args.length; i++) {
+			Object o = args[i];
 			if (o == null)
 				continue;
 

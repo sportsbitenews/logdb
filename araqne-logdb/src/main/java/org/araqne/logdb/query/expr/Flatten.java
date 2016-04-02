@@ -44,9 +44,10 @@ public class Flatten extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(arg);
-		for (int i = 0; i < values.length; i++)
-			values[i] = flatten(values[i]);
+		Object[] args = vbatch.eval(arg);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = flatten(args[i]);
 
 		return values;
 	}

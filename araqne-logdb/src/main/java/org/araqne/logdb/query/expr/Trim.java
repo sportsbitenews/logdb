@@ -38,9 +38,10 @@ public class Trim extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(expr);
-		for (int i = 0; i < values.length; i++)
-			values[i] = trim(values[i]);
+		Object[] args = vbatch.eval(expr);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = trim(args[i]);
 		return values;
 	}
 

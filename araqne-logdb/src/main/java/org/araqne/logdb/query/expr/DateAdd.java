@@ -91,9 +91,10 @@ public class DateAdd extends FunctionExpression {
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(field);
-		for (int i = 0; i < values.length; i++)
-			values[i] = dateadd(values[i]);
+		Object[] args = vbatch.eval(field);
+		Object[] values = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			values[i] = dateadd(args[i]);
 		return values;
 	}
 
