@@ -18,6 +18,8 @@ public abstract class AbstractAggregationFunction implements AggregationFunction
 
 	public abstract AggregationFunction clone();
 
+=======
+	// True if and only if a mapper and a reducer exist.
 	public boolean canBeDistributed() {
 		return false;
 	}
@@ -51,8 +53,13 @@ public abstract class AbstractAggregationFunction implements AggregationFunction
 			for (int i = 0; i < this.getArguments().size(); i++) {
 				String thisExpression = this.getArguments().get(i).toString();
 				String otherExpression = other.getArguments().get(i).toString();
-				if (!thisExpression.equals(otherExpression))
-					return false;
+				if (thisExpression == null) {
+					if (otherExpression != null)
+						return false;
+				} else {
+					if (!thisExpression.equals(otherExpression))
+						return false;
+				}
 			}
 		}
 
