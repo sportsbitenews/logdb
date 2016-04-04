@@ -3,24 +3,20 @@ package org.araqne.logdb.query.aggregator;
 import java.util.List;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.query.aggregator.Variance.VarianceMapper;
+import org.araqne.logdb.query.aggregator.Variance.VarianceReducer;
 import org.araqne.logdb.query.expr.Expression;
 
-public class StdDev implements AggregationFunction {
-	private List<Expression> exprs;
+public class StdDev extends AbstractAggregationFunction {
 	Variance var;
 
 	public StdDev(List<Expression> exprs) {
-		this.exprs = exprs;
+		super(exprs);
 	}
 
 	@Override
 	public String getName() {
 		return "stddev";
-	}
-
-	@Override
-	public List<Expression> getArguments() {
-		return exprs;
 	}
 
 	@Override
@@ -58,6 +54,9 @@ public class StdDev implements AggregationFunction {
 
 	@Override
 	public Object[] serialize() {
+		if (var == null)
+			var = new Variance(exprs);
+
 		return var.serialize();
 	}
 
@@ -82,5 +81,82 @@ public class StdDev implements AggregationFunction {
 	@Override
 	public String toString() {
 		return "stddev(" + exprs.get(0) + ")";
+	}
+
+	public boolean canBeDistributed() {
+		return true;
+	}
+
+	public AggregationFunction mapper(List<Expression> exprs) {
+		return new VarianceMapper(exprs);
+	}
+
+	public AggregationFunction reducer(List<Expression> exprs) {
+		return new StdDevReducer(exprs);
+	}
+
+	public static class StdDevReducer extends AbstractAggregationFunction {
+		VarianceReducer varReducer;
+
+		public StdDevReducer(List<Expression> exprs) {
+			super(exprs);
+			varReducer = new VarianceReducer(exprs);
+		}
+
+		public StdDevReducer(List<Expression> exprs, VarianceReducer varReducer) {
+			super(exprs);
+			this.varReducer = varReducer;
+		}
+
+		@Override
+		public Object eval() {
+			Object var = varReducer.eval();
+			if (var == null)
+				return null;
+			else
+				return Math.sqrt(((Number) var).doubleValue());
+		}
+
+		@Override
+		public String getName() {
+			return "stddevReducer";
+		}
+
+		@Override
+		public String toString() {
+			return "stddevReducer(" + exprs.get(0) + ")";
+		}
+
+		@Override
+		public void apply(Row map) {
+			varReducer.apply(map);
+		}
+
+		@Override
+		public void merge(AggregationFunction func) {
+			varReducer.merge(func);
+		}
+
+		@Override
+		public Object[] serialize() {
+			return varReducer.serialize();
+		}
+
+		@Override
+		public void deserialize(Object[] values) {
+			varReducer.deserialize(values);
+		}
+
+		@Override
+		public void clean() {
+			varReducer.clean();
+		}
+
+		@Override
+		public AggregationFunction clone() {
+			StdDevReducer result = new StdDevReducer(exprs, (VarianceReducer) varReducer.clone());
+			return result;
+		}
+
 	}
 }

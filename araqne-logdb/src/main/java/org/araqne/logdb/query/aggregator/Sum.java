@@ -21,24 +21,18 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.query.command.NumberUtil;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Sum implements AggregationFunction {
-	protected List<Expression> exprs;
+public class Sum extends AbstractAggregationFunction {
 	protected Number sum = 0L;
 	private Expression expr;
 
 	public Sum(List<Expression> exprs) {
-		this.exprs = exprs;
+		super(exprs);
 		this.expr = exprs.get(0);
 	}
 
 	@Override
 	public String getName() {
 		return "sum";
-	}
-
-	@Override
-	public List<Expression> getArguments() {
-		return exprs;
 	}
 
 	@Override
@@ -90,4 +84,18 @@ public class Sum implements AggregationFunction {
 		return "sum(" + expr + ")";
 	}
 
+	@Override
+	public boolean canBeDistributed() {
+		return true;
+	}
+
+	@Override
+	public AggregationFunction mapper(List<Expression> exprs) {
+		return new Sum(exprs);
+	}
+
+	@Override
+	public AggregationFunction reducer(List<Expression> exprs) {
+		return new Sum(exprs);
+	}
 }

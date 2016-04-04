@@ -21,23 +21,17 @@ import org.araqne.logdb.Row;
 import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.query.expr.Expression;
 
-public class Min implements AggregationFunction {
-	private List<Expression> exprs;
+public class Min extends AbstractAggregationFunction {
 	private ObjectComparator comp = new ObjectComparator();
 	private Object min;
 
 	public Min(List<Expression> exprs) {
-		this.exprs = exprs;
+		super(exprs);
 	}
 
 	@Override
 	public String getName() {
 		return "min";
-	}
-
-	@Override
-	public List<Expression> getArguments() {
-		return exprs;
 	}
 
 	@Override
@@ -100,5 +94,20 @@ public class Min implements AggregationFunction {
 	@Override
 	public String toString() {
 		return "min(" + exprs.get(0) + ")";
+	}
+
+	@Override
+	public boolean canBeDistributed() {
+		return true;
+	}
+
+	@Override
+	public AggregationFunction mapper(List<Expression> exprs) {
+		return new Min(exprs);
+	}
+
+	@Override
+	public AggregationFunction reducer(List<Expression> exprs) {
+		return new Min(exprs);
 	}
 }
