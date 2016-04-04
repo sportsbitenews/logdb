@@ -18,7 +18,6 @@ public abstract class AbstractAggregationFunction implements AggregationFunction
 
 	public abstract AggregationFunction clone();
 
-=======
 	// True if and only if a mapper and a reducer exist.
 	public boolean canBeDistributed() {
 		return false;
