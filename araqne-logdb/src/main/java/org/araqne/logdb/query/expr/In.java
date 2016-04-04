@@ -22,15 +22,21 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.araqne.logdb.ObjectComparator;
 import org.araqne.logdb.QueryContext;
 
 import org.araqne.logdb.Row;
+import org.araqne.logdb.RowBatch;
 import org.araqne.logdb.Strings;
 import org.araqne.logdb.VectorizedRowBatch;
 
 public class In extends FunctionExpression implements VectorizedExpression {
 	private static abstract class FieldMatcher {
 		public abstract boolean match(Row log, Object o);
+
+		public abstract boolean matchOne(VectorizedRowBatch vbatch, int i, Object arg);
+
+		public abstract boolean[] match(VectorizedRowBatch vbatch, Object[] args);
 	}
 
 	static class StringMatcher extends FieldMatcher {
@@ -68,8 +74,14 @@ public class In extends FunctionExpression implements VectorizedExpression {
 			}
 		}
 
-		public Object[] match(Object[] values) {
-			Object[] result = new Object[values.length];
+		@Override
+		public boolean matchOne(VectorizedRowBatch vbatch, int i, Object arg) {
+			return match(null, arg);
+		}
+
+		@Override
+		public boolean[] match(VectorizedRowBatch vbatch, Object[] values) {
+			boolean[] result = new boolean[values.length];
 			switch (matchMethod) {
 			case EQUALS: {
 				for (int i = 0; i < values.length; i++) {
@@ -158,18 +170,62 @@ public class In extends FunctionExpression implements VectorizedExpression {
 	}
 
 	private static class GenericMatcher extends FieldMatcher {
+		private ObjectComparator cmp = new ObjectComparator();
 		public Expression term;
+		public VectorizedExpression vexpr;
 
 		public GenericMatcher(Expression term) {
 			this.term = term;
+			if (term instanceof VectorizedExpression)
+				this.vexpr = (VectorizedExpression) term;
 		}
 
+		@Override
 		public boolean match(Row log, Object o) {
 			Object eval = term.eval(log);
 			if (eval == null)
 				return false;
 			else
 				return eval.equals(o);
+		}
+
+		@Override
+		public boolean matchOne(VectorizedRowBatch vbatch, int i, Object arg) {
+			if (vexpr != null) {
+				Object o = vexpr.evalOne(vbatch, i);
+				if (o != null && arg != null)
+					return cmp.compare(o, arg) == 0;
+			} else {
+				Object o = term.eval(vbatch.row(i));
+				if (o != null && arg != null)
+					return cmp.compare(o, arg) == 0;
+			}
+			return false;
+		}
+
+		@Override
+		public boolean[] match(VectorizedRowBatch vbatch, Object[] vec) {
+			boolean[] matches = new boolean[vec.length];
+			if (vexpr != null) {
+				Object[] vec2 = vexpr.eval(vbatch);
+				for (int i = 0; i < vbatch.size; i++) {
+					Object o1 = vec[i];
+					Object o2 = vec2[i];
+					if (o1 != null && o2 != null)
+						matches[i] = cmp.compare(o1, o2) == 0;
+				}
+			} else {
+				RowBatch rowBatch = vbatch.toRowBatch();
+				for (int i = 0; i < rowBatch.size; i++) {
+					Row row = rowBatch.rows[i];
+					Object o1 = vec[i];
+					Object o2 = term.eval(row);
+					if (o1 != null && o2 != null)
+						matches[i] = cmp.compare(o1, o2) == 0;
+				}
+			}
+
+			return matches;
 		}
 	}
 
@@ -201,28 +257,47 @@ public class In extends FunctionExpression implements VectorizedExpression {
 
 	@Override
 	public Object evalOne(VectorizedRowBatch vbatch, int i) {
-		// TODO Auto-generated method stub
-		return null;
+		Object arg = vbatch.evalOne(field, i);
+		if (arg instanceof String && exactTerms.contains(arg))
+			return true;
+		
+		for (FieldMatcher matcher : matchers) {
+			if (matcher.matchOne(vbatch, i, arg))
+				return true;
+		}
+		
+		return false;
 	}
 
 	@Override
 	public Object[] eval(VectorizedRowBatch vbatch) {
-		Object[] values = vbatch.eval(field);
-		int len = values.length;
-		Object[] matches = new Object[len];
+		Object[] args = vbatch.eval(field);
+		boolean[] matches = evalExactMatches(args);
+		for (FieldMatcher matcher : matchers) {
+			boolean[] vec = matcher.match(vbatch, args);
+			for (int i = 0; i < args.length; i++)
+				matches[i] |= vec[i];
+		}
+
+		Object[] objs = new Object[args.length];
+		for (int i = 0; i < args.length; i++)
+			objs[i] = matches[i];
+		return objs;
+	}
+
+	private boolean[] evalExactMatches(Object[] args) {
+		int len = args.length;
+		boolean[] matches = new boolean[len];
 
 		for (int i = 0; i < len; i++) {
 			matches[i] = Boolean.FALSE;
-			Object o = values[i];
+			Object o = args[i];
 			if (o == null)
 				continue;
 
-			if (exactTerms.contains(o))
+			if (o instanceof String && exactTerms.contains(o))
 				matches[i] = Boolean.TRUE;
-
-			// TODO: add wild and generic matchers
 		}
-
 		return matches;
 	}
 

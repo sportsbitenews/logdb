@@ -54,8 +54,13 @@ public class Eq extends BinaryExpression {
 	public Object[] eval(VectorizedRowBatch vbatch) {
 		Object[] vec1 = vbatch.eval(lhs);
 
-		if (matcher != null)
-			return matcher.match(vec1);
+		if (matcher != null) {
+			boolean[] matches = matcher.match(vbatch, vec1);
+			Object[] objs = new Object[matches.length];
+			for (int i = 0; i < objs.length; i++)
+				objs[i] = matches[i];
+			return objs;
+		}
 
 		Object[] vec2 = vbatch.eval(rhs);
 		Object[] values = new Object[vbatch.size];
