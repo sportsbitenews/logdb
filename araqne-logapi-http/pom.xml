@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logapi-http</artifactId>
-	<version>0.2.5-SNAPSHOT</version>
+	<version>0.2.4</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log API HTTP</name>
 	<build>
@@ -73,7 +73,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.10.5-SNAPSHOT</version>
+			<version>3.10.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
@@ -83,7 +83,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-httpd</artifactId>
-			<version>1.4.15-SNAPSHOT</version>
+			<version>1.4.14</version>
 		</dependency>
 	</dependencies>
 </project>

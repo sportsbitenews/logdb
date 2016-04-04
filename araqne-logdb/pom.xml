@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-logdb</artifactId>
-	<version>3.2.11-SNAPSHOT</version>
+	<version>3.2.10</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Log DB</name>
 	<build>
@@ -122,12 +122,12 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-logstorage</artifactId>
-			<version>3.6.3-SNAPSHOT</version>
+			<version>3.6.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-log-api</artifactId>
-			<version>3.10.5-SNAPSHOT</version>
+			<version>3.10.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.araqne</groupId>

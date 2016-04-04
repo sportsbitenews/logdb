@@ -9,7 +9,7 @@
 		<version>1.0.0</version>
 	</parent>
 	<artifactId>araqne-storage</artifactId>
-	<version>1.6.3-SNAPSHOT</version>
+	<version>1.6.2</version>
 	<packaging>bundle</packaging>
 	<name>Araqne Storage</name>
 	<build>

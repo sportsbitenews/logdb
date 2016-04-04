@@ -76,7 +76,7 @@
 		<dependency>
 			<groupId>org.araqne</groupId>
 			<artifactId>araqne-storage</artifactId>
-			<version>1.6.3-SNAPSHOT</version>
+			<version>1.6.2</version>
 		</dependency>
 	</dependencies>
 </project>
