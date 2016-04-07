@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 
 import org.araqne.logdb.cep.offheap.allocator.IntegerFirstFitAllocator;
-import org.araqne.logdb.cep.offheap.storage.UnsafeStringStorageArea;
+import org.araqne.logdb.cep.offheap.storageArea.UnsafeStringStorageArea;
 import org.junit.Test;
 
 public class AllocatorTest {

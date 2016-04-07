@@ -69,13 +69,25 @@ public class CepScript implements Script {
 		context.println("set");
 	}
 
-	public void clearContexts(String[] args) {
+	public void clearContexts(String[] args) throws InterruptedException {
+		context.print("All event contexts will be Deleted. continue? (Y/n)");
+		String s = context.readLine();
+		if (s.equalsIgnoreCase("n")) {
+			return;
+		}
+		
 		EventContextStorage storage = getEventStorage();
 		storage.clearContexts();
 		context.println("completed");
 	}
 
-	public void clearClocks(String[] args) {
+	public void clearClocks(String[] args) throws InterruptedException {
+		context.print("All event contexts will be Deleted. continue? (Y/n)");
+		String s = context.readLine();
+		if (s.equalsIgnoreCase("n")) {
+			return;
+		}
+
 		EventContextStorage storage = getEventStorage();
 		storage.clearClocks();
 		context.println("completed");
@@ -114,6 +126,11 @@ public class CepScript implements Script {
 				context.println("expire [" + df.format(item.getExpireTime()) + "] " + item.getKey());
 			}
 		}
+	}
+
+	public void engine(String[] args) {
+		EventContextStorage storage = getEventStorage();
+		context.println("cep engine : " + storage.getName());
 	}
 
 	@ScriptUsage(description = "print external clocks", arguments = {

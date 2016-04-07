@@ -5,10 +5,14 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 
 import org.araqne.logdb.cep.offheap.allocator.IntegerFirstFitAllocator;
+import org.araqne.logdb.cep.offheap.storageArea.UnsafeStringStorageArea;
 import org.junit.Test;
 
 public class UnsafeStringStorageAreaTest {
 
+	/*
+	 * test method : setValue(), getValue()
+	 */
 	@Test
 	public void basicTest() {
 		UnsafeStringStorageArea storageArea = new UnsafeStringStorageArea(1000);
@@ -26,8 +30,11 @@ public class UnsafeStringStorageAreaTest {
 		storageArea.close();
 	}
 
+	/*
+	 * test method : setAddress()
+	 */
 	@Test
-	public void allocateTest() throws IOException {
+	public void setAddressTest() throws IOException {
 		UnsafeStringStorageArea storageArea = new UnsafeStringStorageArea(1000);
 
 		storageArea.setAddress(0, 0);
@@ -35,32 +42,27 @@ public class UnsafeStringStorageAreaTest {
 		storageArea.setAddress(8, 2);
 		storageArea.setAddress(12, 3);
 
-		// System.out.println(storageArea.getAddress(0));
 		assertEquals(0, storageArea.getAddress(0));
-		// System.out.println(storageArea.getAddress(4));
 		assertEquals(1, storageArea.getAddress(4));
-		// System.out.println(storageArea.getAddress(8));
 		assertEquals(2, storageArea.getAddress(8));
-		// System.out.println(storageArea.getAddress(12));
 		assertEquals(3, storageArea.getAddress(12));
 
 		storageArea.close();
 	}
 
+	/*
+	 *  test method : allocate(), free()
+	 */
 	@Test
-	public void withAllocatorTest1() throws IOException {
+	public void allocatorTest() throws IOException {
 		UnsafeStringStorageArea storageArea = new UnsafeStringStorageArea(10000);
 		IntegerFirstFitAllocator allocator = new IntegerFirstFitAllocator(storageArea);
-		// System.out.println("**init state**\n" + allocator.toString());
 
 		String value = "abcdefghijklmn";
 		int address = allocator.allocate(value.getBytes().length);
-		// System.out.println(address);
-		// System.out.println("**allocate 1 state**\n" + allocator.toString());
 		storageArea.setValue(address, value);
 		assertEquals(value, storageArea.getValue(address));
 		allocator.free(address);
-		// System.out.println("free 1 state " + allocator.toString());
 		storageArea.close();
 	}
 

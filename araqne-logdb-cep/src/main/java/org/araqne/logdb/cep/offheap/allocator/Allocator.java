@@ -6,6 +6,6 @@ public interface Allocator {
 	void free(int address);
 
 	void clear();
-	
+
 	int space(int address);
 }

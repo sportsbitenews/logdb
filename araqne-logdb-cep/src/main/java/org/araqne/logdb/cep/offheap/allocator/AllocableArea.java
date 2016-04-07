@@ -1,6 +1,6 @@
 package org.araqne.logdb.cep.offheap.allocator;
 
-import org.araqne.logdb.cep.offheap.storage.StorageArea;
+import org.araqne.logdb.cep.offheap.storageArea.StorageArea;
 
 public interface AllocableArea<V> extends StorageArea<V> {
 

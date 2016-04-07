@@ -16,9 +16,9 @@
 package org.araqne.logdb.cep;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -177,18 +177,18 @@ public class EventContext implements EventClockItem {
 	}
 
 	public EventContext clone() {
-		EventContext context =  new EventContext(key, created, expireTime, timeoutTime.get(), maxRows);
+		EventContext context = new EventContext(key, created, expireTime, timeoutTime.get(), maxRows);
 		context.counter.set(counter.get());
 
-		for(Row row : rows) 
+		for (Row row : rows)
 			context.addRow(row);
-		
-		for(Entry<String, Object> entry : getVariables().entrySet()) 
+
+		for (Entry<String, Object> entry : getVariables().entrySet())
 			context.setVariable(entry.getKey(), entry.getValue());
-		
+
 		return context;
 	}
-	
+
 	@Override
 	public int hashCode() {
 		return key.hashCode();
@@ -208,63 +208,43 @@ public class EventContext implements EventClockItem {
 		// topic and key is always not null
 		EventContext other = (EventContext) obj;
 
-		// if (host == null) {
-		// if (other.host != null)
-		// return false;
-		// return key.equals(other.key) && topic.equals(other.topic);
-		// }
-		
-//		if(counter.get() == other.getCounter().get()) {
-//			System.out.println("counter equals" + counter.get());
-//		} else 
-//			System.out.println(counter + " " + other.getCounter());
-//		
-//		if(variables.equals(other.getVariables()))
-//			System.out.println("variables equals " + variables);
-		
-
-//		List<Row> otherRows = other.getRows();
-//		for(int i = 0; i < rows.size(); i++) {
-//			if(rows.get(i).equals(otherRows.get(i))) {
-//			} 
-//		}
-//		if(Arrays.deepEquals(rows.toArray(), other.getRows().toArray()))
-//			System.out.println("dd row equals" + rows);
-//		
-//		
-//		if(equalRowLists(rows, other.getRows())) 
-//			System.out.println("row equals" + rows);
-//		else 
-//			System.out.println(rows + "   " + other.getRows());
-
-		return key.equals(other.getKey()) 
-				&& created == other.getCreated() 
-				&& expireTime == other.getExpireTime()
-				&& timeoutTime.get() == other.getTimeoutTime()
-				&& maxRows == other.getMaxRows()
+		return key.equals(other.getKey()) && created == other.getCreated() && expireTime == other.getExpireTime()
+				&& timeoutTime.get() == other.getTimeoutTime() && maxRows == other.getMaxRows()
 				&& counter.get() == other.getCounter().get()
-			//	&& rows.equals(other.getRows())
+				&& equalRowLists(other.getRows())
 				&& variables.equals(other.getVariables());
 	}
-	
-	public  boolean equalRowLists(List<Row> one, List<Row> two){     
-	    if (one == null && two == null){
-	        return true;
-	    }
 
-	    if((one == null && two != null) 
-	      || one != null && two == null
-	      || one.size() != two.size()){
-	        return false;
-	    }
+	public boolean equalRowLists(List<Row> one) {
+		if (rows == null && one == null) {
+			return true;
+		}
 
-	    //to avoid messing the order of the lists we will use a copy
-	    //as noted in comments by A. R. S.
-	//    one = new ArrayList<Row>(one); 
-	 //   two = new ArrayList<Row>(two);   
+		if ((one == null && rows != null) || one != null && rows == null || one.size() != rows.size()) {
+			return false;
+		}
 
-	    //Collections.sort(one);
-	    //Collections.sort(two);      
-	    return one.equals(two);
+		for(int i = 0; i < rows.size(); i++) {
+			Map<String, Object> map1 = rows.get(i).map();
+			Map<String, Object> map2 = one.get(i).map();
+
+			if (map1 == null && map2 == null) {
+				continue;
+			}
+
+			if ((map1 == null && map2 != null) || map1 != null && map2 == null || map1.size() != map2.size() || !map1.equals(map2)) {
+				return false;
+			}
+		}
+
+		return true;
+	}		
+
+	@Override
+	public String toString() {
+		return "[key = " + key.toString() + ", create = " + new Date(created) + ", expire time = "
+				+ new Date(expireTime) + ", timeout time = " + new Date(timeoutTime.get()) + ", max rows = " + maxRows
+				+ ", counter = " + counter.get() + ", rows = " + rows + ", variables = " + variables + "]";
 	}
+
 }

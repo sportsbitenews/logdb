@@ -113,7 +113,7 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 	public Iterator<EventKey> getContextKeys(String topic) {
 		if (topic == null)
 			return new HashSet<EventKey>(contexts.keySet()).iterator();
-		
+
 		HashSet<EventKey> keys = new HashSet<EventKey>();
 
 		for (EventKey key : contexts.keySet()) {
@@ -129,8 +129,8 @@ public class MemoryEventContextStorage implements EventContextStorage, EventCont
 		return contexts.get(key);
 	}
 
-	private EventClock<EventContext> ensureClock(ConcurrentHashMap<String, EventClock<EventContext>> clocks, String host,
-			long time) {
+	private EventClock<EventContext> ensureClock(ConcurrentHashMap<String, EventClock<EventContext>> clocks,
+			String host, long time) {
 		EventClock<EventContext> clock = null;
 		clock = clocks.get(host);
 		if (clock == null) {

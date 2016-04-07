@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Eediom Inc.
+ * Copyright 2016 Eediom Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,12 +41,9 @@ import org.araqne.logdb.cep.EventContextService;
 import org.araqne.logdb.cep.EventContextStorage;
 import org.araqne.logdb.cep.EventKey;
 import org.araqne.logdb.cep.EventSubscriber;
-import org.araqne.logdb.cep.offheap.ConcurrentOffHeapHashMap;
-import org.araqne.logdb.cep.offheap.engine.ReferenceStorageEngineFactory;
-import org.araqne.logdb.cep.offheap.engine.StorageEngineFactory;
-import org.araqne.logdb.cep.offheap.engine.serialize.EventContextSerialize;
-import org.araqne.logdb.cep.offheap.engine.serialize.EventKeySerialize;
-import org.araqne.logdb.cep.offheap.timeout.OffHeapEventListener;
+import org.araqne.logdb.cep.offheap.TimeoutMap;
+import org.araqne.logdb.cep.offheap.evict.TimeoutEventListener;
+import org.araqne.logdb.cep.offheap.factory.ConcurrentTimeoutMapFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +58,7 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 	private TickService tickService;
 
 	private ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>> subscribers;
-	private ConcurrentOffHeapHashMap<EventKey, EventContext> contexts;
+	private TimeoutMap<EventKey, EventContext> contexts;
 	private RealClockTask realClockTask = new RealClockTask();
 	private CepListener listener = new CepListener();
 
@@ -72,14 +69,11 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 
 	@Validate
 	public void start() {
-		StorageEngineFactory<EventKey, EventContext> factory = new ReferenceStorageEngineFactory<EventKey, EventContext>(
-				1024 * 1024 * 16, 512, new EventKeySerialize(), new EventContextSerialize());
-		contexts = new ConcurrentOffHeapHashMap<EventKey, EventContext>(factory);
+		contexts = ConcurrentTimeoutMapFactory.event(7, 1024 * 1024, 1024).map();
 		contexts.addListener(listener);
 		subscribers = new ConcurrentHashMap<String, CopyOnWriteArraySet<EventSubscriber>>();
 		tickService.addTimer(realClockTask);
 		eventContextService.registerStorage(this);
-
 	}
 
 	@Invalidate
@@ -93,17 +87,12 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 		subscribers.clear();
 	}
 
-	// ctx 저장 -> 기존에 존재하면 row만 추가, 없으면 ctx전체 추가
-	// 기존 ctx를 가져온다
-	// ctx add
-	// 기존 변경된 값이 변화되지 않으면 input
-	// 변경되었으면 첨부터 다시..
 	@Override
 	public void storeContext(EventContext ctx) {
 		while (true) {
 			EventContext oldCtx = contexts.get(ctx.getKey());
-			if (oldCtx == null) { /* 신규 추가 */
-				if (contexts.putIfAbsent(ctx.getKey(), ctx, ctx.getHost(), ctx.getExpireTime(), ctx.getTimeoutTime()) == null) {
+			if (oldCtx == null) {
+				if (contexts.putIfAbsent(ctx.getKey(), ctx, ctx.getHost(), ctx.getExpireTime(), ctx.getTimeoutTime())) {
 					generateEvent(ctx, EventCause.CREATE);
 					break;
 				}
@@ -128,6 +117,9 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 
 	@Override
 	public EventClock<EventContext> getClock(String host) {
+		if (!contexts.hostSet().contains(host))
+			return null;
+
 		return new OffheapEventClock(host);
 	}
 
@@ -158,7 +150,7 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 
 			EventContext oldCtx = ctx.clone();
 			ctx.setVariable(key, value);
-			if (contexts.replace(eventKey, oldCtx, ctx))
+			if (contexts.replace(eventKey, oldCtx, ctx, null, 0L))
 				break;
 		}
 	}
@@ -185,7 +177,10 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 
 	@Override
 	public void clearClocks() {
-		contexts.clearClock();
+		contexts.clear();
+		// generate log
+		// clearContexts();
+		// contexts.clearClock();
 	}
 
 	@Override
@@ -242,7 +237,6 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 
 	@Override
 	public void onUpdateTimeout(EventContext ctx) {
-		// timeout 관련 동작은 map 내부에서 처리함
 	}
 
 	@Override
@@ -261,10 +255,10 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 		return contexts;
 	}
 
-	private class CepListener implements OffHeapEventListener<EventKey, EventContext> {
+	private class CepListener implements TimeoutEventListener<EventKey, EventContext> {
 
 		@Override
-		public void onExpire(EventKey key, EventContext ctx, long time) {
+		public void onTimeout(EventKey key, EventContext ctx, long time) {
 			if (ctx.getExpireTime() == time)
 				generateEvent(ctx, EventCause.EXPIRE);
 			else
@@ -321,6 +315,21 @@ public class OffHeapEventContextStorage implements EventContextStorage, EventCon
 		@Override
 		public List<EventContext> getExpireContexts() {
 			return contexts.expireQueue(host);
+		}
+
+		@Override
+		public Date getTime() {
+			return new Date(contexts.getLastTime(host));
+		}
+
+		@Override
+		public int getExpireQueueLength() {
+			return contexts.expireQueue(host).size();
+		}
+
+		@Override
+		public int getTimeoutQueueLength() {
+			return contexts.timeoutQueue(host).size();
 		}
 
 		@Override

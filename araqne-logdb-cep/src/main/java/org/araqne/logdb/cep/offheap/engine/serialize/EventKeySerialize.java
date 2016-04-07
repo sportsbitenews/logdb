@@ -16,7 +16,7 @@ public class EventKeySerialize implements Serialize<EventKey> {
 	}
 
 	@Override
-	public EventKey deserialize(byte[] in) {// , int offset, int length) {
+	public EventKey deserialize(byte[] in) {
 		Object[] array = EncodingRule.decodeArray(ByteBuffer.wrap(in));
 		return new EventKey((String) array[0], (String) array[1], (String) array[2]);
 	}

@@ -33,7 +33,7 @@ public class EventKey {
 		else
 			this.hashCode = topic.hashCode() ^ key.hashCode();
 	}
-
+	
 	public String getTopic() {
 		return topic;
 	}
@@ -77,7 +77,7 @@ public class EventKey {
 	@Override
 	public String toString() {
 		if (host == null)
-			return "topic=" + topic + ", key=" + key;
-		return "topic=" + topic + ", key=" + key + ", host=" + host;
+			return "[topic=" + topic + ", key=" + key + "]";
+		return "[topic=" + topic + ", key=" + key + ", host=" + host + "]";
 	}
 }

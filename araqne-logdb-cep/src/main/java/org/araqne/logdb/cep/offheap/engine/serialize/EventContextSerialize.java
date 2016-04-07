@@ -57,18 +57,18 @@ public class EventContextSerialize implements Serialize<EventContext> {
 		HashMap<String, Object> variables = (HashMap<String, Object>) array[6];
 		Integer count = (Integer) array[7];
 
-		EventContext cxt = new EventContext(key, created, expireTime, timeoutTime, maxRows);
+		EventContext ctx = new EventContext(key, created, expireTime, timeoutTime, maxRows);
 		for (Row row : rows)
-			cxt.addRow(row);
+			ctx.addRow(row);
 
 		if (count != null)
-			cxt.getCounter().addAndGet(count);
+			ctx.getCounter().addAndGet(count);
 
 		if (variables != null)
 			for (String s : variables.keySet())
-				cxt.setVariable(s, variables.get(s));
+				ctx.setVariable(s, variables.get(s));
 
-		return cxt;
+		return ctx;
 	}
 
 	private List<Map<String, Object>> format(List<Row> rows) {
@@ -87,5 +87,5 @@ public class EventContextSerialize implements Serialize<EventContext> {
 		}
 		return rows;
 	}
-	
+
 }

@@ -5,22 +5,22 @@ public class Entry<K, V> {
 	private V value;
 	private int hash;
 	private long next;
-	private long timeoutTime;
+	private long evictTime;
 	private int maxSize;
-	
-	public Entry(K key, V value, int hash, long next, long timeoutTime) {
-		this(key, value, hash, next, timeoutTime, 0);
+
+	public Entry(K key, V value, int hash, long next, long time) {
+		this(key, value, hash, next, time, 0);
 	}
 
-	public Entry(K key, V value, int hash, long next, long timeoutTime, int maxSize) {
+	public Entry(K key, V value, int hash, long next, long time, int maxSize) {
 		this.key = key;
 		this.value = value;
 		this.hash = hash;
 		this.next = next;
-		this.timeoutTime = timeoutTime;
+		this.evictTime = time;
 		this.maxSize = maxSize;
 	}
-	
+
 	public int getHash() {
 		return hash;
 	}
@@ -51,24 +51,24 @@ public class Entry<K, V> {
 		this.next = next;
 	}
 
-	public long getTimeoutTime() {
-		return timeoutTime;
+	public long getEvictTime() {
+		return evictTime;
 	}
 
-	public void setTimeoutTime(long timeoutTime) {
-		this.timeoutTime = timeoutTime;
+	public void setEvictTime(long time) {
+		this.evictTime = time;
 	}
 
 	public int getMaxSize() {
 		return maxSize;
 	}
-	
+
 	public void setMaxSize(int maxSize) {
 		this.maxSize = maxSize;
 	}
 
 	public String toString() {
 		return "key = " + key + ", value = " + value + ", hash = " + hash + ", next address = " + next
-				+ ", timeout time = " + timeoutTime + ", max size = " + maxSize;
+				+ ", evict time = " + evictTime + ", max size = " + maxSize;
 	}
 }

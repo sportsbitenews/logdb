@@ -33,7 +33,7 @@ public class CepEventLoggerFactory extends AbstractLoggerFactory {
 	public List<Locale> getLocales() {
 		return Arrays.asList(Locale.ENGLISH, Locale.KOREAN, Locale.CHINESE, Locale.JAPANESE);
 	}
-	
+
 	@Override
 	public String getDisplayName(Locale locale) {
 		if (locale != null && locale.equals(Locale.KOREAN))
@@ -60,8 +60,8 @@ public class CepEventLoggerFactory extends AbstractLoggerFactory {
 	@Override
 	public Collection<LoggerConfigOption> getConfigOptions() {
 		LoggerConfigOption topics = new MutableStringConfigType("topics", t("Event Topics", "이벤트 주제 목록", "事件topic列表",
-				"イベントトピックリスト"),
-				t("Comma separated event topics", "쉼표로 구분된 이벤트 주제 목록", "输入事件topic列表(逗号分隔)。", "コンマ区切りのイベントトピックリスト"), true);
+				"イベントトピックリスト"), t("Comma separated event topics", "쉼표로 구분된 이벤트 주제 목록", "输入事件topic列表(逗号分隔)。",
+				"コンマ区切りのイベントトピックリスト"), true);
 		return Arrays.asList(topics);
 	}
 
